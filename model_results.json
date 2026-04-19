@@ -1,0 +1,104 @@
+{
+  "devstral:24b": {
+    "factual": {
+      "response": "World War II ended in 1945.",
+      "ttft_s": 2.77,
+      "generation_s": 0.74,
+      "error": null,
+      "theatrical": false
+    },
+    "weather": {
+      "response": "The current weather is sunny with a high of 75\u00b0F (24\u00b0C) and a low of 60\u00b0F (15\u00b0C).",
+      "ttft_s": 0.2,
+      "generation_s": 2.19,
+      "error": null,
+      "theatrical": false
+    },
+    "theatrical": {
+      "response": "What do you call fake spaghetti? An impasta",
+      "ttft_s": 0.21,
+      "generation_s": 0.8,
+      "error": null,
+      "theatrical": false
+    },
+    "code": {
+      "response": "```python\ndef is_palindrome(s):\n    return s == s[::-1]\n```\n\nThis function takes a string `s` as input and returns `True` if the string is a palindrome, and `False` otherwise. The slicing operation `s[::-1]` creates a reversed version of the string, which is then compared to the original string.",
+      "ttft_s": 0.2,
+      "generation_s": 5.21,
+      "error": null,
+      "theatrical": false
+    },
+    "reasoning": {
+      "response": "Before leaving:\n\n1. **Route Planning**: Check the best route and traffic conditions. Consider using a navigation app.\n2. **Vehicle Check**: Ensure your car is in good condition: check tires, fluids, brakes, and lights.\n3. **Supplies**: Pack water, snacks, emergency kit, and any necessary documents (ID, insurance, etc.).\n4. **Weather**: Be aware of the forecasted weather conditions for the duration of your trip.\n5. **Rest Stops**: Plan rest stops along the way to avoid fatigue.\n6. **Tolls**: Be prepared for toll roads with cash or a compatible transponder.\n7. **Communication**: Ensure your phone is fully charged and you have a car charger.\n\nSafe travels!",
+      "ttft_s": 0.38,
+      "generation_s": 10.06,
+      "error": null,
+      "theatrical": true
+    },
+    "math": {
+      "response": "The product of 17 and 38 is 646.",
+      "ttft_s": 0.24,
+      "generation_s": 1.08,
+      "error": null,
+      "theatrical": false
+    },
+    "code_agent": {
+      "response": "To add a `POST /summarize` endpoint to your FastAPI app, follow these steps:\n\n1. **Install necessary dependencies**:\n   ```bash\n   pip install fastapi httpx\n   ```\n\n2. **Create the FastAPI app with the new endpoint**:\n\n   ```python\n   from typing import Any\n   from pydantic import BaseModel\n   from fastapi import FastAPI, HTTPException\n\n   app = FastAPI()\n\n   class SummarizeRequest(BaseModel):\n       text: str\n       max_sentences: int\n\n   def summarize_text(text: str, max_sentences: int) -> str:\n       sentences = text.split('. ')\n       summary_sentences = '. '.join(sentences[:max_sentences])\n       return summary_sentences + '.' if summary_sentences else \"\"\n\n   @app.post(\"/summarize\", response_model=dict)\n   async def summarize(request: SummarizeRequest) -> dict[str, str]:\n       if not request.text:\n           raise HTTPException(status_code=400, detail=\"Text is required.\")\n       if not (1 <= request.max_sentences <= len(request.text.split('. '))):\n           raise HTTPException(status_code=400, detail=\"Invalid max_sentences value.\")\n\n       summary = summarize_text(request.text, request.max_sentences)\n       return {\"summary\": summary}\n\n   if __name__ == \"__main__\":\n       import uvicorn\n       uvicorn.run(app, host=\"127.0.0.1\", port=8000)\n   ```\n\n3. **Create a test using `httpx.AsyncClient`**:\n\n   ```python\n   import pytest\n   from httpx import AsyncClient\n\n   @pytest.mark.asyncio\n   async def test_summarize():\n       async with AsyncClient(app=app, base_url=\"http://test\") as ac:\n           response = await ac.post(\"/summarize\", json={\n               \"text\": \"This is a sentence. This is another sentence. Here is the third one.\",\n               \"max_sentences\": 2\n           })\n           assert response.status_code == 200\n           assert response.json() == {\"summary\": \"This is a sentence. This is another sentence.\"}\n\n   if __name__ == \"__main__\":\n       pytest.main([__file__])\n   ```\n\nThis code defines the FastAPI app with input validation and includes a test using `httpx.AsyncClient`. The summarization function extracts the first N sentences from the provided text.",
+      "ttft_s": 0.41,
+      "generation_s": 35.05,
+      "error": null,
+      "theatrical": false
+    }
+  },
+  "mistral-nemo:12b": {
+    "factual": {
+      "response": "World War II ended in 1945.",
+      "ttft_s": 0.3,
+      "generation_s": 0.37,
+      "error": null,
+      "theatrical": false
+    },
+    "weather": {
+      "response": "Current temperature: 72\u00b0F (22.2\u00b0C). Weather conditions: Partly cloudy with a light breeze. Forecast for tomorrow: Mostly sunny, high of 81\u00b0F (27.2\u00b0C).",
+      "ttft_s": 0.1,
+      "generation_s": 1.66,
+      "error": null,
+      "theatrical": false
+    },
+    "theatrical": {
+      "response": "What do you call a fake noodle? An impasta",
+      "ttft_s": 0.1,
+      "generation_s": 0.4,
+      "error": null,
+      "theatrical": false
+    },
+    "code": {
+      "response": "Here's a Python function that checks if a given string is a palindrome:\n\n```python\ndef is_palindrome(s: str) -> bool:\n    return s == s[::-1]\n```\n\nYou can use it like this:\n\n```python\nprint(is_palindrome(\"racecar\"))  # Outputs: True\nprint(is_palindrome(\"hello\"))   # Outputs: False\n```",
+      "ttft_s": 0.11,
+      "generation_s": 2.79,
+      "error": null,
+      "theatrical": false
+    },
+    "reasoning": {
+      "response": "Check traffic conditions on route. Plan fuel stops. Consider rest areas for breaks. Pack necessary items: maps/GPS, phone charger, snacks, water. Inform someone of your travel plans and estimated arrival time.",
+      "ttft_s": 0.17,
+      "generation_s": 1.4,
+      "error": null,
+      "theatrical": false
+    },
+    "math": {
+      "response": "646",
+      "ttft_s": 0.12,
+      "generation_s": 0.1,
+      "error": null,
+      "theatrical": false
+    },
+    "code_agent": {
+      "response": "Here's how you can add the `/summarize` endpoint to your FastAPI app with input validation and a simple extract-based summarization:\n\n```python\nfrom fastapi import FastAPI, HTTPException\nfrom pydantic import BaseModel\nfrom typing import Optional\n\napp = FastAPI()\n\nclass SummarizeRequest(BaseModel):\n    text: str\n    max_sentences: Optional[int] = 3\n\n@app.post(\"/summarize\")\nasync def summarize(req: SummarizeRequest):\n    if req.max_sentences <= 0:\n        raise HTTPException(status_code=400, detail=\"Max sentences must be a positive integer\")\n\n    sentences = req.text.split('. ')\n    summary = '\\n'.join(sentences[:req.max_sentences])\n\n    return {\"summary\": summary}\n\nimport httpx\nasync with httpx.AsyncClient() as client:\n    response = await client.post(\"http://localhost:8000/summarize\", json={\"text\": \"This is a test. This is only a test.\"})\n    print(response.json())\n```\n\nIn this example, the `summarize` function extracts the first `max_sentences` sentences from the input text and returns them as a summary. The input validation checks that `max_sentences` is a positive integer.\n\nThe last part of the code is an example test using `httpx.AsyncClient`.",
+      "ttft_s": 0.28,
+      "generation_s": 9.61,
+      "error": null,
+      "theatrical": false
+    }
+  }
+}

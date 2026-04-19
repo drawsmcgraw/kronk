@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kronk — Health</title>
+<script src="/static/chart.min.js"></script>
+<link rel="stylesheet" href="/static/kronk.css">
+<style>
+  :root { --indigo: #6366f1; }
+  header { position: sticky; top: 0; z-index: 10; gap: 12px; }
+
+  .sync-status {
+    font-size: 11px;
+    color: var(--text3);
+    font-family: monospace;
+  }
+
+  .period-tabs {
+    display: flex;
+    gap: 4px;
+    margin-left: auto;
+  }
+
+  .period-tab {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text3);
+    font-size: 12px;
+    padding: 4px 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .period-tab:hover { color: var(--text2); }
+  .period-tab.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+
+  .sync-btn {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text2);
+    font-size: 12px;
+    padding: 4px 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .sync-btn:hover { background: var(--green); border-color: var(--green); color: #fff; }
+  .sync-btn:disabled { opacity: 0.5; cursor: default; }
+
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  /* ── Comparison cards ──────────────────────────────────────────────── */
+  .compare-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+
+  @media (max-width: 700px) { .compare-grid { grid-template-columns: repeat(2, 1fr); } }
+
+  .compare-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem;
+  }
+
+  .compare-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text3);
+    margin-bottom: 0.5rem;
+  }
+
+  .compare-value {
+    font-size: 26px;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 0.35rem;
+  }
+
+  .compare-value .unit {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--text2);
+    margin-left: 2px;
+  }
+
+  .compare-delta {
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--text3);
+  }
+
+  .compare-delta .arrow { font-size: 11px; }
+  .compare-delta.up   { color: var(--green); }
+  .compare-delta.down { color: var(--red); }
+  .compare-delta.neutral { color: var(--text3); }
+
+  .compare-prior {
+    font-size: 11px;
+    color: var(--text3);
+    margin-top: 2px;
+  }
+
+  /* For metrics where lower is better (resting HR), flip delta colors */
+  .compare-delta.up.lower-is-better   { color: var(--red); }
+  .compare-delta.down.lower-is-better { color: var(--green); }
+
+  /* ── Section cards ─────────────────────────────────────────────────── */
+  .section-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem 1.4rem;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 1.25rem;
+  }
+
+  .section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .section-subtitle {
+    font-size: 11px;
+    color: var(--text3);
+    margin-left: auto;
+  }
+
+  .chart-wrap {
+    position: relative;
+    height: 200px;
+  }
+
+  /* ── Activity list ─────────────────────────────────────────────────── */
+  .activity-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0.5rem 0;
+    border-top: 1px solid var(--border);
+  }
+  .activity-row:first-child { border-top: none; }
+
+  .activity-icon { font-size: 18px; width: 28px; text-align: center; flex-shrink: 0; }
+
+  .activity-info { flex: 1; min-width: 0; }
+  .activity-name { font-size: 13px; font-weight: 500; }
+  .activity-meta { font-size: 11px; color: var(--text3); margin-top: 1px; }
+
+  .activity-date { font-size: 11px; color: var(--text3); white-space: nowrap; }
+
+  /* ── Placeholder ───────────────────────────────────────────────────── */
+  .placeholder-body {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 1rem 0;
+    color: var(--text3);
+    font-size: 13px;
+  }
+
+  .placeholder-icon { font-size: 28px; }
+
+  /* ── Steps row ─────────────────────────────────────────────────────── */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  @media (max-width: 700px) { .two-col { grid-template-columns: 1fr; } }
+
+  .empty { color: var(--text3); font-size: 13px; padding: 1rem 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-dot"></div>
+  <h1>Health</h1>
+  <span class="sync-status" id="sync-status">—</span>
+
+  <div class="period-tabs">
+    <button class="period-tab" data-days="28">4w</button>
+    <button class="period-tab active" data-days="84">12w</button>
+    <button class="period-tab" data-days="365">1yr</button>
+  </div>
+
+  <button class="sync-btn" id="sync-btn" onclick="triggerSync()">Sync</button>
+</header>
+
+<main>
+
+  <!-- Comparison cards -->
+  <div class="compare-grid">
+    <div class="compare-card" id="cmp-sleep">
+      <div class="compare-label">Avg Sleep</div>
+      <div class="compare-value">—</div>
+      <div class="compare-delta neutral">—</div>
+      <div class="compare-prior"></div>
+    </div>
+    <div class="compare-card" id="cmp-score">
+      <div class="compare-label">Sleep Score</div>
+      <div class="compare-value">—</div>
+      <div class="compare-delta neutral">—</div>
+      <div class="compare-prior"></div>
+    </div>
+    <div class="compare-card" id="cmp-hrv">
+      <div class="compare-label">HRV</div>
+      <div class="compare-value">—</div>
+      <div class="compare-delta neutral">—</div>
+      <div class="compare-prior"></div>
+    </div>
+    <div class="compare-card" id="cmp-rhr">
+      <div class="compare-label">Resting HR</div>
+      <div class="compare-value">—</div>
+      <div class="compare-delta neutral">—</div>
+      <div class="compare-prior"></div>
+    </div>
+  </div>
+
+  <!-- Sleep chart -->
+  <div class="section-card">
+    <div class="section-header">
+      <span class="section-title">Sleep</span>
+      <span class="section-subtitle" id="sleep-subtitle"></span>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="chart-sleep"></canvas>
+    </div>
+  </div>
+
+  <!-- Recovery chart -->
+  <div class="section-card">
+    <div class="section-header">
+      <span class="section-title">Recovery</span>
+      <span class="section-subtitle">HRV · Resting HR</span>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="chart-recovery"></canvas>
+    </div>
+  </div>
+
+  <!-- Activity + Steps -->
+  <div class="two-col">
+
+    <div class="section-card">
+      <div class="section-header">
+        <span class="section-title">Activities</span>
+        <span class="section-subtitle" id="activity-subtitle"></span>
+      </div>
+      <div id="activity-list"><div class="empty">no activities</div></div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-header">
+        <span class="section-title">Daily Steps</span>
+        <span class="section-subtitle" id="steps-subtitle"></span>
+      </div>
+      <div class="chart-wrap" style="height: 130px">
+        <canvas id="chart-steps"></canvas>
+      </div>
+      <div class="section-header" style="margin-top: 1.25rem">
+        <span class="section-title">Active Calories</span>
+        <span class="section-subtitle" id="calories-subtitle"></span>
+      </div>
+      <div class="chart-wrap" style="height: 130px">
+        <canvas id="chart-calories"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Body composition placeholder -->
+  <div class="section-card">
+    <div class="section-header">
+      <span class="section-title">Body Composition</span>
+    </div>
+    <div class="placeholder-body">
+      <span class="placeholder-icon">⚖️</span>
+      <span>Withings integration coming soon — weight, body fat, and muscle mass trends will appear here.</span>
+    </div>
+  </div>
+
+</main>
+
+<script>
+Chart.defaults.color = '#5c6480';
+Chart.defaults.borderColor = '#2a3044';
+Chart.defaults.font.family = "-apple-system, 'Segoe UI', system-ui, sans-serif";
+
+let currentDays = 84;
+let charts = {};
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function avg(arr) {
+  const valid = arr.filter(v => v != null && !isNaN(v));
+  return valid.length ? valid.reduce((a, b) => a + b, 0) / valid.length : null;
+}
+
+function fmtDate(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function fmtDuration(seconds) {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.round((seconds % 3600) / 60);
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
+
+function activityIcon(type) {
+  const icons = {
+    running: '🏃', treadmill_running: '🏃', walking: '🚶',
+    cycling: '🚴', strength_training: '🏋️', swimming: '🏊',
+    yoga: '🧘', hiking: '🥾',
+  };
+  return icons[type] || '🏅';
+}
+
+function groupByWeek(rows, dateKey, valueKey) {
+  // Returns array of { weekStart, values[] } sorted ascending
+  const weeks = {};
+  for (const row of rows) {
+    const d = new Date(row[dateKey] + 'T00:00:00');
+    // Week starts on Monday
+    const day = d.getDay(); // 0=Sun
+    const diff = (day === 0 ? -6 : 1 - day);
+    const monday = new Date(d);
+    monday.setDate(d.getDate() + diff);
+    const key = monday.toISOString().slice(0, 10);
+    if (!weeks[key]) weeks[key] = [];
+    if (row[valueKey] != null) weeks[key].push(row[valueKey]);
+  }
+  return Object.entries(weeks)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([weekStart, values]) => ({ weekStart, values }));
+}
+
+function destroyChart(id) {
+  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+}
+
+// ── Comparison cards ──────────────────────────────────────────────────────────
+
+function renderCompare(id, value, prior, unit, lowerIsBetter = false) {
+  const el = document.getElementById(id);
+  const valEl = el.querySelector('.compare-value');
+  const deltaEl = el.querySelector('.compare-delta');
+  const priorEl = el.querySelector('.compare-prior');
+
+  if (value == null) { valEl.textContent = '—'; deltaEl.textContent = '—'; return; }
+
+  valEl.innerHTML = `${typeof value === 'number' ? (Number.isInteger(value) ? value : value.toFixed(1)) : value}<span class="unit">${unit}</span>`;
+
+  if (prior == null) { deltaEl.textContent = 'no prior data'; return; }
+
+  const diff = value - prior;
+  const pct = prior !== 0 ? Math.round(Math.abs(diff) / prior * 100) : 0;
+  const up = diff > 0;
+  const arrow = up ? '↑' : '↓';
+  const sign = diff > 0 ? '+' : '';
+  const diffStr = Number.isInteger(diff) ? `${sign}${Math.round(diff)}` : `${sign}${diff.toFixed(1)}`;
+
+  deltaEl.innerHTML = `<span class="arrow">${arrow}</span> ${diffStr}${unit} (${pct}%) vs prior`;
+  deltaEl.className = `compare-delta ${up ? 'up' : 'down'}${lowerIsBetter ? ' lower-is-better' : ''}`;
+  priorEl.textContent = `prior avg: ${typeof prior === 'number' ? (Number.isInteger(prior) ? prior : prior.toFixed(1)) : prior}${unit}`;
+}
+
+// ── Sleep chart ───────────────────────────────────────────────────────────────
+
+function renderSleepChart(sleep, days) {
+  destroyChart('sleep');
+  const canvas = document.getElementById('chart-sleep');
+  const useWeekly = days > 28;
+
+  let labels, deep, light, rem, scores;
+
+  if (useWeekly) {
+    // Weekly averages
+    const weeks = groupByWeek(sleep, 'date', 'duration_hours');
+    const deepW = groupByWeek(sleep, 'date', 'deep_pct');
+    const lightW = groupByWeek(sleep, 'date', 'light_pct');
+    const remW = groupByWeek(sleep, 'date', 'rem_pct');
+    const scoreW = groupByWeek(sleep, 'date', 'score');
+
+    labels = weeks.map(w => fmtDate(w.weekStart));
+    deep   = deepW.map(w => avg(w.values) ? +avg(w.values).toFixed(1) : null);
+    light  = lightW.map(w => avg(w.values) ? +avg(w.values).toFixed(1) : null);
+    rem    = remW.map(w => avg(w.values) ? +avg(w.values).toFixed(1) : null);
+    scores = scoreW.map(w => avg(w.values) ? +avg(w.values).toFixed(0) : null);
+
+    document.getElementById('sleep-subtitle').textContent = 'avg by week · stages %';
+  } else {
+    const sorted = [...sleep].sort((a, b) => a.date.localeCompare(b.date));
+    labels = sorted.map(s => fmtDate(s.date));
+    deep   = sorted.map(s => s.deep_pct);
+    light  = sorted.map(s => s.light_pct);
+    rem    = sorted.map(s => s.rem_pct);
+    scores = sorted.map(s => s.score);
+    document.getElementById('sleep-subtitle').textContent = 'daily · stages %';
+  }
+
+  charts['sleep'] = new Chart(canvas, {
+    data: {
+      labels,
+      datasets: [
+        {
+          type: 'bar', label: 'Deep', data: deep,
+          backgroundColor: 'rgba(99,102,241,0.8)', stack: 'stages', yAxisID: 'y',
+        },
+        {
+          type: 'bar', label: 'REM', data: rem,
+          backgroundColor: 'rgba(139,92,246,0.8)', stack: 'stages', yAxisID: 'y',
+        },
+        {
+          type: 'bar', label: 'Light', data: light,
+          backgroundColor: 'rgba(59,130,246,0.5)', stack: 'stages', yAxisID: 'y',
+        },
+        {
+          type: 'line', label: 'Score', data: scores,
+          borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.15)',
+          pointRadius: 3, pointHoverRadius: 5,
+          borderWidth: 2, tension: 0.3, yAxisID: 'y2',
+        },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { position: 'top', labels: { boxWidth: 10, font: { size: 11 } } },
+        tooltip: { callbacks: {
+          label: ctx => {
+            if (ctx.dataset.label === 'Score') return `Score: ${ctx.raw}`;
+            return `${ctx.dataset.label}: ${ctx.raw}%`;
+          }
+        }},
+      },
+      scales: {
+        x: { stacked: true, ticks: { maxTicksLimit: 12 } },
+        y: { stacked: true, max: 100, ticks: { callback: v => v + '%' } },
+        y2: { position: 'right', min: 0, max: 100, grid: { drawOnChartArea: false },
+              ticks: { callback: v => v } },
+      },
+    },
+  });
+}
+
+// ── Recovery chart ────────────────────────────────────────────────────────────
+
+function renderRecoveryChart(hrv, summary, days) {
+  destroyChart('recovery');
+  const canvas = document.getElementById('chart-recovery');
+
+  // Align HRV and RHR by date
+  const rhrByDate = {};
+  for (const d of (summary.week || [])) {
+    if (d.resting_hr) rhrByDate[d.date] = d.resting_hr;
+  }
+
+  const useWeekly = days > 28;
+  let labels, hrvVals, baselineLow, baselineHigh, rhrVals;
+
+  if (useWeekly) {
+    const wHrv = groupByWeek(hrv, 'date', 'last_night');
+    const wBL  = groupByWeek(hrv, 'date', 'baseline_low');
+    const wBH  = groupByWeek(hrv, 'date', 'baseline_high');
+
+    // Build RHR as array matching week keys
+    const weekKeys = wHrv.map(w => w.weekStart);
+    const rhrRows = (summary.week || []).map(d => ({ date: d.date, resting_hr: d.resting_hr }));
+    const wRhr = weekKeys.map(key => {
+      // find all RHR rows in that week
+      const monday = new Date(key + 'T00:00:00');
+      const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6);
+      const vals = rhrRows
+        .filter(r => r.resting_hr && new Date(r.date + 'T00:00:00') >= monday && new Date(r.date + 'T00:00:00') <= sunday)
+        .map(r => r.resting_hr);
+      return avg(vals);
+    });
+
+    labels       = weekKeys.map(k => fmtDate(k));
+    hrvVals      = wHrv.map(w => avg(w.values) ? +avg(w.values).toFixed(1) : null);
+    baselineLow  = wBL.map(w  => avg(w.values) ? +avg(w.values).toFixed(1) : null);
+    baselineHigh = wBH.map(w  => avg(w.values) ? +avg(w.values).toFixed(1) : null);
+    rhrVals      = wRhr.map(v => v ? +v.toFixed(1) : null);
+  } else {
+    const sorted = [...hrv].sort((a, b) => a.date.localeCompare(b.date));
+    labels       = sorted.map(h => fmtDate(h.date));
+    hrvVals      = sorted.map(h => h.last_night);
+    baselineLow  = sorted.map(h => h.baseline_low);
+    baselineHigh = sorted.map(h => h.baseline_high);
+    rhrVals      = sorted.map(h => rhrByDate[h.date] ?? null);
+  }
+
+  charts['recovery'] = new Chart(canvas, {
+    data: {
+      labels,
+      datasets: [
+        {
+          type: 'line', label: 'Baseline band',
+          data: baselineHigh, fill: '-1',
+          borderColor: 'transparent',
+          backgroundColor: 'rgba(31,168,118,0.12)',
+          pointRadius: 0, tension: 0.3, yAxisID: 'y',
+        },
+        {
+          type: 'line', label: 'Baseline low',
+          data: baselineLow,
+          borderColor: 'rgba(31,168,118,0.4)', borderDash: [4, 3],
+          backgroundColor: 'transparent',
+          pointRadius: 0, tension: 0.3, yAxisID: 'y',
+        },
+        {
+          type: 'line', label: 'HRV',
+          data: hrvVals,
+          borderColor: '#1fa876', backgroundColor: 'rgba(31,168,118,0.1)',
+          pointRadius: 3, pointHoverRadius: 5,
+          borderWidth: 2, tension: 0.3, yAxisID: 'y',
+        },
+        {
+          type: 'line', label: 'Resting HR',
+          data: rhrVals,
+          borderColor: '#ef4444', backgroundColor: 'transparent',
+          pointRadius: 3, pointHoverRadius: 5,
+          borderWidth: 2, tension: 0.3, yAxisID: 'y2',
+        },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          position: 'top',
+          labels: {
+            boxWidth: 10, font: { size: 11 },
+            filter: item => item.text !== 'Baseline band',
+          }
+        },
+        tooltip: { callbacks: {
+          label: ctx => {
+            if (ctx.dataset.label === 'Baseline band') return null;
+            const u = ctx.dataset.label === 'Resting HR' ? ' bpm' : ' ms';
+            return `${ctx.dataset.label}: ${ctx.raw}${u}`;
+          },
+          filter: item => item.dataset.label !== 'Baseline band',
+        }},
+      },
+      scales: {
+        x: { ticks: { maxTicksLimit: 12 } },
+        y: { title: { display: true, text: 'HRV (ms)', font: { size: 10 } }, ticks: { maxTicksLimit: 6 } },
+        y2: { position: 'right', grid: { drawOnChartArea: false },
+              title: { display: true, text: 'HR (bpm)', font: { size: 10 } },
+              ticks: { maxTicksLimit: 6 } },
+      },
+    },
+  });
+}
+
+// ── Steps chart ───────────────────────────────────────────────────────────────
+
+function renderStepsChart(summary, days) {
+  destroyChart('steps');
+  const canvas = document.getElementById('chart-steps');
+  const rows = summary.week || [];
+  const useWeekly = days > 28;
+
+  let labels, vals, goal = 10000;
+
+  if (useWeekly) {
+    const weeks = groupByWeek(rows, 'date', 'steps');
+    labels = weeks.map(w => fmtDate(w.weekStart));
+    vals   = weeks.map(w => w.values.reduce((a, b) => a + b, 0)); // total per week
+    goal   = 10000 * 7;
+    document.getElementById('steps-subtitle').textContent = 'weekly total';
+  } else {
+    const sorted = [...rows].sort((a, b) => a.date.localeCompare(b.date));
+    labels = sorted.map(d => fmtDate(d.date));
+    vals   = sorted.map(d => d.steps);
+    document.getElementById('steps-subtitle').textContent = 'daily';
+  }
+
+  charts['steps'] = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Steps',
+        data: vals,
+        backgroundColor: vals.map(v => v >= goal ? 'rgba(31,168,118,0.7)' : 'rgba(59,130,246,0.6)'),
+        borderRadius: 3,
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { maxTicksLimit: 10 } },
+        y: { ticks: { callback: v => v >= 1000 ? (v/1000).toFixed(0)+'k' : v } },
+      },
+    },
+  });
+}
+
+// ── Activity list ─────────────────────────────────────────────────────────────
+
+function renderCaloriesChart(summary, days) {
+  destroyChart('calories');
+  const canvas = document.getElementById('chart-calories');
+  const rows = summary.week || [];
+  const useWeekly = days > 28;
+
+  let labels, vals;
+
+  if (useWeekly) {
+    const weeks = groupByWeek(rows, 'date', 'calories_active');
+    labels = weeks.map(w => fmtDate(w.weekStart));
+    vals   = weeks.map(w => w.values.reduce((a, b) => a + b, 0));
+    document.getElementById('calories-subtitle').textContent = 'weekly total';
+  } else {
+    const sorted = [...rows].sort((a, b) => a.date.localeCompare(b.date));
+    labels = sorted.map(d => fmtDate(d.date));
+    vals   = sorted.map(d => d.calories_active);
+    document.getElementById('calories-subtitle').textContent = 'daily';
+  }
+
+  charts['calories'] = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Active Cal',
+        data: vals,
+        backgroundColor: 'rgba(245,158,11,0.65)',
+        borderRadius: 3,
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { maxTicksLimit: 10 } },
+        y: { ticks: { callback: v => v >= 1000 ? (v/1000).toFixed(1)+'k' : v } },
+      },
+    },
+  });
+}
+
+function renderActivities(activities) {
+  const el = document.getElementById('activity-list');
+  document.getElementById('activity-subtitle').textContent =
+    `${activities.length} recent`;
+
+  if (!activities.length) {
+    el.innerHTML = '<div class="empty">no activities recorded</div>';
+    return;
+  }
+
+  el.innerHTML = activities.slice(0, 8).map(a => {
+    const dist = a.distance_km > 0 && a.distance_km < 200
+      ? `${a.distance_km.toFixed(1)} km · ` : '';
+    const hr   = a.avg_hr ? `${a.avg_hr} bpm avg · ` : '';
+    return `
+      <div class="activity-row">
+        <div class="activity-icon">${activityIcon(a.type)}</div>
+        <div class="activity-info">
+          <div class="activity-name">${a.name || a.type}</div>
+          <div class="activity-meta">${dist}${fmtDuration(a.duration_seconds)} · ${hr}${a.calories ?? '?'} cal</div>
+        </div>
+        <div class="activity-date">${fmtDate(a.date)}</div>
+      </div>`;
+  }).join('');
+}
+
+// ── Sync status ───────────────────────────────────────────────────────────────
+
+async function loadSyncStatus() {
+  try {
+    const r = await fetch('/api/health/sync-status');
+    const d = await r.json();
+    const el = document.getElementById('sync-status');
+    if (d.last_sync) {
+      const ago = Math.round((Date.now() - new Date(d.last_sync).getTime()) / 60000);
+      el.textContent = ago < 60
+        ? `synced ${ago}m ago`
+        : `synced ${Math.round(ago/60)}h ago`;
+    }
+  } catch {}
+}
+
+async function triggerSync() {
+  const btn = document.getElementById('sync-btn');
+  btn.disabled = true; btn.textContent = 'Syncing…';
+  try {
+    await fetch('/api/health/sync', { method: 'POST' });
+    await loadAll();
+  } catch {}
+  btn.disabled = false; btn.textContent = 'Sync';
+}
+
+// ── Main load ─────────────────────────────────────────────────────────────────
+
+async function loadAll() {
+  const days = currentDays;
+  const doubleDays = days * 2;
+
+  try {
+    const [sleepResp, hrvResp, summaryResp, actResp] = await Promise.all([
+      fetch(`/api/health/sleep?days=${doubleDays}`),
+      fetch(`/api/health/hrv?days=${doubleDays}`),
+      fetch(`/api/health/summary?days=${doubleDays}`),
+      fetch(`/api/health/activities?days=${days}`),
+    ]);
+
+    const sleepAll    = await sleepResp.json();
+    const hrvAll      = await hrvResp.json();
+    const summaryAll  = await summaryResp.json();
+    const activities  = await actResp.json();
+
+    // Split into current period (first `days` days) and prior period
+    const sortDesc = (arr, key) => [...arr].sort((a, b) => b[key].localeCompare(a[key]));
+
+    const sleepDesc   = sortDesc(sleepAll, 'date');
+    const sleepCurr   = sleepDesc.slice(0, days);
+    const sleepPrior  = sleepDesc.slice(days);
+
+    const hrvDesc     = sortDesc(hrvAll, 'date');
+    const hrvCurr     = hrvDesc.slice(0, days);
+    const hrvPrior    = hrvDesc.slice(days);
+
+    const summRows    = sortDesc(summaryAll.week || [], 'date');
+    const summCurr    = summRows.slice(0, days);
+    const summPrior   = summRows.slice(days);
+
+    // ── Comparison cards ──────────────────────────────────────────────
+    const sleepHCurr  = avg(sleepCurr.map(s => s.duration_hours));
+    const sleepHPrior = avg(sleepPrior.map(s => s.duration_hours));
+    renderCompare('cmp-sleep', sleepHCurr, sleepHPrior, 'h');
+
+    const scoreCurr  = avg(sleepCurr.map(s => s.score).filter(Boolean));
+    const scorePrior = avg(sleepPrior.map(s => s.score).filter(Boolean));
+    renderCompare('cmp-score', scoreCurr ? +scoreCurr.toFixed(0) : null, scorePrior ? +scorePrior.toFixed(0) : null, '');
+
+    const hrvCAvg = avg(hrvCurr.map(h => h.last_night));
+    const hrvPAvg = avg(hrvPrior.map(h => h.last_night));
+    renderCompare('cmp-hrv', hrvCAvg ? +hrvCAvg.toFixed(0) : null, hrvPAvg ? +hrvPAvg.toFixed(0) : null, 'ms');
+
+    const rhrCAvg = avg(summCurr.map(d => d.resting_hr).filter(Boolean));
+    const rhrPAvg = avg(summPrior.map(d => d.resting_hr).filter(Boolean));
+    renderCompare('cmp-rhr', rhrCAvg ? +rhrCAvg.toFixed(0) : null, rhrPAvg ? +rhrPAvg.toFixed(0) : null, 'bpm', true);
+
+    // ── Charts — use only current period data ─────────────────────────
+    // Build a summary object that matches what the chart functions expect
+    const summCurrObj = { week: summCurr };
+
+    renderSleepChart(sleepCurr, days);
+    renderRecoveryChart(hrvCurr, summCurrObj, days);
+    renderStepsChart(summCurrObj, days);
+    renderCaloriesChart(summCurrObj, days);
+    renderActivities(activities);
+
+  } catch (e) {
+    console.error('Health dashboard load error:', e);
+  }
+
+  loadSyncStatus();
+}
+
+// ── Period tab wiring ─────────────────────────────────────────────────────────
+
+document.querySelectorAll('.period-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.period-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentDays = +btn.dataset.days;
+    loadAll();
+  });
+});
+
+loadAll();
+</script>
+</body>
+</html>

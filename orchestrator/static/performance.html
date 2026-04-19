@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kronk — Performance</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="/static/kronk.css">
+<style>
+  :root { --cyan: #06b6d4; }
+  header { position: sticky; top: 0; z-index: 10; gap: 12px; }
+
+  .header-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .last-updated { font-size: 11px; color: var(--text3); font-family: monospace; }
+
+  .refresh-btn {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text2);
+    font-size: 12px;
+    padding: 4px 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .refresh-btn:hover { border-color: var(--blue); color: var(--blue); }
+
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text3);
+    margin-bottom: 10px;
+  }
+
+  /* ── Stat cards row ─────────────────────────────────────────────────── */
+  .stat-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+
+  .stat-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem 1.2rem;
+  }
+
+  .stat-card .label { font-size: 11px; color: var(--text3); margin-bottom: 6px; }
+  .stat-card .value { font-size: 26px; font-weight: 700; color: var(--text); line-height: 1; }
+  .stat-card .unit  { font-size: 13px; color: var(--text2); margin-left: 3px; font-weight: 400; }
+  .stat-card .sub   { font-size: 11px; color: var(--text3); margin-top: 4px; }
+
+  /* ── Tables ─────────────────────────────────────────────────────────── */
+  .table-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .table-card table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  .table-card th {
+    background: var(--bg3);
+    color: var(--text3);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 9px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .table-card th.num, .table-card td.num { text-align: right; }
+
+  .table-card td {
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text2);
+  }
+
+  .table-card tr:last-child td { border-bottom: none; }
+  .table-card tr:hover td { background: var(--bg3); }
+
+  .tag {
+    display: inline-block;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 7px;
+    font-size: 11px;
+    font-family: monospace;
+    color: var(--text2);
+  }
+
+  .tag.model  { border-color: #3b82f640; color: var(--blue); }
+  .tag.agent  { border-color: #8b5cf640; color: var(--purple); }
+
+  /* ── Chart card ─────────────────────────────────────────────────────── */
+  .chart-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.2rem 1.4rem;
+  }
+
+  .chart-card canvas { max-height: 220px; }
+
+  /* ── Empty state ─────────────────────────────────────────────────────── */
+  .empty {
+    padding: 2rem;
+    text-align: center;
+    color: var(--text3);
+    font-size: 13px;
+  }
+
+  /* ── Two-column layout ───────────────────────────────────────────────── */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  @media (max-width: 700px) {
+    .stat-row   { grid-template-columns: 1fr 1fr; }
+    .two-col    { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-dot"></div>
+  <h1>Performance</h1>
+  <div class="header-right">
+    <span class="last-updated" id="last-updated">—</span>
+    <button class="refresh-btn" onclick="load()">Refresh</button>
+  </div>
+</header>
+
+<main>
+
+  <!-- ── Summary stat cards ───────────────────────────────────────────── -->
+  <div>
+    <div class="section-label">Overview</div>
+    <div class="stat-row">
+      <div class="stat-card">
+        <div class="label">Total requests</div>
+        <div class="value" id="stat-total">—</div>
+        <div class="sub" id="stat-models">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Avg TTFT</div>
+        <div><span class="value" id="stat-ttft">—</span><span class="unit">ms</span></div>
+        <div class="sub">time to first token</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Avg generation</div>
+        <div><span class="value" id="stat-gen">—</span><span class="unit">ms</span></div>
+        <div class="sub">pure inference time</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Avg tokens/sec</div>
+        <div><span class="value" id="stat-toks">—</span></div>
+        <div class="sub" id="stat-total-tokens">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Response time trend chart ────────────────────────────────────── -->
+  <div class="chart-card">
+    <div class="section-label">Response time — last 30 days</div>
+    <canvas id="chart-trend"></canvas>
+  </div>
+
+  <!-- ── By model + by agent tables ──────────────────────────────────── -->
+  <div class="two-col">
+    <div>
+      <div class="section-label">By model</div>
+      <div class="table-card">
+        <table>
+          <thead>
+            <tr>
+              <th>Model</th>
+              <th class="num">Reqs</th>
+              <th class="num">Avg TTFT</th>
+              <th class="num">Avg gen</th>
+              <th class="num">Tok/s</th>
+            </tr>
+          </thead>
+          <tbody id="model-tbody"><tr><td colspan="5" class="empty">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div>
+      <div class="section-label">By agent</div>
+      <div class="table-card">
+        <table>
+          <thead>
+            <tr>
+              <th>Agent</th>
+              <th class="num">Reqs</th>
+              <th class="num">Avg TTFT</th>
+              <th class="num">Avg gen</th>
+              <th class="num">Tok/s</th>
+            </tr>
+          </thead>
+          <tbody id="agent-tbody"><tr><td colspan="5" class="empty">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Recent requests ──────────────────────────────────────────────── -->
+  <div>
+    <div class="section-label">Recent requests</div>
+    <div class="table-card">
+      <table>
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Agent</th>
+            <th>Model</th>
+            <th class="num">Prompt tok</th>
+            <th class="num">Completion tok</th>
+            <th class="num">TTFT</th>
+            <th class="num">Gen</th>
+            <th class="num">Tok/s</th>
+          </tr>
+        </thead>
+        <tbody id="recent-tbody"><tr><td colspan="8" class="empty">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<script>
+let trendChart = null;
+
+function fmt(v, unit = '') {
+  if (v === null || v === undefined) return '—';
+  return v + (unit ? unit : '');
+}
+
+function fmtTime(ts) {
+  if (!ts) return '—';
+  const d = new Date(ts + 'Z');
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+async function load() {
+  const resp = await fetch('/api/metrics');
+  if (!resp.ok) { console.error('metrics fetch failed'); return; }
+  const data = await resp.json();
+
+  document.getElementById('last-updated').textContent =
+    new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+  // ── Overview stats ────────────────────────────────────────────────────
+  const allReqs = data.by_model.reduce((s, r) => s + r.requests, 0);
+  const totalTokens = data.by_model.reduce((s, r) => s + (r.total_tokens || 0), 0);
+  const allTtfts = data.by_model.filter(r => r.avg_ttft_ms).map(r => r.avg_ttft_ms);
+  const allGens  = data.by_model.filter(r => r.avg_gen_ms).map(r => r.avg_gen_ms);
+  const allToks  = data.by_model.filter(r => r.avg_tok_s).map(r => r.avg_tok_s);
+
+  const avg = arr => arr.length ? Math.round(arr.reduce((a,b)=>a+b,0)/arr.length) : null;
+
+  document.getElementById('stat-total').textContent = allReqs || '—';
+  document.getElementById('stat-models').textContent =
+    data.by_model.length ? `${data.by_model.length} model${data.by_model.length > 1 ? 's' : ''}` : '';
+  document.getElementById('stat-ttft').textContent  = avg(allTtfts) ?? '—';
+  document.getElementById('stat-gen').textContent   = avg(allGens)  ?? '—';
+  document.getElementById('stat-toks').textContent  = avg(allToks)  ?? '—';
+  document.getElementById('stat-total-tokens').textContent =
+    totalTokens ? `${totalTokens.toLocaleString()} total tokens` : '';
+
+  // ── By model table ────────────────────────────────────────────────────
+  const modelTbody = document.getElementById('model-tbody');
+  if (data.by_model.length === 0) {
+    modelTbody.innerHTML = '<tr><td colspan="5" class="empty">No data yet</td></tr>';
+  } else {
+    modelTbody.innerHTML = data.by_model.map(r => `
+      <tr>
+        <td><span class="tag model">${r.model}</span></td>
+        <td class="num">${r.requests}</td>
+        <td class="num">${r.avg_ttft_ms != null ? r.avg_ttft_ms + ' ms' : '—'}</td>
+        <td class="num">${r.avg_gen_ms  != null ? r.avg_gen_ms  + ' ms' : '—'}</td>
+        <td class="num">${r.avg_tok_s   != null ? r.avg_tok_s        : '—'}</td>
+      </tr>`).join('');
+  }
+
+  // ── By agent table ────────────────────────────────────────────────────
+  const agentTbody = document.getElementById('agent-tbody');
+  if (data.by_agent.length === 0) {
+    agentTbody.innerHTML = '<tr><td colspan="5" class="empty">No data yet</td></tr>';
+  } else {
+    agentTbody.innerHTML = data.by_agent.map(r => `
+      <tr>
+        <td><span class="tag agent">${r.agent}</span></td>
+        <td class="num">${r.requests}</td>
+        <td class="num">${r.avg_ttft_ms != null ? r.avg_ttft_ms + ' ms' : '—'}</td>
+        <td class="num">${r.avg_gen_ms  != null ? r.avg_gen_ms  + ' ms' : '—'}</td>
+        <td class="num">${r.avg_tok_s   != null ? r.avg_tok_s        : '—'}</td>
+      </tr>`).join('');
+  }
+
+  // ── Recent requests table ─────────────────────────────────────────────
+  const recentTbody = document.getElementById('recent-tbody');
+  if (data.recent.length === 0) {
+    recentTbody.innerHTML = '<tr><td colspan="8" class="empty">No data yet</td></tr>';
+  } else {
+    recentTbody.innerHTML = data.recent.map(r => `
+      <tr>
+        <td style="font-family:monospace;font-size:11px;color:var(--text3)">${fmtTime(r.timestamp)}</td>
+        <td><span class="tag agent">${r.agent}</span></td>
+        <td><span class="tag model">${r.model}</span></td>
+        <td class="num">${r.prompt_tokens     ?? '—'}</td>
+        <td class="num">${r.completion_tokens ?? '—'}</td>
+        <td class="num">${r.ttft_ms  != null ? r.ttft_ms  + ' ms' : '—'}</td>
+        <td class="num">${r.gen_ms   != null ? r.gen_ms   + ' ms' : '—'}</td>
+        <td class="num">${r.tokens_per_sec ?? '—'}</td>
+      </tr>`).join('');
+  }
+
+  // ── Trend chart ───────────────────────────────────────────────────────
+  const labels  = data.daily.map(r => r.day);
+  const genData = data.daily.map(r => r.avg_gen_ms);
+  const ttftData = data.daily.map(r => r.avg_ttft_ms);
+
+  const ctx = document.getElementById('chart-trend').getContext('2d');
+  if (trendChart) trendChart.destroy();
+  trendChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Avg gen (ms)',
+          data: genData,
+          borderColor: '#3b82f6',
+          backgroundColor: '#3b82f620',
+          tension: 0.3,
+          fill: true,
+          pointRadius: 3,
+        },
+        {
+          label: 'Avg TTFT (ms)',
+          data: ttftData,
+          borderColor: '#8b5cf6',
+          backgroundColor: 'transparent',
+          tension: 0.3,
+          fill: false,
+          pointRadius: 3,
+          borderDash: [4, 3],
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          labels: { color: '#9ba3bc', font: { size: 12 }, boxWidth: 14 },
+        },
+        tooltip: {
+          backgroundColor: '#1e2330',
+          borderColor: '#2a3044',
+          borderWidth: 1,
+          titleColor: '#e8eaf0',
+          bodyColor: '#9ba3bc',
+          callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y ?? '—'} ms` },
+        },
+      },
+      scales: {
+        x: {
+          ticks: { color: '#5c6480', font: { size: 11 } },
+          grid:  { color: '#2a304420' },
+        },
+        y: {
+          ticks: { color: '#5c6480', font: { size: 11 },
+                   callback: v => v + ' ms' },
+          grid:  { color: '#2a304440' },
+        },
+      },
+    },
+  });
+}
+
+load();
+setInterval(load, 30000);
+</script>
+</body>
+</html>

@@ -1,0 +1,66 @@
+/* Shared Kronk theme — palette, reset, body, header, common utilities.
+ * Include via: <link rel="stylesheet" href="/static/kronk.css">
+ * Per-page styles can override anything below. */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:     #0f1117;
+  --bg2:    #171b24;
+  --bg3:    #1e2330;
+  --border: #2a3044;
+  --text:   #e8eaf0;
+  --text2:  #9ba3bc;
+  --text3:  #5c6480;
+  --green:  #1fa876;
+  --blue:   #3b82f6;
+  --amber:  #f59e0b;
+  --red:    #ef4444;
+  --purple: #8b5cf6;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, 'Segoe UI', system-ui, sans-serif;
+  font-size: 14px;
+  min-height: 100vh;
+}
+
+header {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 0.9rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.header-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  flex-shrink: 0;
+}
+
+h1 {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.subtitle {
+  font-size: 12px;
+  color: var(--text3);
+  margin-left: auto;
+  font-family: monospace;
+}
+
+.section-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text3);
+  margin-bottom: 8px;
+}

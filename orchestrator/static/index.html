@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kronk</title>
+<script src="https://cdn.jsdelivr.net/npm/marked@15/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
+<link rel="stylesheet" href="/static/kronk.css">
+<style>
+  :root {
+    --user-bubble: #1e2d4a;
+    --kronk-bubble: #1a1f2e;
+  }
+
+  body {
+    font-size: 15px;
+    min-height: 0;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    padding: 0.85rem 1.25rem;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .kronk-name {
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    flex-shrink: 0;
+  }
+
+  .status-dot.offline { background: var(--text3); }
+
+  .clear-btn {
+    font-size: 12px;
+    color: var(--text3);
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 10px;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+  }
+
+  .clear-btn:hover { color: var(--text2); border-color: var(--text3); }
+
+  #messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .message {
+    display: flex;
+    flex-direction: column;
+    max-width: 75%;
+    gap: 4px;
+  }
+
+  .message.user { align-self: flex-end; align-items: flex-end; }
+  .message.assistant { align-self: flex-start; align-items: flex-start; }
+
+  .bubble {
+    padding: 0.65rem 0.95rem;
+    border-radius: 12px;
+    line-height: 1.6;
+    word-break: break-word;
+    white-space: pre-wrap;
+  }
+
+  /* Frozen (marked-parsed) content resets white-space so block elements render correctly */
+  .bubble .md-block {
+    white-space: normal;
+  }
+  .bubble .md-block p { margin-bottom: 0.75em; }
+  .bubble .md-block p:last-child { margin-bottom: 0; }
+  .bubble .md-block ul,
+  .bubble .md-block ol  { padding-left: 1.4em; margin-bottom: 0.75em; }
+  .bubble .md-block li  { margin-bottom: 0.25em; }
+  .bubble .md-block h1,
+  .bubble .md-block h2,
+  .bubble .md-block h3  { font-size: 15px; font-weight: 600; margin: 0.8em 0 0.3em; }
+  .bubble .md-block h1:first-child,
+  .bubble .md-block h2:first-child,
+  .bubble .md-block h3:first-child { margin-top: 0; }
+  .bubble .md-block hr  { border: none; border-top: 1px solid var(--border); margin: 0.75em 0; }
+
+  .bubble table {
+    border-collapse: collapse;
+    margin: 0.5em 0 0.75em;
+    width: 100%;
+    font-size: 14px;
+  }
+  .bubble th,
+  .bubble td {
+    border: 1px solid var(--border);
+    padding: 0.35em 0.7em;
+    text-align: left;
+    white-space: normal;
+  }
+  .bubble th { background: var(--bg3); font-weight: 600; }
+  .bubble tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+
+  .message.user .bubble {
+    background: var(--user-bubble);
+    border: 1px solid #2a3a5e;
+    border-bottom-right-radius: 3px;
+  }
+
+  .message.assistant .bubble {
+    background: var(--kronk-bubble);
+    border: 1px solid var(--border);
+    border-bottom-left-radius: 3px;
+  }
+
+  .label {
+    font-size: 11px;
+    color: var(--text3);
+    padding: 0 4px;
+  }
+
+  .bubble pre {
+    background: #0a0d14;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+    overflow-x: auto;
+    margin: 0.5rem 0;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  .bubble pre:first-child { margin-top: 0; }
+  .bubble pre:last-child  { margin-bottom: 0; }
+
+  .bubble code {
+    font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 13px;
+    background: #0a0d14;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 5px;
+  }
+
+  .bubble pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: inherit;
+  }
+
+  .code-lang {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 10px;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    display: block;
+    margin-bottom: 0.4rem;
+  }
+
+  .stage-log {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 0 4px;
+  }
+
+  .stage-entry {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--text3);
+    line-height: 1.5;
+  }
+
+  .stage-icon {
+    width: 10px;
+    font-size: 9px;
+    text-align: center;
+    flex-shrink: 0;
+    color: var(--green);
+  }
+
+  .stage-time {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  }
+
+  .stage-spinner {
+    width: 10px;
+    height: 10px;
+    border: 1.5px solid var(--border);
+    border-top-color: var(--text3);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    flex-shrink: 0;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .stage-label {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    letter-spacing: 0.02em;
+  }
+
+  .router-thinking {
+    font-size: 12px;
+    color: var(--text3);
+    font-style: italic;
+    padding: 2px 4px;
+  }
+
+  .narration {
+    font-size: 12px;
+    color: var(--text3);
+    font-style: italic;
+    padding: 2px 4px;
+    min-height: 1em;
+  }
+
+  .timing-toggle {
+    font-size: 11px;
+    color: var(--text3);
+    padding: 0 4px;
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-family: inherit;
+    text-align: left;
+  }
+
+  .timing-toggle:hover { color: var(--text2); }
+
+  .timing-breakdown {
+    display: none;
+    flex-direction: column;
+    gap: 2px;
+    padding: 4px 4px 0;
+  }
+
+  .timing-breakdown.visible { display: flex; }
+
+  .timing-row {
+    display: flex;
+    gap: 10px;
+    font-size: 11px;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    color: var(--text3);
+    line-height: 1.6;
+  }
+
+  .timing-row .t-label { min-width: 120px; }
+  .timing-row .t-service { color: var(--text3); min-width: 90px; }
+  .timing-row .t-value { color: var(--text2); }
+  .timing-row .t-fail { color: #c0392b; }
+  .timing-model {
+    font-size: 11px;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    color: var(--text3);
+    padding: 4px 4px 0;
+  }
+  .timing-model span { color: var(--text2); }
+
+  .bubble a { color: var(--blue); text-decoration: none; }
+  .bubble a:hover { text-decoration: underline; }
+
+  .bubble img {
+    max-width: 100%;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    margin: 0.5rem 0;
+    display: block;
+  }
+
+  /* After streaming completes, the full response is re-parsed — reset white-space */
+  .bubble.rendered { white-space: normal; }
+
+  .cursor {
+    display: inline-block;
+    width: 2px;
+    height: 1em;
+    background: var(--text2);
+    margin-left: 2px;
+    vertical-align: text-bottom;
+    animation: blink 0.8s step-end infinite;
+  }
+
+  @keyframes blink { 50% { opacity: 0; } }
+
+  .empty-state {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text3);
+    font-size: 14px;
+  }
+
+  footer {
+    background: var(--bg2);
+    border-top: 1px solid var(--border);
+    padding: 0.85rem 1.25rem;
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+    flex-shrink: 0;
+  }
+
+  #input {
+    flex: 1;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 15px;
+    font-family: inherit;
+    padding: 0.6rem 0.9rem;
+    resize: none;
+    min-height: 42px;
+    max-height: 160px;
+    line-height: 1.5;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  #input:focus { border-color: var(--blue); }
+  #input::placeholder { color: var(--text3); }
+
+  .send-btn, .mic-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg3);
+    color: var(--text2);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .send-btn:hover:not(:disabled) { background: var(--blue); color: white; border-color: var(--blue); }
+  .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .attach-btn {
+    position: relative;
+  }
+
+  .attach-btn input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+
+  .file-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 0.5rem 1.25rem 0;
+    background: var(--bg2);
+  }
+
+  .file-chips:empty {
+    display: none;
+  }
+
+  .file-chip {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 11px;
+    color: var(--text2);
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  }
+
+  .file-chip.warning {
+    border-color: #7c5c1e;
+    color: #d4a030;
+  }
+
+  .chip-remove {
+    background: none;
+    border: none;
+    color: var(--text3);
+    cursor: pointer;
+    font-size: 13px;
+    line-height: 1;
+    padding: 0;
+  }
+
+  .chip-remove:hover { color: var(--text); }
+
+  .token-warning {
+    font-size: 11px;
+    color: #d4a030;
+    padding: 0.25rem 1.25rem 0;
+    background: var(--bg2);
+  }
+
+  .token-warning:empty { display: none; }
+
+  svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <div class="status-dot" id="status-dot"></div>
+    <span class="kronk-name">Kronk</span>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <a href="/performance" style="font-size:12px;color:var(--text3);border:1px solid var(--border);border-radius:6px;padding:4px 10px;text-decoration:none;transition:color 0.15s,border-color 0.15s" onmouseover="this.style.color='var(--text2)';this.style.borderColor='var(--text3)'" onmouseout="this.style.color='var(--text3)';this.style.borderColor='var(--border)'">performance</a>
+    <button class="clear-btn" onclick="clearHistory()">clear history</button>
+  </div>
+</header>
+
+<div id="messages">
+  <div class="empty-state" id="empty-state">Send a message to start talking to Kronk.</div>
+</div>
+
+<div class="file-chips" id="file-chips"></div>
+<div class="token-warning" id="token-warning"></div>
+<footer>
+  <textarea id="input" placeholder="Message Kronk..." rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+  <button class="send-btn" id="send-btn" onclick="sendMessage()">
+    <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+  </button>
+  <button class="send-btn attach-btn" title="Attach file">
+    <svg viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+    <input type="file" id="file-input" accept=".pdf,.txt,.md,.py,.js,.ts,.json,.yaml,.yml,.csv,.zip" multiple onchange="handleFileUpload(event)">
+  </button>
+</footer>
+
+<script>
+  // ── marked.js configuration ──────────────────────────────────────────────────
+  (() => {
+    const renderer = new marked.Renderer();
+    renderer.link = ({ href, title, text }) =>
+      `<a href="${href}" target="_blank" rel="noopener noreferrer"${title ? ` title="${title}"` : ''}>${text}</a>`;
+    renderer.code = ({ text, lang }) => {
+      const label = lang ? `<span class="code-lang">${escapeHtml(lang)}</span>` : '';
+      return `<pre>${label}<code>${escapeHtml(text)}</code></pre>`;
+    };
+    marked.use({ renderer, gfm: true, breaks: false });
+  })();
+
+  function mdParse(text) {
+    return DOMPurify.sanitize(marked.parse(text), { ADD_ATTR: ['target', 'rel'] });
+  }
+
+  // ── Split-buffer streaming renderer ──────────────────────────────────────────
+  // Frozen = already parsed by marked. Pending = raw markdown accumulating.
+  // Flush pending → frozen whenever we hit a block boundary (blank line, closing
+  // code fence) so structured blocks appear all-at-once while prose streams live.
+  class StreamingRenderer {
+    constructor() {
+      this.frozen  = '';
+      this.pending = '';
+    }
+
+    push(token) {
+      this.pending += token;
+      this._tryFlush();
+    }
+
+    _tryFlush() {
+      // Never flush mid-code-block (odd number of opening fences in pending)
+      const fences = (this.pending.match(/^```/gm) || []).length;
+      if (fences % 2 === 1) return;
+
+      const idx = this.pending.lastIndexOf('\n\n');
+      if (idx < 0) return;
+
+      const chunk = this.pending.slice(0, idx + 2);
+      this.pending = this.pending.slice(idx + 2);
+      this.frozen += mdParse(chunk);
+    }
+
+    finalize() {
+      if (this.pending) {
+        this.frozen += mdParse(this.pending);
+        this.pending = '';
+      }
+      return this.frozen;
+    }
+
+    // Render current state as HTML. Frozen is parsed; pending is escaped plain
+    // text that streams live. Cursor injected as HTML so it survives innerHTML.
+    currentHtml(showCursor = false) {
+      const cursor = showCursor ? '<span class="cursor"></span>' : '';
+      const escaped = escapeHtml(this.pending);
+      return (this.frozen ? `<div class="md-block">${this.frozen}</div>` : '')
+           + escaped + cursor;
+    }
+  }
+
+  let isStreaming  = false;
+  let userScrolled = false;
+
+  const msgContainer = () => document.getElementById('messages');
+
+  // Stop auto-scroll if the user deliberately scrolled up
+  document.getElementById('messages').addEventListener('scroll', () => {
+    const el = document.getElementById('messages');
+    userScrolled = el.scrollHeight - el.scrollTop > el.clientHeight + 80;
+  });
+
+  async function checkHealth() {
+    try {
+      const r = await fetch('/health');
+      document.getElementById('status-dot').classList.toggle('offline', !r.ok);
+    } catch {
+      document.getElementById('status-dot').classList.add('offline');
+    }
+  }
+
+  checkHealth();
+  setInterval(checkHealth, 15000);
+
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 160) + 'px';
+  }
+
+  function handleKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  }
+
+  function escapeHtml(str) {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+
+  const stageLabels = {
+    thinking:                       'thinking...',
+    waiting:                        'waiting for Kronk...',
+    generating:                     'generating...',
+    fetching_get_weather:           'fetching weather...',
+    fetching_web_search:            'searching the web...',
+    fetching_fetch_url:             'reading page...',
+    fetching_shopping_list_view:    'reading list...',
+    fetching_shopping_list_add:     'updating list...',
+    fetching_shopping_list_remove:  'updating list...',
+    fetching_shopping_list_clear:   'clearing list...',
+    fetching_query_health:          'querying health data...',
+    fetching_query_finances:        'searching documents...',
+    fetching_get_kronk_context:     'reading system context...',
+    fetching_generate_diagram:      'generating diagram...',
+    fetching_delegate_health:       'health agent working...',
+    fetching_delegate_research:     'research agent searching...',
+    fetching_delegate_home:         'home agent working...',
+    fetching_delegate_assistant:    'assistant agent working...',
+    fetching_delegate_finance:      'finance agent working...',
+    fetching_delegate_coding:       'coding agent working...',
+    fetching_delegate_devops:       'devops agent working...',
+    fetching_delegate_unknown:      'delegating...',
+  };
+
+  // Maps tool/stage names to { label, service } for the timing breakdown
+  const stageInfo = {
+    thinking:                    { label: 'thinking',          service: 'coordinator' },
+    get_weather:                 { label: 'weather',           service: 'tool_service' },
+    web_search:                  { label: 'web search',        service: 'searxng' },
+    fetch_url:                   { label: 'page fetch',        service: 'tool_service' },
+    shopping_list_view:          { label: 'list · view',       service: 'tool_service' },
+    shopping_list_add:           { label: 'list · add',        service: 'tool_service' },
+    shopping_list_remove:        { label: 'list · remove',     service: 'tool_service' },
+    shopping_list_clear:         { label: 'list · clear',      service: 'tool_service' },
+    query_health:                { label: 'health agent',      service: 'health_service' },
+    query_finances:              { label: 'finance agent',     service: 'finance_service' },
+    get_kronk_context:           { label: 'system context',    service: 'orchestrator' },
+    generate_diagram:            { label: 'diagram',           service: 'tool_service' },
+  };
+
+  function addMessage(role, text) {
+    document.getElementById('empty-state')?.remove();
+    const container = document.getElementById('messages');
+    const div = document.createElement('div');
+    div.className = `message ${role}`;
+    div.innerHTML = `
+      <span class="label">${role === 'user' ? 'you' : 'kronk'}</span>
+      <div class="bubble"></div>
+    `;
+    div.querySelector('.bubble').textContent = text;
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+    return div;
+  }
+
+  // setStage is no longer used — stage tracking happens inside sendMessage
+
+  async function sendMessage() {
+    if (isStreaming) return;
+    const input = document.getElementById('input');
+    const text = input.value.trim();
+    if (!text) return;
+
+    input.value = '';
+    input.style.height = 'auto';
+    document.getElementById('send-btn').disabled = true;
+    isStreaming   = true;
+    userScrolled  = false;
+
+    addMessage('user', text);
+    const messageDiv = addMessage('assistant', '');
+    const bubble = messageDiv.querySelector('.bubble');
+    bubble.innerHTML = '<span class="cursor"></span>';
+
+    const renderer  = new StreamingRenderer();
+    let fullText    = '';
+    let timingData  = null;
+
+    // ── Persistent stage log ──────────────────────────────────────────────────
+    const stageEntries = [];   // { label, startMs, endMs }
+    let currentStageIdx = -1;
+    let logDiv = null;
+
+    function getOrCreateLog() {
+      if (!logDiv) {
+        logDiv = document.createElement('div');
+        logDiv.className = 'stage-log';
+        messageDiv.querySelector('.label').insertAdjacentElement('afterend', logDiv);
+      }
+      return logDiv;
+    }
+
+    function renderStageLog() {
+      const el = getOrCreateLog();
+      el.innerHTML = stageEntries.map(e => {
+        if (e.endMs === null) {
+          return `<div class="stage-entry active"><div class="stage-spinner"></div><span class="stage-label">${e.label}</span></div>`;
+        }
+        const elapsed = ((e.endMs - e.startMs) / 1000).toFixed(1) + 's';
+        return `<div class="stage-entry done"><span class="stage-icon">✓</span><span class="stage-label">${e.label}</span><span class="stage-time"> · ${elapsed}</span></div>`;
+      }).join('');
+    }
+
+    function openStage(stage) {
+      const now = Date.now();
+      if (currentStageIdx >= 0 && stageEntries[currentStageIdx].endMs === null) {
+        stageEntries[currentStageIdx].endMs = now;
+      }
+      stageEntries.push({ label: stageLabels[stage] ?? stage, startMs: now, endMs: null });
+      currentStageIdx = stageEntries.length - 1;
+      renderStageLog();
+    }
+
+    function closeCurrentStage() {
+      const now = Date.now();
+      if (currentStageIdx >= 0 && stageEntries[currentStageIdx].endMs === null) {
+        stageEntries[currentStageIdx].endMs = now;
+      }
+      renderStageLog();
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
+    try {
+      const resp = await fetch('/message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      });
+
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let done = false;
+
+      while (!done) {
+        const { done: streamDone, value } = await reader.read();
+        if (streamDone) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop();
+        for (const line of lines) {
+          if (!line.startsWith('data:')) continue;
+          const payload = line.slice(5).trim();
+          if (payload === '[DONE]') { done = true; break; }
+          try {
+            const data = JSON.parse(payload);
+            if (data.stage) {
+              openStage(data.stage);
+            }
+            if (data.router_text) {
+              // Router transitional content — show as inline thinking text above the bubble
+              let rtDiv = messageDiv.querySelector('.router-thinking');
+              if (!rtDiv) {
+                rtDiv = document.createElement('div');
+                rtDiv.className = 'router-thinking';
+                bubble.insertAdjacentElement('beforebegin', rtDiv);
+              }
+              rtDiv.textContent = data.router_text;
+            }
+            if (data.narration !== undefined) {
+              let nDiv = messageDiv.querySelector('.narration');
+              if (!nDiv) {
+                nDiv = document.createElement('div');
+                nDiv.className = 'narration';
+                bubble.insertAdjacentElement('beforebegin', nDiv);
+              }
+              nDiv.textContent = data.narration;
+            }
+            if (data.timing) {
+              timingData = data.timing;
+            }
+            if (data.token) {
+              fullText += data.token;
+              renderer.push(data.token);
+              bubble.innerHTML = renderer.currentHtml(true);
+              if (!userScrolled) {
+                const el = document.getElementById('messages');
+                el.scrollTop = el.scrollHeight;
+              }
+            }
+          } catch {}
+        }
+      }
+
+      // Final pass: parse any remaining pending chunk and set clean HTML
+      if (fullText) {
+        bubble.innerHTML = renderer.finalize();
+        bubble.classList.add('rendered');
+      }
+
+      // Attach timing toggle if we have data
+      if (timingData) {
+        const rows = [];
+        for (const stage of (timingData.stages || [])) {
+          const info = stageInfo[stage.tool] || { label: stage.tool, service: '' };
+          rows.push({ label: info.label, service: info.service, value: `${stage.s}s`, ok: stage.ok !== false });
+        }
+        if (timingData.ttft_s != null)       rows.push({ label: 'first token', service: '', value: `${timingData.ttft_s}s`, ok: true });
+        if (timingData.generation_s != null) rows.push({ label: 'generation',  service: '', value: `${timingData.generation_s}s`, ok: true });
+        if (rows.length) {
+          const toggle = document.createElement('button');
+          toggle.className = 'timing-toggle';
+          toggle.textContent = '· timing';
+          const breakdown = document.createElement('div');
+          breakdown.className = 'timing-breakdown';
+          for (const { label, service, value, ok } of rows) {
+            const row = document.createElement('div');
+            row.className = 'timing-row';
+            const valueClass = ok ? 't-value' : 't-fail';
+            row.innerHTML = `<span class="t-label">${label}</span><span class="t-service">${service}</span><span class="${valueClass}">${value}</span>`;
+            breakdown.appendChild(row);
+          }
+          if (timingData.model) {
+            const modelRow = document.createElement('div');
+            modelRow.className = 'timing-model';
+            modelRow.innerHTML = `model <span>${timingData.model}</span>`;
+            breakdown.appendChild(modelRow);
+          }
+          toggle.addEventListener('click', () => breakdown.classList.toggle('visible'));
+          messageDiv.appendChild(toggle);
+          messageDiv.appendChild(breakdown);
+        }
+      }
+    } catch (e) {
+      closeCurrentStage();
+      bubble.textContent = 'Error: could not reach Kronk.';
+    } finally {
+      closeCurrentStage();
+      bubble.querySelector('.cursor')?.remove();
+      isStreaming = false;
+      document.getElementById('send-btn').disabled = false;
+      input.focus();
+    }
+  }
+
+  async function clearHistory() {
+    await fetch('/history', { method: 'DELETE' });
+    const container = document.getElementById('messages');
+    container.innerHTML = '<div class="empty-state" id="empty-state">Send a message to start talking to Kronk.</div>';
+    document.getElementById('file-chips').innerHTML = '';
+    document.getElementById('token-warning').textContent = '';
+  }
+
+  async function handleFileUpload(event) {
+    const files = Array.from(event.target.files);
+    event.target.value = '';
+    for (const file of files) {
+      const formData = new FormData();
+      formData.append('file', file);
+      try {
+        const resp = await fetch('/files', { method: 'POST', body: formData });
+        if (!resp.ok) {
+          const err = await resp.json();
+          alert(`Could not attach ${file.name}: ${err.detail}`);
+          continue;
+        }
+        const result = await resp.json();
+        if (result.routed_to === 'health_service') {
+          // Garmin file was persisted to SQLite — show a transient confirmation instead of a chip
+          const chips = document.getElementById('file-chips');
+          const note = document.createElement('div');
+          note.className = 'file-chip';
+          note.style.color = 'var(--green)';
+          if (result.files_processed !== undefined) {
+            // Zip export
+            note.textContent = `✓ ${file.name} → ${result.files_processed} files, ${result.total_inserted} rows imported`;
+          } else {
+            // Single CSV
+            const label = result.type ? `${result.type} · ` : '';
+            note.textContent = `✓ ${file.name} → ${label}${result.inserted} rows saved`;
+          }
+          chips.appendChild(note);
+          setTimeout(() => note.remove(), 8000);
+        } else {
+          renderFileChips(result.warning);
+        }
+      } catch {
+        alert(`Failed to upload ${file.name}`);
+      }
+    }
+  }
+
+  async function removeFile(filename) {
+    await fetch(`/files/${encodeURIComponent(filename)}`, { method: 'DELETE' });
+    renderFileChips();
+  }
+
+  async function renderFileChips(warn) {
+    const resp = await fetch('/files');
+    const data = await resp.json();
+    const chips = document.getElementById('file-chips');
+    const warning = document.getElementById('token-warning');
+    chips.innerHTML = '';
+    for (const f of data.files) {
+      const chip = document.createElement('div');
+      chip.className = 'file-chip' + (data.warning ? ' warning' : '');
+      chip.innerHTML = `
+        <span>${escapeHtml(f.name)}</span>
+        <span style="color:var(--text3)">~${f.tokens} tok</span>
+        <button class="chip-remove" onclick="removeFile('${escapeHtml(f.name)}')" title="Remove">×</button>
+      `;
+      chips.appendChild(chip);
+    }
+    warning.textContent = data.warning
+      ? `⚠ ~${data.total_tokens} tokens in attached files — context window may fill up`
+      : '';
+  }
+</script>
+</body>
+</html>

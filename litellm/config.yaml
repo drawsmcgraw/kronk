@@ -1,0 +1,63 @@
+model_list:
+  - model_name: bonsai-8b
+    litellm_params:
+      model: openai/bonsai-8b
+      api_base: http://127.0.0.1:11437/v1
+      api_key: "dummy"
+    kronk:
+      params:  "8B"
+      quant:   "Q1_0"
+      vram_gb: 1.1
+      ctx_k:   32
+
+  - model_name: mistral-nemo
+    litellm_params:
+      model: openai/mistral-nemo
+      api_base: http://127.0.0.1:11435/v1
+      api_key: "dummy"
+      supports_function_calling: true
+    kronk:
+      params:  "12B"
+      quant:   "Q8_0"
+      vram_gb: 13
+      ctx_k:   16
+
+  - model_name: devstral-2512
+    litellm_params:
+      model: openai/devstral-2512
+      api_base: http://127.0.0.1:11436/v1
+      api_key: "dummy"
+      supports_function_calling: true
+    kronk:
+      params:  "24B"
+      quant:   "Q4_K_M"
+      vram_gb: 14
+      ctx_k:   128
+
+  - model_name: gemma-3-4b
+    litellm_params:
+      model: openai/gemma-3-4b
+      api_base: http://127.0.0.1:11439/v1
+      api_key: "dummy"
+    kronk:
+      params:  "4B"
+      quant:   "Q4_K_M"
+      vram_gb: 3.0
+      ctx_k:   128
+
+  - model_name: gemma-4-e4b
+    litellm_params:
+      model: openai/gemma-4-e4b
+      api_base: http://127.0.0.1:11438/v1
+      api_key: "dummy"
+      supports_function_calling: true
+    kronk:
+      params:  "4B"
+      quant:   "Q4_K_M"
+      vram_gb: 3.5
+      ctx_k:   128
+
+litellm_settings:
+  drop_params: true       # silently drop unsupported params
+  request_timeout: 600
+  num_retries: 0

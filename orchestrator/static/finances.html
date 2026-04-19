@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kronk — Finances</title>
+<link rel="stylesheet" href="/static/kronk.css">
+<style>
+  header { position: sticky; top: 0; z-index: 10; gap: 12px; }
+  .doc-count { margin-left: auto; font-size: 12px; color: var(--text3); font-family: monospace; }
+
+  main {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  /* Drop zone */
+  .drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .drop-zone:hover, .drop-zone.drag-over {
+    border-color: var(--blue);
+    background: rgba(59,130,246,0.05);
+  }
+  .drop-zone p { color: var(--text3); font-size: 13px; margin-top: 6px; }
+  .drop-zone strong { color: var(--text2); }
+
+  .upload-btn {
+    display: inline-block;
+    margin-top: 12px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text2);
+    font-size: 13px;
+    padding: 7px 18px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .upload-btn:hover { background: var(--blue); border-color: var(--blue); color: #fff; }
+
+  #file-input { display: none; }
+
+  .upload-status {
+    font-size: 12px;
+    color: var(--text3);
+    margin-top: 8px;
+    min-height: 18px;
+  }
+  .upload-status.ok  { color: var(--green); }
+  .upload-status.err { color: var(--red);   }
+
+  /* Document list */
+  .doc-list { display: flex; flex-direction: column; gap: 6px; }
+
+  .doc-item {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .doc-icon { font-size: 18px; flex-shrink: 0; }
+  .doc-info { flex: 1; min-width: 0; }
+  .doc-name { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .doc-meta { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+  .del-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text3);
+    font-size: 12px;
+    padding: 3px 10px;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+  .del-btn:hover { border-color: var(--red); color: var(--red); }
+
+  .empty { color: var(--text3); font-size: 13px; padding: 1rem 0; text-align: center; }
+
+  .hint {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    font-size: 13px;
+    color: var(--text2);
+    line-height: 1.6;
+  }
+  .hint code {
+    background: var(--bg3);
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-family: monospace;
+    font-size: 12px;
+    color: var(--text);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-dot"></div>
+  <h1>Finances</h1>
+  <span class="doc-count" id="doc-count">loading…</span>
+</header>
+
+<main>
+
+  <div>
+    <div class="section-label">Upload Documents</div>
+    <div class="drop-zone" id="drop-zone">
+      <strong>Drop files here</strong>
+      <p>PDF, TXT, MD, CSV — statements, returns, summaries</p>
+      <label class="upload-btn" for="file-input">Choose file</label>
+      <input type="file" id="file-input" accept=".pdf,.txt,.md,.csv" multiple>
+      <div class="upload-status" id="upload-status"></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-label">Indexed Documents</div>
+    <div class="doc-list" id="doc-list">
+      <div class="empty">loading…</div>
+    </div>
+  </div>
+
+  <div class="hint">
+    Once uploaded, ask Kronk about your documents in the chat.<br>
+    Example: <code>What was my total income last year?</code> or <code>Show me my biggest expenses from March.</code>
+  </div>
+
+</main>
+
+<script>
+const FINANCE_URL = '';
+
+async function loadDocuments() {
+  try {
+    const r = await fetch(`${FINANCE_URL}/api/finance/documents`);
+    const data = await r.json();
+    const docs = data.documents || [];
+
+    document.getElementById('doc-count').textContent =
+      docs.length === 0 ? 'no documents' :
+      docs.length === 1 ? '1 document' : `${docs.length} documents`;
+
+    const list = document.getElementById('doc-list');
+    if (!docs.length) {
+      list.innerHTML = '<div class="empty">No documents uploaded yet.</div>';
+      return;
+    }
+
+    list.innerHTML = docs.map(d => {
+      const kb = d.size_bytes ? `${Math.round(d.size_bytes / 1024)} KB` : '';
+      const date = d.ingested_at ? new Date(d.ingested_at + 'Z').toLocaleDateString() : '';
+      const icon = d.name.endsWith('.pdf') ? '📄' : '📝';
+      return `
+        <div class="doc-item">
+          <div class="doc-icon">${icon}</div>
+          <div class="doc-info">
+            <div class="doc-name">${d.name}</div>
+            <div class="doc-meta">${[kb, `${d.chunk_count} chunks`, date].filter(Boolean).join(' · ')}</div>
+          </div>
+          <button class="del-btn" onclick="deleteDoc(${d.id}, '${d.name.replace(/'/g, "\\'")}')">Remove</button>
+        </div>
+      `;
+    }).join('');
+  } catch (e) {
+    document.getElementById('doc-list').innerHTML = '<div class="empty">Finance service unavailable.</div>';
+    document.getElementById('doc-count').textContent = 'unavailable';
+  }
+}
+
+async function deleteDoc(id, name) {
+  if (!confirm(`Remove "${name}"?`)) return;
+  try {
+    await fetch(`${FINANCE_URL}/api/finance/documents/${id}`, { method: 'DELETE' });
+    await loadDocuments();
+  } catch (e) {
+    alert('Failed to delete document.');
+  }
+}
+
+async function uploadFile(file) {
+  const status = document.getElementById('upload-status');
+  status.textContent = `Uploading ${file.name}…`;
+  status.className = 'upload-status';
+  try {
+    const form = new FormData();
+    form.append('file', file);
+    const r = await fetch(`${FINANCE_URL}/api/finance/ingest`, { method: 'POST', body: form });
+    const data = await r.json();
+    if (r.ok) {
+      status.textContent = `✓ ${data.name} — ${data.chunks} chunks indexed`;
+      status.className = 'upload-status ok';
+      await loadDocuments();
+    } else {
+      status.textContent = `✗ ${data.detail || 'Upload failed'}`;
+      status.className = 'upload-status err';
+    }
+  } catch (e) {
+    status.textContent = '✗ Upload failed — finance service unreachable';
+    status.className = 'upload-status err';
+  }
+}
+
+// File input
+document.getElementById('file-input').addEventListener('change', async (e) => {
+  for (const file of e.target.files) await uploadFile(file);
+  e.target.value = '';
+});
+
+// Drag and drop
+const zone = document.getElementById('drop-zone');
+zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('drag-over'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+zone.addEventListener('drop', async (e) => {
+  e.preventDefault();
+  zone.classList.remove('drag-over');
+  for (const file of e.dataTransfer.files) await uploadFile(file);
+});
+
+loadDocuments();
+</script>
+</body>
+</html>

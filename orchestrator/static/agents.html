@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kronk — Agents</title>
+<link rel="stylesheet" href="/static/kronk.css">
+<style>
+  main {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .agent-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.1rem 1.25rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .agent-icon {
+    font-size: 22px;
+    width: 36px;
+    text-align: center;
+    flex-shrink: 0;
+    padding-top: 2px;
+  }
+
+  .agent-body { flex: 1; min-width: 0; }
+
+  .agent-name {
+    font-size: 15px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+
+  .model-badge {
+    font-size: 11px;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 2px 7px;
+    color: var(--text2);
+  }
+
+  .status-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: var(--text3);
+    margin-left: 2px;
+  }
+  .status-dot.up   { background: var(--green); }
+  .status-dot.down { background: var(--red); }
+  .status-dot.warm { background: var(--amber); }
+
+  .agent-role {
+    font-size: 13px;
+    color: var(--text2);
+    margin-bottom: 8px;
+  }
+
+  .tool-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+
+  .tool-chip {
+    font-size: 11px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 99px;
+    padding: 2px 9px;
+    color: var(--text3);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .model-status {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .vram-label {
+    font-size: 11px;
+    color: var(--text3);
+    font-family: monospace;
+    text-align: right;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-dot"></div>
+  <h1>Agents</h1>
+  <span class="subtitle">kronk</span>
+</header>
+
+<main>
+  <div class="section-label">Active Agents</div>
+
+  <div class="agent-card">
+    <div class="agent-icon">🧭</div>
+    <div class="agent-body">
+      <div class="agent-name">
+        Coordinator
+        <span class="model-badge">qwen3:14b</span>
+        <div class="status-dot" id="s-coordinator"></div>
+      </div>
+      <div class="agent-role">Routes every user message — selects tools and delegates work to specialist agents. Generates the final response.</div>
+      <div class="tool-list">
+        <span class="tool-chip">get_weather</span>
+        <span class="tool-chip">web_search</span>
+        <span class="tool-chip">fetch_url</span>
+        <span class="tool-chip">shopping_list_*</span>
+        <span class="tool-chip">query_health</span>
+        <span class="tool-chip">query_finances</span>
+      </div>
+    </div>
+    <div class="model-status">
+      <span class="vram-label" id="loaded-coordinator">checking…</span>
+    </div>
+  </div>
+
+  <div class="agent-card">
+    <div class="agent-icon">❤️</div>
+    <div class="agent-body">
+      <div class="agent-name">
+        Health Agent
+        <span class="model-badge">qwen3:14b</span>
+        <div class="status-dot" id="s-health"></div>
+      </div>
+      <div class="agent-role">Answers questions about sleep, HRV, body battery, steps, and activities using your Garmin data. Data is queried from local SQLite.</div>
+      <div class="tool-list">
+        <span class="tool-chip">query_health</span>
+        <span class="tool-chip">garmin_sync</span>
+        <span class="tool-chip">import_csv</span>
+      </div>
+    </div>
+    <div class="model-status">
+      <span class="vram-label" id="loaded-health">checking…</span>
+    </div>
+  </div>
+
+  <div class="agent-card">
+    <div class="agent-icon">🔍</div>
+    <div class="agent-body">
+      <div class="agent-name">
+        Research Agent
+        <span class="model-badge">qwen3:14b</span>
+        <div class="status-dot" id="s-research"></div>
+      </div>
+      <div class="agent-role">Performs multi-step web searches via SearXNG and fetches page content. Chained automatically for complex questions. Searches never leave the house.</div>
+      <div class="tool-list">
+        <span class="tool-chip">web_search</span>
+        <span class="tool-chip">fetch_url</span>
+      </div>
+    </div>
+    <div class="model-status">
+      <span class="vram-label" id="loaded-research">checking…</span>
+    </div>
+  </div>
+
+  <div class="agent-card">
+    <div class="agent-icon">💰</div>
+    <div class="agent-body">
+      <div class="agent-name">
+        Finance Agent
+        <span class="model-badge">mistral-small3.2:24b</span>
+        <div class="status-dot" id="s-finance"></div>
+      </div>
+      <div class="agent-role">Answers questions about uploaded financial documents — bank statements, investment summaries, tax returns, and other PDFs. Documents stored locally.</div>
+      <div class="tool-list">
+        <span class="tool-chip">query_finances</span>
+        <span class="tool-chip">ingest_document</span>
+        <span class="tool-chip">list_documents</span>
+      </div>
+    </div>
+    <div class="model-status">
+      <span class="vram-label" id="loaded-finance">checking…</span>
+    </div>
+  </div>
+
+  <div class="section-label" style="margin-top:0.5rem">Preloaded Models</div>
+
+  <div id="model-grid" style="display:flex;flex-direction:column;gap:6px">
+    <div style="color:var(--text3);font-size:13px;padding:0.5rem 0">Loading…</div>
+  </div>
+
+</main>
+
+<script>
+async function checkServices() {
+  const endpoints = [
+    { id: 's-coordinator', url: '/probe/llm' },
+    { id: 's-health',      url: '/probe/health' },
+    { id: 's-research',    url: '/probe/tools' },
+    { id: 's-finance',     url: '/probe/finance' },
+  ];
+  await Promise.allSettled(endpoints.map(async ({ id, url }) => {
+    const dot = document.getElementById(id);
+    if (!dot) return;
+    try {
+      const r = await fetch(url, { signal: AbortSignal.timeout(3000) });
+      dot.classList.toggle('up',   r.ok);
+      dot.classList.toggle('down', !r.ok);
+    } catch {
+      dot.classList.add('down');
+      dot.classList.remove('up');
+    }
+  }));
+}
+
+async function loadModels() {
+  try {
+    const r = await fetch('/probe/ollama-ps');
+    if (!r.ok) return;
+    const data = await r.json();
+    const loaded = data.models || [];
+
+    const grid = document.getElementById('model-grid');
+    if (!loaded.length) {
+      grid.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:0.5rem 0">No models currently loaded in VRAM.</div>';
+      return;
+    }
+
+    grid.innerHTML = loaded.map(m => {
+      const vram = m.size_vram ? `${(m.size_vram / 1e9).toFixed(1)} GB VRAM` : '';
+      const expires = m.expires_at ? new Date(m.expires_at).toLocaleTimeString() : '';
+      return `
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:0.75rem 1rem;display:flex;align-items:center;gap:12px">
+          <div style="width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0"></div>
+          <span style="font-family:monospace;font-size:13px;flex:1">${m.name}</span>
+          <span style="font-size:11px;color:var(--text3);font-family:monospace">${vram}</span>
+          ${expires ? `<span style="font-size:11px;color:var(--text3)">unloads ${expires}</span>` : ''}
+        </div>
+      `;
+    }).join('');
+
+    // Update per-agent loaded indicators
+    const loadedNames = loaded.map(m => m.name);
+    const agentModels = {
+      'loaded-coordinator': 'qwen3:14b',
+      'loaded-health':      'qwen3:14b',
+      'loaded-research':    'qwen3:14b',
+      'loaded-finance':     'mistral-small3.2:24b',
+    };
+    for (const [elId, model] of Object.entries(agentModels)) {
+      const el = document.getElementById(elId);
+      if (!el) continue;
+      const isLoaded = loadedNames.some(n => n === model || n.startsWith(model.split(':')[0]));
+      el.textContent = isLoaded ? 'in VRAM' : 'not loaded';
+      el.style.color = isLoaded ? 'var(--green)' : 'var(--text3)';
+    }
+  } catch (e) {
+    console.warn('Could not reach Ollama:', e);
+  }
+}
+
+checkServices();
+loadModels();
+setInterval(checkServices, 30000);
+setInterval(loadModels, 15000);
+</script>
+</body>
+</html>

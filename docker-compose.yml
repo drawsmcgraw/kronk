@@ -1,0 +1,125 @@
+networks:
+  kronk:
+    driver: bridge
+
+services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    networks: [kronk]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      orchestrator: { condition: service_healthy }
+      searxng:      { condition: service_started }
+    restart: unless-stopped
+
+  searxng:
+    image: searxng/searxng:latest
+    volumes:
+      - ./searxng:/etc/searxng:rw
+    networks: [kronk]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/healthz || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  tool_service:
+    build: ./tool_service
+    volumes:
+      - ./data:/data
+    environment:
+      - SEARXNG_URL=http://searxng:8080
+    networks: [kronk]
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8003/health\", timeout=3)' || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  litellm:
+    # Stays on host networking so it can reach llama.cpp user-systemd servers
+    # bound to 127.0.0.1 on the host. Other containers reach it via
+    # host.docker.internal:8002.
+    image: ghcr.io/berriai/litellm:main-latest
+    network_mode: host
+    volumes:
+      - ./litellm/config.yaml:/app/config.yaml:ro
+    command: ["--config", "/app/config.yaml", "--port", "8002", "--host", "0.0.0.0"]
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8002/health/liveliness\", timeout=3)' || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  health_service:
+    build: ./health_service
+    volumes:
+      - ./data:/data
+    networks: [kronk]
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8004/health\", timeout=3)' || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  finance_service:
+    build: ./finance_service
+    volumes:
+      - ./data:/data
+    networks: [kronk]
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8005/health\", timeout=3)' || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  orchestrator:
+    build: ./orchestrator
+    volumes:
+      - ./data:/data
+      - ./kronk-context.md:/kronk-context.md:ro
+      - ./litellm/config.yaml:/litellm-config.yaml:ro
+    environment:
+      - LLM_SERVICE_URL=http://host.docker.internal:8002
+      - TOOL_SERVICE_URL=http://tool_service:8003
+      - HEALTH_SERVICE_URL=http://health_service:8004
+      - FINANCE_SERVICE_URL=http://finance_service:8005
+      - ROUTER_MODEL=gemma-3-4b
+      - COORDINATOR_MODEL=gemma-4-e4b
+      - HEALTH_AGENT_MODEL=gemma-4-e4b
+      - RESEARCH_AGENT_MODEL=gemma-4-e4b
+      - FINANCE_AGENT_MODEL=gemma-4-e4b
+      - CODING_AGENT_MODEL=devstral-2512
+      - DEVOPS_AGENT_MODEL=devstral-2512
+      - LOCATION=Laurel, MD
+      - SYSTEM_PROMPT=You are Kronk, a helpful home assistant. Be direct and concise. Do not use action text, emotes, or filler expressions like *winks*, *laughs*, or *grins*. Do not use theatrical language. Answer questions factually and helpfully. You have access to real-time tools for weather, web search, health data, financial documents, and other live data. NEVER fabricate or estimate real-time information such as weather conditions, temperatures, news, or current events. If a tool result is not present in this conversation, you do not have that data — say so plainly and do not answer from training data.
+    networks: [kronk]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8000/api/agents\", timeout=3)' || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    depends_on:
+      tool_service:    { condition: service_healthy }
+      searxng:         { condition: service_healthy }
+      health_service:  { condition: service_healthy }
+      finance_service: { condition: service_healthy }
+    restart: unless-stopped

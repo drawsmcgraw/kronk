@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shopping List</title>
+<link rel="stylesheet" href="/static/kronk.css">
+<style>
+  body { max-width: 480px; margin: 0 auto; padding: 1.5rem 1.25rem; }
+  header { background: transparent; border-bottom: 1px solid var(--border); padding: 0 0 1rem; margin-bottom: 1.5rem; }
+  ul { list-style: none; display: flex; flex-direction: column; gap: 2px; }
+  .item { display: flex; align-items: center; gap: 12px; padding: 0.75rem 1rem; background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; font-size: 16px; }
+  .item::before { content: ''; width: 18px; height: 18px; border: 1.5px solid var(--border); border-radius: 4px; flex-shrink: 0; }
+  .empty { padding: 1rem; color: var(--text3); font-size: 15px; text-align: center; }
+  footer { margin-top: 1.5rem; font-size: 11px; color: var(--text3); text-align: center; }
+</style>
+</head>
+<body>
+<header>
+  <div class="header-dot"></div>
+  <h1>Shopping List</h1>
+  <span class="subtitle" id="updated">loading…</span>
+</header>
+<ul id="list"><li class="empty">loading…</li></ul>
+<footer>auto-refreshes every 30s &nbsp;·&nbsp; add items by talking to Kronk</footer>
+
+<script>
+  const listEl = document.getElementById('list');
+  const updatedEl = document.getElementById('updated');
+
+  function formatUpdated(ts) {
+    if (!ts) return 'never';
+    const dt = new Date(ts * 1000);
+    return dt.toLocaleString('en-US', { hour: 'numeric', minute: '2-digit', month: 'short', day: 'numeric' });
+  }
+
+  async function refresh() {
+    try {
+      const resp = await fetch('/api/shopping_list', { cache: 'no-store' });
+      if (!resp.ok) throw new Error(resp.statusText);
+      const data = await resp.json();
+      const items = data.items || [];
+      updatedEl.textContent = 'updated ' + formatUpdated(data.updated_at);
+      if (items.length === 0) {
+        listEl.innerHTML = '<li class="empty">Nothing on the list.</li>';
+        return;
+      }
+      listEl.innerHTML = items
+        .map(i => `<li class="item">${i.replace(/[<&>]/g, c => ({'<':'&lt;','&':'&amp;','>':'&gt;'})[c])}</li>`)
+        .join('');
+    } catch (e) {
+      updatedEl.textContent = 'offline';
+    }
+  }
+
+  refresh();
+  setInterval(refresh, 30_000);
+</script>
+</body>
+</html>
