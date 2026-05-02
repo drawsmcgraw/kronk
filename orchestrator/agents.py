@@ -42,6 +42,7 @@ def _tool_narration(name: str, args: dict) -> str:
     return f"running {name}..."
 
 
+TALKIE_MODEL         = os.getenv("TALKIE_MODEL",         "talkie")
 COORDINATOR_MODEL    = os.getenv("COORDINATOR_MODEL",    "mistral-nemo:12b")
 HEALTH_AGENT_MODEL   = os.getenv("HEALTH_AGENT_MODEL",   COORDINATOR_MODEL)
 RESEARCH_AGENT_MODEL = os.getenv("RESEARCH_AGENT_MODEL", COORDINATOR_MODEL)
@@ -96,7 +97,7 @@ AGENTS: dict[str, AgentConfig] = {
     "research": AgentConfig(
         name="research",
         description="Web search, current events, news, online information, URL lookups",
-        routing_hint="web searches, current events, news, online information, recipes, and any question whose answer may have changed since training (current leaders, prices, scores, recent releases)",
+        routing_hint="ONLY questions requiring live or real-time data: today's news, current prices, live scores, breaking events, recent releases — NOT for general knowledge or factual questions answerable from training data",
         icon="🔍",
         probe="tools",
         system_prompt=(
@@ -117,15 +118,18 @@ AGENTS: dict[str, AgentConfig] = {
     ),
     "home": AgentConfig(
         name="home",
-        description="Weather lookups and shopping list management",
-        routing_hint="weather, forecast, shopping list",
+        description="Weather lookups, shopping list management, and hot tub status",
+        routing_hint="weather, forecast, shopping list, hot tub, spa",
         icon="🏠",
         probe="tools",
         system_prompt=(
-            "You are Kronk's home specialist. Handle weather lookups and shopping list management.\n"
-            "Use get_weather for weather queries. Use shopping list tools for list management. Be brief and direct."
+            "You are Kronk's home specialist. Handle weather lookups, shopping list management, and home device status.\n"
+            "Use get_weather for weather queries. Use shopping list tools for list management.\n"
+            "Use query_hottub to check if the hot tub is online and report its temperature. "
+            "If the hot tub is offline, clearly state that the breaker may have tripped and report how long it has been offline.\n"
+            "Be brief and direct."
         ),
-        tool_names=["get_weather", "shopping_list_view", "shopping_list_add", "shopping_list_remove", "shopping_list_clear"],
+        tool_names=["get_weather", "shopping_list_view", "shopping_list_add", "shopping_list_remove", "shopping_list_clear", "query_hottub"],
     ),
     "assistant": AgentConfig(
         name="assistant",
@@ -168,10 +172,30 @@ AGENTS: dict[str, AgentConfig] = {
         tool_names=["web_search", "fetch_url"],
         model=CODING_AGENT_MODEL,
     ),
+    "talkie": AgentConfig(
+        name="talkie",
+        description="Talkie-1930: a vintage language model trained on pre-1931 text. Answers in period-appropriate language with knowledge limited to December 31, 1930. Only invoked when explicitly requested by name.",
+        routing_hint="explicitly requested by name only — e.g. 'ask talkie' or 'what does talkie think'",
+        icon="📻",
+        probe="llm",
+        system_prompt=(
+            "You are Talkie, a learned gentleman of letters circa 1930. Your knowledge extends only to "
+            "December 31, 1930 — you know nothing of events, inventions, or persons that came after.\n"
+            "Speak in the register of a well-educated Edwardian or early American: precise, measured, "
+            "occasionally formal, but never stuffy. Draw on encyclopedias, reference works, and the "
+            "great literature of the age.\n"
+            "If asked about something beyond your knowledge — aeroplanes of a later era, television, "
+            "the internet, events after 1930 — say plainly that such things lie beyond your acquaintance, "
+            "and offer what relevant knowledge you do possess.\n"
+            "You have no tools and require none. Your answers come from learning, not from wire or mechanism."
+        ),
+        tool_names=[],
+        model=TALKIE_MODEL,
+    ),
     "devops": AgentConfig(
         name="devops",
         description="SSH commands, server administration, Linux troubleshooting, infrastructure, Docker, systemd, networking, host automation",
-        routing_hint="servers, SSH, Docker, Linux, infrastructure",
+        routing_hint="servers, SSH, Docker, Linux, nginx, web servers, systemd, networking, infrastructure",
         icon="🛠️",
         probe="llm",
         system_prompt=(
@@ -192,17 +216,38 @@ VALID_ROUTES = set(AGENTS.keys()) | {"direct"}
 
 
 def build_routing_prompt() -> str:
+    width = max(len(k) for k in AGENTS) + 1
     lines = [
-        "You are a request classifier. Output exactly one word from this list — nothing else:",
+        "You are a request classifier for a home assistant. Output exactly one word — nothing else.",
+        "",
+        "Routes:",
         "",
     ]
-    # pad label width for readability
-    width = max(len(k) for k in AGENTS) + 1
     for key, agent in AGENTS.items():
         lines.append(f"  {key:<{width}} — {agent.routing_hint}")
-    lines.append(f"  {'direct':<{width}} — general knowledge, math, greetings, conversation, anything else")
-    lines.append("")
-    lines.append("Your entire response must be one of those words. Do not explain. Do not add punctuation.")
+    lines.append(
+        f"  {'direct':<{width}} — factual questions, explanations, definitions, science, history, "
+        "analysis, advice, math, opinions — anything answerable from general knowledge without live data"
+    )
+    lines += [
+        "",
+        "Key rule: Use 'research' ONLY when the answer genuinely requires live or current data that "
+        "changes day to day. For all other questions — even complex or detailed ones — use 'direct'.",
+        "When in doubt between 'research' and 'direct', choose 'direct'.",
+        "",
+        "Examples:",
+        "  'What is the capital of France?' → direct",
+        "  'Is zinc good for colds?' → direct",
+        "  'How does TCP/IP work?' → direct",
+        "  'What are the drawbacks of sitting on the floor?' → direct",
+        "  'Why did the Roman Empire fall?' → direct",
+        "  'What is the news today?' → research",
+        "  'What are current mortgage rates?' → research",
+        "  'Write a bash script to rename files' → coding",
+        "  'How is my sleep this week?' → health",
+        "",
+        "Your entire response must be exactly one word from the list above. Do not explain. Do not add punctuation.",
+    ]
     return "\n".join(lines)
 
 
@@ -264,6 +309,47 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict]):
     ]
 
     seen_calls: set[str] = set()
+
+    # ── Fast path: no tools → stream directly, no blocking planning round ───
+    # Skipping llm.complete() keeps the connection alive while the model generates
+    # (critical for slow CPU-inference models like Talkie that take 30-60 s).
+    if not agent_tool_defs:
+        synth_model = agent.synthesis_model or agent.model
+        collected: list[str] = []
+        synth_usage: dict = {}
+        t_llm = time.monotonic()
+        try:
+            async for chunk in llm.stream(messages, synth_model):
+                if "usage" in chunk:
+                    synth_usage = chunk["usage"]
+                    continue
+                token = chunk.get("token", "")
+                if token:
+                    collected.append(token)
+                    yield {"type": "token", "text": token}
+        except Exception as e:
+            emit("agent_llm_error", agent=agent.name, model=synth_model, error=str(e))
+            logger.error("Agent '%s' stream failed: %s", agent.name, e)
+            yield {"type": "error", "message": f"[{agent.name} agent error: {e}]"}
+            return
+        emit(
+            "agent_round",
+            agent=agent.name,
+            model=synth_model,
+            phase="synthesis",
+            duration_s=round(time.monotonic() - t_llm, 2),
+        )
+        metrics.record(
+            agent=agent.name,
+            model=synth_model,
+            prompt_tokens=synth_usage.get("prompt_tokens", 0),
+            completion_tokens=synth_usage.get("completion_tokens", len(collected)),
+            eval_duration_ns=0,
+        )
+        if not collected:
+            yield {"type": "token", "text": f"[{agent.name} agent returned no response]"}
+        yield {"type": "done", "model": synth_model, "ok": True}
+        return
 
     # ── Plan rounds (non-streaming) ─────────────────────────────────────────
     for round_idx in range(MAX_TOOL_ROUNDS):

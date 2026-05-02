@@ -310,6 +310,19 @@ async def generate_diagram(req: DiagramRequest):
     return {"url": f"/static/generated/{filename}"}
 
 
+HOTTUB_STATUS_FILE = Path("/data/hottub/status.json")
+
+
+@app.get("/hottub")
+async def hottub_status():
+    if not HOTTUB_STATUS_FILE.exists():
+        return {"online": None, "error": "no status file — monitor may not be running"}
+    try:
+        return json.loads(HOTTUB_STATUS_FILE.read_text())
+    except Exception as e:
+        return {"online": None, "error": str(e)}
+
+
 @app.get("/health")
 async def health():
     return {"status": "ok"}

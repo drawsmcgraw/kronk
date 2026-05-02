@@ -121,10 +121,48 @@ TOOL_DEFINITIONS = [
     {
         "type": "function",
         "function": {
+            "name": "search_health_data",
+            "description": (
+                "Semantically search personal health data using natural language. "
+                "Use for qualitative or exploratory questions that span multiple metrics or time periods: "
+                "'how was my recovery during high-stress weeks', "
+                "'days with low body battery', "
+                "'sleep quality after hard workouts'. "
+                "Returns the most relevant daily snapshots as readable text. "
+                "For precise aggregation (averages, trends, extremes over time), use query_health instead."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "Natural language description of what to find",
+                    },
+                    "n_results": {
+                        "type": "integer",
+                        "description": "Number of results to return (default 6, max 20)",
+                        "default": 6,
+                    },
+                    "start_date": {
+                        "type": "string",
+                        "description": "ISO date (YYYY-MM-DD) to filter results from (inclusive)",
+                    },
+                    "end_date": {
+                        "type": "string",
+                        "description": "ISO date (YYYY-MM-DD) to filter results until (inclusive)",
+                    },
+                },
+                "required": ["query"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "query_health",
             "description": (
                 "Query personal health and fitness data from Garmin and Withings. "
-                "Choose the metric that matches the question and set days to cover the relevant period. "
+                "Choose the metric that matches the question, the time window, and the resolution. "
                 "Available metrics: "
                 "sleep (duration, stages, score), "
                 "hrv (last-night HRV, weekly avg, baseline), "
@@ -138,10 +176,18 @@ TOOL_DEFINITIONS = [
                 "weight (Withings scale — daily weight in kg), "
                 "body_composition (Withings — weight, fat %, muscle mass, bone mass), "
                 "all (compact snapshot of everything — use for general health questions). "
-                "Examples: 'how did I sleep last week' → metric=sleep days=7; "
-                "'HRV trend this year' → metric=hrv days=365; "
-                "'my weight this month' → metric=weight days=30; "
-                "'body composition trend' → metric=body_composition days=90."
+                "Resolution guide — choose based on the question: "
+                "raw = every daily record, best for short windows (≤30 days); "
+                "weekly = 7-day averages, good for 1–6 month trends; "
+                "monthly = calendar-month averages, good for 6+ month trends; "
+                "summary = single aggregate (min/max/avg with dates), best for extremum questions "
+                "('what was my lowest HRV?', 'when did I sleep most?') over any window. "
+                "Examples: "
+                "'how did I sleep last week' → metric=sleep days=7 resolution=raw; "
+                "'HRV trend this year' → metric=hrv days=365 resolution=monthly; "
+                "'when was my lowest HRV this year' → metric=hrv days=365 resolution=summary; "
+                "'my weight this month' → metric=weight days=30 resolution=raw; "
+                "'step count trend over 6 months' → metric=steps days=180 resolution=weekly."
             ),
             "parameters": {
                 "type": "object",
@@ -161,8 +207,7 @@ TOOL_DEFINITIONS = [
                         "type": "integer",
                         "description": (
                             "How many days back from today (or end_date) to include. "
-                            "Default 30. Max 3650. If the user asks for more data than exists, "
-                            "the oldest available records will be returned."
+                            "Default 30. Max 3650."
                         ),
                     },
                     "end_date": {
@@ -172,8 +217,46 @@ TOOL_DEFINITIONS = [
                             "Use when asking about a specific past period."
                         ),
                     },
+                    "resolution": {
+                        "type": "string",
+                        "enum": ["raw", "weekly", "monthly", "summary"],
+                        "description": (
+                            "How to aggregate the data. "
+                            "raw = every daily record (default, use for ≤30 days); "
+                            "weekly = 7-day averages (use for 1–6 months); "
+                            "monthly = calendar-month averages (use for 6+ months); "
+                            "summary = single row with min/max/avg and dates (use for extremum questions over any window)."
+                        ),
+                    },
                 },
                 "required": ["metric"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "query_bloodwork",
+            "description": (
+                "Query structured bloodwork / lab results from LabCorp reports. "
+                "Use for questions about specific lab markers over time: cholesterol, LDL, HDL, "
+                "glucose, HbA1c, creatinine, TSH, vitamin D, CBC components, etc. "
+                "Omit marker to retrieve all results from a recent draw. "
+                "For open-ended questions ('anything concerning in my labs?') use search_health_data instead."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "marker": {
+                        "type": "string",
+                        "description": "Lab marker to filter by (partial match, e.g. 'LDL', 'Glucose', 'TSH'). Omit for all markers.",
+                    },
+                    "days": {
+                        "type": "integer",
+                        "description": "How many days back to include (default 730 = 2 years).",
+                    },
+                },
+                "required": [],
             },
         },
     },
@@ -211,6 +294,19 @@ TOOL_DEFINITIONS = [
                 },
                 "required": ["dot"],
             },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "query_hottub",
+            "description": (
+                "Check the current status of the hot tub. Returns whether it is online or offline, "
+                "the current water temperature, the target set temperature, and how long it has been "
+                "offline if applicable. Use when the user asks about the hot tub, spa, or whether the "
+                "hot tub breaker has tripped."
+            ),
+            "parameters": {"type": "object", "properties": {}},
         },
     },
     {
@@ -312,10 +408,39 @@ async def execute(name: str, args: dict) -> str:
                 await client.delete(f"{TOOL_SERVICE_URL}/shopping_list/clear")
                 return "[Shopping list cleared]"
 
+            if name == "search_health_data":
+                params: dict = {"q": args.get("query", "")}
+                if "n_results" in args:
+                    params["n"] = int(args["n_results"])
+                if "start_date" in args:
+                    params["start_date"] = args["start_date"]
+                if "end_date" in args:
+                    params["end_date"] = args["end_date"]
+                resp = await client.get(
+                    f"{HEALTH_SERVICE_URL}/api/search", params=params, timeout=15
+                )
+                if resp.status_code == 200:
+                    data = resp.json()
+                    results = data.get("results", [])
+                    if not results:
+                        return f"[Health search: no indexed data found for '{params['q']}'. Data may not have been ingested yet.]"
+                    chunks = "\n\n".join(
+                        f"[{r['metadata'].get('date','?')} | {r['metadata'].get('type','?')} | score={r['score']}] {r['text']}"
+                        for r in results
+                    )
+                    return f"[Health search results for '{params['q']}']\n\n{chunks}"
+                return f"[Health search error: {resp.status_code}]"
+
             if name == "query_health":
-                params: dict = {"metric": args.get("metric", "all")}
-                if "days" in args:
-                    params["days"] = int(args["days"])
+                days = int(args.get("days", 30))
+                resolution = args.get("resolution", "raw")
+                # Enforce sane resolution for longer windows to prevent context bloat
+                if days > 365 and resolution in ("raw", "weekly"):
+                    resolution = "monthly"
+                elif days > 90 and resolution == "raw":
+                    resolution = "weekly"
+                params: dict = {"metric": args.get("metric", "all"), "resolution": resolution}
+                params["days"] = days
                 if "end_date" in args:
                     params["end_date"] = args["end_date"]
                 resp = await client.get(
@@ -327,6 +452,27 @@ async def execute(name: str, args: dict) -> str:
                         return f"[Health data: {data.get('note', 'no data available')}]"
                     return f"[Health data — metric={params['metric']} days={params.get('days', 30)}]\n{json.dumps(data, indent=2)}"
                 return f"[Health service error: {resp.status_code}]"
+
+            if name == "query_bloodwork":
+                params: dict = {}
+                if "marker" in args:
+                    params["marker"] = args["marker"]
+                if "days" in args:
+                    params["days"] = int(args["days"])
+                resp = await client.get(f"{HEALTH_SERVICE_URL}/api/bloodwork", params=params, timeout=15)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    if not data.get("results"):
+                        return "[Bloodwork: no lab results found. Upload a LabCorp PDF at /api/health/import/bloodwork.]"
+                    dates = data.get("dates", [])
+                    rows = data["results"]
+                    lines = [f"Lab draws on file: {', '.join(dates)}"]
+                    for r in rows:
+                        flag = f" [{r['flag']}]" if r.get("flag") else ""
+                        ref = f" (ref {r['raw_ref']})" if r.get("raw_ref") else ""
+                        lines.append(f"{r['date']} | {r['panel']} | {r['marker']}: {r['value']} {r.get('unit','')}{flag}{ref}")
+                    return f"[Bloodwork results]\n" + "\n".join(lines)
+                return f"[Bloodwork query error: {resp.status_code}]"
 
             if name == "get_kronk_context":
                 try:
@@ -354,6 +500,29 @@ async def execute(name: str, args: dict) -> str:
                     url = resp.json().get("url", "")
                     return f"[Diagram generated: {url}]\n![diagram]({url})"
                 return f"[Diagram generation failed: {resp.status_code} {resp.text[:200]}]"
+
+            if name == "query_hottub":
+                resp = await client.get(f"{TOOL_SERVICE_URL}/hottub", timeout=5)
+                if resp.status_code == 200:
+                    d = resp.json()
+                    if d.get("online") is None:
+                        return f"[Hot tub status unknown: {d.get('error', 'no data')}]"
+                    if d["online"]:
+                        return (
+                            f"[Hot tub ONLINE]\n"
+                            f"Temperature: {d.get('temperature_f')}°F (set: {d.get('set_temperature_f')}°F)\n"
+                            f"Spa: {d.get('spa_name')} ({d.get('spa_ip')})\n"
+                            f"Last checked: {d.get('last_check')}"
+                        )
+                    else:
+                        offline_since = d.get("offline_since", "unknown")
+                        return (
+                            f"[Hot tub OFFLINE — breaker may have tripped]\n"
+                            f"Offline since: {offline_since}\n"
+                            f"Last seen: {d.get('last_seen')}\n"
+                            f"Last checked: {d.get('last_check')}"
+                        )
+                return "[Hot tub status unavailable]"
 
             if name == "query_finances":
                 query = args.get("query", "")
