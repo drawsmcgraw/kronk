@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 """
-Kronk hot tub monitor — persistent geckolib connection.
+Kronk hot tub monitor — single-attempt connection with long retry delay.
 
-Holds a single long-lived geckolib connection so the module's required
-~2s ping loop runs continuously. Connect-per-poll was wedging the module
-by repeatedly starting and stopping that ping loop.
-
-Offline detection: spa pack ping timeout (breaker trips → pack goes dark →
-geckolib fires CLIENT_FACADE_TEARDOWN after PING_DEVICE_NOT_RESPONDING
-timeout, ~120s with idle config).
+Each connection attempt opens a new geckolib session, waits for the facade,
+then holds the connection until it drops. On any failure or disconnect the
+session is closed completely (killing geckolib's internal retry loop), and
+we wait a long delay before trying again. This prevents hammering the
+Gecko in.touch 2 module, which has a small connection table and will crash
+(red/blue LED) if bombarded with rapid reconnect attempts.
 """
 import asyncio
 import json
@@ -22,12 +21,13 @@ from typing import Any
 
 from geckolib import GeckoAsyncSpaMan, GeckoSpaEvent
 
-STATUS_FILE       = Path("/home/drew/git-repos/drawsmcgraw/kronk/data/hottub/status.json")
-SPA_IDENTIFIER    = "SPA68:27:19:be:cd:08"
-SPA_HOST          = "192.168.1.87"
-POLL_INTERVAL     = 300     # seconds between status file updates (no module impact)
-CONNECT_TIMEOUT   = 60.0    # seconds to wait for initial facade on startup
-RECONNECT_DELAY   = 30      # seconds to wait before reconnecting after a drop
+STATUS_FILE          = Path("/home/drew/git-repos/drawsmcgraw/kronk/data/hottub/status.json")
+SPA_IDENTIFIER       = "SPA68:27:19:be:cd:08"
+SPA_HOST             = "192.168.1.87"
+CONNECT_TIMEOUT      = 60      # seconds to wait for initial facade
+POLL_INTERVAL        = 300     # seconds between status file updates while connected
+RECONNECT_DELAY_SHORT = 60     # seconds to wait after a clean disconnect
+RECONNECT_DELAY_LONG  = 300    # seconds to wait after a connect failure (module settles)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -125,110 +125,108 @@ class _SpaMan(GeckoAsyncSpaMan):
             self._facade_gone.set()
 
 
-async def _run(stop: asyncio.Event) -> None:
-    """Hold one persistent geckolib connection for the life of the process."""
+async def _run_once(stop: asyncio.Event) -> bool:
+    """
+    One connection attempt. Opens geckolib, waits for facade, holds the
+    connection until it drops or stop fires. Returns True if we connected
+    (retry sooner), False if we never connected (retry later).
+
+    Exiting this function closes the async with block, which cancels all
+    geckolib tasks including the sequence pump retry loop — leaving the
+    module alone during the inter-attempt delay.
+    """
     async with _SpaMan(
         str(uuid.uuid4()),
         spa_identifier=SPA_IDENTIFIER,
         spa_address=SPA_HOST,
         spa_name="Hot Tub",
     ) as spaman:
-        logger.info("Connecting to spa pack at %s...", SPA_HOST)
+        _state["last_check"] = _now()
+        logger.info("Attempting connection to spa pack at %s...", SPA_HOST)
 
-        while not stop.is_set():
-            # ── Wait for (re)connection ────────────────────────────────────
-            spaman._facade_ready.clear()
-            try:
-                await asyncio.wait_for(
-                    spaman._facade_ready.wait(), timeout=CONNECT_TIMEOUT
-                )
-            except asyncio.TimeoutError:
-                logger.warning("Timed out waiting for spa pack — will keep trying")
-                _state["last_check"] = _now()
-                _on_offline()
-                # geckolib's sequence pump keeps retrying; sleep briefly then loop
+        try:
+            await asyncio.wait_for(spaman._facade_ready.wait(), timeout=CONNECT_TIMEOUT)
+        except asyncio.TimeoutError:
+            logger.warning(
+                "No response from spa pack after %ds — backing off %ds before retry",
+                CONNECT_TIMEOUT, RECONNECT_DELAY_LONG,
+            )
+            _on_offline()
+            return False  # never connected → use long delay
+
+        if stop.is_set():
+            return False
+
+        # ── Connected ─────────────────────────────────────────────────────────
+        curr_f, set_f = _read_temps(spaman)
+        try:
+            spa_name = spaman.spa_name
+        except AssertionError:
+            spa_name = SPA_IDENTIFIER
+
+        prev_online = _state["online"]
+        _state.update({
+            "online": True,
+            "spa_name": spa_name,
+            "temperature_f": curr_f,
+            "set_temperature_f": set_f,
+            "last_seen": _now(),
+            "last_check": _now(),
+            "offline_since": None,
+            "consecutive_failures": 0,
+        })
+        _write_status()
+
+        if prev_online is not True:
+            _on_online(curr_f, set_f)
+        else:
+            logger.info("Reconnected — %.1f°F (set: %.1f°F)", curr_f, set_f)
+
+        # ── Stay connected: poll every POLL_INTERVAL ───────────────────────────
+        while not stop.is_set() and not spaman._facade_gone.is_set():
+            disconnect_task = asyncio.ensure_future(spaman._facade_gone.wait())
+            stop_task = asyncio.ensure_future(stop.wait())
+            sleep_task = asyncio.ensure_future(asyncio.sleep(POLL_INTERVAL))
+
+            done, pending = await asyncio.wait(
+                {disconnect_task, stop_task, sleep_task},
+                return_when=asyncio.FIRST_COMPLETED,
+            )
+            for t in pending:
+                t.cancel()
                 try:
-                    await asyncio.wait_for(stop.wait(), timeout=RECONNECT_DELAY)
-                except asyncio.TimeoutError:
+                    await t
+                except (asyncio.CancelledError, Exception):
                     pass
-                continue
 
-            if stop.is_set():
+            if stop.is_set() or spaman._facade_gone.is_set():
                 break
 
-            # ── Connected ─────────────────────────────────────────────────
-            curr_f, set_f = _read_temps(spaman)
-            try:
-                spa_name = spaman.spa_name
-            except AssertionError:
-                spa_name = SPA_IDENTIFIER
+            # Periodic temp update
+            if spaman.facade is not None:
+                curr_f, set_f = _read_temps(spaman)
+                _state.update({
+                    "temperature_f": curr_f,
+                    "set_temperature_f": set_f,
+                    "last_seen": _now(),
+                    "last_check": _now(),
+                })
+                _write_status()
+                logger.debug("Hot tub %.1f°F (set: %.1f°F)", curr_f, set_f)
 
-            prev_online = _state["online"]
-            _state.update({
-                "online": True,
-                "spa_name": spa_name,
-                "temperature_f": curr_f,
-                "set_temperature_f": set_f,
-                "last_seen": _now(),
-                "last_check": _now(),
-                "offline_since": None,
-                "consecutive_failures": 0,
-            })
-            _write_status()
+        # ── Disconnected ───────────────────────────────────────────────────────
+        if spaman._facade_gone.is_set() and not stop.is_set():
+            _on_offline()
 
-            if prev_online is not True:
-                _on_online(curr_f, set_f)
-            else:
-                logger.info("Reconnected — %.1f°F (set: %.1f°F)", curr_f, set_f)
-
-            # ── Stay connected: update status every POLL_INTERVAL ─────────
-            while not stop.is_set() and not spaman._facade_gone.is_set():
-                disconnect_task = asyncio.ensure_future(spaman._facade_gone.wait())
-                stop_task = asyncio.ensure_future(stop.wait())
-                sleep_task = asyncio.ensure_future(asyncio.sleep(POLL_INTERVAL))
-
-                done, pending = await asyncio.wait(
-                    {disconnect_task, stop_task, sleep_task},
-                    return_when=asyncio.FIRST_COMPLETED,
-                )
-                for t in pending:
-                    t.cancel()
-                    try:
-                        await t
-                    except (asyncio.CancelledError, Exception):
-                        pass
-
-                if stop.is_set() or spaman._facade_gone.is_set():
-                    break
-
-                # Periodic temp update
-                if spaman.facade is not None:
-                    curr_f, set_f = _read_temps(spaman)
-                    _state.update({
-                        "temperature_f": curr_f,
-                        "set_temperature_f": set_f,
-                        "last_seen": _now(),
-                        "last_check": _now(),
-                    })
-                    _write_status()
-                    logger.debug("Hot tub %.1f°F (set: %.1f°F)", curr_f, set_f)
-
-            # ── Connection dropped ─────────────────────────────────────────
-            if spaman._facade_gone.is_set() and not stop.is_set():
-                _on_offline()
-                logger.info("Waiting %ds before reconnect attempt...", RECONNECT_DELAY)
-                try:
-                    await asyncio.wait_for(stop.wait(), timeout=RECONNECT_DELAY)
-                except asyncio.TimeoutError:
-                    pass
-                # Loop back to wait for _facade_ready (sequence pump reconnects)
+    # Exiting async with cancels all geckolib tasks + sequence pump retry loop
+    return True  # was connected → use short delay
 
 
 async def main() -> None:
     logger.info(
-        "Kronk hot tub monitor starting — persistent connection to %s, "
-        "status updates every %ds",
-        SPA_HOST, POLL_INTERVAL,
+        "Kronk hot tub monitor starting — %s, status updates every %ds, "
+        "retry after connect failure: %ds, retry after disconnect: %ds",
+        SPA_HOST, POLL_INTERVAL, RECONNECT_DELAY_LONG, RECONNECT_DELAY_SHORT,
     )
 
     loop = asyncio.get_running_loop()
@@ -236,7 +234,17 @@ async def main() -> None:
     for sig in (signal.SIGINT, signal.SIGTERM):
         loop.add_signal_handler(sig, stop.set)
 
-    await _run(stop)
+    while not stop.is_set():
+        was_connected = await _run_once(stop)
+        if stop.is_set():
+            break
+        delay = RECONNECT_DELAY_SHORT if was_connected else RECONNECT_DELAY_LONG
+        logger.info("Next connection attempt in %ds", delay)
+        try:
+            await asyncio.wait_for(stop.wait(), timeout=delay)
+        except asyncio.TimeoutError:
+            pass
+
     logger.info("Monitor stopped.")
 
 
