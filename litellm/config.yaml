@@ -30,6 +30,18 @@ model_list:
       supports_function_calling: true
     kronk:
       params:  "24B"
+      quant:   "Q8_0"
+      vram_gb: 25
+      ctx_k:   32
+
+  - model_name: devstral-2512-q4
+    litellm_params:
+      model: openai/devstral-2512-q4
+      api_base: http://127.0.0.1:11440/v1
+      api_key: "dummy"
+      supports_function_calling: true
+    kronk:
+      params:  "24B"
       quant:   "Q4_K_M"
       vram_gb: 14
       ctx_k:   128
@@ -57,7 +69,19 @@ model_list:
       vram_gb: 3.5
       ctx_k:   128
 
+  - model_name: talkie
+    litellm_params:
+      model: openai/talkie
+      api_base: http://127.0.0.1:11441/v1
+      api_key: "dummy"
+    kronk:
+      params:  "13B"
+      quant:   "Q8_0"
+      vram_gb: 0
+      ctx_k:   2
+
 litellm_settings:
   drop_params: true       # silently drop unsupported params
   request_timeout: 600
   num_retries: 0
+  callbacks: ["hooks.proxy_handler_instance"]    # hooks.py: normalize messages before llama.cpp receives them

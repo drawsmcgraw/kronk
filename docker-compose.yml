@@ -15,6 +15,22 @@ services:
     depends_on:
       orchestrator: { condition: service_healthy }
       searxng:      { condition: service_started }
+      retire_calc:  { condition: service_healthy }
+    restart: unless-stopped
+
+  retire_calc:
+    build: ../retirement-calc
+    volumes:
+      - ./data/retire:/data
+    environment:
+      - DATA_DIR=/data
+    networks: [kronk]
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8080/api/inputs\", timeout=3)' || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     restart: unless-stopped
 
   searxng:
@@ -53,6 +69,7 @@ services:
     network_mode: host
     volumes:
       - ./litellm/config.yaml:/app/config.yaml:ro
+      - ./litellm/hooks.py:/app/hooks.py:ro
     command: ["--config", "/app/config.yaml", "--port", "8002", "--host", "0.0.0.0"]
     healthcheck:
       test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8002/health/liveliness\", timeout=3)' || exit 1"]
@@ -104,8 +121,9 @@ services:
       - HEALTH_AGENT_MODEL=gemma-4-e4b
       - RESEARCH_AGENT_MODEL=gemma-4-e4b
       - FINANCE_AGENT_MODEL=gemma-4-e4b
-      - CODING_AGENT_MODEL=devstral-2512
-      - DEVOPS_AGENT_MODEL=devstral-2512
+      - CODING_AGENT_MODEL=devstral-2512-q4
+      - DEVOPS_AGENT_MODEL=devstral-2512-q4
+      - TALKIE_MODEL=talkie
       - LOCATION=Laurel, MD
       - SYSTEM_PROMPT=You are Kronk, a helpful home assistant. Be direct and concise. Do not use action text, emotes, or filler expressions like *winks*, *laughs*, or *grins*. Do not use theatrical language. Answer questions factually and helpfully. You have access to real-time tools for weather, web search, health data, financial documents, and other live data. NEVER fabricate or estimate real-time information such as weather conditions, temperatures, news, or current events. If a tool result is not present in this conversation, you do not have that data — say so plainly and do not answer from training data.
     networks: [kronk]

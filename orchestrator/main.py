@@ -181,6 +181,7 @@ async def message(req: MessageRequest):
         t_first_token: float | None = None
 
         async with _llm_lock:
+            history_snapshot = len(history)
             history.append({"role": "user", "content": req.text})
             try:
                 # Persona messages used for the coordinator synthesis path.
@@ -220,7 +221,7 @@ async def message(req: MessageRequest):
 
                     agent_first_token_t: float | None = None
                     agent_error: str | None = None
-                    agent_model_used = agent_cfg.synthesis_model or agent_cfg.model
+                    agent_model_used = agent_cfg.model
                     stage_sent = False
 
                     yield f"data: {json.dumps({'narration': f'let me ask the {agent_name} agent about that'})}\n\n"
@@ -347,6 +348,8 @@ async def message(req: MessageRequest):
             finally:
                 if assistant_reply:
                     history.append({"role": "assistant", "content": "".join(assistant_reply)})
+                else:
+                    del history[history_snapshot:]
 
     return StreamingResponse(stream(), media_type="text/event-stream")
 
@@ -388,6 +391,17 @@ def _is_garmin_export_zip(data: bytes, filename: str) -> bool:
     if not filename.lower().endswith(".zip"):
         return False
     return data[:2] == b"PK"
+
+
+def _is_labcorp_report(data: bytes, filename: str) -> bool:
+    if not filename.lower().endswith(".pdf"):
+        return False
+    try:
+        reader = PdfReader(io.BytesIO(data))
+        text = " ".join(page.extract_text() or "" for page in reader.pages[:2])
+        return any(sig in text for sig in ["LabCorp", "LABCORP", "Laboratory Corporation", "LabCorp Patient"])
+    except Exception:
+        return False
 
 
 @app.post("/files")
@@ -442,6 +456,33 @@ async def upload_file(file: UploadFile = File(...)):
                 raise HTTPException(
                     status_code=resp.status_code,
                     detail=f"Health service rejected the file: {resp.text[:200]}",
+                )
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(status_code=502, detail=f"Health service unreachable: {e}")
+
+    # LabCorp bloodwork PDF → forward to health_service for structured ingestion
+    if _is_labcorp_report(data, name):
+        try:
+            async with httpx.AsyncClient(timeout=30) as client:
+                resp = await client.post(
+                    f"{tools.HEALTH_SERVICE_URL}/api/import/bloodwork",
+                    files={"file": (name, data, "application/pdf")},
+                )
+                if resp.status_code == 200:
+                    result = resp.json()
+                    return {
+                        "name": name,
+                        "routed_to": "health_service",
+                        "type": "bloodwork",
+                        "date": result["date"],
+                        "markers_parsed": result["markers_parsed"],
+                        "panels_found": result["panels_found"],
+                    }
+                raise HTTPException(
+                    status_code=resp.status_code,
+                    detail=f"Bloodwork import failed: {resp.text[:200]}",
                 )
         except HTTPException:
             raise

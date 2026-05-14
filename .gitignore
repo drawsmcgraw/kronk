@@ -4,6 +4,9 @@ input
 # Secrets — never commit these
 secrets/
 
+# SearXNG real config carries a secret_key — track settings.yml.example instead
+searxng/settings.yml
+
 # Persisted service data
 data/
 

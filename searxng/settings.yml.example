@@ -1,3 +1,12 @@
+# SearXNG configuration — TEMPLATE
+#
+# Copy this file to settings.yml and give it a unique secret_key:
+#   cp searxng/settings.yml.example searxng/settings.yml
+#   sed -i "s/ultrasecretkey/$(openssl rand -hex 32)/" searxng/settings.yml
+#
+# searxng/settings.yml is gitignored, so your real secret_key never gets
+# committed. SearXNG refuses to start while secret_key is "ultrasecretkey".
+
 use_default_settings: true
 
 general:
@@ -12,7 +21,8 @@ search:
     - json
 
 server:
-  secret_key: "kronk-searxng-secret"
+  # Replace with a unique random value — see the header of this file.
+  secret_key: "ultrasecretkey"
   bind_address: "127.0.0.1"
   port: 8080
   public_instance: false

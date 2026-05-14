@@ -312,6 +312,11 @@
   <h1>Health</h1>
   <span class="sync-status" id="sync-status">loading...</span>
   <button class="sync-btn" id="sync-btn" onclick="triggerSync()">sync now</button>
+  <label class="sync-btn" style="cursor:pointer" title="Upload LabCorp PDF bloodwork results">
+    🩸 labs
+    <input type="file" accept=".pdf" style="display:none" onchange="uploadBloodwork(this)">
+  </label>
+  <span id="bloodwork-status" style="font-size:11px;color:var(--text3);font-family:monospace"></span>
 </header>
 
 <main>
@@ -881,6 +886,30 @@ function updateSyncStatus(syncLog) {
     const label = diff < 1 ? 'just now' : diff < 60 ? `${diff}m ago` : `${Math.round(diff/60)}h ago`;
     el.textContent = `synced ${label}${syncLog.status === 'error' ? ' ⚠' : ''}`;
   }
+}
+
+async function uploadBloodwork(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const status = document.getElementById('bloodwork-status');
+  status.textContent = 'uploading…';
+  const form = new FormData();
+  form.append('file', file);
+  try {
+    const resp = await fetch(`${API}/api/import/bloodwork`, { method: 'POST', body: form });
+    const data = await resp.json();
+    if (resp.ok) {
+      status.textContent = `✓ ${data.date} — ${data.markers_parsed} markers`;
+      status.style.color = 'var(--green)';
+    } else {
+      status.textContent = `✗ ${data.detail || 'upload failed'}`;
+      status.style.color = 'var(--red)';
+    }
+  } catch (e) {
+    status.textContent = `✗ ${e.message}`;
+    status.style.color = 'var(--red)';
+  }
+  input.value = '';
 }
 
 async function triggerSync() {

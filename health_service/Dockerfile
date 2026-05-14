@@ -6,8 +6,11 @@ WORKDIR /app
 
 RUN pip install uv
 
-COPY requirements.txt requirements.lock ./
-RUN uv pip install --system --require-hashes -r requirements.lock
+COPY requirements.txt ./
+RUN uv pip install --system -r requirements.txt
+
+# Pre-download embedding model so first query is instant
+RUN python -c "from fastembed import TextEmbedding; list(TextEmbedding('BAAI/bge-small-en-v1.5').embed(['warmup']))"
 
 COPY . .
 

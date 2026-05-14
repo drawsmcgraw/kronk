@@ -17,8 +17,12 @@ from db import (
     get_hrv, get_last_sync, get_sleep, get_summary, init_db,
     query_health,
     upsert_body_battery_rows, upsert_daily_summary_rows, upsert_hrv_rows, upsert_sleep_rows,
+    upsert_bloodwork_rows, get_bloodwork, get_bloodwork_dates,
 )
 from withings_sync import sync_withings
+from chunker import chunk_daily, chunk_sleep, chunk_hrv, chunk_activity, chunk_bloodwork_panel
+from vector_store import upsert_chunks, chunk_count, search as vs_search
+from bloodwork_parser import parse_labcorp
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -97,12 +101,14 @@ def api_query(
     metric: str = Query(default="all"),
     days: int = Query(default=30, ge=1),
     end_date: str = Query(default=None),
+    resolution: str = Query(default="raw"),
 ):
     """Flexible health query for LLM tool use.
     metric: sleep | hrv | activities | steps | calories | stress |
             resting_hr | body_battery | distance | weight | body_composition | all
+    resolution: raw | weekly | monthly | summary
     """
-    return query_health(metric=metric, days=days, end_date=end_date)
+    return query_health(metric=metric, days=days, end_date=end_date, resolution=resolution)
 
 
 # ── CSV import helpers ────────────────────────────────────────────────────────
@@ -522,6 +528,13 @@ def _import_sleep_json(records: list, synced_at: str) -> tuple[int, int]:
         })
     if rows:
         upsert_sleep_rows(rows)
+        try:
+            upsert_chunks([
+                {"id": f"{r['date']}_sleep", "text": chunk_sleep(r), "metadata": {"date": r["date"], "type": "sleep"}}
+                for r in rows
+            ])
+        except Exception as e:
+            logger.warning("Vector store upsert failed (sleep): %s", e)
     return len(rows), 0
 
 
@@ -559,6 +572,13 @@ def _import_uds_json(records: list, synced_at: str) -> tuple[int, int]:
         })
     if rows:
         upsert_daily_summary_rows(rows)
+        try:
+            upsert_chunks([
+                {"id": f"{r['date']}_daily", "text": chunk_daily(r), "metadata": {"date": r["date"], "type": "daily"}}
+                for r in rows
+            ])
+        except Exception as e:
+            logger.warning("Vector store upsert failed (daily): %s", e)
     return len(rows), 0
 
 
@@ -586,6 +606,13 @@ def _import_health_status_json(records: list, synced_at: str) -> tuple[int, int]
         })
     if rows:
         upsert_hrv_rows(rows)
+        try:
+            upsert_chunks([
+                {"id": f"{r['date']}_hrv", "text": chunk_hrv(r), "metadata": {"date": r["date"], "type": "hrv"}}
+                for r in rows
+            ])
+        except Exception as e:
+            logger.warning("Vector store upsert failed (hrv): %s", e)
     return len(rows), 0
 
 
@@ -597,6 +624,7 @@ def _import_activities_json(records: list, synced_at: str) -> tuple[int, int]:
         activities = records
 
     inserted = skipped = 0
+    chunk_rows: list[dict] = []
     with get_conn() as conn:
         for r in activities:
             try:
@@ -613,27 +641,38 @@ def _import_activities_json(records: list, synced_at: str) -> tuple[int, int]:
 
                 duration_ms = r.get("duration") or r.get("elapsedDuration") or 0
                 duration_s  = int(float(duration_ms) / 1000) if duration_ms else None
+                name = r.get("name") or (r.get("activityType") or "unknown")
+                act_type = (r.get("activityType") or "unknown").lower()
+                dist = r.get("distance")
+                avg_hr = _try_int(r.get("avgHr"))
+                max_hr = _try_int(r.get("maxHr"))
+                calories = _try_int(r.get("calories"))
 
                 conn.execute("""
                     INSERT OR REPLACE INTO activities
                     (activity_id, date, name, type, duration_seconds,
                      distance_meters, avg_hr, max_hr, calories, synced_at)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    act_id,
-                    act_date,
-                    r.get("name") or (r.get("activityType") or "unknown"),
-                    (r.get("activityType") or "unknown").lower(),
-                    duration_s,
-                    r.get("distance"),
-                    _try_int(r.get("avgHr")),
-                    _try_int(r.get("maxHr")),
-                    _try_int(r.get("calories")),
-                    synced_at,
-                ))
+                """, (act_id, act_date, name, act_type, duration_s,
+                      dist, avg_hr, max_hr, calories, synced_at))
                 inserted += 1
+                chunk_rows.append({
+                    "id": f"{act_id}_activity",
+                    "date": act_date, "name": name, "type": act_type,
+                    "duration_seconds": duration_s, "distance_meters": dist,
+                    "avg_hr": avg_hr, "max_hr": max_hr, "calories": calories,
+                })
             except Exception:
                 skipped += 1
+
+    try:
+        upsert_chunks([
+            {"id": row["id"], "text": chunk_activity(row), "metadata": {"date": row["date"], "type": "activity"}}
+            for row in chunk_rows
+        ])
+    except Exception as e:
+        logger.warning("Vector store upsert failed (activities): %s", e)
+
     return inserted, skipped
 
 
@@ -775,6 +814,140 @@ async def import_export(file: UploadFile = File(...)):
         "total_inserted": total_inserted,
         "detail": results,
     }
+
+
+@app.post("/api/import/bloodwork")
+async def import_bloodwork(file: UploadFile = File(...)):
+    """
+    Import a LabCorp PDF bloodwork report.
+
+    Parses structured results into SQLite and prose chunks into the vector store.
+    Re-uploading the same date's results upserts (no duplicates).
+    """
+    fname = file.filename or ""
+    if not fname.lower().endswith(".pdf"):
+        raise HTTPException(status_code=422, detail="File must be a .pdf")
+
+    content = await file.read()
+    synced_at = datetime.utcnow().isoformat()
+
+    try:
+        parsed = parse_labcorp(content)
+    except Exception as e:
+        raise HTTPException(status_code=422, detail=f"Could not parse PDF: {e}")
+
+    report_date = parsed["date"]
+    if not report_date:
+        raise HTTPException(status_code=422, detail="Could not detect a date in the PDF. Is this a LabCorp report?")
+
+    # ── SQLite upsert ─────────────────────────────────────────────────────────
+    db_rows: list[dict] = []
+    for panel_block in parsed["panels"]:
+        panel = panel_block["panel"]
+        for r in panel_block["results"]:
+            db_rows.append({
+                "date":      report_date,
+                "panel":     panel,
+                "marker":    r["marker"],
+                "value":     r["value"],
+                "unit":      r["unit"],
+                "ref_low":   r["ref_low"],
+                "ref_high":  r["ref_high"],
+                "flag":      r["flag"],
+                "raw_ref":   r["ref"],
+                "synced_at": synced_at,
+            })
+    if db_rows:
+        upsert_bloodwork_rows(db_rows)
+
+    # ── Vector store upsert ───────────────────────────────────────────────────
+    chunks: list[dict] = []
+
+    # One chunk per panel (structured results if parsed, raw text fallback)
+    if parsed["panels"]:
+        for panel_block in parsed["panels"]:
+            chunk_id = f"{report_date}_{panel_block['panel'].lower().replace(' ', '_')}_bloodwork"
+            text = chunk_bloodwork_panel(report_date, panel_block["panel"], panel_block["results"])
+            chunks.append({"id": chunk_id, "text": text, "metadata": {"date": report_date, "type": "bloodwork"}})
+    else:
+        # Fallback: chunk raw text by page-sized blocks
+        raw = parsed["raw_text"]
+        for i, block in enumerate(raw.split("\n\n")):
+            block = block.strip()
+            if len(block) > 40:
+                chunks.append({
+                    "id": f"{report_date}_bloodwork_raw_{i}",
+                    "text": f"Bloodwork on {report_date}: {block}",
+                    "metadata": {"date": report_date, "type": "bloodwork"},
+                })
+
+    try:
+        upsert_chunks(chunks)
+    except Exception as e:
+        logger.warning("Vector store upsert failed (bloodwork): %s", e)
+
+    return {
+        "date":          report_date,
+        "panels_found":  len(parsed["panels"]),
+        "markers_parsed": parsed["parsed_count"],
+        "db_rows":       len(db_rows),
+        "chunks":        len(chunks),
+        "note": "Re-upload any time — existing results for this date will be updated." if db_rows else
+                "Structured parsing found 0 results. Raw text stored in vector store for search.",
+    }
+
+
+@app.get("/api/bloodwork")
+def api_bloodwork(
+    marker: str = Query(default=None, description="Filter by marker name (partial match)"),
+    days: int = Query(default=730, ge=1, le=3650),
+):
+    """Return historical bloodwork. Omit marker for all results."""
+    rows = get_bloodwork(marker=marker, days=days)
+    dates = get_bloodwork_dates()
+    return {"dates": dates, "count": len(rows), "results": rows}
+
+
+@app.get("/api/search")
+def api_search(
+    q: str = Query(..., description="Natural language query"),
+    n: int = Query(default=6, ge=1, le=20),
+    start_date: str = Query(default=None),
+    end_date: str = Query(default=None),
+):
+    results = vs_search(q, n_results=n, start_date=start_date, end_date=end_date)
+    return {"query": q, "count": len(results), "results": results}
+
+
+@app.post("/api/reindex")
+def api_reindex():
+    """Rebuild the vector store from all SQLite data. Use after bulk imports."""
+    from db import get_conn as _conn
+    from datetime import date as _date
+    import sqlite3
+
+    chunks: list[dict] = []
+    with _conn() as conn:
+        conn.row_factory = sqlite3.Row
+        for row in conn.execute("SELECT * FROM daily_summary").fetchall():
+            r = dict(row)
+            if r.get("date"):
+                chunks.append({"id": f"{r['date']}_daily", "text": chunk_daily(r), "metadata": {"date": r["date"], "type": "daily"}})
+        for row in conn.execute("SELECT * FROM sleep").fetchall():
+            r = dict(row)
+            if r.get("date"):
+                chunks.append({"id": f"{r['date']}_sleep", "text": chunk_sleep(r), "metadata": {"date": r["date"], "type": "sleep"}})
+        for row in conn.execute("SELECT * FROM hrv").fetchall():
+            r = dict(row)
+            if r.get("date"):
+                chunks.append({"id": f"{r['date']}_hrv", "text": chunk_hrv(r), "metadata": {"date": r["date"], "type": "hrv"}})
+        for row in conn.execute("SELECT * FROM activities").fetchall():
+            r = dict(row)
+            if r.get("date"):
+                chunks.append({"id": f"{r['activity_id']}_activity", "text": chunk_activity(r), "metadata": {"date": r["date"], "type": "activity"}})
+
+    upsert_chunks(chunks)
+    return {"indexed": len(chunks), "total_chunks": chunk_count()}
 
 
 @app.get("/health")

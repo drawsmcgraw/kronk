@@ -17,10 +17,37 @@ _MAX_ASSISTANT_CHARS = 200  # truncated before sending to router
 
 _URL_RE = re.compile(r'https?://')
 
+# Talkie is a vintage 1930s character model — only invoke it when explicitly named.
+# Checked first so it takes priority over all other routing.
+_TALKIE_PHRASES = re.compile(
+    r"\b(ask\s+talkie|talkie[,\s]+|what\s+does\s+talkie\s+(think|say|know|believe)|"
+    r"talkie'?s\s+(opinion|view|take|thoughts?|perspective)|"
+    r"have\s+talkie|get\s+talkie\s+to|let\s+talkie)\b",
+    re.IGNORECASE,
+)
+
+# If the user explicitly says not to search / use the research agent, route direct
+# regardless of other signals. Checked before search phrases so "don't search for
+# that" doesn't accidentally match the search-phrase pattern.
+_DIRECT_OVERRIDE = re.compile(
+    r"don'?t\s+(use\s+)?(the\s+)?(research|search|web|internet)(\s+agent)?"
+    r"|no\s+(web\s+|internet\s+)?search"
+    r"|from\s+your\s+(own\s+)?(knowledge|training|memory)"
+    r"|generate\s+your\s+own\s+answer"
+    r"|answer\s+(it\s+)?yourself"
+    r"|without\s+(searching|the\s+web|internet)"
+    r"|no\s+answer\s+online"
+    r"|there'?s?\s+no\s+answer\s+online",
+    re.IGNORECASE,
+)
+
 # Explicit search phrases that reliably indicate a research task. Small classifier
 # models miss these consistently, so we pre-check before the LLM call.
+# Note: bare "find" is intentionally excluded — "what can you find about X" is
+# colloquial and should route through the LLM classifier, not shortcut to research.
 _SEARCH_PHRASES = re.compile(
-    r'\b(search(\s+online|\s+the\s+web|\s+for)?|look\s+up|find(\s+me)?(\s+online)?|'
+    r'\b(search(\s+online|\s+the\s+web|\s+for)?|look\s+up|'
+    r'find(\s+me)?\s+(online|on\s+the\s+web|on\s+the\s+internet)|'
     r'look\s+it\s+up|google|what\s+is\s+the\s+latest|news\s+about)\b',
     re.IGNORECASE,
 )
@@ -31,6 +58,12 @@ async def classify(text: str, prior_history: list[dict]) -> str:
 
     prior_history: conversation turns *before* the current user message.
     """
+    if _TALKIE_PHRASES.search(text):
+        emit("route_shortcut", rule="talkie_explicit", route="talkie")
+        return "talkie"
+    if _DIRECT_OVERRIDE.search(text):
+        emit("route_shortcut", rule="direct_override", route="direct")
+        return "direct"
     if _URL_RE.search(text):
         emit("route_shortcut", rule="url", route="research")
         return "research"

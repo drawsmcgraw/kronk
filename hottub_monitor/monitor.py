@@ -12,6 +12,7 @@ Gecko in.touch 2 module, which has a small connection table and will crash
 import asyncio
 import json
 import logging
+import os
 import signal
 import sys
 import uuid
@@ -21,7 +22,11 @@ from typing import Any
 
 from geckolib import GeckoAsyncSpaMan, GeckoSpaEvent
 
-STATUS_FILE          = Path("/home/drew/git-repos/drawsmcgraw/kronk/data/hottub/status.json")
+# Defaults to <repo>/data/hottub/status.json relative to this file; override with HOTTUB_STATUS_FILE.
+STATUS_FILE          = Path(os.getenv(
+    "HOTTUB_STATUS_FILE",
+    Path(__file__).resolve().parent.parent / "data" / "hottub" / "status.json",
+))
 SPA_IDENTIFIER       = "SPA68:27:19:be:cd:08"
 SPA_HOST             = "192.168.1.87"
 CONNECT_TIMEOUT      = 60      # seconds to wait for initial facade
