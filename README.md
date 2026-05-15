@@ -66,57 +66,37 @@ streamed live). The forced-synthesis tail only runs if the model used tools in
 *every* round.
 
 ```
-                      run_stream(agent, task, context)
-                                  │
-                                  ▼
-                   build messages = [system, user]
-                                  │
-                                  ▼
-        ┌───────────────► FOR round_idx in range(MAX_TOOL_ROUNDS) ◄──────────┐
-        │                         │                                         │
-        │                         ▼                                         │
-        │            llm.stream(messages, model, tool_defs)                  │
-        │                         │                                         │
-        │      ┌──────────────────┼───────────────────┐                      │
-        │      ▼                  ▼                   ▼                      │
-        │  {"token"}        {"tool_calls"}        {"usage"}     ── 5xx? ──┐   │
-        │      │                  │                   │         raise    │   │
-        │      ▼                  ▼                   ▼           │       │   │
-        │  yield token      stash round_         stash            ▼       │   │
-        │  (STREAMS to       tool_calls          last_usage   except:     │   │
-        │   user live)           │                   │       yield        │   │
-        │      │                 │                   │       {"error"} ───┼──►  RETURN
-        │      └────────┬────────┴───────────────────┘       (main.py →   │
-        │               ▼                                    coordinator) │
-        │      stream ends → emit agent_round, metrics.record             │
-        │               │                                                 │
-        │               ▼                                                 │
-        │      ┌─── round_tool_calls empty? ───┐                           │
-        │      │ YES                        NO │                           │
-        │      ▼                               ▼                           │
-        │  content already            append assistant msg                 │
-        │  streamed live              (content + tool_calls)                │
-        │      │                               │                           │
-        │      ▼                               ▼                           │
-        │  yield {"done"}          FOR each tool_call:                      │
-        │      │                       │                                   │
-        │   RETURN                     ├─ seen before? → canned "already    │
-        │                              │                  called" result   │
-        │                              ├─ else:                            │
-        │                              │    yield {"narration"}            │
-        │                              │    result = tools.execute(...)     │
-        │                              │    emit tool_call / tool_complete  │
-        │                              │                                   │
-        │                              └─ append {"role":"tool", result}    │
-        │                                        │                         │
-        └────────────────────────────────────────┴─── loop next round ──────┘
-                                  │
-                                  ▼  (only if all MAX_TOOL_ROUNDS used tools)
-                   llm.stream(messages, model, tools=None)   ← forced synthesis
-                                  │
-                          yield tokens (STREAMS) → yield {"done"}
-                                  │
-                               RETURN
+run_stream(agent, task, context)
+│
+├─ build messages = [system, user]
+│
+├─ LOOP  round_idx in range(MAX_TOOL_ROUNDS)
+│  │
+│  ├─ llm.stream(messages, model, tool_defs) — consume streamed chunks:
+│  │     {"token"}      → yield to user immediately (live stream); buffer it
+│  │     {"tool_calls"} → accumulate from deltas; stash for end-of-round
+│  │     {"usage"}      → stash for metrics
+│  │     LiteLLM 5xx    → llm.stream() raises → yield {"error"} → RETURN
+│  │                      (main.py then falls back to the coordinator)
+│  │
+│  ├─ stream ends → emit agent_round, metrics.record
+│  │
+│  ├─ no tool_calls stashed?
+│  │     YES → content already streamed live → yield {"done"} → RETURN
+│  │
+│  └─ tool_calls stashed?
+│        YES → append assistant msg (buffered content + tool_calls)
+│              for each tool_call:
+│                 seen this turn already → canned "already called" result
+│                 otherwise              → yield {"narration"}
+│                                          result = tools.execute(...)
+│                                          emit tool_call / tool_complete
+│                 append {"role": "tool", result}
+│              → continue to the next round
+│
+└─ loop exhausted (every round used tools) → forced synthesis
+      llm.stream(messages, model, tools=None)   — tools disabled, must answer
+      yield tokens (live stream) → yield {"done"} → RETURN
 ```
 
 **Typical case — a 1-tool agent (finance, health):** two `llm.stream()` calls,
