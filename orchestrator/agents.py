@@ -127,6 +127,8 @@ AGENTS: dict[str, AgentConfig] = {
             "If the hot tub is offline, clearly state that the breaker may have tripped and report how long it has been offline.\n"
             "Use set_timer when the user asks to set a timer; convert their phrasing to minutes "
             "(e.g. '30 seconds' → 0.5, 'an hour and a half' → 90).\n"
+            "When the user asks about weather without naming a place, call get_weather "
+            "without the location argument — do not ask for clarification, the tool defaults to the home location.\n"
             "Be brief and direct."
         ),
         tool_names=["get_weather", "shopping_list_view", "shopping_list_add", "shopping_list_remove", "shopping_list_clear", "query_hottub", "set_timer"],
@@ -284,6 +286,23 @@ def _build_assistant_msg(content: str, tool_calls: list[dict]) -> dict:
     }
 
 
+def kronk_facts() -> str:
+    """Ambient facts every Kronk path should know — appended to system prompts.
+
+    Single source of truth so a new fact (timezone, household names, …) is
+    added once and reaches the router-bypass coordinator path AND every
+    specialist agent.
+    """
+    location = os.getenv("LOCATION", "Laurel, MD")
+    return (
+        "[Kronk ambient facts — assume these unless the user says otherwise]\n"
+        f"- Home location: {location}\n"
+        "- Default to this location for weather, news, traffic, time-of-day, etc.\n"
+        "  When a location-taking tool is available and the user did not specify "
+        "one, call the tool without the location argument; it will use the home default."
+    )
+
+
 async def run_stream(agent: AgentConfig, task: str, context: list[dict]):
     """Run a specialist agent's tool-calling loop with unified streaming.
 
@@ -299,7 +318,7 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict]):
     """
     agent_tool_defs = agent.tool_defs() or None
 
-    system_content = agent.system_prompt
+    system_content = agent.system_prompt + "\n\n" + kronk_facts()
     if context:
         ctx_lines = [f"{m['role'].upper()}: {m['content']}" for m in context if m.get("content")]
         system_content += "\n\n[Recent conversation context]\n" + "\n".join(ctx_lines)

@@ -185,7 +185,7 @@ async def message(req: MessageRequest):
             history.append({"role": "user", "content": req.text})
             try:
                 # Persona messages used for the coordinator synthesis path.
-                system_parts = [SYSTEM_PROMPT]
+                system_parts = [SYSTEM_PROMPT, agents.kronk_facts()]
                 state = _load_state()
                 if state:
                     system_parts.append(f"[Kronk shared state]\n{state}")
@@ -431,14 +431,14 @@ async def _kronk_pipeline_tokens(text: str, model: str):
                 return
             synth_msgs = [
                 {"role": "system", "content": (
-                    SYSTEM_PROMPT
+                    SYSTEM_PROMPT + "\n\n" + agents.kronk_facts()
                     + f"\n\n[{agent_name} specialist result — use this to answer]\n{agent_error}"
                 )},
                 {"role": "user", "content": text},
             ]
         else:
             synth_msgs = [
-                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "system", "content": SYSTEM_PROMPT + "\n\n" + agents.kronk_facts()},
                 {"role": "user", "content": text},
             ]
 
