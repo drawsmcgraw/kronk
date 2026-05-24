@@ -230,11 +230,19 @@ model (not the role), so reassigning an agent only touches `docker-compose.yml`.
 All units bind `127.0.0.1` — only the host-network `litellm` container can reach
 them.
 
+Reference copies of every unit live in [`systemd/`](systemd/). Install with:
+
 ```bash
+cp systemd/llama-*.service ~/.config/systemd/user/
 systemctl --user daemon-reload
 systemctl --user enable --now llama-gemma3-4b llama-gemma4-e4b llama-devstral-q4
 systemctl --user list-units 'llama-*'
 ```
+
+> **Known wart:** `llama-talkie.service` currently points its `-m` flag at
+> `/home/drew/model-staging/talkie-lm/talkie-1930-13b-it-Q8_0.gguf` rather than
+> `/opt/models/...` like every other unit. Move the GGUF and update the unit
+> when convenient.
 
 Each unit's `ExecStart` sets the GGUF path, `--port`, `--ctx-size`, `-ngl 99`,
 and `--flash-attn on`, plus the runtime environment:
@@ -358,7 +366,10 @@ requirements.lock` from the service directory — never edit it by hand.
 - **Health RAG + bloodwork parsing** — `health_service/bloodwork_parser.py`,
   `chunker.py`, `vector_store.py`; `query_bloodwork` and `search_health_data`
   tools are defined in `orchestrator/tools.py` but not yet wired to an agent.
-- **Voice pipeline** — STT + TTS + wake word; currently stubbed in the UI.
+- **Voice pipeline** — Home Assistant Voice PE speaker wired **directly** to
+  Kronk (no Home Assistant): custom ESPHome firmware handles on-device wake word
+  and audio capture; a new `voice_service` container wraps faster-whisper STT and
+  Kokoro TTS around the existing `/message` pipeline.
 
 **On the table**
 - Reclaim Ollama blob storage (`/usr/share/ollama/.ollama/models/blobs/`, ~50+ GB)
@@ -368,6 +379,13 @@ requirements.lock` from the service directory — never edit it by hand.
   scaffolding in `health_service/withings_sync.py`).
 - Publish the shopping-list page externally so it works off the home network.
 - Garmin live sync remains blocked on MFA / Cloudflare (see Design Decisions).
+- **Tool-result cache** — short-TTL cache in `tool_service` for high-frequency,
+  low-volatility tool results: NWS weather (5–15 min TTL), top-of-feed news
+  (~15 min), maybe `get_kronk_context`. Trims agent latency for repeat
+  voice queries ("what's the weather?" asked twice in a minute) and reduces
+  load on the home agent's weather/research model calls. Implementation:
+  in-memory dict keyed by `(tool_name, normalized_args)` with per-tool TTL;
+  no need for Redis at this scale.
 
 **Recently shipped**
 - Unified-streaming agent loop — every agent streams token-by-token; `llm.stream()`

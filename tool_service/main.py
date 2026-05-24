@@ -323,6 +323,73 @@ async def hottub_status():
         return {"online": None, "error": str(e)}
 
 
+# ── Home Assistant timer proxy ───────────────────────────────────────────────
+# Calls HA's REST `timer.start` service. HA fires `timer.finished` when the
+# countdown expires; a separate HA automation handles the announcement via
+# the Voice PE media player (configured operator-side after device adoption).
+# Requires a HA timer helper entity to exist (default: `timer.voice_timer`).
+
+HA_URL          = os.getenv("HA_URL",          "http://localhost:8123")
+HA_TOKEN        = os.getenv("HA_TOKEN",        "")
+HA_TIMER_ENTITY = os.getenv("HA_TIMER_ENTITY", "timer.voice_timer")
+
+
+class TimerRequest(BaseModel):
+    duration_minutes: float
+    label: str | None = None
+
+
+@app.post("/timer")
+async def set_timer(req: TimerRequest):
+    if not HA_TOKEN:
+        raise HTTPException(status_code=500, detail="HA_TOKEN not configured")
+    if req.duration_minutes <= 0:
+        raise HTTPException(status_code=400, detail="duration_minutes must be > 0")
+
+    total = int(round(req.duration_minutes * 60))
+    h, rem = divmod(total, 3600)
+    m, s   = divmod(rem, 60)
+    duration_str = f"{h:02d}:{m:02d}:{s:02d}"
+
+    headers = {"Authorization": f"Bearer {HA_TOKEN}", "Content-Type": "application/json"}
+    async with httpx.AsyncClient(timeout=5) as client:
+        # Pre-check: HA's timer.start silently accepts unknown entity_ids and
+        # returns 200, which masks "the helper isn't set up yet" as success.
+        state_resp = await client.get(f"{HA_URL}/api/states/{HA_TIMER_ENTITY}", headers=headers)
+        if state_resp.status_code == 404:
+            raise HTTPException(
+                status_code=503,
+                detail=(
+                    f"Timer entity '{HA_TIMER_ENTITY}' does not exist in Home "
+                    "Assistant. Create a Timer helper named 'voice_timer' "
+                    "(Settings → Devices & Services → Helpers → Create Helper → Timer)."
+                ),
+            )
+        if state_resp.status_code >= 400:
+            raise HTTPException(
+                status_code=502,
+                detail=f"HA state check returned {state_resp.status_code}: {state_resp.text[:200]}",
+            )
+
+        resp = await client.post(
+            f"{HA_URL}/api/services/timer/start",
+            headers=headers,
+            json={"entity_id": HA_TIMER_ENTITY, "duration": duration_str},
+        )
+    if resp.status_code >= 400:
+        raise HTTPException(
+            status_code=502,
+            detail=f"HA returned {resp.status_code}: {resp.text[:200]}",
+        )
+    return {
+        "status":           "timer_set",
+        "duration_minutes": req.duration_minutes,
+        "duration":         duration_str,
+        "entity_id":        HA_TIMER_ENTITY,
+        "label":            req.label,
+    }
+
+
 @app.get("/health")
 async def health():
     return {"status": "ok"}

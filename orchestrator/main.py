@@ -359,6 +359,325 @@ async def get_history():
     return {"history": history}
 
 
+# ── External API shims: OpenAI + Ollama ──────────────────────────────────────
+#
+# Lets external clients reach Kronk's router → specialist → coordinator
+# pipeline using whichever envelope they speak natively. Supported:
+#   - OpenAI Chat Completions: /v1/chat/completions, /v1/models
+#   - Ollama:                   /api/chat, /api/tags, /api/version, /api/show
+#
+# Design choices:
+#   - Stateless. The shims do NOT touch the global `history` or
+#     `file_contexts` so external callers can't pollute the chat-UI state.
+#   - Only the last user message is used. Router and agents don't yet take
+#     conversation context; multi-turn follow-ups would need a refactor.
+#   - Client-supplied `model` is ignored — Kronk picks its own model per
+#     agent. The shims report COORDINATOR_MODEL in response metadata so
+#     strict clients don't choke.
+#   - Tools, tool_choice, temperature, etc. are accepted but ignored;
+#     Kronk's agents own tool-calling internally.
+#
+# Tech debt: the routing/agent/coordinator pattern is duplicated from
+# /message. The right cleanup is to extract a single `_run_pipeline()`
+# adapted by all three transports.
+
+class _OpenAIMessage(BaseModel):
+    role: str
+    content: str | None = None
+    name: str | None = None
+
+
+class _OpenAIChatRequest(BaseModel):
+    model: str | None = None
+    messages: list[_OpenAIMessage]
+    stream: bool = False
+    # Tolerated but ignored: temperature, max_tokens, top_p, n, stop,
+    # presence_penalty, frequency_penalty, user, response_format, seed,
+    # tools, tool_choice, logprobs, stream_options.
+
+    class Config:
+        extra = "allow"
+
+
+async def _kronk_pipeline_tokens(text: str, model: str):
+    """Transport-agnostic core pipeline.
+
+    Yields semantic events:
+      {"type": "token", "text": "..."}   — one token of assistant content
+      {"type": "error", "text": "..."}   — fatal failure; downstream should
+                                           still emit a clean terminator
+    Caller is responsible for transport framing (OpenAI SSE / Ollama NDJSON).
+    """
+    async with _llm_lock:
+        try:
+            agent_name = await routing.classify(text, [])
+        except Exception as e:
+            logger.error("Router failed (shim): %s", e)
+            yield {"type": "error", "text": f"Error: router unreachable ({e})."}
+            return
+
+        synth_msgs: list[dict] | None = None
+
+        if agent_name in agents.AGENTS:
+            agent_cfg = agents.AGENTS[agent_name]
+            agent_error: str | None = None
+            async for ev in agents.run_stream(agent_cfg, text, []):
+                etype = ev.get("type")
+                if etype == "token":
+                    yield {"type": "token", "text": ev["text"]}
+                elif etype == "error":
+                    agent_error = ev["message"]
+            if agent_error is None:
+                return
+            synth_msgs = [
+                {"role": "system", "content": (
+                    SYSTEM_PROMPT
+                    + f"\n\n[{agent_name} specialist result — use this to answer]\n{agent_error}"
+                )},
+                {"role": "user", "content": text},
+            ]
+        else:
+            synth_msgs = [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": text},
+            ]
+
+        try:
+            async with httpx.AsyncClient(timeout=None) as client:
+                async with client.stream(
+                    "POST",
+                    f"{LLM_SERVICE_URL}/v1/chat/completions",
+                    json={"model": model, "messages": synth_msgs, "stream": True},
+                ) as resp:
+                    async for line in resp.aiter_lines():
+                        if not line.startswith("data:"):
+                            continue
+                        payload = line[len("data:"):].strip()
+                        if payload == "[DONE]":
+                            break
+                        try:
+                            chunk = json.loads(payload)
+                        except json.JSONDecodeError:
+                            continue
+                        choices = chunk.get("choices") or []
+                        if not choices:
+                            continue
+                        token = choices[0].get("delta", {}).get("content", "")
+                        if token:
+                            yield {"type": "token", "text": token}
+        except Exception as e:
+            logger.error("Coordinator stream failed (shim): %s", e)
+            yield {"type": "error", "text": f"\nError: coordinator unreachable ({e})."}
+
+
+def _openai_chunk(rid: str, model: str, delta: dict, finish_reason: str | None = None) -> str:
+    payload = {
+        "id":      rid,
+        "object":  "chat.completion.chunk",
+        "created": int(time.time()),
+        "model":   model,
+        "choices": [{"index": 0, "delta": delta, "finish_reason": finish_reason}],
+    }
+    return f"data: {json.dumps(payload)}\n\n"
+
+
+async def _openai_pipeline_stream(text: str, model: str, rid: str):
+    """OpenAI Chat Completions SSE framing around the core pipeline."""
+    yield _openai_chunk(rid, model, {"role": "assistant", "content": ""})
+    async for ev in _kronk_pipeline_tokens(text, model):
+        yield _openai_chunk(rid, model, {"content": ev["text"]})
+    yield _openai_chunk(rid, model, {}, finish_reason="stop")
+    yield "data: [DONE]\n\n"
+
+
+async def _ollama_pipeline_stream(text: str, model: str):
+    """Ollama /api/chat NDJSON framing around the core pipeline."""
+    created = time.strftime("%Y-%m-%dT%H:%M:%S.000000000Z", time.gmtime())
+    async for ev in _kronk_pipeline_tokens(text, model):
+        chunk = {
+            "model":      model,
+            "created_at": created,
+            "message":    {"role": "assistant", "content": ev["text"]},
+            "done":       False,
+        }
+        yield json.dumps(chunk) + "\n"
+    # Terminal chunk — Ollama protocol requires done=true with stats.
+    final = {
+        "model":      model,
+        "created_at": created,
+        "message":    {"role": "assistant", "content": ""},
+        "done":       True,
+        "done_reason":       "stop",
+        "total_duration":    0,
+        "load_duration":     0,
+        "prompt_eval_count": _estimate_tokens(text),
+        "eval_count":        0,
+    }
+    yield json.dumps(final) + "\n"
+
+
+@app.post("/v1/chat/completions")
+async def openai_chat_completions(req: _OpenAIChatRequest):
+    user_msgs = [m for m in req.messages if m.role == "user" and m.content]
+    if not user_msgs:
+        raise HTTPException(400, "no user message with content")
+    text = user_msgs[-1].content
+    model = COORDINATOR_MODEL  # shim ignores client-requested model name
+    rid = f"chatcmpl-{new_request_id()}"
+
+    if req.stream:
+        return StreamingResponse(
+            _openai_pipeline_stream(text, model, rid),
+            media_type="text/event-stream",
+        )
+
+    # Non-streaming: collect deltas and return a single chat.completion object.
+    parts: list[str] = []
+    async for line in _openai_pipeline_stream(text, model, rid):
+        if not line.startswith("data:"):
+            continue
+        payload = line[len("data:"):].strip()
+        if payload == "[DONE]":
+            break
+        try:
+            chunk = json.loads(payload)
+        except json.JSONDecodeError:
+            continue
+        tok = chunk.get("choices", [{}])[0].get("delta", {}).get("content")
+        if tok:
+            parts.append(tok)
+
+    full = "".join(parts)
+    return {
+        "id":      rid,
+        "object":  "chat.completion",
+        "created": int(time.time()),
+        "model":   model,
+        "choices": [{
+            "index":         0,
+            "message":       {"role": "assistant", "content": full},
+            "finish_reason": "stop",
+        }],
+        "usage": {
+            "prompt_tokens":     _estimate_tokens(text),
+            "completion_tokens": _estimate_tokens(full),
+            "total_tokens":      _estimate_tokens(text) + _estimate_tokens(full),
+        },
+    }
+
+
+@app.get("/v1/models")
+async def openai_models():
+    """Single 'kronk' model — the pipeline picks its own model per agent."""
+    return {
+        "object": "list",
+        "data": [{"id": "kronk", "object": "model", "created": 0, "owned_by": "kronk"}],
+    }
+
+
+# ── Ollama-compatible endpoints ──────────────────────────────────────────────
+
+class _OllamaMessage(BaseModel):
+    role: str
+    content: str | None = None
+
+    class Config:
+        extra = "allow"
+
+
+class _OllamaChatRequest(BaseModel):
+    model: str | None = None
+    messages: list[_OllamaMessage]
+    stream: bool = True  # Ollama default is streaming
+    # Tolerated but ignored: options, tools, format, keep_alive, etc.
+
+    class Config:
+        extra = "allow"
+
+
+@app.get("/api/version")
+async def ollama_version():
+    return {"version": "kronk-shim"}
+
+
+@app.get("/api/tags")
+async def ollama_tags():
+    """One synthetic model that maps to Kronk's full pipeline."""
+    return {
+        "models": [{
+            "name":        "kronk:latest",
+            "model":       "kronk:latest",
+            "modified_at": "1970-01-01T00:00:00Z",
+            "size":        0,
+            "digest":      "kronk",
+            "details": {
+                "parent_model":       "",
+                "format":             "kronk",
+                "family":             "kronk",
+                "families":           ["kronk"],
+                "parameter_size":     "n/a",
+                "quantization_level": "n/a",
+            },
+        }],
+    }
+
+
+@app.post("/api/show")
+async def ollama_show():
+    """Capability probe — HA pings this to learn what the model supports."""
+    return {
+        "modelfile":  "",
+        "parameters": "",
+        "template":   "",
+        "details": {
+            "family":             "kronk",
+            "families":           ["kronk"],
+            "parameter_size":     "n/a",
+            "quantization_level": "n/a",
+        },
+        "model_info":   {},
+        "capabilities": ["completion"],
+    }
+
+
+@app.post("/api/chat")
+async def ollama_chat(req: _OllamaChatRequest):
+    user_msgs = [m for m in req.messages if m.role == "user" and m.content]
+    if not user_msgs:
+        raise HTTPException(400, "no user message with content")
+    text = user_msgs[-1].content
+    model = COORDINATOR_MODEL
+
+    if req.stream:
+        return StreamingResponse(
+            _ollama_pipeline_stream(text, model),
+            media_type="application/x-ndjson",
+        )
+
+    parts: list[str] = []
+    async for line in _ollama_pipeline_stream(text, model):
+        try:
+            obj = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        tok = obj.get("message", {}).get("content", "")
+        if tok and not obj.get("done"):
+            parts.append(tok)
+
+    full = "".join(parts)
+    return {
+        "model":      model,
+        "created_at": time.strftime("%Y-%m-%dT%H:%M:%S.000000000Z", time.gmtime()),
+        "message":    {"role": "assistant", "content": full},
+        "done":       True,
+        "done_reason": "stop",
+        "total_duration":    0,
+        "load_duration":     0,
+        "prompt_eval_count": _estimate_tokens(text),
+        "eval_count":        _estimate_tokens(full),
+    }
+
+
 @app.delete("/history")
 async def clear_history():
     history.clear()

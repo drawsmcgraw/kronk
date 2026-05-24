@@ -116,18 +116,20 @@ AGENTS: dict[str, AgentConfig] = {
     ),
     "home": AgentConfig(
         name="home",
-        description="Weather lookups, shopping list management, and hot tub status",
-        routing_hint="weather, forecast, shopping list, hot tub, spa",
+        description="Weather lookups, shopping list management, hot tub status, and timers",
+        routing_hint="weather, forecast, shopping list, hot tub, spa, timer, countdown",
         icon="🏠",
         probe="tools",
         system_prompt=(
-            "You are Kronk's home specialist. Handle weather lookups, shopping list management, and home device status.\n"
+            "You are Kronk's home specialist. Handle weather lookups, shopping list management, home device status, and timers.\n"
             "Use get_weather for weather queries. Use shopping list tools for list management.\n"
             "Use query_hottub to check if the hot tub is online and report its temperature. "
             "If the hot tub is offline, clearly state that the breaker may have tripped and report how long it has been offline.\n"
+            "Use set_timer when the user asks to set a timer; convert their phrasing to minutes "
+            "(e.g. '30 seconds' → 0.5, 'an hour and a half' → 90).\n"
             "Be brief and direct."
         ),
-        tool_names=["get_weather", "shopping_list_view", "shopping_list_add", "shopping_list_remove", "shopping_list_clear", "query_hottub"],
+        tool_names=["get_weather", "shopping_list_view", "shopping_list_add", "shopping_list_remove", "shopping_list_clear", "query_hottub", "set_timer"],
     ),
     "assistant": AgentConfig(
         name="assistant",

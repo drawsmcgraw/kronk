@@ -52,6 +52,13 @@ services:
       - ./data:/data
     environment:
       - SEARXNG_URL=http://searxng:8080
+      # HA timer service — `homeassistant` is on host networking, so we reach
+      # it from the bridge via host.docker.internal.
+      - HA_URL=http://host.docker.internal:8123
+      - HA_TOKEN=${HA_TOKEN}
+      - HA_TIMER_ENTITY=timer.voice_timer
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks: [kronk]
     healthcheck:
       test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8003/health\", timeout=3)' || exit 1"]
@@ -105,6 +112,35 @@ services:
       start_period: 10s
     restart: unless-stopped
 
+  homeassistant:
+    image: ghcr.io/home-assistant/home-assistant:stable
+    container_name: homeassistant
+    network_mode: host
+    # No `privileged: true` — we don't use USB/Zigbee/Z-Wave/Bluetooth on
+    # kronk's HA. The Voice PE handshakes BLE with the phone, then everything
+    # is over WiFi/mDNS, which host networking already covers.
+    volumes:
+      - ha-config:/config
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - TZ=America/New_York
+    restart: unless-stopped
+
+  wyoming-piper:
+    image: rhasspy/wyoming-piper
+    container_name: wyoming-piper
+    ports:
+      - "10200:10200"
+    volumes:
+      - piper-models:/data
+    command: >-
+      --voice en_US-lessac-medium
+      --uri tcp://0.0.0.0:10200
+      --data-dir /data
+      --download-dir /data
+    networks: [kronk]
+    restart: unless-stopped
+
   orchestrator:
     build: ./orchestrator
     volumes:
@@ -141,3 +177,7 @@ services:
       health_service:  { condition: service_healthy }
       finance_service: { condition: service_healthy }
     restart: unless-stopped
+
+volumes:
+  piper-models:
+  ha-config:

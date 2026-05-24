@@ -13,6 +13,7 @@ TOOL_SERVICE_URL    = os.getenv("TOOL_SERVICE_URL",    "http://localhost:8003")
 HEALTH_SERVICE_URL  = os.getenv("HEALTH_SERVICE_URL",  "http://localhost:8004")
 FINANCE_SERVICE_URL = os.getenv("FINANCE_SERVICE_URL", "http://localhost:8005")
 DEFAULT_LOCATION    = os.getenv("LOCATION", "Laurel, MD")
+DEFAULT_TIMER_LABEL = "Timer"
 
 # ── Tool schema catalog ──────────────────────────────────────────────────────
 
@@ -330,6 +331,31 @@ TOOL_DEFINITIONS = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "set_timer",
+            "description": (
+                "Set a countdown timer on Home Assistant. When the timer expires, "
+                "HA will announce it through the voice speaker. "
+                "Use whenever the user asks to set, start, or begin a timer."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "duration_minutes": {
+                        "type": "number",
+                        "description": "Timer duration in minutes (decimals allowed, e.g. 0.5 for 30 seconds).",
+                    },
+                    "label": {
+                        "type": "string",
+                        "description": f"Optional label describing what the timer is for. Default: {DEFAULT_TIMER_LABEL}",
+                    },
+                },
+                "required": ["duration_minutes"],
+            },
+        },
+    },
 ]
 
 
@@ -523,6 +549,22 @@ async def execute(name: str, args: dict) -> str:
                             f"Last checked: {d.get('last_check')}"
                         )
                 return "[Hot tub status unavailable]"
+
+            if name == "set_timer":
+                duration = args.get("duration_minutes")
+                if duration is None:
+                    return "[set_timer error: duration_minutes is required]"
+                label = args.get("label") or DEFAULT_TIMER_LABEL
+                resp = await client.post(
+                    f"{TOOL_SERVICE_URL}/timer",
+                    json={"duration_minutes": float(duration), "label": label},
+                    timeout=10,
+                )
+                if resp.status_code == 200:
+                    info = resp.json()
+                    return f"[Timer set: {info['duration']} ({label})]"
+                detail = resp.text[:200] if resp.text else f"status {resp.status_code}"
+                return f"[Could not set timer: {detail}]"
 
             if name == "query_finances":
                 query = args.get("query", "")
