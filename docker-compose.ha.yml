@@ -1,0 +1,42 @@
+# Home Assistant — separate compose stack so it survives lifecycle churn on
+# the main kronk stack (orchestrator rebuilds, tool_service restarts, etc.).
+#
+# Networking: HA uses host networking, so it reaches the kronk stack via
+# `localhost:80` (nginx → orchestrator + tools), `localhost:10200` (Piper),
+# `localhost:10300` (Whisper). No bridge-network sharing required.
+#
+# Volume: re-uses the pre-existing `kronk_ha-config` volume (created by the
+# main compose stack on first boot). `external: true` tells compose "this
+# already exists, do not create or destroy it." All HA state — admin account,
+# integrations, helpers, automations, voice pipeline, TTS cache — lives here.
+#
+# Operations:
+#   bring up:   docker compose -f docker-compose.ha.yml up -d
+#   restart:    docker compose -f docker-compose.ha.yml restart homeassistant
+#   logs:       journalctl CONTAINER_NAME=homeassistant -f
+#   tear down:  docker compose -f docker-compose.ha.yml down       (volume kept)
+#               docker compose -f docker-compose.ha.yml down -v    (volume WIPED — don't)
+
+# Project name — gives this stack its own scope so the kronk stack's
+# containers don't show up as "orphans" of this project (or vice versa).
+name: kronk-ha
+
+services:
+  homeassistant:
+    image: ghcr.io/home-assistant/home-assistant:stable
+    container_name: homeassistant
+    network_mode: host
+    # No `privileged: true` — we don't use USB/Zigbee/Z-Wave/Bluetooth on
+    # kronk's HA. The Voice PE handshakes BLE with the phone, then everything
+    # is over WiFi/mDNS, which host networking already covers.
+    volumes:
+      - ha-config:/config
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - TZ=America/New_York
+    restart: unless-stopped
+
+volumes:
+  ha-config:
+    name: kronk_ha-config
+    external: true

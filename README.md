@@ -214,13 +214,36 @@ but not yet wired to an agent — see Roadmap.)
 
 ## Operations runbook
 
+### Two compose stacks — kronk + ha
+
+Kronk's services and Home Assistant live in separate compose files with
+separate project names so HA's lifecycle is independent of orchestrator
+rebuilds:
+
+| Stack | File | Project | Reach via |
+|---|---|---|---|
+| Kronk (orchestrator, tools, llm proxy, nginx, …) | `docker-compose.yml` | `kronk` | port 80 |
+| Home Assistant | `docker-compose.ha.yml` | `kronk-ha` | port 8123 |
+
+HA mounts the **shared** `kronk_ha-config` volume (declared `external: true`
+in `docker-compose.ha.yml`). The split means `docker compose up -d --build
+orchestrator` no longer flickers HA. HA still reaches kronk via `localhost`
+because it runs with `network_mode: host`.
+
 ### Deploy / restart
 
-- **Code change:** `docker compose up -d --build <service>` — *not* `restart`,
-  which reuses the old image.
+- **Kronk code change:** `docker compose up -d --build <service>` — *not*
+  `restart`, which reuses the old image.
+- **HA restart:** `docker compose -f docker-compose.ha.yml restart homeassistant`.
+- **HA upgrade:** `docker compose -f docker-compose.ha.yml pull && docker compose -f docker-compose.ha.yml up -d`.
 - **nginx config change:** `docker compose restart nginx` — the config is
   volume-mounted and `nginx -s reload` won't pick it up.
 - **`litellm/config.yaml`:** bind-mounted and hot-editable; no rebuild needed.
+
+> **Volume safety:** never run `docker compose -f docker-compose.ha.yml down -v`
+> — the `-v` flag wipes `kronk_ha-config` and you lose every HA integration,
+> the admin account, the timer helper, and the voice pipeline config. Plain
+> `down` (no `-v`) is safe.
 
 ### llama.cpp model servers
 
@@ -239,10 +262,10 @@ systemctl --user enable --now llama-gemma3-4b llama-gemma4-e4b llama-devstral-q4
 systemctl --user list-units 'llama-*'
 ```
 
-> **Known wart:** `llama-talkie.service` currently points its `-m` flag at
+> **Known wart (tech debt):** `llama-talkie.service` points its `-m` flag at
 > `/home/drew/model-staging/talkie-lm/talkie-1930-13b-it-Q8_0.gguf` rather than
-> `/opt/models/...` like every other unit. Move the GGUF and update the unit
-> when convenient.
+> `/opt/models/...` like every other unit. Cosmetic — service runs fine. Move
+> the GGUF and update the unit when convenient.
 
 Each unit's `ExecStart` sets the GGUF path, `--port`, `--ctx-size`, `-ngl 99`,
 and `--flash-attn on`, plus the runtime environment:

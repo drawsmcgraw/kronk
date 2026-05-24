@@ -112,20 +112,6 @@ services:
       start_period: 10s
     restart: unless-stopped
 
-  homeassistant:
-    image: ghcr.io/home-assistant/home-assistant:stable
-    container_name: homeassistant
-    network_mode: host
-    # No `privileged: true` — we don't use USB/Zigbee/Z-Wave/Bluetooth on
-    # kronk's HA. The Voice PE handshakes BLE with the phone, then everything
-    # is over WiFi/mDNS, which host networking already covers.
-    volumes:
-      - ha-config:/config
-      - /etc/localtime:/etc/localtime:ro
-    environment:
-      - TZ=America/New_York
-    restart: unless-stopped
-
   wyoming-piper:
     image: rhasspy/wyoming-piper
     container_name: wyoming-piper
@@ -180,4 +166,4 @@ services:
 
 volumes:
   piper-models:
-  ha-config:
+  # ha-config moved to docker-compose.ha.yml (declared external there).
