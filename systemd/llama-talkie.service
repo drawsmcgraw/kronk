@@ -1,0 +1,20 @@
+[Unit]
+Description=llama.cpp server — Talkie-1930 13B (vintage 1930s language model, ROCm gfx1151)
+After=default.target
+
+[Service]
+Environment="HSA_OVERRIDE_GFX_VERSION=11.5.1"
+Environment="LD_LIBRARY_PATH=/usr/local/lib/ollama/rocm:/home/drew/pai/pai_workspace/llama-cpp/talkie-gfx1151-rocm7"
+ExecStart=/home/drew/pai/pai_workspace/llama-cpp/talkie-gfx1151-rocm7/llama-server \
+    -m /home/drew/model-staging/talkie-lm/talkie-1930-13b-it-Q8_0.gguf \
+    --host 127.0.0.1 \
+    --port 11441 \
+    -ngl 20 \
+    --ctx-size 2048 \
+    --parallel 1 \
+    --no-warmup
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target

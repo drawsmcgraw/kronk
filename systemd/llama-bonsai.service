@@ -1,0 +1,20 @@
+[Unit]
+Description=llama.cpp server — Bonsai-8B (router)
+After=default.target
+
+[Service]
+Environment="HSA_OVERRIDE_GFX_VERSION=11.5.1"
+Environment="LD_LIBRARY_PATH=/usr/local/lib/ollama/rocm:/home/drew/pai/pai_workspace/llama-cpp/bonsai-gfx1151-rocm7"
+ExecStart=/home/drew/pai/pai_workspace/llama-cpp/bonsai-gfx1151-rocm7/llama-server \
+    -m /opt/models/bonsai/Bonsai-8B.gguf \
+    --host 127.0.0.1 \
+    --port 11437 \
+    -ngl 99 \
+    --flash-attn on \
+    --ctx-size 32768 \
+    --cache-reuse 256
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target

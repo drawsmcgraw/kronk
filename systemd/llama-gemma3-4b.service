@@ -1,0 +1,19 @@
+[Unit]
+Description=llama.cpp server — Gemma 3 4B IT (router)
+After=default.target
+
+[Service]
+Environment="HSA_OVERRIDE_GFX_VERSION=11.5.1"
+Environment="LD_LIBRARY_PATH=/home/drew/pai/pai_workspace/llama-cpp/llama-b8746:/usr/local/lib/ollama/rocm"
+ExecStart=/home/drew/pai/pai_workspace/llama-cpp/llama-b8746/llama-server \
+    -m /opt/models/google/gemma-3-4b-it-Q4_K_M.gguf \
+    --host 127.0.0.1 \
+    --port 11439 \
+    -ngl 99 \
+    --flash-attn on \
+    --ctx-size 8192
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target

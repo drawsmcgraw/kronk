@@ -1,0 +1,20 @@
+[Unit]
+Description=llama.cpp server — Mistral-NeMo (coordinator/general)
+After=default.target
+
+[Service]
+Environment="HSA_OVERRIDE_GFX_VERSION=11.5.1"
+Environment="LD_LIBRARY_PATH=/usr/local/lib/ollama/rocm:/home/drew/pai/pai_workspace/llama-cpp/llama-gfx1151-rocm7"
+ExecStart=/home/drew/pai/pai_workspace/llama-cpp/llama-gfx1151-rocm7/llama-server \
+    -m /opt/models/mistralai/Mistral-Nemo-Instruct-2407-Q8_0.gguf \
+    --host 127.0.0.1 \
+    --port 11435 \
+    -ngl 99 \
+    --flash-attn on \
+    --ctx-size 16384 \
+    --cache-reuse 256
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target
