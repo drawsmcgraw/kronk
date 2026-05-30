@@ -55,10 +55,60 @@ Live journal for the Voice PE / HA / Wyoming integration work driven by
   agent's `tool_names` in `orchestrator/agents.py`. Added `HA_URL` /
   `HA_TOKEN` / `HA_TIMER_ENTITY` env vars to `tool_service` in compose
   (reaching HA via `host.docker.internal:8123` since HA is on host net).
-  End-to-end test deferred until operator creates the `timer.voice_timer`
-  helper in HA (1 click). The `timer.finished` → TTS-announce automation
-  (Phase 5.4) is deferred until Phase 6 (Voice PE adoption) so the
-  media_player entity exists to target.
+- **2026-05-24** — Operator created the `timer.voice_timer` helper in HA
+  (Settings → Helpers). Required a default duration (HA enforces) — set to
+  1 minute as a never-used fallback since the tool always overrides. End-to-end
+  set_timer worked: voice command → home agent → tool_service /timer → HA
+  REST → timer entity counted down in HA UI. Phase 5 functionally complete
+  *except* the timer-finished TTS announce.
+- **2026-05-24** — Ambient-context refactor: added `kronk_facts()` helper
+  in `orchestrator/agents.py` so the `LOCATION` env var (and any future
+  ambient facts: timezone, occupants, etc.) reaches every code path in one
+  place. Prepended at both the agent system-prompt construction in
+  `run_stream()` and the coordinator/shim system message in `main.py`.
+  Resolves the "what location are you interested in?" reflex from gemma-4-e4b
+  on bare-weather queries — confirmed via direct API test.
+- **2026-05-24** — Phase 6: Voice PE physical adoption complete. Device
+  provisioned via the HA Companion app on the operator's phone, joined WiFi,
+  registered with HA via mDNS as `home_assistant_voice_0ac919`. Confirmed
+  one weather query end-to-end (wake word → STT → home agent → TTS → speaker).
+- **2026-05-24** — Discovered: the Voice PE exposes **two assistant slots**
+  (`assistant` + `assistant_2`) for two simultaneous wake words / the
+  tap-to-talk button. Only slot 1 was bound to `kronk`; slot 2 was set to
+  `preferred` (HA's local Assist), which silently intercepted button-pushed
+  queries — explaining a "weak response" the operator hit on a cellulitis
+  query. Flipped slot 2 to `kronk` via REST and both paths now route to
+  Kronk regardless of how the device is invoked.
+- **2026-05-24** — Stack hardening: split HA into its own compose project
+  (`docker-compose.ha.yml`, project `kronk-ha`) so the main kronk stack's
+  rebuilds no longer cycle HA. The `kronk_ha-config` volume stays shared
+  via `external: true`. Took a tarball backup
+  (`~/ha-config-backup-2026-05-24.tar.gz`, 4.9 MB, 914 entries) before any
+  destructive op. README operations runbook updated with new commands and
+  an explicit "never `down -v`" warning. Also enabled the previously-dormant
+  `llama-talkie.service` user systemd unit; smoke-tested via LiteLLM and
+  marked its `/home/drew/model-staging/...` GGUF path as documented tech debt.
+- **2026-05-24/05-28** — STT quality iteration. Operator reported the Voice
+  PE getting weak / mis-routed responses to harder questions. Whisper logs
+  showed transcriptions like "Oh" and "Thank you for watching" from
+  multi-second audio — the classic faster-whisper-on-silence hallucination
+  with the `small` model. Swapped systemd unit to `medium`; hallucinations
+  stopped but ~57% of queries came back with empty transcription (Whisper
+  rejecting borderline audio rather than guessing). Switched to
+  `large-v3-turbo` — accuracy noticeably better, latency still acceptable.
+  Single-variable changes throughout, per operator preference.
+- **2026-05-28** — Phase 5.4 attempted and **deferred**. The
+  `timer.finished` → announce automation was created and stored in
+  `/config/automations.yaml`, and the entity loads cleanly. But the audio
+  side has a real bug: direct calls to the `tts.speak` service silently
+  return 200 without producing any Piper synthesis (no log activity, no
+  new file in `/config/tts/`). The `assist_satellite.announce` service is
+  the correct path (it actually triggers Piper and produces a cache file)
+  but it wasn't what we used in the automation. The right fix is probably
+  to rewrite the automation action to `assist_satellite.announce` targeting
+  the satellite entity rather than `tts.speak` targeting the media_player
+  — but the operator asked to pause and revisit with a fresh approach,
+  so this is tracked as Open Item rather than fixed in this pass.
 
 ---
 
@@ -250,19 +300,143 @@ The `/usr/local/lib/ollama/rocm/` directory has `libamdhip64`, `libhipblas`,
 
 ## Final system architecture
 
-*(to be filled in at Phase 7)*
+```
+                                                       ┌─────────────────────────────────────┐
+                                                       │  Voice PE (kitchen)                 │
+                                                       │  on-device wake word: "OK Nabu"     │
+                                                       │  mic + speaker + tap-to-talk        │
+                                                       └────────────┬────────────────────────┘
+                                                                    │  WiFi (mDNS-discovered)
+                                                                    ▼
+┌───────────────────────────────────────────────────────────────────────────────────┐
+│  Home Assistant — `docker-compose.ha.yml` (project: kronk-ha)                     │
+│  • container: homeassistant, network_mode: host, NOT privileged                   │
+│  • volume:    kronk_ha-config (external — shared with kronk stack history)        │
+│  • integrations: Wyoming STT, Wyoming TTS, Ollama (→ Kronk shim)                  │
+│  • voice pipeline "Kronk" assigned to both Voice PE assistant slots               │
+│  • timer.voice_timer helper, assist_satellite, automations.yaml                   │
+└───────────┬───────────────────────────┬───────────────────────────┬───────────────┘
+            │ Wyoming                   │ Ollama-compat HTTP        │ Wyoming
+            │ tcp://localhost:10300     │ http://localhost:80/api/* │ tcp://localhost:10200
+            ▼                           ▼                           ▼
+┌─────────────────────┐   ┌──────────────────────────────────┐   ┌─────────────────────┐
+│  wyoming-whisper    │   │  Kronk stack — docker-compose.yml │   │  wyoming-piper       │
+│  (host systemd:     │   │  project: kronk, bridge network  │   │  (docker container,  │
+│   user unit)        │   │                                  │   │   project: kronk)    │
+│  faster-whisper     │   │  ┌─ nginx :80 ─┐                 │   │  en_US-lessac-medium │
+│  large-v3-turbo     │   │  │ /api/* /v1/* │ → orchestrator │   │  port 10200          │
+│  GPU: HIP gfx1151   │   │  │  /probe/*    │ → tools/health │   └─────────────────────┘
+│  port 10300         │   │  └──────────────┘                │
+└─────────────────────┘   │   orchestrator :8000              │
+                          │   ├─ /message       (chat UI)     │
+                          │   ├─ /v1/chat/completions (OpenAI)│
+                          │   ├─ /api/chat /tags (Ollama)     │   ┌──────────────────────┐
+                          │   └─ router→agent→coord pipeline ─┼──▶│ LiteLLM :8002        │
+                          │   tool_service :8003              │   │ network_mode: host   │
+                          │   ├─ /weather /search /fetch …    │   │ proxies to →         │
+                          │   └─ /timer ──────┐               │   └──┬───────────────────┘
+                          │   health_service :8004            │      │ HTTP 127.0.0.1:114xx
+                          │   finance_service :8005           │      ▼
+                          │   searxng :8080                   │   ┌─────────────────────┐
+                          └──────────┬────────────────────────┘   │  llama.cpp servers  │
+                                     │ HA REST                    │  (host systemd —    │
+                                     ▼ host.docker.internal:8123  │   user units)       │
+                          ┌──────────────────────┐                │  gemma-3-4b 11439   │
+                          │ HA  /api/services/   │                │  gemma-4-e4b 11438  │
+                          │ timer/start          │                │  devstral-q4 11440  │
+                          └──────────────────────┘                │  mistral-nemo 11435 │
+                                                                  │  bonsai-8b   11437  │
+                                                                  │  talkie      11441  │
+                                                                  └─────────────────────┘
+```
+
+### Where each piece lives, in one table
+
+| Component | Managed by | Lifecycle |
+|---|---|---|
+| llama.cpp model servers (×6) | user systemd (`~/.config/systemd/user/llama-*.service`) | host-level, survives container churn |
+| `wyoming-whisper` (STT, GPU) | user systemd (`~/.config/systemd/user/wyoming-whisper.service`) | host-level, survives container churn |
+| `wyoming-piper` (TTS) | docker compose — project `kronk` | restarted with kronk stack rebuilds |
+| `homeassistant` | docker compose — project `kronk-ha`, separate file | independent of kronk lifecycle |
+| Everything else (orchestrator, nginx, tool/health/finance services, searxng, litellm, retire_calc) | docker compose — project `kronk` | bundled |
+
+### Key wire decisions
+
+- **HA on host net** so it can reach all kronk services via `localhost:<port>` *and* expose mDNS for the Voice PE.
+- **Wyoming STT on the host** (not in a container) so the GPU passthrough story is just `/dev/kfd` + user group membership rather than container device-mapping.
+- **Kronk pipeline reached via Ollama shim**, not OpenAI shim — HA 2026.5 was missing an OpenAI Conversation card so we extended the shim to dual-speak both APIs. Either works going forward.
+- **Tool calls bridged into HA via REST + bearer token** (`HA_TOKEN` in `.env`, scoped to `tool_service` only) — same `host.docker.internal:8123` indirection LiteLLM uses for the llama servers.
 
 ---
 
 ## Manual operator steps required
 
-*(to be filled in as `[YOU]` steps complete)*
+Consolidated from `[YOU]` steps in `kronk-voice-setup-plan.md` plus
+additional ones we discovered. Listed in order to reproduce on a fresh host.
+
+1. Bring up the kronk stack: `docker compose up -d --build`.
+2. Install/enable the llama.cpp + wyoming-whisper systemd units
+   (`systemctl --user enable --now …`).
+3. Bring up HA: `docker compose -f docker-compose.ha.yml up -d`.
+4. **In HA UI:** complete onboarding (admin account, no Nabu Casa).
+5. **In HA UI:** profile → Security → Create Long-Lived Access Token named
+   `kronk-home-agent`. Copy it into `.env` as `HA_TOKEN=…` (verify `.env`
+   is gitignored).
+6. **In HA UI:** Settings → Devices & Services → Add Integration →
+   **Wyoming Protocol** twice — host `localhost`, ports `10300` (rename
+   "Kronk Whisper STT") and `10200` (rename "Kronk Piper TTS").
+7. **In HA UI:** Add Integration → **Ollama** → URL `http://localhost`
+   → model `kronk:latest`. Rename "Kronk Orchestrator". Leave any "control
+   Home Assistant" / function-calling toggles **off**.
+8. **In HA UI:** Settings → Voice Assistants → Add Assistant "Kronk" →
+   conversation agent = Kronk Orchestrator, STT = Kronk Whisper, TTS =
+   Kronk Piper. **Disable "Prefer handling commands locally."**
+9. **In HA UI:** Helpers → Create Helper → Timer named `voice_timer`.
+   Any default duration (it's overridden on every call).
+10. Power on Voice PE → provision via HA Companion app on phone (BLE
+    handshake + WiFi credentials). Device appears in HA via mDNS.
+11. **In HA UI:** Voice PE device page → Assist config → set both
+    `Assistant` and `Assistant 2` to `kronk`. Wake word `Okay Nabu`.
+12. (Deferred) Configure timer-finished announcement — see Open Items.
 
 ---
 
 ## Open items
 
-- Confirm with operator: proceed to Phase 1 (Piper) now?
-- Confirm with operator at Phase 2.1: install ROCm 6.4 userspace, or skip
-  straight to CPU faster-whisper given the existing vendored ROCm 7 setup?
-- `.env` must be added to `.gitignore` before writing `HA_TOKEN` (Phase 5.1).
+- **Timer-finished announcement / native HA timers (2026-05-28 decision).**
+  After researching the failure, decided to **scrap our `set_timer` tool +
+  `timer.voice_timer` helper + broken announce automation entirely** and let
+  HA handle timers natively. Reasoning: HA's local Assist has had first-class
+  multi-named-timer support since ~2024.4 via the `HA.Timer.Start/Cancel/Get`
+  intents, including the `assist_satellite.announce`-based completion
+  announcement (which we verified works in isolation; that's the right
+  service to push audio to a Voice PE outside the conversation flow). To
+  switch over: re-enable **Prefer handling commands locally** in the Kronk
+  pipeline so HA matches timer intents before falling through to Kronk for
+  everything else. Modern HA's intent matcher is *entity-aware* — only
+  intercepts intents that have backing entities — so the old 2022-era
+  "weather intent eats my query" risk is largely gone. Plan: (1) operator
+  flips toggle in HA UI; (2) operator voice-tests weather/news/AVGO/health
+  to confirm nothing gets stolen from Kronk; (3) once confirmed, delete the
+  broken announce automation, decommission Kronk's `set_timer` tool +
+  `/timer` route + `home` agent wiring + `timer.voice_timer` helper. Step
+  (3) is reversible since the code lands as a deletion, not a rewrite —
+  worst case we restore from git.
+- **Whisper hallucination filter / VAD-filter.** Even with `large-v3-turbo`
+  there's an occasional empty transcription on borderline audio. Enabling
+  `--vad-filter` and/or relaxing the Voice PE's `finished_speaking_detection`
+  from `default` to `relaxed` is the cheap next iteration if accuracy slips.
+- **Per-tool result cache** (tracked in README roadmap) — would skip a full
+  ~15s home-agent loop on repeat weather/news asks within a TTL window.
+  Big UX win for voice.
+- **More expressive TTS** (tracked in README roadmap) — try a Piper voice
+  swap first, then evaluate voicebox.sh as the meta-tool that fronts XTTS,
+  Bark, Kokoro, etc. locally.
+- **`llama-talkie.service` GGUF path** is still under
+  `/home/drew/model-staging/…` (documented tech debt in the README runbook).
+- **Container BT errors from HA** — harmless `habluetooth.scanner` noise
+  because we don't pass `/var/run/dbus` through. Can be silenced by deleting
+  the Bluetooth integration in HA, or wired properly if BT-managed devices
+  are added later.
+- **HA OpenAI Conversation card absent in HA 2026.5.4** — unclear if
+  renamed/moved/removed; Ollama works fine for now, so not blocking.

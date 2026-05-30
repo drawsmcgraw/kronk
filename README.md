@@ -402,6 +402,17 @@ requirements.lock` from the service directory — never edit it by hand.
   scaffolding in `health_service/withings_sync.py`).
 - Publish the shopping-list page externally so it works off the home network.
 - Garmin live sync remains blocked on MFA / Cloudflare (see Design Decisions).
+- **More expressive TTS for the voice pipeline** — current Piper
+  `en_US-lessac-medium` is fine but plain. Explore paths in order of effort:
+  (1) swap to a different Piper voice (`en_US-ryan-high`,
+  `en_GB-northern_english_male-medium`) — zero infra change; (2)
+  [voicebox.sh](https://voicebox.sh/) — open-source, self-hosted, wraps ~7
+  TTS engines (Piper, XTTS, Bark, Kokoro, …) behind one tool with
+  voice-cloning support and an MCP interface. Likely the highest-leverage
+  single change since it gives access to multiple backends without us
+  wiring each one separately. Drop-in to HA via Wyoming/MCP. (3) Go direct
+  to Coqui XTTS-v2 on gfx1151 if voicebox.sh doesn't fit. (4) Bark for
+  expressive non-speech (laughs, etc.).
 - **Tool-result cache** — short-TTL cache in `tool_service` for high-frequency,
   low-volatility tool results: NWS weather (5–15 min TTL), top-of-feed news
   (~15 min), maybe `get_kronk_context`. Trims agent latency for repeat

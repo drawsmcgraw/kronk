@@ -96,7 +96,7 @@ AGENTS: dict[str, AgentConfig] = {
     "research": AgentConfig(
         name="research",
         description="Web search, current events, news, online information, URL lookups",
-        routing_hint="ONLY questions requiring live or real-time data: today's news, current prices, live scores, breaking events, recent releases — NOT for general knowledge or factual questions answerable from training data",
+        routing_hint="Lookups against the live web: news, prices, scores, events, but ALSO any factual lookup where verbatim precision matters (quotes, statistics, specific dates, lyrics, biographies, technical definitions). NOT for operations on text the user already provided (translation, summarization of a pasted paragraph, rewriting, math) — those go direct.",
         icon="🔍",
         probe="tools",
         system_prompt=(
