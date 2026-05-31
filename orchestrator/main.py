@@ -15,6 +15,7 @@ from pydantic import BaseModel
 from pypdf import PdfReader
 
 import agents
+import coordinator as v2_coord
 import metrics
 import routing
 import servers
@@ -23,6 +24,11 @@ from events import current_request_id, emit, new_request_id
 from llm import LLM_SERVICE_URL
 from tools import TOOL_DEFINITIONS  # re-exported for tests/backward-compat
 
+# Feature flag: which coordinator pipeline to run for the Ollama/OpenAI shims.
+# v1 = legacy router→agent dispatch; v2 = single tool-using coordinator.
+# /message stays on v1 in this pass (it has its own router→agent loop inline).
+KRONK_COORDINATOR = os.getenv("KRONK_COORDINATOR", "v1").lower()
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
 
@@ -30,6 +36,12 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     metrics.init_db()
+    # Pre-compute v2 fast-path embeddings (no-op if KRONK_FAST_PATH_ENABLED=false
+    # or fastembed isn't installed; both safe).
+    try:
+        v2_coord.init_fast_path()
+    except Exception as e:
+        logger.warning("v2 fast-path init failed (continuing without): %s", e)
     yield
 
 
@@ -399,18 +411,43 @@ class _OpenAIChatRequest(BaseModel):
         extra = "allow"
 
 
-async def _kronk_pipeline_tokens(text: str, model: str):
-    """Transport-agnostic core pipeline.
+async def _kronk_pipeline_tokens_v2(text: str, model: str, context: list[dict] | None = None):
+    """V2 transport-agnostic core pipeline (Agent-as-Tool architecture).
+
+    Delegates to `coordinator.coordinator_stream`. Translates the latter's
+    richer event shape (token / narration / error / done) down to the same
+    `{type: token|error}` envelope the shim framers expect.
+    """
+    async with _llm_lock:
+        async for ev in v2_coord.coordinator_stream(text, context or [], model):
+            etype = ev.get("type")
+            if etype == "token":
+                yield {"type": "token", "text": ev["text"]}
+            elif etype == "error":
+                yield {"type": "error", "text": ev["message"]}
+            # narration / done are swallowed — shims don't surface them
+
+
+async def _kronk_pipeline_tokens(text: str, model: str, context: list[dict] | None = None):
+    """Transport-agnostic core pipeline. Dispatches on KRONK_COORDINATOR.
 
     Yields semantic events:
       {"type": "token", "text": "..."}   — one token of assistant content
       {"type": "error", "text": "..."}   — fatal failure; downstream should
                                            still emit a clean terminator
+    `context` is the client-supplied conversation history (excluding the
+    current user message). Voice / OpenAI-shim clients pass their own;
+    v1 path uses it only for the router's classification context.
     Caller is responsible for transport framing (OpenAI SSE / Ollama NDJSON).
     """
+    context = context or []
+    if KRONK_COORDINATOR == "v2":
+        async for ev in _kronk_pipeline_tokens_v2(text, model, context):
+            yield ev
+        return
     async with _llm_lock:
         try:
-            agent_name = await routing.classify(text, [])
+            agent_name = await routing.classify(text, context)
         except Exception as e:
             logger.error("Router failed (shim): %s", e)
             yield {"type": "error", "text": f"Error: router unreachable ({e})."}
@@ -421,7 +458,7 @@ async def _kronk_pipeline_tokens(text: str, model: str):
         if agent_name in agents.AGENTS:
             agent_cfg = agents.AGENTS[agent_name]
             agent_error: str | None = None
-            async for ev in agents.run_stream(agent_cfg, text, []):
+            async for ev in agents.run_stream(agent_cfg, text, context):
                 etype = ev.get("type")
                 if etype == "token":
                     yield {"type": "token", "text": ev["text"]}
@@ -481,19 +518,19 @@ def _openai_chunk(rid: str, model: str, delta: dict, finish_reason: str | None =
     return f"data: {json.dumps(payload)}\n\n"
 
 
-async def _openai_pipeline_stream(text: str, model: str, rid: str):
+async def _openai_pipeline_stream(text: str, model: str, rid: str, context: list[dict] | None = None):
     """OpenAI Chat Completions SSE framing around the core pipeline."""
     yield _openai_chunk(rid, model, {"role": "assistant", "content": ""})
-    async for ev in _kronk_pipeline_tokens(text, model):
+    async for ev in _kronk_pipeline_tokens(text, model, context):
         yield _openai_chunk(rid, model, {"content": ev["text"]})
     yield _openai_chunk(rid, model, {}, finish_reason="stop")
     yield "data: [DONE]\n\n"
 
 
-async def _ollama_pipeline_stream(text: str, model: str):
+async def _ollama_pipeline_stream(text: str, model: str, context: list[dict] | None = None):
     """Ollama /api/chat NDJSON framing around the core pipeline."""
     created = time.strftime("%Y-%m-%dT%H:%M:%S.000000000Z", time.gmtime())
-    async for ev in _kronk_pipeline_tokens(text, model):
+    async for ev in _kronk_pipeline_tokens(text, model, context):
         chunk = {
             "model":      model,
             "created_at": created,
@@ -522,18 +559,24 @@ async def openai_chat_completions(req: _OpenAIChatRequest):
     if not user_msgs:
         raise HTTPException(400, "no user message with content")
     text = user_msgs[-1].content
+    # Build conversation context from everything except the current user msg.
+    context = [
+        {"role": m.role, "content": m.content}
+        for m in req.messages
+        if m.content and m is not user_msgs[-1] and m.role in ("user", "assistant", "system")
+    ]
     model = COORDINATOR_MODEL  # shim ignores client-requested model name
     rid = f"chatcmpl-{new_request_id()}"
 
     if req.stream:
         return StreamingResponse(
-            _openai_pipeline_stream(text, model, rid),
+            _openai_pipeline_stream(text, model, rid, context),
             media_type="text/event-stream",
         )
 
     # Non-streaming: collect deltas and return a single chat.completion object.
     parts: list[str] = []
-    async for line in _openai_pipeline_stream(text, model, rid):
+    async for line in _openai_pipeline_stream(text, model, rid, context):
         if not line.startswith("data:"):
             continue
         payload = line[len("data:"):].strip()
@@ -646,16 +689,24 @@ async def ollama_chat(req: _OllamaChatRequest):
     if not user_msgs:
         raise HTTPException(400, "no user message with content")
     text = user_msgs[-1].content
+    # Forward prior turns as conversation context (HA Ollama integration
+    # sends the full conversation per request — voice "session" lives on
+    # the client side).
+    context = [
+        {"role": m.role, "content": m.content}
+        for m in req.messages
+        if m.content and m is not user_msgs[-1] and m.role in ("user", "assistant", "system")
+    ]
     model = COORDINATOR_MODEL
 
     if req.stream:
         return StreamingResponse(
-            _ollama_pipeline_stream(text, model),
+            _ollama_pipeline_stream(text, model, context),
             media_type="application/x-ndjson",
         )
 
     parts: list[str] = []
-    async for line in _ollama_pipeline_stream(text, model):
+    async for line in _ollama_pipeline_stream(text, model, context):
         try:
             obj = json.loads(line)
         except json.JSONDecodeError:

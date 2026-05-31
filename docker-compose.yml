@@ -139,7 +139,14 @@ services:
       - HEALTH_SERVICE_URL=http://health_service:8004
       - FINANCE_SERVICE_URL=http://finance_service:8005
       - ROUTER_MODEL=gemma-3-4b
-      - COORDINATOR_MODEL=gemma-4-e4b
+      # Coordinator overridable via shell env so bench cycles can sweep.
+      # Default gemma-4-e4b matches the pre-refactor behavior.
+      - COORDINATOR_MODEL=${COORDINATOR_MODEL:-gemma-4-e4b}
+      # v1 = legacy router→agent, v2 = single tool-using coordinator (Pattern A).
+      - KRONK_COORDINATOR=${KRONK_COORDINATOR:-v1}
+      # Fast-path embedding match enable / threshold (Phase 2.5).
+      - KRONK_FAST_PATH_ENABLED=${KRONK_FAST_PATH_ENABLED:-true}
+      - KRONK_FAST_PATH_THRESHOLD=${KRONK_FAST_PATH_THRESHOLD:-0.65}
       - HEALTH_AGENT_MODEL=gemma-4-e4b
       - RESEARCH_AGENT_MODEL=gemma-4-e4b
       - FINANCE_AGENT_MODEL=gemma-4-e4b

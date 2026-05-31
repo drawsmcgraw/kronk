@@ -1,0 +1,125 @@
+writing → /home/drew/git-repos/drawsmcgraw/kronk/benchmarks/results/v1-baseline-20260530-095908.jsonl
+queries=20 endpoints=['message', 'api_chat'] trials=3 timeout=240s
+  [1/120] weather_default           message  t0:   12.3s  pass
+  [2/120] weather_default           message  t1:   10.4s  pass
+  [3/120] weather_default           message  t2:   13.0s  pass
+  [4/120] weather_default           api_chat t0:    8.4s  pass
+  [5/120] weather_default           api_chat t1:    9.4s  pass
+  [6/120] weather_default           api_chat t2:    6.5s  pass
+  [7/120] weather_specific_location message  t0:   14.7s  pass
+  [8/120] weather_specific_location message  t1:   20.5s  pass
+  [9/120] weather_specific_location message  t2:   12.2s  pass
+  [10/120] weather_specific_location api_chat t0:   13.4s  pass
+  [11/120] weather_specific_location api_chat t1:   44.8s  fail  (garbage tokens)
+  [12/120] weather_specific_location api_chat t2:   18.5s  pass
+  [13/120] health_sleep_week         message  t0:    4.7s  pass
+  [14/120] health_sleep_week         message  t1:    4.8s  pass
+  [15/120] health_sleep_week         message  t2:    1.8s  pass
+  [16/120] health_sleep_week         api_chat t0:    3.7s  pass
+  [17/120] health_sleep_week         api_chat t1:    5.7s  pass
+  [18/120] health_sleep_week         api_chat t2:    6.9s  pass
+  [19/120] health_rhr_month          message  t0:    4.2s  pass
+  [20/120] health_rhr_month          message  t1:    5.5s  pass
+  [21/120] health_rhr_month          message  t2:    2.0s  pass
+  [22/120] health_rhr_month          api_chat t0:    6.7s  pass
+  [23/120] health_rhr_month          api_chat t1:    6.2s  pass
+  [24/120] health_rhr_month          api_chat t2:    6.0s  pass
+  [25/120] finance_grocery_spend     message  t0:    2.6s  pass
+  [26/120] finance_grocery_spend     message  t1:    3.6s  pass
+  [27/120] finance_grocery_spend     message  t2:    3.4s  pass
+  [28/120] finance_grocery_spend     api_chat t0:    5.0s  pass
+  [29/120] finance_grocery_spend     api_chat t1:    2.7s  pass
+  [30/120] finance_grocery_spend     api_chat t2:    2.5s  pass
+  [31/120] shopping_list_view        message  t0:    3.8s  pass
+  [32/120] shopping_list_view        message  t1:    1.4s  pass
+  [33/120] shopping_list_view        message  t2:    3.9s  pass
+  [34/120] shopping_list_view        api_chat t0:    1.8s  pass
+  [35/120] shopping_list_view        api_chat t1:    0.6s  pass
+  [36/120] shopping_list_view        api_chat t2:    5.6s  pass
+  [37/120] shopping_list_add         message  t0:    3.8s  suspect  (regex no match: (?i)(milk|added|shopping))
+  [38/120] shopping_list_add         message  t1:    1.8s  pass
+  [39/120] shopping_list_add         message  t2:    3.2s  suspect  (regex no match: (?i)(milk|added|shopping))
+  [40/120] shopping_list_add         api_chat t0:    5.0s  suspect  (regex no match: (?i)(milk|added|shopping))
+  [41/120] shopping_list_add         api_chat t1:    4.8s  pass
+  [42/120] shopping_list_add         api_chat t2:    3.0s  pass
+  [43/120] hottub_status             message  t0:    5.1s  pass
+  [44/120] hottub_status             message  t1:    2.3s  pass
+  [45/120] hottub_status             message  t2:    8.8s  pass
+  [46/120] hottub_status             api_chat t0:    4.9s  pass
+  [47/120] hottub_status             api_chat t1:    4.3s  pass
+  [48/120] hottub_status             api_chat t2:    3.5s  pass
+  [49/120] kronk_self_arch           message  t0:   11.7s  pass
+  [50/120] kronk_self_arch           message  t1:   11.2s  pass
+  [51/120] kronk_self_arch           message  t2:   15.0s  pass
+  [52/120] kronk_self_arch           api_chat t0:   15.8s  pass
+  [53/120] kronk_self_arch           api_chat t1:   16.5s  pass
+  [54/120] kronk_self_arch           api_chat t2:   15.3s  pass
+  [55/120] lookup_conan_quote        message  t0:    4.7s  pass
+  [56/120] lookup_conan_quote        message  t1:    8.4s  pass
+  [57/120] lookup_conan_quote        message  t2:   11.5s  suspect  (regex no match: (?i)(crush|enemies|driven|lamentation))
+  [58/120] lookup_conan_quote        api_chat t0:    8.0s  suspect  (regex no match: (?i)(crush|enemies|driven|lamentation))
+  [59/120] lookup_conan_quote        api_chat t1:    8.4s  suspect  (regex no match: (?i)(crush|enemies|driven|lamentation))
+  [60/120] lookup_conan_quote        api_chat t2:   11.2s  suspect  (regex no match: (?i)(crush|enemies|driven|lamentation))
+  [61/120] lookup_avgo_close         message  t0:   19.2s  fail  (garbage tokens)
+  [62/120] lookup_avgo_close         message  t1:   37.3s  pass
+  [63/120] lookup_avgo_close         message  t2:   11.7s  pass
+  [64/120] lookup_avgo_close         api_chat t0:   36.8s  pass
+  [65/120] lookup_avgo_close         api_chat t1:   22.4s  fail  (garbage tokens)
+  [66/120] lookup_avgo_close         api_chat t2:   39.5s  pass
+  [67/120] lookup_news_brief         message  t0:   13.4s  pass
+  [68/120] lookup_news_brief         message  t1:   13.0s  pass
+  [69/120] lookup_news_brief         message  t2:   25.5s  pass
+  [70/120] lookup_news_brief         api_chat t0:   62.4s  fail  (garbage tokens)
+  [71/120] lookup_news_brief         api_chat t1:    7.2s  pass
+  [72/120] lookup_news_brief         api_chat t2:    8.3s  pass
+  [73/120] research_voter_guide      message  t0:   10.6s  pass
+  [74/120] research_voter_guide      message  t1:   10.5s  pass
+  [75/120] research_voter_guide      message  t2:   10.0s  pass
+  [76/120] research_voter_guide      api_chat t0:   14.5s  pass
+  [77/120] research_voter_guide      api_chat t1:   14.1s  pass
+  [78/120] research_voter_guide      api_chat t2:    9.6s  pass
+  [79/120] code_email_validator      message  t0:   17.8s  pass
+  [80/120] code_email_validator      message  t1:   27.0s  pass
+  [81/120] code_email_validator      message  t2:   23.3s  pass
+  [82/120] code_email_validator      api_chat t0:   19.4s  pass
+  [83/120] code_email_validator      api_chat t1:   19.6s  pass
+  [84/120] code_email_validator      api_chat t2:   25.5s  pass
+  [85/120] talkie_explicit           message  t0:    6.4s  pass
+  [86/120] talkie_explicit           message  t1:    1.8s  pass
+  [87/120] talkie_explicit           message  t2:    1.6s  pass
+  [88/120] talkie_explicit           api_chat t0:    2.2s  pass
+  [89/120] talkie_explicit           api_chat t1:    5.0s  pass
+  [90/120] talkie_explicit           api_chat t2:    9.8s  pass
+  [91/120] cross_weather_run         message  t0:   12.6s  pass
+  [92/120] cross_weather_run         message  t1:   13.4s  pass
+  [93/120] cross_weather_run         message  t2:   18.3s  pass
+  [94/120] cross_weather_run         api_chat t0:   14.9s  pass
+  [95/120] cross_weather_run         api_chat t1:   21.7s  pass
+  [96/120] cross_weather_run         api_chat t2:   18.4s  pass
+  [97/120] ambig_cellulitis          message  t0:    1.6s  pass
+  [98/120] ambig_cellulitis          message  t1:    9.9s  pass
+  [99/120] ambig_cellulitis          message  t2:   10.7s  pass
+  [100/120] ambig_cellulitis          api_chat t0:   11.0s  pass
+  [101/120] ambig_cellulitis          api_chat t1:   10.9s  pass
+  [102/120] ambig_cellulitis          api_chat t2:   10.8s  pass
+  [103/120] ambig_health_general      message  t0:    7.5s  pass
+  [104/120] ambig_health_general      message  t1:    8.8s  pass
+  [105/120] ambig_health_general      message  t2:    7.1s  pass
+  [106/120] ambig_health_general      api_chat t0:    7.4s  pass
+  [107/120] ambig_health_general      api_chat t1:   10.6s  pass
+  [108/120] ambig_health_general      api_chat t2:    7.5s  pass
+  [109/120] direct_pong               message  t0:    0.3s  pass
+  [110/120] direct_pong               message  t1:    0.2s  pass
+  [111/120] direct_pong               message  t2:    0.2s  pass
+  [112/120] direct_pong               api_chat t0:    0.2s  pass
+  [113/120] direct_pong               api_chat t1:    0.2s  pass
+  [114/120] direct_pong               api_chat t2:    0.2s  pass
+  [115/120] direct_math               message  t0:    0.9s  pass
+  [116/120] direct_math               message  t1:    3.3s  pass
+  [117/120] direct_math               message  t2:    0.3s  pass
+  [118/120] direct_math               api_chat t0:    0.7s  pass
+  [119/120] direct_math               api_chat t1:    1.0s  pass
+  [120/120] direct_math               api_chat t2:    0.9s  pass
+
+done in 1205.3s → /home/drew/git-repos/drawsmcgraw/kronk/benchmarks/results/v1-baseline-20260530-095908.jsonl
+to summarize:  python benchmarks/summarize.py /home/drew/git-repos/drawsmcgraw/kronk/benchmarks/results/v1-baseline-20260530-095908.jsonl

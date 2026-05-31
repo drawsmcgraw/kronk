@@ -75,6 +75,33 @@ class AgentConfig:
     def tool_defs(self) -> list[dict]:
         return [t for t in tools.TOOL_DEFINITIONS if t["function"]["name"] in self.tool_names]
 
+    def to_tool_definition(self) -> dict:
+        """Produce an OpenAI-style function schema describing this agent
+        as a callable tool. The coordinator (v2 pipeline) uses this so it
+        can invoke the agent like any other tool. The `routing_hint` is the
+        description — single source of truth for when this agent fires.
+        """
+        return {
+            "type": "function",
+            "function": {
+                "name": self.name,
+                "description": self.routing_hint,
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "task": {
+                            "type": "string",
+                            "description": (
+                                f"The {self.name} agent's task. Forward the user's "
+                                f"question verbatim or as a focused sub-question."
+                            ),
+                        }
+                    },
+                    "required": ["task"],
+                },
+            },
+        }
+
 
 AGENTS: dict[str, AgentConfig] = {
     "health": AgentConfig(

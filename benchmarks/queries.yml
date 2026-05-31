@@ -1,0 +1,206 @@
+# Benchmark query suite for the agent-architecture refactor.
+# Each query is run multiple times against /message (chat UI) and /api/chat
+# (Ollama shim used by HA voice). Medians are taken for timing.
+#
+# `expected` is the routing/tool decision we want to see. For v1 this means
+# the router LLM should produce this `route`. For v2 this means the
+# coordinator should call this `tool` (or invoke this agent-tool). Mismatch
+# is flagged in the comparison report.
+#
+# `quality_check` is a list of substring/regex checks the response must
+# satisfy to count as a `pass` quality flag.
+
+queries:
+  # ─── simple weather (home → get_weather) ─────────────────────────────────
+  - id: weather_default
+    query: "What's the weather today?"
+    domain: weather
+    expected:
+      v1_route: home
+      v2_tool: get_weather
+    quality_check:
+      regex: '(?i)(°|degree|temp|rain|cloud|sun|wind|forecast)'
+
+  - id: weather_specific_location
+    query: "Will it rain tomorrow in Baltimore, Maryland?"
+    domain: weather
+    expected:
+      v1_route: home
+      v2_tool: get_weather
+    quality_check:
+      regex: '(?i)(rain|shower|cloud|dry|precipitation|°|degree)'
+
+  # ─── health (health → query_health) ──────────────────────────────────────
+  - id: health_sleep_week
+    query: "What was my average sleep last week?"
+    domain: health
+    expected:
+      v1_route: health
+      v2_tool: query_health
+    quality_check:
+      regex: '(?i)(sleep|hour|min)'
+
+  - id: health_rhr_month
+    query: "Show me my resting heart rate trend this month."
+    domain: health
+    expected:
+      v1_route: health
+      v2_tool: query_health
+    quality_check:
+      regex: '(?i)(heart|bpm|rate)'
+
+  # ─── finance (finance → query_finances) ──────────────────────────────────
+  - id: finance_grocery_spend
+    query: "What did I spend on groceries last month?"
+    domain: finance
+    expected:
+      v1_route: finance
+      v2_tool: query_finances
+    quality_check:
+      # finance corpus may not have grocery docs — both an answer and "no data" are acceptable
+      regex: '(?i)(spend|grocer|\$|dollar|no.*docu|not.*found|uploaded)'
+
+  # ─── home (shopping list) ────────────────────────────────────────────────
+  - id: shopping_list_view
+    query: "What's on my shopping list?"
+    domain: home
+    expected:
+      v1_route: home
+      v2_tool: shopping_list_view
+    quality_check:
+      regex: '(?i)(shopping|list|empty|items|nothing)'
+
+  - id: shopping_list_add
+    query: "Add milk to my shopping list."
+    domain: home
+    expected:
+      v1_route: home
+      v2_tool: shopping_list_add
+    quality_check:
+      regex: '(?i)(milk|added|shopping)'
+
+  # ─── home (hot tub) ──────────────────────────────────────────────────────
+  - id: hottub_status
+    query: "Is the hot tub online?"
+    domain: home
+    expected:
+      v1_route: home
+      v2_tool: query_hottub
+    quality_check:
+      regex: '(?i)(hot.tub|spa|online|offline|temp)'
+
+  # ─── assistant (Kronk self) ──────────────────────────────────────────────
+  - id: kronk_self_arch
+    query: "What agents do you have available?"
+    domain: assistant
+    expected:
+      v1_route: assistant
+      v2_tool: get_kronk_context
+    quality_check:
+      regex: '(?i)(agent|home|research|health|finance|coord)'
+
+  # ─── factual lookup that *should* use web_search (the Conan class) ───────
+  - id: lookup_conan_quote
+    query: "What is the famous Conan the Barbarian quote about what is best in life?"
+    domain: lookup
+    expected:
+      v1_route: research  # after the 2026-05-29 routing-hint update
+      v2_tool: web_search
+    quality_check:
+      regex: '(?i)(crush|enemies|driven|lamentation)'
+
+  - id: lookup_avgo_close
+    query: "What was the last closing price of AVGO?"
+    domain: lookup
+    expected:
+      v1_route: research
+      v2_tool: web_search
+    quality_check:
+      regex: '(?i)(AVGO|broadcom|\$|price|close)'
+
+  - id: lookup_news_brief
+    query: "Give me a two-sentence summary of today's top news."
+    domain: lookup
+    expected:
+      v1_route: research
+      v2_tool: web_search
+    quality_check:
+      regex: '(?i)([a-z]{4,})'  # any English-ish words; news is volatile
+
+  # ─── heavy research (should invoke research agent-tool in v2) ────────────
+  - id: research_voter_guide
+    query: "Compile a brief summary of the candidates running for governor of Maryland in 2026 and their key positions on housing and transit."
+    domain: research
+    expected:
+      v1_route: research
+      v2_tool: research  # agent-tool, planning
+    quality_check:
+      regex: '(?i)(candidate|governor|maryland|hous|transit)'
+
+  # ─── code (should be coordinator-only in v2; devstral is separate harness) ─
+  - id: code_email_validator
+    query: "Write a Python function to validate an email address."
+    domain: code
+    expected:
+      v1_route: coding
+      v2_tool: null  # v2 coordinator answers directly (no agent-tool)
+    quality_check:
+      regex: '(?i)(def |import |re\.|email|@)'
+
+  # ─── talkie (regex shortcut, both versions) ──────────────────────────────
+  - id: talkie_explicit
+    query: "Ask talkie what he thinks about modern automobiles."
+    domain: talkie
+    expected:
+      v1_route: talkie
+      v2_tool: talkie  # still hit via regex pre-check in v2
+    quality_check:
+      regex: '(?i)([a-z]{4,})'  # talkie outputs vintage prose; loose match
+
+  # ─── cross-domain (NEW capability in v2) ─────────────────────────────────
+  - id: cross_weather_run
+    query: "Should I run outside tomorrow given the weather forecast and my recent sleep?"
+    domain: cross
+    expected:
+      v1_route: home  # v1 picks one; will likely fail to satisfy both
+      v2_tool: get_weather  # v2 should call multiple tools — checked specially
+    quality_check:
+      regex: '(?i)(weather|rain|sleep|run|outside|recommend)'
+
+  # ─── ambiguous (router test) ─────────────────────────────────────────────
+  - id: ambig_cellulitis
+    query: "Tell me about cellulitis."
+    domain: lookup
+    expected:
+      v1_route: research  # after the 2026-05-29 routing-hint update
+      v2_tool: web_search
+    quality_check:
+      regex: '(?i)(cellulitis|infection|skin|bacteria)'
+
+  - id: ambig_health_general
+    query: "How am I doing with my fitness goals?"
+    domain: health
+    expected:
+      v1_route: health
+      v2_tool: query_health
+    quality_check:
+      regex: '(?i)(fitness|sleep|step|heart|activity|health|data)'
+
+  # ─── pure conversational (direct, no tools) ──────────────────────────────
+  - id: direct_pong
+    query: "Reply with exactly: pong"
+    domain: direct
+    expected:
+      v1_route: direct
+      v2_tool: null
+    quality_check:
+      regex: '(?i)^pong'
+
+  - id: direct_math
+    query: "What is 47 times 8?"
+    domain: direct
+    expected:
+      v1_route: direct
+      v2_tool: null
+    quality_check:
+      regex: '376'

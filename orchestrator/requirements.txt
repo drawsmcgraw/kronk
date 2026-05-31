@@ -5,3 +5,7 @@ python-dotenv==1.0.1
 pypdf==4.3.1
 python-multipart==0.0.9
 pyyaml==6.0.2
+
+# v2 coordinator fast-path: ONNX-runtime embeddings for tool routing.
+# Pulls in onnxruntime + tokenizers but NOT torch. ~150MB total.
+fastembed==0.8.0

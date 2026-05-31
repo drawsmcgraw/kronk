@@ -106,8 +106,14 @@ async def stream(
                 args = json.loads(args_str) if args_str else {}
             except json.JSONDecodeError:
                 args = {}
+            # Tool-call IDs: always normalize to 9 alphanumeric chars. Mistral's
+            # jinja chat template hard-fails (`raise_exception("Tool call IDs
+            # should be alphanumeric strings with length 9!")`) on anything else,
+            # including the longer OpenAI-style `call_<uuid12>` format some
+            # models emit. 9-char hex is accepted by every other model too, so
+            # we override here unconditionally rather than per-model.
             finalized.append({
-                "id": entry["id"] or f"call_{uuid.uuid4().hex[:12]}",
+                "id": uuid.uuid4().hex[:9],
                 "function": {
                     "name": entry["function"]["name"],
                     "arguments": args,
@@ -139,11 +145,11 @@ async def complete(messages: list[dict], tools: list[dict], model: str) -> dict:
 
     message = data["choices"][0]["message"]
 
-    # Ensure every returned tool_call has an id — some models/templates drop it.
+    # Normalize all tool-call ids to 9-char alphanumeric — required by
+    # Mistral's chat template and accepted by every other model.
     raw_calls = message.get("tool_calls") or []
     for tc in raw_calls:
-        if not tc.get("id"):
-            tc["id"] = f"call_{uuid.uuid4().hex[:12]}"
+        tc["id"] = uuid.uuid4().hex[:9]
         tc.setdefault("type", "function")
 
     tool_calls = []

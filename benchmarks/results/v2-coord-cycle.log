@@ -1,0 +1,142 @@
+═══ bench cycle: label=v2-coord flavor=v2 model=gemma-4-e4b ═══
+→ restart llama.cpp servers (clean KV/sampler state)
+→ wait for ports
+→ smoke-test gemma-4-e4b
+  gemma → ok
+→ orchestrator: KRONK_COORDINATOR=v2 COORDINATOR_MODEL=gemma-4-e4b
+ Container kronk-finance_service-1 Healthy 
+ Container kronk-health_service-1 Healthy 
+ Container kronk-tool_service-1 Healthy 
+ Container kronk-orchestrator-1 Starting 
+ Container kronk-orchestrator-1 Started 
+ Container kronk-nginx-1 Restarting 
+ Container kronk-nginx-1 Started 
+→ wait for orchestrator healthy
+  ready
+→ run bench
+writing → /home/drew/git-repos/drawsmcgraw/kronk/benchmarks/results/v2-coord-20260530-102134.jsonl
+queries=20 endpoints=['message', 'api_chat'] trials=3 timeout=240s
+  [1/120] weather_default           message  t0:   10.1s  pass
+  [2/120] weather_default           message  t1:   17.1s  pass
+  [3/120] weather_default           message  t2:   13.5s  pass
+  [4/120] weather_default           api_chat t0:    1.9s  fail  (garbage tokens)
+  [5/120] weather_default           api_chat t1:    1.6s  fail  (garbage tokens)
+  [6/120] weather_default           api_chat t2:    1.6s  fail  (garbage tokens)
+  [7/120] weather_specific_location message  t0:   27.4s  pass
+  [8/120] weather_specific_location message  t1:   20.7s  pass
+  [9/120] weather_specific_location message  t2:   18.1s  pass
+  [10/120] weather_specific_location api_chat t0:    8.5s  pass
+  [11/120] weather_specific_location api_chat t1:    6.6s  suspect  (regex no match: (?i)(rain|shower|cloud|dry|precipitation|°|degree))
+  [12/120] weather_specific_location api_chat t2:    4.8s  suspect  (regex no match: (?i)(rain|shower|cloud|dry|precipitation|°|degree))
+  [13/120] health_sleep_week         message  t0:    9.4s  pass
+  [14/120] health_sleep_week         message  t1:    9.3s  pass
+  [15/120] health_sleep_week         message  t2:    5.5s  pass
+  [16/120] health_sleep_week         api_chat t0:    7.3s  pass
+  [17/120] health_sleep_week         api_chat t1:    8.3s  pass
+  [18/120] health_sleep_week         api_chat t2:    4.4s  pass
+  [19/120] health_rhr_month          message  t0:    8.6s  pass
+  [20/120] health_rhr_month          message  t1:    7.3s  pass
+  [21/120] health_rhr_month          message  t2:    4.6s  pass
+  [22/120] health_rhr_month          api_chat t0:   10.0s  pass
+  [23/120] health_rhr_month          api_chat t1:    5.0s  pass
+  [24/120] health_rhr_month          api_chat t2:    7.7s  pass
+  [25/120] finance_grocery_spend     message  t0:    2.8s  pass
+  [26/120] finance_grocery_spend     message  t1:    2.9s  pass
+  [27/120] finance_grocery_spend     message  t2:    4.1s  pass
+  [28/120] finance_grocery_spend     api_chat t0:    1.0s  pass
+  [29/120] finance_grocery_spend     api_chat t1:    2.7s  pass
+  [30/120] finance_grocery_spend     api_chat t2:    3.4s  pass
+  [31/120] shopping_list_view        message  t0:    6.3s  pass
+  [32/120] shopping_list_view        message  t1:    1.4s  pass
+  [33/120] shopping_list_view        message  t2:    3.7s  pass
+  [34/120] shopping_list_view        api_chat t0:    1.3s  fail  (garbage tokens)
+  [35/120] shopping_list_view        api_chat t1:    0.7s  fail  (garbage tokens)
+  [36/120] shopping_list_view        api_chat t2:    0.8s  fail  (garbage tokens)
+  [37/120] shopping_list_add         message  t0:    4.4s  suspect  (regex no match: (?i)(milk|added|shopping))
+  [38/120] shopping_list_add         message  t1:    3.1s  suspect  (regex no match: (?i)(milk|added|shopping))
+  [39/120] shopping_list_add         message  t2:    5.8s  pass
+  [40/120] shopping_list_add         api_chat t0:    0.8s  suspect  (regex no match: (?i)(milk|added|shopping))
+  [41/120] shopping_list_add         api_chat t1:    1.7s  suspect  (regex no match: (?i)(milk|added|shopping))
+  [42/120] shopping_list_add         api_chat t2:    0.6s  suspect  (regex no match: (?i)(milk|added|shopping))
+  [43/120] hottub_status             message  t0:    9.6s  pass
+  [44/120] hottub_status             message  t1:    4.7s  pass
+  [45/120] hottub_status             message  t2:   10.0s  pass
+  [46/120] hottub_status             api_chat t0:    1.1s  fail  (garbage tokens)
+  [47/120] hottub_status             api_chat t1:    0.9s  fail  (garbage tokens)
+  [48/120] hottub_status             api_chat t2:    1.2s  pass
+  [49/120] kronk_self_arch           message  t0:   15.0s  pass
+  [50/120] kronk_self_arch           message  t1:   11.5s  pass
+  [51/120] kronk_self_arch           message  t2:   11.1s  pass
+  [52/120] kronk_self_arch           api_chat t0:   14.0s  pass
+  [53/120] kronk_self_arch           api_chat t1:    7.3s  pass
+  [54/120] kronk_self_arch           api_chat t2:   10.2s  pass
+  [55/120] lookup_conan_quote        message  t0:   18.2s  pass
+  [56/120] lookup_conan_quote        message  t1:   41.4s  suspect  (regex no match: (?i)(crush|enemies|driven|lamentation))
+  [57/120] lookup_conan_quote        message  t2:   12.3s  pass
+  [58/120] lookup_conan_quote        api_chat t0:   13.3s  pass
+  [59/120] lookup_conan_quote        api_chat t1:   25.6s  suspect  (regex no match: (?i)(crush|enemies|driven|lamentation))
+  [60/120] lookup_conan_quote        api_chat t2:    3.8s  suspect  (regex no match: (?i)(crush|enemies|driven|lamentation))
+  [61/120] lookup_avgo_close         message  t0:   32.8s  pass
+  [62/120] lookup_avgo_close         message  t1:   13.4s  pass
+  [63/120] lookup_avgo_close         message  t2:   39.9s  pass
+  [64/120] lookup_avgo_close         api_chat t0:   30.1s  pass
+  [65/120] lookup_avgo_close         api_chat t1:   77.0s  suspect  (regex no match: (?i)(AVGO|broadcom|\$|price|close))
+  [66/120] lookup_avgo_close         api_chat t2:    3.8s  pass
+  [67/120] lookup_news_brief         message  t0:   57.7s  pass
+  [68/120] lookup_news_brief         message  t1:   11.8s  pass
+  [69/120] lookup_news_brief         message  t2:    9.0s  pass
+  [70/120] lookup_news_brief         api_chat t0:   11.3s  pass
+  [71/120] lookup_news_brief         api_chat t1:    9.1s  pass
+  [72/120] lookup_news_brief         api_chat t2:    8.5s  pass
+  [73/120] research_voter_guide      message  t0:   29.6s  pass
+  [74/120] research_voter_guide      message  t1:   15.9s  pass
+  [75/120] research_voter_guide      message  t2:   16.1s  pass
+  [76/120] research_voter_guide      api_chat t0:   64.5s  pass
+  [77/120] research_voter_guide      api_chat t1:   18.8s  pass
+  [78/120] research_voter_guide      api_chat t2:   42.9s  suspect  (regex no match: (?i)(candidate|governor|maryland|hous|transit))
+  [79/120] code_email_validator      message  t0:   27.9s  pass
+  [80/120] code_email_validator      message  t1:   18.8s  pass
+  [81/120] code_email_validator      message  t2:   19.1s  pass
+  [82/120] code_email_validator      api_chat t0:    5.7s  pass
+  [83/120] code_email_validator      api_chat t1:    9.0s  pass
+  [84/120] code_email_validator      api_chat t2:    5.8s  pass
+  [85/120] talkie_explicit           message  t0:    2.8s  pass
+  [86/120] talkie_explicit           message  t1:    7.6s  pass
+  [87/120] talkie_explicit           message  t2:    4.6s  pass
+  [88/120] talkie_explicit           api_chat t0:    6.4s  pass
+  [89/120] talkie_explicit           api_chat t1:    3.1s  pass
+  [90/120] talkie_explicit           api_chat t2:    8.3s  pass
+  [91/120] cross_weather_run         message  t0:   17.0s  pass
+  [92/120] cross_weather_run         message  t1:   15.2s  pass
+  [93/120] cross_weather_run         message  t2:   17.0s  pass
+  [94/120] cross_weather_run         api_chat t0:    3.6s  fail  (garbage tokens)
+  [95/120] cross_weather_run         api_chat t1:    3.5s  suspect  (regex no match: (?i)(weather|rain|sleep|run|outside|recommend))
+  [96/120] cross_weather_run         api_chat t2:    2.6s  suspect  (regex no match: (?i)(weather|rain|sleep|run|outside|recommend))
+  [97/120] ambig_cellulitis          message  t0:    2.7s  pass
+  [98/120] ambig_cellulitis          message  t1:    4.8s  pass
+  [99/120] ambig_cellulitis          message  t2:   10.2s  pass
+  [100/120] ambig_cellulitis          api_chat t0:   26.8s  pass
+  [101/120] ambig_cellulitis          api_chat t1:   18.6s  pass
+  [102/120] ambig_cellulitis          api_chat t2:   18.6s  pass
+  [103/120] ambig_health_general      message  t0:    8.1s  pass
+  [104/120] ambig_health_general      message  t1:    5.7s  pass
+  [105/120] ambig_health_general      message  t2:    9.4s  pass
+  [106/120] ambig_health_general      api_chat t0:   16.9s  pass
+  [107/120] ambig_health_general      api_chat t1:    6.6s  pass
+  [108/120] ambig_health_general      api_chat t2:    3.7s  pass
+  [109/120] direct_pong               message  t0:    0.3s  pass
+  [110/120] direct_pong               message  t1:    0.2s  pass
+  [111/120] direct_pong               message  t2:    0.2s  pass
+  [112/120] direct_pong               api_chat t0:    0.4s  pass
+  [113/120] direct_pong               api_chat t1:    0.1s  pass
+  [114/120] direct_pong               api_chat t2:    0.1s  pass
+  [115/120] direct_math               message  t0:    1.0s  pass
+  [116/120] direct_math               message  t1:    0.3s  pass
+  [117/120] direct_math               message  t2:    1.7s  pass
+  [118/120] direct_math               api_chat t0:    6.0s  pass
+  [119/120] direct_math               api_chat t1:    1.2s  pass
+  [120/120] direct_math               api_chat t2:    6.0s  pass
+
+done in 1297.9s → /home/drew/git-repos/drawsmcgraw/kronk/benchmarks/results/v2-coord-20260530-102134.jsonl
+to summarize:  python benchmarks/summarize.py /home/drew/git-repos/drawsmcgraw/kronk/benchmarks/results/v2-coord-20260530-102134.jsonl
+═══ cycle done ═══
