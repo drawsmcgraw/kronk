@@ -426,6 +426,34 @@ additional ones we discovered. Listed in order to reproduce on a fresh host.
   there's an occasional empty transcription on borderline audio. Enabling
   `--vad-filter` and/or relaxing the Voice PE's `finished_speaking_detection`
   from `default` to `relaxed` is the cheap next iteration if accuracy slips.
+- **Voxtral STT — deferred (2026-05-31 evaluation).** Mistral's
+  `Voxtral-Mini-4B-Realtime-2602` is genuinely interesting for our voice path:
+  Apache-2.0 weights, 4B params (3.4B LM + 970M audio encoder), **causal
+  streaming architecture with <500ms latency** (vs. our current batch-mode
+  Whisper). The streaming win alone would shave 1-3 s off perceived voice
+  latency on every query.
+  - **Why we're not doing it yet:** the integration stack is in a different
+    ecosystem than our existing setup. Our text LLMs run on llama.cpp (C++
+    binary we compiled for gfx1151) which doesn't yet support Voxtral's
+    audio-encoder architecture. Voxtral's official runtime is **vLLM**
+    (officially supports gfx1151 per the AMD support matrix) — but **no
+    prebuilt vLLM or PyTorch ROCm wheels exist for gfx1151 yet** because
+    Strix Halo is too new. Getting Voxtral running would require building
+    PyTorch from source for gfx1151 (~6-8 h compile, real failure risk),
+    then vLLM, then writing a `wyoming-voxtral` server because rhasspy
+    hasn't shipped one. Realistic ~5-day project.
+  - **What changes the math:**
+    1. AMD ships prebuilt PyTorch ROCm wheels with `gfx1151` in
+       `PYTORCH_ROCM_ARCH` (likely 3-6 months). Project becomes ~1 day.
+    2. The rhasspy community ships a `wyoming-voxtral` wrapper.
+    3. llama.cpp adds Voxtral audio-encoder support — then it's a normal
+       GGUF download.
+  - **Cheaper voice-pipeline wins to try first:** enable Whisper
+    `--vad-filter` flag (already in this list), switch Voice PE
+    `finished_speaking_detection` to `relaxed`, both ~30 min and low-risk.
+  - **Revisit trigger:** when any of the three "what changes the math"
+    items is true. Check quarterly. Notes from the original research
+    conversation captured in this entry; no need to re-derive.
 - **Per-tool result cache** (tracked in README roadmap) — would skip a full
   ~15s home-agent loop on repeat weather/news asks within a TTL window.
   Big UX win for voice.

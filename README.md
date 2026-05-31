@@ -402,6 +402,14 @@ requirements.lock` from the service directory — never edit it by hand.
   scaffolding in `health_service/withings_sync.py`).
 - Publish the shopping-list page externally so it works off the home network.
 - Garmin live sync remains blocked on MFA / Cloudflare (see Design Decisions).
+- **Voxtral STT (deferred)** — Mistral's `Voxtral-Mini-4B-Realtime-2602`
+  (Apache 2.0, causal streaming, <500 ms latency) would replace
+  faster-whisper and shave 1-3 s off perceived voice latency per query.
+  Deferred because no prebuilt vLLM / PyTorch ROCm wheels exist for
+  gfx1151 yet — building from source is ~5 days with real failure risk.
+  Revisit when (a) AMD ships gfx1151 PyTorch wheels, (b) `wyoming-voxtral`
+  appears, or (c) llama.cpp adds Voxtral audio-encoder support. Full
+  rationale in `docs/VOICE_SETUP.md` Open Items.
 - **More expressive TTS for the voice pipeline** — current Piper
   `en_US-lessac-medium` is fine but plain. Explore paths in order of effort:
   (1) swap to a different Piper voice (`en_US-ryan-high`,
