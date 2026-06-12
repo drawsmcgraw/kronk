@@ -1,0 +1,29 @@
+[Unit]
+Description=Kronk memory watchdog — alerts via HA mobile-app push on low RAM / high GTT
+Documentation=file://%h/git-repos/drawsmcgraw/kronk/docs/incidents/INCIDENT_2026-05-31.md
+After=default.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/git-repos/drawsmcgraw/kronk
+ExecStart=%h/git-repos/drawsmcgraw/kronk/scripts/memwatch.sh
+
+# Thresholds (override here without editing the script)
+# Defaults in the script match these; included for visibility.
+Environment=MEM_WARN_GB=12
+Environment=MEM_CRIT_GB=4
+Environment=GTT_ALERT_GB=90
+Environment=POLL_INTERVAL=60
+Environment=COOLDOWN_SEC=1800
+Environment=KRONK_REPO_DIR=%h/git-repos/drawsmcgraw/kronk
+
+# Don't let the watchdog itself become a problem.
+MemoryHigh=128M
+MemoryMax=256M
+
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=default.target

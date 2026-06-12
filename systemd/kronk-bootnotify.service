@@ -1,0 +1,24 @@
+[Unit]
+Description=Kronk boot notifier — pushes HA mobile-app alert if prior shutdown was unclean
+Documentation=file://%h/git-repos/drawsmcgraw/kronk/docs/incidents/INCIDENT_2026-05-31.md
+After=default.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/git-repos/drawsmcgraw/kronk
+ExecStart=%h/git-repos/drawsmcgraw/kronk/scripts/boot_notify.sh
+Environment=KRONK_REPO_DIR=%h/git-repos/drawsmcgraw/kronk
+Environment=HA_URL=http://localhost:8123
+Environment=HA_NOTIFY_SERVICE=notify/mobile_app_pixel_7
+Environment=WAIT_MAX_SEC=300
+
+# Don't let the notifier itself become a problem.
+MemoryHigh=64M
+MemoryMax=128M
+
+# If we fail to reach HA, no point retrying on a tight loop.
+Restart=no
+
+[Install]
+WantedBy=default.target

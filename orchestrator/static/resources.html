@@ -205,11 +205,41 @@ function renderMemBar(sys, servers) {
   ).join('');
 
   const used = total - available;
+  // mem_free is the immediately-available pool (not counting reclaimable
+  // page cache). The 2026-05-31 incident showed this dropping from 4.7 GB
+  // to 1.7 GB right before a hard hang, while "Available" stayed at 34 GB —
+  // so surfacing it explicitly with thresholds is the early-warning signal.
+  // See docs/INCIDENT_2026-05-31.md.
+  const free = sys.mem_free || 0;
+  const freeGB = free / 1e9;
+  let freeColor = 'var(--text2)';
+  let freeNote  = '';
+  if      (freeGB < 2)  { freeColor = '#ef4444'; freeNote = ' ⚠ low'; }   // red
+  else if (freeGB < 4)  { freeColor = '#f59e0b'; freeNote = ' ⚠ tight'; } // amber
+  else if (freeGB < 8)  { freeColor = '#eab308'; }                        // yellow
+
+  // GTT — GPU memory carved from system RAM (shared pool with CPU). Models
+  // loaded into llama.cpp servers live here. Pressure here = pressure on
+  // CPU memory too on this hardware (Radeon 8060S iGPU).
+  const gttTotal = sys.gtt_total || 0;
+  const gttUsed  = sys.gtt_used  || 0;
+  const gttPct   = gttTotal ? (gttUsed / gttTotal * 100) : 0;
+  let gttColor = 'var(--text2)';
+  if      (gttPct > 90) gttColor = '#ef4444';
+  else if (gttPct > 75) gttColor = '#f59e0b';
+
   document.getElementById('mem-stats').innerHTML = `
     <span class="mem-stat">Total <strong>${fmtBytes(total)}</strong></span>
     <span class="mem-stat">Used <strong>${fmtBytes(used)} (${(used/total*100).toFixed(0)}%)</strong></span>
     <span class="mem-stat">Available <strong>${fmtBytes(available)}</strong></span>
+    <span class="mem-stat" title="Immediately-available pool — dropping below 2 GB precedes hard hangs on this hardware">
+      Free <strong style="color:${freeColor}">${fmtBytes(free)}${freeNote}</strong>
+    </span>
     <span class="mem-stat">Models (est.) <strong>${fmtBytes(modelBytes)}</strong></span>
+    ${gttTotal ? `
+    <span class="mem-stat" title="GPU memory pool (shared with CPU on this iGPU)">
+      GTT <strong style="color:${gttColor}">${fmtBytes(gttUsed)} / ${fmtBytes(gttTotal)} (${gttPct.toFixed(0)}%)</strong>
+    </span>` : ''}
   `;
 }
 

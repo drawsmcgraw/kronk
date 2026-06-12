@@ -147,6 +147,12 @@ services:
       - DEVOPS_AGENT_MODEL=devstral-2512-q4
       - TALKIE_MODEL=talkie
       - LOCATION=Laurel, MD
+      # Langfuse tracing (stack: docker-compose.langfuse.yml; keys in .env).
+      # Set LANGFUSE_ENABLED=false to switch all instrumentation to no-ops.
+      - LANGFUSE_ENABLED=${LANGFUSE_ENABLED:-true}
+      - LANGFUSE_HOST=http://host.docker.internal:3000
+      - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-}
+      - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-}
       - SYSTEM_PROMPT=You are Kronk, a helpful home assistant. Be direct and concise. Do not use action text, emotes, or filler expressions like *winks*, *laughs*, or *grins*. Do not use theatrical language. Answer questions factually and helpfully. You have access to real-time tools for weather, web search, health data, financial documents, and other live data. NEVER fabricate or estimate real-time information such as weather conditions, temperatures, news, or current events. If a tool result is not present in this conversation, you do not have that data — say so plainly and do not answer from training data.
     networks: [kronk]
     extra_hosts:

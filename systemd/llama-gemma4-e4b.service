@@ -3,16 +3,21 @@ Description=llama.cpp server — Gemma 4 E4B (coordinator/general)
 After=default.target
 
 [Service]
-Environment="HSA_OVERRIDE_GFX_VERSION=11.5.1"
-Environment="LD_LIBRARY_PATH=/home/drew/pai/pai_workspace/llama-cpp/llama-b8746:/usr/local/lib/ollama/rocm"
-ExecStart=/home/drew/pai/pai_workspace/llama-cpp/llama-b8746/llama-server \
+# Vulkan (RADV) backend, NOT ROCm: on gfx1151 the ROCm/HIP runtime keeps the
+# GPU spinning at 100% busy / max clock / ~35W even with zero requests, 24/7.
+# Prime suspect in the recurring silent hangs — see
+# docs/incidents/INVESTIGATION_2026-06-09_hangs.md. Vulkan idles correctly
+# (0% / ~7W) at a ~15-20% tok/s cost. Switched 2026-06-09.
+Environment="LD_LIBRARY_PATH=/home/drew/pai/pai_workspace/llama-cpp/llama-b9585-vulkan"
+ExecStart=/home/drew/pai/pai_workspace/llama-cpp/llama-b9585-vulkan/llama-server \
     -m /opt/models/google/google_gemma-4-E4B-it-Q4_K_M.gguf \
     --host 127.0.0.1 \
     --port 11438 \
     -ngl 99 \
     --flash-attn on \
     --ctx-size 32768 \
-    --cache-reuse 256
+    --cache-reuse 256 \
+    --swa-full
 Restart=on-failure
 RestartSec=10
 

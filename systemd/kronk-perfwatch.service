@@ -1,0 +1,25 @@
+[Unit]
+Description=Kronk perf-interrupt watcher — alerts via HA when NMI handler latency rises
+Documentation=file://%h/git-repos/drawsmcgraw/kronk/docs/incidents/INCIDENT_2026-05-31.md
+After=default.target
+# Doesn't need the network at boot — journalctl is local, HA POST happens on event.
+
+[Service]
+Type=simple
+WorkingDirectory=%h/git-repos/drawsmcgraw/kronk
+ExecStart=%h/git-repos/drawsmcgraw/kronk/scripts/perfwatch.sh
+
+Environment=KRONK_REPO_DIR=%h/git-repos/drawsmcgraw/kronk
+Environment=HA_URL=http://localhost:8123
+Environment=HA_NOTIFY_SERVICE=notify/mobile_app_pixel_7
+Environment=MIN_GAP_SEC=300
+
+# Tiny tail-and-grep loop — doesn't need much.
+MemoryHigh=64M
+MemoryMax=128M
+
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=default.target

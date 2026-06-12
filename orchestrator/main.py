@@ -18,6 +18,7 @@ import agents
 import metrics
 import routing
 import servers
+import telemetry
 import tools
 from events import current_request_id, emit, new_request_id
 from llm import LLM_SERVICE_URL
@@ -116,12 +117,37 @@ async def system_info():
         for line in f:
             key, _, val = line.partition(":")
             mem[key.strip()] = int(val.split()[0]) * 1024  # kB → bytes
+
+    # GTT (Graphics Translation Table) — the iGPU's memory pool, carved from
+    # system RAM. Models loaded into llama.cpp servers live here. This is the
+    # pool that ran tight in the 2026-05-31 incident (see docs/INCIDENT_2026-05-31.md).
+    # We scan /sys/class/drm for any amdgpu card with mem_info_gtt_* nodes.
+    gtt_total = 0
+    gtt_used  = 0
+    try:
+        from pathlib import Path as _P
+        for card_dir in sorted(_P("/sys/class/drm").glob("card[0-9]*")):
+            dev = card_dir / "device"
+            total_file = dev / "mem_info_gtt_total"
+            used_file  = dev / "mem_info_gtt_used"
+            if total_file.exists() and used_file.exists():
+                try:
+                    gtt_total = int(total_file.read_text().strip())
+                    gtt_used  = int(used_file.read_text().strip())
+                    break  # first GPU with GTT counters wins
+                except (ValueError, OSError):
+                    continue
+    except Exception:
+        pass  # GTT info is best-effort; CPU memory still useful without it
+
     return {
         "mem_total":     mem.get("MemTotal", 0),
         "mem_available": mem.get("MemAvailable", 0),
         "mem_free":      mem.get("MemFree", 0),
         "swap_total":    mem.get("SwapTotal", 0),
         "swap_free":     mem.get("SwapFree", 0),
+        "gtt_total":     gtt_total,
+        "gtt_used":      gtt_used,
     }
 
 
@@ -179,8 +205,12 @@ async def message(req: MessageRequest):
         first_token = True
         stages: list[dict] = []
         t_first_token: float | None = None
+        agent_name = "?"  # set by routing; referenced in telemetry finally
 
         async with _llm_lock:
+            trace = telemetry.start_pipeline(
+                "pipeline.message", req.text, rid=rid, tags=["transport:webui"],
+            )
             history_snapshot = len(history)
             history.append({"role": "user", "content": req.text})
             try:
@@ -285,6 +315,9 @@ async def message(req: MessageRequest):
                 t_llm_start = time.monotonic()
                 yield f"data: {json.dumps({'stage': 'waiting'})}\n\n"
 
+                coord_gen = trace.child_generation(
+                    "llm.coordinator", model=model, input=synthesis_messages,
+                )
                 stream_prompt_tokens = 0
                 stream_completion_tokens = 0
                 async with httpx.AsyncClient(timeout=None) as client:
@@ -304,6 +337,13 @@ async def message(req: MessageRequest):
                             payload = line[len("data:"):].strip()
                             if payload == "[DONE]":
                                 t_done = time.monotonic()
+                                coord_gen.end(
+                                    output="".join(assistant_reply),
+                                    usage={
+                                        "input":  stream_prompt_tokens,
+                                        "output": stream_completion_tokens,
+                                    },
+                                )
                                 ttft_ms = round((t_first_token - t_llm_start) * 1000, 1) if t_first_token else None
                                 gen_ns = int((t_done - (t_first_token or t_llm_start)) * 1e9)
                                 metrics.record(
@@ -337,6 +377,7 @@ async def message(req: MessageRequest):
                                 if token:
                                     if first_token:
                                         t_first_token = time.monotonic()
+                                        coord_gen.first_token()
                                         yield f"data: {json.dumps({'stage': 'generating'})}\n\n"
                                         first_token = False
                                     stream_completion_tokens += 1
@@ -346,6 +387,11 @@ async def message(req: MessageRequest):
                                 continue
 
             finally:
+                telemetry.end_pipeline(
+                    trace,
+                    output="".join(assistant_reply) or None,
+                    route=agent_name,
+                )
                 if assistant_reply:
                     history.append({"role": "assistant", "content": "".join(assistant_reply)})
                 else:
@@ -409,65 +455,85 @@ async def _kronk_pipeline_tokens(text: str, model: str):
     Caller is responsible for transport framing (OpenAI SSE / Ollama NDJSON).
     """
     async with _llm_lock:
+        trace = telemetry.start_pipeline(
+            "pipeline.shim", text, rid=current_request_id(), tags=["transport:shim"],
+        )
+        collected: list[str] = []
+        agent_name = "?"
         try:
-            agent_name = await routing.classify(text, [])
-        except Exception as e:
-            logger.error("Router failed (shim): %s", e)
-            yield {"type": "error", "text": f"Error: router unreachable ({e})."}
-            return
-
-        synth_msgs: list[dict] | None = None
-
-        if agent_name in agents.AGENTS:
-            agent_cfg = agents.AGENTS[agent_name]
-            agent_error: str | None = None
-            async for ev in agents.run_stream(agent_cfg, text, []):
-                etype = ev.get("type")
-                if etype == "token":
-                    yield {"type": "token", "text": ev["text"]}
-                elif etype == "error":
-                    agent_error = ev["message"]
-            if agent_error is None:
+            try:
+                agent_name = await routing.classify(text, [])
+            except Exception as e:
+                logger.error("Router failed (shim): %s", e)
+                yield {"type": "error", "text": f"Error: router unreachable ({e})."}
                 return
-            synth_msgs = [
-                {"role": "system", "content": (
-                    SYSTEM_PROMPT + "\n\n" + agents.kronk_facts()
-                    + f"\n\n[{agent_name} specialist result — use this to answer]\n{agent_error}"
-                )},
-                {"role": "user", "content": text},
-            ]
-        else:
-            synth_msgs = [
-                {"role": "system", "content": SYSTEM_PROMPT + "\n\n" + agents.kronk_facts()},
-                {"role": "user", "content": text},
-            ]
 
-        try:
-            async with httpx.AsyncClient(timeout=None) as client:
-                async with client.stream(
-                    "POST",
-                    f"{LLM_SERVICE_URL}/v1/chat/completions",
-                    json={"model": model, "messages": synth_msgs, "stream": True},
-                ) as resp:
-                    async for line in resp.aiter_lines():
-                        if not line.startswith("data:"):
-                            continue
-                        payload = line[len("data:"):].strip()
-                        if payload == "[DONE]":
-                            break
-                        try:
-                            chunk = json.loads(payload)
-                        except json.JSONDecodeError:
-                            continue
-                        choices = chunk.get("choices") or []
-                        if not choices:
-                            continue
-                        token = choices[0].get("delta", {}).get("content", "")
-                        if token:
-                            yield {"type": "token", "text": token}
-        except Exception as e:
-            logger.error("Coordinator stream failed (shim): %s", e)
-            yield {"type": "error", "text": f"\nError: coordinator unreachable ({e})."}
+            synth_msgs: list[dict] | None = None
+
+            if agent_name in agents.AGENTS:
+                agent_cfg = agents.AGENTS[agent_name]
+                agent_error: str | None = None
+                async for ev in agents.run_stream(agent_cfg, text, []):
+                    etype = ev.get("type")
+                    if etype == "token":
+                        collected.append(ev["text"])
+                        yield {"type": "token", "text": ev["text"]}
+                    elif etype == "error":
+                        agent_error = ev["message"]
+                if agent_error is None:
+                    return
+                synth_msgs = [
+                    {"role": "system", "content": (
+                        SYSTEM_PROMPT + "\n\n" + agents.kronk_facts()
+                        + f"\n\n[{agent_name} specialist result — use this to answer]\n{agent_error}"
+                    )},
+                    {"role": "user", "content": text},
+                ]
+            else:
+                synth_msgs = [
+                    {"role": "system", "content": SYSTEM_PROMPT + "\n\n" + agents.kronk_facts()},
+                    {"role": "user", "content": text},
+                ]
+
+            coord_gen = trace.child_generation(
+                "llm.coordinator", model=model, input=synth_msgs,
+            )
+            coord_parts: list[str] = []
+            try:
+                async with httpx.AsyncClient(timeout=None) as client:
+                    async with client.stream(
+                        "POST",
+                        f"{LLM_SERVICE_URL}/v1/chat/completions",
+                        json={"model": model, "messages": synth_msgs, "stream": True},
+                    ) as resp:
+                        async for line in resp.aiter_lines():
+                            if not line.startswith("data:"):
+                                continue
+                            payload = line[len("data:"):].strip()
+                            if payload == "[DONE]":
+                                break
+                            try:
+                                chunk = json.loads(payload)
+                            except json.JSONDecodeError:
+                                continue
+                            choices = chunk.get("choices") or []
+                            if not choices:
+                                continue
+                            token = choices[0].get("delta", {}).get("content", "")
+                            if token:
+                                coord_gen.first_token()
+                                coord_parts.append(token)
+                                collected.append(token)
+                                yield {"type": "token", "text": token}
+                coord_gen.end(output="".join(coord_parts))
+            except Exception as e:
+                coord_gen.end(level="ERROR", status_message=str(e)[:200])
+                logger.error("Coordinator stream failed (shim): %s", e)
+                yield {"type": "error", "text": f"\nError: coordinator unreachable ({e})."}
+        finally:
+            telemetry.end_pipeline(
+                trace, output="".join(collected) or None, route=agent_name,
+            )
 
 
 def _openai_chunk(rid: str, model: str, delta: dict, finish_reason: str | None = None) -> str:

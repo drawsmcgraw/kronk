@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 
 import llm
 import metrics
+import telemetry
 import tools
 from events import emit
 
@@ -331,35 +332,149 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict]):
     seen_calls: set[str] = set()
     last_usage: dict = {}
 
-    # Tool-using rounds: up to MAX_TOOL_ROUNDS streaming calls with tools enabled.
-    # If a round ends without tool_calls, we're done — content already streamed.
-    # If all rounds produce tool_calls, fall through to forced synthesis below.
-    for round_idx in range(MAX_TOOL_ROUNDS):
-        round_content: list[str] = []
-        round_tool_calls: list[dict] = []
-        t_llm = time.monotonic()
+    agent_span = telemetry.root().child_span(
+        f"agent.{agent.name}", input=task, metadata={"model": agent.model},
+    )
+    last_round_text = ""
 
+    try:
+        # Tool-using rounds: up to MAX_TOOL_ROUNDS streaming calls with tools enabled.
+        # If a round ends without tool_calls, we're done — content already streamed.
+        # If all rounds produce tool_calls, fall through to forced synthesis below.
+        for round_idx in range(MAX_TOOL_ROUNDS):
+            round_content: list[str] = []
+            round_tool_calls: list[dict] = []
+            t_llm = time.monotonic()
+            gen = agent_span.child_generation(
+                f"llm.{agent.model}", model=agent.model, input=messages,
+                metadata={"round": round_idx + 1},
+            )
+
+            try:
+                async for chunk in llm.stream(messages, agent.model, agent_tool_defs):
+                    if "token" in chunk:
+                        gen.first_token()
+                        round_content.append(chunk["token"])
+                        yield {"type": "token", "text": chunk["token"]}
+                    elif "tool_calls" in chunk:
+                        # NOTE: llm.stream yields tool_calls once at end-of-stream,
+                        # so this is NOT a first-token signal — don't mark TTFT here
+                        # or pure-tool rounds report TTFT ≈ full round duration.
+                        round_tool_calls = chunk["tool_calls"]
+                    elif "usage" in chunk:
+                        last_usage = chunk["usage"]
+            except Exception as e:
+                gen.end(level="ERROR", status_message=str(e)[:200])
+                emit("agent_llm_error", agent=agent.name, model=agent.model, error=str(e))
+                logger.error("Agent '%s' stream failed: %s", agent.name, e)
+                agent_span.end(level="ERROR", status_message=str(e)[:200])
+                yield {"type": "error", "message": f"[{agent.name} agent error: {e}]"}
+                return
+
+            phase = "synthesis" if not round_tool_calls else f"plan_{round_idx + 1}"
+            gen.end(
+                output={
+                    "content":    "".join(round_content),
+                    "tool_calls": [tc["function"]["name"] for tc in round_tool_calls],
+                },
+                usage={
+                    "input":  last_usage.get("prompt_tokens", 0),
+                    "output": last_usage.get("completion_tokens", 0),
+                },
+                metadata={"phase": phase},
+            )
+            emit(
+                "agent_round",
+                agent=agent.name,
+                model=agent.model,
+                phase=phase,
+                duration_s=round(time.monotonic() - t_llm, 2),
+            )
+            metrics.record(
+                agent=agent.name,
+                model=agent.model,
+                prompt_tokens=last_usage.get("prompt_tokens", 0),
+                completion_tokens=last_usage.get("completion_tokens", 0),
+                eval_duration_ns=0,
+            )
+
+            if not round_tool_calls:
+                # Stream ended with no tool_calls → final answer. Content already streamed.
+                last_round_text = "".join(round_content)
+                if not round_content:
+                    yield {"type": "token", "text": f"[{agent.name} agent returned no response]"}
+                yield {"type": "done", "model": agent.model, "ok": True}
+                return
+
+            # Execute tools, then loop for the next round.
+            messages.append(_build_assistant_msg("".join(round_content), round_tool_calls))
+
+            for call in round_tool_calls:
+                fn_name = call["function"]["name"]
+                fn_args = call["function"]["arguments"] or {}
+                key = _args_key(fn_name, fn_args)
+                if key in seen_calls:
+                    result = f"[{fn_name} was already called with these exact arguments this turn; use the earlier result]"
+                else:
+                    yield {"type": "narration", "text": _tool_narration(fn_name, fn_args)}
+                    t_tool = time.monotonic()
+                    emit("tool_call", agent=agent.name, tool=fn_name, args=list(fn_args.keys()))
+                    tool_span = agent_span.child_span(f"tool.{fn_name}", input=fn_args)
+                    try:
+                        result = await tools.execute(fn_name, fn_args)
+                    except Exception as e:
+                        tool_span.end(level="ERROR", status_message=str(e)[:200])
+                        raise
+                    tool_span.end(output=result[:2000] if isinstance(result, str) else result)
+                    emit(
+                        "tool_complete",
+                        agent=agent.name,
+                        tool=fn_name,
+                        duration_s=round(time.monotonic() - t_tool, 2),
+                    )
+                    seen_calls.add(key)
+
+                messages.append({
+                    "role":         "tool",
+                    "tool_call_id": call["id"],
+                    "content":      result,
+                })
+
+        # Tool budget exhausted: one final streaming call with tools disabled to force synthesis.
+        t_llm = time.monotonic()
+        final_content: list[str] = []
+        gen = agent_span.child_generation(
+            f"llm.{agent.model}", model=agent.model, input=messages,
+            metadata={"round": MAX_TOOL_ROUNDS + 1, "phase": "synthesis_forced"},
+        )
         try:
-            async for chunk in llm.stream(messages, agent.model, agent_tool_defs):
+            async for chunk in llm.stream(messages, agent.model, tools=None):
                 if "token" in chunk:
-                    round_content.append(chunk["token"])
+                    gen.first_token()
+                    final_content.append(chunk["token"])
                     yield {"type": "token", "text": chunk["token"]}
-                elif "tool_calls" in chunk:
-                    round_tool_calls = chunk["tool_calls"]
                 elif "usage" in chunk:
                     last_usage = chunk["usage"]
         except Exception as e:
+            gen.end(level="ERROR", status_message=str(e)[:200])
             emit("agent_llm_error", agent=agent.name, model=agent.model, error=str(e))
-            logger.error("Agent '%s' stream failed: %s", agent.name, e)
+            logger.error("Agent '%s' forced-synthesis stream failed: %s", agent.name, e)
+            agent_span.end(level="ERROR", status_message=str(e)[:200])
             yield {"type": "error", "message": f"[{agent.name} agent error: {e}]"}
             return
 
-        phase = "synthesis" if not round_tool_calls else f"plan_{round_idx + 1}"
+        gen.end(
+            output="".join(final_content),
+            usage={
+                "input":  last_usage.get("prompt_tokens", 0),
+                "output": last_usage.get("completion_tokens", 0),
+            },
+        )
         emit(
             "agent_round",
             agent=agent.name,
             model=agent.model,
-            phase=phase,
+            phase="synthesis_forced",
             duration_s=round(time.monotonic() - t_llm, 2),
         )
         metrics.record(
@@ -370,75 +485,14 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict]):
             eval_duration_ns=0,
         )
 
-        if not round_tool_calls:
-            # Stream ended with no tool_calls → final answer. Content already streamed.
-            if not round_content:
-                yield {"type": "token", "text": f"[{agent.name} agent returned no response]"}
-            yield {"type": "done", "model": agent.model, "ok": True}
-            return
-
-        # Execute tools, then loop for the next round.
-        messages.append(_build_assistant_msg("".join(round_content), round_tool_calls))
-
-        for call in round_tool_calls:
-            fn_name = call["function"]["name"]
-            fn_args = call["function"]["arguments"] or {}
-            key = _args_key(fn_name, fn_args)
-            if key in seen_calls:
-                result = f"[{fn_name} was already called with these exact arguments this turn; use the earlier result]"
-            else:
-                yield {"type": "narration", "text": _tool_narration(fn_name, fn_args)}
-                t_tool = time.monotonic()
-                emit("tool_call", agent=agent.name, tool=fn_name, args=list(fn_args.keys()))
-                result = await tools.execute(fn_name, fn_args)
-                emit(
-                    "tool_complete",
-                    agent=agent.name,
-                    tool=fn_name,
-                    duration_s=round(time.monotonic() - t_tool, 2),
-                )
-                seen_calls.add(key)
-
-            messages.append({
-                "role":         "tool",
-                "tool_call_id": call["id"],
-                "content":      result,
-            })
-
-    # Tool budget exhausted: one final streaming call with tools disabled to force synthesis.
-    t_llm = time.monotonic()
-    final_content: list[str] = []
-    try:
-        async for chunk in llm.stream(messages, agent.model, tools=None):
-            if "token" in chunk:
-                final_content.append(chunk["token"])
-                yield {"type": "token", "text": chunk["token"]}
-            elif "usage" in chunk:
-                last_usage = chunk["usage"]
-    except Exception as e:
-        emit("agent_llm_error", agent=agent.name, model=agent.model, error=str(e))
-        logger.error("Agent '%s' forced-synthesis stream failed: %s", agent.name, e)
-        yield {"type": "error", "message": f"[{agent.name} agent error: {e}]"}
-        return
-
-    emit(
-        "agent_round",
-        agent=agent.name,
-        model=agent.model,
-        phase="synthesis_forced",
-        duration_s=round(time.monotonic() - t_llm, 2),
-    )
-    metrics.record(
-        agent=agent.name,
-        model=agent.model,
-        prompt_tokens=last_usage.get("prompt_tokens", 0),
-        completion_tokens=last_usage.get("completion_tokens", 0),
-        eval_duration_ns=0,
-    )
-
-    if not final_content:
-        yield {"type": "token", "text": f"[{agent.name} agent returned no response]"}
-    yield {"type": "done", "model": agent.model, "ok": True}
+        last_round_text = "".join(final_content)
+        if not final_content:
+            yield {"type": "token", "text": f"[{agent.name} agent returned no response]"}
+        yield {"type": "done", "model": agent.model, "ok": True}
+    finally:
+        # Covers normal returns, error returns above, and client disconnects
+        # (GeneratorExit) — _Obs.end() is idempotent via the .ended flag.
+        agent_span.end(output=last_round_text or None)
 
 
 async def run(agent: AgentConfig, task: str, context: list[dict]) -> str:

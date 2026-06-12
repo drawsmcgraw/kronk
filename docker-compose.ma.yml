@@ -1,0 +1,82 @@
+# Music Assistant + its YouTube PO-token helper — separate compose stack so it
+# survives lifecycle churn on the kronk + kronk-ha stacks (orchestrator
+# rebuilds, HA restarts, etc.).
+#
+# Services:
+#   - music-assistant      — the brain. Web UI on 8095, audio on 8097. Host net.
+#   - bgutil-pot-provider  — small Node.js HTTP service that generates YouTube
+#                            Proof-of-Origin tokens so yt-dlp (which MA uses
+#                            for YouTube Music) doesn't get flagged as a bot.
+#                            Bridge net, port published on loopback only.
+#                            MA reaches it at http://localhost:4416.
+#
+# Networking: MA needs host networking for mDNS / uPnP / SSDP device discovery
+# (Chromecast, Sonos, ESPHome players). Same constraint that put HA on host net.
+# The pot-provider does NOT need host net — plain HTTP request/response —
+# so it stays on the default bridge with port 4416 bound to 127.0.0.1 only.
+#
+# Volume: `kronk-ma_ma-config` (auto-created on first `up`). Holds the music
+# library DB, provider auth tokens (YouTube Music cookies / Spotify OAuth /
+# etc.), and cached metadata. Persistent — do NOT `down -v`.
+# The pot-provider is stateless — no volume.
+#
+# Security: starts with default Docker caps. The upstream MA sample adds
+# `SYS_ADMIN` + `DAC_READ_SEARCH` + `apparmor:unconfined` for the in-container
+# SMB mount feature; we don't use that (Phase 6 will use Subsonic/Navidrome
+# over HTTP to the Synology instead). Re-add only if we ever need SMB mounts.
+#
+# Resource use: MA docs note 2 GB RAM minimum, 4 GB+ recommended when sharing
+# a host with other workloads. pot-provider is tiny (Node.js, ~50 MB). Neither
+# is enforced via compose limits — we're miles under the 122 GB this machine
+# has. Revisit if either misbehaves.
+#
+# Operations:
+#   bring up:    docker compose -f docker-compose.ma.yml up -d
+#   restart MA:  docker compose -f docker-compose.ma.yml restart music-assistant
+#   restart pot: docker compose -f docker-compose.ma.yml restart bgutil-pot-provider
+#   logs:        journalctl CONTAINER_NAME=music-assistant-server -f
+#                journalctl CONTAINER_NAME=bgutil-pot-provider -f
+#   web UI:      http://kronk:8095   (MA only — pot-provider has no UI)
+#   tear down:   docker compose -f docker-compose.ma.yml down       (volume kept)
+#                docker compose -f docker-compose.ma.yml down -v    (volume WIPED — don't)
+
+# Project name — own scope so the kronk and kronk-ha stacks don't show up
+# as "orphans" of this project (or vice versa).
+name: kronk-ma
+
+services:
+  music-assistant:
+    image: ghcr.io/music-assistant/server:latest
+    container_name: music-assistant-server
+    network_mode: host
+    # Intentionally NO cap_add / security_opt — we don't need SMB mount support
+    # (Synology will be reached via Subsonic/Navidrome over HTTP in Phase 6).
+    # See docs/MUSIC_ASSISTANT_PLAN.md for the security rationale.
+    volumes:
+      - ma-config:/data
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - TZ=America/New_York
+      - LOG_LEVEL=info
+    restart: unless-stopped
+
+  bgutil-pot-provider:
+    # Generates YouTube PO (Proof of Origin) tokens that yt-dlp embeds in
+    # playback requests so YouTube doesn't treat us as a bot. MA's YouTube
+    # Music provider talks to this over HTTP (configured in MA's YT Music
+    # provider settings → "BgUtils PO Token Provider Base URL").
+    # Repo + docs: https://github.com/Brainicism/bgutil-ytdlp-pot-provider
+    image: brainicism/bgutil-ytdlp-pot-provider:latest
+    container_name: bgutil-pot-provider
+    init: true                       # Node.js service — reap zombies cleanly
+    # Bridge net + loopback-only published port. MA (on host net) reaches us
+    # at http://localhost:4416. Not exposed to the LAN.
+    ports:
+      - "127.0.0.1:4416:4416"
+    environment:
+      - TZ=America/New_York
+      # TOKEN_TTL=6  (default 6 hours; uncomment to override)
+    restart: unless-stopped
+
+volumes:
+  ma-config:

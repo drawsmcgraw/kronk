@@ -6,6 +6,7 @@ import re
 import agents
 import llm
 import metrics
+import telemetry
 from events import emit
 
 logger = logging.getLogger(__name__)
@@ -58,18 +59,31 @@ async def classify(text: str, prior_history: list[dict]) -> str:
 
     prior_history: conversation turns *before* the current user message.
     """
+    span = telemetry.root().child_span("routing.decide", input=text[:200])
+    try:
+        route, rule = await _classify_inner(text, prior_history, span)
+        span.end(output=route, metadata={"rule": rule})
+        return route
+    except Exception as e:
+        span.end(level="ERROR", status_message=str(e)[:200])
+        raise
+
+
+async def _classify_inner(text: str, prior_history: list[dict],
+                          span) -> tuple[str, str]:
+    """Returns (route, rule) where rule names the deciding mechanism."""
     if _TALKIE_PHRASES.search(text):
         emit("route_shortcut", rule="talkie_explicit", route="talkie")
-        return "talkie"
+        return "talkie", "talkie_explicit"
     if _DIRECT_OVERRIDE.search(text):
         emit("route_shortcut", rule="direct_override", route="direct")
-        return "direct"
+        return "direct", "direct_override"
     if _URL_RE.search(text):
         emit("route_shortcut", rule="url", route="research")
-        return "research"
+        return "research", "url"
     if _SEARCH_PHRASES.search(text):
         emit("route_shortcut", rule="search_phrase", route="research")
-        return "research"
+        return "research", "search_phrase"
 
     # Build a short, alternation-safe history window for the classifier.
     router_history: list[dict] = []
@@ -88,7 +102,20 @@ async def classify(text: str, prior_history: list[dict]) -> str:
     router_query = f"{agents.ROUTING_PROMPT}\n\nClassify this request: {text}"
     messages = router_history + [{"role": "user", "content": router_query}]
 
-    completion = await llm.complete(messages, [], ROUTER_MODEL)
+    gen = span.child_generation("llm.router", model=ROUTER_MODEL, input=messages)
+    try:
+        completion = await llm.complete(messages, [], ROUTER_MODEL)
+    except Exception as e:
+        gen.end(level="ERROR", status_message=str(e)[:200])
+        raise
+    gen_usage = completion.get("usage") or {}
+    gen.end(
+        output=completion.get("content") or "",
+        usage={
+            "input":  gen_usage.get("prompt_tokens", 0),
+            "output": gen_usage.get("completion_tokens", 0),
+        },
+    )
 
     route_text = (completion.get("content") or "").strip().lower()
     route = route_text.split()[0] if route_text else "direct"
@@ -106,4 +133,4 @@ async def classify(text: str, prior_history: list[dict]) -> str:
         eval_duration_ns=usage.get("eval_duration_ns", 0),
     )
     emit("route", text_preview=text[:60], route=route, model=ROUTER_MODEL)
-    return route
+    return route, "llm"
