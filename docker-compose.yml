@@ -2,9 +2,14 @@ networks:
   kronk:
     driver: bridge
 
+# Image pins + mem_limits added 2026-06-12 (codebase review): rolling tags
+# (`latest`, `main-latest`, `stable`) made upgrades happen by accident on the
+# next pull; mem limits keep one runaway container from taking the box down
+# (see docs/incidents/INCIDENT_2026-05-31.md). Bump pins deliberately:
+# update the tag, `docker compose pull <svc> && docker compose up -d <svc>`.
 services:
   nginx:
-    image: nginx:alpine
+    image: nginx:1.29-alpine
     ports:
       - "80:80"
     volumes:
@@ -12,9 +17,10 @@ services:
     networks: [kronk]
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    mem_limit: 128m
     depends_on:
       orchestrator: { condition: service_healthy }
-      searxng:      { condition: service_started }
+      searxng:      { condition: service_healthy }
       retire_calc:  { condition: service_healthy }
     restart: unless-stopped
 
@@ -24,6 +30,7 @@ services:
       - ./data/retire:/data
     environment:
       - DATA_DIR=/data
+    mem_limit: 512m
     networks: [kronk]
     healthcheck:
       test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8080/api/inputs\", timeout=3)' || exit 1"]
@@ -41,6 +48,7 @@ services:
     image: searxng/searxng:2026.6.12-cc196f2a5
     volumes:
       - ./searxng:/etc/searxng:rw
+    mem_limit: 512m
     networks: [kronk]
     healthcheck:
       test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/healthz || exit 1"]
@@ -67,6 +75,7 @@ services:
       - HA_TIMER_ENTITY=timer.voice_timer
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    mem_limit: 1g
     networks: [kronk]
     healthcheck:
       test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8003/health\", timeout=3)' || exit 1"]
@@ -80,8 +89,12 @@ services:
     # Stays on host networking so it can reach llama.cpp user-systemd servers
     # bound to 127.0.0.1 on the host. Other containers reach it via
     # host.docker.internal:8002.
-    image: ghcr.io/berriai/litellm:main-latest
+    # Pinned to a stable release; main-latest tracked the dev branch HEAD and
+    # rolled daily — a stealth-upgrade risk for the component every LLM call
+    # transits.
+    image: ghcr.io/berriai/litellm:v1.88.1
     network_mode: host
+    mem_limit: 2g
     volumes:
       - ./litellm/config.yaml:/app/config.yaml:ro
       - ./litellm/hooks.py:/app/hooks.py:ro
@@ -98,6 +111,8 @@ services:
     build: ./health_service
     volumes:
       - ./data:/data
+    # 2g: embedding model + chromadb live here.
+    mem_limit: 2g
     networks: [kronk]
     healthcheck:
       test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8004/health\", timeout=3)' || exit 1"]
@@ -111,6 +126,7 @@ services:
     build: ./finance_service
     volumes:
       - ./data:/data
+    mem_limit: 1g
     networks: [kronk]
     healthcheck:
       test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8005/health\", timeout=3)' || exit 1"]
@@ -121,8 +137,9 @@ services:
     restart: unless-stopped
 
   wyoming-piper:
-    image: rhasspy/wyoming-piper
+    image: rhasspy/wyoming-piper:2.2.2
     container_name: wyoming-piper
+    mem_limit: 1g
     ports:
       - "10200:10200"
     volumes:
@@ -165,6 +182,7 @@ services:
       - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-}
       # SYSTEM_PROMPT env removed 2026-06-12: the coordinator persona lives in
       # orchestrator/agents.py (agents.COORDINATOR) since agents-as-tools.
+    mem_limit: 1g
     networks: [kronk]
     extra_hosts:
       - "host.docker.internal:host-gateway"

@@ -21,7 +21,7 @@ import servers
 import sessions
 import telemetry
 import tools
-from events import current_request_id, emit, new_request_id
+from events import emit, new_request_id
 from llm import LLM_SERVICE_URL
 from tools import TOOL_DEFINITIONS  # re-exported for tests/backward-compat
 
@@ -210,9 +210,183 @@ def _clear_history_stream(session_id: str):
     return StreamingResponse(stream(), media_type="text/event-stream")
 
 
+# ── The transport-agnostic pipeline core ─────────────────────────────────────
+#
+# One async generator runs route → specialist/coordinator for every
+# transport; thin framers adapt its semantic events to SSE (/message),
+# OpenAI chunks (/v1/chat/completions), and Ollama NDJSON (/api/chat).
+# Yielded events:
+#   {"type": "stage",     "name": str}    — UI progress hints (SSE only)
+#   {"type": "narration", "text": str}    — human-readable status line
+#   {"type": "token",     "text": str}    — assistant content (incl. errors)
+#   {"type": "timing",    "data": dict}   — final timing payload (SSE only)
+
+async def _run_pipeline(
+    text: str,
+    history: list[dict],
+    *,
+    transport: str,
+    pipeline_name: str,
+    session_id: str | None = None,        # set → persist the exchange
+    include_local_context: bool = False,  # shared state + uploaded files
+):
+    rid = new_request_id()
+    t_request = time.monotonic()
+    emit("request", text_preview=text[:80], model=COORDINATOR_MODEL)
+
+    assistant_reply: list[str] = []
+    stages: list[dict] = []
+    agent_name = "?"  # set by routing; referenced in the finally block
+
+    async with _llm_lock:
+        trace = telemetry.start_pipeline(
+            pipeline_name, text, rid=rid, tags=[f"transport:{transport}"],
+        )
+        try:
+            # Extra system context for the coordinator run. The persona
+            # itself lives in agents.COORDINATOR; these are the dynamic
+            # parts: weather block (2026-06-12 incident — misrouted
+            # follow-ups must not invent forecasts), and for the web UI
+            # also shared state and uploaded-file contexts.
+            extra_parts: list[str] = []
+            wx_ctx = await agents.weather_context()
+            if wx_ctx:
+                extra_parts.append(wx_ctx)
+            if include_local_context:
+                state = _load_state()
+                if state:
+                    extra_parts.append(f"[Kronk shared state]\n{state}")
+                for fc in file_contexts:
+                    extra_parts.append(f"[Attached file: {fc['name']}]\n{fc['content']}")
+
+            # ── Phase 1: route ────────────────────────────────────────────
+            yield {"type": "stage", "name": "thinking"}
+            t0 = time.monotonic()
+            try:
+                agent_name = await routing.classify(text, history)
+            except Exception as e:
+                logger.error("Router failed (%s): %s", transport, e)
+                err = f"Error: could not reach the language model ({e}). Is the server still loading?"
+                assistant_reply.append(err)
+                yield {"type": "token", "text": err}
+                return
+            stages.append({"tool": "routing", "s": round(time.monotonic() - t0, 2)})
+
+            # ── Phase 2: specialist agent (if routed to one) ──────────────
+            if agent_name in agents.AGENTS:
+                agent_cfg = agents.AGENTS[agent_name]
+                yield {"type": "stage", "name": f"fetching_delegate_{agent_name}"}
+                yield {"type": "narration", "text": f"let me ask the {agent_name} agent about that"}
+                t_agent = time.monotonic()
+
+                agent_first_token_t: float | None = None
+                agent_error: str | None = None
+                agent_model_used = agent_cfg.model
+                stage_sent = False
+
+                async for ev in agents.run_stream(agent_cfg, text, list(history[-5:])):
+                    etype = ev.get("type")
+                    if etype == "narration":
+                        yield {"type": "narration", "text": ev["text"]}
+                    elif etype == "token":
+                        if not stage_sent:
+                            yield {"type": "stage", "name": "generating"}
+                            yield {"type": "narration", "text": ""}
+                            stage_sent = True
+                        if agent_first_token_t is None:
+                            agent_first_token_t = time.monotonic()
+                        assistant_reply.append(ev["text"])
+                        yield {"type": "token", "text": ev["text"]}
+                    elif etype == "error":
+                        agent_error = ev["message"]
+                    elif etype == "done":
+                        agent_model_used = ev.get("model", agent_model_used)
+
+                agent_ok = agent_error is None
+                t_end = time.monotonic()
+                stages.append({
+                    "tool": f"delegate_{agent_name}",
+                    "s":    round(t_end - t_agent, 2),
+                    "ok":   agent_ok,
+                })
+                emit("agent_complete", agent=agent_name, ok=agent_ok,
+                     duration_s=round(t_end - t_agent, 2))
+
+                if agent_ok:
+                    ttft = round(agent_first_token_t - t_agent, 2) if agent_first_token_t else 0.0
+                    gen_s = round(t_end - (agent_first_token_t or t_agent), 2)
+                    yield {"type": "timing", "data": {
+                        "model":        agent_model_used,
+                        "stages":       stages,
+                        "ttft_s":       ttft,
+                        "generation_s": gen_s,
+                    }}
+                    emit("request_complete", route=agent_name,
+                         duration_s=round(time.monotonic() - t_request, 2))
+                    return
+
+                # Agent errored — fall through to the coordinator with the
+                # error attached as context.
+                extra_parts.append(
+                    f"[{agent_name} specialist result — use this to answer]\n{agent_error}"
+                )
+
+            # ── Phase 3: coordinator (direct answers, delegation via ask_*,
+            #    and specialist-failure fallback). Same run_stream loop as
+            #    the agents; telemetry/metrics come from inside it.
+            t_llm_start = time.monotonic()
+            yield {"type": "stage", "name": "waiting"}
+
+            first_token = True
+            t_first_token: float | None = None
+            async for ev in agents.run_stream(
+                agents.COORDINATOR,
+                text,
+                [],  # no embedded context — history goes in as real messages
+                system_extra="\n\n".join(extra_parts) or None,
+                history_messages=history,
+            ):
+                etype = ev.get("type")
+                if etype == "narration":
+                    yield {"type": "narration", "text": ev["text"]}
+                elif etype == "token":
+                    if first_token:
+                        t_first_token = time.monotonic()
+                        yield {"type": "stage", "name": "generating"}
+                        yield {"type": "narration", "text": ""}
+                        first_token = False
+                    assistant_reply.append(ev["text"])
+                    yield {"type": "token", "text": ev["text"]}
+                elif etype == "error":
+                    assistant_reply.append(ev["message"])
+                    yield {"type": "token", "text": ev["message"]}
+
+            t_done = time.monotonic()
+            timing: dict = {"model": agents.COORDINATOR.model}
+            if stages:
+                timing["stages"] = stages
+            if t_first_token is not None:
+                timing["ttft_s"] = round(t_first_token - t_llm_start, 2)
+                timing["generation_s"] = round(t_done - t_first_token, 2)
+            yield {"type": "timing", "data": timing}
+            emit("request_complete", route=agent_name,
+                 duration_s=round(time.monotonic() - t_request, 2))
+
+        finally:
+            telemetry.end_pipeline(
+                trace,
+                output="".join(assistant_reply) or None,
+                route=agent_name,
+            )
+            # Persist the exchange only when an answer was produced —
+            # a failed turn leaves the stored conversation untouched.
+            if session_id and assistant_reply:
+                sessions.append(session_id, "user", text)
+                sessions.append(session_id, "assistant", "".join(assistant_reply))
+
+
 @app.post("/message")
 async def message(req: MessageRequest):
-    model = req.model or COORDINATOR_MODEL
     session_id = req.session_id or WEBUI_SESSION
 
     # Deterministic pre-route intercept: same behavior as the UI's clear
@@ -221,173 +395,24 @@ async def message(req: MessageRequest):
         return _clear_history_stream(session_id)
 
     async def stream():
-        rid = new_request_id()
-        t_request = time.monotonic()
-        emit("request", text_preview=req.text[:80], model=model)
-
-        assistant_reply: list[str] = []
-        first_token = True
-        stages: list[dict] = []
-        t_first_token: float | None = None
-        agent_name = "?"  # set by routing; referenced in telemetry finally
-
-        async with _llm_lock:
-            trace = telemetry.start_pipeline(
-                "pipeline.message", req.text, rid=rid, tags=["transport:webui"],
-            )
-            # Capped, boundary-aligned window — prompt order stays append-only
-            # so llama.cpp's prompt cache (--swa-full) reuses the prefix.
-            history = sessions.window(session_id)
-            history.append({"role": "user", "content": req.text})
-            try:
-                # Extra system context for the coordinator run. The persona
-                # itself lives in agents.COORDINATOR; these are the dynamic
-                # parts: weather block (2026-06-12 incident — misrouted
-                # follow-ups must not invent forecasts), shared state, and
-                # uploaded-file contexts.
-                extra_parts: list[str] = []
-                wx_ctx = await agents.weather_context()
-                if wx_ctx:
-                    extra_parts.append(wx_ctx)
-                state = _load_state()
-                if state:
-                    extra_parts.append(f"[Kronk shared state]\n{state}")
-                for fc in file_contexts:
-                    extra_parts.append(f"[Attached file: {fc['name']}]\n{fc['content']}")
-
-                # ── Phase 1: route ────────────────────────────────────────
-                yield f"data: {json.dumps({'stage': 'thinking'})}\n\n"
-                t0 = time.monotonic()
-                try:
-                    agent_name = await routing.classify(req.text, history[:-1])
-                except Exception as e:
-                    logger.error("Router failed: %s", e)
-                    err = f"Error: could not reach the language model ({e}). Is the server still loading?"
-                    assistant_reply.append(err)
-                    yield f"data: {json.dumps({'token': err})}\n\n"
-                    yield "data: [DONE]\n\n"
-                    return
-                stages.append({"tool": "routing", "s": round(time.monotonic() - t0, 2)})
-
-                # ── Phase 2: specialist agent (if routed to one) ──────────
-                if agent_name in agents.AGENTS:
-                    agent_cfg = agents.AGENTS[agent_name]
-                    yield f"data: {json.dumps({'stage': f'fetching_delegate_{agent_name}'})}\n\n"
-                    t_agent = time.monotonic()
-                    agent_context = list(history[-6:-1])
-
-                    agent_first_token_t: float | None = None
-                    agent_error: str | None = None
-                    agent_model_used = agent_cfg.model
-                    stage_sent = False
-
-                    yield f"data: {json.dumps({'narration': f'let me ask the {agent_name} agent about that'})}\n\n"
-
-                    async for ev in agents.run_stream(agent_cfg, req.text, agent_context):
-                        etype = ev.get("type")
-                        if etype == "narration":
-                            yield f"data: {json.dumps({'narration': ev['text']})}\n\n"
-                        elif etype == "token":
-                            if not stage_sent:
-                                yield f"data: {json.dumps({'stage': 'generating'})}\n\n"
-                                yield f"data: {json.dumps({'narration': ''})}\n\n"
-                                stage_sent = True
-                            if agent_first_token_t is None:
-                                agent_first_token_t = time.monotonic()
-                            text = ev["text"]
-                            assistant_reply.append(text)
-                            yield f"data: {json.dumps({'token': text})}\n\n"
-                        elif etype == "error":
-                            agent_error = ev["message"]
-                        elif etype == "done":
-                            agent_model_used = ev.get("model", agent_model_used)
-
-                    agent_ok = agent_error is None
-                    t_end = time.monotonic()
-                    stages.append({
-                        "tool": f"delegate_{agent_name}",
-                        "s":    round(t_end - t_agent, 2),
-                        "ok":   agent_ok,
-                    })
-                    emit(
-                        "agent_complete",
-                        agent=agent_name,
-                        ok=agent_ok,
-                        duration_s=round(t_end - t_agent, 2),
-                    )
-
-                    if agent_ok:
-                        ttft = round(agent_first_token_t - t_agent, 2) if agent_first_token_t else 0.0
-                        gen_s = round(t_end - (agent_first_token_t or t_agent), 2)
-                        timing = {
-                            "model":        agent_model_used,
-                            "stages":       stages,
-                            "ttft_s":       ttft,
-                            "generation_s": gen_s,
-                        }
-                        yield f"data: {json.dumps({'timing': timing})}\n\n"
-                        yield "data: [DONE]\n\n"
-                        emit("request_complete", route=agent_name, duration_s=round(time.monotonic() - t_request, 2))
-                        return
-
-                    # Agent errored — fall through to the coordinator with
-                    # the error attached as context.
-                    extra_parts.append(
-                        f"[{agent_name} specialist result — use this to answer]\n{agent_error}"
-                    )
-
-                # ── Phase 3: coordinator (direct answers, delegation via ask_*,
-                #    and specialist-failure fallback). Same run_stream loop as
-                #    the agents; telemetry/metrics come from inside it.
-                t_llm_start = time.monotonic()
-                yield f"data: {json.dumps({'stage': 'waiting'})}\n\n"
-
-                async for ev in agents.run_stream(
-                    agents.COORDINATOR,
-                    req.text,
-                    [],  # no embedded context — history goes in as real messages
-                    system_extra="\n\n".join(extra_parts) or None,
-                    history_messages=history[:-1],
-                ):
-                    etype = ev.get("type")
-                    if etype == "narration":
-                        # Delegation visibility: "asking the research agent..."
-                        yield f"data: {json.dumps({'narration': ev['text']})}\n\n"
-                    elif etype == "token":
-                        if first_token:
-                            t_first_token = time.monotonic()
-                            yield f"data: {json.dumps({'stage': 'generating'})}\n\n"
-                            yield f"data: {json.dumps({'narration': ''})}\n\n"
-                            first_token = False
-                        assistant_reply.append(ev["text"])
-                        yield f"data: {json.dumps({'token': ev['text']})}\n\n"
-                    elif etype == "error":
-                        err = ev["message"]
-                        assistant_reply.append(err)
-                        yield f"data: {json.dumps({'token': err})}\n\n"
-
-                t_done = time.monotonic()
-                timing: dict = {"model": agents.COORDINATOR.model}
-                if stages:
-                    timing["stages"] = stages
-                if t_first_token is not None:
-                    timing["ttft_s"] = round(t_first_token - t_llm_start, 2)
-                    timing["generation_s"] = round(t_done - t_first_token, 2)
-                yield f"data: {json.dumps({'timing': timing})}\n\n"
-                yield "data: [DONE]\n\n"
-                emit("request_complete", route=agent_name, duration_s=round(time.monotonic() - t_request, 2))
-
-            finally:
-                telemetry.end_pipeline(
-                    trace,
-                    output="".join(assistant_reply) or None,
-                    route=agent_name,
-                )
-                # Persist the exchange only when an answer was produced —
-                # a failed turn leaves the stored conversation untouched.
-                if assistant_reply:
-                    sessions.append(session_id, "user", req.text)
-                    sessions.append(session_id, "assistant", "".join(assistant_reply))
+        # Capped, boundary-aligned window — prompt order stays append-only
+        # so llama.cpp's prompt cache (--swa-full) reuses the prefix.
+        history = sessions.window(session_id)
+        async for ev in _run_pipeline(
+            req.text, history,
+            transport="webui", pipeline_name="pipeline.message",
+            session_id=session_id, include_local_context=True,
+        ):
+            etype = ev["type"]
+            if etype == "stage":
+                yield f"data: {json.dumps({'stage': ev['name']})}\n\n"
+            elif etype == "narration":
+                yield f"data: {json.dumps({'narration': ev['text']})}\n\n"
+            elif etype == "token":
+                yield f"data: {json.dumps({'token': ev['text']})}\n\n"
+            elif etype == "timing":
+                yield f"data: {json.dumps({'timing': ev['data']})}\n\n"
+        yield "data: [DONE]\n\n"
 
     return StreamingResponse(stream(), media_type="text/event-stream")
 
@@ -415,9 +440,8 @@ async def get_history():
 #   - Tools, tool_choice, temperature, etc. are accepted but ignored;
 #     Kronk's agents own tool-calling internally.
 #
-# Tech debt: the routing/agent/coordinator pattern is duplicated from
-# /message. The right cleanup is to extract a single `_run_pipeline()`
-# adapted by all three transports.
+# All three transports share `_run_pipeline()` (extracted 2026-06-12);
+# the shims just filter its event stream down to tokens.
 
 class _OpenAIMessage(BaseModel):
     role: str
@@ -457,17 +481,11 @@ def _shim_context(messages, current_text: str) -> list[dict]:
 
 
 async def _kronk_pipeline_tokens(text: str, model: str, context: list[dict] | None = None):
-    """Transport-agnostic core pipeline.
+    """Shim wrapper around _run_pipeline: token events only.
 
-    context: prior conversation turns supplied by the client (voice path).
-    Yields semantic events:
-      {"type": "token", "text": "..."}   — one token of assistant content
-      {"type": "error", "text": "..."}   — fatal failure; downstream should
-                                           still emit a clean terminator
-    Caller is responsible for transport framing (OpenAI SSE / Ollama NDJSON).
+    context: prior conversation turns supplied by the client (HA resends the
+    whole conversation each request — the voice path's history lives there).
     """
-    context = context or []
-
     # Voice "clear my history": confirm and stop. There is no Kronk-side
     # store for shim clients (HA owns and resends voice history; its window
     # expires between conversations), so confirmation is the whole job.
@@ -476,61 +494,12 @@ async def _kronk_pipeline_tokens(text: str, model: str, context: list[dict] | No
         yield {"type": "token", "text": "Done — fresh start."}
         return
 
-    async with _llm_lock:
-        trace = telemetry.start_pipeline(
-            "pipeline.shim", text, rid=current_request_id(), tags=["transport:shim"],
-        )
-        collected: list[str] = []
-        agent_name = "?"
-        try:
-            try:
-                agent_name = await routing.classify(text, context)
-            except Exception as e:
-                logger.error("Router failed (shim): %s", e)
-                yield {"type": "error", "text": f"Error: router unreachable ({e})."}
-                return
-
-            extra_parts: list[str] = []
-            wx_ctx = await agents.weather_context()
-            if wx_ctx:
-                extra_parts.append(wx_ctx)
-
-            if agent_name in agents.AGENTS:
-                agent_cfg = agents.AGENTS[agent_name]
-                agent_error: str | None = None
-                # Same recent-turn window the /message path gives agents.
-                async for ev in agents.run_stream(agent_cfg, text, context[-5:]):
-                    etype = ev.get("type")
-                    if etype == "token":
-                        collected.append(ev["text"])
-                        yield {"type": "token", "text": ev["text"]}
-                    elif etype == "error":
-                        agent_error = ev["message"]
-                if agent_error is None:
-                    return
-                extra_parts.append(
-                    f"[{agent_name} specialist result — use this to answer]\n{agent_error}"
-                )
-
-            # Coordinator run — same loop as /message; can delegate via ask_*.
-            async for ev in agents.run_stream(
-                agents.COORDINATOR,
-                text,
-                [],
-                system_extra="\n\n".join(extra_parts) or None,
-                history_messages=context,
-            ):
-                etype = ev.get("type")
-                if etype == "token":
-                    collected.append(ev["text"])
-                    yield {"type": "token", "text": ev["text"]}
-                elif etype == "error":
-                    logger.error("Coordinator run failed (shim): %s", ev["message"])
-                    yield {"type": "error", "text": f"\n{ev['message']}"}
-        finally:
-            telemetry.end_pipeline(
-                trace, output="".join(collected) or None, route=agent_name,
-            )
+    async for ev in _run_pipeline(
+        text, context or [],
+        transport="shim", pipeline_name="pipeline.shim",
+    ):
+        if ev["type"] == "token":
+            yield {"type": "token", "text": ev["text"]}
 
 
 def _openai_chunk(rid: str, model: str, delta: dict, finish_reason: str | None = None) -> str:
@@ -790,6 +759,28 @@ def _is_labcorp_report(data: bytes, filename: str) -> bool:
         return False
 
 
+async def _forward_to_health(path: str, name: str, data: bytes,
+                             content_type: str, timeout: float,
+                             reject_msg: str) -> dict:
+    """Forward an uploaded file to health_service; returns its JSON result."""
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            resp = await client.post(
+                f"{tools.HEALTH_SERVICE_URL}{path}",
+                files={"file": (name, data, content_type)},
+            )
+            if resp.status_code == 200:
+                return resp.json()
+            raise HTTPException(
+                status_code=resp.status_code,
+                detail=f"{reject_msg}: {resp.text[:200]}",
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Health service unreachable: {e}")
+
+
 @app.post("/files")
 async def upload_file(file: UploadFile = File(...)):
     data = await file.read()
@@ -797,83 +788,47 @@ async def upload_file(file: UploadFile = File(...)):
 
     # Garmin export zip → forward to health_service for full import
     if _is_garmin_export_zip(data, name):
-        try:
-            async with httpx.AsyncClient(timeout=300) as client:
-                resp = await client.post(
-                    f"{tools.HEALTH_SERVICE_URL}/api/import/export",
-                    files={"file": (name, data, "application/zip")},
-                )
-                if resp.status_code == 200:
-                    result = resp.json()
-                    return {
-                        "name": name,
-                        "routed_to": "health_service",
-                        "files_processed":    result.get("files_processed", 0),
-                        "files_unrecognized": result.get("files_unrecognized", 0),
-                        "total_inserted":     result.get("total_inserted", 0),
-                        "detail":             result.get("detail", []),
-                    }
-                raise HTTPException(
-                    status_code=resp.status_code,
-                    detail=f"Health service rejected the zip: {resp.text[:200]}",
-                )
-        except HTTPException:
-            raise
-        except Exception as e:
-            raise HTTPException(status_code=502, detail=f"Health service unreachable: {e}")
+        result = await _forward_to_health(
+            "/api/import/export", name, data, "application/zip",
+            timeout=300, reject_msg="Health service rejected the zip",
+        )
+        return {
+            "name": name,
+            "routed_to": "health_service",
+            "files_processed":    result.get("files_processed", 0),
+            "files_unrecognized": result.get("files_unrecognized", 0),
+            "total_inserted":     result.get("total_inserted", 0),
+            "detail":             result.get("detail", []),
+        }
 
     # Garmin CSV → forward to health_service for SQLite persistence
     if _is_garmin_csv(data, name):
-        try:
-            async with httpx.AsyncClient(timeout=30) as client:
-                resp = await client.post(
-                    f"{tools.HEALTH_SERVICE_URL}/api/import/csv",
-                    files={"file": (name, data, "text/csv")},
-                )
-                if resp.status_code == 200:
-                    result = resp.json()
-                    return {
-                        "name":     name,
-                        "routed_to": "health_service",
-                        "type":     result.get("type"),
-                        "inserted": result.get("inserted", 0),
-                        "skipped":  result.get("skipped", 0),
-                    }
-                raise HTTPException(
-                    status_code=resp.status_code,
-                    detail=f"Health service rejected the file: {resp.text[:200]}",
-                )
-        except HTTPException:
-            raise
-        except Exception as e:
-            raise HTTPException(status_code=502, detail=f"Health service unreachable: {e}")
+        result = await _forward_to_health(
+            "/api/import/csv", name, data, "text/csv",
+            timeout=30, reject_msg="Health service rejected the file",
+        )
+        return {
+            "name":     name,
+            "routed_to": "health_service",
+            "type":     result.get("type"),
+            "inserted": result.get("inserted", 0),
+            "skipped":  result.get("skipped", 0),
+        }
 
     # LabCorp bloodwork PDF → forward to health_service for structured ingestion
     if _is_labcorp_report(data, name):
-        try:
-            async with httpx.AsyncClient(timeout=30) as client:
-                resp = await client.post(
-                    f"{tools.HEALTH_SERVICE_URL}/api/import/bloodwork",
-                    files={"file": (name, data, "application/pdf")},
-                )
-                if resp.status_code == 200:
-                    result = resp.json()
-                    return {
-                        "name": name,
-                        "routed_to": "health_service",
-                        "type": "bloodwork",
-                        "date": result["date"],
-                        "markers_parsed": result["markers_parsed"],
-                        "panels_found": result["panels_found"],
-                    }
-                raise HTTPException(
-                    status_code=resp.status_code,
-                    detail=f"Bloodwork import failed: {resp.text[:200]}",
-                )
-        except HTTPException:
-            raise
-        except Exception as e:
-            raise HTTPException(status_code=502, detail=f"Health service unreachable: {e}")
+        result = await _forward_to_health(
+            "/api/import/bloodwork", name, data, "application/pdf",
+            timeout=30, reject_msg="Bloodwork import failed",
+        )
+        return {
+            "name": name,
+            "routed_to": "health_service",
+            "type": "bloodwork",
+            "date": result["date"],
+            "markers_parsed": result["markers_parsed"],
+            "panels_found": result["panels_found"],
+        }
 
     # Everything else → in-memory context for the current conversation
     if name.lower().endswith(".pdf"):

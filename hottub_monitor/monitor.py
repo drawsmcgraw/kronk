@@ -70,12 +70,9 @@ def _write_status() -> None:
 
 
 def _on_online(curr_f: float, set_f: float) -> None:
+    # Alerting intentionally absent — see TECH_DEBT.md HOTTUB-01. When it
+    # lands, use the HA notify path (scripts/lib/notify.sh equivalent).
     logger.info("HOT TUB BACK ONLINE — %.1f°F (set: %.1f°F)", curr_f, set_f)
-    # TODO: add ntfy.sh alert here once subscribed
-    # import subprocess
-    # subprocess.run(["curl", "-s", "-d",
-    #     f"Hot tub back online — {curr_f:.1f}°F",
-    #     "https://ntfy.sh/YOUR_TOPIC"], check=False)
 
 
 def _on_offline() -> None:
@@ -85,11 +82,6 @@ def _on_offline() -> None:
             "HOT TUB OFFLINE — breaker may have tripped. Offline since %s",
             _state["offline_since"],
         )
-        # TODO: add ntfy.sh alert here once subscribed
-        # import subprocess
-        # subprocess.run(["curl", "-s", "-d",
-        #     "Hot tub offline — breaker may have tripped",
-        #     "https://ntfy.sh/YOUR_TOPIC"], check=False)
     _state["online"] = False
     _state["temperature_f"] = None
     _state["set_temperature_f"] = None

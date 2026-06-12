@@ -27,7 +27,7 @@ from datetime import datetime
 
 OLLAMA = "http://localhost:11434"
 OUTPUT_MD   = Path(__file__).parent / "model_results.md"
-OUTPUT_JSON = Path(__file__).parent / "model_results.json"
+OUTPUT_JSON = Path(__file__).parent.parent / "docs" / "bench" / "model_results.json"
 
 SYSTEM_PROMPT = (
     "You are Kronk, a helpful home assistant. Be direct and concise. "

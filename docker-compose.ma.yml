@@ -46,7 +46,8 @@ name: kronk-ma
 
 services:
   music-assistant:
-    image: ghcr.io/music-assistant/server:latest
+    # Pinned 2026-06-12 to the running version — MA upgrades are deliberate acts.
+    image: ghcr.io/music-assistant/server:2.8.8
     container_name: music-assistant-server
     network_mode: host
     # Intentionally NO cap_add / security_opt — we don't need SMB mount support
@@ -66,7 +67,7 @@ services:
     # Music provider talks to this over HTTP (configured in MA's YT Music
     # provider settings → "BgUtils PO Token Provider Base URL").
     # Repo + docs: https://github.com/Brainicism/bgutil-ytdlp-pot-provider
-    image: brainicism/bgutil-ytdlp-pot-provider:latest
+    image: brainicism/bgutil-ytdlp-pot-provider:1.3.1
     container_name: bgutil-pot-provider
     init: true                       # Node.js service — reap zombies cleanly
     # Bridge net + loopback-only published port. MA (on host net) reaches us

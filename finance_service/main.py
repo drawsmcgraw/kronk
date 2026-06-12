@@ -6,7 +6,11 @@ from pathlib import Path
 from fastapi import FastAPI, File, HTTPException, Query, UploadFile
 from pypdf import PdfReader
 
-from db import delete_document, init_db, insert_document, list_documents, search_chunks
+# Dual-compat: flat layout in the container, package import in tests.
+try:
+    from .db import delete_document, init_db, insert_document, list_documents, search_chunks
+except ImportError:
+    from db import delete_document, init_db, insert_document, list_documents, search_chunks
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

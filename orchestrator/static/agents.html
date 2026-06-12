@@ -204,6 +204,7 @@
 
 </main>
 
+<script src="/static/js/kronk.js"></script>
 <script>
 async function checkServices() {
   const endpoints = [
@@ -212,18 +213,7 @@ async function checkServices() {
     { id: 's-research',    url: '/probe/tools' },
     { id: 's-finance',     url: '/probe/finance' },
   ];
-  await Promise.allSettled(endpoints.map(async ({ id, url }) => {
-    const dot = document.getElementById(id);
-    if (!dot) return;
-    try {
-      const r = await fetch(url, { signal: AbortSignal.timeout(3000) });
-      dot.classList.toggle('up',   r.ok);
-      dot.classList.toggle('down', !r.ok);
-    } catch {
-      dot.classList.add('down');
-      dot.classList.remove('up');
-    }
-  }));
+  await KronkUI.checkDots(endpoints);
 }
 
 async function loadModels() {
@@ -275,7 +265,7 @@ async function loadModels() {
 checkServices();
 loadModels();
 setInterval(checkServices, 30000);
-setInterval(loadModels, 15000);
+setInterval(loadModels, 30000);
 </script>
 </body>
 </html>

@@ -12,17 +12,34 @@ from fastapi import BackgroundTasks, FastAPI, File, HTTPException, Query, Upload
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
-from db import (
-    get_activities, get_body_battery, get_conn,
-    get_hrv, get_last_sync, get_sleep, get_summary, init_db,
-    query_health,
-    upsert_body_battery_rows, upsert_daily_summary_rows, upsert_hrv_rows, upsert_sleep_rows,
-    upsert_bloodwork_rows, get_bloodwork, get_bloodwork_dates,
-)
-from withings_sync import sync_withings
-from chunker import chunk_daily, chunk_sleep, chunk_hrv, chunk_activity, chunk_bloodwork_panel
-from vector_store import upsert_chunks, chunk_count, search as vs_search
-from bloodwork_parser import parse_labcorp
+# Dual-compat imports: the container runs this flat from /app (bare names);
+# tests import it as the health_service package. The old test approach —
+# sys.path juggling to disambiguate the bare `db` name from finance_service —
+# poisoned module caches across test files. Package-first imports kill that.
+try:
+    from .db import (
+        get_activities, get_body_battery, get_conn,
+        get_hrv, get_last_sync, get_sleep, get_summary, init_db,
+        query_health,
+        upsert_body_battery_rows, upsert_daily_summary_rows, upsert_hrv_rows, upsert_sleep_rows,
+        upsert_bloodwork_rows, get_bloodwork, get_bloodwork_dates,
+    )
+    from .withings_sync import sync_withings
+    from .chunker import chunk_daily, chunk_sleep, chunk_hrv, chunk_activity, chunk_bloodwork_panel
+    from .vector_store import upsert_chunks, chunk_count, search as vs_search
+    from .bloodwork_parser import parse_labcorp
+except ImportError:
+    from db import (
+        get_activities, get_body_battery, get_conn,
+        get_hrv, get_last_sync, get_sleep, get_summary, init_db,
+        query_health,
+        upsert_body_battery_rows, upsert_daily_summary_rows, upsert_hrv_rows, upsert_sleep_rows,
+        upsert_bloodwork_rows, get_bloodwork, get_bloodwork_dates,
+    )
+    from withings_sync import sync_withings
+    from chunker import chunk_daily, chunk_sleep, chunk_hrv, chunk_activity, chunk_bloodwork_panel
+    from vector_store import upsert_chunks, chunk_count, search as vs_search
+    from bloodwork_parser import parse_labcorp
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

@@ -22,11 +22,11 @@ from fastapi.testclient import TestClient
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
 @pytest.fixture
-def tmp_health_db(tmp_path, monkeypatch, use_health_service):
+def tmp_health_db(tmp_path, monkeypatch):
     """Wire health_service to use a temporary DB file."""
     db_path = tmp_path / "health.db"
     monkeypatch.setenv("HEALTH_DB_PATH", str(db_path))
-    import db as db_mod  # resolves to health_service/db.py via use_health_service fixture
+    import health_service.db as db_mod
     db_mod.init_db()
     return db_path
 
@@ -43,7 +43,7 @@ def health_client(tmp_health_db):
 @pytest.fixture
 def seeded_health_db(tmp_health_db):
     """Insert one week of synthetic health data."""
-    import db as db_mod  # resolves to health_service/db.py via use_health_service fixture
+    import health_service.db as db_mod
     today = date.today()
     with db_mod.get_conn() as conn:
         for i in range(7):
@@ -93,7 +93,8 @@ def test_query_snapshot_includes_expected_fields(seeded_health_db, health_client
     assert "sleep" in data
     assert "hrv" in data
     assert "activities" in data
-    assert "as_of" in data
+    # `as_of` was replaced by an explicit date range on the summary.
+    assert "daily_summary_date_range" in data
 
 
 def test_query_sleep_enriched_with_hours(seeded_health_db, health_client):
@@ -121,9 +122,9 @@ def _make_garmin_csv(rows: list[dict]) -> bytes:
     return buf.getvalue().encode("utf-8")
 
 
-def test_import_csv_inserts_activities(health_client, use_health_service):
+def test_import_csv_inserts_activities(health_client):
     """Valid CSV rows should be inserted into the activities table."""
-    import db as db_mod
+    import health_service.db as db_mod
 
     csv_data = _make_garmin_csv([
         {
@@ -159,8 +160,8 @@ def test_import_csv_inserts_activities(health_client, use_health_service):
     assert result["inserted"] == 2
     assert result["skipped"] == 0
 
-    import db as db_mod  # ensure we have the health db module
-    activities = db_mod.get_activities(limit=10)
+    import health_service.db as db_mod
+    activities = db_mod.get_activities(days=3650)  # fixture dates are fixed (Jan 2026)
     assert len(activities) == 2
     names = {a["name"] for a in activities}
     assert "Morning Run" in names

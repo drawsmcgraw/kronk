@@ -96,7 +96,13 @@ def window(session_id: str) -> list[dict]:
 
 
 def append(session_id: str, role: str, content: str) -> None:
-    _load(session_id).append({"role": role, "content": content})
+    # Populate the cache BEFORE the DB write: _load on a cache miss reads the
+    # DB, so loading after the insert would double-count this very message
+    # (caught by test_sessions on first-append-after-restart).
+    msgs = _load(session_id)
+    # Persist, then mutate the cache — if the write fails the caller still
+    # gets a usable in-memory conversation, but we say so honestly instead
+    # of silently diverging memory from disk.
     try:
         with sqlite3.connect(SESSIONS_DB) as conn:
             conn.execute(
@@ -104,7 +110,11 @@ def append(session_id: str, role: str, content: str) -> None:
                 (session_id, role, content, time.time()),
             )
     except Exception as e:
-        logger.warning("sessions: append(%s) failed (in-memory only): %s", session_id, e)
+        logger.warning(
+            "sessions: append(%s) NOT persisted — memory-only, will not survive restart: %s",
+            session_id, e,
+        )
+    msgs.append({"role": role, "content": content})
 
 
 def clear(session_id: str) -> None:

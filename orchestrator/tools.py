@@ -360,232 +360,270 @@ TOOL_DEFINITIONS = [
 
 
 # ── Dispatch ─────────────────────────────────────────────────────────────────
+#
+# One small handler per tool, registered in _HANDLERS. Adding a tool =
+# definition in TOOL_DEFINITIONS + one handler function + one dict entry
+# (+ tool_names on whichever agents get it).
+
+# Per-tool HTTP timeout policy (seconds). Everything else uses the default.
+TOOL_TIMEOUT_DEFAULT = 15
+TOOL_TIMEOUTS = {
+    "generate_diagram": 30,  # graphviz render can be slow on big graphs
+    "query_hottub": 5,       # local file read — fail fast
+    "set_timer": 10,
+    "query_finances": 10,
+}
+
+
+async def _tool_get_weather(client: httpx.AsyncClient, args: dict) -> str:
+    location = args.get("location", DEFAULT_LOCATION)
+    resp = await client.get(f"{TOOL_SERVICE_URL}/weather", params={"location": location})
+    if resp.status_code == 200:
+        wx = resp.json()
+        return f"[Weather for {wx['location']}]\n{wx['summary']}"
+    return f"[Weather unavailable for {location}]"
+
+
+async def _tool_web_search(client: httpx.AsyncClient, args: dict) -> str:
+    resp = await client.get(
+        f"{TOOL_SERVICE_URL}/search",
+        params={"q": args.get("query", ""), "count": args.get("count", 5)},
+    )
+    if resp.status_code == 200:
+        sr = resp.json()
+        snippets = "\n\n".join(
+            f"[{r['title']}]({r['url']})\n{r['snippet']}"
+            for r in sr.get("results", [])
+        )
+        return f"[Web search results for '{args.get('query')}']\n\n{snippets}"
+    return "[Web search failed]"
+
+
+async def _tool_fetch_url(client: httpx.AsyncClient, args: dict) -> str:
+    url = args.get("url", "")
+    resp = await client.get(f"{TOOL_SERVICE_URL}/fetch", params={"url": url})
+    if resp.status_code == 200:
+        page = resp.json()
+        if page.get("ok"):
+            return f"[Page content from {url}]\n\n{page['text']}"
+        reason = page.get("error", "unknown error")
+        return (
+            f"[Could not fetch {url}: {reason}. "
+            "Try a different URL from the search results.]"
+        )
+    return f"[Could not fetch {url}: tool service returned {resp.status_code}]"
+
+
+async def _tool_shopping_list_view(client: httpx.AsyncClient, args: dict) -> str:
+    resp = await client.get(f"{TOOL_SERVICE_URL}/shopping_list")
+    if resp.status_code == 200:
+        items = resp.json().get("items", [])
+        if items:
+            return f"[Shopping list: {', '.join(items)}]"
+        return "[Shopping list is empty]"
+    return "[Could not retrieve shopping list]"
+
+
+async def _tool_shopping_list_add(client: httpx.AsyncClient, args: dict) -> str:
+    resp = await client.post(
+        f"{TOOL_SERVICE_URL}/shopping_list",
+        json={"items": args.get("items", [])},
+    )
+    if resp.status_code == 200:
+        added = resp.json().get("added", args.get("items", []))
+        return f"[Added to shopping list: {', '.join(added)}]"
+    return "[Could not add to shopping list]"
+
+
+async def _tool_shopping_list_remove(client: httpx.AsyncClient, args: dict) -> str:
+    item = args.get("item", "")
+    resp = await client.delete(f"{TOOL_SERVICE_URL}/shopping_list/{item}")
+    if resp.status_code == 200:
+        return f"[Removed '{item}' from shopping list]"
+    if resp.status_code == 404:
+        return f"['{item}' was not found on the shopping list]"
+    return "[Could not remove from shopping list]"
+
+
+async def _tool_shopping_list_clear(client: httpx.AsyncClient, args: dict) -> str:
+    await client.delete(f"{TOOL_SERVICE_URL}/shopping_list/clear")
+    return "[Shopping list cleared]"
+
+
+async def _tool_search_health_data(client: httpx.AsyncClient, args: dict) -> str:
+    params: dict = {"q": args.get("query", "")}
+    if "n_results" in args:
+        params["n"] = int(args["n_results"])
+    if "start_date" in args:
+        params["start_date"] = args["start_date"]
+    if "end_date" in args:
+        params["end_date"] = args["end_date"]
+    resp = await client.get(f"{HEALTH_SERVICE_URL}/api/search", params=params)
+    if resp.status_code == 200:
+        data = resp.json()
+        results = data.get("results", [])
+        if not results:
+            return f"[Health search: no indexed data found for '{params['q']}'. Data may not have been ingested yet.]"
+        chunks = "\n\n".join(
+            f"[{r['metadata'].get('date','?')} | {r['metadata'].get('type','?')} | score={r['score']}] {r['text']}"
+            for r in results
+        )
+        return f"[Health search results for '{params['q']}']\n\n{chunks}"
+    return f"[Health search error: {resp.status_code}]"
+
+
+async def _tool_query_health(client: httpx.AsyncClient, args: dict) -> str:
+    days = int(args.get("days", 30))
+    resolution = args.get("resolution", "raw")
+    # Enforce sane resolution for longer windows to prevent context bloat
+    if days > 365 and resolution in ("raw", "weekly"):
+        resolution = "monthly"
+    elif days > 90 and resolution == "raw":
+        resolution = "weekly"
+    params: dict = {"metric": args.get("metric", "all"), "resolution": resolution, "days": days}
+    if "end_date" in args:
+        params["end_date"] = args["end_date"]
+    resp = await client.get(f"{HEALTH_SERVICE_URL}/api/query", params=params)
+    if resp.status_code == 200:
+        data = resp.json()
+        if data.get("status") == "no_data":
+            return f"[Health data: {data.get('note', 'no data available')}]"
+        return f"[Health data — metric={params['metric']} days={days}]\n{json.dumps(data, indent=2)}"
+    return f"[Health service error: {resp.status_code}]"
+
+
+async def _tool_query_bloodwork(client: httpx.AsyncClient, args: dict) -> str:
+    params: dict = {}
+    if "marker" in args:
+        params["marker"] = args["marker"]
+    if "days" in args:
+        params["days"] = int(args["days"])
+    resp = await client.get(f"{HEALTH_SERVICE_URL}/api/bloodwork", params=params)
+    if resp.status_code == 200:
+        data = resp.json()
+        if not data.get("results"):
+            return "[Bloodwork: no lab results found. Upload a LabCorp PDF at /api/health/import/bloodwork.]"
+        dates = data.get("dates", [])
+        rows = data["results"]
+        lines = [f"Lab draws on file: {', '.join(dates)}"]
+        for r in rows:
+            flag = f" [{r['flag']}]" if r.get("flag") else ""
+            ref = f" (ref {r['raw_ref']})" if r.get("raw_ref") else ""
+            lines.append(f"{r['date']} | {r['panel']} | {r['marker']}: {r['value']} {r.get('unit','')}{flag}{ref}")
+        return "[Bloodwork results]\n" + "\n".join(lines)
+    return f"[Bloodwork query error: {resp.status_code}]"
+
+
+async def _tool_get_kronk_context(client: httpx.AsyncClient, args: dict) -> str:
+    try:
+        with open("/kronk-context.md") as f:
+            content = f.read()
+        return (
+            f"[Kronk system context]\n{content}\n\n"
+            "---\n"
+            "You now have the full system context. "
+            "If the user asked for a diagram, your next action MUST be to call "
+            "generate_diagram with Graphviz DOT syntax — do not write diagram "
+            "code as text or in a code block."
+        )
+    except Exception as e:
+        return f"[Could not read context file: {e}]"
+
+
+async def _tool_generate_diagram(client: httpx.AsyncClient, args: dict) -> str:
+    resp = await client.post(f"{TOOL_SERVICE_URL}/diagram", json={"dot": args.get("dot", "")})
+    if resp.status_code == 200:
+        url = resp.json().get("url", "")
+        return f"[Diagram generated: {url}]\n![diagram]({url})"
+    return f"[Diagram generation failed: {resp.status_code} {resp.text[:200]}]"
+
+
+async def _tool_query_hottub(client: httpx.AsyncClient, args: dict) -> str:
+    resp = await client.get(f"{TOOL_SERVICE_URL}/hottub")
+    if resp.status_code == 200:
+        d = resp.json()
+        if d.get("online") is None:
+            return f"[Hot tub status unknown: {d.get('error', 'no data')}]"
+        if d["online"]:
+            return (
+                f"[Hot tub ONLINE]\n"
+                f"Temperature: {d.get('temperature_f')}°F (set: {d.get('set_temperature_f')}°F)\n"
+                f"Spa: {d.get('spa_name')} ({d.get('spa_ip')})\n"
+                f"Last checked: {d.get('last_check')}"
+            )
+        offline_since = d.get("offline_since", "unknown")
+        return (
+            f"[Hot tub OFFLINE — breaker may have tripped]\n"
+            f"Offline since: {offline_since}\n"
+            f"Last seen: {d.get('last_seen')}\n"
+            f"Last checked: {d.get('last_check')}"
+        )
+    return "[Hot tub status unavailable]"
+
+
+async def _tool_set_timer(client: httpx.AsyncClient, args: dict) -> str:
+    duration = args.get("duration_minutes")
+    if duration is None:
+        return "[set_timer error: duration_minutes is required]"
+    label = args.get("label") or DEFAULT_TIMER_LABEL
+    resp = await client.post(
+        f"{TOOL_SERVICE_URL}/timer",
+        json={"duration_minutes": float(duration), "label": label},
+    )
+    if resp.status_code == 200:
+        info = resp.json()
+        return f"[Timer set: {info['duration']} ({label})]"
+    detail = resp.text[:200] if resp.text else f"status {resp.status_code}"
+    return f"[Could not set timer: {detail}]"
+
+
+async def _tool_query_finances(client: httpx.AsyncClient, args: dict) -> str:
+    query = args.get("query", "")
+    resp = await client.get(f"{FINANCE_SERVICE_URL}/api/query", params={"q": query})
+    if resp.status_code == 200:
+        data = resp.json()
+        if data.get("status") == "no_documents":
+            return "[Financial documents: none uploaded yet. User can upload via /finances.]"
+        results = data.get("results", [])
+        if not results:
+            return f"[No financial documents matched '{query}']"
+        excerpts = "\n\n".join(
+            f"[{r['doc_name']}, page {r['page']}]\n{r['excerpt']}"
+            for r in results
+        )
+        return f"[Financial document results for '{query}']\n\n{excerpts}"
+    return "[Finance service unavailable]"
+
+
+_HANDLERS = {
+    "get_weather":          _tool_get_weather,
+    "web_search":           _tool_web_search,
+    "fetch_url":            _tool_fetch_url,
+    "shopping_list_view":   _tool_shopping_list_view,
+    "shopping_list_add":    _tool_shopping_list_add,
+    "shopping_list_remove": _tool_shopping_list_remove,
+    "shopping_list_clear":  _tool_shopping_list_clear,
+    "search_health_data":   _tool_search_health_data,
+    "query_health":         _tool_query_health,
+    "query_bloodwork":      _tool_query_bloodwork,
+    "get_kronk_context":    _tool_get_kronk_context,
+    "generate_diagram":     _tool_generate_diagram,
+    "query_hottub":         _tool_query_hottub,
+    "set_timer":            _tool_set_timer,
+    "query_finances":       _tool_query_finances,
+}
+
 
 async def execute(name: str, args: dict) -> str:
     """Execute a named tool and return a string result for LLM context."""
+    handler = _HANDLERS.get(name)
+    if handler is None:
+        return f"[Unknown tool: {name}]"
     try:
-        async with httpx.AsyncClient(timeout=15) as client:
-
-            if name == "get_weather":
-                location = args.get("location", DEFAULT_LOCATION)
-                resp = await client.get(f"{TOOL_SERVICE_URL}/weather", params={"location": location})
-                if resp.status_code == 200:
-                    wx = resp.json()
-                    return f"[Weather for {wx['location']}]\n{wx['summary']}"
-                return f"[Weather unavailable for {location}]"
-
-            if name == "web_search":
-                resp = await client.get(
-                    f"{TOOL_SERVICE_URL}/search",
-                    params={"q": args.get("query", ""), "count": args.get("count", 5)},
-                )
-                if resp.status_code == 200:
-                    sr = resp.json()
-                    snippets = "\n\n".join(
-                        f"[{r['title']}]({r['url']})\n{r['snippet']}"
-                        for r in sr.get("results", [])
-                    )
-                    return f"[Web search results for '{args.get('query')}']\n\n{snippets}"
-                return "[Web search failed]"
-
-            if name == "fetch_url":
-                url = args.get("url", "")
-                resp = await client.get(f"{TOOL_SERVICE_URL}/fetch", params={"url": url})
-                if resp.status_code == 200:
-                    page = resp.json()
-                    if page.get("ok"):
-                        return f"[Page content from {url}]\n\n{page['text']}"
-                    reason = page.get("error", "unknown error")
-                    return (
-                        f"[Could not fetch {url}: {reason}. "
-                        "Try a different URL from the search results.]"
-                    )
-                return f"[Could not fetch {url}: tool service returned {resp.status_code}]"
-
-            if name == "shopping_list_view":
-                resp = await client.get(f"{TOOL_SERVICE_URL}/shopping_list")
-                if resp.status_code == 200:
-                    items = resp.json().get("items", [])
-                    if items:
-                        return f"[Shopping list: {', '.join(items)}]"
-                    return "[Shopping list is empty]"
-                return "[Could not retrieve shopping list]"
-
-            if name == "shopping_list_add":
-                resp = await client.post(
-                    f"{TOOL_SERVICE_URL}/shopping_list",
-                    json={"items": args.get("items", [])},
-                )
-                if resp.status_code == 200:
-                    added = resp.json().get("added", args.get("items", []))
-                    return f"[Added to shopping list: {', '.join(added)}]"
-                return "[Could not add to shopping list]"
-
-            if name == "shopping_list_remove":
-                item = args.get("item", "")
-                resp = await client.delete(f"{TOOL_SERVICE_URL}/shopping_list/{item}")
-                if resp.status_code == 200:
-                    return f"[Removed '{item}' from shopping list]"
-                if resp.status_code == 404:
-                    return f"['{item}' was not found on the shopping list]"
-                return "[Could not remove from shopping list]"
-
-            if name == "shopping_list_clear":
-                await client.delete(f"{TOOL_SERVICE_URL}/shopping_list/clear")
-                return "[Shopping list cleared]"
-
-            if name == "search_health_data":
-                params: dict = {"q": args.get("query", "")}
-                if "n_results" in args:
-                    params["n"] = int(args["n_results"])
-                if "start_date" in args:
-                    params["start_date"] = args["start_date"]
-                if "end_date" in args:
-                    params["end_date"] = args["end_date"]
-                resp = await client.get(
-                    f"{HEALTH_SERVICE_URL}/api/search", params=params, timeout=15
-                )
-                if resp.status_code == 200:
-                    data = resp.json()
-                    results = data.get("results", [])
-                    if not results:
-                        return f"[Health search: no indexed data found for '{params['q']}'. Data may not have been ingested yet.]"
-                    chunks = "\n\n".join(
-                        f"[{r['metadata'].get('date','?')} | {r['metadata'].get('type','?')} | score={r['score']}] {r['text']}"
-                        for r in results
-                    )
-                    return f"[Health search results for '{params['q']}']\n\n{chunks}"
-                return f"[Health search error: {resp.status_code}]"
-
-            if name == "query_health":
-                days = int(args.get("days", 30))
-                resolution = args.get("resolution", "raw")
-                # Enforce sane resolution for longer windows to prevent context bloat
-                if days > 365 and resolution in ("raw", "weekly"):
-                    resolution = "monthly"
-                elif days > 90 and resolution == "raw":
-                    resolution = "weekly"
-                params: dict = {"metric": args.get("metric", "all"), "resolution": resolution}
-                params["days"] = days
-                if "end_date" in args:
-                    params["end_date"] = args["end_date"]
-                resp = await client.get(
-                    f"{HEALTH_SERVICE_URL}/api/query", params=params, timeout=15
-                )
-                if resp.status_code == 200:
-                    data = resp.json()
-                    if data.get("status") == "no_data":
-                        return f"[Health data: {data.get('note', 'no data available')}]"
-                    return f"[Health data — metric={params['metric']} days={params.get('days', 30)}]\n{json.dumps(data, indent=2)}"
-                return f"[Health service error: {resp.status_code}]"
-
-            if name == "query_bloodwork":
-                params: dict = {}
-                if "marker" in args:
-                    params["marker"] = args["marker"]
-                if "days" in args:
-                    params["days"] = int(args["days"])
-                resp = await client.get(f"{HEALTH_SERVICE_URL}/api/bloodwork", params=params, timeout=15)
-                if resp.status_code == 200:
-                    data = resp.json()
-                    if not data.get("results"):
-                        return "[Bloodwork: no lab results found. Upload a LabCorp PDF at /api/health/import/bloodwork.]"
-                    dates = data.get("dates", [])
-                    rows = data["results"]
-                    lines = [f"Lab draws on file: {', '.join(dates)}"]
-                    for r in rows:
-                        flag = f" [{r['flag']}]" if r.get("flag") else ""
-                        ref = f" (ref {r['raw_ref']})" if r.get("raw_ref") else ""
-                        lines.append(f"{r['date']} | {r['panel']} | {r['marker']}: {r['value']} {r.get('unit','')}{flag}{ref}")
-                    return f"[Bloodwork results]\n" + "\n".join(lines)
-                return f"[Bloodwork query error: {resp.status_code}]"
-
-            if name == "get_kronk_context":
-                try:
-                    with open("/kronk-context.md") as f:
-                        content = f.read()
-                    return (
-                        f"[Kronk system context]\n{content}\n\n"
-                        "---\n"
-                        "You now have the full system context. "
-                        "If the user asked for a diagram, your next action MUST be to call "
-                        "generate_diagram with Graphviz DOT syntax — do not write diagram "
-                        "code as text or in a code block."
-                    )
-                except Exception as e:
-                    return f"[Could not read context file: {e}]"
-
-            if name == "generate_diagram":
-                dot = args.get("dot", "")
-                resp = await client.post(
-                    f"{TOOL_SERVICE_URL}/diagram",
-                    json={"dot": dot},
-                    timeout=30,
-                )
-                if resp.status_code == 200:
-                    url = resp.json().get("url", "")
-                    return f"[Diagram generated: {url}]\n![diagram]({url})"
-                return f"[Diagram generation failed: {resp.status_code} {resp.text[:200]}]"
-
-            if name == "query_hottub":
-                resp = await client.get(f"{TOOL_SERVICE_URL}/hottub", timeout=5)
-                if resp.status_code == 200:
-                    d = resp.json()
-                    if d.get("online") is None:
-                        return f"[Hot tub status unknown: {d.get('error', 'no data')}]"
-                    if d["online"]:
-                        return (
-                            f"[Hot tub ONLINE]\n"
-                            f"Temperature: {d.get('temperature_f')}°F (set: {d.get('set_temperature_f')}°F)\n"
-                            f"Spa: {d.get('spa_name')} ({d.get('spa_ip')})\n"
-                            f"Last checked: {d.get('last_check')}"
-                        )
-                    else:
-                        offline_since = d.get("offline_since", "unknown")
-                        return (
-                            f"[Hot tub OFFLINE — breaker may have tripped]\n"
-                            f"Offline since: {offline_since}\n"
-                            f"Last seen: {d.get('last_seen')}\n"
-                            f"Last checked: {d.get('last_check')}"
-                        )
-                return "[Hot tub status unavailable]"
-
-            if name == "set_timer":
-                duration = args.get("duration_minutes")
-                if duration is None:
-                    return "[set_timer error: duration_minutes is required]"
-                label = args.get("label") or DEFAULT_TIMER_LABEL
-                resp = await client.post(
-                    f"{TOOL_SERVICE_URL}/timer",
-                    json={"duration_minutes": float(duration), "label": label},
-                    timeout=10,
-                )
-                if resp.status_code == 200:
-                    info = resp.json()
-                    return f"[Timer set: {info['duration']} ({label})]"
-                detail = resp.text[:200] if resp.text else f"status {resp.status_code}"
-                return f"[Could not set timer: {detail}]"
-
-            if name == "query_finances":
-                query = args.get("query", "")
-                resp = await client.get(f"{FINANCE_SERVICE_URL}/api/query", params={"q": query}, timeout=10)
-                if resp.status_code == 200:
-                    data = resp.json()
-                    if data.get("status") == "no_documents":
-                        return "[Financial documents: none uploaded yet. User can upload via /finances.]"
-                    results = data.get("results", [])
-                    if not results:
-                        return f"[No financial documents matched '{query}']"
-                    excerpts = "\n\n".join(
-                        f"[{r['doc_name']}, page {r['page']}]\n{r['excerpt']}"
-                        for r in results
-                    )
-                    return f"[Financial document results for '{query}']\n\n{excerpts}"
-                return "[Finance service unavailable]"
-
+        timeout = TOOL_TIMEOUTS.get(name, TOOL_TIMEOUT_DEFAULT)
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            return await handler(client, args)
     except Exception as e:
         emit("tool_error", tool=name, error=str(e))
         logger.warning("Tool %s failed: %s", name, e)
         return f"[Tool {name} error: {e}]"
-
-    return f"[Unknown tool: {name}]"

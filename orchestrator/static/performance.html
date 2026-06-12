@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Kronk — Performance</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script src="/static/js/kronk.js"></script>
 <link rel="stylesheet" href="/static/kronk.css">
 <style>
   :root { --cyan: #06b6d4; }
@@ -351,9 +352,7 @@ async function load() {
   const genData = data.daily.map(r => r.avg_gen_ms);
   const ttftData = data.daily.map(r => r.avg_ttft_ms);
 
-  const ctx = document.getElementById('chart-trend').getContext('2d');
-  if (trendChart) trendChart.destroy();
-  trendChart = new Chart(ctx, {
+  trendChart = KronkUI.makeChart('chart-trend', {
     type: 'line',
     data: {
       labels,

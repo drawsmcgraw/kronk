@@ -23,7 +23,9 @@ name: kronk-ha
 
 services:
   homeassistant:
-    image: ghcr.io/home-assistant/home-assistant:stable
+    # Pinned 2026-06-12 to the running version — HA upgrades are deliberate acts
+    # (check release notes, then bump + `up -d`).
+    image: ghcr.io/home-assistant/home-assistant:2026.5.4
     container_name: homeassistant
     network_mode: host
     # No `privileged: true` — we don't use USB/Zigbee/Z-Wave/Bluetooth on

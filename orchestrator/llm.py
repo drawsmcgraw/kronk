@@ -1,10 +1,13 @@
 """Thin OpenAI-compatible client for LiteLLM."""
 import json
+import logging
 import os
 import uuid
 from typing import AsyncIterator
 
 import httpx
+
+logger = logging.getLogger(__name__)
 
 LLM_SERVICE_URL = os.getenv("LLM_SERVICE_URL", "http://localhost:8002")
 
@@ -40,7 +43,10 @@ async def stream(
     # index -> {"id": str|None, "function": {"name": str, "arguments": str}}
     tool_acc: dict[int, dict] = {}
 
-    async with httpx.AsyncClient(timeout=None) as client:
+    # Generation can be legitimately slow (long research synthesis) but must
+    # not hang forever on a wedged upstream: 10 min read ceiling.
+    stream_timeout = httpx.Timeout(connect=10, read=600, write=30, pool=10)
+    async with httpx.AsyncClient(timeout=stream_timeout) as client:
         async with client.stream(
             "POST",
             f"{LLM_SERVICE_URL}/v1/chat/completions",
@@ -105,6 +111,12 @@ async def stream(
             try:
                 args = json.loads(args_str) if args_str else {}
             except json.JSONDecodeError:
+                # Recover with empty args, but leave a trace — a tool called
+                # with {} "mysteriously" usually starts here.
+                logger.warning(
+                    "tool-call arguments were not valid JSON for %s; using {}. Fragment: %.200s",
+                    entry["function"]["name"], args_str,
+                )
                 args = {}
             finalized.append({
                 "id": entry["id"] or f"call_{uuid.uuid4().hex[:12]}",
@@ -154,6 +166,10 @@ async def complete(messages: list[dict], tools: list[dict], model: str) -> dict:
             try:
                 args = json.loads(args)
             except Exception:
+                logger.warning(
+                    "tool-call arguments were not valid JSON for %s; using {}. Fragment: %.200s",
+                    fn.get("name", "?"), args,
+                )
                 args = {}
         tool_calls.append({
             "id": tc["id"],

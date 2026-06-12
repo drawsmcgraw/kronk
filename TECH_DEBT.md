@@ -1,5 +1,34 @@
 # Kronk Tech Debt
 
+## Considered and rejected (2026-06-12 codebase review)
+
+Decisions made deliberately — revisit only if the stated assumption breaks:
+
+- **Splitting tool_service into per-domain services** — imperfect cohesion,
+  but at single-operator scale container sprawl costs more than it buys.
+- **SQLite connection pooling** (orchestrator metrics/sessions) — per-call
+  connects measure as negligible while `_llm_lock` serialises the pipeline.
+- **events.py schema enforcement** — ceremony without payoff at this size.
+- **Removing `_execute_tool` / per-request `model` field** — kept as
+  documented API/test tolerances.
+- **`_llm_lock` serialisation** — intentional: one GPU, one llama.cpp slot
+  budget. The lock is the scheduler.
+
+### [HOTTUB-01] Hot tub monitor non-functional
+
+**Status:** Parked (operator decision 2026-06-12)
+
+The geckolib monitor can't reach the spa pack (connection retry loop), and
+alerting was never implemented (dead ntfy.sh stubs removed). Revisit when
+the spa-pack connectivity story is sorted; when it is, alert via the shared
+`scripts/lib/notify.sh` HA path like the other watchers.
+
+### Garmin / Withings sync stubs
+
+**Status:** Intentional — pending Infisical rebuild. `/api/sync` and the
+Withings flow are no-op stubs in health_service until secrets management
+returns.
+
 ## Open Issues
 
 ### [LITELLM-01] LiteLLM `async_pre_call_hook` not firing in proxy mode

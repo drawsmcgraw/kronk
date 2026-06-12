@@ -325,7 +325,7 @@ async def fetch(url: str = Query(..., description="URL to fetch and extract text
     `{"ok": false, "error": "..."}` so the calling agent sees the failure as
     a normal tool result and can choose a different URL from its search hits.
     """
-    async with httpx.AsyncClient(timeout=15, follow_redirects=True, verify=False) as client:
+    async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
         try:
             resp = await client.get(url, headers=_BROWSER_HEADERS)
         except httpx.TimeoutException:

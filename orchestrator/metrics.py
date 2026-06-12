@@ -15,6 +15,14 @@ METRICS_DB = Path(os.getenv("METRICS_DB", "/data/metrics.db"))
 
 
 def init_db() -> None:
+    try:
+        _init_db()
+    except Exception as e:
+        # Telemetry must never block startup (matches sessions.init_db).
+        logger.warning("metrics: init failed (continuing without metrics): %s", e)
+
+
+def _init_db() -> None:
     with sqlite3.connect(METRICS_DB) as conn:
         conn.execute("""
             CREATE TABLE IF NOT EXISTS llm_metrics (

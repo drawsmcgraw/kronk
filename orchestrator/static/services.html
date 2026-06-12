@@ -270,6 +270,7 @@
 
 </main>
 
+<script src="/static/js/kronk.js"></script>
 <script>
   const staticChecks = [
     { id: 's-orchestrator', url: '/probe/orchestrator' },
@@ -323,19 +324,7 @@
   const dynamicChecks = [];
 
   async function checkAll() {
-    const all = [...staticChecks, ...dynamicChecks];
-    await Promise.allSettled(all.map(async ({ id, url }) => {
-      const dot = document.getElementById(id);
-      if (!dot) return;
-      try {
-        const r = await fetch(url, { signal: AbortSignal.timeout(3000) });
-        dot.classList.toggle('up',   r.ok);
-        dot.classList.toggle('down', !r.ok);
-      } catch {
-        dot.classList.add('down');
-        dot.classList.remove('up');
-      }
-    }));
+    await KronkUI.checkDots([...staticChecks, ...dynamicChecks]);
   }
 
   populateAgents();

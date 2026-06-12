@@ -126,7 +126,8 @@ services:
       start_period: 1s
 
   minio:
-    image: cgr.dev/chainguard/minio
+    # chainguard free tier only publishes :latest — pin by digest instead.
+    image: cgr.dev/chainguard/minio@sha256:83d280640e6418fdcc78f60dbc3773c218c1b5b181db7baff7632c0060ad26ed
     container_name: langfuse-minio
     restart: unless-stopped
     entrypoint: sh

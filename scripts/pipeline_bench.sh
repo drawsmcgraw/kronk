@@ -129,12 +129,29 @@ jq -n \
 
 log "wrote $OUTFILE"
 
-# ── quick medians table ─────────────────────────────────────────────────────
+# ── summary table: wall, TTFT, tokens/s ─────────────────────────────────────
+# TTFT/gen come from the server timing payload (message transport only).
+# tokens/s = stream_tokens ÷ generation_s when timing exists; for shim
+# transports (no timing payload) it falls back to tokens ÷ wall, marked '~'.
 echo
-echo "=== medians (wall seconds) — $LABEL ==="
+echo "=== summary — $LABEL ==="
 jq -r '
   .results | group_by(.id)[] |
   (map(.wall_s) | sort) as $w |
-  [.[0].id, ($w[($w|length/2|floor)]), ($w|min), ($w|max)] | @tsv' "$OUTFILE" \
-  | awk 'BEGIN{printf "%-20s %8s %8s %8s\n","prompt","median","min","max"}
-         {printf "%-20s %8.2f %8.2f %8.2f\n",$1,$2,$3,$4}'
+  ([.[] | .timing.ttft_s // empty]) as $ttfts |
+  ([.[] | select(.timing.generation_s != null and .timing.generation_s > 0 and .stream_tokens > 0)
+        | (.stream_tokens / .timing.generation_s)]) as $tps_timed |
+  ([.[] | select(.timing == null and .stream_tokens > 0 and .wall_s > 0)
+        | (.stream_tokens / .wall_s)]) as $tps_wall |
+  [ .[0].id,
+    ($w[($w|length/2|floor)]), ($w|min), ($w|max),
+    (if ($ttfts|length) > 0 then ($ttfts|add/length) else null end),
+    (if ($tps_timed|length) > 0 then ($tps_timed|add/length)
+     elif ($tps_wall|length) > 0 then ($tps_wall|add/length) else null end),
+    (if ($tps_timed|length) > 0 then "" elif ($tps_wall|length) > 0 then "~" else "" end)
+  ] | @tsv' "$OUTFILE" \
+  | awk -F'\t' 'BEGIN{printf "%-20s %8s %8s %8s %10s %10s\n","prompt","median","min","max","avg_ttft","tok/s"}
+         {tt=($5==""?"   -":sprintf("%8.2f",$5));
+          tp=($6==""?"     -":sprintf("%s%.1f",$7,$6));
+          printf "%-20s %8.2f %8.2f %8.2f %10s %10s\n",$1,$2,$3,$4,tt,tp}'
+echo "(~ = wall-derived tokens/s: shim transports carry no server timing payload)"

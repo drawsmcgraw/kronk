@@ -36,16 +36,10 @@ GTT_CONSEC="${GTT_CONSEC:-5}"
 
 COOLDOWN_SEC="${COOLDOWN_SEC:-1800}"  # 30 min per alert type
 
-# ── load HA_TOKEN ────────────────────────────────────────────────────────────
-if [[ -z "${HA_TOKEN:-}" ]] && [[ -f "$REPO_DIR/.env" ]]; then
-    while IFS='=' read -r k v; do
-        [[ "$k" == "HA_TOKEN" ]] && export HA_TOKEN="$v"
-    done < <(grep '^HA_TOKEN=' "$REPO_DIR/.env")
-fi
-if [[ -z "${HA_TOKEN:-}" ]]; then
-    echo "ERROR: HA_TOKEN not set (no env var, not in $REPO_DIR/.env)" >&2
-    exit 1
-fi
+# ── shared notify lib (token loading + ha_notify) ───────────────────────────
+NOTIFY_LOG_PREFIX=memwatch
+source "$(dirname "$0")/lib/notify.sh"
+load_ha_token || exit 1
 
 # ── helpers ──────────────────────────────────────────────────────────────────
 log() { echo "$(date '+%Y-%m-%d %H:%M:%S') memwatch: $*"; }
@@ -67,17 +61,7 @@ notify() {
         return
     fi
     last_ts[$key]=$now
-    local payload
-    payload=$(jq -n --arg t "$title" --arg m "$message" \
-        '{"title":$t,"message":$m,"data":{"tag":"kronk-memwatch","group":"kronk-alerts"}}')
-    if curl -sf -X POST "$HA_URL/api/services/$HA_NOTIFY_SERVICE" \
-        -H "Authorization: Bearer $HA_TOKEN" \
-        -H "Content-Type: application/json" \
-        -d "$payload" >/dev/null; then
-        log "[$key] notified: $title — $message"
-    else
-        log "[$key] HA notify FAILED for: $title"
-    fi
+    ha_notify kronk-memwatch "$title" "$message"
 }
 
 # ── poll loop ────────────────────────────────────────────────────────────────

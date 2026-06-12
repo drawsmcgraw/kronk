@@ -54,11 +54,17 @@ def reset_history():
 
 
 @pytest.fixture
-def client():
+def client(tmp_path):
     with mock_module.patch("builtins.open", side_effect=_fake_open):
         import orchestrator.main as orch
-        with TestClient(orch.app, raise_server_exceptions=True) as c:
-            yield c
+        import orchestrator.metrics as metrics
+        import orchestrator.sessions as sessions
+        # Hermetic DBs — the defaults point at /data, which only exists in
+        # the container.
+        with mock_module.patch.object(metrics, "METRICS_DB", tmp_path / "metrics.db"), \
+             mock_module.patch.object(sessions, "SESSIONS_DB", tmp_path / "sessions.db"):
+            with TestClient(orch.app, raise_server_exceptions=True) as c:
+                yield c
 
 
 # ── Structural tests ──────────────────────────────────────────────────────────
@@ -128,16 +134,20 @@ async def test_route_invalid_llm_output_falls_back_to_direct():
 
 # ── agents.run_stream tests ───────────────────────────────────────────────────
 
+# run_stream drives everything through llm.stream(messages, model, tools)
+# (the unified-streaming refactor) — these mocks match that contract.
+
 @pytest.mark.asyncio
 async def test_run_stream_direct_answer_yields_tokens_and_done():
     """When the first round has no tool_calls, the content is yielded and we stop."""
     import agents
 
-    async def fake_complete(messages, tools, model):
-        return {"content": "42", "tool_calls": [], "usage": {}}
+    async def fake_stream(messages, model, tools=None):
+        yield {"token": "42"}
+        yield {"usage": {"prompt_tokens": 5, "completion_tokens": 1}}
 
     agent = agents.AGENTS["health"]
-    with patch("agents.llm.complete", new=fake_complete):
+    with patch("agents.llm.stream", new=fake_stream):
         events = [ev async for ev in agents.run_stream(agent, "what is the answer?", [])]
 
     token_events = [e for e in events if e["type"] == "token"]
@@ -148,51 +158,50 @@ async def test_run_stream_direct_answer_yields_tokens_and_done():
 
 @pytest.mark.asyncio
 async def test_run_stream_tool_then_synthesis_streams_tokens():
-    """One tool round, then synthesis streams tokens through llm.stream()."""
+    """One tool round (tool_calls from the stream), then synthesis tokens."""
     import agents
 
     call_count = {"n": 0}
 
-    async def fake_complete(messages, tools, model):
+    async def fake_stream(messages, model, tools=None):
         call_count["n"] += 1
-        # First call: the model asks for a tool.
-        return {
-            "content": "",
-            "tool_calls": [
+        if call_count["n"] == 1:
+            # Round 1: the model asks for a tool (no content tokens).
+            yield {"tool_calls": [
                 {"id": "call_1", "function": {"name": "query_health", "arguments": {"metric": "sleep"}}}
-            ],
-            "usage": {},
-        }
-
-    async def fake_stream(messages, model):
-        for t in ["You ", "slept ", "well."]:
-            yield {"token": t}
-        yield {"usage": {"prompt_tokens": 5, "completion_tokens": 3}}
+            ]}
+            yield {"usage": {"prompt_tokens": 5, "completion_tokens": 3}}
+        else:
+            # Round 2: synthesis streams the answer.
+            for t in ["You ", "slept ", "well."]:
+                yield {"token": t}
+            yield {"usage": {"prompt_tokens": 9, "completion_tokens": 3}}
 
     async def fake_execute(name, args):
         return "sleep: 7.8h"
 
     agent = agents.AGENTS["health"]
-    with patch("agents.llm.complete", new=fake_complete), \
-         patch("agents.llm.stream", new=fake_stream), \
+    with patch("agents.llm.stream", new=fake_stream), \
          patch("agents.tools.execute", new=fake_execute):
         events = [ev async for ev in agents.run_stream(agent, "how did I sleep?", [])]
 
     tokens = [e["text"] for e in events if e["type"] == "token"]
     assert "".join(tokens) == "You slept well."
     assert any(e["type"] == "done" and e["ok"] for e in events)
+    assert call_count["n"] == 2
 
 
 @pytest.mark.asyncio
 async def test_run_stream_llm_error_is_surfaced():
-    """If llm.complete raises, run_stream emits a single error event."""
+    """If llm.stream raises, run_stream emits a single error event."""
     import agents
 
-    async def fake_complete(messages, tools, model):
+    async def fake_stream(messages, model, tools=None):
         raise RuntimeError("connection refused")
+        yield  # pragma: no cover — makes this an async generator
 
     agent = agents.AGENTS["health"]
-    with patch("agents.llm.complete", new=fake_complete):
+    with patch("agents.llm.stream", new=fake_stream):
         events = [ev async for ev in agents.run_stream(agent, "hi", [])]
 
     error_events = [e for e in events if e["type"] == "error"]
@@ -205,11 +214,13 @@ async def test_run_accumulates_run_stream_tokens():
     """The sync-wrapper run() must return the full concatenated text."""
     import agents
 
-    async def fake_complete(messages, tools, model):
-        return {"content": "hello world", "tool_calls": [], "usage": {}}
+    async def fake_stream(messages, model, tools=None):
+        yield {"token": "hello "}
+        yield {"token": "world"}
+        yield {"usage": {}}
 
     agent = agents.AGENTS["health"]
-    with patch("agents.llm.complete", new=fake_complete):
+    with patch("agents.llm.stream", new=fake_stream):
         text = await agents.run(agent, "hi", [])
     assert text == "hello world"
 
@@ -230,32 +241,20 @@ def _collect_sse_events(text: str) -> list[dict]:
 
 
 def test_direct_route_streams_from_coordinator(client):
-    """'direct' route skips agents.run_stream and streams from the coordinator."""
-    import orchestrator.main as orch
-
-    streaming_tokens = ["Paris", " is ", "the capital."]
+    """'direct' route runs the COORDINATOR agent (agents-as-tools) and
+    streams its tokens through the same run_stream loop as specialists."""
 
     async def fake_classify(text, history):
         return "direct"
 
-    with patch("orchestrator.main.routing.classify", new=fake_classify):
-        with patch("orchestrator.main.httpx.AsyncClient") as MockClient:
-            inst = AsyncMock()
-            MockClient.return_value.__aenter__ = AsyncMock(return_value=inst)
-            MockClient.return_value.__aexit__ = AsyncMock(return_value=False)
+    async def fake_stream(messages, model, tools=None):
+        for t in ["Paris", " is ", "the capital."]:
+            yield {"token": t}
+        yield {"usage": {}}
 
-            def mock_stream_ctx(*a, **kw):
-                class FakeStream:
-                    async def __aenter__(s): return s
-                    async def __aexit__(s, *args): pass
-                    async def aiter_lines(s):
-                        for t in streaming_tokens:
-                            yield f"data: {json.dumps({'choices': [{'delta': {'content': t}}]})}"
-                        yield "data: [DONE]"
-                return FakeStream()
-            inst.stream = mock_stream_ctx
-
-            resp = client.post("/message", json={"text": "What is the capital of France?"})
+    with patch("orchestrator.main.routing.classify", new=fake_classify), \
+         patch("agents.llm.stream", new=fake_stream):
+        resp = client.post("/message", json={"text": "What is the capital of France?"})
 
     events = _collect_sse_events(resp.text)
     tokens = [e["token"] for e in events if "token" in e]

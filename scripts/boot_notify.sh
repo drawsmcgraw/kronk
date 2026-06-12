@@ -25,23 +25,13 @@
 #   WAIT_MAX_SEC       — how long to wait for HA to be reachable (default 300)
 set -euo pipefail
 
-REPO_DIR="${KRONK_REPO_DIR:-/home/drew/git-repos/drawsmcgraw/kronk}"
-HA_URL="${HA_URL:-http://localhost:8123}"
-HA_NOTIFY_SERVICE="${HA_NOTIFY_SERVICE:-notify/mobile_app_pixel_7}"
+NOTIFY_LOG_PREFIX=boot_notify
+source "$(dirname "$0")/lib/notify.sh"
 WAIT_MAX_SEC="${WAIT_MAX_SEC:-300}"
 
 log() { echo "$(date '+%Y-%m-%d %H:%M:%S') boot_notify: $*"; }
 
-# ── load HA_TOKEN (same pattern as memwatch.sh) ─────────────────────────────
-if [[ -z "${HA_TOKEN:-}" ]] && [[ -f "$REPO_DIR/.env" ]]; then
-    while IFS='=' read -r k v; do
-        [[ "$k" == "HA_TOKEN" ]] && export HA_TOKEN="$v"
-    done < <(grep '^HA_TOKEN=' "$REPO_DIR/.env")
-fi
-if [[ -z "${HA_TOKEN:-}" ]]; then
-    log "ERROR: HA_TOKEN not set (no env var, not in $REPO_DIR/.env)"
-    exit 1
-fi
+load_ha_token || exit 1
 
 # ── detection ───────────────────────────────────────────────────────────────
 # Look at the previous boot's journal for shutdown markers.
@@ -100,21 +90,7 @@ wait_for_ha() {
 }
 
 # ── send notification ───────────────────────────────────────────────────────
-send_alert() {
-    local title="$1" message="$2"
-    local payload
-    payload=$(jq -n --arg t "$title" --arg m "$message" \
-        '{"title":$t,"message":$m,"data":{"tag":"kronk-bootnotify","group":"kronk-alerts"}}')
-    if curl -sf -X POST "$HA_URL/api/services/$HA_NOTIFY_SERVICE" \
-        -H "Authorization: Bearer $HA_TOKEN" \
-        -H "Content-Type: application/json" \
-        -d "$payload" >/dev/null; then
-        log "notified: $title"
-    else
-        log "HA notify FAILED: $title"
-        return 1
-    fi
-}
+send_alert() { ha_notify kronk-bootnotify "$1" "$2"; }
 
 # ── main ────────────────────────────────────────────────────────────────────
 if ! detect_unclean; then

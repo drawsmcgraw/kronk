@@ -28,38 +28,15 @@
 #   TEST_MODE=1        — send one synthetic alert and exit (for verification)
 set -euo pipefail
 
-REPO_DIR="${KRONK_REPO_DIR:-/home/drew/git-repos/drawsmcgraw/kronk}"
-HA_URL="${HA_URL:-http://localhost:8123}"
-HA_NOTIFY_SERVICE="${HA_NOTIFY_SERVICE:-notify/mobile_app_pixel_7}"
+NOTIFY_LOG_PREFIX=perfwatch
+source "$(dirname "$0")/lib/notify.sh"
 MIN_GAP_SEC="${MIN_GAP_SEC:-300}"
 
 log() { echo "$(date '+%Y-%m-%d %H:%M:%S') perfwatch: $*"; }
 
-# ── load HA_TOKEN (same pattern as memwatch.sh) ─────────────────────────────
-if [[ -z "${HA_TOKEN:-}" ]] && [[ -f "$REPO_DIR/.env" ]]; then
-    while IFS='=' read -r k v; do
-        [[ "$k" == "HA_TOKEN" ]] && export HA_TOKEN="$v"
-    done < <(grep '^HA_TOKEN=' "$REPO_DIR/.env")
-fi
-if [[ -z "${HA_TOKEN:-}" ]]; then
-    log "ERROR: HA_TOKEN not set (no env var, not in $REPO_DIR/.env)"
-    exit 1
-fi
+load_ha_token || exit 1
 
-send_alert() {
-    local title="$1" message="$2"
-    local payload
-    payload=$(jq -n --arg t "$title" --arg m "$message" \
-        '{"title":$t,"message":$m,"data":{"tag":"kronk-perfwatch","group":"kronk-alerts"}}')
-    if curl -sf -X POST "$HA_URL/api/services/$HA_NOTIFY_SERVICE" \
-        -H "Authorization: Bearer $HA_TOKEN" \
-        -H "Content-Type: application/json" \
-        -d "$payload" >/dev/null; then
-        log "notified: $title — $message"
-    else
-        log "HA notify FAILED for: $title"
-    fi
-}
+send_alert() { ha_notify kronk-perfwatch "$1" "$2"; }
 
 # ── test mode: fire one alert and exit ──────────────────────────────────────
 if [[ "${TEST_MODE:-0}" == "1" ]]; then
