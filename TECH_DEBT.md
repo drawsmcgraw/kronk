@@ -27,7 +27,16 @@ External template file is a snapshot. If a devstral model update changes the emb
 
 ### [ROUTING-01] Gate-based router can't handle queries that are partially research-flavored
 
-**Status:** Open — no workaround  
+**Status:** Mitigated 2026-06-12 — the "better approach" below was implemented
+as **agents-as-tools** (the hybrid variant): gate routing stays for clear-cut
+cases, and the direct path's coordinator now carries `ask_<agent>` tools
+(`agents.COORDINATOR`), so a router miss becomes an ordinary delegation
+instead of a dead end ("I need to search…" incident, trace `bb8bd8b7`).
+Verified: misroutes self-heal via ask_research; spurious-delegation rate on
+pure-knowledge questions 1/5; delegation rate observable in Langfuse
+(`agent.*` spans under direct-routed traces). Remaining gap: a multi-domain
+query routed to a *specialist* still gets a single-domain answer — peer
+handoffs are the next step if that bites in practice.
 
 **Problem:**  
 The current router classifies at the gate before any LLM reasoning occurs. For queries that are geopolitical, medical, or otherwise factual-but-ambiguous ("Why is the US at war with Iran?", "What does X policy mean for Y?"), the router can't reliably distinguish "needs live data" from "answerable from training knowledge." These tend to route to research even when a direct coordinator answer would be more useful.

@@ -51,6 +51,8 @@ async def weather_context() -> str | None:
 
 
 def _tool_narration(name: str, args: dict) -> str:
+    if name.startswith("ask_"):
+        return f"asking the {name[4:]} agent..."
     if name == "web_search":
         q = args.get("query", "")
         return f"searching the web for {q}" if q else "searching the web..."
@@ -129,7 +131,7 @@ AGENTS: dict[str, AgentConfig] = {
     "research": AgentConfig(
         name="research",
         description="Web search, current events, news, online information, URL lookups",
-        routing_hint="Lookups against the live web: news, prices, scores, events, but ALSO any factual lookup where verbatim precision matters (quotes, statistics, specific dates, lyrics, biographies, technical definitions). NOT for operations on text the user already provided (translation, summarization of a pasted paragraph, rewriting, math) — those go direct.",
+        routing_hint="Lookups against the live web: news, prices, scores, events, current officeholders or other currently-held positions, but ALSO any factual lookup where verbatim precision matters (quotes, statistics, specific dates, lyrics, biographies, technical definitions). NOT for operations on text the user already provided (translation, summarization of a pasted paragraph, rewriting, math) — those go direct.",
         icon="🔍",
         probe="tools",
         system_prompt=(
@@ -246,6 +248,69 @@ AGENTS: dict[str, AgentConfig] = {
 }
 
 
+# ── Agents-as-tools: specialists callable by the coordinator ────────────────
+#
+# Each specialist is exposed as an `ask_<name>` tool so the coordinator can
+# delegate mid-answer — a router miss onto the direct path becomes an
+# ordinary tool call instead of a dead end ("I need to search…", 2026-06-12
+# incident / TECH_DEBT ROUTING-01), and multi-domain questions compose.
+#
+# Depth is structurally capped at 2: ONLY the coordinator carries ask_*
+# tools; specialists keep their own tool lists, so a sub-agent can never
+# delegate further. talkie is excluded (explicit-invocation persona; the
+# router shortcut owns it).
+
+_AGENT_TOOL_EXCLUDE = {"talkie"}
+
+
+def agent_tool_defs() -> list[dict]:
+    return [
+        {
+            "type": "function",
+            "function": {
+                "name": f"ask_{a.name}",
+                "description": f"Consult Kronk's {a.name} specialist. {a.description}",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "query": {
+                            "type": "string",
+                            "description": "A complete, self-contained question for the specialist — include all context it needs.",
+                        },
+                    },
+                    "required": ["query"],
+                },
+            },
+        }
+        for a in AGENTS.values()
+        if a.name not in _AGENT_TOOL_EXCLUDE
+    ]
+
+
+COORDINATOR = AgentConfig(
+    name="coordinator",
+    description="Direct answers; delegates to specialists for live or personal data",
+    routing_hint="(not routable — coordinator is the direct-path handler)",
+    icon="🧭",
+    probe="llm",
+    system_prompt=(
+        "You are Kronk, a helpful home assistant. Be direct and concise. "
+        "Do not use action text, emotes, or filler expressions like *winks* — no theatrical language.\n"
+        "Answer from your own knowledge whenever you can — most questions need no tools.\n"
+        "Call an ask_* specialist ONLY when the answer requires live data (news, current "
+        "officeholders, prices, schedules, recent events), the user's personal data (health, "
+        "finances, shopping list, home devices, weather), or web verification of specific facts.\n"
+        "Never invent live or personal data: if you cannot answer without it, delegate.\n"
+        "When a specialist answers, relay the substance concisely — do not re-verify it."
+    ),
+    tool_names=[],  # filled below — ask_* names aren't in tools.TOOL_DEFINITIONS
+)
+COORDINATOR.tool_names = [d["function"]["name"] for d in agent_tool_defs()]
+# AgentConfig.tool_defs() only knows tools.TOOL_DEFINITIONS; give the
+# coordinator its agent-tools directly.
+COORDINATOR.tool_defs = agent_tool_defs  # type: ignore[method-assign]
+
+
 # ── Derived: router prompt + valid-route set ────────────────────────────────
 
 VALID_ROUTES = set(AGENTS.keys()) | {"direct"}
@@ -273,12 +338,15 @@ def build_routing_prompt() -> str:
         "",
         "Examples:",
         "  'What is the capital of France?' → direct",
+        "  'What time zone is Denver in?' → direct",
         "  'Is zinc good for colds?' → direct",
         "  'How does TCP/IP work?' → direct",
         "  'What are the drawbacks of sitting on the floor?' → direct",
         "  'Why did the Roman Empire fall?' → direct",
         "  'What is the news today?' → research",
         "  'What are current mortgage rates?' → research",
+        "  'Who is the current county executive?' → research",
+        "  'Who is the mayor of Baltimore?' → research",
         "  'Write a bash script to rename files' → coding",
         "  'How is my sleep this week?' → health",
         "",
@@ -345,8 +413,17 @@ def kronk_facts() -> str:
     )
 
 
-async def run_stream(agent: AgentConfig, task: str, context: list[dict]):
-    """Run a specialist agent's tool-calling loop with unified streaming.
+async def run_stream(agent: AgentConfig, task: str, context: list[dict],
+                     system_extra: str | None = None,
+                     history_messages: list[dict] | None = None):
+    """Run an agent's tool-calling loop with unified streaming.
+
+    Used by specialists AND the coordinator (which carries ask_* agent-tools
+    instead of service tools). system_extra: caller-supplied additions to the
+    system prompt (shared state, uploaded files, weather context, …).
+    history_messages: prior turns inserted as real chat messages (coordinator
+    path — keeps the prompt prefix append-only for llama.cpp cache reuse);
+    `context` embeds turns as system text instead (specialist style).
 
     Async generator. Yielded events:
       {"type": "token",     "text": str}              — incremental content token
@@ -361,6 +438,8 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict]):
     agent_tool_defs = agent.tool_defs() or None
 
     system_content = agent.system_prompt + "\n\n" + kronk_facts()
+    if system_extra:
+        system_content += "\n\n" + system_extra
     if agent.name == "home":
         wx_ctx = await weather_context()
         if wx_ctx:
@@ -369,10 +448,10 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict]):
         ctx_lines = [f"{m['role'].upper()}: {m['content']}" for m in context if m.get("content")]
         system_content += "\n\n[Recent conversation context]\n" + "\n".join(ctx_lines)
 
-    messages: list[dict] = [
-        {"role": "system", "content": system_content},
-        {"role": "user",   "content": task},
-    ]
+    messages: list[dict] = [{"role": "system", "content": system_content}]
+    if history_messages:
+        messages.extend(history_messages)
+    messages.append({"role": "user", "content": task})
 
     seen_calls: set[str] = set()
     last_usage: dict = {}
@@ -466,7 +545,16 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict]):
                     emit("tool_call", agent=agent.name, tool=fn_name, args=list(fn_args.keys()))
                     tool_span = agent_span.child_span(f"tool.{fn_name}", input=fn_args)
                     try:
-                        result = await tools.execute(fn_name, fn_args)
+                        if fn_name.startswith("ask_"):
+                            # Agent-as-tool: delegate to a specialist. The
+                            # sub-agent's own span/metrics come from its run.
+                            sub = AGENTS.get(fn_name[4:])
+                            if sub is None:
+                                result = f"[no such specialist: {fn_name[4:]}]"
+                            else:
+                                result = await run(sub, fn_args.get("query") or task, [])
+                        else:
+                            result = await tools.execute(fn_name, fn_args)
                     except Exception as e:
                         tool_span.end(level="ERROR", status_message=str(e)[:200])
                         raise

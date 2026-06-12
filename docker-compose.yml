@@ -34,7 +34,11 @@ services:
     restart: unless-stopped
 
   searxng:
-    image: searxng/searxng:latest
+    # Pinned (2026-06-12): SearXNG ships engine/bot-detection fixes weekly;
+    # a stale build is a CAPTCHA magnet (the 2026.4.1 build ended up with
+    # every engine but aol suspended). Bump the pin ~monthly:
+    #   check hub.docker.com/r/searxng/searxng/tags, update, `up -d searxng`.
+    image: searxng/searxng:2026.6.12-cc196f2a5
     volumes:
       - ./searxng:/etc/searxng:rw
     networks: [kronk]
@@ -159,7 +163,8 @@ services:
       - LANGFUSE_HOST=http://host.docker.internal:3000
       - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-}
       - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-}
-      - SYSTEM_PROMPT=You are Kronk, a helpful home assistant. Be direct and concise. Do not use action text, emotes, or filler expressions like *winks*, *laughs*, or *grins*. Do not use theatrical language. Answer questions factually and helpfully. You have access to real-time tools for weather, web search, health data, financial documents, and other live data. NEVER fabricate or estimate real-time information such as weather conditions, temperatures, news, or current events. If a tool result is not present in this conversation, you do not have that data — say so plainly and do not answer from training data.
+      # SYSTEM_PROMPT env removed 2026-06-12: the coordinator persona lives in
+      # orchestrator/agents.py (agents.COORDINATOR) since agents-as-tools.
     networks: [kronk]
     extra_hosts:
       - "host.docker.internal:host-gateway"

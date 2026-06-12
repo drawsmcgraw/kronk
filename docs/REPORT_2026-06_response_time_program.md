@@ -290,6 +290,39 @@ What shipped:
   output distribution is unchanged by construction.
 - Idle GPU still 0% / ~10 W with the drafter resident; GTT +0.3 GB.
 
+## 4.3 Same-day addition: agents-as-tools (2026-06-12 evening)
+
+Triggered by a live failure: "Who is the howard county executive?" routed
+`direct`, and the tool-less coordinator answered "I need to search for the
+Howard County Executive." — a dead end (TECH_DEBT ROUTING-01). Architectural
+fix chosen by the operator: **agents-as-tools, depth-capped at 2**.
+
+- Every specialist is now a coordinator tool (`ask_research`, `ask_home`,
+  `ask_health`, …; talkie excluded). A router miss onto the direct path
+  becomes an ordinary delegation; multi-domain questions can compose.
+  Only the coordinator carries `ask_*` tools — specialists cannot delegate
+  further, so no loops by construction.
+- The coordinator became a regular `AgentConfig` running through the same
+  `run_stream` loop as every agent — the two duplicated raw-HTTP streaming
+  blocks in main.py are gone, and coordinator activity now appears in
+  Langfuse as `agent.coordinator` (delegations = nested `agent.*` spans:
+  the ROUTING-01 miss rate is finally measurable). The `SYSTEM_PROMPT` env
+  var is retired; the persona lives in `agents.COORDINATOR`.
+- Router examples added for current-officeholder questions; one
+  counter-example ("What time zone is Denver in? → direct") was needed
+  after the first bench showed the examples made the 4B router drag
+  static-knowledge questions to research.
+- Verified: the original failing question now answers correctly (Calvin
+  Ball, sourced — via the router fix); forced-misroute test delegates via
+  ask_research correctly (Wes Moore, sourced); spurious delegation on
+  pure-knowledge questions 1/5; weather/shim/clear-history paths unchanged.
+- Benchmark (`agents-as-tools-v2` vs `mtp-post`): no systematic regression;
+  the honest cost is ~0.5-1 s on the *shortest* direct/shim queries (agent-
+  tool definitions in the prompt + tool-capable decoding), within
+  reasoning-length noise elsewhere. Known boundary: a multi-domain query
+  routed to a *specialist* still gets a single-domain answer — peer
+  handoffs are the next step if that bites.
+
 ## 5. Open items & watch list
 - **Per-request reasoning budgets**: llama.cpp ignores request-level
   overrides today. If that lands, give research `-1` and dispatch `64`.

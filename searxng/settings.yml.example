@@ -1,13 +1,39 @@
 # SearXNG configuration — TEMPLATE
 #
-# Copy this file to settings.yml and give it a unique secret_key:
+# Copy settings.yml.example to settings.yml and give it a unique secret_key:
 #   cp searxng/settings.yml.example searxng/settings.yml
 #   sed -i "s/ultrasecretkey/$(openssl rand -hex 32)/" searxng/settings.yml
 #
 # searxng/settings.yml is gitignored, so your real secret_key never gets
 # committed. SearXNG refuses to start while secret_key is "ultrasecretkey".
-
-use_default_settings: true
+#
+# ── Engine policy (rewritten 2026-06-12 after the aol-only incident) ───────
+# `keep_only` is the supported way to run ONLY these engines. The previous
+# config used `use_default_settings: true` with a hand-written enable list,
+# which silently merged SearXNG's ~84 default engines on top — junk engines
+# (aol, karmasearch, …) polluted results, and when agent traffic got the
+# good engines CAPTCHA-suspended, only aol survived. Result: chicken-recipe
+# queries returning Microsoft 365 admin docs.
+#
+# Engine selection rationale (LLM-backend guidance, docs.searxng.org):
+#   - bing + brave: most reliable for single-IP self-hosting
+#   - qwant + mojeek: independent indexes, less CAPTCHA-prone — spread load
+#   - google + duckduckgo: best relevance, most CAPTCHA-prone; drop them
+#     from keep_only if logs show them benched repeatedly
+#   - wikipedia + wikidata: reference lookups
+# Rule of thumb: an engine that consistently returns junk or empty results
+# skews the merged list — REMOVE it rather than letting it ride.
+use_default_settings:
+  engines:
+    keep_only:
+      - google
+      - bing
+      - brave
+      - duckduckgo
+      - qwant
+      - mojeek
+      - wikipedia
+      - wikidata
 
 general:
   debug: false
@@ -19,6 +45,16 @@ search:
   formats:
     - html
     - json
+  # How long an engine stays benched after an error (seconds). Defaults
+  # bench for up to a day — on a single-household instance that's how we
+  # ended up aol-only. Short benches: a CAPTCHA wave during one research
+  # session shouldn't take an engine out for the rest of the day.
+  suspended_times:
+    SearxEngineAccessDenied: 3600
+    SearxEngineCaptcha: 1800
+    SearxEngineTooManyRequests: 900
+    cf_SearxEngineCaptcha: 1800
+    cf_SearxEngineAccessDenied: 3600
 
 server:
   # Replace with a unique random value — see the header of this file.
@@ -27,51 +63,21 @@ server:
   port: 8080
   public_instance: false
 
+# Outbound request tuning for agent-style burst traffic (LLM grounding
+# guidance): give engines up to 6s, pool connections, use http2.
+outgoing:
+  request_timeout: 6.0
+  max_request_timeout: 12.0
+  pool_connections: 100
+  pool_maxsize: 50
+  enable_http2: true
+
+# keep_only keeps an engine but preserves its default disabled flag —
+# these three are disabled in SearXNG's defaults, so enable explicitly.
 engines:
-  - name: google
-    engine: google
-    categories: general
-    disabled: false
-
   - name: bing
-    engine: bing
-    categories: general
     disabled: false
-
-  - name: wikipedia
-    engine: wikipedia
-    categories: general
+  - name: qwant
     disabled: false
-
-  - name: duckduckgo
-    engine: duckduckgo
-    categories: general
+  - name: mojeek
     disabled: false
-
-# Disable everything else
-  - name: google images
-    engine: google_images
-    disabled: true
-
-  - name: google news
-    engine: google_news
-    disabled: true
-
-  - name: bing images
-    engine: bing_images
-    disabled: true
-
-  - name: bing news
-    engine: bing_news
-    disabled: true
-
-  - name: reddit
-    engine: reddit
-    disabled: true
-
-  - name: twitter
-    engine: twitter
-    disabled: true
-
-categories_as_tabs:
-  general: {}

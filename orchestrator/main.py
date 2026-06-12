@@ -44,12 +44,10 @@ app = FastAPI(title="Kronk Orchestrator", lifespan=lifespan)
 COORDINATOR_MODEL = agents.COORDINATOR_MODEL
 STATE_FILE        = Path("/data/kronk_state.md")
 
-_DEFAULT_SYSTEM_PROMPT = (
-    "You are Kronk, a helpful home assistant. Be direct and concise. "
-    "Do not use action text, emotes, or filler expressions. "
-    "Never fabricate real-time information — if no tool result is present, say so plainly."
-)
-SYSTEM_PROMPT = os.getenv("SYSTEM_PROMPT", _DEFAULT_SYSTEM_PROMPT)
+# NOTE (2026-06-12): the coordinator persona moved to agents.COORDINATOR as
+# part of agents-as-tools — its old "say so plainly" instruction conflicted
+# with "delegate when you need live data". The SYSTEM_PROMPT env var is no
+# longer read; persona changes happen in agents.py now.
 
 # Conversation history lives in sessions.py (SQLite-backed, per-client).
 # The web UI is a single fixed session; voice clients carry their own history
@@ -242,25 +240,20 @@ async def message(req: MessageRequest):
             history = sessions.window(session_id)
             history.append({"role": "user", "content": req.text})
             try:
-                # Persona messages used for the coordinator synthesis path.
-                system_parts = [SYSTEM_PROMPT, agents.kronk_facts()]
-                # Weather context rides along on the coordinator path too:
-                # the router sometimes sends bare follow-ups ("what about next
-                # Tuesday?") direct, and a coordinator without data invents
-                # forecasts (2026-06-12 incident). ~400 tokens, cache-friendly
-                # (changes hourly), beats a hallucination.
+                # Extra system context for the coordinator run. The persona
+                # itself lives in agents.COORDINATOR; these are the dynamic
+                # parts: weather block (2026-06-12 incident — misrouted
+                # follow-ups must not invent forecasts), shared state, and
+                # uploaded-file contexts.
+                extra_parts: list[str] = []
                 wx_ctx = await agents.weather_context()
                 if wx_ctx:
-                    system_parts.append(wx_ctx)
+                    extra_parts.append(wx_ctx)
                 state = _load_state()
                 if state:
-                    system_parts.append(f"[Kronk shared state]\n{state}")
+                    extra_parts.append(f"[Kronk shared state]\n{state}")
                 for fc in file_contexts:
-                    system_parts.append(f"[Attached file: {fc['name']}]\n{fc['content']}")
-                persona_messages: list[dict] = [
-                    {"role": "system", "content": "\n\n".join(system_parts)}
-                ]
-                persona_messages.extend(history)
+                    extra_parts.append(f"[Attached file: {fc['name']}]\n{fc['content']}")
 
                 # ── Phase 1: route ────────────────────────────────────────
                 yield f"data: {json.dumps({'stage': 'thinking'})}\n\n"
@@ -277,8 +270,6 @@ async def message(req: MessageRequest):
                 stages.append({"tool": "routing", "s": round(time.monotonic() - t0, 2)})
 
                 # ── Phase 2: specialist agent (if routed to one) ──────────
-                synthesis_messages = list(persona_messages)
-
                 if agent_name in agents.AGENTS:
                     agent_cfg = agents.AGENTS[agent_name]
                     yield f"data: {json.dumps({'stage': f'fetching_delegate_{agent_name}'})}\n\n"
@@ -339,88 +330,52 @@ async def message(req: MessageRequest):
                         emit("request_complete", route=agent_name, duration_s=round(time.monotonic() - t_request, 2))
                         return
 
-                    # Agent errored — fall through to coordinator with the error context.
-                    synthesis_messages = [
-                        {"role": "system", "content": (
-                            persona_messages[0]["content"]
-                            + f"\n\n[{agent_name} specialist result — use this to answer]\n{agent_error}"
-                        )}
-                    ] + persona_messages[1:]
+                    # Agent errored — fall through to the coordinator with
+                    # the error attached as context.
+                    extra_parts.append(
+                        f"[{agent_name} specialist result — use this to answer]\n{agent_error}"
+                    )
 
-                # ── Phase 3: coordinator synthesis (direct answers + agent failures) ──
+                # ── Phase 3: coordinator (direct answers, delegation via ask_*,
+                #    and specialist-failure fallback). Same run_stream loop as
+                #    the agents; telemetry/metrics come from inside it.
                 t_llm_start = time.monotonic()
                 yield f"data: {json.dumps({'stage': 'waiting'})}\n\n"
 
-                coord_gen = trace.child_generation(
-                    "llm.coordinator", model=model, input=synthesis_messages,
-                )
-                stream_prompt_tokens = 0
-                stream_completion_tokens = 0
-                async with httpx.AsyncClient(timeout=None) as client:
-                    async with client.stream(
-                        "POST",
-                        f"{LLM_SERVICE_URL}/v1/chat/completions",
-                        json={
-                            "model":          model,
-                            "messages":       synthesis_messages,
-                            "stream":         True,
-                            "stream_options": {"include_usage": True},
-                        },
-                    ) as resp:
-                        async for line in resp.aiter_lines():
-                            if not line.startswith("data:"):
-                                continue
-                            payload = line[len("data:"):].strip()
-                            if payload == "[DONE]":
-                                t_done = time.monotonic()
-                                coord_gen.end(
-                                    output="".join(assistant_reply),
-                                    usage={
-                                        "input":  stream_prompt_tokens,
-                                        "output": stream_completion_tokens,
-                                    },
-                                )
-                                ttft_ms = round((t_first_token - t_llm_start) * 1000, 1) if t_first_token else None
-                                gen_ns = int((t_done - (t_first_token or t_llm_start)) * 1e9)
-                                metrics.record(
-                                    agent="coordinator",
-                                    model=model,
-                                    prompt_tokens=stream_prompt_tokens,
-                                    completion_tokens=stream_completion_tokens,
-                                    eval_duration_ns=gen_ns,
-                                    ttft_ms=ttft_ms,
-                                )
-                                timing: dict = {"model": model}
-                                if stages:
-                                    timing["stages"] = stages
-                                if t_first_token is not None:
-                                    timing["ttft_s"] = round(t_first_token - t_llm_start, 2)
-                                    timing["generation_s"] = round(t_done - t_first_token, 2)
-                                yield f"data: {json.dumps({'timing': timing})}\n\n"
-                                yield "data: [DONE]\n\n"
-                                emit("request_complete", route=agent_name, duration_s=round(time.monotonic() - t_request, 2))
-                                break
-                            try:
-                                chunk = json.loads(payload)
-                                if chunk.get("usage"):
-                                    stream_prompt_tokens = chunk["usage"].get("prompt_tokens", 0)
-                                    stream_completion_tokens = chunk["usage"].get("completion_tokens", stream_completion_tokens)
-                                    continue
-                                choices = chunk.get("choices")
-                                if not choices:
-                                    continue
-                                token = choices[0].get("delta", {}).get("content", "")
-                                if token:
-                                    if first_token:
-                                        t_first_token = time.monotonic()
-                                        coord_gen.first_token()
-                                        yield f"data: {json.dumps({'stage': 'generating'})}\n\n"
-                                        first_token = False
-                                    stream_completion_tokens += 1
-                                    assistant_reply.append(token)
-                                    yield f"data: {json.dumps({'token': token})}\n\n"
-                            except json.JSONDecodeError:
-                                continue
+                async for ev in agents.run_stream(
+                    agents.COORDINATOR,
+                    req.text,
+                    [],  # no embedded context — history goes in as real messages
+                    system_extra="\n\n".join(extra_parts) or None,
+                    history_messages=history[:-1],
+                ):
+                    etype = ev.get("type")
+                    if etype == "narration":
+                        # Delegation visibility: "asking the research agent..."
+                        yield f"data: {json.dumps({'narration': ev['text']})}\n\n"
+                    elif etype == "token":
+                        if first_token:
+                            t_first_token = time.monotonic()
+                            yield f"data: {json.dumps({'stage': 'generating'})}\n\n"
+                            yield f"data: {json.dumps({'narration': ''})}\n\n"
+                            first_token = False
+                        assistant_reply.append(ev["text"])
+                        yield f"data: {json.dumps({'token': ev['text']})}\n\n"
+                    elif etype == "error":
+                        err = ev["message"]
+                        assistant_reply.append(err)
+                        yield f"data: {json.dumps({'token': err})}\n\n"
+
+                t_done = time.monotonic()
+                timing: dict = {"model": agents.COORDINATOR.model}
+                if stages:
+                    timing["stages"] = stages
+                if t_first_token is not None:
+                    timing["ttft_s"] = round(t_first_token - t_llm_start, 2)
+                    timing["generation_s"] = round(t_done - t_first_token, 2)
+                yield f"data: {json.dumps({'timing': timing})}\n\n"
+                yield "data: [DONE]\n\n"
+                emit("request_complete", route=agent_name, duration_s=round(time.monotonic() - t_request, 2))
 
             finally:
                 telemetry.end_pipeline(
@@ -535,7 +490,10 @@ async def _kronk_pipeline_tokens(text: str, model: str, context: list[dict] | No
                 yield {"type": "error", "text": f"Error: router unreachable ({e})."}
                 return
 
-            synth_msgs: list[dict] | None = None
+            extra_parts: list[str] = []
+            wx_ctx = await agents.weather_context()
+            if wx_ctx:
+                extra_parts.append(wx_ctx)
 
             if agent_name in agents.AGENTS:
                 agent_cfg = agents.AGENTS[agent_name]
@@ -550,64 +508,25 @@ async def _kronk_pipeline_tokens(text: str, model: str, context: list[dict] | No
                         agent_error = ev["message"]
                 if agent_error is None:
                     return
-                shim_system = SYSTEM_PROMPT + "\n\n" + agents.kronk_facts()
-                wx_ctx = await agents.weather_context()
-                if wx_ctx:
-                    shim_system += "\n\n" + wx_ctx
-                synth_msgs = [
-                    {"role": "system", "content": (
-                        shim_system
-                        + f"\n\n[{agent_name} specialist result — use this to answer]\n{agent_error}"
-                    )},
-                    *context,
-                    {"role": "user", "content": text},
-                ]
-            else:
-                shim_system = SYSTEM_PROMPT + "\n\n" + agents.kronk_facts()
-                wx_ctx = await agents.weather_context()
-                if wx_ctx:
-                    shim_system += "\n\n" + wx_ctx
-                synth_msgs = [
-                    {"role": "system", "content": shim_system},
-                    *context,
-                    {"role": "user", "content": text},
-                ]
+                extra_parts.append(
+                    f"[{agent_name} specialist result — use this to answer]\n{agent_error}"
+                )
 
-            coord_gen = trace.child_generation(
-                "llm.coordinator", model=model, input=synth_msgs,
-            )
-            coord_parts: list[str] = []
-            try:
-                async with httpx.AsyncClient(timeout=None) as client:
-                    async with client.stream(
-                        "POST",
-                        f"{LLM_SERVICE_URL}/v1/chat/completions",
-                        json={"model": model, "messages": synth_msgs, "stream": True},
-                    ) as resp:
-                        async for line in resp.aiter_lines():
-                            if not line.startswith("data:"):
-                                continue
-                            payload = line[len("data:"):].strip()
-                            if payload == "[DONE]":
-                                break
-                            try:
-                                chunk = json.loads(payload)
-                            except json.JSONDecodeError:
-                                continue
-                            choices = chunk.get("choices") or []
-                            if not choices:
-                                continue
-                            token = choices[0].get("delta", {}).get("content", "")
-                            if token:
-                                coord_gen.first_token()
-                                coord_parts.append(token)
-                                collected.append(token)
-                                yield {"type": "token", "text": token}
-                coord_gen.end(output="".join(coord_parts))
-            except Exception as e:
-                coord_gen.end(level="ERROR", status_message=str(e)[:200])
-                logger.error("Coordinator stream failed (shim): %s", e)
-                yield {"type": "error", "text": f"\nError: coordinator unreachable ({e})."}
+            # Coordinator run — same loop as /message; can delegate via ask_*.
+            async for ev in agents.run_stream(
+                agents.COORDINATOR,
+                text,
+                [],
+                system_extra="\n\n".join(extra_parts) or None,
+                history_messages=context,
+            ):
+                etype = ev.get("type")
+                if etype == "token":
+                    collected.append(ev["text"])
+                    yield {"type": "token", "text": ev["text"]}
+                elif etype == "error":
+                    logger.error("Coordinator run failed (shim): %s", ev["message"])
+                    yield {"type": "error", "text": f"\n{ev['message']}"}
         finally:
             telemetry.end_pipeline(
                 trace, output="".join(collected) or None, route=agent_name,

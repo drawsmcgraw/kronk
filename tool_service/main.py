@@ -10,6 +10,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import List
 import httpx
+import trafilatura
 from bs4 import BeautifulSoup
 from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
@@ -90,21 +91,47 @@ FETCH_TOKEN_LIMIT = 4000  # ~16000 chars of page text passed to the model
 
 
 def extract_page_text(html: str, token_limit: int = FETCH_TOKEN_LIMIT) -> str:
-    """Extract readable text from HTML, preserving hyperlinks, truncate to token limit."""
-    soup = BeautifulSoup(html, "lxml")
-    # Only strip tags that are pure noise — preserve nav, header, footer for links
-    for tag in soup(["script", "style", "aside"]):
-        tag.decompose()
-    # Convert <a href> to markdown links so the model sees actual URLs
-    for a in soup.find_all("a", href=True):
-        href = a["href"].strip()
-        text = a.get_text(strip=True)
-        if text and href:
-            a.replace_with(f"[{text}]({href})")
-        elif href:
-            a.replace_with(href)
-    text = soup.get_text(separator="\n", strip=True)
-    # Collapse excessive blank lines
+    """Extract the MAIN CONTENT from HTML, truncated to the token budget.
+
+    Primary path is trafilatura (readability-style boilerplate removal):
+    it scores DOM regions by link density / text density / semantic tags and
+    keeps only the content subtree, with in-content links preserved as
+    markdown. Replaces a keep-everything BeautifulSoup pass that spent 79%
+    of the token budget on nav-link markdown and truncated an AllRecipes
+    page before the ingredients (2026-06-12 incident).
+
+    favor_recall: an LLM consumer tolerates extra noise far better than
+    missing content, so bias toward keeping more.
+
+    Fallback: if trafilatura returns nothing (unusual markup), fall back to
+    the old whole-page text pass — degraded beats empty.
+    """
+    text = None
+    try:
+        text = trafilatura.extract(
+            html,
+            include_links=True,
+            include_tables=True,
+            favor_recall=True,
+            output_format="markdown",
+        )
+    except Exception:
+        text = None
+
+    if not text or not text.strip():
+        # Old subtractive pass — keeps everything except script/style/aside.
+        soup = BeautifulSoup(html, "lxml")
+        for tag in soup(["script", "style", "aside"]):
+            tag.decompose()
+        for a in soup.find_all("a", href=True):
+            href = a["href"].strip()
+            a_text = a.get_text(strip=True)
+            if a_text and href:
+                a.replace_with(f"[{a_text}]({href})")
+            elif href:
+                a.replace_with(href)
+        text = soup.get_text(separator="\n", strip=True)
+
     text = re.sub(r'\n{3,}', '\n\n', text)
     # Truncate: ~4 chars per token
     max_chars = token_limit * 4
@@ -282,7 +309,10 @@ _BROWSER_HEADERS = {
     "User-Agent": _BROWSER_UA,
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     "Accept-Language": "en-US,en;q=0.9",
-    "Accept-Encoding": "gzip, deflate, br",
+    # No "br": httpx only decompresses brotli with the optional brotli
+    # package installed — advertising it without that yields mojibake
+    # (community.frame.work served binary garbage, found 2026-06-12).
+    "Accept-Encoding": "gzip, deflate",
     "Upgrade-Insecure-Requests": "1",
 }
 
