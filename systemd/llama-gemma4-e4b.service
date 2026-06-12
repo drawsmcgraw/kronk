@@ -8,8 +8,8 @@ After=default.target
 # Prime suspect in the recurring silent hangs — see
 # docs/incidents/INVESTIGATION_2026-06-09_hangs.md. Vulkan idles correctly
 # (0% / ~7W) at a ~15-20% tok/s cost. Switched 2026-06-09.
-Environment="LD_LIBRARY_PATH=/home/drew/pai/pai_workspace/llama-cpp/llama-b9585-vulkan"
-ExecStart=/home/drew/pai/pai_workspace/llama-cpp/llama-b9585-vulkan/llama-server \
+Environment="LD_LIBRARY_PATH=/home/drew/pai/pai_workspace/llama-cpp/llama-b9611-vulkan"
+ExecStart=/home/drew/pai/pai_workspace/llama-cpp/llama-b9611-vulkan/llama-server \
     -m /opt/models/google/gemma-4-E4B-it-qat-UD-Q4_K_XL.gguf \
     --host 127.0.0.1 \
     --port 11438 \
@@ -18,7 +18,10 @@ ExecStart=/home/drew/pai/pai_workspace/llama-cpp/llama-b9585-vulkan/llama-server
     --ctx-size 32768 \
     --cache-reuse 256 \
     --swa-full \
-    --reasoning-budget 256
+    --reasoning-budget 256 \
+    --model-draft /opt/models/google/gemma-4-E4B-it-qat-assistant-MTP-Q8_0.gguf \
+    --gpu-layers-draft 99 \
+    --spec-type draft-mtp
 Restart=on-failure
 RestartSec=10
 

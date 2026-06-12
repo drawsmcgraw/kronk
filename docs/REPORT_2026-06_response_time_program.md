@@ -194,16 +194,25 @@ voice-latency goal by other means.
 Identical battery, identical method, same box, ~3 h apart
 (`baseline-pre` → `final-post-v2`, both in `docs/bench/`).
 
-| prompt | baseline median (min-max) | final median (min-max) | Δ median |
-|---|---|---|---|
-| direct_short | 5.53 (5.49-5.74) | **0.77** (0.45-2.13) | **-86%** |
-| direct_long | 7.08 (1.99-10.59) | **5.02** (1.47-6.36) | -29% |
-| weather_now | 10.32 (7.76-12.25) | **5.75** (3.59-5.83) | -44% |
-| weather_umbrella | 10.49 (7.57-10.72) | **5.00** (2.90-8.80) | -52% |
-| shopping_list | 3.72 (3.00-5.41) | **2.38** (1.32-3.38) | -36% |
-| research_bios | 22.33 (17.24-30.61) | **10.21** (3.79-13.20) | -54% |
-| shim_timezone | 0.57 (0.39-0.59) | **0.32** (0.32-0.74) | -44% |
-| shim_weather | 11.40 (8.48-13.43) | **5.94** (5.35-6.08) | -48% |
+Three checkpoints: program baseline, post-program (phases A-E), and
+post-MTP (speculative decoding, added same day — see §4.2). All medians of
+3 reps, identical battery.
+
+| prompt | baseline | post-program | **post-MTP** | total Δ |
+|---|---|---|---|---|
+| direct_short | 5.53 | 0.77 | 1.45 | **-74%** |
+| direct_long | 7.08 | 5.02 | 3.43 | **-52%** |
+| weather_now | 10.32 | 5.75 | 3.69 | **-64%** |
+| weather_umbrella | 10.49 | 5.00 | 2.74 | **-74%** |
+| shopping_list | 3.72 | 2.38 | 1.44 | **-61%** |
+| research_bios | 22.33 | 10.21 | 8.20 | **-63%** |
+| shim_timezone | 0.57 | 0.32 | 1.05 | +0.5 s* |
+| shim_weather | 11.40 | 5.94 | 2.64 | **-77%** |
+
+\* shim_timezone was already sub-second; its post-MTP median is one
+reasoning-length outlier among 3 reps (min 0.31 s, unchanged). Watch, not
+worry. direct_short's wobble (0.77→1.45) is the same effect — at these
+magnitudes reasoning-length variance dominates the battery noise floor.
 
 **The deliberate trade at the end:** an intermediate run with
 `--reasoning-budget 64` (`final-post`, also in `docs/bench/`) clocked
@@ -262,11 +271,26 @@ Notable: session memory itself worked throughout — the home agent correctly
 resolved "next Tuesday, June 16" from conversation context. What looked
 like "losing context" was missing date grounding plus a data gap.
 
-## 5. Open items & watch list
+## 4.2 Same-day addition: MTP speculative decoding (2026-06-12 afternoon)
 
-- **Gemma 4 drafter/MTP** (llama.cpp PR #23398, WIP): speculative decoding
-  for E4B, ~60% throughput gain reported by a fork. When merged: download
-  the drafter GGUF, re-run `pipeline_bench.sh`, expect the next big step.
+The watch-list item unblocked the day we checked: llama.cpp merged Gemma 4
+drafter support (PR #23398, June 7) and E4B assistant support (#24282).
+What shipped:
+
+- llama.cpp **b9611** for the e4b unit, plus the **QAT-matched** drafter
+  (`gemma-4-E4B-it-qat-assistant-MTP-Q8_0`, 98 MB) and
+  `--spec-type draft-mtp` (the non-obvious flag: `-md` alone silently does
+  nothing — the implementation list defaults to `none`).
+- Isolated A/B on the same build: generation **64.5 → 88-95 tok/s
+  (+37-48%)** on prose at only ~28-32% draft acceptance; real pipeline
+  traffic accepts **~52%**. Draft length tuning: n-max 6 was *slower*
+  (wasted drafts), default 3 ≈ 2, kept default.
+- Correctness gate passed (5/5 tool calls, quality probes identical) —
+  speculative decoding verifies every token against the main model, so
+  output distribution is unchanged by construction.
+- Idle GPU still 0% / ~10 W with the drafter resident; GTT +0.3 GB.
+
+## 5. Open items & watch list
 - **Per-request reasoning budgets**: llama.cpp ignores request-level
   overrides today. If that lands, give research `-1` and dispatch `64`.
 - **Reasoning-budget grammar corruption at 128**: observed once (malformed

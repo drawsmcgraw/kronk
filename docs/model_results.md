@@ -290,3 +290,21 @@ benchmarked sequentially on port 11498 while production stayed up.
 ≥ parity on every quality axis, +15% generation throughput, and QAT's
 training-aware 4-bit is documented closer to bf16 than post-training Q4_K_M.
 Rollback = revert the `-m` path; the old GGUF remains on disk.
+
+## Gemma 4 E4B: MTP speculative decoding (2026-06-12)
+
+llama.cpp b9611 + QAT-matched drafter (`gemma-4-E4B-it-qat-assistant-MTP-Q8_0`,
+98 MB), `--spec-type draft-mtp`, default n-max=3. Same-build A/B isolating MTP:
+
+| | no drafter | MTP armed |
+|---|---|---|
+| Generation (prose, 320 tok) | 64.4-64.5 tok/s | **88-95 tok/s (+37-48%)** |
+| Draft acceptance (prose / real traffic) | — | 28-32% / **52%** |
+| Tool calls (5×) / quality probes | 5/5, 4/4 | 5/5, 4/4 (identical) |
+| Idle GPU / extra GTT | 0% | 0% / +0.3 GB |
+
+n-max tuning: 6 was slower than 3 (wasted drafts at this acceptance); 2 ≈ 3.
+Output quality is provably unchanged — the main model verifies every drafted
+token. **Shipped to production** (`llama-gemma4-e4b.service`).
+Gotcha for future-us: `-md` alone does nothing; `--spec-type draft-mtp` is
+required (default implementation list is `none`, logged only as a warning).
