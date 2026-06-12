@@ -10,14 +10,15 @@ After=default.target
 # (0% / ~7W) at a ~15-20% tok/s cost. Switched 2026-06-09.
 Environment="LD_LIBRARY_PATH=/home/drew/pai/pai_workspace/llama-cpp/llama-b9585-vulkan"
 ExecStart=/home/drew/pai/pai_workspace/llama-cpp/llama-b9585-vulkan/llama-server \
-    -m /opt/models/google/google_gemma-4-E4B-it-Q4_K_M.gguf \
+    -m /opt/models/google/gemma-4-E4B-it-qat-UD-Q4_K_XL.gguf \
     --host 127.0.0.1 \
     --port 11438 \
     -ngl 99 \
     --flash-attn on \
     --ctx-size 32768 \
     --cache-reuse 256 \
-    --swa-full
+    --swa-full \
+    --reasoning-budget 256
 Restart=on-failure
 RestartSec=10
 

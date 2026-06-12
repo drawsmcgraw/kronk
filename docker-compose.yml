@@ -52,6 +52,10 @@ services:
       - ./data:/data
     environment:
       - SEARXNG_URL=http://searxng:8080
+      # Hourly home-forecast cache (served at /weather/cached; the
+      # orchestrator injects it into the home agent's prompt).
+      - HOME_LOCATION=Laurel, MD
+      - WEATHER_REFRESH_SEC=3600
       # HA timer service — `homeassistant` is on host networking, so we reach
       # it from the bridge via host.docker.internal.
       - HA_URL=http://host.docker.internal:8123
@@ -147,6 +151,8 @@ services:
       - DEVOPS_AGENT_MODEL=devstral-2512-q4
       - TALKIE_MODEL=talkie
       - LOCATION=Laurel, MD
+      # Per-client session store (SQLite at /data/sessions.db).
+      - HISTORY_MAX_MESSAGES=40
       # Langfuse tracing (stack: docker-compose.langfuse.yml; keys in .env).
       # Set LANGFUSE_ENABLED=false to switch all instrumentation to no-ops.
       - LANGFUSE_ENABLED=${LANGFUSE_ENABLED:-true}

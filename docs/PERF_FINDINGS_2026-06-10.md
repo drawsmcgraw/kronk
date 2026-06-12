@@ -95,18 +95,23 @@ For rounds that end in tool calls, `tool_calls` arrive at end-of-stream —
 the original code marked TTFT there, inflating TTFT ≈ round duration for
 pure-tool rounds. Fixed in agents.py; TTFT now only marks content tokens.
 
-## Recommendations (not yet applied — operator's call)
+## Recommendations — status as of 2026-06-12
 
-1. **Constrain reasoning, not disable it.** Watch llama.cpp/LiteLLM for a
-   working reasoning-token *budget* (vs the current 0/-1 toggle), or test
-   newer E4B chat templates. The 769-token deliberations are the tail
-   that hurts.
-2. **Voice-path latency target**: for HA voice, consider a "fast path" —
-   home-agent queries answered by a tool-calling-capable small model, E4B
-   reserved for research/coding/finance. Blocked on finding 4.
-3. **Tighten agent answer style** ("one short sentence") — round-2 output
-   is 80-110 tokens ≈ 2s; could be ~40 ≈ 0.8s.
-4. **History cap** (finding 5) — cheap, bounded prompts forever.
+All applied (or superseded) by the response-time program; full details and
+before/after numbers in `docs/REPORT_2026-06_response_time_program.md`:
+
+1. **Constrain reasoning** — APPLIED. llama.cpp b9585 turned out to support
+   true token budgets; `--reasoning-budget 64` shipped after a 64/128/256
+   sweep (15/15 tool calls correct, quality probes identical, no leak).
+2. **Voice fast path via small model** — SUPERSEDED. gemma-3-4b can't emit
+   structured tool calls; instead, weather-context injection removed the
+   tool round entirely for the dominant voice query class (weather), and
+   the Gemma 4 QAT swap bought +15% generation speed for everything else.
+3. **Tighten agent answer style** — APPLIED (home agent, voice-aware
+   phrasing).
+4. **History cap** — APPLIED, as part of the per-client SQLite session store
+   (`orchestrator/sessions.py`): capped windows, boundary-aligned trims,
+   assistant-turn truncation at prompt time.
 
 ## State after this session
 

@@ -269,3 +269,24 @@ produced zero theatrical flags. Ceiling is lower but it punches above its weight
 
 14s+ average TTFT is unacceptable for a home assistant. If you want to keep it, add
 `/no_think` to the system prompt — but at that point qwen2.5:14b is a better choice.
+
+## Gemma 4 E4B: Q4_K_M vs QAT UD-Q4_K_XL (2026-06-12)
+
+Coordinator/agent model refresh after Google's QAT release (2026-06-05).
+Both run on llama.cpp b9585 Vulkan, identical flags (`-ngl 99 --flash-attn on
+--ctx-size 32768 --cache-reuse 256 --swa-full --reasoning-budget 64`),
+benchmarked sequentially on port 11498 while production stayed up.
+
+| | Q4_K_M (PTQ, prior prod) | QAT UD-Q4_K_XL |
+|---|---|---|
+| File size | 4.0 GB | 4.2 GB |
+| Generation tok/s | 55.4-57.1 | **64.4-65.3 (+15%)** |
+| Prompt eval tok/s (small prompts) | 318-599 | 407-522 |
+| Tool-call reliability (weather ×5) | 5/5 | 5/5 |
+| Quality probes (bat/ball trap, capital, umbrella reasoning, km→mi) | 4/4 | 4/4 |
+| Idle GPU after request | 0% | 0% |
+
+**Decision: swapped production to QAT** (`llama-gemma4-e4b.service`).
+≥ parity on every quality axis, +15% generation throughput, and QAT's
+training-aware 4-bit is documented closer to bf16 than post-training Q4_K_M.
+Rollback = revert the `-m` path; the old GGUF remains on disk.

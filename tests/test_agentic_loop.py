@@ -45,10 +45,11 @@ def _fake_open(path, *a, **kw):
 @pytest.fixture(autouse=True)
 def reset_history():
     import orchestrator.main as orch
-    orch.history.clear()
+    import orchestrator.sessions as sessions
+    sessions.clear(orch.WEBUI_SESSION)
     orch.file_contexts.clear()
     yield
-    orch.history.clear()
+    sessions.clear(orch.WEBUI_SESSION)
     orch.file_contexts.clear()
 
 

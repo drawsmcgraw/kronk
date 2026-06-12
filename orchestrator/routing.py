@@ -27,6 +27,18 @@ _TALKIE_PHRASES = re.compile(
     re.IGNORECASE,
 )
 
+# "Clear my history" intent — handled by the transports BEFORE routing (it
+# needs the requesting client's session id, which the router doesn't have).
+# Lives here beside its sibling patterns so all deterministic phrase-matching
+# is in one place. Deliberately strict: bare "start over" alone could be a
+# legitimate request inside a task, so every variant names the conversation.
+CLEAR_HISTORY_RE = re.compile(
+    r"\b(clear|erase|delete|forget|wipe|reset)\s+(my\s+|the\s+|our\s+|this\s+)?"
+    r"(history|conversation|chat( history)?|context)\b"
+    r"|\bstart\s+(over|fresh)\s+(with\s+a\s+)?(new|clean|fresh)\s+(conversation|chat|history)\b",
+    re.IGNORECASE,
+)
+
 # If the user explicitly says not to search / use the research agent, route direct
 # regardless of other signals. Checked before search phrases so "don't search for
 # that" doesn't accidentally match the search-phrase pattern.

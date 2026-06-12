@@ -9,6 +9,8 @@ import os
 import time
 from dataclasses import dataclass, field
 
+import httpx
+
 import llm
 import metrics
 import telemetry
@@ -16,6 +18,36 @@ import tools
 from events import emit
 
 logger = logging.getLogger(__name__)
+
+# Inject the hourly-cached home forecast into the home agent's prompt so
+# weather questions resolve in one LLM round with no tool call (2026-06
+# response-time program). Past this age we omit the injection and the agent
+# falls back to the live get_weather tool.
+WEATHER_CTX_MAX_AGE_S = int(os.getenv("WEATHER_CTX_MAX_AGE_S", "7200"))
+
+
+async def weather_context() -> str | None:
+    """Fresh cached forecast as a prompt block, or None (never raises)."""
+    try:
+        async with httpx.AsyncClient(timeout=2) as client:
+            resp = await client.get(f"{tools.TOOL_SERVICE_URL}/weather/cached")
+        if resp.status_code != 200:
+            return None
+        wx = resp.json()
+        if wx.get("age_s", 1e9) > WEATHER_CTX_MAX_AGE_S:
+            return None
+        age_min = wx["age_s"] // 60
+        return (
+            f"[Weather data for {wx['location']}, fetched {age_min} minutes ago — "
+            "answer weather questions directly from this data. Call get_weather only "
+            "if the user asks about a DIFFERENT location, or about a date beyond "
+            "what this data covers. If a requested date is beyond both, say so "
+            "plainly — never invent forecast values]\n"
+            f"{wx['summary']}"
+        )
+    except Exception as e:
+        logger.debug("weather context unavailable: %s", e)
+        return None
 
 
 def _tool_narration(name: str, args: dict) -> str:
@@ -130,7 +162,8 @@ AGENTS: dict[str, AgentConfig] = {
             "(e.g. '30 seconds' → 0.5, 'an hour and a half' → 90).\n"
             "When the user asks about weather without naming a place, call get_weather "
             "without the location argument — do not ask for clarification, the tool defaults to the home location.\n"
-            "Be brief and direct."
+            "Be brief and direct. Answer in one or two short sentences — your replies are "
+            "often spoken aloud by a voice assistant, so keep them tight."
         ),
         tool_names=["get_weather", "shopping_list_view", "shopping_list_add", "shopping_list_remove", "shopping_list_clear", "query_hottub", "set_timer"],
     ),
@@ -292,15 +325,23 @@ def kronk_facts() -> str:
 
     Single source of truth so a new fact (timezone, household names, …) is
     added once and reaches the router-bypass coordinator path AND every
-    specialist agent.
+    specialist agent. Re-evaluated per request so the date/time stays live.
     """
     location = os.getenv("LOCATION", "Laurel, MD")
+    # Without this the model guesses the date from training data — observed
+    # confidently claiming "next Tuesday" was in October (2026-06-12 incident).
+    now = time.localtime()
+    today = time.strftime("%A, %B %-d, %Y", now)
+    clock = time.strftime("%-I:%M %p %Z", now)
     return (
         "[Kronk ambient facts — assume these unless the user says otherwise]\n"
+        f"- Today is {today}; the local time is {clock}.\n"
         f"- Home location: {location}\n"
         "- Default to this location for weather, news, traffic, time-of-day, etc.\n"
         "  When a location-taking tool is available and the user did not specify "
-        "one, call the tool without the location argument; it will use the home default."
+        "one, call the tool without the location argument; it will use the home default.\n"
+        "- Resolve relative dates (tomorrow, next Tuesday, this weekend) against "
+        "today's date above — never guess the date from memory."
     )
 
 
@@ -320,6 +361,10 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict]):
     agent_tool_defs = agent.tool_defs() or None
 
     system_content = agent.system_prompt + "\n\n" + kronk_facts()
+    if agent.name == "home":
+        wx_ctx = await weather_context()
+        if wx_ctx:
+            system_content += "\n\n" + wx_ctx
     if context:
         ctx_lines = [f"{m['role'].upper()}: {m['content']}" for m in context if m.get("content")]
         system_content += "\n\n[Recent conversation context]\n" + "\n".join(ctx_lines)

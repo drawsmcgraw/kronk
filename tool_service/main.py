@@ -1,10 +1,12 @@
 import asyncio
 import json
+import logging
 import os
 import re
 import subprocess
 import time
 import uuid
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import List
 import httpx
@@ -12,7 +14,58 @@ from bs4 import BeautifulSoup
 from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
 
-app = FastAPI(title="Kronk Tool Service")
+logger = logging.getLogger("tool_service")
+
+# ── home-location weather cache ──────────────────────────────────────────────
+# Refreshed hourly by a background task so the orchestrator can inject fresh
+# forecast data straight into the home agent's prompt — answering weather
+# questions in ONE LLM round with zero tool calls. Part of the 2026-06
+# response-time program (docs/REPORT_2026-06_response_time_program.md).
+HOME_LOCATION = os.getenv("HOME_LOCATION", "Laurel, MD")
+WEATHER_REFRESH_SEC = int(os.getenv("WEATHER_REFRESH_SEC", "3600"))
+WEATHER_CACHE_FILE = Path("/data/weather_cache.json")
+
+_weather_cache: dict = {}  # {"fetched_at": epoch, "location": ..., "data": {...}}
+
+
+async def _refresh_weather_cache() -> None:
+    global _weather_cache
+    data = await _fetch_weather(HOME_LOCATION)
+    _weather_cache = {"fetched_at": time.time(), "location": HOME_LOCATION, "data": data}
+    try:
+        WEATHER_CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
+        WEATHER_CACHE_FILE.write_text(json.dumps(_weather_cache))
+    except OSError as e:
+        logger.warning("weather cache: could not persist: %s", e)
+
+
+async def _weather_refresh_loop() -> None:
+    while True:
+        try:
+            await _refresh_weather_cache()
+            logger.info("weather cache refreshed for %s", HOME_LOCATION)
+        except Exception as e:
+            # Keep stale data; the cached endpoint reports its age and the
+            # orchestrator falls back to the live tool past the staleness cap.
+            logger.warning("weather cache refresh failed (keeping stale): %s", e)
+        await asyncio.sleep(WEATHER_REFRESH_SEC)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global _weather_cache
+    # Warm-start from disk so a restart doesn't lose the cache.
+    try:
+        if WEATHER_CACHE_FILE.exists():
+            _weather_cache = json.loads(WEATHER_CACHE_FILE.read_text())
+    except (OSError, json.JSONDecodeError) as e:
+        logger.warning("weather cache: could not load persisted copy: %s", e)
+    task = asyncio.create_task(_weather_refresh_loop())
+    yield
+    task.cancel()
+
+
+app = FastAPI(title="Kronk Tool Service", lifespan=lifespan)
 
 SEARXNG_URL = os.getenv("SEARXNG_URL", "http://localhost:8080")
 LIST_FILE = Path("/data/shopping_list.json")
@@ -78,8 +131,8 @@ def fmt_period(p: dict) -> str:
     return f"{name}: {temp}°{unit}, {wind} — {body}"
 
 
-@app.get("/weather")
-async def weather(location: str = Query(..., description="City name or city, state/country")):
+async def _fetch_weather(location: str) -> dict:
+    """Geocode + NWS forecast fetch. Shared by /weather and the hourly cache."""
     query = clean_location(location)
     async with httpx.AsyncClient(timeout=15, headers=NWS_HEADERS) as client:
         # Step 1: geocode via Open-Meteo (NWS has no geocoder)
@@ -145,7 +198,10 @@ async def weather(location: str = Query(..., description="City name or city, sta
         )
 
     # Named periods (Today, Tonight, Tomorrow, etc.) — first 6
-    named_periods = [fmt_period(p) for p in periods[:6]]
+    # NWS supplies ~14 periods (7 days, day/night). Use them all — "what
+    # about next Tuesday?" must be answerable from cached/injected data
+    # (2026-06-12 incident: 6 periods covered only ~3 days).
+    named_periods = [fmt_period(p) for p in periods[:14]]
 
     # Active alerts
     alert_strs = []
@@ -168,6 +224,28 @@ async def weather(location: str = Query(..., description="City name or city, sta
         "current": current_str,
         "summary": "\n".join(summary_parts),
         "alerts": alert_strs,
+    }
+
+
+@app.get("/weather")
+async def weather(location: str = Query(..., description="City name or city, state/country")):
+    return await _fetch_weather(location)
+
+
+@app.get("/weather/cached")
+async def weather_cached():
+    """Hourly-refreshed forecast for the home location.
+
+    Returns the cached data plus its age so callers can apply their own
+    staleness policy. 404 only if no fetch has ever succeeded.
+    """
+    if not _weather_cache.get("data"):
+        raise HTTPException(status_code=404, detail="weather cache not yet populated")
+    return {
+        "location": _weather_cache["location"],
+        "fetched_at": _weather_cache["fetched_at"],
+        "age_s": round(time.time() - _weather_cache["fetched_at"]),
+        **_weather_cache["data"],
     }
 
 

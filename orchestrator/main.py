@@ -18,6 +18,7 @@ import agents
 import metrics
 import routing
 import servers
+import sessions
 import telemetry
 import tools
 from events import current_request_id, emit, new_request_id
@@ -31,6 +32,10 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     metrics.init_db()
+    sessions.init_db()
+    pruned = sessions.prune_idle()
+    if pruned:
+        logger.info("sessions: pruned %d idle messages at startup", pruned)
     yield
 
 
@@ -46,8 +51,10 @@ _DEFAULT_SYSTEM_PROMPT = (
 )
 SYSTEM_PROMPT = os.getenv("SYSTEM_PROMPT", _DEFAULT_SYSTEM_PROMPT)
 
-# In-memory conversation history (wiped on restart)
-history: list[dict] = []
+# Conversation history lives in sessions.py (SQLite-backed, per-client).
+# The web UI is a single fixed session; voice clients carry their own history
+# in each request (HA resends the conversation) and never touch the store.
+WEBUI_SESSION = "webui"
 
 # Uploaded file contexts — injected as system messages on every request
 file_contexts: list[dict] = []
@@ -190,11 +197,30 @@ async def health_probe():
 class MessageRequest(BaseModel):
     text: str
     model: str | None = None
+    session_id: str | None = None  # defaults to the web UI session
+
+
+def _clear_history_stream(session_id: str):
+    """SSE confirmation for a spoken/typed 'clear my history' request."""
+    async def stream():
+        sessions.clear(session_id)
+        if session_id == WEBUI_SESSION:
+            file_contexts.clear()
+        emit("history_cleared", session=session_id)
+        yield f"data: {json.dumps({'token': 'Done — fresh start.'})}\n\n"
+        yield "data: [DONE]\n\n"
+    return StreamingResponse(stream(), media_type="text/event-stream")
 
 
 @app.post("/message")
 async def message(req: MessageRequest):
     model = req.model or COORDINATOR_MODEL
+    session_id = req.session_id or WEBUI_SESSION
+
+    # Deterministic pre-route intercept: same behavior as the UI's clear
+    # button, reachable by voice/text ("clear my history").
+    if routing.CLEAR_HISTORY_RE.search(req.text):
+        return _clear_history_stream(session_id)
 
     async def stream():
         rid = new_request_id()
@@ -211,11 +237,21 @@ async def message(req: MessageRequest):
             trace = telemetry.start_pipeline(
                 "pipeline.message", req.text, rid=rid, tags=["transport:webui"],
             )
-            history_snapshot = len(history)
+            # Capped, boundary-aligned window — prompt order stays append-only
+            # so llama.cpp's prompt cache (--swa-full) reuses the prefix.
+            history = sessions.window(session_id)
             history.append({"role": "user", "content": req.text})
             try:
                 # Persona messages used for the coordinator synthesis path.
                 system_parts = [SYSTEM_PROMPT, agents.kronk_facts()]
+                # Weather context rides along on the coordinator path too:
+                # the router sometimes sends bare follow-ups ("what about next
+                # Tuesday?") direct, and a coordinator without data invents
+                # forecasts (2026-06-12 incident). ~400 tokens, cache-friendly
+                # (changes hourly), beats a hallucination.
+                wx_ctx = await agents.weather_context()
+                if wx_ctx:
+                    system_parts.append(wx_ctx)
                 state = _load_state()
                 if state:
                     system_parts.append(f"[Kronk shared state]\n{state}")
@@ -392,17 +428,18 @@ async def message(req: MessageRequest):
                     output="".join(assistant_reply) or None,
                     route=agent_name,
                 )
+                # Persist the exchange only when an answer was produced —
+                # a failed turn leaves the stored conversation untouched.
                 if assistant_reply:
-                    history.append({"role": "assistant", "content": "".join(assistant_reply)})
-                else:
-                    del history[history_snapshot:]
+                    sessions.append(session_id, "user", req.text)
+                    sessions.append(session_id, "assistant", "".join(assistant_reply))
 
     return StreamingResponse(stream(), media_type="text/event-stream")
 
 
 @app.get("/history")
 async def get_history():
-    return {"history": history}
+    return {"history": sessions.window(WEBUI_SESSION)}
 
 
 # ── External API shims: OpenAI + Ollama ──────────────────────────────────────
@@ -413,10 +450,10 @@ async def get_history():
 #   - Ollama:                   /api/chat, /api/tags, /api/version, /api/show
 #
 # Design choices:
-#   - Stateless. The shims do NOT touch the global `history` or
-#     `file_contexts` so external callers can't pollute the chat-UI state.
-#   - Only the last user message is used. Router and agents don't yet take
-#     conversation context; multi-turn follow-ups would need a refactor.
+#   - Stateless server-side: the shims never touch the web UI session or
+#     `file_contexts`. Conversation context comes from the CLIENT's message
+#     array (HA's Ollama integration resends the whole conversation each
+#     call), flowing into the router, agents, and coordinator synthesis.
 #   - Client-supplied `model` is ignored — Kronk picks its own model per
 #     agent. The shims report COORDINATOR_MODEL in response metadata so
 #     strict clients don't choke.
@@ -445,15 +482,45 @@ class _OpenAIChatRequest(BaseModel):
         extra = "allow"
 
 
-async def _kronk_pipeline_tokens(text: str, model: str):
+def _shim_context(messages, current_text: str) -> list[dict]:
+    """Prior user/assistant turns from a shim request's message array.
+
+    HA's Ollama integration resends the whole conversation each call
+    (verified against HA source 2026-06-12) — honoring it gives voice
+    clients real multi-turn memory with no server-side store. System
+    messages are dropped (Kronk owns its own persona) and the current user
+    message is excluded.
+    """
+    ctx = [
+        {"role": m.role, "content": m.content}
+        for m in messages
+        if m.role in ("user", "assistant") and m.content
+    ]
+    if ctx and ctx[-1]["role"] == "user" and ctx[-1]["content"] == current_text:
+        ctx = ctx[:-1]
+    return ctx
+
+
+async def _kronk_pipeline_tokens(text: str, model: str, context: list[dict] | None = None):
     """Transport-agnostic core pipeline.
 
+    context: prior conversation turns supplied by the client (voice path).
     Yields semantic events:
       {"type": "token", "text": "..."}   — one token of assistant content
       {"type": "error", "text": "..."}   — fatal failure; downstream should
                                            still emit a clean terminator
     Caller is responsible for transport framing (OpenAI SSE / Ollama NDJSON).
     """
+    context = context or []
+
+    # Voice "clear my history": confirm and stop. There is no Kronk-side
+    # store for shim clients (HA owns and resends voice history; its window
+    # expires between conversations), so confirmation is the whole job.
+    if routing.CLEAR_HISTORY_RE.search(text):
+        emit("history_cleared", session="shim")
+        yield {"type": "token", "text": "Done — fresh start."}
+        return
+
     async with _llm_lock:
         trace = telemetry.start_pipeline(
             "pipeline.shim", text, rid=current_request_id(), tags=["transport:shim"],
@@ -462,7 +529,7 @@ async def _kronk_pipeline_tokens(text: str, model: str):
         agent_name = "?"
         try:
             try:
-                agent_name = await routing.classify(text, [])
+                agent_name = await routing.classify(text, context)
             except Exception as e:
                 logger.error("Router failed (shim): %s", e)
                 yield {"type": "error", "text": f"Error: router unreachable ({e})."}
@@ -473,7 +540,8 @@ async def _kronk_pipeline_tokens(text: str, model: str):
             if agent_name in agents.AGENTS:
                 agent_cfg = agents.AGENTS[agent_name]
                 agent_error: str | None = None
-                async for ev in agents.run_stream(agent_cfg, text, []):
+                # Same recent-turn window the /message path gives agents.
+                async for ev in agents.run_stream(agent_cfg, text, context[-5:]):
                     etype = ev.get("type")
                     if etype == "token":
                         collected.append(ev["text"])
@@ -482,16 +550,26 @@ async def _kronk_pipeline_tokens(text: str, model: str):
                         agent_error = ev["message"]
                 if agent_error is None:
                     return
+                shim_system = SYSTEM_PROMPT + "\n\n" + agents.kronk_facts()
+                wx_ctx = await agents.weather_context()
+                if wx_ctx:
+                    shim_system += "\n\n" + wx_ctx
                 synth_msgs = [
                     {"role": "system", "content": (
-                        SYSTEM_PROMPT + "\n\n" + agents.kronk_facts()
+                        shim_system
                         + f"\n\n[{agent_name} specialist result — use this to answer]\n{agent_error}"
                     )},
+                    *context,
                     {"role": "user", "content": text},
                 ]
             else:
+                shim_system = SYSTEM_PROMPT + "\n\n" + agents.kronk_facts()
+                wx_ctx = await agents.weather_context()
+                if wx_ctx:
+                    shim_system += "\n\n" + wx_ctx
                 synth_msgs = [
-                    {"role": "system", "content": SYSTEM_PROMPT + "\n\n" + agents.kronk_facts()},
+                    {"role": "system", "content": shim_system},
+                    *context,
                     {"role": "user", "content": text},
                 ]
 
@@ -547,19 +625,21 @@ def _openai_chunk(rid: str, model: str, delta: dict, finish_reason: str | None =
     return f"data: {json.dumps(payload)}\n\n"
 
 
-async def _openai_pipeline_stream(text: str, model: str, rid: str):
+async def _openai_pipeline_stream(text: str, model: str, rid: str,
+                                  context: list[dict] | None = None):
     """OpenAI Chat Completions SSE framing around the core pipeline."""
     yield _openai_chunk(rid, model, {"role": "assistant", "content": ""})
-    async for ev in _kronk_pipeline_tokens(text, model):
+    async for ev in _kronk_pipeline_tokens(text, model, context):
         yield _openai_chunk(rid, model, {"content": ev["text"]})
     yield _openai_chunk(rid, model, {}, finish_reason="stop")
     yield "data: [DONE]\n\n"
 
 
-async def _ollama_pipeline_stream(text: str, model: str):
+async def _ollama_pipeline_stream(text: str, model: str,
+                                  context: list[dict] | None = None):
     """Ollama /api/chat NDJSON framing around the core pipeline."""
     created = time.strftime("%Y-%m-%dT%H:%M:%S.000000000Z", time.gmtime())
-    async for ev in _kronk_pipeline_tokens(text, model):
+    async for ev in _kronk_pipeline_tokens(text, model, context):
         chunk = {
             "model":      model,
             "created_at": created,
@@ -590,16 +670,17 @@ async def openai_chat_completions(req: _OpenAIChatRequest):
     text = user_msgs[-1].content
     model = COORDINATOR_MODEL  # shim ignores client-requested model name
     rid = f"chatcmpl-{new_request_id()}"
+    context = _shim_context(req.messages, text)
 
     if req.stream:
         return StreamingResponse(
-            _openai_pipeline_stream(text, model, rid),
+            _openai_pipeline_stream(text, model, rid, context),
             media_type="text/event-stream",
         )
 
     # Non-streaming: collect deltas and return a single chat.completion object.
     parts: list[str] = []
-    async for line in _openai_pipeline_stream(text, model, rid):
+    async for line in _openai_pipeline_stream(text, model, rid, context):
         if not line.startswith("data:"):
             continue
         payload = line[len("data:"):].strip()
@@ -713,15 +794,16 @@ async def ollama_chat(req: _OllamaChatRequest):
         raise HTTPException(400, "no user message with content")
     text = user_msgs[-1].content
     model = COORDINATOR_MODEL
+    context = _shim_context(req.messages, text)
 
     if req.stream:
         return StreamingResponse(
-            _ollama_pipeline_stream(text, model),
+            _ollama_pipeline_stream(text, model, context),
             media_type="application/x-ndjson",
         )
 
     parts: list[str] = []
-    async for line in _ollama_pipeline_stream(text, model):
+    async for line in _ollama_pipeline_stream(text, model, context):
         try:
             obj = json.loads(line)
         except json.JSONDecodeError:
@@ -746,7 +828,7 @@ async def ollama_chat(req: _OllamaChatRequest):
 
 @app.delete("/history")
 async def clear_history():
-    history.clear()
+    sessions.clear(WEBUI_SESSION)
     file_contexts.clear()
     return {"status": "cleared"}
 
