@@ -6,6 +6,7 @@ valid-route set, and the /api/agents roster are all derived from it.
 import json
 import logging
 import os
+import re
 import time
 from dataclasses import dataclass, field
 
@@ -102,6 +103,10 @@ class AgentConfig:
     system_prompt: str
     tool_names: list[str]
     model: str = field(default="")
+    # Tool-use round budget. Research needs depth (rank → fetch → enumerate
+    # → per-item lookups); single-tool agents don't (2026-06-12 budget-cliff
+    # incident: a correct 4-step plan died at round 3).
+    max_rounds: int = field(default=MAX_TOOL_ROUNDS)
 
     def __post_init__(self):
         if not self.model:
@@ -136,6 +141,12 @@ AGENTS: dict[str, AgentConfig] = {
         probe="tools",
         system_prompt=(
             "You are Kronk's research specialist. Answer questions requiring current information.\n"
+            "Before your first tool call, briefly decide the full sequence of lookups the "
+            "question needs — multi-part questions usually need several.\n"
+            "You have a budget of 5 tool-use rounds per question. IMPORTANT: when your "
+            "remaining lookups are independent of each other (for example, one search per "
+            "country in a list you just found), issue them ALL as multiple tool calls in a "
+            "single response — that costs one round instead of many.\n"
             "For queries without a URL: call web_search, then call fetch_url on the single most "
             "relevant URL to get full page content. You may refine the search with a different "
             "query if the first results are weak. Skip fetch_url only if the snippets already "
@@ -148,6 +159,7 @@ AGENTS: dict[str, AgentConfig] = {
         ),
         tool_names=["web_search", "fetch_url"],
         model=RESEARCH_AGENT_MODEL,
+        max_rounds=5,
     ),
     "home": AgentConfig(
         name="home",
@@ -462,10 +474,10 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
     last_round_text = ""
 
     try:
-        # Tool-using rounds: up to MAX_TOOL_ROUNDS streaming calls with tools enabled.
+        # Tool-using rounds: up to agent.max_rounds streaming calls with tools enabled.
         # If a round ends without tool_calls, we're done — content already streamed.
         # If all rounds produce tool_calls, fall through to forced synthesis below.
-        for round_idx in range(MAX_TOOL_ROUNDS):
+        for round_idx in range(agent.max_rounds):
             round_content: list[str] = []
             round_tool_calls: list[dict] = []
             t_llm = time.monotonic()
@@ -573,19 +585,33 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
                     "content":      result,
                 })
 
-        # Tool budget exhausted: one final streaming call with tools disabled to force synthesis.
+        # Tool budget exhausted: one final call with tools disabled to force
+        # synthesis. Two guardrails from the 2026-06-12 budget-cliff incident
+        # (a mid-plan model, silently stripped of tools, emitted raw
+        # tool-call syntax as its "answer"):
+        #   1. Tell the model what just happened and what to do instead.
+        #   2. Buffer the output (this path is rare; streaming matters less
+        #      than correctness) and scrub leaked tool-call syntax.
+        messages.append({
+            "role": "user",
+            "content": (
+                "[Your tool budget for this question is exhausted — no more tool "
+                "calls are possible. Using ONLY the information gathered above, "
+                "give your best final answer now. If parts are missing, say which "
+                "parts you could not look up. Do not write tool-call syntax.]"
+            ),
+        })
         t_llm = time.monotonic()
         final_content: list[str] = []
         gen = agent_span.child_generation(
             f"llm.{agent.model}", model=agent.model, input=messages,
-            metadata={"round": MAX_TOOL_ROUNDS + 1, "phase": "synthesis_forced"},
+            metadata={"round": agent.max_rounds + 1, "phase": "synthesis_forced"},
         )
         try:
             async for chunk in llm.stream(messages, agent.model, tools=None):
                 if "token" in chunk:
                     gen.first_token()
                     final_content.append(chunk["token"])
-                    yield {"type": "token", "text": chunk["token"]}
                 elif "usage" in chunk:
                     last_usage = chunk["usage"]
         except Exception as e:
@@ -596,8 +622,20 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
             yield {"type": "error", "message": f"[{agent.name} agent error: {e}]"}
             return
 
+        final_text = "".join(final_content)
+        if re.search(r"<\|?/?tool_call|<start_of_function_call", final_text):
+            emit("tool_syntax_leak", agent=agent.name, fragment=final_text[:120])
+            logger.warning("Agent '%s' leaked tool-call syntax in forced synthesis; scrubbed", agent.name)
+            final_text = (
+                "I ran out of research steps before completing every lookup. "
+                "Here is what I confirmed so far — ask me to continue for the rest."
+            )
+        if final_text:
+            yield {"type": "token", "text": final_text}
+        final_content = [final_text] if final_text else []
+
         gen.end(
-            output="".join(final_content),
+            output=final_text,
             usage={
                 "input":  last_usage.get("prompt_tokens", 0),
                 "output": last_usage.get("completion_tokens", 0),

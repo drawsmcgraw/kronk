@@ -444,3 +444,41 @@ def test_live_message_returns_stream():
                 saw_token = True
                 break
     assert saw_token
+
+
+@pytest.mark.asyncio
+async def test_forced_synthesis_scrubs_leaked_tool_syntax():
+    """Budget-cliff guardrail (2026-06-12): if the model emits tool-call
+    syntax after its tools are stripped, the agent must scrub it and tell
+    the user honestly instead of streaming raw syntax."""
+    import agents
+
+    calls = {"n": 0}
+
+    async def fake_stream(messages, model, tools=None):
+        calls["n"] += 1
+        if tools is not None:
+            # Every budgeted round burns the budget with a tool call.
+            yield {"tool_calls": [
+                {"id": f"c{calls['n']}", "function": {"name": "query_health",
+                 "arguments": {"metric": f"m{calls['n']}"}}}
+            ]}
+            yield {"usage": {}}
+        else:
+            # Forced synthesis: the model tries to keep tool-calling as text.
+            yield {"token": "<|tool_call>call:web_search{query:heads of state}<tool_call|>"}
+            yield {"usage": {}}
+
+    async def fake_execute(name, args):
+        return "partial data"
+
+    agent = agents.AGENTS["health"]
+    with patch("agents.llm.stream", new=fake_stream), \
+         patch("agents.tools.execute", new=fake_execute):
+        events = [ev async for ev in agents.run_stream(agent, "multi-step question", [])]
+
+    tokens = "".join(e["text"] for e in events if e["type"] == "token")
+    assert "tool_call" not in tokens
+    assert "ran out of research steps" in tokens
+    # The closure message must have been injected before the final call.
+    assert calls["n"] == agent.max_rounds + 1
