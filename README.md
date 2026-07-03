@@ -195,7 +195,7 @@ The `AGENTS` dict in `orchestrator/agents.py` is authoritative.
 |---|---|---|---|
 | `health` | `gemma-4-e4b` | `query_health` | Garmin/Withings: sleep, HRV, weight, steps, activities, resting HR, body battery |
 | `research` | `gemma-4-e4b` | `web_search`, `fetch_url` | Live/current info — news, prices, recent releases |
-| `home` | `gemma-4-e4b` | `get_weather`, `shopping_list_*`, `query_hottub` | Weather, shopping list, hot tub status |
+| `home` | `gemma-4-e4b` | `get_weather`, `shopping_list_*`, `query_hottub`, `set_timer`, `play_music` | Weather, shopping list, hot tub, timers, music |
 | `assistant` | `gemma-4-e4b` | `get_kronk_context`, `generate_diagram` | Kronk's own architecture; Graphviz diagrams |
 | `finance` | `gemma-4-e4b` | `query_finances` | Search uploaded financial PDFs |
 | `coding` | `devstral-2512-q4` | `web_search`, `fetch_url` | Writing/debugging code |
@@ -206,9 +206,16 @@ The `AGENTS` dict in `orchestrator/agents.py` is authoritative.
 
 `get_weather` (NWS), `web_search` (SearXNG), `fetch_url`, `query_health`,
 `query_finances`, `query_hottub`, `shopping_list_{view,add,remove,clear}`,
+`set_timer` (HA), `play_music` (HA → Music Assistant),
 `get_kronk_context`, `generate_diagram`. Definitions live in
 `orchestrator/tools.py`. (`query_bloodwork` and `search_health_data` are defined
 but not yet wired to an agent — see Roadmap.)
+
+`play_music` is a **terminal tool** (`AgentConfig.terminal_tools`): its result
+is spoken verbatim and ends the agent turn. Structural guardrail — small
+models otherwise re-call the tool or contradict its result. The tool verifies
+the player actually reaches `playing` before reporting success (MA queues
+requests async, so a 200 from HA alone proves nothing).
 
 ---
 
@@ -430,6 +437,11 @@ requirements.lock` from the service directory — never edit it by hand.
   no need for Redis at this scale.
 
 **Recently shipped**
+- Voice music control (2026-07-03) — two-tier: MA's local-intent blueprint
+  catches strict "play the artist X on Y" grammar in ~2 s; fuzzy requests fall
+  through to Kronk's `home` agent + `play_music` terminal tool. Also fixed the
+  voice-path router 400 (HA local-intent fallback sends non-alternating
+  history; LiteLLM's normalize hook was dead — `call_type` mismatch).
 - Unified-streaming agent loop — every agent streams token-by-token; `llm.stream()`
   accumulates `tool_calls` from deltas and raises on LiteLLM 5xx.
 - Migration from Ollama to from-source llama.cpp behind a LiteLLM proxy.

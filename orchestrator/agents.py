@@ -75,7 +75,20 @@ def _tool_narration(name: str, args: dict) -> str:
         return "reading Kronk's configuration..."
     if name == "generate_diagram":
         return "generating a diagram..."
+    if name == "play_music":
+        q = args.get("query", "")
+        return f"putting on {q}" if q else "starting the music..."
     return f"running {name}..."
+
+
+def _terminal_speech(result: str) -> str:
+    """Speakable sentence from a terminal tool's structural result line."""
+    line = result.split("\n", 1)[0].strip().strip("[]")
+    if line.startswith("Music playing: "):
+        return f"Now playing {line[len('Music playing: '):]}."
+    if line.startswith("Could not play music: "):
+        return f"I couldn't play that. {line[len('Could not play music: '):]}"
+    return line
 
 
 TALKIE_MODEL         = os.getenv("TALKIE_MODEL",         "talkie")
@@ -107,6 +120,11 @@ class AgentConfig:
     # → per-item lookups); single-tool agents don't (2026-06-12 budget-cliff
     # incident: a correct 4-step plan died at round 3).
     max_rounds: int = field(default=MAX_TOOL_ROUNDS)
+    # Tools whose result IS the final answer: run_stream speaks the result
+    # verbatim and ends the turn instead of handing it back to the model.
+    # Structural guardrail — small models otherwise re-call the tool or
+    # contradict its result (hallucinated "now playing" after a failure).
+    terminal_tools: frozenset = field(default=frozenset())
 
     def __post_init__(self):
         if not self.model:
@@ -163,23 +181,30 @@ AGENTS: dict[str, AgentConfig] = {
     ),
     "home": AgentConfig(
         name="home",
-        description="Weather lookups, shopping list management, hot tub status, and timers",
-        routing_hint="weather, forecast, shopping list, hot tub, spa, timer, countdown",
+        description="Weather lookups, shopping list management, hot tub status, timers, and playing music",
+        routing_hint="weather, forecast, shopping list, hot tub, spa, timer, countdown, play music, songs, albums, speakers",
         icon="🏠",
         probe="tools",
         system_prompt=(
-            "You are Kronk's home specialist. Handle weather lookups, shopping list management, home device status, and timers.\n"
+            "You are Kronk's home specialist. Handle weather lookups, shopping list management, home device status, timers, and playing music.\n"
             "Use get_weather for weather queries. Use shopping list tools for list management.\n"
             "Use query_hottub to check if the hot tub is online and report its temperature. "
             "If the hot tub is offline, clearly state that the breaker may have tripped and report how long it has been offline.\n"
             "Use set_timer when the user asks to set a timer; convert their phrasing to minutes "
             "(e.g. '30 seconds' → 0.5, 'an hour and a half' → 90).\n"
+            "Use play_music when the user asks to play or put on music. Pass what they want to hear "
+            "as the query; name the speaker only if the user did. Call play_music at most once — "
+            "when it reports music playing, report that back and stop. If the tool reports failure, tell "
+            "the user playback failed and why — never claim music is playing after a failed tool call.\n"
             "When the user asks about weather without naming a place, call get_weather "
             "without the location argument — do not ask for clarification, the tool defaults to the home location.\n"
             "Be brief and direct. Answer in one or two short sentences — your replies are "
-            "often spoken aloud by a voice assistant, so keep them tight."
+            "often spoken aloud by a voice assistant, so keep them tight. "
+            "Never restate tool calls, tool arguments, or tool output syntax in your reply — "
+            "reply in plain sentences only."
         ),
-        tool_names=["get_weather", "shopping_list_view", "shopping_list_add", "shopping_list_remove", "shopping_list_clear", "query_hottub", "set_timer"],
+        tool_names=["get_weather", "shopping_list_view", "shopping_list_add", "shopping_list_remove", "shopping_list_clear", "query_hottub", "set_timer", "play_music"],
+        terminal_tools=frozenset({"play_music"}),
     ),
     "assistant": AgentConfig(
         name="assistant",
@@ -578,6 +603,13 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
                         duration_s=round(time.monotonic() - t_tool, 2),
                     )
                     seen_calls.add(key)
+
+                    # Terminal tool: the result IS the answer — speak it and
+                    # end the turn (see AgentConfig.terminal_tools).
+                    if fn_name in agent.terminal_tools:
+                        yield {"type": "token", "text": _terminal_speech(result)}
+                        yield {"type": "done", "model": agent.model, "ok": True}
+                        return
 
                 messages.append({
                     "role":         "tool",

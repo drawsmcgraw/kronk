@@ -107,7 +107,18 @@ async def _classify_inner(text: str, prior_history: list[dict],
             content = m["content"]
             if m["role"] == "assistant" and len(content) > _MAX_ASSISTANT_CHARS:
                 content = content[:_MAX_ASSISTANT_CHARS] + "…"
-            router_history.append({"role": m["role"], "content": content})
+            # Merge consecutive same-role turns — Gemma templates reject
+            # non-alternating conversations. HA's local-intent fallback can
+            # resend the user turn twice (failed local match leaves an empty
+            # assistant turn that _shim_context drops).
+            if router_history and router_history[-1]["role"] == m["role"]:
+                router_history[-1]["content"] += "\n\n" + content
+            else:
+                router_history.append({"role": m["role"], "content": content})
+        # The router query below is its own user turn; a trailing user turn
+        # here would break alternation too.
+        if router_history and router_history[-1]["role"] == "user":
+            router_history.pop()
 
     # Gemma-family chat templates reject system messages via LiteLLM, so embed
     # the routing prompt inside the user turn.

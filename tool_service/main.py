@@ -498,6 +498,128 @@ async def set_timer(req: TimerRequest):
     }
 
 
+# ── Music Assistant proxy ────────────────────────────────────────────────────
+# Calls HA's `music_assistant.play_media` action. MA runs its own fuzzy search
+# across providers for the media string, so `media_id` is free text ("pink
+# floyd", "wish you were here"). Player resolution is a fixed env-configured
+# map of spoken name → HA entity_id of the *Music Assistant* player entity
+# (platform music_assistant — NOT the native Sonos/Cast entity, which MA
+# cannot drive).
+#
+# play_media returns 200 as soon as MA queues the request; provider failures
+# (expired YouTube Music auth, etc.) happen asynchronously during stream
+# start. So success here is defined as "the player actually reached
+# `playing`", verified by polling — a 200 from HA alone is not success.
+
+MUSIC_DEFAULT_PLAYER = os.getenv("MUSIC_DEFAULT_PLAYER", "")
+# Format: "sonos move:media_player.a, kitchen:media_player.b"
+MUSIC_PLAYERS = {
+    name.strip().lower(): entity.strip()
+    for name, _, entity in (
+        pair.partition(":") for pair in os.getenv("MUSIC_PLAYERS", "").split(",") if ":" in pair
+    )
+}
+
+MUSIC_VERIFY_TIMEOUT_S = 8   # how long to wait for the player to reach `playing`
+
+
+class MusicRequest(BaseModel):
+    query: str
+    media_type: str | None = None   # artist | album | track | playlist | radio
+    player: str | None = None       # spoken player name; None → default player
+
+
+def _resolve_player(spoken: str | None) -> tuple[str, str] | None:
+    """Resolve a spoken player name → (entity_id, speakable label)."""
+    if not spoken:
+        if not MUSIC_DEFAULT_PLAYER:
+            return None
+        for name, entity in MUSIC_PLAYERS.items():
+            if entity == MUSIC_DEFAULT_PLAYER:
+                return MUSIC_DEFAULT_PLAYER, f"the {name} speaker"
+        return MUSIC_DEFAULT_PLAYER, "the default speaker"
+    key = spoken.strip().lower()
+    if key in MUSIC_PLAYERS:
+        return MUSIC_PLAYERS[key], f"the {key} speaker"
+    # tolerate partial names ("the sonos" / "sonos move speaker")
+    for name, entity in MUSIC_PLAYERS.items():
+        if name in key or key in name:
+            return entity, f"the {name} speaker"
+    return None
+
+
+@app.post("/music")
+async def play_music(req: MusicRequest):
+    if not HA_TOKEN:
+        raise HTTPException(status_code=500, detail="HA_TOKEN not configured")
+    if not req.query.strip():
+        raise HTTPException(status_code=400, detail="query must not be empty")
+
+    resolved = _resolve_player(req.player)
+    if resolved is None:
+        known = ", ".join(sorted(MUSIC_PLAYERS)) or "none configured"
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown speaker '{req.player}'. Known speakers: {known}.",
+        )
+    entity, label = resolved
+
+    headers = {"Authorization": f"Bearer {HA_TOKEN}", "Content-Type": "application/json"}
+    async with httpx.AsyncClient(timeout=10) as client:
+        # Pre-check: catch a powered-off / missing player with a clear message
+        # instead of a misleading 200 from the service call.
+        state_resp = await client.get(f"{HA_URL}/api/states/{entity}", headers=headers)
+        if state_resp.status_code == 404:
+            raise HTTPException(status_code=503, detail=f"Player entity '{entity}' does not exist in Home Assistant.")
+        if state_resp.status_code >= 400:
+            raise HTTPException(status_code=502, detail=f"HA state check returned {state_resp.status_code}.")
+        friendly = state_resp.json().get("attributes", {}).get("friendly_name", entity)
+        if state_resp.json().get("state") == "unavailable":
+            raise HTTPException(
+                status_code=503,
+                detail=f"The speaker '{friendly}' is unavailable — it may be powered off or asleep.",
+            )
+
+        payload = {"entity_id": entity, "media_id": req.query}
+        if req.media_type:
+            payload["media_type"] = req.media_type
+        resp = await client.post(
+            f"{HA_URL}/api/services/music_assistant/play_media",
+            headers=headers, json=payload,
+        )
+        if resp.status_code >= 400:
+            # Full body (often an HTML error page) goes to the log only —
+            # the detail string ends up spoken aloud by the voice pipeline.
+            logger.warning("play_media failed (%s): %s", resp.status_code, resp.text[:300])
+            raise HTTPException(
+                status_code=502,
+                detail=f"Music Assistant rejected the request (HTTP {resp.status_code}).",
+            )
+
+        # Verify playback actually started (see header comment).
+        deadline = asyncio.get_event_loop().time() + MUSIC_VERIFY_TIMEOUT_S
+        while asyncio.get_event_loop().time() < deadline:
+            await asyncio.sleep(1)
+            state = (await client.get(f"{HA_URL}/api/states/{entity}", headers=headers)).json()
+            if state.get("state") == "playing":
+                attrs = state.get("attributes", {})
+                return {
+                    "status": "playing",
+                    "player": label,
+                    "artist": attrs.get("media_artist"),
+                    "title":  attrs.get("media_title"),
+                }
+
+    raise HTTPException(
+        status_code=502,
+        detail=(
+            "Music Assistant accepted the request but playback did not start "
+            f"on '{friendly}' within {MUSIC_VERIFY_TIMEOUT_S}s — the music "
+            "provider may need re-authentication in Music Assistant."
+        ),
+    )
+
+
 @app.get("/health")
 async def health():
     return {"status": "ok"}

@@ -46,7 +46,10 @@ def _normalize(messages: list) -> list:
 
 class MessageNormalizer(CustomLogger):
     async def async_pre_call_hook(self, user_api_key_dict, cache, data, call_type):
-        if call_type == "completion" and "messages" in data:
+        # LiteLLM passes "acompletion" for async proxy requests — matching only
+        # "completion" left this hook dead and non-alternating histories reached
+        # llama.cpp unmerged (Gemma templates 400 on those).
+        if call_type in ("completion", "acompletion") and "messages" in data:
             data["messages"] = _normalize(data["messages"])
         return data
 

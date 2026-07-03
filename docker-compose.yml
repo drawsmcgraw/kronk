@@ -73,6 +73,11 @@ services:
       - HA_URL=http://host.docker.internal:8123
       - HA_TOKEN=${HA_TOKEN}
       - HA_TIMER_ENTITY=timer.voice_timer
+      # Music Assistant playback (POST /music → HA music_assistant.play_media).
+      # Spoken name → HA entity_id of the *MA* player entity (platform
+      # music_assistant, not the native Sonos/Cast entity).
+      - MUSIC_PLAYERS=sonos move:media_player.sonos_move_derp_2,kitchen:media_player.home_assistant_voice_0ac919_pe_01
+      - MUSIC_DEFAULT_PLAYER=media_player.home_assistant_voice_0ac919_pe_01
     extra_hosts:
       - "host.docker.internal:host-gateway"
     mem_limit: 1g

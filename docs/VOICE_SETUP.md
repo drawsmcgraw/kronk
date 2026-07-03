@@ -110,6 +110,32 @@ Live journal for the Voice PE / HA / Wyoming integration work driven by
   — but the operator asked to pause and revisit with a fresh approach,
   so this is tracked as Open Item rather than fixed in this pass.
 
+- **2026-07-03** — **Voice music control shipped (Option C, two-tier).**
+  Tier 1: imported MA's local-assist blueprint (`local-assist-blueprint/
+  mass_assist_blueprint_en.yaml`), default player = kitchen Voice PE MA
+  entity. Strict grammar ("play the artist X [on Y]") plays in ~2 s, fully
+  local. NOTE: sentences need a media-type keyword — "play music by X"
+  does NOT match the blueprint. Tier 2: `play_music` tool — `tool_service`
+  `POST /music` → HA `music_assistant.play_media`, wired into the `home`
+  agent as a **terminal tool** (result spoken verbatim, turn ends; gemma-4-e4b
+  otherwise re-called the tool or claimed success after failures). The route
+  pre-checks player availability and polls for `playing` before reporting
+  success (MA queues async; HA 200 ≠ playing). Player map + default via
+  `MUSIC_PLAYERS` / `MUSIC_DEFAULT_PLAYER` env on `tool_service` — entries
+  must be the **MA** entities (`_2` suffixed), not native Sonos/Cast ones.
+- **2026-07-03** — **Fixed the voice-path router 400** (pre-existing, hit
+  every spoken query that matched a built-in HA intent without a backing
+  entity, e.g. "what is the weather" → `no_valid_targets` → fallback to
+  Kronk with a *duplicated user turn* in the chat log → non-alternating
+  messages → Gemma template exception). Two fixes: (1) `litellm/hooks.py`
+  was dead — LiteLLM passes `call_type="acompletion"`, hook matched only
+  `"completion"`; (2) `routing.py` history builder now merges consecutive
+  same-role turns and drops a trailing user turn. Discovered along the way:
+  `prefer_local_intents` was already ON for the kronk pipeline, and nginx
+  needs a restart after orchestrator rebuilds (stale upstream IP → HA's
+  ollama client gets an HTML error page → "Unexpected error during intent
+  recognition").
+
 ---
 
 ## System state at start (Phase 0 audit, 2026-05-23)

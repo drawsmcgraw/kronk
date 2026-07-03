@@ -356,6 +356,38 @@ TOOL_DEFINITIONS = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "play_music",
+            "description": (
+                "Play music through Music Assistant on a home speaker. Use "
+                "whenever the user asks to play, put on, or listen to music — "
+                "an artist, album, song, playlist, or genre. Music Assistant "
+                "searches for the query itself, so pass the artist/album/song "
+                "name as plain text."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "What to play — artist, album, song, playlist, or genre (e.g. 'Pink Floyd', 'Wish You Were Here').",
+                    },
+                    "media_type": {
+                        "type": "string",
+                        "enum": ["artist", "album", "track", "playlist", "radio"],
+                        "description": "What kind of thing the query names, if the user said so (album/song/etc). Omit when unsure.",
+                    },
+                    "player": {
+                        "type": "string",
+                        "description": "Which speaker to play on, as the user named it (e.g. 'sonos move', 'kitchen'). Omit for the default speaker.",
+                    },
+                },
+                "required": ["query"],
+            },
+        },
+    },
 ]
 
 
@@ -372,6 +404,7 @@ TOOL_TIMEOUTS = {
     "query_hottub": 5,       # local file read — fail fast
     "set_timer": 10,
     "query_finances": 10,
+    "play_music": 20,        # tool_service polls up to 8s to confirm playback
 }
 
 
@@ -577,6 +610,31 @@ async def _tool_set_timer(client: httpx.AsyncClient, args: dict) -> str:
     return f"[Could not set timer: {detail}]"
 
 
+async def _tool_play_music(client: httpx.AsyncClient, args: dict) -> str:
+    query = (args.get("query") or "").strip()
+    if not query:
+        return "[play_music error: query is required]"
+    payload: dict = {"query": query}
+    if args.get("media_type"):
+        payload["media_type"] = args["media_type"]
+    if args.get("player"):
+        payload["player"] = args["player"]
+    resp = await client.post(f"{TOOL_SERVICE_URL}/music", json=payload)
+    if resp.status_code == 200:
+        info = resp.json()
+        what = " by ".join(p for p in (info.get("title"), info.get("artist")) if p) or query
+        return f"[Music playing: {what} on {info.get('player')}]"
+    try:
+        detail = resp.json().get("detail", "")
+    except Exception:
+        detail = resp.text[:200]
+    return (
+        f"[Could not play music: {detail}]\n"
+        "Playback FAILED — tell the user it failed and why. "
+        "Do NOT claim music is playing. Do NOT call play_music again."
+    )
+
+
 async def _tool_query_finances(client: httpx.AsyncClient, args: dict) -> str:
     query = args.get("query", "")
     resp = await client.get(f"{FINANCE_SERVICE_URL}/api/query", params={"q": query})
@@ -610,6 +668,7 @@ _HANDLERS = {
     "generate_diagram":     _tool_generate_diagram,
     "query_hottub":         _tool_query_hottub,
     "set_timer":            _tool_set_timer,
+    "play_music":           _tool_play_music,
     "query_finances":       _tool_query_finances,
 }
 
