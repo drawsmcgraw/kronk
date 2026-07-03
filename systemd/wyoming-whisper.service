@@ -1,0 +1,23 @@
+[Unit]
+Description=Wyoming faster-whisper STT (AMD HIP / gfx1151)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/services/wyoming-whisper
+Environment=HSA_OVERRIDE_GFX_VERSION=11.5.1
+Environment=ROCR_VISIBLE_DEVICES=0
+Environment=LD_LIBRARY_PATH=%h/services/wyoming-whisper/runtime-libs:/usr/local/lib/ollama/rocm
+ExecStart=%h/services/wyoming-whisper/.venv/bin/python -m wyoming_faster_whisper \
+    --model large-v3-turbo \
+    --language en \
+    --uri tcp://0.0.0.0:10300 \
+    --data-dir %h/services/wyoming-whisper/models \
+    --download-dir %h/services/wyoming-whisper/models \
+    --device cuda \
+    --compute-type float16
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
