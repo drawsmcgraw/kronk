@@ -166,8 +166,10 @@ Conventions:
   nothing else moves).
 - Operator kitchen voice tests — real "Okay Nabu" music commands from the
   Voice PE (the one untested layer of the 2026-07-03 music work).
-- Rewrite TECH_DEBT `LITELLM-01` — the hook now fires (`call_type` fix,
-  2026-07-03); the entry describes a dead investigation.
+- Backfill tests for the 2026-07-03 fixes — routing-history merge/drop
+  (`routing.py`), terminal-tool turn-ending (`agents.py`), hooks.py
+  `call_type` normalization. They shipped before the definition-of-done
+  rule existed; each is a regression waiting for cover.
 
 ## Shipped
 

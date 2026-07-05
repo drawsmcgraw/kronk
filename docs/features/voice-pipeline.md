@@ -52,6 +52,29 @@ Key design decisions (full rationale in the build journal):
 - `tts.speak` silently no-ops for announcements; `assist_satellite.announce`
   is the correct service (matters for timers, ROADMAP item 3).
 
+## Testing utterances without speaking (2026-07-03 method)
+
+Until the automated voice smoke test ships (ROADMAP item 8), exercise the
+pipeline from the shell:
+
+- **Full Assist pipeline** (local intents + blueprint + Kronk fallback —
+  what the Voice PE actually runs, minus audio): HA's websocket API.
+  From inside the container: `docker exec -i homeassistant python3 -` with
+  a script that auths against `ws://localhost:8123/api/websocket` using
+  `HA_TOKEN` (from `.env`) and sends
+  `{"type": "assist_pipeline/run", "start_stage": "intent",
+  "end_stage": "intent", "input": {"text": "<utterance>"}}` (add
+  `"pipeline": "<id>"` for a non-default pipeline; the kronk pipeline id is
+  in HA's pipeline list). The `-i` flag is load-bearing — without it stdin
+  closes and `python3 -` runs an empty script, exiting 0 as if it passed.
+- **Local agent only** (skips the Kronk fallback): REST
+  `POST /api/conversation/process` with `{"text": "<utterance>"}` and the
+  bearer token.
+- **Which tier answered?** A ~2 s response with MA-flavored wording = the
+  blueprint; a built-in-intent error ("not aware of any device…") = HA's
+  local agent; a `pipeline.shim` trace appearing in Langfuse = it fell
+  through to Kronk.
+
 ## Blog hooks
 
 - Building a fully-local voice assistant on one AMD Strix Halo box —
