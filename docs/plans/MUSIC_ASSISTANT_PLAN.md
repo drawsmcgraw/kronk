@@ -4,7 +4,11 @@ Adding music streaming on top of the existing voice/HA stack so the Voice PE
 (and any other media_player devices HA sees) can play from a streaming
 service. Synology NAS music comes later as Phase 6+.
 
-Status: **planning only**, written 2026-05-31. No infra changes yet.
+Status: **shipped through Phase 5** (MA running — `docker-compose.ma.yml`,
+project `kronk-ma`). **Phase 7 (voice control) shipped 2026-07-03** via a
+different design than sketched here — see
+`../features/voice-music-control.md`. **Phase 6 (Synology NAS music) is the
+only open remnant** — tracked in `ROADMAP.md` (Later). Written 2026-05-31.
 
 ---
 

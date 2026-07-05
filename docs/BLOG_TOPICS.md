@@ -5,6 +5,10 @@ hook, why it's interesting beyond this project, and where the receipts live
 (every claim below has data in this repo — benchmarks, traces, or incident
 docs). Status: ☐ unwritten / ✍ drafting / ✅ published.
 
+Shipped features have distilled write-ups in `features/` — each ends with a
+"Blog hooks" section; new entries here should link to the feature doc for
+receipts instead of restating them.
+
 ---
 
 ## ☐ The agent that announced its tool call instead of making it

@@ -1,6 +1,8 @@
 # Streaming Tool-Calls Refactor — Plan
 
-**Status:** planned, not yet implemented
+**Status:** shipped — the unified-streaming loop described here is live in
+`orchestrator/agents.py`/`llm.py` (see README "Recently shipped" and the
+agent-loop walkthrough). Kept as design rationale.
 **Author:** drafted 2026-05-13
 **Related:** `orchestrator/agents.py`, `orchestrator/llm.py`
 

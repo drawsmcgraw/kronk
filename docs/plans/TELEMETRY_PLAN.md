@@ -8,7 +8,10 @@ Status: **Phases 1-2 executed 2026-06-10** (deploy + instrumentation +
 end-to-end verification). Operator explicitly accepted deploying inside the
 post-Vulkan-fix watch window ("kronk is low risk, I accept the risk") —
 the stability gate below is recorded as waived, not satisfied.
-Phases 3-4 (validation queries, dashboards) remain.
+Phases 3-4 (dashboards, operator guide) landed 2026-06-12 — see
+`../TELEMETRY_GUIDE.md` and `../features/telemetry.md`. **The deployed
+system is considered a prototype**: further telemetry work is superseded by
+Telemetry v2 in `ROADMAP.md`, which may replace this stack entirely.
 
 Implementation notes vs. this plan:
 - Langfuse v3.181.0 server — 6 containers (web, worker, ClickHouse,

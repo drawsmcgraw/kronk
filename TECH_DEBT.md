@@ -31,26 +31,26 @@ returns.
 
 ## Open Issues
 
-### [LITELLM-01] LiteLLM `async_pre_call_hook` not firing in proxy mode
+### [LITELLM-01] LiteLLM `async_pre_call_hook` not firing in proxy mode — RESOLVED 2026-07-03
 
-**Status:** Workaround in place  
-**Workaround:** Permissive Jinja chat template override at `/opt/models/mistralai/devstral-template-permissive.jinja`, referenced by `--chat-template-file` in both devstral systemd units.
+**Status:** Resolved. The suspected root cause below was wrong.
 
-**Problem:**  
-When switching between devstral Q8 and Q4 in Zed without clearing conversation history, the devstral Jinja template raises an exception because prior messages don't strictly alternate user/assistant roles.
+**Actual root cause:** the hook *was* being invoked all along — but for async
+proxy calls LiteLLM passes `call_type="acompletion"`, and the hook body only
+matched `call_type == "completion"`, so `_normalize` never ran and the hook
+was a silent no-op. Fixed in `litellm/hooks.py` (`call_type in ("completion",
+"acompletion")`) while chasing the voice-path router 400 (HA's local-intent
+fallback sends non-alternating history — see `docs/VOICE_SETUP.md` timeline,
+2026-07-03). Verified: a `[user, user]` message array sent directly to
+LiteLLM 400'd before the fix, 200s after.
 
-The correct fix is a LiteLLM pre-call hook (`litellm/hooks.py`) that normalizes the message array before it reaches llama.cpp — merging consecutive same-role messages and appending a trailing user turn if the conversation ends on an assistant message. The hook is implemented and mounted into the container, but `async_pre_call_hook` is never invoked.
-
-**Root cause (suspected):**  
-`litellm.callbacks` is empty inside the running container despite `callbacks: ["hooks.proxy_handler_instance"]` in `litellm_settings`. The `initialize_callbacks_on_proxy()` startup path does not appear to wire custom `CustomLogger` subclasses into `proxy_logging_obj`'s pre-call pipeline.
-
-**To investigate:**  
-- Check LiteLLM proxy source for how `general_settings` vs `litellm_settings` callbacks differ
-- Try registering via `custom_logger` key or another config path
-- Check if `proxy_logging_obj` has a separate registration mechanism from `litellm.callbacks`
-
-**Risk of workaround:**  
-External template file is a snapshot. If a devstral model update changes the embedded chat template, the override file won't auto-update and must be re-extracted and re-patched.
+**Leftover to retire deliberately:** the permissive Jinja template override
+at `/opt/models/mistralai/devstral-template-permissive.jinja` (referenced by
+`--chat-template-file` in both devstral systemd units) predates the fix and
+is now redundant in principle. Removing it means the stock devstral template
+must tolerate whatever the now-working hook produces — test the Zed
+Q8↔Q4-switch scenario before deleting. Until then it's harmless, but it's a
+snapshot that won't track upstream template changes.
 
 ---
 

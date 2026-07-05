@@ -1,5 +1,11 @@
 # Kronk Voice Setup — Implementation Plan for Claude Code
 
+**Status:** shipped 2026-05-24 (all phases except the timer-finished
+announcement, which was scrapped in favor of HA-native timers — see
+`ROADMAP.md` Now item 3). What was actually built, including where it
+diverged from this plan, is in `../VOICE_SETUP.md` (build journal) and
+`../features/voice-pipeline.md` (distilled).
+
 **Purpose:** This plan instructs Claude Code to add voice input/output capability
 to Kronk via a Home Assistant Voice Preview Edition (Voice PE) speaker. Work is
 performed on the `kronk` host unless otherwise noted.

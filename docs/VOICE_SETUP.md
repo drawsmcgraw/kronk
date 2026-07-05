@@ -480,12 +480,6 @@ additional ones we discovered. Listed in order to reproduce on a fresh host.
   - **Revisit trigger:** when any of the three "what changes the math"
     items is true. Check quarterly. Notes from the original research
     conversation captured in this entry; no need to re-derive.
-- **Per-tool result cache** (tracked in README roadmap) — would skip a full
-  ~15s home-agent loop on repeat weather/news asks within a TTL window.
-  Big UX win for voice.
-- **More expressive TTS** (tracked in README roadmap) — try a Piper voice
-  swap first, then evaluate voicebox.sh as the meta-tool that fronts XTTS,
-  Bark, Kokoro, etc. locally.
 - **`llama-talkie.service` GGUF path** is still under
   `/home/drew/model-staging/…` (documented tech debt in the README runbook).
 - **Container BT errors from HA** — harmless `habluetooth.scanner` noise

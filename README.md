@@ -392,61 +392,9 @@ requirements.lock` from the service directory — never edit it by hand.
 
 ## Roadmap
 
-**In progress**
-- **Health RAG + bloodwork parsing** — `health_service/bloodwork_parser.py`,
-  `chunker.py`, `vector_store.py`; `query_bloodwork` and `search_health_data`
-  tools are defined in `orchestrator/tools.py` but not yet wired to an agent.
-- **Voice pipeline** — Home Assistant Voice PE speaker wired **directly** to
-  Kronk (no Home Assistant): custom ESPHome firmware handles on-device wake word
-  and audio capture; a new `voice_service` container wraps faster-whisper STT and
-  Kokoro TTS around the existing `/message` pipeline.
-
-**On the table**
-- Reclaim Ollama blob storage (`/usr/share/ollama/.ollama/models/blobs/`, ~50+ GB)
-  now that the llama.cpp setup is stable.
-- More tools — Philips Hue, calendar, home automation.
-- Additional health sources — Fitbit (family member), Withings scale (sync
-  scaffolding in `health_service/withings_sync.py`).
-- Publish the shopping-list page externally so it works off the home network.
-- Garmin live sync remains blocked on MFA / Cloudflare (see Design Decisions).
-- **Voxtral STT (deferred)** — Mistral's `Voxtral-Mini-4B-Realtime-2602`
-  (Apache 2.0, causal streaming, <500 ms latency) would replace
-  faster-whisper and shave 1-3 s off perceived voice latency per query.
-  Deferred because no prebuilt vLLM / PyTorch ROCm wheels exist for
-  gfx1151 yet — building from source is ~5 days with real failure risk.
-  Revisit when (a) AMD ships gfx1151 PyTorch wheels, (b) `wyoming-voxtral`
-  appears, or (c) llama.cpp adds Voxtral audio-encoder support. Full
-  rationale in `docs/VOICE_SETUP.md` Open Items.
-- **More expressive TTS for the voice pipeline** — current Piper
-  `en_US-lessac-medium` is fine but plain. Explore paths in order of effort:
-  (1) swap to a different Piper voice (`en_US-ryan-high`,
-  `en_GB-northern_english_male-medium`) — zero infra change; (2)
-  [voicebox.sh](https://voicebox.sh/) — open-source, self-hosted, wraps ~7
-  TTS engines (Piper, XTTS, Bark, Kokoro, …) behind one tool with
-  voice-cloning support and an MCP interface. Likely the highest-leverage
-  single change since it gives access to multiple backends without us
-  wiring each one separately. Drop-in to HA via Wyoming/MCP. (3) Go direct
-  to Coqui XTTS-v2 on gfx1151 if voicebox.sh doesn't fit. (4) Bark for
-  expressive non-speech (laughs, etc.).
-- **Tool-result cache** — short-TTL cache in `tool_service` for high-frequency,
-  low-volatility tool results: NWS weather (5–15 min TTL), top-of-feed news
-  (~15 min), maybe `get_kronk_context`. Trims agent latency for repeat
-  voice queries ("what's the weather?" asked twice in a minute) and reduces
-  load on the home agent's weather/research model calls. Implementation:
-  in-memory dict keyed by `(tool_name, normalized_args)` with per-tool TTL;
-  no need for Redis at this scale.
-
-**Recently shipped**
-- Voice music control (2026-07-03) — two-tier: MA's local-intent blueprint
-  catches strict "play the artist X on Y" grammar in ~2 s; fuzzy requests fall
-  through to Kronk's `home` agent + `play_music` terminal tool. Also fixed the
-  voice-path router 400 (HA local-intent fallback sends non-alternating
-  history; LiteLLM's normalize hook was dead — `call_type` mismatch).
-- Unified-streaming agent loop — every agent streams token-by-token; `llm.stream()`
-  accumulates `tool_calls` from deltas and raises on LiteLLM 5xx.
-- Migration from Ollama to from-source llama.cpp behind a LiteLLM proxy.
-- Router → specialist → coordinator pipeline, replacing regex intent detection.
-- `query_health` tool + `/health` dashboard; Infisical retired.
+See [`ROADMAP.md`](ROADMAP.md) — the single source of truth for planned work
+(and the shipped-features list; distilled feature docs live in
+[`docs/features/`](docs/features/)).
 
 ---
 
