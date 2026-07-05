@@ -159,3 +159,12 @@ verbatim — never summarized away.
   operator blogs from these) → update the plan doc's status header and move
   the `ROADMAP.md` line to Shipped. Never add a roadmap section to any other
   file — `ROADMAP.md` is the single source of truth for planned work.
+- **Incidents**: whenever something breaks or a real investigation starts
+  (production misbehavior, data loss/scare, anything needing more than a
+  quick obvious fix), write it up in `docs/incidents/` — follow the existing
+  naming (`INCIDENT_<date>.md` for breakage, `INVESTIGATION_<date>_<slug>.md`
+  for open-ended debugging). Start the doc **during** the investigation, not
+  after — evidence (logs, trace IDs, timelines) evaporates. Capture: symptom
+  as the user saw it, timeline, hypotheses tried (including the wrong ones),
+  root cause, fix, and what would have caught it sooner. Unprompted, like
+  tests — the operator won't remind you. These double as blog material.
