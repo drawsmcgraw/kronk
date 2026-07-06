@@ -29,6 +29,14 @@ def _normalize(messages: list) -> list:
     if not messages:
         return messages
 
+    # Agent-loop transcripts carry tool_calls / role:"tool" messages. Rebuilding
+    # those as {role, content} strips tool_call_id and the tool_calls array,
+    # orphaning tool results. The alternation problem this hook fixes only
+    # occurs in plain chat history, so pass tool transcripts through untouched.
+    for msg in messages:
+        if msg.get("role") == "tool" or msg.get("tool_calls"):
+            return messages
+
     # Merge consecutive same-role messages
     merged = []
     for msg in messages:

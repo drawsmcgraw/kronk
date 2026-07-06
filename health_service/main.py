@@ -1,4 +1,5 @@
 import csv
+import hashlib
 import io
 import json
 import logging
@@ -8,7 +9,7 @@ from contextlib import asynccontextmanager
 from datetime import date, datetime
 
 from apscheduler.schedulers.background import BackgroundScheduler
-from fastapi import BackgroundTasks, FastAPI, File, HTTPException, Query, UploadFile
+from fastapi import FastAPI, File, HTTPException, Query, UploadFile
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -101,16 +102,28 @@ def api_sync_status():
     return get_last_sync() or {"status": "never synced"}
 
 
+# Both sync backends are no-op stubs pending the secrets-management rebuild
+# (ROADMAP.md). These endpoints used to return "sync started" and let agents
+# report a sync that never happens — return the truth until real sync exists.
+# When it does: run in BackgroundTasks again, and write start/complete rows to
+# sync_log so /api/sync-status reflects reality.
+
 @app.post("/api/sync")
-def api_sync(background_tasks: BackgroundTasks):
-    background_tasks.add_task(sync_garmin)
-    return {"status": "sync started"}
+def api_sync():
+    raise HTTPException(
+        status_code=503,
+        detail="Garmin sync is disabled pending the secrets-management rebuild "
+               "(see ROADMAP.md). No sync was started.",
+    )
 
 
 @app.post("/api/sync/withings")
-def api_sync_withings(background_tasks: BackgroundTasks):
-    background_tasks.add_task(sync_withings)
-    return {"status": "withings sync started"}
+def api_sync_withings():
+    raise HTTPException(
+        status_code=503,
+        detail="Withings sync is disabled pending the secrets-management rebuild "
+               "(see ROADMAP.md). No sync was started.",
+    )
 
 
 @app.get("/api/query")
@@ -129,6 +142,14 @@ def api_query(
 
 
 # ── CSV import helpers ────────────────────────────────────────────────────────
+
+def _stable_act_id(act_date, name) -> int:
+    """Deterministic surrogate ID for activity rows that lack one. Python's
+    built-in hash() is salted per process, so the same row re-imported after a
+    restart got a new ID and INSERT OR REPLACE duplicated it instead of
+    upserting."""
+    return int(hashlib.md5(f"{act_date}:{name}".encode()).hexdigest()[:8], 16)
+
 
 def _norm_key(s: str) -> str:
     """Normalize a column header for fuzzy matching."""
@@ -271,9 +292,9 @@ def _import_activities(reader: csv.DictReader, synced_at: str) -> tuple[int, int
                     try:
                         act_id = int(act_id_raw)
                     except ValueError:
-                        act_id = abs(hash(f"{act_date}:{name}")) % (10 ** 9)
+                        act_id = _stable_act_id(act_date, name)
                 else:
-                    act_id = abs(hash(f"{act_date}:{name}")) % (10 ** 9)
+                    act_id = _stable_act_id(act_date, name)
 
                 conn.execute("""
                     INSERT OR REPLACE INTO activities

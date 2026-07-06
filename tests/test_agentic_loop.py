@@ -113,6 +113,28 @@ async def test_route_search_phrase_shortcut_is_deterministic():
 
 
 @pytest.mark.asyncio
+async def test_route_weather_shortcut_is_deterministic():
+    """Weather/forecast queries bypass the LLM and route to home (incident
+    2026-07-05: 'what is tomorrow's forecast?' went to research)."""
+    import routing
+    with patch("routing.llm.complete", new=AsyncMock()) as fake_complete:
+        route = await routing.classify("what is tomorrow's forecast?", [])
+    assert route == "home"
+    fake_complete.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_route_search_phrase_outranks_weather():
+    """Explicit search phrasing keeps weather queries on research — NWS is
+    US-only, so 'look up the weather in Tokyo' must stay a web search."""
+    import routing
+    with patch("routing.llm.complete", new=AsyncMock()) as fake_complete:
+        route = await routing.classify("look up the weather in Tokyo", [])
+    assert route == "research"
+    fake_complete.assert_not_awaited()
+
+
+@pytest.mark.asyncio
 async def test_route_llm_picks_valid_agent():
     """When no shortcut applies, the router LLM's single-word output is returned."""
     import routing
@@ -189,6 +211,59 @@ async def test_run_stream_tool_then_synthesis_streams_tokens():
     assert "".join(tokens) == "You slept well."
     assert any(e["type"] == "done" and e["ok"] for e in events)
     assert call_count["n"] == 2
+
+
+@pytest.mark.asyncio
+async def test_repeated_tool_calls_get_stop_nudge():
+    """Incident 2026-07-05: research burned all its rounds on near-identical
+    web_search calls (reworded args → exact-dup dedup never fired). The third
+    call to the same tool in one turn must carry a structural stop order in
+    its result so the model is told to stop searching and answer."""
+    import agents
+
+    call_count = {"n": 0}
+    captured_messages: list[list[dict]] = []
+
+    async def fake_stream(messages, model, tools=None):
+        captured_messages.append([dict(m) for m in messages])
+        call_count["n"] += 1
+        if call_count["n"] <= 3:
+            yield {"tool_calls": [
+                {"id": f"call_{call_count['n']}", "function": {
+                    "name": "web_search",
+                    "arguments": {"query": f"weather tomorrow v{call_count['n']}"},
+                }}
+            ]}
+            yield {"usage": {}}
+        else:
+            yield {"token": "Sunny, high of 90."}
+            yield {"usage": {}}
+
+    async def fake_execute(name, args):
+        return "[Web search results for '...'] some links"
+
+    agent = agents.AGENTS["research"]
+    with patch("agents.llm.stream", new=fake_stream), \
+         patch("agents.tools.execute", new=fake_execute):
+        events = [ev async for ev in agents.run_stream(agent, "forecast?", [])]
+
+    # The 4th LLM call sees the nudge appended to the 3rd tool result…
+    tool_results = [m["content"] for m in captured_messages[3] if m.get("role") == "tool"]
+    assert len(tool_results) == 3
+    assert "Do not call web_search again" in tool_results[2]
+    # …and the first two results are clean.
+    assert all("Do not call" not in r for r in tool_results[:2])
+    assert any(e["type"] == "done" and e["ok"] for e in events)
+
+
+def test_research_round_budget_single_source():
+    """The budget in the research prompt must match its max_rounds — the two
+    were hardcoded separately (prompt said 5) and drifted apart from the
+    config once already."""
+    import agents
+    research = agents.AGENTS["research"]
+    assert research.max_rounds == agents.RESEARCH_MAX_ROUNDS
+    assert f"budget of {agents.RESEARCH_MAX_ROUNDS} tool-use rounds" in research.system_prompt
 
 
 @pytest.mark.asyncio
@@ -282,6 +357,33 @@ def test_agent_route_streams_tokens_as_they_arrive(client):
     assert "".join(tokens) == "You slept 7.8 hours."
     # Timing metadata is emitted before [DONE].
     assert any("timing" in e for e in events)
+
+
+def test_pipeline_crash_yields_specific_error_and_terminates_stream(client):
+    """2026-07-05 review P0.5: an unexpected raise inside the pipeline used to
+    kill the stream mid-flight — no error token, no [DONE], and HA spoke a
+    generic 'unexpected error'. The last-resort guard must turn it into a
+    specific spoken error (with the rid for Langfuse lookup) and still
+    terminate the SSE stream properly."""
+
+    async def fake_classify(text, history):
+        return "direct"
+
+    async def exploding_run_stream(*args, **kwargs):
+        raise RuntimeError("kaboom")
+        yield  # pragma: no cover — makes this an async generator
+
+    with patch("orchestrator.main.routing.classify", new=fake_classify), \
+         patch("orchestrator.main.agents.run_stream", new=exploding_run_stream):
+        resp = client.post("/message", json={"text": "hello"})
+
+    assert resp.status_code == 200
+    events = _collect_sse_events(resp.text)
+    tokens = "".join(e["token"] for e in events if "token" in e)
+    assert "pipeline failed unexpectedly" in tokens
+    assert "RuntimeError: kaboom" in tokens  # specific cause, not generic
+    assert "rid " in tokens                  # findable in telemetry
+    assert "data: [DONE]" in resp.text       # stream still terminates cleanly
 
 
 # ── _execute_tool helper tests (unchanged) ────────────────────────────────────

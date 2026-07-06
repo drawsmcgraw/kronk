@@ -237,6 +237,7 @@ async def _run_pipeline(
     assistant_reply: list[str] = []
     stages: list[dict] = []
     agent_name = "?"  # set by routing; referenced in the finally block
+    pipeline_error: str | None = None  # marks the trace ERROR in the finally
 
     async with _llm_lock:
         trace = telemetry.start_pipeline(
@@ -266,6 +267,7 @@ async def _run_pipeline(
                 agent_name = await routing.classify(text, history)
             except Exception as e:
                 logger.error("Router failed (%s): %s", transport, e)
+                pipeline_error = f"routing: {e}"
                 err = f"Error: could not reach the language model ({e}). Is the server still loading?"
                 assistant_reply.append(err)
                 yield {"type": "token", "text": err}
@@ -372,11 +374,24 @@ async def _run_pipeline(
             emit("request_complete", route=agent_name,
                  duration_s=round(time.monotonic() - t_request, 2))
 
+        except Exception as e:
+            # Last-resort guard: without it an unexpected raise kills the
+            # stream mid-flight — /message never sends [DONE], the Ollama shim
+            # never sends done:true, and HA speaks a generic "unexpected
+            # error" with nothing in the logs or trace to find it by.
+            logger.exception("Pipeline failed (%s, rid=%s)", transport, rid)
+            pipeline_error = f"{type(e).__name__}: {e}"
+            err = f"Error: the pipeline failed unexpectedly ({pipeline_error}) [rid {rid}]"
+            assistant_reply.append(err)
+            yield {"type": "token", "text": err}
+
         finally:
             telemetry.end_pipeline(
                 trace,
                 output="".join(assistant_reply) or None,
                 route=agent_name,
+                level="ERROR" if pipeline_error else None,
+                status_message=pipeline_error,
             )
             # Persist the exchange only when an answer was produced —
             # a failed turn leaves the stored conversation untouched.

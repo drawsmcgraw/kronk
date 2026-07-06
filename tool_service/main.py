@@ -158,15 +158,26 @@ def fmt_period(p: dict) -> str:
     return f"{name}: {temp}°{unit}, {wind} — {body}"
 
 
+def _check_upstream(resp: httpx.Response, what: str) -> httpx.Response:
+    """502 with the failing call named + body snippet, instead of a silent
+    empty forecast or a generic 500 (both happened with NWS/Open-Meteo 500s)."""
+    if resp.status_code != 200:
+        raise HTTPException(
+            status_code=502,
+            detail=f"{what} failed (HTTP {resp.status_code}): {resp.text[:200]}",
+        )
+    return resp
+
+
 async def _fetch_weather(location: str) -> dict:
     """Geocode + NWS forecast fetch. Shared by /weather and the hourly cache."""
     query = clean_location(location)
     async with httpx.AsyncClient(timeout=15, headers=NWS_HEADERS) as client:
         # Step 1: geocode via Open-Meteo (NWS has no geocoder)
-        geo_resp = await client.get(
+        geo_resp = _check_upstream(await client.get(
             "https://geocoding-api.open-meteo.com/v1/search",
             params={"name": query, "count": 1, "language": "en", "format": "json"},
-        )
+        ), "Open-Meteo geocoding")
         geo = geo_resp.json()
         if not geo.get("results"):
             raise HTTPException(status_code=404, detail=f"Location not found: {location}")
@@ -178,7 +189,11 @@ async def _fetch_weather(location: str) -> dict:
         # Step 2: get NWS grid point for this lat/lon
         points_resp = await client.get(f"https://api.weather.gov/points/{lat},{lon}")
         if points_resp.status_code != 200:
-            raise HTTPException(status_code=502, detail="NWS points lookup failed — location may be outside US coverage")
+            raise HTTPException(
+                status_code=502,
+                detail=f"NWS points lookup failed (HTTP {points_resp.status_code}) — "
+                       f"location may be outside US coverage: {points_resp.text[:200]}",
+            )
         points = points_resp.json()["properties"]
 
         nws_location = points.get("relativeLocation", {}).get("properties", {})
@@ -197,6 +212,11 @@ async def _fetch_weather(location: str) -> dict:
             client.get(alerts_url),
         )
 
+    # NWS grid endpoints 500 routinely; unchecked, an error body parsed as
+    # empty periods and the route returned 200 with no forecast.
+    _check_upstream(period_resp, "NWS forecast fetch")
+    _check_upstream(hourly_resp, "NWS hourly forecast fetch")
+    _check_upstream(alerts_resp, "NWS alerts fetch")
     periods = period_resp.json().get("properties", {}).get("periods", [])
     hourly_periods = hourly_resp.json().get("properties", {}).get("periods", [])
     alerts = alerts_resp.json().get("features", [])

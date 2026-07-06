@@ -58,6 +58,41 @@ def test_search_phrase_known_meta_question_limitation(text):
     assert routing._SEARCH_PHRASES.search(text)  # documents current behavior
 
 
+# ── _WEATHER_RE: weather/forecast → home (incident 2026-07-05) ──────────────
+# "what is tomorrow's forecast?" routed to research via the LLM classifier
+# (despite 'forecast' in home's routing hint) and burned its whole tool
+# budget on repeated web searches.
+
+@pytest.mark.parametrize("text", [
+    "what is tomorrow's forecast?",
+    "what's the weather like",
+    "will the weather be nice this weekend?",
+    "give me the forecast",
+])
+def test_weather_matches(text):
+    assert routing._WEATHER_RE.search(text)
+
+
+@pytest.mark.parametrize("text", [
+    "the forecastle of the ship",   # word boundary
+    "is it going to rain tomorrow?",  # deliberately NOT matched (yet) — the
+                                      # LLM router handles it; widen the regex
+                                      # only if misroutes show up in traces
+])
+def test_weather_rejects(text):
+    assert not routing._WEATHER_RE.search(text)
+
+
+# Known misroute class, accepted at home-assistant scale: non-weather
+# "forecast" also lands on home. Pinned as a KNOWN LIMITATION — if someone
+# scopes the regex, flip this expectation.
+@pytest.mark.parametrize("text", [
+    "what's the revenue forecast for AMD?",
+])
+def test_weather_known_finance_forecast_limitation(text):
+    assert routing._WEATHER_RE.search(text)  # documents current behavior
+
+
 # ── _DIRECT_OVERRIDE: explicit "don't search" ───────────────────────────────
 
 @pytest.mark.parametrize("text", [

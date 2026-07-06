@@ -65,6 +65,16 @@ _SEARCH_PHRASES = re.compile(
     re.IGNORECASE,
 )
 
+# Weather queries belong to the home agent (NWS tool + prompt-injected cache).
+# The router LLM misses phrasings without the word "weather" despite the
+# routing hint — "what is tomorrow's forecast?" went to research and burned
+# its whole tool budget re-searching (incident 2026-07-05). Checked AFTER
+# _SEARCH_PHRASES on purpose: explicit "look up the weather in Tokyo" keeps
+# routing to research, which works for non-US locations (NWS is US-only).
+# Known limitation: non-weather "forecast" (e.g. "AMD's revenue forecast")
+# also lands on home — acceptable at home-assistant scale, pinned in tests.
+_WEATHER_RE = re.compile(r'\b(weather|forecast)\b', re.IGNORECASE)
+
 
 async def classify(text: str, prior_history: list[dict]) -> str:
     """Return one of agents.VALID_ROUTES.
@@ -96,6 +106,9 @@ async def _classify_inner(text: str, prior_history: list[dict],
     if _SEARCH_PHRASES.search(text):
         emit("route_shortcut", rule="search_phrase", route="research")
         return "research", "search_phrase"
+    if _WEATHER_RE.search(text):
+        emit("route_shortcut", rule="weather", route="home")
+        return "home", "weather"
 
     # Build a short, alternation-safe history window for the classifier.
     router_history: list[dict] = []

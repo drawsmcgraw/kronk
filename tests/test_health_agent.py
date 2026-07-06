@@ -209,3 +209,53 @@ def test_import_csv_duration_parsing(health_client):
     assert main_mod._parse_duration("00:28:15") == 1695
     assert main_mod._parse_duration("05:00") == 300
     assert main_mod._parse_duration("") is None
+
+
+def test_activity_surrogate_id_is_stable_across_processes():
+    """2026-07-05 review P0.2: the surrogate ID used Python's per-process
+    salted hash(), so re-importing the same CSV after a container restart
+    duplicated rows. Pin the digest value — if this constant ever changes,
+    every previously imported ID-less activity will duplicate again."""
+    import health_service.main as main_mod
+    assert main_mod._stable_act_id("2026-01-15", "Morning Run") == 2761203033
+
+
+def test_import_csv_reimport_without_activity_id_upserts(health_client):
+    """Rows lacking an Activity ID get a surrogate key; importing the same
+    file twice must upsert, not duplicate."""
+    import health_service.db as db_mod
+    csv_data = _make_garmin_csv([
+        {
+            "Activity Type": "Running",
+            "Date": "2026-01-15 07:30:00",
+            "Title": "No ID Run",
+            "Distance": "5.0",
+            "Calories": "400",
+            "Time": "00:25:00",
+            "Avg HR": "150",
+            "Max HR": "170",
+        },
+    ])
+    for _ in range(2):
+        resp = health_client.post(
+            "/api/import/csv",
+            files={"file": ("activities.csv", csv_data, "text/csv")},
+        )
+        assert resp.status_code == 200
+
+    activities = [a for a in db_mod.get_activities(days=3650) if a["name"] == "No ID Run"]
+    assert len(activities) == 1
+
+
+# ── Tests: sync endpoints (stubs pending secrets rebuild) ─────────────────────
+
+def test_sync_endpoints_refuse_while_stubbed(health_client):
+    """2026-07-05 review P0.4: these endpoints returned '"sync started"' for a
+    background stub that does nothing, so agents reported syncs that never
+    happened. While the stubs exist they must refuse loudly."""
+    for path, provider in (("/api/sync", "Garmin"), ("/api/sync/withings", "Withings")):
+        resp = health_client.post(path)
+        assert resp.status_code == 503
+        detail = resp.json()["detail"]
+        assert provider in detail
+        assert "No sync was started" in detail

@@ -100,6 +100,13 @@ CODING_AGENT_MODEL   = os.getenv("CODING_AGENT_MODEL",   "devstral-2512")
 DEVOPS_AGENT_MODEL   = os.getenv("DEVOPS_AGENT_MODEL",   "devstral-2512")
 
 MAX_TOOL_ROUNDS = 3
+# Research gets a bigger budget (multi-part questions need several lookups).
+# Single source for both the config and the budget stated in its prompt.
+RESEARCH_MAX_ROUNDS = 8
+# A tool called this many times in one turn triggers a stop-nudge appended to
+# its result (see run_stream) — the 2026-07-05 forecast incident burned five
+# rounds on near-identical web_search calls the prompt alone couldn't prevent.
+REPEAT_TOOL_NUDGE_AT = 3
 
 
 @dataclass
@@ -161,7 +168,7 @@ AGENTS: dict[str, AgentConfig] = {
             "You are Kronk's research specialist. Answer questions requiring current information.\n"
             "Before your first tool call, briefly decide the full sequence of lookups the "
             "question needs — multi-part questions usually need several.\n"
-            "You have a budget of 5 tool-use rounds per question. IMPORTANT: when your "
+            f"You have a budget of {RESEARCH_MAX_ROUNDS} tool-use rounds per question. IMPORTANT: when your "
             "remaining lookups are independent of each other (for example, one search per "
             "country in a list you just found), issue them ALL as multiple tool calls in a "
             "single response — that costs one round instead of many.\n"
@@ -177,7 +184,7 @@ AGENTS: dict[str, AgentConfig] = {
         ),
         tool_names=["web_search", "fetch_url"],
         model=RESEARCH_AGENT_MODEL,
-        max_rounds=5,
+        max_rounds=RESEARCH_MAX_ROUNDS,
     ),
     "home": AgentConfig(
         name="home",
@@ -491,6 +498,7 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
     messages.append({"role": "user", "content": task})
 
     seen_calls: set[str] = set()
+    tool_call_counts: dict[str, int] = {}
     last_usage: dict = {}
 
     agent_span = telemetry.root().child_span(
@@ -610,6 +618,19 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
                         yield {"type": "token", "text": _terminal_speech(result)}
                         yield {"type": "done", "model": agent.model, "ok": True}
                         return
+
+                    # Repeat-call guardrail: models re-issue the same tool
+                    # with reworded args (exact-dup dedup never fires) until
+                    # the budget dies. Prompt instructions don't stop it —
+                    # append the stop order to the result itself.
+                    tool_call_counts[fn_name] = tool_call_counts.get(fn_name, 0) + 1
+                    n = tool_call_counts[fn_name]
+                    if n >= REPEAT_TOOL_NUDGE_AT and isinstance(result, str):
+                        result += (
+                            f"\n\n[NOTE: that was call #{n} to {fn_name} this turn. "
+                            f"Do not call {fn_name} again — answer from the results "
+                            "above, or use a different tool if one fits better.]"
+                        )
 
                 messages.append({
                     "role":         "tool",
