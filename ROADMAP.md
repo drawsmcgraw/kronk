@@ -140,6 +140,9 @@ Conventions:
 - **Ollama blob reclaim** — delete `/usr/share/ollama/.ollama/models/blobs/`
   (~50+ GB) now that llama.cpp is stable. Chore; needs one careful look
   first.
+- **Productize Kronk** - Kronk can be an open source project to allow 
+  people to run their own local AI server. Investigate what we need to
+  to (configs, parameterizations, etc) to support this.
 
 ## Stretch
 
