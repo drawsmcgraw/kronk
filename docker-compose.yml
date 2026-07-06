@@ -177,6 +177,13 @@ services:
       - DEVOPS_AGENT_MODEL=devstral-2512-q4
       - TALKIE_MODEL=talkie
       - LOCATION=Laurel, MD
+      # User-facing error rendering: debug (full detail: causes, HTTP
+      # statuses, rid) | friendly (one clean sentence). Rendering only —
+      # logs and Langfuse always keep full detail. ERROR_STYLE_VOICE
+      # overrides for the shim transport (/api/chat + /v1; HA voice).
+      # The voice smoke test (ROADMAP item 8) always runs in debug.
+      - ERROR_STYLE=${ERROR_STYLE:-debug}
+      # - ERROR_STYLE_VOICE=friendly
       # Per-client session store (SQLite at /data/sessions.db).
       - HISTORY_MAX_MESSAGES=40
       # Langfuse tracing (stack: docker-compose.langfuse.yml; keys in .env).

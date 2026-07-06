@@ -18,6 +18,12 @@ layer that failed, and every failure is findable in Langfuse in one step
 
 ## Verbosity policy ("as verbose as reasonable")
 
+> **Superseded 2026-07-05 (same day):** policy is now runtime-configurable —
+> the `ERROR_STYLE` toggle in `orchestrator/errors.py` (debug | friendly,
+> with `ERROR_STYLE_VOICE` per-transport override; rendering only, capture
+> always full). Default is debug, which matches the policy below. See
+> `../features/verbose-errors.md`.
+
 - **Chat UI**: full detail — error type, cause, rid. Operators troubleshoot
   here.
 - **Voice**: the same text is spoken; keep tool-level detail to one clear

@@ -15,6 +15,7 @@ from pydantic import BaseModel
 from pypdf import PdfReader
 
 import agents
+import errors
 import metrics
 import routing
 import servers
@@ -238,6 +239,9 @@ async def _run_pipeline(
     stages: list[dict] = []
     agent_name = "?"  # set by routing; referenced in the finally block
     pipeline_error: str | None = None  # marks the trace ERROR in the finally
+    # How failures are RENDERED for this request (debug|friendly). Capture
+    # (logs, trace) always keeps full detail — see errors.py.
+    error_style = errors.style_for(transport)
 
     async with _llm_lock:
         trace = telemetry.start_pipeline(
@@ -271,7 +275,7 @@ async def _run_pipeline(
                 # No speculative cause here — the old message guessed "is the
                 # server still loading?" for ANY failure, misdirecting
                 # troubleshooting when the real cause was e.g. a 400.
-                err = f"Error: routing failed: {e} [rid {rid}]"
+                err = errors.render("routing", str(e), rid, error_style)
                 assistant_reply.append(err)
                 yield {"type": "token", "text": err}
                 return
@@ -289,7 +293,8 @@ async def _run_pipeline(
                 agent_model_used = agent_cfg.model
                 stage_sent = False
 
-                async for ev in agents.run_stream(agent_cfg, text, list(history[-5:])):
+                async for ev in agents.run_stream(agent_cfg, text, list(history[-5:]),
+                                                  error_style=error_style):
                     etype = ev.get("type")
                     if etype == "narration":
                         yield {"type": "narration", "text": ev["text"]}
@@ -339,12 +344,7 @@ async def _run_pipeline(
                 # coordinator recovers, so the failure stays findable.
                 pipeline_error = f"{agent_name} specialist: {agent_error}"
                 extra_parts.append(
-                    f"[The {agent_name} specialist FAILED with this error:\n"
-                    f"{agent_error}\n"
-                    "If you can fully answer the user's question from your own "
-                    "knowledge, do so. Otherwise, report the failure and its "
-                    "cause to the user plainly — do NOT invent an answer or "
-                    "claim an action succeeded.]"
+                    errors.specialist_failed_block(agent_name, agent_error, error_style)
                 )
 
             # ── Phase 3: coordinator (direct answers, delegation via ask_*,
@@ -361,6 +361,7 @@ async def _run_pipeline(
                 [],  # no embedded context — history goes in as real messages
                 system_extra="\n\n".join(extra_parts) or None,
                 history_messages=history,
+                error_style=error_style,
             ):
                 etype = ev.get("type")
                 if etype == "narration":
@@ -375,8 +376,9 @@ async def _run_pipeline(
                     yield {"type": "token", "text": ev["text"]}
                 elif etype == "error":
                     pipeline_error = f"coordinator: {ev['message'][:200]}"
-                    assistant_reply.append(ev["message"])
-                    yield {"type": "token", "text": ev["message"]}
+                    msg = errors.render("llm", ev["message"], rid, error_style)
+                    assistant_reply.append(msg)
+                    yield {"type": "token", "text": msg}
 
             t_done = time.monotonic()
             timing: dict = {"model": agents.COORDINATOR.model}
@@ -396,7 +398,7 @@ async def _run_pipeline(
             # error" with nothing in the logs or trace to find it by.
             logger.exception("Pipeline failed (%s, rid=%s)", transport, rid)
             pipeline_error = f"{type(e).__name__}: {e}"
-            err = f"Error: the pipeline failed unexpectedly ({pipeline_error}) [rid {rid}]"
+            err = errors.render("pipeline", pipeline_error, rid, error_style)
             assistant_reply.append(err)
             yield {"type": "token", "text": err}
 

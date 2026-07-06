@@ -217,6 +217,23 @@ models otherwise re-call the tool or contradict its result. The tool verifies
 the player actually reaches `playing` before reporting success (MA queues
 requests async, so a 200 from HA alone proves nothing).
 
+### Error handling
+
+Failures surface loud and specific at every layer (tenet 7 — "an unexpected
+error occurred" is a bug): services return `detail` strings naming the real
+cause, tool handlers preserve them via `tools._fail()`, a failed specialist
+reaches the coordinator explicitly labeled `FAILED` (with an
+invented-answer ban), failed turns mark their Langfuse trace `ERROR`, and a
+last-resort guard in `_run_pipeline` turns unexpected crashes into a spoken
+cause + rid instead of a dead stream.
+
+How much of that detail the *user* sees is a toggle —
+`orchestrator/errors.py`, config in `docker-compose.yml`:
+`ERROR_STYLE=debug` (default: causes, HTTP statuses, rid) or `friendly`
+(one clean sentence); `ERROR_STYLE_VOICE` overrides just the shim/voice
+transport. Rendering only — logs and traces always keep full detail.
+Details: [`docs/features/verbose-errors.md`](docs/features/verbose-errors.md).
+
 ---
 
 ## Operations runbook

@@ -51,11 +51,30 @@ tool_service → tool result → agent → speech, instead of dying en route.
   422 with a correctable message, because a 4B model will eventually send a
   bad date (tenet 5).
 
-## Verbosity policy
+## Verbosity policy — the ERROR_STYLE toggle
 
-Chat UI and voice speak the same text: one clear sentence of specific cause,
-rid included on pipeline-level failures. Model-facing tool results carry
-enough detail to relay or adapt. Full policy in the plan doc.
+Error rendering has two styles, resolved per request in
+`orchestrator/errors.py` (the single seam for all user-facing failure
+text):
+
+- **`debug`** (default): full detail — error types, causes, HTTP statuses,
+  rid. What you want while building and refining.
+- **`friendly`**: one natural sentence, no technical identifiers. For when
+  the kitchen audience matters more than the operator.
+
+Config: `ERROR_STYLE` (global) and `ERROR_STYLE_VOICE` (overrides for the
+shim transport — HA voice) on the orchestrator in `docker-compose.yml`.
+Read at request time; flipping is an env edit + `up -d orchestrator`.
+
+The toggle governs **rendering only, never capture**: logs and Langfuse
+always get full detail, and traces are marked ERROR in both styles — in
+friendly mode you look in the trace instead of the transcript. Model-facing
+tool results also keep full detail in both styles (the model needs it to
+act); friendly mode changes only the phrasing instruction, and the
+invented-answer ban never relaxes.
+
+**The voice smoke test (ROADMAP item 8) always runs in debug** — its
+deliberate-failure assertions expect specific detail.
 
 ## Gotchas
 

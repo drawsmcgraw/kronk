@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 
 import httpx
 
+import errors
 import llm
 import metrics
 import telemetry
@@ -81,18 +82,22 @@ def _tool_narration(name: str, args: dict) -> str:
     return f"running {name}..."
 
 
-def _terminal_speech(result: str) -> str:
+def _terminal_speech(result: str, style: str = errors.DEBUG) -> str:
     """Speakable sentence from a terminal tool's structural result line."""
     line = result.split("\n", 1)[0].strip().strip("[]")
     if line.startswith("Music playing: "):
         return f"Now playing {line[len('Music playing: '):]}."
     if line.startswith("Could not play music: "):
+        # The detail here is already a human sentence ("The speaker may be
+        # powered off") — spoken in both styles.
         return f"I couldn't play that. {line[len('Could not play music: '):]}"
     # Unrecognized shape — e.g. "Tool play_music error: ReadTimeout(...)" from
     # tools.execute on a transport failure. Spoken raw, that's a stack trace
     # read aloud; log the internals, speak a clean sentence with the cause
-    # kept short (2026-07-05 review P1.4).
+    # kept short in debug and dropped in friendly (2026-07-05 review P1.4).
     logger.warning("terminal tool result had no speech mapping: %r", result[:300])
+    if style == errors.FRIENDLY:
+        return "That didn't work — I couldn't finish that request."
     if line.lower().startswith("tool ") and " error: " in line:
         cause = line.split(" error: ", 1)[1]
         return f"That didn't work — the tool failed with {cause[:120]}."
@@ -467,7 +472,8 @@ def kronk_facts() -> str:
 
 async def run_stream(agent: AgentConfig, task: str, context: list[dict],
                      system_extra: str | None = None,
-                     history_messages: list[dict] | None = None):
+                     history_messages: list[dict] | None = None,
+                     error_style: str = errors.DEBUG):
     """Run an agent's tool-calling loop with unified streaming.
 
     Used by specialists AND the coordinator (which carries ask_* agent-tools
@@ -490,6 +496,10 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
     agent_tool_defs = agent.tool_defs() or None
 
     system_content = agent.system_prompt + "\n\n" + kronk_facts()
+    if error_style == errors.FRIENDLY:
+        # Tool results keep full failure detail (the model needs it to act);
+        # this changes only how the model phrases it to the user.
+        system_content += "\n\n" + errors.FRIENDLY_TOOL_PHRASING
     if system_extra:
         system_content += "\n\n" + system_extra
     if agent.name == "home":
@@ -626,7 +636,7 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
                         # Set the span output too — terminal turns otherwise
                         # end the agent span with output=None and the spoken
                         # answer is invisible in Langfuse (review P2.5).
-                        last_round_text = _terminal_speech(result)
+                        last_round_text = _terminal_speech(result, error_style)
                         yield {"type": "token", "text": last_round_text}
                         yield {"type": "done", "model": agent.model, "ok": True}
                         return

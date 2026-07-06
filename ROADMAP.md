@@ -77,6 +77,8 @@ the docs use them. 1 and 2 are in Shipped.)*
    through HA's `assist_pipeline/run` websocket and asserts which tier
    answered (local intent / MA blueprint / Kronk fallback) and
    success/failure shape. Run after any orchestrator/HA/MA change.
+   Always runs with `ERROR_STYLE=debug` — its deliberate-failure
+   assertions expect specific detail (operator decision 2026-07-05).
    *Why: three-tier routing changes silently; every layer broke
    independently during the music build. This is also the gate for
    item 9.*
@@ -167,7 +169,9 @@ Newest first; feature docs in `docs/features/`.
 
 - **Verbose error reporting** *(item 2, 2026-07-05)* — every layer surfaces
   its most specific failure cause; failed turns marked ERROR in Langfuse;
-  "an unexpected error occurred" is now a bug by tenet. With the P0
+  "an unexpected error occurred" is now a bug by tenet. Includes the
+  `ERROR_STYLE` toggle (debug now, friendly later — rendering only, capture
+  always full; `ERROR_STYLE_VOICE` overrides per transport). With the P0
   correctness batch and the forecast-misroute fixes (weather routing
   shortcut, repeat-tool-call guardrail, research budget 5→8) from the same
   review. See `docs/features/verbose-errors.md`,

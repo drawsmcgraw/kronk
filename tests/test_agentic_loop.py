@@ -343,7 +343,7 @@ def test_agent_route_streams_tokens_as_they_arrive(client):
     async def fake_classify(text, history):
         return "health"
 
-    async def fake_run_stream(agent, task, context):
+    async def fake_run_stream(agent, task, context, **kwargs):
         for t in ["You ", "slept ", "7.8 hours."]:
             yield {"type": "token", "text": t}
         yield {"type": "done", "model": "gemma-4-e4b", "ok": True}
@@ -371,7 +371,8 @@ def test_specialist_failure_reaches_coordinator_labeled_as_failure(client):
     async def fake_classify(text, history):
         return "health"
 
-    def fake_run_stream(agent, task, context, system_extra=None, history_messages=None):
+    def fake_run_stream(agent, task, context, system_extra=None,
+                        history_messages=None, **kwargs):
         async def gen():
             if agent.name == "health":
                 yield {"type": "error",
