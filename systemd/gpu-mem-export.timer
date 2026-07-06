@@ -1,0 +1,14 @@
+# Fires gpu-mem-export.service every 30 s. The orchestrator treats
+# data/gpu_mem.json older than 120 s as stale and falls back to the static
+# estimates, so a dead timer degrades gracefully (and visibly: the page
+# label flips from "measured" back to "est.").
+[Unit]
+Description=Kronk — GPU memory export every 30s
+
+[Timer]
+OnBootSec=30
+OnUnitActiveSec=30
+AccuracySec=5
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,16 @@
+# Measures each model server's real GPU memory (DRM fdinfo) and writes
+# data/gpu_mem.json for the orchestrator's /resources page. Fired by
+# gpu-mem-export.timer every 30 s. See docs/features/resources-live-memory.md.
+#
+# Operations:
+#   install:  cp systemd/gpu-mem-export.{service,timer} ~/.config/systemd/user/
+#             systemctl --user daemon-reload
+#             systemctl --user enable --now gpu-mem-export.timer
+#   check:    systemctl --user list-timers gpu-mem-export.timer
+#   one-shot: python3 scripts/gpu_mem_export.py --once
+[Unit]
+Description=Kronk — export per-model GPU memory for /resources
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /home/drew/git-repos/drawsmcgraw/kronk/scripts/gpu_mem_export.py

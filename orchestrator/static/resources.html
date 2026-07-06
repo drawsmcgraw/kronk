@@ -179,12 +179,17 @@ function renderMemBar(sys, servers) {
   if (!total) return;
 
   const available = sys.mem_available;
-  const modelBytes = servers.reduce((s, sv) => s + (sv.vram_gb || 0) * 1e9, 0);
+  // Measured GTT+VRAM per server when the host exporter is fresh (see
+  // docs/features/resources-live-memory.md); static estimate otherwise.
+  // Only running servers count toward the bar — an unhealthy server's
+  // estimate would paint memory that isn't actually in use.
+  const memOf = sv => (sv.measured_gb ?? (sv.healthy ? sv.vram_gb : 0) ?? 0) * 1e9;
+  const modelBytes = servers.reduce((s, sv) => s + memOf(sv), 0);
   const other = Math.max(0, total - available - modelBytes);
 
   const segs = [
-    ...servers.map(sv => ({
-      label: sv.name, bytes: (sv.vram_gb || 0) * 1e9, color: colorFor(sv.name),
+    ...servers.filter(sv => memOf(sv) > 0).map(sv => ({
+      label: sv.name, bytes: memOf(sv), color: colorFor(sv.name),
     })),
     { label: 'System / other', bytes: other,    color: '#2a3044' },
     { label: 'Available',      bytes: available, color: '#1a1f2e' },
@@ -275,7 +280,13 @@ function renderServers(servers, metrics) {
     const ctxStr   = sv.ctx_k   ? `ctx ${sv.ctx_k}k` : '';
     const paramStr = sv.params  ? `${sv.params} params` : '';
     const quantStr = sv.quant   || '';
-    const vramStr  = sv.vram_gb != null ? `${sv.vram_gb} GB` : '—';
+    // Measured (host exporter, GTT+VRAM via DRM fdinfo) beats estimated
+    // (hand-written vram_gb in litellm/config.yaml — model size only, no
+    // KV cache; devstral's real footprint was 2.4x its estimate).
+    const isMeasured = sv.measured_gb != null;
+    const vramStr  = isMeasured ? `${sv.measured_gb} GB`
+                   : sv.vram_gb != null ? `${sv.vram_gb} GB` : '—';
+    const vramSub  = isMeasured ? 'GPU mem (measured)' : 'model size (est.)';
 
     return `
       <div class="server-card">
@@ -297,7 +308,7 @@ function renderServers(servers, metrics) {
           </div>
           <div class="server-right">
             <div class="server-vram" style="color:${color}">${vramStr}</div>
-            <div class="server-vram-sub">VRAM (est.)</div>
+            <div class="server-vram-sub">${vramSub}</div>
           </div>
         </div>
         <div class="perf-row">

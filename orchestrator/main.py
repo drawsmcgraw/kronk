@@ -164,16 +164,29 @@ async def agent_roster():
 
 @app.get("/api/servers")
 async def server_catalog():
-    """Model servers configured in litellm + their live health + agent assignments."""
+    """Model servers configured in litellm + live health + agent assignments
+    + measured GPU memory (joined by port; vram_gb stays as the static
+    fallback estimate when no measurement is available)."""
     catalog = servers.load_catalog()
     health  = await servers.fetch_health(LLM_SERVICE_URL)
     by_model = servers.agents_by_model()
+    gpu_mem = servers.load_gpu_mem()
+
+    def measured(entry: dict) -> float | None:
+        m = gpu_mem.get(entry.get("port"))
+        if not m:
+            return None
+        return round((m.get("gtt_bytes", 0) + m.get("vram_bytes", 0)) / 1e9, 1)
+
     return {
+        "measured_age_s": gpu_mem.get("_age_s"),
         "servers": [
             {
                 **entry,
-                "agents":  by_model.get(entry["name"], []),
-                "healthy": health.get(entry["api_base"]),
+                "agents":      by_model.get(entry["name"], []),
+                "healthy":     health.get(entry["name"],
+                                          health.get(entry["api_base"])),
+                "measured_gb": measured(entry),
             }
             for entry in catalog
         ],

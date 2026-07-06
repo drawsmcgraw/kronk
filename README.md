@@ -171,7 +171,11 @@ servers already running on the host (see the Operations runbook).
 Each model is one llama.cpp server bound to `127.0.0.1` on the host. The LiteLLM
 catalog is `litellm/config.yaml` (bind-mounted, hot-editable); each entry's
 `kronk:` block carries UI metadata the orchestrator reads for the `/resources`
-page.
+page. Per-model **memory on that page is measured** (host-side DRM-fdinfo
+exporter on a 30 s timer — `scripts/gpu_mem_export.py`, joined by port into
+`/api/servers`); the `vram_gb` metadata is only the fallback estimate. See
+[`docs/features/resources-live-memory.md`](docs/features/resources-live-memory.md).
+The VRAM column below is the static estimate, kept for orientation only.
 
 | Model | systemd unit | Port | Quant | Ctx | VRAM | Role |
 |---|---|---|---|---|---|---|
