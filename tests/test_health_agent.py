@@ -247,6 +247,69 @@ def test_import_csv_reimport_without_activity_id_upserts(health_client):
     assert len(activities) == 1
 
 
+def test_query_rejects_malformed_end_date_with_422(health_client):
+    """2026-07-05 review P1.9: a bad end_date on the primary LLM tool route
+    used to become a generic 500 the agent couldn't act on."""
+    resp = health_client.get("/api/query", params={"end_date": "notadate"})
+    assert resp.status_code == 422
+    assert "YYYY-MM-DD" in resp.json()["detail"]
+
+
+def test_query_rejects_oversized_days(health_client):
+    """days had no upper bound — days=999999999 overflowed timedelta → 500."""
+    resp = health_client.get("/api/query", params={"days": 999999999})
+    assert resp.status_code == 422
+
+
+def test_import_csv_reports_sample_errors_for_bad_rows(health_client):
+    """2026-07-05 review P1.10: malformed rows were counted as skipped with
+    zero diagnostics anywhere. The response must carry samples."""
+    csv_data = _make_garmin_csv([
+        {
+            "Activity ID": "555",
+            "Activity Type": "Running",
+            "Date": "2026-01-15 07:30:00",
+            "Title": "Bad Calories Run",
+            "Distance": "5.0",
+            "Calories": "not-a-number",   # int(float(...)) raises ValueError
+            "Time": "00:25:00",
+            "Avg HR": "150",
+            "Max HR": "170",
+        },
+    ])
+    resp = health_client.post(
+        "/api/import/csv",
+        files={"file": ("activities.csv", csv_data, "text/csv")},
+    )
+    assert resp.status_code == 200
+    result = resp.json()
+    assert result["skipped"] == 1
+    assert "sample_errors" in result
+    assert "ValueError" in result["sample_errors"][0]
+
+
+def test_json_import_surfaces_vector_store_failure(tmp_health_db, monkeypatch):
+    """2026-07-05 review P1.11: vector-store upserts were wrapped in
+    log-and-continue and the response claimed clean success — SQLite and
+    chroma drifted silently."""
+    import health_service.main as main_mod
+
+    def exploding_upsert(chunks):
+        raise RuntimeError("chroma index is corrupt")
+
+    monkeypatch.setattr(main_mod, "upsert_chunks", exploding_upsert)
+    result = main_mod._dispatch_json(
+        [{"calendarDate": "2026-01-15", "deepSleepSeconds": 5400,
+          "lightSleepSeconds": 12600, "remSleepSeconds": 7200,
+          "awakeSleepSeconds": 1800, "sleepTimeSeconds": 27000}],
+        "2026-01-15_sleepData.json",
+        "2026-01-01T00:00:00",
+    )
+    assert result["inserted"] == 1           # SQLite side still landed
+    assert "vector_store_error" in result    # …but the response admits the gap
+    assert "chroma index is corrupt" in result["vector_store_error"]
+
+
 # ── Tests: sync endpoints (stubs pending secrets rebuild) ─────────────────────
 
 def test_sync_endpoints_refuse_while_stubbed(health_client):

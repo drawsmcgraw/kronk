@@ -88,6 +88,14 @@ def _terminal_speech(result: str) -> str:
         return f"Now playing {line[len('Music playing: '):]}."
     if line.startswith("Could not play music: "):
         return f"I couldn't play that. {line[len('Could not play music: '):]}"
+    # Unrecognized shape — e.g. "Tool play_music error: ReadTimeout(...)" from
+    # tools.execute on a transport failure. Spoken raw, that's a stack trace
+    # read aloud; log the internals, speak a clean sentence with the cause
+    # kept short (2026-07-05 review P1.4).
+    logger.warning("terminal tool result had no speech mapping: %r", result[:300])
+    if line.lower().startswith("tool ") and " error: " in line:
+        cause = line.split(" error: ", 1)[1]
+        return f"That didn't work — the tool failed with {cause[:120]}."
     return line
 
 
@@ -615,7 +623,11 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
                     # Terminal tool: the result IS the answer — speak it and
                     # end the turn (see AgentConfig.terminal_tools).
                     if fn_name in agent.terminal_tools:
-                        yield {"type": "token", "text": _terminal_speech(result)}
+                        # Set the span output too — terminal turns otherwise
+                        # end the agent span with output=None and the spoken
+                        # answer is invisible in Langfuse (review P2.5).
+                        last_round_text = _terminal_speech(result)
+                        yield {"type": "token", "text": last_round_text}
                         yield {"type": "done", "model": agent.model, "ok": True}
                         return
 

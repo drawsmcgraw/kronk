@@ -129,10 +129,21 @@ def api_sync_withings():
 @app.get("/api/query")
 def api_query(
     metric: str = Query(default="all"),
-    days: int = Query(default=30, ge=1),
+    days: int = Query(default=30, ge=1, le=3650),
     end_date: str = Query(default=None),
     resolution: str = Query(default="raw"),
 ):
+    # This is the primary LLM tool route — a 4B model WILL eventually send a
+    # malformed date, and an unguarded fromisoformat turned that into a
+    # generic 500 the agent couldn't act on (2026-07-05 review P1.9).
+    if end_date is not None:
+        try:
+            date.fromisoformat(end_date)
+        except ValueError:
+            raise HTTPException(
+                status_code=422,
+                detail=f"end_date must be YYYY-MM-DD, got {end_date!r}",
+            )
     """Flexible health query for LLM tool use.
     metric: sleep | hrv | activities | steps | calories | stress |
             resting_hr | body_battery | distance | weight | body_composition | all
@@ -149,6 +160,33 @@ def _stable_act_id(act_date, name) -> int:
     restart got a new ID and INSERT OR REPLACE duplicated it instead of
     upserting."""
     return int(hashlib.md5(f"{act_date}:{name}".encode()).hexdigest()[:8], 16)
+
+
+def _safe_upsert_chunks(chunks: list, what: str) -> str | None:
+    """Vector-store upsert that reports failure instead of raising.
+
+    Returns None on success, an error string on failure. Callers must surface
+    the string in their response — a swallowed failure here let imports claim
+    chunks were indexed when none were (2026-07-05 review P1.11)."""
+    if not chunks:
+        return None
+    try:
+        upsert_chunks(chunks)
+        return None
+    except Exception as e:
+        logger.warning("Vector store upsert failed (%s): %s", what, e)
+        return f"{type(e).__name__}: {e}"
+
+
+def _sample_row_error(errors: list, e: Exception, row, limit: int = 3) -> None:
+    """Keep (and log) the first few row-level import failures with context.
+    The old behavior was a bare `skipped += 1` — a systematically malformed
+    export produced {"inserted": 0, "skipped": 400} with zero diagnostics
+    anywhere (2026-07-05 review P1.10)."""
+    if len(errors) < limit:
+        msg = f"{type(e).__name__}: {e} (row: {str(row)[:120]})"
+        errors.append(msg)
+        logger.warning("import row failed: %s", msg)
 
 
 def _norm_key(s: str) -> str:
@@ -263,8 +301,9 @@ def _detect_csv_type(headers: list[str]) -> str:
 
 # ── Per-type importers ────────────────────────────────────────────────────────
 
-def _import_activities(reader: csv.DictReader, synced_at: str) -> tuple[int, int]:
+def _import_activities(reader: csv.DictReader, synced_at: str) -> tuple[int, int, dict]:
     inserted = skipped = 0
+    errors: list[str] = []
     with get_conn() as conn:
         for row in reader:
             try:
@@ -309,9 +348,10 @@ def _import_activities(reader: csv.DictReader, synced_at: str) -> tuple[int, int
                     synced_at,
                 ))
                 inserted += 1
-            except Exception:
+            except Exception as e:
                 skipped += 1
-    return inserted, skipped
+                _sample_row_error(errors, e, row)
+    return inserted, skipped, {"sample_errors": errors} if errors else {}
 
 
 def _import_sleep(reader: csv.DictReader, synced_at: str) -> tuple[int, int]:
@@ -539,7 +579,7 @@ def _detect_json_type(filename: str) -> str:
     return "unknown"
 
 
-def _import_sleep_json(records: list, synced_at: str) -> tuple[int, int]:
+def _import_sleep_json(records: list, synced_at: str) -> tuple[int, int, dict]:
     rows = []
     for r in records:
         date_str = (r.get("calendarDate") or "")[:10]
@@ -564,19 +604,17 @@ def _import_sleep_json(records: list, synced_at: str) -> tuple[int, int]:
             "avg_hrv":          None,
             "synced_at":        synced_at,
         })
+    vs_err = None
     if rows:
         upsert_sleep_rows(rows)
-        try:
-            upsert_chunks([
-                {"id": f"{r['date']}_sleep", "text": chunk_sleep(r), "metadata": {"date": r["date"], "type": "sleep"}}
-                for r in rows
-            ])
-        except Exception as e:
-            logger.warning("Vector store upsert failed (sleep): %s", e)
-    return len(rows), 0
+        vs_err = _safe_upsert_chunks([
+            {"id": f"{r['date']}_sleep", "text": chunk_sleep(r), "metadata": {"date": r["date"], "type": "sleep"}}
+            for r in rows
+        ], "sleep")
+    return len(rows), 0, {"vector_store_error": vs_err} if vs_err else {}
 
 
-def _import_uds_json(records: list, synced_at: str) -> tuple[int, int]:
+def _import_uds_json(records: list, synced_at: str) -> tuple[int, int, dict]:
     rows = []
     for r in records:
         date_str = (r.get("calendarDate") or "")[:10]
@@ -608,19 +646,17 @@ def _import_uds_json(records: list, synced_at: str) -> tuple[int, int]:
             "body_battery_low":  bb_stats.get("LOWEST"),
             "synced_at":        synced_at,
         })
+    vs_err = None
     if rows:
         upsert_daily_summary_rows(rows)
-        try:
-            upsert_chunks([
-                {"id": f"{r['date']}_daily", "text": chunk_daily(r), "metadata": {"date": r["date"], "type": "daily"}}
-                for r in rows
-            ])
-        except Exception as e:
-            logger.warning("Vector store upsert failed (daily): %s", e)
-    return len(rows), 0
+        vs_err = _safe_upsert_chunks([
+            {"id": f"{r['date']}_daily", "text": chunk_daily(r), "metadata": {"date": r["date"], "type": "daily"}}
+            for r in rows
+        ], "daily")
+    return len(rows), 0, {"vector_store_error": vs_err} if vs_err else {}
 
 
-def _import_health_status_json(records: list, synced_at: str) -> tuple[int, int]:
+def _import_health_status_json(records: list, synced_at: str) -> tuple[int, int, dict]:
     rows = []
     for r in records:
         date_str = (r.get("calendarDate") or "")[:10]
@@ -642,19 +678,17 @@ def _import_health_status_json(records: list, synced_at: str) -> tuple[int, int]
             "status":             hrv.get("status") or "",
             "synced_at":          synced_at,
         })
+    vs_err = None
     if rows:
         upsert_hrv_rows(rows)
-        try:
-            upsert_chunks([
-                {"id": f"{r['date']}_hrv", "text": chunk_hrv(r), "metadata": {"date": r["date"], "type": "hrv"}}
-                for r in rows
-            ])
-        except Exception as e:
-            logger.warning("Vector store upsert failed (hrv): %s", e)
-    return len(rows), 0
+        vs_err = _safe_upsert_chunks([
+            {"id": f"{r['date']}_hrv", "text": chunk_hrv(r), "metadata": {"date": r["date"], "type": "hrv"}}
+            for r in rows
+        ], "hrv")
+    return len(rows), 0, {"vector_store_error": vs_err} if vs_err else {}
 
 
-def _import_activities_json(records: list, synced_at: str) -> tuple[int, int]:
+def _import_activities_json(records: list, synced_at: str) -> tuple[int, int, dict]:
     # Unwrap outer envelope from summarizedActivities export
     if records and isinstance(records[0], dict) and "summarizedActivitiesExport" in records[0]:
         activities = records[0]["summarizedActivitiesExport"]
@@ -662,6 +696,7 @@ def _import_activities_json(records: list, synced_at: str) -> tuple[int, int]:
         activities = records
 
     inserted = skipped = 0
+    errors: list[str] = []
     chunk_rows: list[dict] = []
     with get_conn() as conn:
         for r in activities:
@@ -700,18 +735,21 @@ def _import_activities_json(records: list, synced_at: str) -> tuple[int, int]:
                     "duration_seconds": duration_s, "distance_meters": dist,
                     "avg_hr": avg_hr, "max_hr": max_hr, "calories": calories,
                 })
-            except Exception:
+            except Exception as e:
                 skipped += 1
+                _sample_row_error(errors, e, r)
 
-    try:
-        upsert_chunks([
-            {"id": row["id"], "text": chunk_activity(row), "metadata": {"date": row["date"], "type": "activity"}}
-            for row in chunk_rows
-        ])
-    except Exception as e:
-        logger.warning("Vector store upsert failed (activities): %s", e)
+    vs_err = _safe_upsert_chunks([
+        {"id": row["id"], "text": chunk_activity(row), "metadata": {"date": row["date"], "type": "activity"}}
+        for row in chunk_rows
+    ], "activities")
 
-    return inserted, skipped
+    notes: dict = {}
+    if errors:
+        notes["sample_errors"] = errors
+    if vs_err:
+        notes["vector_store_error"] = vs_err
+    return inserted, skipped, notes
 
 
 def _dispatch_json(data: list | dict, filename: str, synced_at: str) -> dict:
@@ -723,17 +761,19 @@ def _dispatch_json(data: list | dict, filename: str, synced_at: str) -> dict:
                 "error": "expected JSON array"}
 
     if json_type == "sleep":
-        ins, skip = _import_sleep_json(data, synced_at)
+        ins, skip, notes = _import_sleep_json(data, synced_at)
     elif json_type == "daily_summary":
-        ins, skip = _import_uds_json(data, synced_at)
+        ins, skip, notes = _import_uds_json(data, synced_at)
     elif json_type == "hrv":
-        ins, skip = _import_health_status_json(data, synced_at)
+        ins, skip, notes = _import_health_status_json(data, synced_at)
     elif json_type == "activities":
-        ins, skip = _import_activities_json(data, synced_at)
+        ins, skip, notes = _import_activities_json(data, synced_at)
     else:
         return {"type": "unknown", "inserted": 0, "skipped": 0}
 
-    return {"type": json_type, "inserted": ins, "skipped": skip}
+    # notes carries failure detail when present: sample_errors (first few
+    # row-level exceptions) and/or vector_store_error. Absence means clean.
+    return {"type": json_type, "inserted": ins, "skipped": skip, **notes}
 
 
 def _dispatch_csv(text: str, filename: str, synced_at: str) -> dict:
@@ -746,8 +786,9 @@ def _dispatch_csv(text: str, filename: str, synced_at: str) -> dict:
     csv_type = _detect_csv_type(headers)
     logger.info("CSV import: %s detected as '%s'", filename, csv_type)
 
+    notes: dict = {}
     if csv_type == "activities":
-        ins, skip = _import_activities(reader, synced_at)
+        ins, skip, notes = _import_activities(reader, synced_at)
     elif csv_type == "sleep":
         ins, skip = _import_sleep(reader, synced_at)
     elif csv_type == "hrv":
@@ -760,7 +801,7 @@ def _dispatch_csv(text: str, filename: str, synced_at: str) -> dict:
         return {"type": "unknown", "inserted": 0, "skipped": 0,
                 "error": f"unrecognized CSV format (headers: {headers[:6]})"}
 
-    return {"type": csv_type, "inserted": ins, "skipped": skip}
+    return {"type": csv_type, "inserted": ins, "skipped": skip, **notes}
 
 
 @app.post("/api/import/csv")
@@ -919,17 +960,16 @@ async def import_bloodwork(file: UploadFile = File(...)):
                     "metadata": {"date": report_date, "type": "bloodwork"},
                 })
 
-    try:
-        upsert_chunks(chunks)
-    except Exception as e:
-        logger.warning("Vector store upsert failed (bloodwork): %s", e)
+    vs_err = _safe_upsert_chunks(chunks, "bloodwork")
 
     return {
         "date":          report_date,
         "panels_found":  len(parsed["panels"]),
         "markers_parsed": parsed["parsed_count"],
         "db_rows":       len(db_rows),
-        "chunks":        len(chunks),
+        # Honest count: 0 chunks landed if the vector store failed.
+        "chunks":        0 if vs_err else len(chunks),
+        **({"vector_store_error": vs_err} if vs_err else {}),
         "note": "Re-upload any time — existing results for this date will be updated." if db_rows else
                 "Structured parsing found 0 results. Raw text stored in vector store for search.",
     }

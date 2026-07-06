@@ -408,13 +408,27 @@ TOOL_TIMEOUTS = {
 }
 
 
+def _fail(action: str, resp: httpx.Response) -> str:
+    """Uniform tool-failure string that keeps the sub-service's detail.
+
+    All three services put the specific cause in a JSON `detail` field
+    (FastAPI convention); fall back to the raw body. Handlers used to
+    flatten this into strings like "[Web search failed]" — the model (and
+    therefore the user) never saw why (2026-07-05 review P1.2, tenet 7)."""
+    try:
+        detail = resp.json().get("detail") or resp.text[:200]
+    except ValueError:
+        detail = resp.text[:200]
+    return f"[{action} failed (HTTP {resp.status_code}): {detail}]"
+
+
 async def _tool_get_weather(client: httpx.AsyncClient, args: dict) -> str:
     location = args.get("location", DEFAULT_LOCATION)
     resp = await client.get(f"{TOOL_SERVICE_URL}/weather", params={"location": location})
     if resp.status_code == 200:
         wx = resp.json()
         return f"[Weather for {wx['location']}]\n{wx['summary']}"
-    return f"[Weather unavailable for {location}]"
+    return _fail(f"Weather lookup for {location}", resp)
 
 
 async def _tool_web_search(client: httpx.AsyncClient, args: dict) -> str:
@@ -429,7 +443,7 @@ async def _tool_web_search(client: httpx.AsyncClient, args: dict) -> str:
             for r in sr.get("results", [])
         )
         return f"[Web search results for '{args.get('query')}']\n\n{snippets}"
-    return "[Web search failed]"
+    return _fail("Web search", resp)
 
 
 async def _tool_fetch_url(client: httpx.AsyncClient, args: dict) -> str:
@@ -454,7 +468,7 @@ async def _tool_shopping_list_view(client: httpx.AsyncClient, args: dict) -> str
         if items:
             return f"[Shopping list: {', '.join(items)}]"
         return "[Shopping list is empty]"
-    return "[Could not retrieve shopping list]"
+    return _fail("Shopping list view", resp)
 
 
 async def _tool_shopping_list_add(client: httpx.AsyncClient, args: dict) -> str:
@@ -465,7 +479,7 @@ async def _tool_shopping_list_add(client: httpx.AsyncClient, args: dict) -> str:
     if resp.status_code == 200:
         added = resp.json().get("added", args.get("items", []))
         return f"[Added to shopping list: {', '.join(added)}]"
-    return "[Could not add to shopping list]"
+    return _fail("Shopping list add", resp)
 
 
 async def _tool_shopping_list_remove(client: httpx.AsyncClient, args: dict) -> str:
@@ -475,12 +489,15 @@ async def _tool_shopping_list_remove(client: httpx.AsyncClient, args: dict) -> s
         return f"[Removed '{item}' from shopping list]"
     if resp.status_code == 404:
         return f"['{item}' was not found on the shopping list]"
-    return "[Could not remove from shopping list]"
+    return _fail("Shopping list remove", resp)
 
 
 async def _tool_shopping_list_clear(client: httpx.AsyncClient, args: dict) -> str:
-    await client.delete(f"{TOOL_SERVICE_URL}/shopping_list/clear")
-    return "[Shopping list cleared]"
+    # Used to ignore the response entirely and claim success (tenet 6).
+    resp = await client.delete(f"{TOOL_SERVICE_URL}/shopping_list/clear")
+    if resp.status_code == 200:
+        return "[Shopping list cleared]"
+    return _fail("Shopping list clear", resp)
 
 
 async def _tool_search_health_data(client: httpx.AsyncClient, args: dict) -> str:
@@ -502,7 +519,7 @@ async def _tool_search_health_data(client: httpx.AsyncClient, args: dict) -> str
             for r in results
         )
         return f"[Health search results for '{params['q']}']\n\n{chunks}"
-    return f"[Health search error: {resp.status_code}]"
+    return _fail("Health search", resp)
 
 
 async def _tool_query_health(client: httpx.AsyncClient, args: dict) -> str:
@@ -522,7 +539,7 @@ async def _tool_query_health(client: httpx.AsyncClient, args: dict) -> str:
         if data.get("status") == "no_data":
             return f"[Health data: {data.get('note', 'no data available')}]"
         return f"[Health data — metric={params['metric']} days={days}]\n{json.dumps(data, indent=2)}"
-    return f"[Health service error: {resp.status_code}]"
+    return _fail("Health query", resp)
 
 
 async def _tool_query_bloodwork(client: httpx.AsyncClient, args: dict) -> str:
@@ -544,7 +561,7 @@ async def _tool_query_bloodwork(client: httpx.AsyncClient, args: dict) -> str:
             ref = f" (ref {r['raw_ref']})" if r.get("raw_ref") else ""
             lines.append(f"{r['date']} | {r['panel']} | {r['marker']}: {r['value']} {r.get('unit','')}{flag}{ref}")
         return "[Bloodwork results]\n" + "\n".join(lines)
-    return f"[Bloodwork query error: {resp.status_code}]"
+    return _fail("Bloodwork query", resp)
 
 
 async def _tool_get_kronk_context(client: httpx.AsyncClient, args: dict) -> str:
@@ -650,7 +667,7 @@ async def _tool_query_finances(client: httpx.AsyncClient, args: dict) -> str:
             for r in results
         )
         return f"[Financial document results for '{query}']\n\n{excerpts}"
-    return "[Finance service unavailable]"
+    return _fail("Finance query", resp)
 
 
 _HANDLERS = {

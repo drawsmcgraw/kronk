@@ -11,6 +11,21 @@ receipts instead of restating them.
 
 ---
 
+## ☐ "An unexpected error occurred" is a bug
+
+**Hook:** A voice assistant that says "an unexpected error occurred" is
+unfixable by its operator. One review pass found every layer that swallowed
+error detail — six tool handlers flattening causes into `[Web search
+failed]`, a coordinator being handed specialist failures labeled as
+*results*, failed turns invisible in tracing — and the fixes were mostly
+one helper function and one honest label.
+**Why it travels:** every LLM app has an error path that crosses a model,
+and models paraphrase, apologize, or invent unless structurally forbidden.
+The FAILED-label pattern and trace-level ERROR marking port anywhere.
+**Receipts:** `features/verbose-errors.md`,
+`REVIEW_2026-07-05_codebase.md` (P0/P1),
+`incidents/INVESTIGATION_2026-07-05_forecast_misroute.md`.
+
 ## ☐ The agent that announced its tool call instead of making it
 
 **Hook:** Asked for the heads of state of the top-5 GDP countries, the agent

@@ -15,6 +15,10 @@ from bs4 import BeautifulSoup
 from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
 
+# Without this, INFO logs are silently dropped under uvicorn (only WARNING+
+# escapes via the last-resort handler) — the /music "full error body goes to
+# the log" story never actually logged. Matches health/finance services.
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("tool_service")
 
 # ── home-location weather cache ──────────────────────────────────────────────
@@ -298,14 +302,33 @@ async def weather_cached():
 
 @app.get("/search")
 async def search(q: str = Query(..., description="Search query"), count: int = 5):
-    async with httpx.AsyncClient(timeout=10) as client:
-        resp = await client.get(
-            f"{SEARXNG_URL}/search",
-            params={"q": q, "format": "json", "categories": "general", "language": "en"},
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get(
+                f"{SEARXNG_URL}/search",
+                params={"q": q, "format": "json", "categories": "general", "language": "en"},
+            )
+    except httpx.RequestError as e:
+        # Network-level failure (container down, DNS, timeout) — used to
+        # surface as a generic 500 with no cause.
+        raise HTTPException(
+            status_code=502,
+            detail=f"Could not reach SearXNG: {type(e).__name__}: {e}",
         )
-        if resp.status_code != 200:
-            raise HTTPException(status_code=502, detail="Search service unavailable")
+    if resp.status_code != 200:
+        logger.error("SearXNG returned HTTP %s: %s", resp.status_code, resp.text[:300])
+        raise HTTPException(
+            status_code=502,
+            detail=f"SearXNG returned HTTP {resp.status_code}: {resp.text[:200]}",
+        )
+    try:
         data = resp.json()
+    except ValueError:
+        logger.error("SearXNG returned non-JSON body: %s", resp.text[:300])
+        raise HTTPException(
+            status_code=502,
+            detail=f"SearXNG returned a non-JSON response: {resp.text[:200]}",
+        )
 
     results = []
     for r in data.get("results", [])[:count]:

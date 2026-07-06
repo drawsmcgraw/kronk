@@ -359,6 +359,85 @@ def test_agent_route_streams_tokens_as_they_arrive(client):
     assert any("timing" in e for e in events)
 
 
+def test_specialist_failure_reaches_coordinator_labeled_as_failure(client):
+    """2026-07-05 review P1.1: a failed specialist's error used to be handed
+    to the coordinator as a 'specialist result — use this to answer', so the
+    coordinator paraphrased or invented. It must arrive labeled FAILED with
+    instructions to report the cause, and the trace must be marked ERROR
+    even though the coordinator recovers."""
+    from unittest.mock import MagicMock
+    captured = {}
+
+    async def fake_classify(text, history):
+        return "health"
+
+    def fake_run_stream(agent, task, context, system_extra=None, history_messages=None):
+        async def gen():
+            if agent.name == "health":
+                yield {"type": "error",
+                       "message": "[Health query failed (HTTP 503): database is locked]"}
+            else:  # coordinator
+                captured["system_extra"] = system_extra
+                yield {"type": "token", "text": "The health service failed: database is locked."}
+        return gen()
+
+    fake_end = MagicMock()
+    with patch("orchestrator.main.routing.classify", new=fake_classify), \
+         patch("orchestrator.main.agents.run_stream", new=fake_run_stream), \
+         patch("orchestrator.main.telemetry.end_pipeline", new=fake_end):
+        resp = client.post("/message", json={"text": "how did I sleep?"})
+
+    tokens = "".join(e["token"] for e in _collect_sse_events(resp.text) if "token" in e)
+    assert "database is locked" in tokens  # detail survived to the user
+    extra = captured["system_extra"]
+    assert "FAILED" in extra
+    assert "database is locked" in extra
+    assert "use this to answer" not in extra  # the old lie is gone
+    _, kwargs = fake_end.call_args
+    assert kwargs.get("level") == "ERROR"
+    assert "health specialist" in (kwargs.get("status_message") or "")
+
+
+def test_router_failure_message_is_specific_not_speculative(client):
+    """2026-07-05 review P1.5: any classify exception used to be reported as
+    'could not reach the language model … Is the server still loading?' —
+    actively misleading for e.g. a 400. The message must carry the actual
+    error and the rid."""
+
+    async def exploding_classify(text, history):
+        raise RuntimeError("LiteLLM 400: template rejected conversation")
+
+    with patch("orchestrator.main.routing.classify", new=exploding_classify):
+        resp = client.post("/message", json={"text": "hello"})
+
+    tokens = "".join(e["token"] for e in _collect_sse_events(resp.text) if "token" in e)
+    assert "routing failed" in tokens.lower()
+    assert "template rejected conversation" in tokens
+    assert "rid " in tokens
+    assert "still loading" not in tokens
+
+
+def test_shopping_list_api_failure_is_not_an_empty_list(client):
+    """2026-07-05 review P1.8: tool_service being down used to return
+    {"items": []} — the page rendered 'Nothing on the list.' A failure must
+    be a 502 so the page shows its offline state instead."""
+
+    class ExplodingClient:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *exc):
+            return False
+
+        async def get(self, url, **kw):
+            raise httpx.ConnectError("connection refused")
+
+    with patch("orchestrator.main.httpx.AsyncClient", return_value=ExplodingClient()):
+        resp = client.get("/api/shopping_list")
+    assert resp.status_code == 502
+    assert "Could not reach tool_service" in resp.json()["detail"]
+
+
 def test_pipeline_crash_yields_specific_error_and_terminates_stream(client):
     """2026-07-05 review P0.5: an unexpected raise inside the pipeline used to
     kill the stream mid-flight — no error token, no [DONE], and HA spoke a
@@ -463,6 +542,73 @@ async def test_execute_tool_handles_http_failure():
     with patch("orchestrator.main.httpx.AsyncClient", return_value=FailingClient()):
         result = await orch._execute_tool("get_weather", {"location": "Laurel, MD"})
     assert "error" in result.lower() or "unavailable" in result.lower()
+
+
+@pytest.mark.asyncio
+async def test_tool_failure_surfaces_service_detail():
+    """2026-07-05 review P1.2: six handlers flattened sub-service errors into
+    generic strings ('[Web search failed]'). The _fail helper must keep the
+    HTTP status and the service's JSON detail."""
+    import tools
+
+    class FakeResp:
+        status_code = 503
+
+        @property
+        def text(self):
+            return '{"detail": "SearXNG returned HTTP 500: upstream exploded"}'
+
+        def json(self):
+            return {"detail": "SearXNG returned HTTP 500: upstream exploded"}
+
+    class FakeClient:
+        async def __aenter__(self): return self
+        async def __aexit__(self, *a): pass
+        async def get(self, *a, **kw): return FakeResp()
+
+    with patch("tools.httpx.AsyncClient", return_value=FakeClient()):
+        result = await tools.execute("web_search", {"query": "anything"})
+    assert "HTTP 503" in result
+    assert "upstream exploded" in result
+    assert result != "[Web search failed]"
+
+
+@pytest.mark.asyncio
+async def test_shopping_list_clear_verifies_instead_of_assuming():
+    """2026-07-05 review P1.2/tenet 6: clear ignored the response entirely
+    and always claimed '[Shopping list cleared]'."""
+    import tools
+
+    class FakeResp:
+        status_code = 500
+        text = "disk full"
+        def json(self): raise ValueError("not json")
+
+    class FakeClient:
+        async def __aenter__(self): return self
+        async def __aexit__(self, *a): pass
+        async def delete(self, *a, **kw): return FakeResp()
+
+    with patch("tools.httpx.AsyncClient", return_value=FakeClient()):
+        result = await tools.execute("shopping_list_clear", {})
+    assert "cleared" not in result.lower()
+    assert "HTTP 500" in result
+    assert "disk full" in result
+
+
+def test_terminal_speech_never_speaks_raw_tool_internals():
+    """2026-07-05 review P1.4: an unmapped terminal result like a transport
+    error used to be spoken verbatim — a stack trace read aloud."""
+    import agents
+    speech = agents._terminal_speech(
+        "[Tool play_music error: ReadTimeout(ReadTimeout('timed out'))]"
+    )
+    assert speech.startswith("That didn't work")
+    assert "ReadTimeout" in speech          # cause survives, shortened
+    assert "Tool play_music error" not in speech  # scaffolding doesn't
+    # The known shapes still map exactly as before.
+    assert agents._terminal_speech("[Music playing: X on the kitchen speaker]") == \
+        "Now playing X on the kitchen speaker."
 
 
 # ── Garmin CSV auto-routing (unchanged) ───────────────────────────────────────

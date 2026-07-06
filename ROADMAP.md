@@ -18,23 +18,8 @@ Conventions:
 
 ## Now — committed, in flight
 
-1. **Docs reorganization** *(this work)* — this file; status headers on all
-   `docs/plans/*`; new `docs/features/` back-filled for voice, music,
-   telemetry, and agents-as-tools routing; stale README/TECH_DEBT entries
-   rewritten (README still describes the abandoned direct-to-Kronk voice
-   design; TECH_DEBT `LITELLM-01` predates the 2026-07-03 hook fix).
-   *Why: "where is our roadmap?" had six answers; blog posts need organized
-   receipts.*
-
-2. **Verbose voice/music error reporting** — audit every layer's error path
-   (HA pipeline → ollama shim → router → agent loop → tool_service) so a
-   failure speaks/returns the most specific detail available instead of
-   "an unexpected error occurred", and every spoken failure is findable in
-   Langfuse in one step. tool_service already returns good detail
-   ("player may be powered off", "provider may need re-authentication") —
-   find where it gets swallowed. Short plan doc first: "as verbose as
-   reasonable" differs for voice (one clear sentence) vs chat UI (can show
-   a trace link). *Why: can't troubleshoot what you can't see.*
+*(Items keep their numbers when they ship — cross-references elsewhere in
+the docs use them. 1 and 2 are in Shipped.)*
 
 3. **Timers via HA native intents** — verification task, likely not a build:
    HA Assist has built-in timer intents and the Voice PE runs timers
@@ -147,10 +132,12 @@ Conventions:
 ## Stretch
 
 - **Kronk self-description** — "Kronk, how do you work?" answered from live
-  system knowledge, possibly with generated architecture diagrams. ~70%
-  exists already (`kronk-context.md` + `get_kronk_context` tool +
-  diagram-serving at `/static/generated/`); the gap is wiring it to an
-  agent and keeping the context doc from drifting.
+  system knowledge, possibly with generated architecture diagrams. More
+  built than first thought: the `assistant` agent is already wired with
+  `get_kronk_context` + `generate_diagram` (2026-07-05 review). The real
+  remaining gap is keeping `kronk-context.md` from drifting — it's
+  hand-maintained (tenet 8 violation waiting to happen) — plus routing
+  quality into that agent.
 
 ## Deferred / parked — with revisit conditions
 
@@ -176,7 +163,18 @@ Conventions:
 
 ## Shipped
 
-Newest first; feature docs in `docs/features/` (once back-filled by item 1).
+Newest first; feature docs in `docs/features/`.
+
+- **Verbose error reporting** *(item 2, 2026-07-05)* — every layer surfaces
+  its most specific failure cause; failed turns marked ERROR in Langfuse;
+  "an unexpected error occurred" is now a bug by tenet. With the P0
+  correctness batch and the forecast-misroute fixes (weather routing
+  shortcut, repeat-tool-call guardrail, research budget 5→8) from the same
+  review. See `docs/features/verbose-errors.md`,
+  `docs/incidents/INVESTIGATION_2026-07-05_forecast_misroute.md`.
+- **Docs reorganization** *(item 1, 2026-07-05)* — this file as single
+  source of truth; `docs/features/`; status headers on all plan docs;
+  engineering tenets + definition-of-done + incident rule in `CLAUDE.md`.
 
 - **Voice music control** (2026-07-03) — two-tier: MA's local-intent
   blueprint catches strict "play the artist X on Y" grammar in ~2 s; fuzzy

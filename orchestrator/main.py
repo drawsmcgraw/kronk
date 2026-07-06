@@ -268,7 +268,10 @@ async def _run_pipeline(
             except Exception as e:
                 logger.error("Router failed (%s): %s", transport, e)
                 pipeline_error = f"routing: {e}"
-                err = f"Error: could not reach the language model ({e}). Is the server still loading?"
+                # No speculative cause here — the old message guessed "is the
+                # server still loading?" for ANY failure, misdirecting
+                # troubleshooting when the real cause was e.g. a 400.
+                err = f"Error: routing failed: {e} [rid {rid}]"
                 assistant_reply.append(err)
                 yield {"type": "token", "text": err}
                 return
@@ -327,10 +330,21 @@ async def _run_pipeline(
                          duration_s=round(time.monotonic() - t_request, 2))
                     return
 
-                # Agent errored — fall through to the coordinator with the
-                # error attached as context.
+                # Agent errored — fall through to the coordinator, honestly
+                # labeled. The old block called this a "specialist result —
+                # use this to answer": the coordinator was never told it was
+                # a failure and would apologize vaguely or invent an answer,
+                # swallowing detail like "provider may need re-authentication"
+                # (review P1.1). The trace is marked ERROR even if the
+                # coordinator recovers, so the failure stays findable.
+                pipeline_error = f"{agent_name} specialist: {agent_error}"
                 extra_parts.append(
-                    f"[{agent_name} specialist result — use this to answer]\n{agent_error}"
+                    f"[The {agent_name} specialist FAILED with this error:\n"
+                    f"{agent_error}\n"
+                    "If you can fully answer the user's question from your own "
+                    "knowledge, do so. Otherwise, report the failure and its "
+                    "cause to the user plainly — do NOT invent an answer or "
+                    "claim an action succeeded.]"
                 )
 
             # ── Phase 3: coordinator (direct answers, delegation via ask_*,
@@ -360,6 +374,7 @@ async def _run_pipeline(
                     assistant_reply.append(ev["text"])
                     yield {"type": "token", "text": ev["text"]}
                 elif etype == "error":
+                    pipeline_error = f"coordinator: {ev['message'][:200]}"
                     assistant_reply.append(ev["message"])
                     yield {"type": "token", "text": ev["message"]}
 
@@ -906,14 +921,24 @@ async def shopping_list_page():
 
 @app.get("/api/shopping_list")
 async def shopping_list_data():
+    # A failure here must NOT render as an empty list — the page shows
+    # "Nothing on the list." for [] but has an offline state for non-200s
+    # (review P1.8: tool_service down looked identical to an empty list).
     try:
         async with httpx.AsyncClient(timeout=5) as client:
             resp = await client.get(f"{tools.TOOL_SERVICE_URL}/shopping_list")
-            if resp.status_code == 200:
-                return resp.json()
     except Exception as e:
         logger.warning("shopping_list proxy failed: %s", e)
-    return {"items": [], "updated_at": None}
+        raise HTTPException(
+            status_code=502,
+            detail=f"Could not reach tool_service: {type(e).__name__}: {e}",
+        )
+    if resp.status_code != 200:
+        raise HTTPException(
+            status_code=502,
+            detail=f"tool_service returned HTTP {resp.status_code}: {resp.text[:200]}",
+        )
+    return resp.json()
 
 
 # ── Static mounts ────────────────────────────────────────────────────────────
