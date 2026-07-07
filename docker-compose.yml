@@ -62,6 +62,9 @@ services:
     build: ./tool_service
     volumes:
       - ./data:/data
+      # MagicMirror SSH key (gitignored; private key lives only here).
+      # Generate: ssh-keygen -t ed25519 -f secrets/mm/kronk-mm-update -N '' -C kronk-mm-update
+      - ./secrets/mm:/keys:ro
     environment:
       - SEARXNG_URL=http://searxng:8080
       # Hourly home-forecast cache (served at /weather/cached; the
@@ -78,6 +81,11 @@ services:
       # music_assistant, not the native Sonos/Cast entity).
       - MUSIC_PLAYERS=sonos move:media_player.sonos_move_derp_2,kitchen:media_player.home_assistant_voice_0ac919_pe_01
       - MUSIC_DEFAULT_PLAYER=media_player.home_assistant_voice_0ac919_pe_01
+      # MagicMirror Pi (POST /magicmirror/update → forced-command SSH; the
+      # Pi-side script backs up, updates, restarts pm2, verifies. Setup:
+      # magicmirror/mm-update.sh header + docs/plans/MAGICMIRROR_PLAN.md).
+      - MM_SSH_TARGET=${MM_SSH_TARGET:-kronk@mirror.local}
+      - MM_SSH_KEY=/keys/kronk-mm-update
     extra_hosts:
       - "host.docker.internal:host-gateway"
     mem_limit: 1g

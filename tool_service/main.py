@@ -474,6 +474,113 @@ async def hottub_status():
         return {"online": None, "error": str(e)}
 
 
+# ── MagicMirror (Raspberry Pi over SSH) ──────────────────────────────────────
+# Kronk's first cross-machine capability. Transport: `ssh` as user `kronk`
+# with a forced-command key — the Pi runs /home/drew/kronk/mm-update.sh (as
+# drew, via a sudoers grant pinned to that one script) no matter what the
+# client sends; we pick an allowlisted verb via the SSH command field.
+# Reference script + Pi-side setup: magicmirror/mm-update.sh. Design:
+# docs/plans/MAGICMIRROR_PLAN.md.
+#
+# An update takes 1-5 min on a Pi (npm install), far past any voice budget,
+# so POST /magicmirror/update does a fast preflight (status verb — proves
+# reachability, auth, and the script itself), then runs the real update as
+# a background task whose outcome lands in /data/mm_update_last.json and
+# the log. GET /magicmirror/status reports live state + that last outcome.
+
+MM_SSH_TARGET = os.getenv("MM_SSH_TARGET", "kronk@mirror.local")
+MM_SSH_KEY    = os.getenv("MM_SSH_KEY", "/keys/kronk-mm-update")
+MM_LAST_FILE  = Path("/data/mm_update_last.json")
+MM_UPDATE_TIMEOUT_S = 600
+
+_SSH_BASE = [
+    "ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=5",
+    "-o", "StrictHostKeyChecking=accept-new",
+    "-o", "UserKnownHostsFile=/data/mm_known_hosts",
+]
+
+
+def _parse_kronk_line(raw: str) -> tuple[bool, str, dict]:
+    """Find the script's machine-readable last line.
+    Returns (ok, line, fields) — fields are the key=value pairs."""
+    for line in reversed(raw.strip().splitlines()):
+        if line.startswith(("KRONK-OK", "KRONK-FAIL")):
+            parts = line.split()
+            fields = dict(p.split("=", 1) for p in parts[2:] if "=" in p)
+            return line.startswith("KRONK-OK"), line, fields
+    return False, "no KRONK status line in output", {}
+
+
+async def _ssh_mm(verb: str, timeout_s: int) -> tuple[bool, str, dict]:
+    """Run one allowlisted verb on the Pi. (ok, detail_line, fields)."""
+    if not Path(MM_SSH_KEY).exists():
+        return False, f"SSH key not found at {MM_SSH_KEY} — mount ./secrets/mm", {}
+    cmd = _SSH_BASE + ["-i", MM_SSH_KEY, MM_SSH_TARGET, verb]
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            *cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        raw, _ = await asyncio.wait_for(proc.communicate(), timeout=timeout_s)
+    except asyncio.TimeoutError:
+        proc.kill()
+        return False, f"SSH to {MM_SSH_TARGET} timed out after {timeout_s}s during '{verb}'", {}
+    except OSError as e:
+        return False, f"could not exec ssh: {e}", {}
+    text = raw.decode(errors="replace")
+    if proc.returncode == 255:  # ssh transport-level failure
+        logger.error("mm ssh transport failure: %s", text[:300])
+        return False, (f"could not reach the mirror at {MM_SSH_TARGET}: "
+                       f"{text.strip().splitlines()[-1] if text.strip() else 'connection failed'}"), {}
+    ok, line, fields = _parse_kronk_line(text)
+    if not ok:
+        logger.error("mm verb %s failed: %s", verb, text[-500:])
+    return ok, line, fields
+
+
+async def _run_mm_update() -> None:
+    """Background task: the real update. Outcome → file + log (the voice
+    reply already went out; this is where the truth lands — tenet 6 is
+    served by GET /magicmirror/status reading it back)."""
+    ok, line, fields = await _ssh_mm("update", MM_UPDATE_TIMEOUT_S)
+    outcome = {"ok": ok, "detail": line, "fields": fields,
+               "finished_at": time.time()}
+    try:
+        tmp = MM_LAST_FILE.with_suffix(".tmp")
+        tmp.write_text(json.dumps(outcome))
+        os.replace(tmp, MM_LAST_FILE)
+    except OSError as e:
+        logger.error("could not persist mm update outcome: %s", e)
+    (logger.info if ok else logger.error)("mm update finished: %s", line)
+
+
+@app.post("/magicmirror/update")
+async def magicmirror_update():
+    ok, line, fields = await _ssh_mm("status", 20)
+    if not ok:
+        raise HTTPException(status_code=502,
+                            detail=f"Mirror preflight failed: {line}")
+    asyncio.get_running_loop().create_task(_run_mm_update())
+    return {
+        "status": "started",
+        "current_version": fields.get("version"),
+        "current_rev": fields.get("rev"),
+        "message": (f"updating from version {fields.get('version', '?')} — "
+                    "a full backup is taken first; this takes a few minutes"),
+    }
+
+
+@app.get("/magicmirror/status")
+async def magicmirror_status():
+    ok, line, fields = await _ssh_mm("status", 20)
+    last = None
+    try:
+        last = json.loads(MM_LAST_FILE.read_text())
+    except (OSError, ValueError):
+        pass
+    if not ok:
+        raise HTTPException(status_code=502, detail=f"Mirror unreachable: {line}")
+    return {"live": fields, "last_update": last}
+
+
 # ── Home Assistant timer proxy ───────────────────────────────────────────────
 # Calls HA's REST `timer.start` service. HA fires `timer.finished` when the
 # countdown expires; a separate HA automation handles the announcement via

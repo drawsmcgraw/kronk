@@ -79,6 +79,8 @@ def _tool_narration(name: str, args: dict) -> str:
     if name == "play_music":
         q = args.get("query", "")
         return f"putting on {q}" if q else "starting the music..."
+    if name == "update_magicmirror":
+        return "checking the mirror and starting the update..."
     return f"running {name}..."
 
 
@@ -91,6 +93,11 @@ def _terminal_speech(result: str, style: str = errors.DEBUG) -> str:
         # The detail here is already a human sentence ("The speaker may be
         # powered off") — spoken in both styles.
         return f"I couldn't play that. {line[len('Could not play music: '):]}"
+    if line.startswith("Magic mirror update started: "):
+        return f"The magic mirror is {line[len('Magic mirror update started: '):]}."
+    if line.startswith("Could not update the magic mirror: "):
+        return ("I couldn't update the magic mirror. "
+                f"{line[len('Could not update the magic mirror: '):]}")
     # Unrecognized shape — e.g. "Tool play_music error: ReadTimeout(...)" from
     # tools.execute on a transport failure. Spoken raw, that's a stack trace
     # read aloud; log the internals, speak a clean sentence with the cause
@@ -201,8 +208,8 @@ AGENTS: dict[str, AgentConfig] = {
     ),
     "home": AgentConfig(
         name="home",
-        description="Weather lookups, shopping list management, hot tub status, timers, and playing music",
-        routing_hint="weather, forecast, shopping list, hot tub, spa, timer, countdown, play music, songs, albums, speakers",
+        description="Weather lookups, shopping list management, hot tub status, timers, playing music, and updating the magic mirror",
+        routing_hint="weather, forecast, shopping list, hot tub, spa, timer, countdown, play music, songs, albums, speakers, magic mirror",
         icon="🏠",
         probe="tools",
         system_prompt=(
@@ -216,6 +223,8 @@ AGENTS: dict[str, AgentConfig] = {
             "as the query; name the speaker only if the user did. Call play_music at most once — "
             "when it reports music playing, report that back and stop. If the tool reports failure, tell "
             "the user playback failed and why — never claim music is playing after a failed tool call.\n"
+            "Use update_magicmirror when the user asks to update or upgrade the magic mirror. "
+            "Call it at most once; a full backup happens automatically first.\n"
             "When the user asks about weather without naming a place, call get_weather "
             "without the location argument — do not ask for clarification, the tool defaults to the home location.\n"
             "Be brief and direct. Answer in one or two short sentences — your replies are "
@@ -223,8 +232,8 @@ AGENTS: dict[str, AgentConfig] = {
             "Never restate tool calls, tool arguments, or tool output syntax in your reply — "
             "reply in plain sentences only."
         ),
-        tool_names=["get_weather", "shopping_list_view", "shopping_list_add", "shopping_list_remove", "shopping_list_clear", "query_hottub", "set_timer", "play_music"],
-        terminal_tools=frozenset({"play_music"}),
+        tool_names=["get_weather", "shopping_list_view", "shopping_list_add", "shopping_list_remove", "shopping_list_clear", "query_hottub", "set_timer", "play_music", "update_magicmirror"],
+        terminal_tools=frozenset({"play_music", "update_magicmirror"}),
     ),
     "assistant": AgentConfig(
         name="assistant",

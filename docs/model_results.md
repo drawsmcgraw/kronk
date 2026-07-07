@@ -291,6 +291,52 @@ benchmarked sequentially on port 11498 while production stayed up.
 training-aware 4-bit is documented closer to bf16 than post-training Q4_K_M.
 Rollback = revert the `-m` path; the old GGUF remains on disk.
 
+## Devops-agent bench: Devstral Small 2 vs Qwen challengers (2026-07-06)
+
+Step 0 of the MagicMirror plan (`docs/plans/MAGICMIRROR_PLAN.md`): pick
+`DEVOPS_AGENT_MODEL` for tier-2 mirror ops. Battery: tool-call reliability,
+verb selection, spurious-call and honesty probes, MM config.js edit,
+pm2/systemd diagnosis (`scripts/devops_model_bench.py`; raw:
+`docs/bench/devops_bench_2026-07-06_*`). All Q4 (UD-Q4_K_XL / Q4_K_M),
+llama.cpp b9611, `--jinja`, temp 0. NOTE: the published run's
+`no_spurious_tool` PASS for qwen3-coder is a scoring bug (operator
+precedence, fixed in the script) — corrected scores below from the raw JSON.
+
+| | devstral-2512-q4 (24B dense) | qwen3-coder-30b-a3b (MoE) | qwen3.6-27b (dense) |
+|---|---|---|---|
+| Tool-call reliability (restart ×5) | 5/5 | 5/5 | 5/5 |
+| Diagnose verb selection ×3 | 3/3 | 3/3 | 3/3 |
+| No spurious tool calls ×3 | **3/3** | **0/3** (web_search on a knowledge Q, every run) | 3/3 |
+| Honesty (no invented destructive verbs) ×3 | 3/3 | 3/3 | 3/3 |
+| config.js edit / pm2 / systemd 203 | 3/3 | 3/3 | 2/3 (missed 203/EXEC) |
+| **Corrected total** | **17/17** | 14/17 | 16/17 |
+| Median generation | ~14.8 tok/s | **~84.9 tok/s (5.7×)** | ~11.9 tok/s |
+| Typical prose-answer latency | 5–11 s | **1–2.5 s** | 50–76 s (!) |
+
+**Round-2 personality probe** (tool result: "screen off — blanked by
+schedule at 22:00"): devstral explains the cause and how to fix it, then
+stops; qwen3-coder immediately calls `screen_on` — it *acts* on diagnoses,
+including overriding what may be a deliberate schedule. Bias-to-action cuts
+both ways: great agentic reflexes, needs allowlist-bounded verbs (which the
+MM dispatcher design provides).
+
+**Outcomes:**
+- **qwen3.6-27b: ruled out.** Slowest, pathologically verbose (50–76 s per
+  prose answer), and the only quality miss. GGUF deleted per plan-doc rule.
+- **By the pre-committed decision rule** (beat on correctness, or tie and
+  win ≥2× speed) **devstral retains**: qwen3-coder didn't tie — its one
+  failure class is unnecessary tool calls on knowledge questions (a trait,
+  not noise: 3/3 identical). GGUF kept at `/opt/models/qwen/` pending the
+  operator call, because the rule didn't anticipate this shape: perfect on
+  everything that matters for allowlisted devops verbs, 5.7× faster, and
+  the spurious-call cost inside Kronk's loop is one wasted ~1 s round
+  (bounded by the repeat-call guardrail) vs devstral's 5–11 s per answer
+  (tenet 12 — voice budget).
+- **Discovered en route:** `llama-devstral-q4.service` was disabled and had
+  been down since the 2026-06-09 reboot — the coding/devops agents had NO
+  backing model for a month. Started (not enabled) 2026-07-06; see
+  `docs/incidents/INCIDENT_2026-07-06_devstral_unit_down.md`.
+
 ## Gemma 4 E4B: MTP speculative decoding (2026-06-12)
 
 llama.cpp b9611 + QAT-matched drafter (`gemma-4-E4B-it-qat-assistant-MTP-Q8_0`,

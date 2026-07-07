@@ -388,6 +388,19 @@ TOOL_DEFINITIONS = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "update_magicmirror",
+            "description": (
+                "Update the MagicMirror software on the hallway Raspberry Pi. "
+                "Use when the user asks to update/upgrade the magic mirror. "
+                "A full backup is taken first; the update runs in the "
+                "background and takes a few minutes."
+            ),
+            "parameters": {"type": "object", "properties": {}},
+        },
+    },
 ]
 
 
@@ -405,6 +418,8 @@ TOOL_TIMEOUTS = {
     "set_timer": 10,
     "query_finances": 10,
     "play_music": 20,        # tool_service polls up to 8s to confirm playback
+    "update_magicmirror": 30,  # SSH preflight to the Pi (~5-20s); the update
+                               # itself runs as a tool_service background task
 }
 
 
@@ -652,6 +667,22 @@ async def _tool_play_music(client: httpx.AsyncClient, args: dict) -> str:
     )
 
 
+async def _tool_update_magicmirror(client: httpx.AsyncClient, args: dict) -> str:
+    resp = await client.post(f"{TOOL_SERVICE_URL}/magicmirror/update")
+    if resp.status_code == 200:
+        info = resp.json()
+        return f"[Magic mirror update started: {info.get('message', 'in progress')}]"
+    try:
+        detail = resp.json().get("detail", "")
+    except Exception:
+        detail = resp.text[:200]
+    return (
+        f"[Could not update the magic mirror: {detail}]\n"
+        "The update did NOT start — tell the user it failed and why. "
+        "Do NOT claim the mirror is updating. Do NOT call update_magicmirror again."
+    )
+
+
 async def _tool_query_finances(client: httpx.AsyncClient, args: dict) -> str:
     query = args.get("query", "")
     resp = await client.get(f"{FINANCE_SERVICE_URL}/api/query", params={"q": query})
@@ -686,6 +717,7 @@ _HANDLERS = {
     "query_hottub":         _tool_query_hottub,
     "set_timer":            _tool_set_timer,
     "play_music":           _tool_play_music,
+    "update_magicmirror":   _tool_update_magicmirror,
     "query_finances":       _tool_query_finances,
 }
 

@@ -62,16 +62,15 @@ the docs use them. 1 and 2 are in Shipped.)*
    both depend on it; better to re-found it now than accrete on a
    prototype.*
 
-7. **MagicMirror agent** — Kronk updates the MagicMirror on voice command
-   ("update the magic mirror"). MM runs on a Raspberry Pi (separate
-   machine); direction chosen: **SSH from Kronk with a dedicated key and
-   tightly limited authorization** (forced command / restricted shell —
-   the key can do exactly one thing). Details TBD in
-   `docs/plans/MAGICMIRROR_PLAN.md` — what "update" executes on the Pi,
-   whether content flows Kronk→Pi or the Pi pulls from a Kronk endpoint
-   backed by the context cache (item 5). Likely a `home`-agent terminal
-   tool like `play_music`. *Why: first Kronk capability that reaches
-   another machine; sets the pattern for doing that safely.*
+7. **MagicMirror agent** — **tier 1 BUILT 2026-07-06** (branch
+   `magicmirror-updater`): `update_magicmirror` terminal tool → tool_service
+   SSH (forced-command key, user kronk, sudoers pinned to one script) →
+   full-backup-then-update on the Pi, async ack + `/magicmirror/status`.
+   Awaiting Pi-side setup (operator steps in
+   `docs/plans/MAGICMIRROR_PLAN.md`) and live test. Tier 2 (devops agent
+   with allowlisted verbs — status/logs/restart/screen/config) comes after;
+   model bench done, devstral retained. *Why: first Kronk capability that
+   reaches another machine; sets the pattern for doing that safely.*
 
 8. **Voice regression smoke test** — script fires ~10 canned utterances
    through HA's `assist_pipeline/run` websocket and asserts which tier
@@ -82,6 +81,19 @@ the docs use them. 1 and 2 are in Shipped.)*
    *Why: three-tier routing changes silently; every layer broke
    independently during the music build. This is also the gate for
    item 9.*
+
+10. **Financial expert** *(added 2026-07-07; plan approved-in-conversation,
+   `docs/plans/FINANCIAL_EXPERT_PLAN.md`)* — the finance agent learns the
+   operator's actual investment positions in service of early retirement:
+   positions store with liquid-vs-age-gated as a first-class distinction,
+   format-agnostic monthly-export ingestion (LLM maps columns once,
+   deterministic upsert extraction forever), absorption of retirement-calc's
+   validated math (FERS matrix, Monte Carlo) as a tested library with
+   liquidity-gated withdrawal, then chat tools: "am I on track?",
+   "my retirement number", what-ifs, and bridge strategies (Roth ladder,
+   72(t), Rule of 55). retire_calc app is retired at parity. *Why: the
+   actual goal all of this serves — early retirement — deserves the same
+   engineering as the plumbing.*
 
 9. **Upgrade cadence** — a deliberate, scheduled "update day" for HA, MA,
    Langfuse, and llama.cpp rebuilds, gated by the smoke test (item 8),
