@@ -13,4 +13,11 @@ RUN uv pip install --system --require-hashes -r requirements.lock
 
 COPY main.py .
 
+# Non-root (tenet 10, operator directive 2026-07-07). UID 1000 matches the
+# host operator: ./data writes land drew-owned, and the read-only MagicMirror
+# SSH key (mode 600, drew-owned) stays readable. --create-home matters here —
+# ssh wants a HOME even with BatchMode + explicit UserKnownHostsFile.
+RUN useradd --uid 1000 --create-home kronk
+USER kronk
+
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8003"]

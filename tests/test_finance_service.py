@@ -20,9 +20,11 @@ from fastapi.testclient import TestClient
 
 @pytest.fixture
 def tmp_finance_db(tmp_path, monkeypatch):
-    """Wire finance_service to use a temporary DB file."""
+    """Wire finance_service to temporary DB files (documents + the
+    positions store — the app lifespan initializes both)."""
     db_path = tmp_path / "finances.db"
     monkeypatch.setenv("FINANCE_DB_PATH", str(db_path))
+    monkeypatch.setenv("POSITIONS_DB_PATH", str(tmp_path / "positions.db"))
     import finance_service.db as db_mod
     db_mod.init_db()
     return db_path

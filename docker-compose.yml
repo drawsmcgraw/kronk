@@ -26,6 +26,10 @@ services:
 
   retire_calc:
     build: ../retirement-calc
+    # Non-root via compose (its Dockerfile lives in the sibling repo, and
+    # this container is condemned at financial-expert phase-3 parity —
+    # not worth a cross-repo Dockerfile change).
+    user: "1000:1000"
     volumes:
       - ./data/retire:/data
     environment:
@@ -138,7 +142,20 @@ services:
   finance_service:
     build: ./finance_service
     volumes:
-      - ./data:/data
+      # Own subtree, NOT the shared ./data — positions are the most
+      # sensitive data on the box; no other service can see them (plan doc
+      # + review P3.7). Migration (one time): docker compose stop
+      # finance_service && mkdir -p data/finance && mv data/finances.db
+      # data/finance/ && docker compose up -d --build finance_service
+      - ./data/finance:/data
+    environment:
+      # LLM used ONLY to propose column mappings for new import formats
+      # (never touches numbers; ingestion works without it via manual
+      # mapping). LiteLLM is on host networking.
+      - LLM_SERVICE_URL=http://host.docker.internal:8002
+      - MAPPING_MODEL=gemma-4-e4b
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     mem_limit: 1g
     networks: [kronk]
     healthcheck:

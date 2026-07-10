@@ -409,6 +409,15 @@ transitive dep; Docker builds use `uv pip install --require-hashes`. Regenerate 
 lockfile with `uv pip compile requirements.txt --generate-hashes -o
 requirements.lock` from the service directory — never edit it by hand.
 
+**Containers: non-root (2026-07-07).** Every kronk-built service runs as
+UID 1000 (`USER kronk` in each Dockerfile; retire_calc via a compose
+`user:` directive), matching the host operator — so container writes to
+the `./data` bind mounts land drew-owned and no service holds root. The
+health_service Dockerfile creates the user *before* the fastembed model
+warmup so the baked cache is readable at runtime
+(`FASTEMBED_CACHE_PATH=/home/kronk/.cache/fastembed`). Upstream images
+(nginx, searxng, litellm, piper) keep their own user models.
+
 ---
 
 ## Roadmap

@@ -20,14 +20,20 @@ structurally prevented from arithmetic the same way terminal tools prevent
 it from claiming unverified success. A model that "estimates" a Monte
 Carlo success rate is trust-destroying.
 
-Clarified 2026-07-07: this is a **correctness** rule, not a privacy rule.
-The operator is explicitly fine with the model seeing all position data
-(it's local — tenet 1 is the privacy layer). So: full position detail
-flows freely into prompts for narration and analysis; what stays
-forbidden is the model *producing* numbers — transcribing them from
-documents (ingestion) or computing them (simulation). Minimize data in
-prompts only where it measurably helps latency/context, never for privacy
-theater.
+Clarified 2026-07-07 (twice, converging on the final form): this is a
+**correctness** rule, not a privacy rule — the operator is explicitly fine
+with local models seeing and reading everything. Final wording, after the
+operator challenged the original "no LLM near the numbers":
+
+> **No model output becomes a stored dollar without passing an
+> independent, deterministic check.**
+
+The model's intelligence is fully in the loop — it reads whole documents
+and proposes extracted values (the flexibility the operator asked for:
+"intelligently read any reasonably formatted document") — but its output
+must reconcile against the document's own stated totals before landing,
+and it never holds the SQL pen (document text is untrusted input; prompt
+injection must have nowhere to go). Simulation math stays in code.
 
 ## Operator decisions (2026-07-07)
 
@@ -130,7 +136,22 @@ Two-stage design that keeps the LLM away from numbers:
 Phase 1 — store + ingest: tables, importer, mapping memory, upload path
   (the /finances page already takes uploads), **per-service data-mount
   migration** (`./data/finance:/data` for finance_service; orchestrator
-  and tool_service lose sight of it).
+  and tool_service lose sight of it), and the positions UI on `/finances`.
+
+  **UI lens (operator clarification 2026-07-07): "value, in USD" is the
+  headline; holdings/tickers are drill-down detail.** Concretely:
+  - headline strip: Total • Liquid now • Age-gated • as-of date, each with
+    delta vs the previous snapshot;
+  - trajectory chart (Chart.js, already in-house): stacked area of value
+    over snapshot history split by liquidity, toggle by account/owner;
+    phase 3 adds target lines (retirement number + minimum liquid slice)
+    so the chart literally shows the gap closing;
+  - accounts table: kind, owner, liquidity + unlock age, value, Δ;
+  - holdings collapsed per account (provenance/allocation drill-down);
+  - upload form + mapping-confirm view.
+  The schema already matches the lens: `value` is the only required number
+  per snapshot row — shares/price optional (401k/TSP fund exports often
+  have no ticker at all).
 Phase 2 — math absorption: `finance_service/retirement/` library + golden
   tests + **liquidity-gated withdrawal ordering** (liquid taxable funds the
   bridge; gated accounts unlock at each account's unlock_age; simulation
@@ -169,6 +190,74 @@ Later (separate roadmap lines): daily prices via the context cache
 Model: gemma-4-e4b stays until proven insufficient — with all math in
 tools, the model's job is routing and narration. Re-bench only on evidence
 (single-variable tenet).
+
+## Phase 1 status: BUILT + deployed 2026-07-07 (branch `financial-expert`)
+
+Store, importer, routes, /finances UI, and the isolated `./data/finance`
+mount are live. Verified end-to-end with a fabricated export: gemma-4-e4b
+proposed the column mapping correctly on the first try; confirm → import
+(as-of from filename) → re-import no-op → summary with liquidity split all
+worked through nginx. 39 new tests (232 total). Awaiting the operator's
+first REAL export — that validates ingestion against actual brokerage
+formats before phase 2 starts.
+
+~~Known wart: kronk containers run as root~~ **Fixed same day** (operator
+directive): all four built services + retire_calc now run as UID 1000
+(matching the host operator), so everything written to the bind mounts —
+including `data/finance/raw/` exports — lands drew-owned. Existing
+root-owned files were chowned in the same pass.
+
+### Phase 1 amendments (2026-07-07, from the first real-file encounter)
+
+The operator's first upload was `Statement06302026.pdf` — a Fidelity
+*statement PDF* covering **multiple accounts**, dropped on the documents
+(RAG) zone. Findings folded back in:
+
+- **PDF verdict, refined by the operator's lens ("value, not positions"):**
+  per-position table parsing from statement PDFs stays rejected (fused
+  columns, varying layouts). But the operator is ultimately after **dollar
+  values**, and statement summary sections extract cleanly — so
+  `statement_pdf.py` now imports **per-account ending values** from
+  Fidelity statements, accepted only when they reconcile against the
+  statement's own stated portfolio total (verified against the real
+  2026-06 statement: delta $0.00). No OCR — these are digital PDFs, text
+  extraction only. Statement rows land as a single "Account value
+  (statement)" holding per account; per-position detail still comes from
+  CSV/XLSX when wanted. This also forced **snapshot-replace semantics**:
+  an import replaces the whole (account, as-of-date) snapshot, so
+  statement values and CSV positions can never double-count the same
+  date (and corrected re-exports can remove holdings cleanly).
+- **LLM extraction tier** (`extractor.py`, same day): when the anchor
+  parser doesn't recognize a PDF, the extraction model
+  (`EXTRACTION_MODEL`, default devstral-2512-q4) reads the text and
+  proposes `{as_of, stated_total, accounts[]}` — behind the SAME
+  reconciliation gate. Handles TSP statements, Fidelity redesigns, and
+  arbitrary reasonable documents with zero code changes, provided the
+  document states a total to verify against (no total → refuse, advise
+  CSV). Both tiers failing returns both reasons. The transposed-digit
+  rejection is pinned in `tests/test_extractor.py`.
+- **Multi-account files are the norm, not the edge case**: one brokerage
+  export covers several accounts. The mapping now supports an optional
+  `account` column + `account_map` ({column value → kronk account id, or
+  `__skip__`}); rows are grouped and upserted per account; unmapped values
+  return a structured 422 the UI turns into a per-value account picker.
+- **Statement filename convention**: `MMDDYYYY` (no separators) is now a
+  recognized as-of-date source alongside ISO-ish formats.
+- **UI clarity**: the documents drop zone now states it does NOT update
+  Portfolio Value and points to Import Positions.
+- **Zero questions at import** (operator directive, same day — the first
+  real upload produced "A LOT of questions"): the per-value account-
+  assignment step is GONE. Unknown accounts are auto-created, classified
+  deterministically from the document's own descriptor text ("JOINT WROS"
+  → taxable/joint, "ROTH IRA" → ira_roth/gated; `positions_db.infer_kind/
+  infer_owner`) — the statement anchor parser reads the descriptor line
+  after each "Account #" anchor, and the LLM extractor returns a "type"
+  field per account. The UI acknowledges what was created instead of
+  asking. Wrong guesses are corrected later via POST /api/accounts (same
+  id) and never affect stored values — only the liquid/gated
+  classification. Spouse ownership is the one thing no document states
+  reliably; owner defaults to user/joint-by-text and is an expected
+  post-hoc correction for TSP.
 
 ## Security posture
 

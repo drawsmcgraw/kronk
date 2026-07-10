@@ -5,6 +5,46 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Kronk — Finances</title>
 <link rel="stylesheet" href="/static/kronk.css">
+<script src="/static/chart.min.js"></script>
+<style>
+  /* ── Positions (value in USD is the lens) ── */
+  .headline { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .headline-card {
+    background: var(--bg2); border: 1px solid var(--border); border-radius: 10px;
+    padding: 0.9rem 1rem;
+  }
+  .headline-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.05em; }
+  .headline-value { font-size: 22px; font-weight: 700; font-family: monospace; margin-top: 4px; }
+  .headline-sub   { font-size: 11px; color: var(--text3); margin-top: 2px; min-height: 14px; }
+  .delta-up   { color: var(--green); }
+  .delta-down { color: var(--red); }
+
+  .chart-wrap { background: var(--bg2); border: 1px solid var(--border);
+                border-radius: 10px; padding: 1rem; height: 260px; }
+
+  .acct-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .acct-table th { text-align: left; font-size: 11px; color: var(--text3);
+                   text-transform: uppercase; letter-spacing: 0.05em;
+                   padding: 6px 8px; border-bottom: 1px solid var(--border); }
+  .acct-table td { padding: 7px 8px; border-bottom: 1px solid var(--border); }
+  .acct-table td.num { font-family: monospace; text-align: right; }
+  .liq-chip { font-size: 10px; border-radius: 4px; padding: 2px 6px; }
+  .liq-liquid    { background: rgba(34,197,94,0.15);  color: var(--green); }
+  .liq-age_gated { background: rgba(245,158,11,0.15); color: #f59e0b; }
+  details.holdings summary { cursor: pointer; color: var(--text3); font-size: 12px; }
+  details.holdings table { margin-top: 6px; }
+
+  /* mapping confirm */
+  .map-form { background: var(--bg2); border: 1px solid var(--blue); border-radius: 10px;
+              padding: 1rem 1.25rem; font-size: 13px; display: none; }
+  .map-form.active { display: block; }
+  .map-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+  .map-row label { width: 90px; color: var(--text2); }
+  .map-form select, .map-form input {
+    background: var(--bg3); border: 1px solid var(--border); border-radius: 6px;
+    color: var(--text); font-size: 13px; padding: 5px 8px; }
+  .map-actions { margin-top: 12px; display: flex; gap: 10px; align-items: center; }
+</style>
 <style>
   header { position: sticky; top: 0; z-index: 10; gap: 12px; }
   .doc-count { margin-left: auto; font-size: 12px; color: var(--text3); font-family: monospace; }
@@ -122,10 +162,50 @@
 <main>
 
   <div>
+    <div class="section-label">Portfolio Value</div>
+    <div class="headline" id="headline">
+      <div class="headline-card"><div class="headline-label">Total</div>
+        <div class="headline-value" id="hl-total">—</div><div class="headline-sub" id="hl-total-sub"></div></div>
+      <div class="headline-card"><div class="headline-label">Liquid now</div>
+        <div class="headline-value" id="hl-liquid" style="color:var(--green)">—</div><div class="headline-sub" id="hl-liquid-sub"></div></div>
+      <div class="headline-card"><div class="headline-label">Age-gated</div>
+        <div class="headline-value" id="hl-gated" style="color:#f59e0b">—</div><div class="headline-sub" id="hl-gated-sub"></div></div>
+      <div class="headline-card"><div class="headline-label">As of</div>
+        <div class="headline-value" id="hl-asof" style="font-size:16px">—</div><div class="headline-sub" id="hl-asof-sub"></div></div>
+    </div>
+  </div>
+
+  <div id="chart-section" style="display:none">
+    <div class="section-label">Trajectory</div>
+    <div class="chart-wrap"><canvas id="trajectory"></canvas></div>
+  </div>
+
+  <div>
+    <div class="section-label">Accounts</div>
+    <div id="accounts-area"><div class="empty">loading…</div></div>
+  </div>
+
+  <div>
+    <div class="section-label">Import Positions</div>
+    <div class="drop-zone" id="pos-drop-zone">
+      <strong>Drop a positions export or statement here</strong>
+      <p>CSV/XLSX/JSON exports give per-position detail. Statement PDFs give
+         per-account values (verified against the statement's own total).
+         Re-imports are safe (snapshot replace, never duplicated).</p>
+      <label class="upload-btn" for="pos-file-input">Choose file</label>
+      <input type="file" id="pos-file-input" accept=".csv,.tsv,.xlsx,.json,.pdf" style="display:none">
+      <div class="upload-status" id="pos-status"></div>
+    </div>
+    <div class="map-form" id="map-form"></div>
+  </div>
+
+  <div>
     <div class="section-label">Upload Documents</div>
     <div class="drop-zone" id="drop-zone">
-      <strong>Drop files here</strong>
-      <p>PDF, TXT, MD, CSV — statements, returns, summaries</p>
+      <strong>Drop documents here (for chat Q&amp;A)</strong>
+      <p>PDF, TXT, MD — statements, returns, summaries. Indexed for chat
+         questions only; this does <strong>not</strong> update Portfolio Value
+         above — use <em>Import Positions</em> with a CSV/XLSX export for that.</p>
       <label class="upload-btn" for="file-input">Choose file</label>
       <input type="file" id="file-input" accept=".pdf,.txt,.md,.csv" multiple>
       <div class="upload-status" id="upload-status"></div>
@@ -236,6 +316,245 @@ zone.addEventListener('drop', async (e) => {
 });
 
 loadDocuments();
+
+// ── Positions ─────────────────────────────────────────────────────────────────
+
+const fmtUSD = v => v == null ? '—' :
+  v.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+
+function deltaHtml(cur, prev) {
+  if (cur == null || prev == null || prev === 0) return '';
+  const d = cur - prev;
+  const cls = d >= 0 ? 'delta-up' : 'delta-down';
+  return `<span class="${cls}">${d >= 0 ? '+' : ''}${fmtUSD(d)} vs prior</span>`;
+}
+
+let trajectoryChart = null;
+
+async function loadPositions() {
+  let s;
+  try {
+    const r = await fetch('/api/finance/positions');
+    if (!r.ok) throw new Error(r.statusText);
+    s = await r.json();
+  } catch (e) {
+    document.getElementById('accounts-area').innerHTML =
+      '<div class="empty">Finance service unavailable.</div>';
+    return;
+  }
+
+  // Headline
+  const prev = {};   // previous totals derived from history
+  if (s.history.length > 1) {
+    const p = s.history[s.history.length - 2];
+    prev.total = p.total; prev.liquid = p.liquid; prev.age_gated = p.age_gated;
+  }
+  document.getElementById('hl-total').textContent  = fmtUSD(s.totals.total || null);
+  document.getElementById('hl-liquid').textContent = fmtUSD(s.totals.liquid || null);
+  document.getElementById('hl-gated').textContent  = fmtUSD(s.totals.age_gated || null);
+  document.getElementById('hl-asof').textContent   = s.as_of_latest || 'no data yet';
+  document.getElementById('hl-total-sub').innerHTML  = deltaHtml(s.totals.total, prev.total);
+  document.getElementById('hl-liquid-sub').innerHTML = deltaHtml(s.totals.liquid, prev.liquid);
+  document.getElementById('hl-gated-sub').innerHTML  = deltaHtml(s.totals.age_gated, prev.age_gated);
+  document.getElementById('hl-asof-sub').textContent =
+    s.history.length ? `${s.history.length} snapshot${s.history.length > 1 ? 's' : ''}` : '';
+
+  // Trajectory (needs 2+ snapshots to be a line worth drawing)
+  if (s.history.length >= 2) {
+    document.getElementById('chart-section').style.display = '';
+    const ctx = document.getElementById('trajectory');
+    const cfg = {
+      type: 'line',
+      data: {
+        labels: s.history.map(h => h.date),
+        datasets: [
+          { label: 'Liquid', data: s.history.map(h => h.liquid),
+            borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,0.25)', fill: true },
+          { label: 'Age-gated', data: s.history.map(h => h.age_gated),
+            borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.20)', fill: true },
+        ],
+      },
+      options: {
+        maintainAspectRatio: false,
+        scales: { y: { stacked: true, ticks: { callback: v => fmtUSD(v) } },
+                  x: {} },
+        plugins: { legend: { labels: { boxWidth: 12 } } },
+      },
+    };
+    if (trajectoryChart) { trajectoryChart.destroy(); }
+    trajectoryChart = new Chart(ctx, cfg);
+  }
+
+  // Accounts table
+  const area = document.getElementById('accounts-area');
+  if (!s.accounts.length) {
+    area.innerHTML = '<div class="empty">No accounts yet — the first import walks you through creating one.</div>';
+    return;
+  }
+  area.innerHTML = `
+    <table class="acct-table">
+      <tr><th>Account</th><th>Owner</th><th>Liquidity</th><th style="text-align:right">Value</th><th></th></tr>
+      ${s.accounts.map(a => `
+        <tr>
+          <td><strong>${a.name}</strong><br>
+              <span style="color:var(--text3);font-size:11px">${[a.institution, a.kind].filter(Boolean).join(' · ')}</span></td>
+          <td>${a.owner}</td>
+          <td><span class="liq-chip liq-${a.liquidity}">${a.liquidity === 'liquid' ? 'liquid' : `gated to ${a.unlock_age}`}</span></td>
+          <td class="num">${fmtUSD(a.value)}<br>
+              <span style="font-size:11px">${deltaHtml(a.value, a.prev_value)}</span></td>
+          <td>${a.holdings && a.holdings.length ? `
+            <details class="holdings"><summary>${a.holdings.length} holdings</summary>
+              <table class="acct-table">${a.holdings.map(h =>
+                `<tr><td>${h.holding}</td>
+                 <td class="num">${h.shares != null ? h.shares : ''}</td>
+                 <td class="num">${fmtUSD(h.value)}</td></tr>`).join('')}
+              </table></details>` : ''}</td>
+        </tr>`).join('')}
+    </table>`;
+}
+
+// ── Positions import + mapping confirmation ──────────────────────────────────
+
+let pendingFile = null;   // kept so confirm can auto re-upload
+
+async function uploadPositions(file) {
+  const status = document.getElementById('pos-status');
+  status.textContent = `Importing ${file.name}…`;
+  status.className = 'upload-status';
+  document.getElementById('map-form').className = 'map-form';
+  try {
+    const form = new FormData();
+    form.append('file', file);
+    const r = await fetch('/api/finance/positions/import', { method: 'POST', body: form });
+    const data = await r.json();
+    if (!r.ok) {
+      status.textContent = `✗ ${typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail)}`;
+      status.className = 'upload-status err';
+      return;
+    }
+    if (data.status === 'needs_mapping') {
+      pendingFile = file;
+      status.textContent = 'New format — confirm the column mapping below.';
+      renderMappingForm(data);
+      return;
+    }
+    if (data.status === 'already_imported') {
+      status.textContent = `✓ ${data.detail}`;
+      status.className = 'upload-status ok';
+      return;
+    }
+    const perAcct = (data.accounts || [])
+      .map(a => `${a.account_id} ${fmtUSD(a.total_value)}`).join(', ');
+    // Zero-questions rule: unknown accounts were auto-classified from the
+    // document itself — say so, don't ask (fix any wrong guess in Accounts).
+    const created = (data.created_accounts || [])
+      .map(a => `${a.account_id} → ${a.kind}/${a.owner}`).join(', ');
+    status.textContent = `✓ Imported ${data.rows} rows as of ${data.as_of_date} — ${perAcct || fmtUSD(data.total_value)}`
+      + (created ? ` · auto-created: ${created}` : '');
+    status.className = 'upload-status ok';
+    await loadPositions();
+  } catch (e) {
+    status.textContent = '✗ Import failed — finance service unreachable';
+    status.className = 'upload-status err';
+  }
+}
+
+function renderMappingForm(data) {
+  const f = document.getElementById('map-form');
+  const p = (data.proposal && data.proposal.columns) || {};
+  const opts = sel => ['<option value="">—</option>']
+    .concat(data.headers.map(h =>
+      `<option ${h === sel ? 'selected' : ''}>${h}</option>`)).join('');
+  const acctOpts = data.accounts.map(a =>
+    `<option value="${a.id}">${a.name} (${a.owner}, ${a.kind})</option>`).join('');
+  f.innerHTML = `
+    <strong>Map columns → canonical fields</strong>
+    <span style="color:var(--text3)">(${data.format}, fingerprint ${data.fingerprint}${data.proposal ? ', LLM-proposed — verify' : ', no LLM proposal — map manually'})</span>
+    <div class="map-row"><label>Holding *</label><select id="m-holding">${opts(p.holding)}</select></div>
+    <div class="map-row"><label>Value ($) *</label><select id="m-value">${opts(p.value)}</select></div>
+    <div class="map-row"><label>Shares</label><select id="m-shares">${opts(p.shares)}</select></div>
+    <div class="map-row"><label>Price</label><select id="m-price">${opts(p.price)}</select></div>
+    <div class="map-row"><label>Date col</label><select id="m-date">${opts(p.as_of_date)}</select></div>
+    <div class="map-row"><label>Acct col</label><select id="m-acctcol">${opts(p.account)}</select>
+      <span style="color:var(--text3);font-size:11px">set this if one file covers several accounts</span></div>
+    <div class="map-row"><label>Account</label>
+      <select id="m-account">${acctOpts}</select>
+      <button class="upload-btn" style="margin-top:0" onclick="newAccount()">+ new account</button>
+      <span style="color:var(--text3);font-size:11px">ignored when Acct col is set</span></div>
+    <div class="map-actions">
+      <button class="upload-btn" style="margin-top:0" onclick="confirmMapping('${data.fingerprint}')">Confirm &amp; import</button>
+    </div>`;
+  f.className = 'map-form active';
+}
+
+async function newAccount() {
+  const name = prompt('Account name (e.g. "Spouse TSP"):'); if (!name) return;
+  const kind = prompt('Kind — one of: 401k, tsp, ira_trad, ira_roth, hsa, taxable, cash:');
+  const owner = prompt('Owner — user, spouse, or joint:');
+  const institution = prompt('Institution (optional):') || null;
+  const r = await fetch('/api/finance/accounts', { method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, kind, owner, institution }) });
+  const data = await r.json();
+  if (!r.ok) { alert(data.detail || 'could not create account'); return; }
+  const sel = document.getElementById('m-account');
+  sel.insertAdjacentHTML('beforeend',
+    `<option value="${data.id}" selected>${data.name} (${data.owner}, ${data.kind})</option>`);
+  sel.value = data.id;
+}
+
+let lastMapping = null;   // remembered so the account-map step can extend it
+let lastFingerprint = null;
+
+async function confirmMapping(fingerprint) {
+  const val = id => document.getElementById(id).value || null;
+  const mapping = { columns: {
+    holding: val('m-holding'), value: val('m-value'),
+    ...(val('m-shares') && { shares: val('m-shares') }),
+    ...(val('m-price') && { price: val('m-price') }),
+    ...(val('m-date') && { as_of_date: val('m-date') }),
+    ...(val('m-acctcol') && { account: val('m-acctcol') }),
+  }};
+  await submitMapping(fingerprint, mapping,
+                      val('m-acctcol') ? null : val('m-account'));
+}
+
+async function submitMapping(fingerprint, mapping, accountId) {
+  const status = document.getElementById('pos-status');
+  const r = await fetch('/api/finance/positions/mappings/confirm', { method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fingerprint, mapping, account_id: accountId }) });
+  const data = await r.json();
+  if (!r.ok) {
+    status.textContent = `✗ ${typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail)}`;
+    status.className = 'upload-status err';
+    return;
+  }
+  lastMapping = mapping;
+  lastFingerprint = fingerprint;
+  document.getElementById('map-form').className = 'map-form';
+  if (pendingFile) await uploadPositions(pendingFile);   // auto re-import
+}
+
+// (The old per-value account-assignment step was removed 2026-07-07 —
+// unknown accounts are now auto-created server-side from the document's
+// own descriptors. Corrections happen in the Accounts table, not as
+// questions at import time.)
+
+document.getElementById('pos-file-input').addEventListener('change', async (e) => {
+  for (const file of e.target.files) await uploadPositions(file);
+  e.target.value = '';
+});
+const posZone = document.getElementById('pos-drop-zone');
+posZone.addEventListener('dragover', (e) => { e.preventDefault(); posZone.classList.add('drag-over'); });
+posZone.addEventListener('dragleave', () => posZone.classList.remove('drag-over'));
+posZone.addEventListener('drop', async (e) => {
+  e.preventDefault();
+  posZone.classList.remove('drag-over');
+  for (const file of e.dataTransfer.files) await uploadPositions(file);
+});
+
+loadPositions();
 </script>
 </body>
 </html>
