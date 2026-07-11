@@ -1,21 +1,181 @@
 # MagicMirror agent — Plan
 
-Status: **tier 1 built** (2026-07-06, branch `magicmirror-updater`) —
-awaiting Pi-side setup (operator steps below), then a live end-to-end test.
+Status: **tier 1 live through `status` (read-only), 2026-07-11.** General
+key + scp-staging transport verified end-to-end from the container against
+the real Pi (`magicmirror-01.home.hippiehouse.net`): rev b742e839b, MM
+2.34.0, service active. The mutating `update` verb is built and staged but
+NOT yet run live — awaiting operator go (it restarts the kiosk).
+
+Live-probe discoveries (2026-07-11), folded into the script:
+- **MM runs as a systemd USER unit `magicmirror.service`** (Electron kiosk
+  on :8080), **not pm2** — the script's restart/verify rewritten to
+  `systemctl --user restart/is-active`, with `XDG_RUNTIME_DIR=/run/user/UID`
+  exported so `--user` works over non-login SSH.
+- node v22 (`node --run install-mm` supported); one untracked module data
+  file present (doesn't block — update guard only trips on *tracked* edits).
+- Pi OS `pi` has NOPASSWD sudo by default → **this key is root on the Pi**
+  the moment it can run commands (accepted; bounded by reflashability).
 Step 0 (model bench) DONE same day — results in `docs/model_results.md`
 (2026-07-06 section): qwen3.6-27b ruled out; **operator kept devstral**
 (2026-07-06; also confirmed still Mistral's newest open coding model —
 Codestral 2508 is the FIM line) and enabled its unit; qwen3-coder-30b-a3b
 GGUF kept on disk for a future revisit.
 
+## Direction pivot (2026-07-11) — general ops agent, not a locked verb
+
+The real target isn't "update the mirror" — it's **an agent that acts on the
+mirror for arbitrary tasks**: investigate logs, update/reboot the machine,
+prototype new MM widgets. "Update the magic mirror" is the **tracer round**
+that proves the model. This supersedes the tier-2 forced-command dispatcher
+below (kept for history).
+
+Consequences, all operator-accepted:
+
+- **The key becomes a general SSH key with sudo** (NOPASSWD) — no forced
+  command. The Pi keeps only auth details; all logic lives on Kronk. The
+  forced-command lockdown is dropped: its job was bounding *the key's
+  capability*, but with an agent in the loop the risk to contain is **the
+  loop and its inputs**, not the key. First manual Pi change is the last:
+  replace the `command="…"` line in `authorized_keys` with a plain key
+  line. Risk is bounded by the box itself — single-purpose, trusted LAN,
+  holds nothing irreplaceable, reflashable in ~15 min. That bound is
+  load-bearing: this pattern must be re-decided before it points at any
+  host where the worst case isn't "re-image and move on" (the kronk box
+  itself, a NAS with data).
+- **Top threat is prompt injection, not agent clumsiness** (the lethal
+  trifecta: reads untrusted content — logs, fetched pages, downloaded
+  modules — *and* holds a root shell). Can't be eliminated for an
+  autonomous root agent without a real sandbox; it's *bounded* by the low
+  value of the box + audit + the destructive-command gate + human-in-loop.
+
+### Architecture (all Kronk-side)
+
+- **Host registry** — `name → {ssh target, key, sudo?, description}`.
+  Cross-machine reach and the sudo grant are per-host opt-ins, so adding a
+  new machine is a deliberate act, never a silent escalation. The agent
+  points only at *remote managed hosts*, **never the kronk box itself**.
+- **One `remote_exec(host, command)` tool** on the `devops` agent
+  (devstral) — a real loop (propose → run over SSH → read stdout/stderr/
+  exit → iterate), lives in tool_service (has the SSH plumbing + key).
+- **Destructive-command confirmation gate** — a deterministic classifier
+  flags the irreversible tier (`reboot`, `shutdown`, `rm`, `dd`, `mkfs`,
+  `userdel`, `dpkg --purge`, redirects over system files). Read-only
+  investigation (the 95%) flows freely; the flagged tier pauses. Catches
+  both injection and clumsiness at near-zero friction — same model as
+  Claude Code's own permission tiers.
+- **Full audit, non-negotiable** — every command + output to Langfuse
+  spans and a durable log. Trust after the fact requires reconstructing
+  "what ran on the mirror and when."
+- **Named-safe operations stay first-class.** The scripted `update`
+  (backup → verify → rollback) is *better* than the agent freehanding
+  `git pull`, so the agent invokes the structured verb for updates and
+  drops to raw shell only for the genuinely arbitrary. Named-safe +
+  arbitrary-shell fallback, not arbitrary-shell-for-everything.
+
+### Confirmation over voice (risk is a property of the operation)
+
+- **Named, reversible ops** (update, restart-and-verify, investigate) are
+  **self-authorizing when requested by name** — no confirmation prompt.
+  Saying "update the magic mirror" *is* the authorization; safety comes
+  from the backup+verify+rollback structure, which beats a mis-hearable
+  spoken "are you sure?". Fast path: say it → "on it, updating now" → walk
+  away.
+- **Arbitrary/irreversible commands the agent composes** need input. The
+  voice path has conversation continuity (HA conversation_id → Kronk
+  session), so a two-turn confirm works: the agent stashes a **pending
+  action** (command + host + short expiry) keyed to the conversation, ends
+  the turn, and the next utterance either matches a **specific confirm
+  phrase** (not bare "yes" — a mis-heard yes must not authorize a reboot)
+  or cancels it; the expiry disarms a forgotten pending action.
+- **Asymmetric channels for asymmetric risk:** the truly dangerous,
+  irreversible tier is **staged and bounced to the chat UI** for a
+  deliberate approve (exact command visible, real button) rather than
+  confirmed by a low-precision voice channel.
+
+### Announce path — BUILT + verified 2026-07-11
+
+`assist_satellite.announce` confirmed live on the kitchen Voice PE
+(`assist_satellite.home_assistant_voice_0ac919_assist_satellite`; operator
+heard a test announce). Wired into tool_service:
+- `_ha_announce(message, satellite)` — reusable primitive, HA REST via the
+  same HA_TOKEN path as timers/music; **non-fatal** (a failed announce is a
+  log line; `/magicmirror/status` stays the source of truth).
+  `ANNOUNCE_SATELLITE` env; future timer/proactive alerts reuse it.
+- `_mm_update_speech(ok, fields, detail)` renders the KRONK result to one
+  sentence. Success: "…updated to version X, N modules refreshed" (+ a
+  warning clause if some modules failed). Failure: "…failed at the <step>
+  step. I kept a backup and left it as it is — ask me to roll it back."
+- Called at the end of `_run_mm_update`, after the outcome is persisted.
+- **Locked decisions (operator):** no auto-rollback — a failed update keeps
+  the bad state; the announce invites an explicit rollback, restore happens
+  only on request.
+
+Below is the original design note, kept for context.
+
+### Announce path — original design note
+
+The async ack means the interesting question is not "how do you confirm the
+start" but **"how do you learn it finished."** Target UX: say "update the
+magic mirror" → "on it, updating now" → walk away → a couple minutes later
+the **speaker announces the outcome**: "the mirror updated to version 2.32"
+or "the mirror update failed — I rolled it back; ask me why." Mechanism:
+HA's `assist_satellite.announce` pushes audio to the Voice PE outside the
+conversation flow (verified working in isolation during the timer research
+— `docs/VOICE_SETUP.md`). Kronk's background update task, on completion,
+calls an HA announce endpoint (via tool_service, same HA_TOKEN path as
+timers/music) with the KRONK-OK/KRONK-FAIL result rendered to one spoken
+sentence (ERROR_STYLE-aware).
+
+- **Shared dependency with the timer/proactive work** (ROADMAP item 3 +
+  Proactive Kronk): the announce path is the same `assist_satellite.announce`
+  plumbing native HA timers need. Sequence them together — build the announce
+  primitive once, use it for timer chimes, update completions, and future
+  proactive alerts.
+- **Interim before announce exists:** say it → "updating now" → outcome on
+  `GET /magicmirror/status` / ask "did the mirror update work?" later. The
+  announce path is what makes the walk-away UX complete.
+
+### Staging the script from Kronk (no manual file drops, ever)
+
+Operator constraint: never hand-drop files on the Pi. Since Kronk has SSH it
+has scp — so tool_service **stages the canonical `magicmirror/mm-update.sh`
+from the repo on every mm operation, then runs it**:
+
+1. `scp -i <key> mm-update.sh pi@host:~/kronk/mm-update.sh` (idempotent;
+   always refreshes to the current repo version — kills version drift, the
+   main friction of the old "manual scp when the script changes" model).
+2. `ssh -i <key> pi@host '~/kronk/mm-update.sh <verb>'`.
+
+The script persists at a known path (debuggable; `rollback` can reference
+it later). Zero-footprint alternative: `ssh pi@host 'bash -s -- <verb>'
+< mm-update.sh` streams the script over stdin and leaves nothing on disk —
+mention as the option if we'd rather keep the Pi pristine. Either way the
+operator never touches the Pi after the one-time authorized_keys line.
+
+- **Requires the authorized_keys pivot above** (a forced-command key
+  can't scp — it can only run the one pinned script). Staging is a direct
+  consequence of, and consistent with, the general-key direction.
+- **Scripts are bind-mounted, not baked** (operator directive 2026-07-11):
+  `./magicmirror:/magicmirror:ro` on tool_service (done), `MM_SCRIPT=
+  /magicmirror/mm-update.sh`. Editing the script takes effect with no
+  rebuild or restart — same rationale as `litellm/config.yaml`. The
+  container reads MM_SCRIPT and scp's it up per operation.
+- The script becomes a **known-good procedure Kronk owns and pushes**, not
+  the Pi's authorization policy — that role moved to the destructive gate +
+  audit on the Kronk side.
+
+---
+
 ## Decisions (2026-07-06, operator + build)
 
-- **SSH login is user `kronk` on the Pi** ("kronk is not drew"). MagicMirror
-  lives in `/home/drew` and pm2 runs as drew, so the forced command is
-  `sudo -u drew /home/drew/kronk/mm-update.sh` with a sudoers grant pinned
-  to exactly that script — user kronk can run those three verbs as drew and
-  nothing else. (Group-membership tricks were rejected: pm2 daemons are
-  per-user, so the restart *must* run as drew anyway.)
+- **SSH login is user `pi`** (corrected 2026-07-11 — the earlier
+  kronk-user + sudoers-as-drew design assumed the SSH login wasn't the MM
+  owner; it is, so both the separate user and the sudoers grant are gone).
+  The forced command `command="/home/pi/kronk/mm-update.sh"` on pi's
+  authorized_keys is the entire authorization boundary: this key can run
+  the three allowlisted verbs and nothing else, pty-less, no forwarding.
+  Assumption to verify at first live test: MagicMirror + pm2 run as pi
+  (stock install; `MM_DIR` defaults to `$HOME/MagicMirror`).
 - **Naming flag:** the operator said the Pi's *hostname* will be `kronk` —
   but the AI box already answers to `kronk`/`kronk.local` on mDNS; two hosts
   with one name will fight. Assumed intent: the *user* is kronk. Compose
@@ -81,21 +241,30 @@ keys whose authorization is enforced Pi-side, not by prompt.
    Exact contents to be settled with the operator — depends on how the
    mirror is currently deployed/updated by hand.
 
-**Operator steps ([YOU]) — tier 1 is built; this is all that remains:**
+**Operator setup — DONE 2026-07-11:** general key installed on the Pi
+(`authorized_keys` line without the forced command), `MM_SSH_TARGET=
+pi@magicmirror-01.home.hippiehouse.net` in `.env`, key at
+`secrets/mm/kronk-mm-update`, script bind-mounted + staged by tool_service.
+`status` verified live. Nothing left to install.
 
-1. Settle the Pi's hostname (see naming flag above) and set
-   `MM_SSH_TARGET=kronk@<pi-host>` in `.env` if it isn't `mirror.local`.
-2. On the Pi, run the setup block from the header of
-   `magicmirror/mm-update.sh` (create user kronk, install the
-   authorized_keys forced-command line, the sudoers drop-in, and the script
-   itself). The public key to paste is
-   `secrets/mm/kronk-mm-update.pub` (private key already generated,
-   gitignored, mounted read-only into tool_service).
-3. Sanity-check from the kronk box:
-   `ssh -i secrets/mm/kronk-mm-update kronk@<pi-host> status`
-   → expect `KRONK-OK status rev=… version=… pm2=online`.
-4. Say "update the magic mirror" — or dry-run first via
-   `curl -X POST localhost/api/… /magicmirror/update` through tool_service.
+**Remaining: the mutating update.** Say "update the magic mirror" (or
+`POST /magicmirror/update`). It preflights (status), acks, then in the
+background: backup → `git pull --ff-only` → `node --run install-mm` →
+**update third-party modules** → `systemctl --user restart magicmirror` →
+verify active. Rollback verb restores the newest backup. First live update
+is the operator's call — it restarts the running kiosk.
+
+**Module updates (operator requirement 2026-07-11).** Each third-party
+module is its own git repo under `modules/`; `update` now pulls each and
+runs `npm install` where a `package.json` exists, best-effort — one
+module's failure never aborts the core update. **Skips** (never clobbered):
+core `default`, `*.bak` backups, non-git dirs, and any module with
+*tracked* local edits (the full-tree backup makes rollback total anyway).
+Results ride the KRONK-OK line (`mods_ok/skipped/failed` + `mod_failures`).
+This Pi: `status` reports **8 updatable modules** (10 dirs − 2 `.bak`);
+MMM-RAIN-RADAR is dirty so it'll be skip-protected at update time. The
+bash module loop is validated live (like the rest of the script); the
+Python transport that parses its result is unit-tested.
 
 ## Tier 2 — devops agent on the mirror (after the model decision)
 

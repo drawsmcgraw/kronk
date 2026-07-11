@@ -488,15 +488,77 @@ async def hottub_status():
 # a background task whose outcome lands in /data/mm_update_last.json and
 # the log. GET /magicmirror/status reports live state + that last outcome.
 
-MM_SSH_TARGET = os.getenv("MM_SSH_TARGET", "kronk@mirror.local")
+MM_SSH_TARGET = os.getenv("MM_SSH_TARGET", "pi@mirror.local")
 MM_SSH_KEY    = os.getenv("MM_SSH_KEY", "/keys/kronk-mm-update")
+MM_SCRIPT     = os.getenv("MM_SCRIPT", "/magicmirror/mm-update.sh")
+MM_REMOTE_DIR = os.getenv("MM_REMOTE_DIR", "kronk")  # ~/kronk on the Pi
 MM_LAST_FILE  = Path("/data/mm_update_last.json")
 MM_UPDATE_TIMEOUT_S = 600
 
-_SSH_BASE = [
-    "ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=5",
+# Proactive completion announcement via HA's assist_satellite.announce —
+# the async half of the "walk away" flow (verified live 2026-07-11 against
+# the kitchen Voice PE). Reusable primitive: timers/proactive alerts will
+# call _ha_announce too (ROADMAP item 3). Non-fatal: the source of truth is
+# always /magicmirror/status; a failed announce is a log line, nothing more.
+ANNOUNCE_SATELLITE = os.getenv(
+    "ANNOUNCE_SATELLITE",
+    "assist_satellite.home_assistant_voice_0ac919_assist_satellite")
+
+
+async def _ha_announce(message: str, satellite: str = ANNOUNCE_SATELLITE) -> bool:
+    """Speak `message` on a satellite outside the conversation flow. Returns
+    success; never raises — announcement is a notification layer, not truth."""
+    if not HA_TOKEN:
+        logger.warning("announce skipped: HA_TOKEN not configured")
+        return False
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            resp = await client.post(
+                f"{HA_URL}/api/services/assist_satellite/announce",
+                headers={"Authorization": f"Bearer {HA_TOKEN}",
+                         "Content-Type": "application/json"},
+                json={"entity_id": satellite, "message": message})
+        if resp.status_code // 100 != 2:
+            logger.error("announce failed (HTTP %s): %s",
+                         resp.status_code, resp.text[:200])
+            return False
+        return True
+    except Exception as e:
+        logger.error("announce failed: %s", e)
+        return False
+
+
+def _mm_update_speech(ok: bool, fields: dict, detail: str) -> str:
+    """One spoken sentence from the update result. Voice is the friendly
+    register — clean wording; the gory detail stays in the status file/log.
+    Decisions locked 2026-07-11: no auto-rollback; failure keeps the bad
+    state and points at rollback-on-request."""
+    if ok:
+        # Prefer the friendly semver; the git rev (new=) is for the audit
+        # trail, not for speaking aloud ("version 4b4a59534" is a hash).
+        ver = fields.get("version") or fields.get("new") or "the latest version"
+        n = fields.get("mods_ok")
+        mods = f", {n} modules refreshed" if n and n != "0" else ""
+        failed = fields.get("mods_failed")
+        warn = (f" {failed} modules had trouble updating."
+                if failed and failed != "0" else "")
+        return f"The magic mirror updated to version {ver}{mods}.{warn}".strip()
+    # Failure: name the step if the script gave one, keep the backup, wait
+    # for an explicit rollback request.
+    step = ""
+    m = re.search(r"step=(\S+)", detail)
+    if m:
+        step = f" at the {m.group(1).replace('-', ' ')} step"
+    return (f"The magic mirror update failed{step}. I kept a backup and left "
+            "it as it is — ask me to roll it back when you want.")
+
+# The key is a general key now (no forced command — see MAGICMIRROR_PLAN
+# "Direction pivot"), so we stage the canonical script and run it by path.
+_SSH_OPTS = [
+    "-o", "BatchMode=yes", "-o", "ConnectTimeout=5",
     "-o", "StrictHostKeyChecking=accept-new",
     "-o", "UserKnownHostsFile=/data/mm_known_hosts",
+    "-i", MM_SSH_KEY,
 ]
 
 
@@ -511,28 +573,56 @@ def _parse_kronk_line(raw: str) -> tuple[bool, str, dict]:
     return False, "no KRONK status line in output", {}
 
 
-async def _ssh_mm(verb: str, timeout_s: int) -> tuple[bool, str, dict]:
-    """Run one allowlisted verb on the Pi. (ok, detail_line, fields)."""
-    if not Path(MM_SSH_KEY).exists():
-        return False, f"SSH key not found at {MM_SSH_KEY} — mount ./secrets/mm", {}
-    cmd = _SSH_BASE + ["-i", MM_SSH_KEY, MM_SSH_TARGET, verb]
+async def _run(cmd: list, timeout_s: int) -> tuple[int | None, str]:
+    """Run a subprocess, return (returncode, combined output)."""
     try:
         proc = await asyncio.create_subprocess_exec(
             *cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         raw, _ = await asyncio.wait_for(proc.communicate(), timeout=timeout_s)
     except asyncio.TimeoutError:
         proc.kill()
-        return False, f"SSH to {MM_SSH_TARGET} timed out after {timeout_s}s during '{verb}'", {}
+        return None, f"timed out after {timeout_s}s"
     except OSError as e:
-        return False, f"could not exec ssh: {e}", {}
-    text = raw.decode(errors="replace")
-    if proc.returncode == 255:  # ssh transport-level failure
+        return 255, f"could not exec: {e}"
+    return proc.returncode, raw.decode(errors="replace")
+
+
+async def _ssh_mm(verb: str, timeout_s: int) -> tuple[bool, str, dict]:
+    """Stage the canonical mm-update.sh to the Pi (scp), then run it with
+    the verb. (ok, detail_line, fields). The script is always the current
+    repo copy — no manual drops, no version drift."""
+    if not Path(MM_SSH_KEY).exists():
+        return False, f"SSH key not found at {MM_SSH_KEY} — mount ./secrets/mm", {}
+    if not Path(MM_SCRIPT).exists():
+        return False, f"updater script not found at {MM_SCRIPT} — mount ./magicmirror", {}
+
+    # 1. ensure ~/kronk exists and stage the script fresh.
+    rc, out = await _run(
+        ["ssh", *_SSH_OPTS, MM_SSH_TARGET, f"mkdir -p ~/{MM_REMOTE_DIR}"], 15)
+    if rc == 255:
+        logger.error("mm ssh transport failure: %s", out[:300])
+        last = out.strip().splitlines()[-1] if out.strip() else "connection failed"
+        return False, f"could not reach the mirror at {MM_SSH_TARGET}: {last}", {}
+    remote = f"{MM_SSH_TARGET}:{MM_REMOTE_DIR}/mm-update.sh"
+    rc, out = await _run(["scp", *_SSH_OPTS, MM_SCRIPT, remote], 20)
+    if rc != 0:
+        logger.error("mm scp failed: %s", out[:300])
+        return False, f"could not stage the updater script: {out.strip()[:200]}", {}
+
+    # 2. run it by path with the verb.
+    rc, text = await _run(
+        ["ssh", *_SSH_OPTS, MM_SSH_TARGET,
+         f"chmod +x ~/{MM_REMOTE_DIR}/mm-update.sh && "
+         f"~/{MM_REMOTE_DIR}/mm-update.sh {verb}"], timeout_s)
+    if rc is None:
+        return False, f"SSH to {MM_SSH_TARGET} timed out during '{verb}'", {}
+    if rc == 255:
         logger.error("mm ssh transport failure: %s", text[:300])
-        return False, (f"could not reach the mirror at {MM_SSH_TARGET}: "
-                       f"{text.strip().splitlines()[-1] if text.strip() else 'connection failed'}"), {}
+        last = text.strip().splitlines()[-1] if text.strip() else "connection failed"
+        return False, f"could not reach the mirror at {MM_SSH_TARGET}: {last}", {}
     ok, line, fields = _parse_kronk_line(text)
     if not ok:
-        logger.error("mm verb %s failed: %s", verb, text[-500:])
+        logger.error("mm verb %s failed (rc=%s): %s", verb, rc, text[-500:])
     return ok, line, fields
 
 
@@ -550,6 +640,13 @@ async def _run_mm_update() -> None:
     except OSError as e:
         logger.error("could not persist mm update outcome: %s", e)
     (logger.info if ok else logger.error)("mm update finished: %s", line)
+    # Close the loop: proactively announce the outcome on the Voice PE. The
+    # synchronous "updating now" ack already went out at request time; this
+    # is the walk-away completion notification.
+    speech = _mm_update_speech(ok, fields, line)
+    announced = await _ha_announce(speech)
+    logger.info("mm update announce %s: %s",
+                "sent" if announced else "FAILED", speech)
 
 
 @app.post("/magicmirror/update")
