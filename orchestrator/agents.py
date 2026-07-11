@@ -209,7 +209,7 @@ AGENTS: dict[str, AgentConfig] = {
     "home": AgentConfig(
         name="home",
         description="Weather lookups, shopping list management, hot tub status, timers, playing music, and updating the magic mirror",
-        routing_hint="weather, forecast, shopping list, hot tub, spa, timer, countdown, play music, songs, albums, speakers, magic mirror",
+        routing_hint="weather, forecast, shopping list, hot tub, spa, timer, countdown, play music, songs, albums, speakers, updating the magic mirror",
         icon="🏠",
         probe="tools",
         system_prompt=(
@@ -299,16 +299,21 @@ AGENTS: dict[str, AgentConfig] = {
     "devops": AgentConfig(
         name="devops",
         description="SSH commands, server administration, Linux troubleshooting, infrastructure, Docker, systemd, networking, host automation",
-        routing_hint="servers, SSH, Docker, Linux, nginx, web servers, systemd, networking, infrastructure",
+        routing_hint="servers, SSH, Docker, Linux, nginx, web servers, systemd, networking, infrastructure, the magic mirror (status/logs/uptime/diagnostics — anything other than updating it)",
         icon="🛠️",
         probe="llm",
         system_prompt=(
             "You are Kronk's DevOps specialist. You handle server administration, Linux systems, Docker, "
             "systemd, networking, SSH automation, and infrastructure tasks.\n"
+            "Use remote_exec to inspect a managed host by running a READ-ONLY command and reading its "
+            "output — the magic mirror is host 'magicmirror'. Only read-only commands run (uptime, "
+            "systemctl status, journalctl, ps, df, git log, …); mutating commands are refused. Iterate: "
+            "run a command, read the result, run another if you need more. When you have the answer, "
+            "state it plainly to the user — do not print raw command syntax or tool output.\n"
             "Use web_search or fetch_url to look up documentation, man pages, or current best practices when needed.\n"
-            "Provide complete, working commands and scripts. Be direct and concise — no filler, no action text."
+            "Be direct and concise — no filler, no action text."
         ),
-        tool_names=["web_search", "fetch_url"],
+        tool_names=["remote_exec", "web_search", "fetch_url"],
         model=DEVOPS_AGENT_MODEL,
     ),
 }

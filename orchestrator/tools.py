@@ -401,6 +401,33 @@ TOOL_DEFINITIONS = [
             "parameters": {"type": "object", "properties": {}},
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "remote_exec",
+            "description": (
+                "Run a READ-ONLY shell command on a managed host to inspect "
+                "it, then read the output. Use for diagnostics — uptime, "
+                "service status, logs, disk/memory, process list. The magic "
+                "mirror is host 'magicmirror'. Only read-only commands are "
+                "permitted (uptime, systemctl status, journalctl, ps, df, "
+                "git log, …); anything that changes the system is refused. "
+                "Compose one command; you may pipe between read commands "
+                "(e.g. 'ps aux | grep node'). Iterate: run, read output, run "
+                "another if needed."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "command": {"type": "string",
+                                "description": "The read-only command to run."},
+                    "host": {"type": "string",
+                             "description": "Managed host name. Defaults to 'magicmirror'."},
+                },
+                "required": ["command"],
+            },
+        },
+    },
 ]
 
 
@@ -418,6 +445,7 @@ TOOL_TIMEOUTS = {
     "set_timer": 10,
     "query_finances": 10,
     "play_music": 20,        # tool_service polls up to 8s to confirm playback
+    "remote_exec": 35,         # tool_service caps the exec at 30s + SSH setup
     "update_magicmirror": 30,  # SSH preflight to the Pi (~5-20s); the update
                                # itself runs as a tool_service background task
 }
@@ -667,6 +695,28 @@ async def _tool_play_music(client: httpx.AsyncClient, args: dict) -> str:
     )
 
 
+async def _tool_remote_exec(client: httpx.AsyncClient, args: dict) -> str:
+    command = (args.get("command") or "").strip()
+    if not command:
+        return "[remote_exec error: command is required]"
+    host = args.get("host") or "magicmirror"
+    resp = await client.post(f"{TOOL_SERVICE_URL}/ops/exec",
+                             json={"host": host, "command": command})
+    if resp.status_code == 200:
+        info = resp.json()
+        out = info.get("output", "").strip() or "(no output)"
+        return (f"[remote_exec on {host}: `{command}` exit={info.get('exit_code')}]\n"
+                f"{out}")
+    detail = _fail(f"remote_exec on {host}", resp)
+    # A refusal (422) is a normal outcome the model should adapt to, not a
+    # hard failure — tell it plainly so it picks a read-only alternative.
+    if resp.status_code == 422:
+        return (f"{detail}\nThat command was refused (read-only mode). Try a "
+                "read-only command instead, or tell the user it can't be done "
+                "without a change they'd need to approve.")
+    return detail
+
+
 async def _tool_update_magicmirror(client: httpx.AsyncClient, args: dict) -> str:
     resp = await client.post(f"{TOOL_SERVICE_URL}/magicmirror/update")
     if resp.status_code == 200:
@@ -718,6 +768,7 @@ _HANDLERS = {
     "set_timer":            _tool_set_timer,
     "play_music":           _tool_play_music,
     "update_magicmirror":   _tool_update_magicmirror,
+    "remote_exec":          _tool_remote_exec,
     "query_finances":       _tool_query_finances,
 }
 

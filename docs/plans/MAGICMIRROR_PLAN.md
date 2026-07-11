@@ -1,5 +1,123 @@
 # MagicMirror agent — Plan
 
+## General ops agent — Phase A SHIPPED + verified live 2026-07-11
+
+`remote_exec` on the devops agent (devstral), read-only, end-to-end proven:
+"what is the uptime of the magic mirror?" → deterministic route to **devops**
+→ devstral composed `uptime`, ran it via `/ops/exec`, answered *"The magic
+mirror has been up for 11 hours and 41 minutes."* `sudo reboot` refused with
+422; audit log captured allowed + refused. Files: `tool_service/ops.py`
+(registry + classifier + audit), `/ops/exec` route, `orchestrator/tools.py`
+`remote_exec`, devops agent wiring, routing split in `routing.py`,
+`ops/hosts.json` (gitignored; env-fallback for the mirror). 20 new tests.
+Phase B (mutations + confirmation gate) is the next increment; the spec
+below stands.
+
+## General ops agent — spec (remote_exec + host registry + routing) — 2026-07-11
+
+Motivating trace: today "what's the uptime of the magic mirror?" dead-ends.
+The router sends it to `home` (named entity) whose only mirror tool is the
+*mutation* `update_magicmirror` (best case "can't do that", worst case a
+misfired update), or to `devops` (right agent) which has only web_search/
+fetch_url and no cross-machine reach. No read/diagnostic path to the mirror
+exists. This spec adds one.
+
+### Host registry (tool_service)
+
+`ops/hosts.yaml`, **bind-mounted** (not baked — hot-add a host with no
+rebuild, same as the update script):
+
+```yaml
+magicmirror:
+  ssh_target: pi@magicmirror-01.home.hippiehouse.net
+  key: /keys/kronk-mm-update
+  sudo: true
+  description: "MagicMirror Raspberry Pi — Electron kiosk on :8080"
+```
+
+The registry IS the opt-in boundary: a host is unreachable unless listed;
+`sudo` is per-host. **The kronk box itself is never in the registry** — the
+agent cannot target its own host (that's where an injection could reach the
+finance DB). The existing `MM_SSH_TARGET`/`MM_SSH_KEY` fold into the
+`magicmirror` entry; the update flow migrates to a registry lookup.
+
+### `remote_exec` — two layers
+
+- **tool_service `POST /ops/exec` {host, command}** → registry lookup → SSH
+  run → `{exit_code, stdout, duration}`. The classifier, audit, and (later)
+  the confirmation gate live here — server-side, deterministic, not the
+  model.
+- **orchestrator tool `remote_exec(command, host="magicmirror")`** on the
+  `devops` agent — NOT a terminal tool; it's a loop (propose → run → read →
+  iterate), bounded by the agent's existing round budget + repeat-call
+  guardrail. One host today, so `host` defaults; multi-host later surfaces
+  the registry to the model.
+
+### Command classifier (the safety core) — staged
+
+- **Phase A — read-only only (ship first, safe to enable immediately).**
+  A command runs iff: every program in it is on a **read-only allowlist**
+  (`uptime, cat, ls, tail, head, grep, journalctl, systemctl [status|
+  is-active|show|list-units], git [status|log|rev-parse], df, free, ps,
+  node --version, npm ls`, …) AND it contains no redirects (`>`,`>>`),
+  command substitution (`$(`, backticks), background (`&`), or `;`. Pipes
+  between allowlisted read programs are allowed (`ps aux | grep node`).
+  Anything else → refused: "that's not a read-only command; mutations
+  aren't enabled yet." Zero mutation risk, so no confirmation needed — this
+  is the whole "prove the devstral loop" phase.
+- **Phase B — mutations + destructive gate.** Enable mutating commands; a
+  **denylist tier** (`reboot, shutdown, rm, dd, mkfs, userdel, passwd,
+  dpkg --purge, apt remove/purge`, redirects into `/etc|/boot`, recursive
+  chmod/chown on system paths) requires confirmation — voice pending-action
+  with a specific confirm phrase, or staged to the chat UI for the truly
+  irreversible (per the pivot section's asymmetric-channel rule).
+- **Phase C — richer loops** (widget prototyping: write a module file →
+  restart → verify render → iterate; git-reversible, low-stakes).
+
+### Audit (non-negotiable, from phase A)
+
+Every exec → a Langfuse span (as tools already do) + an append-only
+`data/ops_audit.log` line: ts, host, command, exit, output-length. Trust
+after the fact requires reconstructing what ran on a managed host and when.
+
+### Routing split — "magic mirror" is now multi-agent
+
+home owns the fast named-safe *update* (gemma terminal tool); devops owns
+arbitrary *diagnostics/ops* (devstral loop). A 4B router can't split intent
+on the shared entity, so use **deterministic route rules** (the
+weather-shortcut precedent), checked before the LLM router:
+
+- `update|upgrade … magic mirror` → **home** (fast path, unchanged).
+- any other `magic mirror` mention → **devops**.
+
+Narrow home's `routing_hint` to "update the magic mirror" (drop the bare
+"magic mirror") so a shortcut miss doesn't pull diagnostics into home.
+Add `remote_exec` to the devops agent + a prompt line: mirror queries run on
+host "magicmirror", read-only for now.
+
+### Phasing / first proof
+
+Phase A is the buildable, immediately-safe increment and the real tracer
+for the devstral ops loop (uptime, logs, service state — the model
+*composes* the command, unlike update). "Uptime of the mirror" is the
+canonical first test; its own ambiguity (host `uptime -p` vs service
+`systemctl --user show -p ActiveEnterTimestamp magicmirror`) is exactly the
+judgment we're watching, and read-only makes a wrong guess harmless.
+
+### Open decisions for the operator
+
+1. Registry format/location: `ops/hosts.yaml` bind-mounted (proposed) vs
+   env vars vs `secrets/`. (It's config, not secret — keys stay in
+   `secrets/`.)
+2. Phase-A pipe policy: allow pipes between allowlisted read programs
+   (proposed, more useful) vs single-program-only (simpler, stricter).
+3. Model: keep `remote_exec` on `devops` (devstral) as benched, confirmed.
+4. Does phase A ship alone first (prove read-only), or bundle B's gate?
+   (Recommend A alone — smaller, safe, immediately useful.)
+
+---
+
+
 Status: **tier 1 live through `status` (read-only), 2026-07-11.** General
 key + scp-staging transport verified end-to-end from the container against
 the real Pi (`magicmirror-01.home.hippiehouse.net`): rev b742e839b, MM

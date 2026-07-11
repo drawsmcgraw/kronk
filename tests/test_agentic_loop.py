@@ -113,6 +113,18 @@ async def test_route_search_phrase_shortcut_is_deterministic():
 
 
 @pytest.mark.asyncio
+async def test_route_magic_mirror_split_is_deterministic():
+    """update/upgrade → home (fast terminal tool); any other mirror mention
+    → devops (remote_exec loop). Neither consults the LLM router."""
+    import routing
+    with patch("routing.llm.complete", new=AsyncMock()) as fake:
+        assert await routing.classify("update the magic mirror", []) == "home"
+        assert await routing.classify("what's the uptime of the magic mirror", []) == "devops"
+        assert await routing.classify("why is the magic mirror slow", []) == "devops"
+    fake.assert_not_awaited()
+
+
+@pytest.mark.asyncio
 async def test_route_weather_shortcut_is_deterministic():
     """Weather/forecast queries bypass the LLM and route to home (incident
     2026-07-05: 'what is tomorrow's forecast?' went to research)."""

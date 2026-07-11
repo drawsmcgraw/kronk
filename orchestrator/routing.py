@@ -75,6 +75,14 @@ _SEARCH_PHRASES = re.compile(
 # also lands on home — acceptable at home-assistant scale, pinned in tests.
 _WEATHER_RE = re.compile(r'\b(weather|forecast)\b', re.IGNORECASE)
 
+# "magic mirror" is a multi-agent entity: home owns the fast named-safe
+# UPDATE (a terminal tool); devops owns arbitrary diagnostics/ops (the
+# remote_exec loop). A 4B router can't split intent on the shared entity,
+# so decide deterministically (weather-shortcut precedent). Order matters:
+# the update phrasing is checked first, everything else mirror → devops.
+_MM_RE        = re.compile(r'\bmagic\s*mirror\b', re.IGNORECASE)
+_MM_UPDATE_RE = re.compile(r'\b(update|upgrade)\b', re.IGNORECASE)
+
 
 async def classify(text: str, prior_history: list[dict]) -> str:
     """Return one of agents.VALID_ROUTES.
@@ -109,6 +117,12 @@ async def _classify_inner(text: str, prior_history: list[dict],
     if _WEATHER_RE.search(text):
         emit("route_shortcut", rule="weather", route="home")
         return "home", "weather"
+    if _MM_RE.search(text):
+        if _MM_UPDATE_RE.search(text):
+            emit("route_shortcut", rule="mm_update", route="home")
+            return "home", "mm_update"       # fast terminal tool
+        emit("route_shortcut", rule="mm_ops", route="devops")
+        return "devops", "mm_ops"            # remote_exec diagnostics loop
 
     # Build a short, alternation-safe history window for the classifier.
     router_history: list[dict] = []

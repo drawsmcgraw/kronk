@@ -278,3 +278,44 @@ def test_home_agent_has_terminal_magicmirror_tool():
     home = agents.AGENTS["home"]
     assert "update_magicmirror" in home.tool_names
     assert "update_magicmirror" in home.terminal_tools
+
+
+@pytest.mark.asyncio
+async def test_remote_exec_tool_formats_output_and_refusal():
+    """The devops remote_exec tool: success returns exit+output; a 422
+    refusal is handed back as adaptable guidance, not a hard failure."""
+    import tools
+
+    class OkResp:
+        status_code = 200
+        def json(self):
+            return {"host": "magicmirror", "command": "uptime -p",
+                    "exit_code": 0, "output": "up 3 days, 4 hours"}
+
+    class RefuseResp:
+        status_code = 422
+        text = ""
+        def json(self):
+            return {"detail": "refused: sudo is not allowed in read-only mode"}
+
+    class Client:
+        def __init__(self, resp): self._r = resp
+        async def __aenter__(self): return self
+        async def __aexit__(self, *a): pass
+        async def post(self, *a, **kw): return self._r
+
+    with patch("tools.httpx.AsyncClient", return_value=Client(OkResp())):
+        out = await tools.execute("remote_exec", {"command": "uptime -p"})
+    assert "exit=0" in out and "up 3 days" in out
+
+    with patch("tools.httpx.AsyncClient", return_value=Client(RefuseResp())):
+        out = await tools.execute("remote_exec", {"command": "sudo reboot"})
+    assert "refused" in out.lower()
+    assert "read-only" in out.lower()   # tells the model to adapt
+
+
+def test_devops_agent_has_remote_exec():
+    import agents
+    devops = agents.AGENTS["devops"]
+    assert "remote_exec" in devops.tool_names
+    assert "remote_exec" not in devops.terminal_tools   # it's a loop, not terminal

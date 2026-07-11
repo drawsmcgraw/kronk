@@ -93,6 +93,28 @@ def test_weather_known_finance_forecast_limitation(text):
     assert routing._WEATHER_RE.search(text)  # documents current behavior
 
 
+# ── magic mirror: multi-agent split (update→home, else→devops) ───────────────
+
+@pytest.mark.parametrize("text", [
+    "update the magic mirror",
+    "upgrade the magicmirror",
+    "can you update the magic mirror software",
+])
+def test_mm_update_matches(text):
+    assert routing._MM_RE.search(text) and routing._MM_UPDATE_RE.search(text)
+
+
+@pytest.mark.parametrize("text", [
+    "what's the uptime of the magic mirror",
+    "why is the magic mirror showing an error",
+    "restart the magicmirror",          # a mutation, but NOT update/upgrade →
+    "show me the magic mirror logs",    # devops; phase-B gate handles restart
+])
+def test_mm_ops_matches_but_not_update(text):
+    assert routing._MM_RE.search(text)
+    assert not routing._MM_UPDATE_RE.search(text)
+
+
 # ── _DIRECT_OVERRIDE: explicit "don't search" ───────────────────────────────
 
 @pytest.mark.parametrize("text", [
