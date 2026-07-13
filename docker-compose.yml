@@ -80,11 +80,11 @@ services:
       # orchestrator injects it into the home agent's prompt).
       - HOME_LOCATION=Laurel, MD
       - WEATHER_REFRESH_SEC=3600
-      # HA timer service — `homeassistant` is on host networking, so we reach
-      # it from the bridge via host.docker.internal.
+      # HA REST (music playback + mirror announce) — `homeassistant` is on
+      # host networking, reached from the bridge via host.docker.internal.
+      # (HA_TIMER_ENTITY removed 2026-07-12: timers are native HA Assist now.)
       - HA_URL=http://host.docker.internal:8123
       - HA_TOKEN=${HA_TOKEN}
-      - HA_TIMER_ENTITY=timer.voice_timer
       # Music Assistant playback (POST /music → HA music_assistant.play_media).
       # Spoken name → HA entity_id of the *MA* player entity (platform
       # music_assistant, not the native Sonos/Cast entity).

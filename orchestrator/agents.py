@@ -208,17 +208,15 @@ AGENTS: dict[str, AgentConfig] = {
     ),
     "home": AgentConfig(
         name="home",
-        description="Weather lookups, shopping list management, hot tub status, timers, playing music, and updating the magic mirror",
-        routing_hint="weather, forecast, shopping list, hot tub, spa, timer, countdown, play music, songs, albums, speakers, magic mirror",
+        description="Weather lookups, shopping list management, hot tub status, playing music, and updating the magic mirror",
+        routing_hint="weather, forecast, shopping list, hot tub, spa, play music, songs, albums, speakers, updating the magic mirror",
         icon="🏠",
         probe="tools",
         system_prompt=(
-            "You are Kronk's home specialist. Handle weather lookups, shopping list management, home device status, timers, and playing music.\n"
+            "You are Kronk's home specialist. Handle weather lookups, shopping list management, home device status, and playing music.\n"
             "Use get_weather for weather queries. Use shopping list tools for list management.\n"
             "Use query_hottub to check if the hot tub is online and report its temperature. "
             "If the hot tub is offline, clearly state that the breaker may have tripped and report how long it has been offline.\n"
-            "Use set_timer when the user asks to set a timer; convert their phrasing to minutes "
-            "(e.g. '30 seconds' → 0.5, 'an hour and a half' → 90).\n"
             "Use play_music when the user asks to play or put on music. Pass what they want to hear "
             "as the query; name the speaker only if the user did. Call play_music at most once — "
             "when it reports music playing, report that back and stop. If the tool reports failure, tell "
@@ -232,7 +230,7 @@ AGENTS: dict[str, AgentConfig] = {
             "Never restate tool calls, tool arguments, or tool output syntax in your reply — "
             "reply in plain sentences only."
         ),
-        tool_names=["get_weather", "shopping_list_view", "shopping_list_add", "shopping_list_remove", "shopping_list_clear", "query_hottub", "set_timer", "play_music", "update_magicmirror"],
+        tool_names=["get_weather", "shopping_list_view", "shopping_list_add", "shopping_list_remove", "shopping_list_clear", "query_hottub", "play_music", "update_magicmirror"],
         terminal_tools=frozenset({"play_music", "update_magicmirror"}),
     ),
     "assistant": AgentConfig(

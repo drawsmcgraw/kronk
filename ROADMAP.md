@@ -21,15 +21,17 @@ Conventions:
 *(Items keep their numbers when they ship — cross-references elsewhere in
 the docs use them. 1 and 2 are in Shipped.)*
 
-3. **Timers via HA native intents** — verification task, likely not a build:
-   HA Assist has built-in timer intents and the Voice PE runs timers
-   on-device; `prefer_local_intents` is already on. Confirm "set a timer for
-   10 minutes" is caught locally and never falls through to Kronk's router.
-   Then execute the decommission checklist from the 2026-05-28 decision
-   (`docs/VOICE_SETUP.md` → Open items): delete the broken announce
-   automation, Kronk's old `set_timer` tool, the `/timer` route, and the
-   `timer.voice_timer` helper. Document the result in `docs/features/`.
-   *Why: kitchen timers are the #1 daily-driver voice feature.*
+3. **Timers via HA native intents — DONE 2026-07-12.** Confirmed by live
+   observation: a spoken 7-minute timer was caught by HA's local Assist
+   intent and run on the Voice PE on-device — it created no `timer.*`
+   entity, no logbook entry, and never touched Kronk (router/shim). The old
+   Kronk timer code was then decommissioned (branch `decomm-timer`):
+   `set_timer` tool + handler + `DEFAULT_TIMER_LABEL`, the tool_service
+   `/timer` route + `TimerRequest` + `HA_TIMER_ENTITY` (compose env), and
+   the home-agent wiring/prompt. `HA_URL`/`HA_TOKEN` kept (music + mirror
+   announce). *Operator-side leftover to remove at leisure: the unused
+   `timer.voice_timer` HA helper and the broken timer-finished announce
+   automation — neither is referenced by any code now.*
 
 4. **Backups** — nightly automated backup of the irreplaceable state: HA
    config volume, MA library/auth volume, orchestrator SQLite (sessions,

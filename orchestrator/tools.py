@@ -13,7 +13,6 @@ TOOL_SERVICE_URL    = os.getenv("TOOL_SERVICE_URL",    "http://localhost:8003")
 HEALTH_SERVICE_URL  = os.getenv("HEALTH_SERVICE_URL",  "http://localhost:8004")
 FINANCE_SERVICE_URL = os.getenv("FINANCE_SERVICE_URL", "http://localhost:8005")
 DEFAULT_LOCATION    = os.getenv("LOCATION", "Laurel, MD")
-DEFAULT_TIMER_LABEL = "Timer"
 
 # ── Tool schema catalog ──────────────────────────────────────────────────────
 
@@ -334,31 +333,6 @@ TOOL_DEFINITIONS = [
     {
         "type": "function",
         "function": {
-            "name": "set_timer",
-            "description": (
-                "Set a countdown timer on Home Assistant. When the timer expires, "
-                "HA will announce it through the voice speaker. "
-                "Use whenever the user asks to set, start, or begin a timer."
-            ),
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "duration_minutes": {
-                        "type": "number",
-                        "description": "Timer duration in minutes (decimals allowed, e.g. 0.5 for 30 seconds).",
-                    },
-                    "label": {
-                        "type": "string",
-                        "description": f"Optional label describing what the timer is for. Default: {DEFAULT_TIMER_LABEL}",
-                    },
-                },
-                "required": ["duration_minutes"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
             "name": "play_music",
             "description": (
                 "Play music through Music Assistant on a home speaker. Use "
@@ -415,7 +389,6 @@ TOOL_TIMEOUT_DEFAULT = 15
 TOOL_TIMEOUTS = {
     "generate_diagram": 30,  # graphviz render can be slow on big graphs
     "query_hottub": 5,       # local file read — fail fast
-    "set_timer": 10,
     "query_finances": 10,
     "play_music": 20,        # tool_service polls up to 8s to confirm playback
     "update_magicmirror": 30,  # SSH preflight to the Pi (~5-20s); the update
@@ -626,22 +599,6 @@ async def _tool_query_hottub(client: httpx.AsyncClient, args: dict) -> str:
     return "[Hot tub status unavailable]"
 
 
-async def _tool_set_timer(client: httpx.AsyncClient, args: dict) -> str:
-    duration = args.get("duration_minutes")
-    if duration is None:
-        return "[set_timer error: duration_minutes is required]"
-    label = args.get("label") or DEFAULT_TIMER_LABEL
-    resp = await client.post(
-        f"{TOOL_SERVICE_URL}/timer",
-        json={"duration_minutes": float(duration), "label": label},
-    )
-    if resp.status_code == 200:
-        info = resp.json()
-        return f"[Timer set: {info['duration']} ({label})]"
-    detail = resp.text[:200] if resp.text else f"status {resp.status_code}"
-    return f"[Could not set timer: {detail}]"
-
-
 async def _tool_play_music(client: httpx.AsyncClient, args: dict) -> str:
     query = (args.get("query") or "").strip()
     if not query:
@@ -715,7 +672,6 @@ _HANDLERS = {
     "get_kronk_context":    _tool_get_kronk_context,
     "generate_diagram":     _tool_generate_diagram,
     "query_hottub":         _tool_query_hottub,
-    "set_timer":            _tool_set_timer,
     "play_music":           _tool_play_music,
     "update_magicmirror":   _tool_update_magicmirror,
     "query_finances":       _tool_query_finances,
