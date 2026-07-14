@@ -11,7 +11,7 @@ RUN pip install uv
 COPY requirements.txt requirements.lock ./
 RUN uv pip install --system --require-hashes -r requirements.lock
 
-COPY main.py .
+COPY main.py solar.py ./
 
 # Non-root (tenet 10, operator directive 2026-07-07). UID 1000 matches the
 # host operator: ./data writes land drew-owned, and the read-only MagicMirror

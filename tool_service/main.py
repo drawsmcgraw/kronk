@@ -15,6 +15,13 @@ from bs4 import BeautifulSoup
 from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
 
+# Dual-compat: flat layout in the container (import solar), package import in
+# tests (from . import solar).
+try:
+    from . import solar
+except ImportError:
+    import solar
+
 # Without this, INFO logs are silently dropped under uvicorn (only WARNING+
 # escapes via the last-resort handler) — the /music "full error body goes to
 # the log" story never actually logged. Matches health/finance services.
@@ -56,6 +63,32 @@ async def _weather_refresh_loop() -> None:
         await asyncio.sleep(WEATHER_REFRESH_SEC)
 
 
+_solar_last_total: dict = {}
+
+
+async def _solar_poll_loop() -> None:
+    """Poll the PVS every SOLAR_POLL_MIN minutes; record per-inverter
+    readings and roll up + confirm multi-day failures
+    (docs/plans/SOLAR_MONITOR_PLAN.md). Detection is sync/pure; this loop
+    sends the HA alerts for the transitions it returns."""
+    while True:
+        try:
+            inv = solar.parse_inverters(await solar._get_vars("inverter"))
+            med = solar.array_median_power(inv)
+            solar.record_poll(inv, med)
+            _solar_last_total["kw"] = solar.parse_total_kw(await solar._get_vars("livedata"))
+            for t in solar.rollup_and_confirm():
+                if t["event"] == "confirmed_failing":
+                    await solar.notify_ha_failing(t["sn"], t["days"], _solar_last_total.get("kw"))
+                elif t["event"] == "recovered":
+                    await solar.dismiss_ha(t["sn"])
+        except solar.SolarError as e:
+            logger.warning("solar poll failed (will retry): %s", e)
+        except Exception as e:
+            logger.error("solar poll loop error: %s", e)
+        await asyncio.sleep(solar.POLL_MIN * 60)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global _weather_cache
@@ -66,8 +99,16 @@ async def lifespan(app: FastAPI):
     except (OSError, json.JSONDecodeError) as e:
         logger.warning("weather cache: could not load persisted copy: %s", e)
     task = asyncio.create_task(_weather_refresh_loop())
+    # Solar monitoring is optional — only wire it up when a serial is
+    # configured (keeps it out of the way in tests / unconfigured installs).
+    solar_task = None
+    if solar.SOLAR_SERIAL:
+        solar.init_db()
+        solar_task = asyncio.create_task(_solar_poll_loop())
     yield
     task.cancel()
+    if solar_task:
+        solar_task.cancel()
 
 
 app = FastAPI(title="Kronk Tool Service", lifespan=lifespan)
@@ -462,6 +503,16 @@ async def generate_diagram(req: DiagramRequest):
 
 
 HOTTUB_STATUS_FILE = Path("/data/hottub/status.json")
+
+
+@app.get("/solar/status")
+async def solar_status():
+    """Live snapshot for the solar_status skill. Detection is deterministic;
+    the orchestrator's tool/agent narrates the summary."""
+    try:
+        return await solar.fetch_snapshot()
+    except solar.SolarError as e:
+        raise HTTPException(status_code=502, detail=f"Could not reach the solar system: {e}")
 
 
 @app.get("/hottub")

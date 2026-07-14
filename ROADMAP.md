@@ -105,10 +105,18 @@ the docs use them. 1 and 2 are in Shipped.)*
 
 ## Later — wanted, unscoped
 
+- **Solar system health monitoring** — proactively alert when any part of
+  the SunPower PV system is *failing* (motivating incident: a failing
+  inverter found only by chance). Poll the PVS6 `DeviceList` API per-device
+  (not the aggregate gauge the mirror shows), detect dead/missing/outlier
+  inverters, alert via announce + a sticky channel. Plan +
+  research in `docs/plans/SOLAR_MONITOR_PLAN.md`. First consumer of the
+  announce primitive beyond the mirror; gated on PVS network reachability
+  from the Kronk box.
 - **Proactive Kronk** — announcements pushed to the Voice PE / other
   speakers (timer callbacks are the trailhead; laundry, hot-tub alerts,
-  calendar reminders follow). Design whatever timer verification (item 3)
-  reveals about HA's announce path.
+  calendar reminders, solar-failure alerts follow). Design whatever timer
+  verification (item 3) reveals about HA's announce path.
 - **External access + auth** — the real question behind "publish the
   shopping list off-network." Decide the posture once (Tailscale sidesteps
   most of it) before any endpoint goes public.

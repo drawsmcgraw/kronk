@@ -93,6 +93,26 @@ def test_weather_known_finance_forecast_limitation(text):
     assert routing._WEATHER_RE.search(text)  # documents current behavior
 
 
+# ── _SOLAR_RE: solar/PV status → home ───────────────────────────────────────
+
+@pytest.mark.parametrize("text", [
+    "check the solar system",
+    "what's the solar panel status",
+    "how are my inverters doing",
+    "is my pv system healthy",
+])
+def test_solar_matches(text):
+    assert routing._SOLAR_RE.search(text)
+
+
+@pytest.mark.parametrize("text", [
+    "book a solarium appointment",   # 'solar' word-boundary guards against substrings
+    "what's the weather",
+])
+def test_solar_rejects(text):
+    assert not routing._SOLAR_RE.search(text)
+
+
 # ── _DIRECT_OVERRIDE: explicit "don't search" ───────────────────────────────
 
 @pytest.mark.parametrize("text", [
