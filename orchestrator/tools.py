@@ -312,6 +312,19 @@ TOOL_DEFINITIONS = [
     {
         "type": "function",
         "function": {
+            "name": "solar_status",
+            "description": (
+                "Check the solar panel system health. Returns current total power output "
+                "in kW, how many inverters are underperforming right now, and any inverters "
+                "confirmed failing over several days. Use when the user asks about the solar "
+                "system, solar panels, inverters, or PV production."
+            ),
+            "parameters": {"type": "object", "properties": {}},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "query_finances",
             "description": (
                 "Search personal financial documents: bank statements, investment summaries, "
@@ -576,6 +589,27 @@ async def _tool_generate_diagram(client: httpx.AsyncClient, args: dict) -> str:
     return f"[Diagram generation failed: {resp.status_code} {resp.text[:200]}]"
 
 
+async def _tool_solar_status(client: httpx.AsyncClient, args: dict) -> str:
+    resp = await client.get(f"{TOOL_SERVICE_URL}/solar/status")
+    if resp.status_code != 200:
+        return _fail("Solar status", resp)
+    d = resp.json()
+    total = d.get("total_kw")
+    live = d.get("live_underperforming") or []
+    confirmed = d.get("confirmed_failing") or []
+    # Hand the model structured facts; it renders a 1-2 sentence summary.
+    parts = [f"total output {total} kW" if total is not None else "output unknown",
+             f"{d.get('inverter_count', '?')} inverters",
+             f"{len(live)} underperforming right now"]
+    if confirmed:
+        parts.append(f"{len(confirmed)} confirmed failing for days: " +
+                     ", ".join(f"…{c['sn'][-6:]} ({c['days']}d)" for c in confirmed))
+    healthy = not live and not confirmed
+    tag = "HEALTHY" if healthy else "ISSUES"
+    return f"[Solar {tag}] " + "; ".join(parts) + (
+        ". Summarize for the user in one or two short sentences.")
+
+
 async def _tool_query_hottub(client: httpx.AsyncClient, args: dict) -> str:
     resp = await client.get(f"{TOOL_SERVICE_URL}/hottub")
     if resp.status_code == 200:
@@ -672,6 +706,7 @@ _HANDLERS = {
     "get_kronk_context":    _tool_get_kronk_context,
     "generate_diagram":     _tool_generate_diagram,
     "query_hottub":         _tool_query_hottub,
+    "solar_status":         _tool_solar_status,
     "play_music":           _tool_play_music,
     "update_magicmirror":   _tool_update_magicmirror,
     "query_finances":       _tool_query_finances,

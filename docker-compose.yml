@@ -85,6 +85,11 @@ services:
       # (HA_TIMER_ENTITY removed 2026-07-12: timers are native HA Assist now.)
       - HA_URL=http://host.docker.internal:8123
       - HA_TOKEN=${HA_TOKEN}
+      # Solar monitoring (SunPower PVS5 via the HAProxy bridge). SOLAR_SERIAL
+      # is a credential → in .env. Thresholds tunable; defaults in solar.py.
+      # See docs/plans/SOLAR_MONITOR_PLAN.md.
+      - SOLAR_HOST=http://sunpower-bridge.home.hippiehouse.net
+      - SOLAR_SERIAL=${SOLAR_SERIAL}
       # Music Assistant playback (POST /music → HA music_assistant.play_media).
       # Spoken name → HA entity_id of the *MA* player entity (platform
       # music_assistant, not the native Sonos/Cast entity).

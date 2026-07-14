@@ -75,6 +75,10 @@ _SEARCH_PHRASES = re.compile(
 # also lands on home — acceptable at home-assistant scale, pinned in tests.
 _WEATHER_RE = re.compile(r'\b(weather|forecast)\b', re.IGNORECASE)
 
+# Solar/PV status queries → home (solar_status tool). The router LLM would
+# mishandle "check the solar system" (sounds like devops/infra); pin it.
+_SOLAR_RE = re.compile(r'\b(solar|photovoltaic|\bpv\b|inverters?)\b', re.IGNORECASE)
+
 
 async def classify(text: str, prior_history: list[dict]) -> str:
     """Return one of agents.VALID_ROUTES.
@@ -109,6 +113,9 @@ async def _classify_inner(text: str, prior_history: list[dict],
     if _WEATHER_RE.search(text):
         emit("route_shortcut", rule="weather", route="home")
         return "home", "weather"
+    if _SOLAR_RE.search(text):
+        emit("route_shortcut", rule="solar", route="home")
+        return "home", "solar"
 
     # Build a short, alternation-safe history window for the classifier.
     router_history: list[dict] = []
