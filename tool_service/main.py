@@ -15,11 +15,14 @@ from bs4 import BeautifulSoup
 from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
 
-# Dual-compat: flat layout in the container (import solar), package import in
-# tests (from . import solar).
+# Dual-compat: flat layout in the container (import x), package import in
+# tests (from . import x). The relative form also avoids the repo-root ops/
+# registry dir shadowing the ops module on the test sys.path.
 try:
+    from . import ops
     from . import solar
 except ImportError:
+    import ops
     import solar
 
 # Without this, INFO logs are silently dropped under uvicorn (only WARNING+
@@ -698,6 +701,53 @@ async def _run_mm_update() -> None:
     announced = await _ha_announce(speech)
     logger.info("mm update announce %s: %s",
                 "sent" if announced else "FAILED", speech)
+
+
+# ── General ops on managed hosts (Phase A: read-only) ───────────────────────
+# The devops agent's remote_exec tool lands here. The classifier (ops.py) is
+# the safety core — deterministic, server-side. Mutations are refused until
+# phase B adds the confirmation gate. docs/plans/MAGICMIRROR_PLAN.md.
+
+OPS_EXEC_TIMEOUT_S = 30
+
+
+class OpsExecRequest(BaseModel):
+    host: str
+    command: str
+
+
+@app.post("/ops/exec")
+async def ops_exec(req: OpsExecRequest):
+    entry = ops.get_host(req.host)
+    if not entry:
+        known = ", ".join(ops.load_registry()) or "(none configured)"
+        raise HTTPException(status_code=404,
+                            detail=f"unknown host {req.host!r} — known hosts: {known}")
+    allowed, reason = ops.classify_readonly(req.command)
+    if not allowed:
+        ops.audit_exec(req.host, req.command, None, 0, allowed=False, note=reason)
+        raise HTTPException(status_code=422,
+                            detail=f"refused: {reason}")
+    if not Path(entry["key"]).exists():
+        raise HTTPException(status_code=500,
+                            detail=f"SSH key not found at {entry['key']}")
+
+    cmd = ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=5",
+           "-o", "StrictHostKeyChecking=accept-new",
+           "-o", "UserKnownHostsFile=/data/mm_known_hosts",
+           "-i", entry["key"], entry["ssh_target"], req.command]
+    rc, text = await _run(cmd, OPS_EXEC_TIMEOUT_S)
+    ops.audit_exec(req.host, req.command, rc, len(text), allowed=True)
+    if rc is None:
+        raise HTTPException(status_code=504,
+                            detail=f"command timed out after {OPS_EXEC_TIMEOUT_S}s on {req.host}")
+    if rc == 255:
+        logger.error("ops exec transport failure on %s: %s", req.host, text[:300])
+        last = text.strip().splitlines()[-1] if text.strip() else "connection failed"
+        raise HTTPException(status_code=502,
+                            detail=f"could not reach {req.host}: {last}")
+    return {"host": req.host, "command": req.command, "exit_code": rc,
+            "output": text[:8000]}
 
 
 @app.post("/magicmirror/update")

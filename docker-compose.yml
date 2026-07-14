@@ -74,6 +74,10 @@ services:
       # litellm/config.yaml. tool_service scp's the current copy to the Pi
       # on each mm operation. See docs/plans/MAGICMIRROR_PLAN.md.
       - ./magicmirror:/magicmirror:ro
+      # Ops host registry for the devops agent's remote_exec tool (Phase A,
+      # read-only). Bind-mounted so hosts hot-add with no rebuild. hosts.json
+      # is gitignored; the mirror also auto-synthesizes from MM_SSH_* env.
+      - ./ops:/ops:ro
     environment:
       - SEARXNG_URL=http://searxng:8080
       # Hourly home-forecast cache (served at /weather/cached; the
@@ -102,6 +106,7 @@ services:
       - MM_SSH_TARGET=${MM_SSH_TARGET:-pi@mirror.local}
       - MM_SSH_KEY=/keys/kronk-mm-update
       - MM_SCRIPT=/magicmirror/mm-update.sh
+      - OPS_HOSTS=/ops/hosts.json
       # Proactive update-completion announcement (HA assist_satellite).
       # Kitchen Voice PE satellite; shared by future timer/proactive alerts.
       - ANNOUNCE_SATELLITE=${ANNOUNCE_SATELLITE:-assist_satellite.home_assistant_voice_0ac919_assist_satellite}

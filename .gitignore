@@ -16,3 +16,6 @@ __pycache__/
 *.pyc
 .venv/
 .env.langfuse
+
+# ops host registry (real hosts; example is committed)
+ops/hosts.json
