@@ -217,8 +217,10 @@ AGENTS: dict[str, AgentConfig] = {
             "Use get_weather for weather queries. Use shopping list tools for list management.\n"
             "Use query_hottub to check if the hot tub is online and report its temperature. "
             "If the hot tub is offline, clearly state that the breaker may have tripped and report how long it has been offline.\n"
-            "Use solar_status when the user asks about the solar system, solar panels, inverters, or PV output. "
-            "Summarize its result in one or two short sentences — current output and whether anything is failing.\n"
+            "For a quick solar check ('how's my solar?'), use solar_status and summarize in one or two sentences. "
+            "For anything analytical — which specific inverters are affected, why a count changed, whether one is "
+            "getting worse, per-inverter or trend questions — use solar_detail and reason over the per-inverter "
+            "numbers and daily history to give a specific, thoughtful answer.\n"
             "Use play_music when the user asks to play or put on music. Pass what they want to hear "
             "as the query; name the speaker only if the user did. Call play_music at most once — "
             "when it reports music playing, report that back and stop. If the tool reports failure, tell "
@@ -232,7 +234,7 @@ AGENTS: dict[str, AgentConfig] = {
             "Never restate tool calls, tool arguments, or tool output syntax in your reply — "
             "reply in plain sentences only."
         ),
-        tool_names=["get_weather", "shopping_list_view", "shopping_list_add", "shopping_list_remove", "shopping_list_clear", "query_hottub", "solar_status", "play_music", "update_magicmirror"],
+        tool_names=["get_weather", "shopping_list_view", "shopping_list_add", "shopping_list_remove", "shopping_list_clear", "query_hottub", "solar_status", "solar_detail", "play_music", "update_magicmirror"],
         terminal_tools=frozenset({"play_music", "update_magicmirror"}),
     ),
     "assistant": AgentConfig(

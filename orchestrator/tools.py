@@ -314,10 +314,28 @@ TOOL_DEFINITIONS = [
         "function": {
             "name": "solar_status",
             "description": (
-                "Check the solar panel system health. Returns current total power output "
+                "Quick solar panel system health summary: current total power output "
                 "in kW, how many inverters are underperforming right now, and any inverters "
-                "confirmed failing over several days. Use when the user asks about the solar "
-                "system, solar panels, inverters, or PV production."
+                "confirmed failing over several days. Use for a simple status check "
+                "('how's my solar?', 'is the solar okay?')."
+            ),
+            "parameters": {"type": "object", "properties": {}},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "solar_detail",
+            "description": (
+                "Detailed per-inverter solar data for ANALYTICAL questions — which "
+                "specific inverters are underperforming, their power/voltage/temperature, "
+                "how many consecutive days each has been failing, and a short daily "
+                "history (power and ratio-to-peers) for the troubled ones. Use when the "
+                "user asks WHY something changed, which inverters are affected, whether one "
+                "is getting worse, or anything needing per-inverter or trend detail. "
+                "Reason over the numbers to answer; note that the 'underperforming right "
+                "now' set is momentary (a marginal inverter dips in and out) while the "
+                "consecutive bad-days count is what indicates a real, sustained failure."
             ),
             "parameters": {"type": "object", "properties": {}},
         },
@@ -638,6 +656,39 @@ async def _tool_solar_status(client: httpx.AsyncClient, args: dict) -> str:
         ". Summarize for the user in one or two short sentences.")
 
 
+async def _tool_solar_detail(client: httpx.AsyncClient, args: dict) -> str:
+    resp = await client.get(f"{TOOL_SERVICE_URL}/solar/detail")
+    if resp.status_code != 200:
+        return _fail("Solar detail", resp)
+    d = resp.json()
+    thr = int(d.get('fail_ratio', 0.4) * 100)
+    lines = [
+        f"[Solar detail — total {d.get('total_kw')} kW, {d.get('inverter_count')} inverters, "
+        f"array median {d.get('array_median_kw')} kW. status per inverter: "
+        f"'underperforming' = below {thr}% of median (counts as failing right now); "
+        f"'marginal' = just above {thr}%, so it flickers in and out of the failing set "
+        f"as sunlight/median shifts (this is why the live count changes); "
+        f"'healthy' = well above. {d.get('confirm_days')} consecutive bad days confirms a "
+        f"real sustained failure.]",
+    ]
+    # Lead with the troubled inverters (already sorted worst-first by the service).
+    for iv in d.get("inverters", []):
+        base = (f"inv …{iv['sn'][-6:]}: {iv.get('status', '?').upper()} — "
+                f"{iv.get('power_kw')} kW (ratio {iv.get('ratio_to_median')}), "
+                f"{iv.get('voltage_v')} V, {iv.get('temp_c')}°C; bad_days={iv.get('bad_days')}"
+                + (", CONFIRMED FAILING" if iv.get('confirmed_failing') else ""))
+        if iv.get("history"):
+            hist = " | ".join(f"{h['day'][5:]}:{h['avg_kw']}kW(r{h['ratio']})"
+                              for h in iv["history"])
+            base += f"; daily history: {hist}"
+        lines.append(base)
+    lines.append("Reason over this to answer the user. If asked why the failing COUNT "
+                 "changed, it's the MARGINAL inverters crossing the threshold as "
+                 "conditions change — not recovery; the sustained failures are the ones "
+                 "with a high bad_days count and consistently low daily history.")
+    return "\n".join(lines)
+
+
 async def _tool_query_hottub(client: httpx.AsyncClient, args: dict) -> str:
     resp = await client.get(f"{TOOL_SERVICE_URL}/hottub")
     if resp.status_code == 200:
@@ -757,6 +808,7 @@ _HANDLERS = {
     "generate_diagram":     _tool_generate_diagram,
     "query_hottub":         _tool_query_hottub,
     "solar_status":         _tool_solar_status,
+    "solar_detail":         _tool_solar_detail,
     "play_music":           _tool_play_music,
     "update_magicmirror":   _tool_update_magicmirror,
     "remote_exec":          _tool_remote_exec,

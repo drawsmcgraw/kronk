@@ -174,6 +174,113 @@ def test_recovery_transitions_back(soldb):
 
 # ── /solar/status route + the tool ────────────────────────────────────────────
 
+# ── per-inverter detail + history (the analytical path) ───────────────────────
+
+def test_daily_history_computes_ratio(soldb):
+    """History is irradiance-normalized (ratio vs the day's array median), so a
+    persistently-failed inverter reads low every day."""
+    base = datetime(2026, 7, 10, tzinfo=timezone.utc)
+    # 2 days: 'dead' at 0 kW among healthy peers (~0.23 median)
+    for i in range(2):
+        _seed_day(base + timedelta(days=i), {"g1": 0.23, "g2": 0.24, "dead": 0.0}, n=6)
+    hist = solar._daily_history("dead", 5)
+    assert [h["day"] for h in hist] == ["2026-07-10", "2026-07-11"]  # oldest→newest
+    assert all(h["ratio"] == 0.0 for h in hist)
+    assert hist[0]["samples"] == 6
+
+
+def test_classify_status_bands():
+    # FAIL_RATIO=0.40, MARGINAL_BAND=0.15 → marginal zone [0.40, 0.55)
+    assert solar.classify_status(0.0) == "underperforming"
+    assert solar.classify_status(0.39) == "underperforming"
+    assert solar.classify_status(0.40) == "marginal"    # right at the line, flickers
+    assert solar.classify_status(0.54) == "marginal"
+    assert solar.classify_status(0.55) == "healthy"
+    assert solar.classify_status(0.9) == "healthy"
+    assert solar.classify_status(None) == "unknown"
+
+
+@pytest.mark.asyncio
+async def test_detail_marks_marginal_and_gives_it_history(soldb, monkeypatch):
+    """A near-threshold inverter is 'marginal' (not underperforming) and still
+    gets history — it's the one that makes the live count flicker."""
+    # median of the healthy cohort ≈ 0.23; put one inverter at ratio ~0.45
+    specs = _TWENTY_HEALTHY + [(200, "MARGINAL00000001", 0.104, 58.0)]  # 0.104/0.23 ≈ 0.45
+    async def fake_vars(match):
+        return _inv_values(specs) if match == "inverter" else [{"name": "/sys/livedata/pv_p", "value": "5.0"}]
+    monkeypatch.setattr(solar, "_get_vars", fake_vars)
+    d = await solar.fetch_detail()
+    marg = next(iv for iv in d["inverters"] if iv["sn"] == "MARGINAL00000001")
+    assert marg["status"] == "marginal"
+    assert marg["underperforming_now"] is False   # above the fail line…
+    assert "history" in marg                        # …but still surfaced for reasoning
+
+
+@pytest.mark.asyncio
+async def test_fetch_detail_current_state_and_focused_history(soldb, monkeypatch):
+    """detail: current values + state for ALL inverters; daily history only for
+    the troubled ones (underperforming now OR bad_days>0)."""
+    # seed a couple bad days so 'dead' carries bad_days
+    base = datetime(2026, 7, 10, tzinfo=timezone.utc)
+    for i in range(2):
+        _seed_day(base + timedelta(days=i), {"H0": 0.23, "H1": 0.24, "450051817003219": 0.0})
+        solar.rollup_and_confirm(now_day=(base + timedelta(days=i+1)).strftime("%Y-%m-%d"))
+
+    async def fake_vars(match):
+        if match == "inverter":
+            return REAL_SAMPLE   # 20 healthy + the 4 real bad
+        return [{"name": "/sys/livedata/pv_p", "value": "4.4"}]
+    monkeypatch.setattr(solar, "_get_vars", fake_vars)
+
+    d = await solar.fetch_detail(history_days=5)
+    assert d["inverter_count"] == 24 and d["total_kw"] == 4.4
+    by_sn = {iv["sn"]: iv for iv in d["inverters"]}
+    dead = by_sn["450051817003219"]
+    assert dead["power_kw"] == 0.0 and dead["underperforming_now"] is True
+    assert dead["ratio_to_median"] == 0.0
+    assert dead["bad_days"] == 2
+    assert "history" in dead and len(dead["history"]) == 2   # focused: has history
+    healthy = by_sn["H000000000000000"]
+    assert healthy["underperforming_now"] is False
+    assert "history" not in healthy                          # healthy: no history dump
+    # worst inverters sorted first
+    assert d["inverters"][0]["sn"] in {"450051817003219", "450051818005632"}
+
+
+@pytest.mark.asyncio
+async def test_solar_detail_tool_formats_for_reasoning():
+    import tools
+    from unittest.mock import patch
+
+    class Resp:
+        status_code = 200
+        def json(self):
+            return {"total_kw": 4.4, "inverter_count": 24, "array_median_kw": 0.23,
+                    "fail_ratio": 0.4, "confirm_days": 3,
+                    "inverters": [
+                        {"sn": "450051817003219", "power_kw": 0.0, "voltage_v": 61.5,
+                         "temp_c": 40, "ratio_to_median": 0.0, "underperforming_now": True,
+                         "bad_days": 2, "confirmed_failing": False,
+                         "history": [{"day": "2026-07-14", "avg_kw": 0.0, "ratio": 0.0, "samples": 30},
+                                     {"day": "2026-07-15", "avg_kw": 0.0, "ratio": 0.0, "samples": 31}]},
+                        {"sn": "450051815011992", "power_kw": 0.20, "voltage_v": 52.0,
+                         "temp_c": 45, "ratio_to_median": 0.87, "underperforming_now": False,
+                         "bad_days": 0, "confirmed_failing": False},
+                    ]}
+
+    class Client:
+        async def __aenter__(self): return self
+        async def __aexit__(self, *a): pass
+        async def get(self, *a, **kw): return Resp()
+
+    with patch("tools.httpx.AsyncClient", return_value=Client()):
+        out = await tools.execute("solar_detail", {})
+    # the failing inverter, its ratio, bad_days, and trend history are all present
+    assert "…003219" in out and "ratio 0.0" in out and "bad_days=2" in out
+    assert "daily history" in out and "07-14" in out
+    assert "40" in out  # temperature surfaced
+
+
 def test_solar_status_route(monkeypatch):
     import tool_service.main as main_mod
 

@@ -518,6 +518,16 @@ async def solar_status():
         raise HTTPException(status_code=502, detail=f"Could not reach the solar system: {e}")
 
 
+@app.get("/solar/detail")
+async def solar_detail():
+    """Per-inverter breakdown + short history for analytical questions
+    ("which inverters, why did the count change, is one getting worse")."""
+    try:
+        return await solar.fetch_detail()
+    except solar.SolarError as e:
+        raise HTTPException(status_code=502, detail=f"Could not reach the solar system: {e}")
+
+
 @app.get("/hottub")
 async def hottub_status():
     if not HOTTUB_STATUS_FILE.exists():

@@ -35,6 +35,7 @@ SOLAR_DB     = Path(os.getenv("SOLAR_DB", "/data/solar.db"))
 # Detection thresholds (all env-tunable — see plan doc).
 PRODUCING_FLOOR = float(os.getenv("SOLAR_PRODUCING_FLOOR", "0.03"))  # array-median kW gate
 FAIL_RATIO      = float(os.getenv("SOLAR_FAIL_RATIO", "0.40"))       # inv/median below this = under
+MARGINAL_BAND   = float(os.getenv("SOLAR_MARGINAL_BAND", "0.15"))    # width above FAIL_RATIO = "marginal" (flickers)
 MIN_SAMPLES     = int(os.getenv("SOLAR_MIN_SAMPLES", "8"))           # producing samples to judge a day
 BAD_FRACTION    = float(os.getenv("SOLAR_BAD_FRACTION", "0.70"))     # >70% of day's samples under = bad day
 CONFIRM_DAYS    = int(os.getenv("SOLAR_CONFIRM_DAYS", "3"))          # consecutive bad days → alert
@@ -138,6 +139,24 @@ def parse_total_kw(values: list[dict]) -> float | None:
             except (TypeError, ValueError):
                 return None
     return None
+
+
+def classify_status(ratio: float | None) -> str:
+    """Granular current status from the inverter's ratio-to-median:
+      underperforming — below the fail line (counts as bad right now);
+      marginal        — just above it (within MARGINAL_BAND), so it flickers
+                        in and out of the underperforming set as sunlight/
+                        the array median shifts — this is what makes the live
+                        'N failing' count change moment to moment;
+      healthy         — comfortably above;
+      unknown         — no reading."""
+    if ratio is None:
+        return "unknown"
+    if ratio < FAIL_RATIO:
+        return "underperforming"
+    if ratio < FAIL_RATIO + MARGINAL_BAND:
+        return "marginal"
+    return "healthy"
 
 
 def array_median_power(inverters: dict[str, dict]) -> float:
@@ -318,6 +337,81 @@ def confirmed_failing() -> list[dict]:
         return [{"sn": r["sn"], "days": r["bad_days"]} for r in rows]
     except sqlite3.OperationalError:
         return []
+
+
+def _inverter_states() -> dict[str, dict]:
+    try:
+        with _db() as c:
+            return {r["sn"]: {"bad_days": r["bad_days"], "confirmed": bool(r["confirmed"]),
+                              "last_verdict": r["last_verdict"]}
+                    for r in c.execute("SELECT * FROM inverter_state").fetchall()}
+    except sqlite3.OperationalError:
+        return {}
+
+
+def _daily_history(sn: str, days: int) -> list[dict]:
+    """Recent per-day production for one inverter, oldest→newest. `ratio` is
+    the day's avg power vs the day's avg array median — irradiance-normalized,
+    so a persistently-failed inverter reads low every day while a marginal one
+    wobbles (the distinction behind "4 failing, now 2")."""
+    try:
+        with _db() as c:
+            rows = c.execute(
+                "SELECT day, AVG(power) ap, AVG(array_median) am, COUNT(*) n "
+                "FROM readings WHERE sn=? AND producing=1 "
+                "GROUP BY day ORDER BY day DESC LIMIT ?", (sn, days)).fetchall()
+    except sqlite3.OperationalError:
+        return []
+    out = []
+    for r in reversed(rows):
+        am = r["am"] or 0
+        out.append({"day": r["day"], "avg_kw": round(r["ap"] or 0, 3),
+                    "ratio": round((r["ap"] or 0) / am, 2) if am > 0 else None,
+                    "samples": r["n"]})
+    return out
+
+
+async def fetch_detail(history_days: int = 5) -> dict:
+    """Per-inverter breakdown for analytical questions: current power/voltage/
+    temp + ratio-to-median + multi-day state, plus a short daily history for
+    the inverters that are underperforming now OR carrying bad-days (the ones
+    a 'why did it change' question is actually about). Healthy inverters get
+    current values only, to keep it focused."""
+    inverters = parse_inverters(await _get_vars("inverter"))
+    med = array_median_power(inverters)
+    try:
+        total = parse_total_kw(await _get_vars("livedata"))
+    except SolarError:
+        total = None
+    states = _inverter_states()
+
+    rows = []
+    for sn, d in sorted(inverters.items(), key=lambda kv: (kv[1].get("power") is None,
+                                                           kv[1].get("power") or 0)):
+        p = d.get("power")
+        ratio = round(p / med, 2) if (p is not None and med > 0) else None
+        st = states.get(sn, {})
+        status = classify_status(ratio)
+        under = status == "underperforming"
+        rec = {"sn": sn, "power_kw": p, "voltage_v": d.get("vmppt"),
+               "temp_c": d.get("temp"), "ratio_to_median": ratio,
+               "status": status,               # underperforming | marginal | healthy | unknown
+               "underperforming_now": under,
+               "bad_days": st.get("bad_days", 0),
+               "confirmed_failing": st.get("confirmed", False)}
+        # History for anything not clearly healthy — the flickering marginals
+        # are exactly what a "why did the count change" question is about.
+        if status in ("underperforming", "marginal") or st.get("bad_days", 0) > 0:
+            rec["history"] = _daily_history(sn, history_days)
+        rows.append(rec)
+
+    return {
+        "total_kw": total, "inverter_count": len(inverters),
+        "array_median_kw": round(med, 4), "fail_ratio": FAIL_RATIO,
+        "confirm_days": CONFIRM_DAYS,
+        "inverters": rows,
+        "as_of": datetime.now(timezone.utc).isoformat(),
+    }
 
 
 # ── HA persistent notification ────────────────────────────────────────────────
