@@ -144,3 +144,6 @@ spin was a red herring and we move to BIOS/kernel. Quick health check:
 - The useful canary: GPU busy% + power at idle —
   `cat /sys/class/drm/card*/device/gpu_busy_percent` should be ~0 when
   the box is quiet. 100% with no traffic means the ROCm spin is back.
+  **Automated 2026-08-12** into `kronk-memwatch` (busy% + fdinfo
+  engine-time discriminator) after the spin returned via devstral's ROCm
+  build and preceded two more hangs — see `INCIDENT_2026-08-12.md`.

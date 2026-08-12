@@ -1,0 +1,46 @@
+# Loads the sp5100_tco hardware-watchdog module at boot.
+#
+# Why this exists (see docs/incidents/INCIDENT_2026-08-12.md):
+# Ubuntu deny-lists every hardware watchdog driver in the per-kernel
+# /lib/modprobe.d/blacklist_linux_<kver>.conf, and systemd-modules-load
+# honors that deny-list — so the /etc/modules-load.d/sp5100_tco.conf entry
+# from the 2026-06-09 watchdog install was silently refused on every boot
+# ("Module 'sp5100_tco' is deny-listed (by kmod)"), leaving
+# RuntimeWatchdogSec=2min (/etc/systemd/system.conf.d/10-watchdog.conf)
+# with no device to arm. The watchdog fired correctly on the 7/18 hang
+# (armed by the original manual modprobe) and was dead for the 8/12 one.
+#
+# A direct `modprobe <name>` ignores the blacklist — that is the whole
+# trick here. The daemon-reload afterwards makes PID 1 re-read system.conf
+# and open the now-present /dev/watchdog0.
+#
+# NOTE: this is a SYSTEM unit (installs to /etc/systemd/system/), unlike
+# the user units in this directory.
+#
+# Operations:
+#   install:  sudo cp systemd/sp5100-tco-load.service /etc/systemd/system/
+#             sudo systemctl daemon-reload
+#             sudo systemctl enable --now sp5100-tco-load.service
+#   verify:   journalctl -b | grep -i 'Using hardware watchdog'
+#             # expect: Using hardware watchdog 'SP5100 TCO timer', ... /dev/watchdog0
+#             # if absent after install: sudo systemctl daemon-reexec, re-check
+#   cleanup:  sudo rm /etc/modules-load.d/sp5100_tco.conf
+#             # (optional — it never worked; removing it silences the
+#             #  "deny-listed" boot log line)
+#
+# Re-verify after every reboot and kernel update — this unit is the safety
+# net that turns a silent hang into a ~2-minute self-reboot instead of a
+# multi-hour outage waiting for a manual power pull.
+
+[Unit]
+Description=Load sp5100_tco hardware watchdog (Ubuntu deny-lists it — see comments)
+After=systemd-modules-load.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/sbin/modprobe sp5100_tco
+ExecStartPost=/usr/bin/systemctl daemon-reload
+
+[Install]
+WantedBy=multi-user.target

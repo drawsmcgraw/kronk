@@ -1,6 +1,7 @@
 [Unit]
-Description=Kronk memory watchdog — alerts via HA mobile-app push on low RAM / high GTT
+Description=Kronk memory watchdog — alerts via HA mobile-app push on low RAM / high GTT / GPU idle-spin
 Documentation=file://%h/git-repos/drawsmcgraw/kronk/docs/incidents/INCIDENT_2026-05-31.md
+Documentation=file://%h/git-repos/drawsmcgraw/kronk/docs/incidents/INCIDENT_2026-08-12.md
 After=default.target network-online.target
 Wants=network-online.target
 
@@ -14,6 +15,9 @@ ExecStart=%h/git-repos/drawsmcgraw/kronk/scripts/memwatch.sh
 Environment=MEM_WARN_GB=12
 Environment=MEM_CRIT_GB=4
 Environment=GTT_ALERT_GB=90
+Environment=GPU_BUSY_ALERT=95
+Environment=GPU_CONSEC=5
+Environment=GPU_ENGINE_MIN_PCT=1
 Environment=POLL_INTERVAL=60
 Environment=COOLDOWN_SEC=1800
 Environment=KRONK_REPO_DIR=%h/git-repos/drawsmcgraw/kronk

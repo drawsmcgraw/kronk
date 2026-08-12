@@ -3,9 +3,15 @@ Description=llama.cpp server — Devstral-2512 Q4_K_M (coding/devops)
 After=default.target
 
 [Service]
-Environment="HSA_OVERRIDE_GFX_VERSION=11.5.1"
-Environment="LD_LIBRARY_PATH=/usr/local/lib/ollama/rocm:/home/drew/pai/pai_workspace/llama-cpp/llama-gfx1151-rocm7"
-ExecStart=/home/drew/pai/pai_workspace/llama-cpp/llama-gfx1151-rocm7/llama-server \
+# Vulkan (RADV) backend, NOT ROCm: on gfx1151 the ROCm/HIP runtime keeps the
+# GPU spinning at 100% busy / max clock / ~50W even with zero requests, 24/7.
+# Prime suspect in the recurring silent hangs — this unit's ROCm build was
+# the spinner behind the 7/18 and 8/12 hangs (it was down 5/31–7/6 and so
+# escaped the June elimination) — see docs/incidents/INCIDENT_2026-08-12.md.
+# Switched 2026-08-12; perf cost measured: pp 370→300 tok/s (-19%),
+# gen ~14.6 tok/s unchanged.
+Environment="LD_LIBRARY_PATH=/home/drew/pai/pai_workspace/llama-cpp/llama-b9611-vulkan"
+ExecStart=/home/drew/pai/pai_workspace/llama-cpp/llama-b9611-vulkan/llama-server \
     -m /opt/models/mistralai/mistralai_Devstral-Small-2-24B-Instruct-2512-Q4_K_M.gguf \
     --host 127.0.0.1 \
     --port 11440 \
