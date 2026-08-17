@@ -105,14 +105,6 @@ the docs use them. 1 and 2 are in Shipped.)*
 
 ## Later — wanted, unscoped
 
-- **Solar system health monitoring** — proactively alert when any part of
-  the SunPower PV system is *failing* (motivating incident: a failing
-  inverter found only by chance). Poll the PVS6 `DeviceList` API per-device
-  (not the aggregate gauge the mirror shows), detect dead/missing/outlier
-  inverters, alert via announce + a sticky channel. Plan +
-  research in `docs/plans/SOLAR_MONITOR_PLAN.md`. First consumer of the
-  announce primitive beyond the mirror; gated on PVS network reachability
-  from the Kronk box.
 - **Proactive Kronk** — announcements pushed to the Voice PE / other
   speakers (timer callbacks are the trailhead; laundry, hot-tub alerts,
   calendar reminders, solar-failure alerts follow). Design whatever timer
@@ -189,6 +181,15 @@ the docs use them. 1 and 2 are in Shipped.)*
 
 Newest first; feature docs in `docs/features/`.
 
+- **Solar health + energy monitoring** *(2026-07-14 → 2026-07-17)* —
+  SunPower PVS5 per-inverter failure detection (peer-ratio vs array median,
+  3-consecutive-bad-days confirmation → one HA persistent notification per
+  episode) plus `solar_status` / `solar_detail` / `solar_energy` tools on
+  the home agent; energy history via 15-min lifetime-counter snapshots
+  (the PVS keeps none of its own). Superseded the original PVS6-DeviceList
+  sketch — the PVS5 varserver API turned out reachable via the bridge Pi.
+  See `docs/features/solar-monitoring.md`,
+  `docs/plans/SOLAR_MONITOR_PLAN.md`.
 - **Verbose error reporting** *(item 2, 2026-07-05)* — every layer surfaces
   its most specific failure cause; failed turns marked ERROR in Langfuse;
   "an unexpected error occurred" is now a bug by tenet. Includes the

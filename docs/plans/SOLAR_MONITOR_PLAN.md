@@ -1,6 +1,14 @@
 # Solar system health monitoring — Plan
 
-Status: **design complete, ready to build (2026-07-14).** Goal: proactively
+Status: **shipped.** Health monitor built 2026-07-14 (`ba2c195`),
+per-inverter detail 2026-07-17 (`cfde8a6`), energy tracking built +
+deployed 2026-07-17. Distilled into `docs/features/solar-monitoring.md` —
+read that first; this doc is the design record. One as-built deviation:
+energy snapshots landed in a dedicated `energy` table, not the
+"column on `readings`" bullet below (see the italic 2026-07-17 note in the
+energy section for why).
+
+Goal: proactively
 alert the operator when an inverter is **certainly** failing, and answer
 "how's my solar?" on demand. Motivating incident: a failing inverter found
 only by chance from glancing at output — live probing during this planning
@@ -175,3 +183,57 @@ of sorts — put `SOLAR_SERIAL` in `.env`, not committed.
   should cover; losing it just restarts the multi-day clock, not the world.
 - Deterministic detection; the LLM only phrases summaries and alerts
   (tenet: math in code, model narrates).
+
+## Energy production — planned addition (2026-07-17)
+
+Kronk currently tracks **power** (instantaneous kW) and never **energy**
+(cumulative kWh), so it can't answer "how much have I produced." The data
+exists on the PVS; the design turns on one fact:
+
+**The PVS is a live gauge, not a historian.** `/sys/livedata/pv_en` is a
+monotonic lifetime counter (65,649.8 kWh as of 2026-07-17); the `/vars` API
+returns its *current* value only — there is no local endpoint to ask what
+the counter read at a past instant. Consequences:
+
+- **Lifetime totals → query live, store nothing.** `pv_en` (whole system)
+  and per-inverter `ltea3phsumKwh` are always current on the PVS. Storing
+  them would be pointless duplication.
+- **Energy between two timepoints → counter(T2) − counter(T1).** Works
+  purely live *only if both endpoints are now-or-future*. For any **past**
+  period ("today", "yesterday", "this week"), the boundary value is gone
+  unless we recorded it — the PVS doesn't keep it. A stored `pv_en`
+  snapshot is therefore not duplication; it's the only copy of that past
+  instant.
+
+**Near-free storage:** the health poll already hits the PVS every 15 min.
+Snapshot `pv_en` from that same livedata fetch — no new polling, no new
+schedule. Period totals accrue from whenever we start; earlier periods are
+unrecoverable (the PVS can't recover them either — same limit, stated
+honestly).
+
+*(Built 2026-07-17: a dedicated `energy(ts, day, pv_en)` table, one row per
+poll — NOT a column on `readings`, which holds one row per inverter per poll,
+so pv_en there would duplicate 24×.)*
+
+**Design:**
+- `solar_energy` tool (home agent), two paths:
+  - *lifetime* / *per-inverter lifetime* → live query, no storage.
+  - *named period* ("today", "this week", "this month", "since <date>") →
+    current `pv_en` − the stored snapshot nearest that period's start.
+    "Today" = current − the snapshot nearest last local midnight.
+- Storage: `pv_en REAL` column on `readings` (captured each poll from the
+  livedata query we already make). No separate table.
+- Routing: `_SOLAR_RE` already routes energy questions to home; add
+  "energy/kWh/produced/generated" hints only if the LLM router misses.
+
+**To verify at build time:** whether the PVS exposes a native period/
+daily-reset counter (only lifetime counters — `pv_en`, `net_en`,
+`site_load_en`, `ess_en` — were seen in livedata; no "today" field). If one
+exists, "today" becomes a free live query, but arbitrary past periods still
+need the snapshots.
+
+**Tests:** lifetime path (live-mocked pv_en → correct kWh); period path
+(seed pv_en snapshots across days → "today"/"this week" diffs correct,
+including a period with no start-snapshot → honest "no data before X");
+per-inverter lifetime; the tool formatting; timezone handling for "today"
+(local midnight, not UTC).

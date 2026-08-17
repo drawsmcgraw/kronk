@@ -338,3 +338,157 @@ async def test_healthy_summary():
     with patch("tools.httpx.AsyncClient", return_value=Client()):
         out = await tools.execute("solar_status", {})
     assert "HEALTHY" in out and "5.4 kW" in out
+
+
+# ── energy: lifetime (live) + past-period (snapshot diffs) ─────────────────────
+
+def test_parse_lifetime_energy():
+    assert solar.parse_lifetime_energy(
+        [{"name": "/sys/livedata/pv_en", "value": "65649.8"}]) == 65649.8
+    assert solar.parse_lifetime_energy([{"name": "/sys/livedata/pv_p", "value": "5"}]) is None
+
+
+def test_parse_inverter_lifetime():
+    vals = [{"name": "/sys/devices/inverter/0/sn", "value": "SN0"},
+            {"name": "/sys/devices/inverter/0/ltea3phsumKwh", "value": "2252.1"},
+            {"name": "/sys/devices/inverter/1/sn", "value": "SN1"},
+            {"name": "/sys/devices/inverter/1/ltea3phsumKwh", "value": "3000.0"}]
+    assert solar.parse_inverter_lifetime(vals) == {"SN0": 2252.1, "SN1": 3000.0}
+
+
+def test_period_bounds_are_local_and_correct():
+    from zoneinfo import ZoneInfo
+    tz = ZoneInfo("America/New_York")
+    now = datetime(2026, 7, 17, 14, 30, tzinfo=tz)
+    midnight = datetime(2026, 7, 17, 0, 0, tzinfo=tz)
+    assert solar._period_bounds("today", now) == (midnight, None)
+    assert solar._period_bounds("yesterday", now) == (midnight - timedelta(days=1), midnight)
+    assert solar._period_bounds("week", now) == (now - timedelta(days=7), None)
+    assert solar._period_bounds("month", now) == (now - timedelta(days=30), None)
+    start, end = solar._period_bounds("since:2026-07-01", now)
+    assert start.date().isoformat() == "2026-07-01" and end is None
+    with pytest.raises(ValueError):
+        solar._period_bounds("fortnight", now)
+
+
+def _mock_live_counter(monkeypatch, pv_en):
+    async def fake_vars(match):
+        return [{"name": "/sys/livedata/pv_en", "value": str(pv_en)}]
+    monkeypatch.setattr(solar, "_get_vars", fake_vars)
+
+
+@pytest.mark.asyncio
+async def test_energy_for_period_diffs_snapshots(soldb, monkeypatch):
+    """'week' = live counter now − the snapshot nearest 7 days ago."""
+    now = time.time()
+    solar.record_energy(60000.0, ts=now - 7 * 86400)   # a week ago
+    solar.record_energy(60200.0, ts=now - 1 * 86400)   # yesterday
+    _mock_live_counter(monkeypatch, 60350.5)           # now (live)
+    d = await solar.energy_for_period("week")
+    assert d["kwh"] == 350.5          # 60350.5 − 60000.0
+    assert d["clamped_to"] is None
+
+
+@pytest.mark.asyncio
+async def test_energy_today_since_local_midnight(soldb, monkeypatch):
+    from zoneinfo import ZoneInfo
+    tz = ZoneInfo(solar.SOLAR_TZ)
+    midnight = datetime.now(tz).replace(hour=0, minute=0, second=0, microsecond=0)
+    solar.record_energy(64000.0, ts=midnight.timestamp())        # baseline at midnight
+    solar.record_energy(64010.0, ts=time.time() - 60)            # a recent snapshot
+    _mock_live_counter(monkeypatch, 64018.0)                     # live now
+    d = await solar.energy_for_period("today")
+    assert d["kwh"] == 18.0           # 64018 − 64000 since local midnight
+
+
+@pytest.mark.asyncio
+async def test_energy_period_clamps_before_history(soldb, monkeypatch):
+    """Asking for a period older than our earliest snapshot clamps to it and
+    says so — honest about what predates tracking (the PVS can't recover it)."""
+    now = time.time()
+    solar.record_energy(65000.0, ts=now - 2 * 86400)   # only 2 days of history
+    _mock_live_counter(monkeypatch, 65120.0)
+    d = await solar.energy_for_period("month")          # asks for 30 days
+    assert d["kwh"] == 120.0                             # from earliest, not 30d ago
+    assert d["clamped_to"] is not None
+
+
+@pytest.mark.asyncio
+async def test_energy_no_history_is_honest(soldb, monkeypatch):
+    _mock_live_counter(monkeypatch, 65000.0)
+    d = await solar.energy_for_period("today")
+    assert "error" in d and "history" in d["error"]
+
+
+@pytest.mark.asyncio
+async def test_fetch_lifetime_system_and_per_inverter(monkeypatch):
+    async def fake_vars(match):
+        if match == "livedata":
+            return [{"name": "/sys/livedata/pv_en", "value": "65649.8"}]
+        return [{"name": "/sys/devices/inverter/0/sn", "value": "SN0"},
+                {"name": "/sys/devices/inverter/0/ltea3phsumKwh", "value": "2252.13"}]
+    monkeypatch.setattr(solar, "_get_vars", fake_vars)
+    d = await solar.fetch_lifetime()
+    assert d["lifetime_kwh"] == 65649.8
+    assert d["per_inverter"] == {"SN0": 2252.1}
+
+
+@pytest.mark.asyncio
+async def test_solar_energy_tool_lifetime():
+    import tools
+    from unittest.mock import patch
+
+    class Resp:
+        status_code = 200
+        def json(self):
+            return {"lifetime_kwh": 65649.8,
+                    "per_inverter": {"450051817003219": 2252.1, "H1": 3000.0},
+                    "as_of": "2026-07-17T18:00:00+00:00"}
+
+    class Client:
+        async def __aenter__(self): return self
+        async def __aexit__(self, *a): pass
+        async def get(self, *a, **kw): return Resp()
+
+    with patch("tools.httpx.AsyncClient", return_value=Client()):
+        out = await tools.execute("solar_energy", {"period": "lifetime"})
+    assert "LIFETIME" in out and "65649.8 kWh" in out
+    assert "…003219" in out          # lowest-lifetime inverter named
+
+
+@pytest.mark.asyncio
+async def test_solar_energy_tool_period_and_clamp_note():
+    import tools
+    from unittest.mock import patch
+
+    class Resp:
+        status_code = 200
+        def json(self):
+            return {"period": "month", "kwh": 120.0,
+                    "from": "2026-07-15T10:00:00-04:00",
+                    "to": "2026-07-17T14:00:00-04:00",
+                    "clamped_to": "2026-07-15T10:00:00-04:00"}
+
+    class Client:
+        async def __aenter__(self): return self
+        async def __aexit__(self, *a): pass
+        async def get(self, *a, **kw): return Resp()
+
+    with patch("tools.httpx.AsyncClient", return_value=Client()):
+        out = await tools.execute("solar_energy", {"period": "month"})
+    assert "120.0 kWh" in out
+    assert "tracking only began" in out and "2026-07-15" in out
+
+
+def test_solar_energy_route(monkeypatch):
+    import tool_service.main as main_mod
+
+    async def fake_lifetime():
+        return {"lifetime_kwh": 65649.8, "per_inverter": {}, "as_of": "x"}
+    async def fake_period(period):
+        return {"period": period, "kwh": 42.0, "from": "a", "to": "b", "clamped_to": None}
+    monkeypatch.setattr(main_mod.solar, "fetch_lifetime", fake_lifetime)
+    monkeypatch.setattr(main_mod.solar, "energy_for_period", fake_period)
+    client = TestClient(main_mod.app)
+    assert client.get("/solar/energy").json()["lifetime_kwh"] == 65649.8
+    assert client.get("/solar/energy", params={"period": "week"}).json()["kwh"] == 42.0

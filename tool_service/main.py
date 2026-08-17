@@ -79,7 +79,9 @@ async def _solar_poll_loop() -> None:
             inv = solar.parse_inverters(await solar._get_vars("inverter"))
             med = solar.array_median_power(inv)
             solar.record_poll(inv, med)
-            _solar_last_total["kw"] = solar.parse_total_kw(await solar._get_vars("livedata"))
+            live = await solar._get_vars("livedata")   # one fetch: power + energy
+            _solar_last_total["kw"] = solar.parse_total_kw(live)
+            solar.record_energy(solar.parse_lifetime_energy(live))  # snapshot for past-period queries
             for t in solar.rollup_and_confirm():
                 if t["event"] == "confirmed_failing":
                     await solar.notify_ha_failing(t["sn"], t["days"], _solar_last_total.get("kw"))
@@ -528,6 +530,19 @@ async def solar_detail():
         raise HTTPException(status_code=502, detail=f"Could not reach the solar system: {e}")
 
 
+@app.get("/solar/energy")
+async def solar_energy(period: str = "lifetime"):
+    """Energy produced. period='lifetime' (live counter, system + per-inverter)
+    or a past period ('today', 'yesterday', 'week', 'month', 'since:YYYY-MM-DD')
+    computed by diffing stored counter snapshots."""
+    try:
+        if period.strip().lower() == "lifetime":
+            return await solar.fetch_lifetime()
+        return await solar.energy_for_period(period)
+    except solar.SolarError as e:
+        raise HTTPException(status_code=502, detail=f"Could not reach the solar system: {e}")
+
+
 @app.get("/hottub")
 async def hottub_status():
     if not HOTTUB_STATUS_FILE.exists():
@@ -606,6 +621,15 @@ def _mm_update_speech(ok: bool, fields: dict, detail: str) -> str:
         failed = fields.get("mods_failed")
         warn = (f" {failed} modules had trouble updating."
                 if failed and failed != "0" else "")
+        # Dirty-skipped modules are spoken by NAME — a bare skip count is how
+        # a pinned active module stayed invisible for a month (RAIN-MAP,
+        # INVESTIGATION_2026-08-14_mm_banner.md).
+        dirty = fields.get("mods_dirty")
+        if dirty:
+            names = dirty.split(",")
+            verb = "was" if len(names) == 1 else "were"
+            warn += (f" {' and '.join(names)} {verb} skipped — "
+                     "local changes need a look.")
         return f"The magic mirror updated to version {ver}{mods}.{warn}".strip()
     # Failure: name the step if the script gave one, keep the backup, wait
     # for an explicit rollback request.

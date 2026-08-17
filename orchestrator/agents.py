@@ -221,6 +221,11 @@ AGENTS: dict[str, AgentConfig] = {
             "For anything analytical — which specific inverters are affected, why a count changed, whether one is "
             "getting worse, per-inverter or trend questions — use solar_detail and reason over the per-inverter "
             "numbers and daily history to give a specific, thoughtful answer.\n"
+            "For solar ENERGY produced (kWh, cumulative — not the instantaneous kW of solar_status), use "
+            "solar_energy: 'how much have I produced' or 'total/lifetime' → period 'lifetime'; "
+            "'today'/'this week'/'this month' → the matching period; a specific start → 'since:YYYY-MM-DD'. "
+            "'Which panel produced the most/least energy' is an ENERGY question → solar_energy (lifetime), "
+            "not solar_detail (which is about faults/health from recent power, not cumulative production).\n"
             "Use play_music when the user asks to play or put on music. Pass what they want to hear "
             "as the query; name the speaker only if the user did. Call play_music at most once — "
             "when it reports music playing, report that back and stop. If the tool reports failure, tell "
@@ -234,7 +239,7 @@ AGENTS: dict[str, AgentConfig] = {
             "Never restate tool calls, tool arguments, or tool output syntax in your reply — "
             "reply in plain sentences only."
         ),
-        tool_names=["get_weather", "shopping_list_view", "shopping_list_add", "shopping_list_remove", "shopping_list_clear", "query_hottub", "solar_status", "solar_detail", "play_music", "update_magicmirror"],
+        tool_names=["get_weather", "shopping_list_view", "shopping_list_add", "shopping_list_remove", "shopping_list_clear", "query_hottub", "solar_status", "solar_detail", "solar_energy", "play_music", "update_magicmirror"],
         terminal_tools=frozenset({"play_music", "update_magicmirror"}),
     ),
     "assistant": AgentConfig(

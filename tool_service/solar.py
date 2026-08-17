@@ -20,9 +20,10 @@ import sqlite3
 import ssl
 import time
 from contextlib import contextmanager
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from statistics import median
+from zoneinfo import ZoneInfo
 
 import httpx
 
@@ -40,6 +41,7 @@ MIN_SAMPLES     = int(os.getenv("SOLAR_MIN_SAMPLES", "8"))           # producing
 BAD_FRACTION    = float(os.getenv("SOLAR_BAD_FRACTION", "0.70"))     # >70% of day's samples under = bad day
 CONFIRM_DAYS    = int(os.getenv("SOLAR_CONFIRM_DAYS", "3"))          # consecutive bad days → alert
 POLL_MIN        = int(os.getenv("SOLAR_POLL_MIN", "15"))
+SOLAR_TZ        = os.getenv("SOLAR_TZ", "America/New_York")            # for "today"/period boundaries
 
 # HA (shared with music/mirror announce).
 HA_URL   = os.getenv("HA_URL", "http://localhost:8123")
@@ -141,6 +143,35 @@ def parse_total_kw(values: list[dict]) -> float | None:
     return None
 
 
+def parse_lifetime_energy(values: list[dict]) -> float | None:
+    """System lifetime energy counter (kWh) from /vars?match=livedata."""
+    for v in values:
+        if v.get("name") == "/sys/livedata/pv_en":
+            try:
+                return float(v.get("value"))
+            except (TypeError, ValueError):
+                return None
+    return None
+
+
+def parse_inverter_lifetime(values: list[dict]) -> dict[str, float]:
+    """Per-inverter lifetime energy (kWh) → {sn: ltea3phsumKwh}, from
+    /vars?match=inverter. Keyed by serial like parse_inverters."""
+    by_idx: dict[str, dict] = {}
+    for v in values:
+        m = _INV_RE.match(v.get("name", ""))
+        if m:
+            by_idx.setdefault(m.group(1), {})[m.group(2)] = v.get("value")
+    out: dict[str, float] = {}
+    for fields in by_idx.values():
+        sn = fields.get("sn")
+        try:
+            out[str(sn)] = float(fields.get("ltea3phsumKwh"))
+        except (TypeError, ValueError):
+            continue
+    return out
+
+
 def classify_status(ratio: float | None) -> str:
     """Granular current status from the inverter's ratio-to-median:
       underperforming — below the fail line (counts as bad right now);
@@ -230,6 +261,16 @@ def init_db():
                 confirmed INTEGER NOT NULL DEFAULT 0,
                 last_verdict TEXT, updated_at TEXT
             );
+            -- One row per poll: a snapshot of the PVS lifetime energy counter.
+            -- Lifetime totals are read live (never stored); these snapshots
+            -- exist only to answer "energy over a PAST period" — the PVS keeps
+            -- no history of its own counter, so a boundary value is gone unless
+            -- we recorded it. Separate table (not on `readings`) because
+            -- `readings` holds one row per inverter per poll (24×); pv_en is a
+            -- single system value per poll.
+            CREATE TABLE IF NOT EXISTS energy (
+                ts REAL PRIMARY KEY, day TEXT NOT NULL, pv_en REAL NOT NULL
+            );
         """)
 
 
@@ -246,6 +287,110 @@ def record_poll(inverters: dict[str, dict], med: float, ts: float | None = None)
             "VALUES (?,?,?,?,?,?,?,?)",
             [(ts, day, sn, d.get("power"), d.get("vmppt"), d.get("temp"), med, producing)
              for sn, d in inverters.items()])
+
+
+# ── energy: live lifetime + past-period diffs from snapshots ──────────────────
+
+def record_energy(pv_en: float | None, ts: float | None = None) -> None:
+    """Snapshot the lifetime counter for one poll (skip if the read failed)."""
+    if pv_en is None:
+        return
+    ts = ts if ts is not None else time.time()
+    day = datetime.fromtimestamp(ts, timezone.utc).strftime("%Y-%m-%d")
+    with _db() as c:
+        c.execute("INSERT OR REPLACE INTO energy (ts, day, pv_en) VALUES (?,?,?)",
+                  (ts, day, pv_en))
+
+
+def _snapshot_near(ts: float) -> tuple[float, float] | None:
+    """(pv_en, ts) of the stored snapshot closest to `ts`, or None if empty."""
+    with _db() as c:
+        row = c.execute(
+            "SELECT pv_en, ts FROM energy ORDER BY ABS(ts - ?) ASC LIMIT 1",
+            (ts,)).fetchone()
+    return (row["pv_en"], row["ts"]) if row else None
+
+
+def _earliest_snapshot() -> tuple[float, float] | None:
+    with _db() as c:
+        row = c.execute(
+            "SELECT pv_en, ts FROM energy ORDER BY ts ASC LIMIT 1").fetchone()
+    return (row["pv_en"], row["ts"]) if row else None
+
+
+async def fetch_lifetime() -> dict:
+    """Live lifetime energy — system total and per-inverter. No storage."""
+    total = parse_lifetime_energy(await _get_vars("livedata"))
+    per_inv = parse_inverter_lifetime(await _get_vars("inverter"))
+    return {
+        "lifetime_kwh": round(total, 1) if total is not None else None,
+        "per_inverter": {sn: round(v, 1) for sn, v in per_inv.items()},
+        "as_of": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def _period_bounds(period: str, now_local: datetime) -> tuple[datetime, datetime | None]:
+    """Resolve a period name to (start, end) in local time. end=None means
+    'up to now' (use the live counter). Raises ValueError on an unknown name."""
+    midnight = now_local.replace(hour=0, minute=0, second=0, microsecond=0)
+    p = period.strip().lower()
+    if p == "today":
+        return midnight, None
+    if p == "yesterday":
+        return midnight - timedelta(days=1), midnight
+    if p in ("week", "this week", "7d", "7 days"):
+        return now_local - timedelta(days=7), None
+    if p in ("month", "this month", "30d", "30 days"):
+        return now_local - timedelta(days=30), None
+    if p.startswith("since:"):
+        d = datetime.fromisoformat(p[len("since:"):].strip())
+        if d.tzinfo is None:
+            d = d.replace(tzinfo=now_local.tzinfo)
+        return d, None
+    raise ValueError(f"unknown period: {period!r}")
+
+
+async def energy_for_period(period: str) -> dict:
+    """Energy (kWh) produced over a named past period, as counter(end) −
+    counter(start). `start`/`end` past boundaries come from stored snapshots;
+    an open end uses the live counter. If the requested start predates our
+    earliest snapshot, the baseline is clamped to it and `clamped_to` names the
+    real start — honest about what we can and can't know (the PVS can't recover
+    it either)."""
+    tz = ZoneInfo(SOLAR_TZ)
+    now_local = datetime.now(tz)
+    try:
+        start, end = _period_bounds(period, now_local)
+    except ValueError as e:
+        return {"period": period, "error": str(e)}
+
+    earliest = _earliest_snapshot()
+    if earliest is None:
+        return {"period": period, "error": "no energy history yet — tracking just started"}
+
+    start_ts = start.timestamp()
+    base = _snapshot_near(start_ts)
+    clamped_to = None
+    # If the period starts before we have any data, clamp to the first snapshot.
+    if base[1] > start_ts + POLL_MIN * 60:
+        clamped_to = datetime.fromtimestamp(base[1], tz).isoformat()
+
+    if end is None:
+        end_kwh = parse_lifetime_energy(await _get_vars("livedata"))
+        end_ts = now_local.timestamp()
+        if end_kwh is None:
+            return {"period": period, "error": "could not read the live PVS counter"}
+    else:
+        e = _snapshot_near(end.timestamp())
+        end_kwh, end_ts = e[0], e[1]
+
+    return {
+        "period": period,
+        "kwh": round(end_kwh - base[0], 1),
+        "from": datetime.fromtimestamp(base[1], tz).isoformat(),
+        "to": datetime.fromtimestamp(end_ts, tz).isoformat(),
+        "clamped_to": clamped_to,
+    }
 
 
 def _day_verdicts(day: str) -> dict[str, bool] | None:

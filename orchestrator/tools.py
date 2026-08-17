@@ -335,9 +335,41 @@ TOOL_DEFINITIONS = [
                 "is getting worse, or anything needing per-inverter or trend detail. "
                 "Reason over the numbers to answer; note that the 'underperforming right "
                 "now' set is momentary (a marginal inverter dips in and out) while the "
-                "consecutive bad-days count is what indicates a real, sustained failure."
+                "consecutive bad-days count is what indicates a real, sustained failure. "
+                "This tool is about HEALTH and FAULTS (from recent power), NOT cumulative "
+                "energy: for 'which panel produced the most/least energy' or any lifetime/"
+                "period production ranking, use solar_energy instead."
             ),
             "parameters": {"type": "object", "properties": {}},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "solar_energy",
+            "description": (
+                "Solar ENERGY produced (kWh) — cumulative, not the instantaneous kW "
+                "of solar_status. Use for 'how much have I produced', 'energy this "
+                "week', 'total lifetime production', AND 'which panel/inverter produced "
+                "the most/least energy' — the lifetime path returns per-panel lifetime "
+                "totals, so this (not solar_detail) is the authoritative source for "
+                "ranking panels by production. The "
+                "'period' arg: 'lifetime' (all-time, system + each inverter), 'today', "
+                "'yesterday', 'week' (past 7 days), 'month' (past 30 days), or "
+                "'since:YYYY-MM-DD'. Past-period figures start only from when tracking "
+                "began; if a period predates that, the result says so."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "period": {
+                        "type": "string",
+                        "description": (
+                            "lifetime | today | yesterday | week | month | since:YYYY-MM-DD"
+                        ),
+                    },
+                },
+            },
         },
     },
     {
@@ -689,6 +721,33 @@ async def _tool_solar_detail(client: httpx.AsyncClient, args: dict) -> str:
     return "\n".join(lines)
 
 
+async def _tool_solar_energy(client: httpx.AsyncClient, args: dict) -> str:
+    period = (args.get("period") or "lifetime").strip()
+    resp = await client.get(f"{TOOL_SERVICE_URL}/solar/energy", params={"period": period})
+    if resp.status_code != 200:
+        return _fail("Solar energy", resp)
+    d = resp.json()
+    if d.get("error"):
+        return f"[Solar energy — {period}] no figure available: {d['error']}. Tell the user plainly."
+    if "lifetime_kwh" in d:  # lifetime path
+        per = d.get("per_inverter") or {}
+        line = f"[Solar energy — LIFETIME] system total {d.get('lifetime_kwh')} kWh produced all-time."
+        if per:
+            vals = sorted(per.items(), key=lambda kv: kv[1])
+            lo, hi = vals[0], vals[-1]
+            line += (f" {len(per)} inverters; lowest lifetime …{lo[0][-6:]} at {lo[1]} kWh, "
+                     f"highest …{hi[0][-6:]} at {hi[1]} kWh.")
+        return line + " Report the total; mention per-panel spread only if asked."
+    # period path
+    note = ""
+    if d.get("clamped_to"):
+        note = (f" (tracking only began {d['clamped_to'][:10]}, so this covers from then, "
+                f"not the full '{period}')")
+    return (f"[Solar energy — {period.upper()}] {d.get('kwh')} kWh produced "
+            f"from {d.get('from', '?')[:16]} to {d.get('to', '?')[:16]}{note}. "
+            f"Give the user the kWh for the period in a sentence.")
+
+
 async def _tool_query_hottub(client: httpx.AsyncClient, args: dict) -> str:
     resp = await client.get(f"{TOOL_SERVICE_URL}/hottub")
     if resp.status_code == 200:
@@ -809,6 +868,7 @@ _HANDLERS = {
     "query_hottub":         _tool_query_hottub,
     "solar_status":         _tool_solar_status,
     "solar_detail":         _tool_solar_detail,
+    "solar_energy":         _tool_solar_energy,
     "play_music":           _tool_play_music,
     "update_magicmirror":   _tool_update_magicmirror,
     "remote_exec":          _tool_remote_exec,
