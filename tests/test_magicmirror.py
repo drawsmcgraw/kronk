@@ -151,6 +151,30 @@ def test_mm_update_speech_success_variants():
     assert plain == "The magic mirror updated to version 2.34.0."
 
 
+def test_mm_update_speech_names_dirty_skips():
+    """Dirty-skipped modules are spoken by name, never hidden in a count —
+    the RAIN-MAP lesson (INVESTIGATION_2026-08-14_mm_banner.md)."""
+    one = ts._mm_update_speech(
+        True, {"version": "2.37.0", "mods_ok": "5",
+               "mods_dirty": "MMM-RAIN-MAP"}, "")
+    assert "MMM-RAIN-MAP was skipped" in one
+    assert "local changes" in one
+    two = ts._mm_update_speech(
+        True, {"version": "2.37.0", "mods_ok": "4",
+               "mods_dirty": "MMM-A,MMM-B"}, "")
+    assert "MMM-A and MMM-B were skipped" in two
+
+
+def test_parse_kronk_line_carries_mods_dirty():
+    """The mods_dirty field flows through the generic key=value parse into
+    the status file, so /magicmirror/status surfaces it too."""
+    ok, _, fields = ts._parse_kronk_line(
+        "KRONK-OK update old=a new=b mods_ok=5 mods_skipped=5 "
+        "mods_failed=0 mods_dirty=MMM-RAIN-MAP\n")
+    assert ok is True
+    assert fields["mods_dirty"] == "MMM-RAIN-MAP"
+
+
 def test_mm_update_speech_failure_keeps_state_and_offers_rollback():
     """Locked decision: failure keeps the bad state, never auto-rolls-back,
     and invites an explicit rollback."""

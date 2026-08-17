@@ -43,15 +43,23 @@ count_modules() {
   echo "$n"
 }
 
-# Update every third-party git module in place: git pull (ff-only) + npm
-# install where a package.json exists. Best-effort per module — a single
-# module's failure never aborts the core update; results are reported.
+# Update every third-party git module in place: git pull (ff-only), then
+# deps only when the pull actually moved HEAD (or node_modules is missing).
+# npm ci when the module commits a lockfile — installs EXACTLY the locked
+# versions and never rewrites the file; plain npm install regenerated
+# MMM-RAIN-MAP's tracked lockfile on 2026-07-11 and the dirty-guard then
+# skipped that module for a month (INVESTIGATION_2026-08-14_mm_banner.md).
+# npm install remains only for modules that ship no lockfile.
+# Best-effort per module — a single module's failure never aborts the core
+# update; results are reported.
 # Skips: core `default`, *.bak backups, non-git dirs, and any module with
 # TRACKED local edits (never clobber operator work — the full-tree backup
-# already lets rollback undo everything anyway).
-MOD_OK=0; MOD_SKIP=0; MOD_FAIL=0; MOD_FAIL_NAMES=""
+# already lets rollback undo everything anyway). Dirty skips are NAMED in
+# the result line: an active module silently pinned inside a bare count is
+# exactly how the RAIN-MAP freeze went unnoticed.
+MOD_OK=0; MOD_SKIP=0; MOD_FAIL=0; MOD_FAIL_NAMES=""; MOD_DIRTY_NAMES=""
 update_modules() {
-  local d name
+  local d name before after
   shopt -s nullglob
   for d in "$MM_DIR"/modules/*/; do
     name="$(basename "$d")"
@@ -59,13 +67,19 @@ update_modules() {
     case "$name" in *.bak) MOD_SKIP=$((MOD_SKIP + 1)); continue;; esac
     if [ ! -d "$d/.git" ]; then MOD_SKIP=$((MOD_SKIP + 1)); continue; fi
     if ! git -C "$d" diff --quiet || ! git -C "$d" diff --cached --quiet; then
-      MOD_SKIP=$((MOD_SKIP + 1)); continue   # dirty — leave it alone
+      MOD_SKIP=$((MOD_SKIP + 1)); MOD_DIRTY_NAMES="${MOD_DIRTY_NAMES},${name}"; continue
     fi
+    before=$(git -C "$d" rev-parse HEAD 2>/dev/null || echo none)
     if ! git -C "$d" pull --ff-only >/dev/null 2>&1; then
       MOD_FAIL=$((MOD_FAIL + 1)); MOD_FAIL_NAMES="${MOD_FAIL_NAMES},${name}(pull)"; continue
     fi
-    if [ -f "$d/package.json" ]; then
-      if ! ( cd "$d" && npm install --omit=dev --no-audit --no-fund >/dev/null 2>&1 ); then
+    after=$(git -C "$d" rev-parse HEAD 2>/dev/null || echo none)
+    if [ -f "$d/package.json" ] && { [ "$before" != "$after" ] || [ ! -d "$d/node_modules" ]; }; then
+      if [ -f "$d/package-lock.json" ]; then
+        if ! ( cd "$d" && npm ci --omit=dev --no-audit --no-fund >/dev/null 2>&1 ); then
+          MOD_FAIL=$((MOD_FAIL + 1)); MOD_FAIL_NAMES="${MOD_FAIL_NAMES},${name}(npm-ci)"; continue
+        fi
+      elif ! ( cd "$d" && npm install --omit=dev --no-audit --no-fund >/dev/null 2>&1 ); then
         MOD_FAIL=$((MOD_FAIL + 1)); MOD_FAIL_NAMES="${MOD_FAIL_NAMES},${name}(npm)"; continue
       fi
     fi
@@ -128,6 +142,7 @@ case "$verb" in
     new_ver=$(node -p "require('./package.json').version" 2>/dev/null || echo unknown)
     mods="mods_ok=$MOD_OK mods_skipped=$MOD_SKIP mods_failed=$MOD_FAIL"
     [ -n "$MOD_FAIL_NAMES" ] && mods="$mods mod_failures=${MOD_FAIL_NAMES#,}"
+    [ -n "$MOD_DIRTY_NAMES" ] && mods="$mods mods_dirty=${MOD_DIRTY_NAMES#,}"
     # version= is the friendly semver for the spoken announce; new= is the
     # git rev for the audit trail. Speech prefers version.
     echo "KRONK-OK update old=$old_rev new=$new_rev version=$new_ver backup=$(basename "$backup") $mods"
