@@ -56,7 +56,12 @@ snapshot that won't track upstream template changes.
 
 ### [ROUTING-01] Gate-based router can't handle queries that are partially research-flavored
 
-**Status:** Mitigated 2026-06-12 — the "better approach" below was implemented
+**Status:** Resolved 2026-08-18 — superseded by **coordinator-default
+routing** (`docs/features/coordinator-default-routing.md`): the LLM gate
+was deleted outright; everything a narrow shortcut doesn't pin goes to the
+coordinator. The 2026-06-12 mitigation below was the intermediate step.
+
+*(Mitigated 2026-06-12)* — the "better approach" below was implemented
 as **agents-as-tools** (the hybrid variant): gate routing stays for clear-cut
 cases, and the direct path's coordinator now carries `ask_<agent>` tools
 (`agents.COORDINATOR`), so a router miss becomes an ordinary delegation

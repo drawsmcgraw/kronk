@@ -1,0 +1,395 @@
+{
+  "label": "coord-post2",
+  "started_at": "2026-08-18T09:44:01-04:00",
+  "finished_at": "2026-08-18T09:45:29-04:00",
+  "reps": 3,
+  "results": [
+    {
+      "id": "direct_short",
+      "transport": "message",
+      "rep": 1,
+      "wall_s": 1.19,
+      "timing": {
+        "model": "gemma-4-e4b",
+        "stages": [
+          {
+            "tool": "routing",
+            "s": 0.0
+          }
+        ],
+        "ttft_s": 0.86,
+        "generation_s": 0.32
+      },
+      "stream_tokens": 26
+    },
+    {
+      "id": "direct_long",
+      "transport": "message",
+      "rep": 1,
+      "wall_s": 1.64,
+      "timing": {
+        "model": "gemma-4-e4b",
+        "stages": [
+          {
+            "tool": "routing",
+            "s": 0.0
+          }
+        ],
+        "ttft_s": 0.07,
+        "generation_s": 1.55
+      },
+      "stream_tokens": 120
+    },
+    {
+      "id": "weather_now",
+      "transport": "message",
+      "rep": 1,
+      "wall_s": 6.15,
+      "timing": {
+        "model": "gemma-4-e4b",
+        "stages": [
+          {
+            "tool": "routing",
+            "s": 0.0
+          },
+          {
+            "tool": "delegate_home",
+            "s": 6.13,
+            "ok": true
+          }
+        ],
+        "ttft_s": 5.92,
+        "generation_s": 0.21
+      },
+      "stream_tokens": 21
+    },
+    {
+      "id": "weather_umbrella",
+      "transport": "message",
+      "rep": 1,
+      "wall_s": 2.23,
+      "timing": {
+        "model": "gemma-4-e4b",
+        "stages": [
+          {
+            "tool": "routing",
+            "s": 0.0
+          }
+        ],
+        "ttft_s": 1.95,
+        "generation_s": 0.25
+      },
+      "stream_tokens": 23
+    },
+    {
+      "id": "shopping_list",
+      "transport": "message",
+      "rep": 1,
+      "wall_s": 5.69,
+      "timing": {
+        "model": "gemma-4-e4b",
+        "stages": [
+          {
+            "tool": "routing",
+            "s": 0.0
+          }
+        ],
+        "ttft_s": 5.56,
+        "generation_s": 0.11
+      },
+      "stream_tokens": 11
+    },
+    {
+      "id": "research_bios",
+      "transport": "message",
+      "rep": 1,
+      "wall_s": 5.21,
+      "timing": {
+        "model": "gemma-4-e4b",
+        "stages": [
+          {
+            "tool": "routing",
+            "s": 0.0
+          }
+        ],
+        "ttft_s": 4.67,
+        "generation_s": 0.52
+      },
+      "stream_tokens": 74
+    },
+    {
+      "id": "shim_timezone",
+      "transport": "openai",
+      "rep": 1,
+      "wall_s": 0.15,
+      "timing": null,
+      "stream_tokens": 3
+    },
+    {
+      "id": "shim_weather",
+      "transport": "ollama",
+      "rep": 1,
+      "wall_s": 3.12,
+      "timing": null,
+      "stream_tokens": 50
+    },
+    {
+      "id": "direct_short",
+      "transport": "message",
+      "rep": 2,
+      "wall_s": 2.87,
+      "timing": {
+        "model": "gemma-4-e4b",
+        "stages": [
+          {
+            "tool": "routing",
+            "s": 0.0
+          }
+        ],
+        "ttft_s": 2.34,
+        "generation_s": 0.51
+      },
+      "stream_tokens": 40
+    },
+    {
+      "id": "direct_long",
+      "transport": "message",
+      "rep": 2,
+      "wall_s": 3.19,
+      "timing": {
+        "model": "gemma-4-e4b",
+        "stages": [
+          {
+            "tool": "routing",
+            "s": 0.0
+          }
+        ],
+        "ttft_s": 1.66,
+        "generation_s": 1.51
+      },
+      "stream_tokens": 115
+    },
+    {
+      "id": "weather_now",
+      "transport": "message",
+      "rep": 2,
+      "wall_s": 4.41,
+      "timing": {
+        "model": "gemma-4-e4b",
+        "stages": [
+          {
+            "tool": "routing",
+            "s": 0.0
+          },
+          {
+            "tool": "delegate_home",
+            "s": 4.39,
+            "ok": true
+          }
+        ],
+        "ttft_s": 4.1,
+        "generation_s": 0.29
+      },
+      "stream_tokens": 28
+    },
+    {
+      "id": "weather_umbrella",
+      "transport": "message",
+      "rep": 2,
+      "wall_s": 2.92,
+      "timing": {
+        "model": "gemma-4-e4b",
+        "stages": [
+          {
+            "tool": "routing",
+            "s": 0.0
+          }
+        ],
+        "ttft_s": 2.53,
+        "generation_s": 0.37
+      },
+      "stream_tokens": 35
+    },
+    {
+      "id": "shopping_list",
+      "transport": "message",
+      "rep": 2,
+      "wall_s": 4.76,
+      "timing": {
+        "model": "gemma-4-e4b",
+        "stages": [
+          {
+            "tool": "routing",
+            "s": 0.0
+          }
+        ],
+        "ttft_s": 4.65,
+        "generation_s": 0.09
+      },
+      "stream_tokens": 8
+    },
+    {
+      "id": "research_bios",
+      "transport": "message",
+      "rep": 2,
+      "wall_s": 7.34,
+      "timing": {
+        "model": "gemma-4-e4b",
+        "stages": [
+          {
+            "tool": "routing",
+            "s": 0.0
+          }
+        ],
+        "ttft_s": 6.7,
+        "generation_s": 0.63
+      },
+      "stream_tokens": 70
+    },
+    {
+      "id": "shim_timezone",
+      "transport": "openai",
+      "rep": 2,
+      "wall_s": 0.32,
+      "timing": null,
+      "stream_tokens": 24
+    },
+    {
+      "id": "shim_weather",
+      "transport": "ollama",
+      "rep": 2,
+      "wall_s": 3.08,
+      "timing": null,
+      "stream_tokens": 56
+    },
+    {
+      "id": "direct_short",
+      "transport": "message",
+      "rep": 3,
+      "wall_s": 2.18,
+      "timing": {
+        "model": "gemma-4-e4b",
+        "stages": [
+          {
+            "tool": "routing",
+            "s": 0.0
+          }
+        ],
+        "ttft_s": 1.81,
+        "generation_s": 0.35
+      },
+      "stream_tokens": 31
+    },
+    {
+      "id": "direct_long",
+      "transport": "message",
+      "rep": 3,
+      "wall_s": 1.48,
+      "timing": {
+        "model": "gemma-4-e4b",
+        "stages": [
+          {
+            "tool": "routing",
+            "s": 0.0
+          }
+        ],
+        "ttft_s": 0.07,
+        "generation_s": 1.38
+      },
+      "stream_tokens": 103
+    },
+    {
+      "id": "weather_now",
+      "transport": "message",
+      "rep": 3,
+      "wall_s": 5.82,
+      "timing": {
+        "model": "gemma-4-e4b",
+        "stages": [
+          {
+            "tool": "routing",
+            "s": 0.0
+          },
+          {
+            "tool": "delegate_home",
+            "s": 5.8,
+            "ok": true
+          }
+        ],
+        "ttft_s": 5.52,
+        "generation_s": 0.27
+      },
+      "stream_tokens": 28
+    },
+    {
+      "id": "weather_umbrella",
+      "transport": "message",
+      "rep": 3,
+      "wall_s": 8.45,
+      "timing": {
+        "model": "gemma-4-e4b",
+        "stages": [
+          {
+            "tool": "routing",
+            "s": 0.0
+          }
+        ],
+        "ttft_s": 8.16,
+        "generation_s": 0.27
+      },
+      "stream_tokens": 25
+    },
+    {
+      "id": "shopping_list",
+      "transport": "message",
+      "rep": 3,
+      "wall_s": 3.88,
+      "timing": {
+        "model": "gemma-4-e4b",
+        "stages": [
+          {
+            "tool": "routing",
+            "s": 0.0
+          }
+        ],
+        "ttft_s": 3.75,
+        "generation_s": 0.11
+      },
+      "stream_tokens": 8
+    },
+    {
+      "id": "research_bios",
+      "transport": "message",
+      "rep": 3,
+      "wall_s": 6.83,
+      "timing": {
+        "model": "gemma-4-e4b",
+        "stages": [
+          {
+            "tool": "routing",
+            "s": 0.0
+          }
+        ],
+        "ttft_s": 6.62,
+        "generation_s": 0.19
+      },
+      "stream_tokens": 27
+    },
+    {
+      "id": "shim_timezone",
+      "transport": "openai",
+      "rep": 3,
+      "wall_s": 0.18,
+      "timing": null,
+      "stream_tokens": 4
+    },
+    {
+      "id": "shim_weather",
+      "transport": "ollama",
+      "rep": 3,
+      "wall_s": 2.98,
+      "timing": null,
+      "stream_tokens": 51
+    }
+  ]
+}

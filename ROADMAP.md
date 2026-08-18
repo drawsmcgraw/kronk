@@ -105,6 +105,16 @@ the docs use them. 1 and 2 are in Shipped.)*
 
 ## Later — wanted, unscoped
 
+- **Flock/ALPR camera watch** — alert when a Flock Safety (or other ALPR)
+  camera newly appears near home or anywhere in town. Likely source:
+  OpenStreetMap surveillance nodes via the Overpass API
+  (`man_made=surveillance` + ALPR/operator tags — the dataset behind
+  DeFlock.me), polled on a slow cadence (daily is plenty); diff against a
+  stored roster, alert on new nodes via the HA notification path. Same
+  poll → diff → notify shape as the solar monitor; home coords already
+  exist in tool_service (weather). Honesty requirement for the alert:
+  crowdsourced data lags reality, so a new node means "newly *mapped*",
+  not "newly installed" — say so in the notification.
 - **Proactive Kronk** — announcements pushed to the Voice PE / other
   speakers (timer callbacks are the trailhead; laundry, hot-tub alerts,
   calendar reminders, solar-failure alerts follow). Design whatever timer
@@ -181,6 +191,18 @@ the docs use them. 1 and 2 are in Shipped.)*
 
 Newest first; feature docs in `docs/features/`.
 
+- **Coordinator-default routing** *(2026-08-18)* — routing collapsed to
+  narrow deterministic shortcuts or the coordinator; the gemma-3-4b LLM
+  classifier deleted (a shortcut miss now costs seconds, never a wrong
+  lane). Shortcut precision audit (bare solar/weather/forecast/search
+  released; mirror update = exact phrase), `ask_*` menu sharpened as the
+  routing surface, multi-domain composites now compose (kWh × rate in
+  14 s — the 2026-08-17 misroute, fixed). Phase 2 (specialist escalation
+  terminal) shipped the same day after the shortcut-stranded-composite gap
+  bit within hours: pinned specialists can hand composites back to the
+  coordinator (trace `02e8b817` → fixed, 29.9 kWh × rate = $4.83 in 18.5 s).
+  See `docs/features/coordinator-default-routing.md`,
+  `docs/plans/COORDINATOR_ROUTING_PLAN.md`.
 - **Solar health + energy monitoring** *(2026-07-14 → 2026-07-17)* —
   SunPower PVS5 per-inverter failure detection (peer-ratio vs array median,
   3-consecutive-bad-days confirmation → one HA persistent notification per

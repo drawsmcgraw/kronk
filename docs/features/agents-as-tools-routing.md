@@ -2,6 +2,13 @@
 
 **Shipped:** 2026-06-12 · **Origin:** `../../TECH_DEBT.md` [ROUTING-01] · **Incident:** trace `bb8bd8b7` ("I need to search…")
 
+> **Superseded in part (2026-08-18):** the LLM router this doc heals
+> against no longer exists — routing is deterministic shortcuts or the
+> coordinator, so the `ask_*` delegation described here is now the *main
+> path*, not an escape hatch. See
+> `coordinator-default-routing.md`. The "known remaining gap" below
+> (specialist dead-ends) is that design's deferred Phase 2.
+
 ## What it does
 
 When the phase-1 router (gemma-3-4b) sends an ambiguous query down the

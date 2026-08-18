@@ -1,20 +1,19 @@
-"""Phase-1 request router: deterministic pre-checks, then LLM classifier."""
-import logging
-import os
+"""Phase-1 request router: deterministic shortcuts; everything else → the
+coordinator.
+
+The LLM classifier (gemma-3-4b) was removed 2026-08-18 — see
+docs/plans/COORDINATOR_ROUTING_PLAN.md. Routing is now structural: a
+narrow shortcut pins a query to its specialist, and every unmatched query
+goes to the coordinator, which answers directly or delegates via its
+ask_* tools. A shortcut miss costs seconds (one coordinator hop), never a
+wrong lane — so shortcuts are precision-first: they pin only on a named
+household entity, an explicit user-stated method, or domain vocabulary
+with context.
+"""
 import re
 
-import agents
-import llm
-import metrics
 import telemetry
 from events import emit
-
-logger = logging.getLogger(__name__)
-
-ROUTER_MODEL = os.getenv("ROUTER_MODEL", "gemma-3-4b")
-
-_MAX_ROUTER_HISTORY  = 4    # messages (≈2 turns)
-_MAX_ASSISTANT_CHARS = 200  # truncated before sending to router
 
 _URL_RE = re.compile(r'https?://')
 
@@ -54,48 +53,66 @@ _DIRECT_OVERRIDE = re.compile(
     re.IGNORECASE,
 )
 
-# Explicit search phrases that reliably indicate a research task. Small classifier
-# models miss these consistently, so we pre-check before the LLM call.
-# Note: bare "find" is intentionally excluded — "what can you find about X" is
-# colloquial and should route through the LLM classifier, not shortcut to research.
+# Explicit search phrases that reliably indicate a research task.
+# Precision rule (COORDINATOR_ROUTING_PLAN, 2026-08-18): a shortcut pins only
+# on an explicit user-stated METHOD — so `search` requires its qualifier
+# ("search the web/online"); bare "search"/"search for" hijacked local asks
+# ("search my shopping list") and "what is the latest" is recency, not
+# method. Unmatched phrasings fall to the coordinator: slow-but-right.
 _SEARCH_PHRASES = re.compile(
-    r'\b(search(\s+online|\s+the\s+web|\s+for)?|look\s+up|'
+    r'\b(search\s+(the\s+web|online)|web\s+search|look\s+up|look\s+it\s+up|'
     r'find(\s+me)?\s+(online|on\s+the\s+web|on\s+the\s+internet)|'
-    r'look\s+it\s+up|google|what\s+is\s+the\s+latest|news\s+about)\b',
+    r'google|news\s+about)\b',
     re.IGNORECASE,
 )
 
 # Weather queries belong to the home agent (NWS tool + prompt-injected cache).
-# The router LLM misses phrasings without the word "weather" despite the
-# routing hint — "what is tomorrow's forecast?" went to research and burned
-# its whole tool budget re-searching (incident 2026-07-05). Checked AFTER
-# _SEARCH_PHRASES on purpose: explicit "look up the weather in Tokyo" keeps
-# routing to research, which works for non-US locations (NWS is US-only).
-# Known limitation: non-weather "forecast" (e.g. "AMD's revenue forecast")
-# also lands on home — acceptable at home-assistant scale, pinned in tests.
-_WEATHER_RE = re.compile(r'\b(weather|forecast)\b', re.IGNORECASE)
+# Contextual forms only (precision rule): a weather word plus a question
+# shape or a timeframe. Keeps the 2026-07-05 forecast-misroute fix and the
+# frequent voice phrasings while releasing "AMD's revenue forecast" /
+# "weather the storm" to the coordinator. Checked AFTER _SEARCH_PHRASES on
+# purpose: explicit "look up the weather in Tokyo" keeps routing to
+# research, which works for non-US locations (NWS is US-only).
+_WEATHER_RE = re.compile(
+    r"what'?s?\s+(is\s+)?the\s+weather"
+    r"|\bweather\b.{0,40}\b(today|tonight|tomorrow|this\s+week(end)?)\b"
+    r"|\b(today|tonight|tomorrow)'?s?\s+(weather|forecast)\b"
+    r"|\bforecast\s+for\s+(today|tonight|tomorrow|this\s+week(end)?)\b"
+    r"|\bweather\s+forecast\b",
+    re.IGNORECASE,
+)
 
-# Solar/PV status queries → home (solar_status tool). The router LLM would
-# mishandle "check the solar system" (sounds like devops/infra); pin it.
-_SOLAR_RE = re.compile(r'\b(solar|photovoltaic|\bpv\b|inverters?)\b', re.IGNORECASE)
+# The solar TOPIC pin was removed 2026-08-18 (same day it was narrowed):
+# solar queries are frequently composite ("money's worth of solar…"), a
+# topic regex can't see compositeness, and the escalation net under the pin
+# proved probabilistic at 4B (1-for-2 on identical inputs — traces
+# 1e6d1603 vs 143bbc62). All solar questions now ride the coordinator,
+# which reaches home via ask_home: composites compose reliably; status
+# checks pay one delegation hop (~+4 s). Lesson recorded in
+# docs/features/coordinator-default-routing.md: METHOD pins (user states
+# the how) are sound; TOPIC pins only survive on frequency + simplicity
+# grounds (weather, mirror).
 
 # "magic mirror" is a multi-agent entity: home owns the fast named-safe
 # UPDATE (a terminal tool); devops owns arbitrary diagnostics/ops (the
-# remote_exec loop). A 4B router can't split intent on the shared entity,
-# so decide deterministically (weather-shortcut precedent). Order matters:
-# the update phrasing is checked first, everything else mirror → devops.
+# remote_exec loop). The update pin fires ONLY on the exact command phrase
+# — questions *about* updates ("did the magic mirror update break
+# anything?") must not reach a mutation tool (2026-08-18 audit). Everything
+# else mirror → devops.
 _MM_RE        = re.compile(r'\bmagic\s*mirror\b', re.IGNORECASE)
-_MM_UPDATE_RE = re.compile(r'\b(update|upgrade)\b', re.IGNORECASE)
+_MM_UPDATE_RE = re.compile(r'\bupdate\s+the\s+magic\s*mirror\b', re.IGNORECASE)
 
 
 async def classify(text: str, prior_history: list[dict]) -> str:
-    """Return one of agents.VALID_ROUTES.
+    """Return a route: a shortcut-pinned specialist, else "direct" (the
+    coordinator).
 
-    prior_history: conversation turns *before* the current user message.
+    prior_history is unused since the LLM classifier was removed — kept for
+    transport API stability (both shims and /message call this signature).
     """
     span = telemetry.root().child_span("routing.decide", input=text[:200])
     try:
-        route, rule = await _classify_inner(text, prior_history, span)
+        route, rule = await _classify_inner(text)
         span.end(output=route, metadata={"rule": rule})
         return route
     except Exception as e:
@@ -103,8 +120,7 @@ async def classify(text: str, prior_history: list[dict]) -> str:
         raise
 
 
-async def _classify_inner(text: str, prior_history: list[dict],
-                          span) -> tuple[str, str]:
+async def _classify_inner(text: str) -> tuple[str, str]:
     """Returns (route, rule) where rule names the deciding mechanism."""
     if _TALKIE_PHRASES.search(text):
         emit("route_shortcut", rule="talkie_explicit", route="talkie")
@@ -121,9 +137,6 @@ async def _classify_inner(text: str, prior_history: list[dict],
     if _WEATHER_RE.search(text):
         emit("route_shortcut", rule="weather", route="home")
         return "home", "weather"
-    if _SOLAR_RE.search(text):
-        emit("route_shortcut", rule="solar", route="home")
-        return "home", "solar"
     if _MM_RE.search(text):
         if _MM_UPDATE_RE.search(text):
             emit("route_shortcut", rule="mm_update", route="home")
@@ -131,63 +144,9 @@ async def _classify_inner(text: str, prior_history: list[dict],
         emit("route_shortcut", rule="mm_ops", route="devops")
         return "devops", "mm_ops"            # remote_exec diagnostics loop
 
-    # Build a short, alternation-safe history window for the classifier.
-    router_history: list[dict] = []
-    if prior_history:
-        recent = prior_history[-_MAX_ROUTER_HISTORY:]
-        while recent and recent[0]["role"] != "user":
-            recent = recent[1:]
-        for m in recent:
-            content = m["content"]
-            if m["role"] == "assistant" and len(content) > _MAX_ASSISTANT_CHARS:
-                content = content[:_MAX_ASSISTANT_CHARS] + "…"
-            # Merge consecutive same-role turns — Gemma templates reject
-            # non-alternating conversations. HA's local-intent fallback can
-            # resend the user turn twice (failed local match leaves an empty
-            # assistant turn that _shim_context drops).
-            if router_history and router_history[-1]["role"] == m["role"]:
-                router_history[-1]["content"] += "\n\n" + content
-            else:
-                router_history.append({"role": m["role"], "content": content})
-        # The router query below is its own user turn; a trailing user turn
-        # here would break alternation too.
-        if router_history and router_history[-1]["role"] == "user":
-            router_history.pop()
-
-    # Gemma-family chat templates reject system messages via LiteLLM, so embed
-    # the routing prompt inside the user turn.
-    router_query = f"{agents.ROUTING_PROMPT}\n\nClassify this request: {text}"
-    messages = router_history + [{"role": "user", "content": router_query}]
-
-    gen = span.child_generation("llm.router", model=ROUTER_MODEL, input=messages)
-    try:
-        completion = await llm.complete(messages, [], ROUTER_MODEL)
-    except Exception as e:
-        gen.end(level="ERROR", status_message=str(e)[:200])
-        raise
-    gen_usage = completion.get("usage") or {}
-    gen.end(
-        output=completion.get("content") or "",
-        usage={
-            "input":  gen_usage.get("prompt_tokens", 0),
-            "output": gen_usage.get("completion_tokens", 0),
-        },
-    )
-
-    route_text = (completion.get("content") or "").strip().lower()
-    route = route_text.split()[0] if route_text else "direct"
-    if route not in agents.VALID_ROUTES:
-        emit("route_invalid", raw=route_text[:40], fallback="direct")
-        logger.warning("Router returned unexpected route %r, defaulting to direct", route_text[:40])
-        route = "direct"
-
-    usage = completion.get("usage") or {}
-    metrics.record(
-        agent="router",
-        model=ROUTER_MODEL,
-        prompt_tokens=usage.get("prompt_tokens", 0),
-        completion_tokens=usage.get("completion_tokens", 0),
-        eval_duration_ns=usage.get("eval_duration_ns", 0),
-    )
-    emit("route", text_preview=text[:60], route=route, model=ROUTER_MODEL)
-    return route, "llm"
+    # No LLM classifier: everything unmatched goes to the coordinator, which
+    # answers directly or delegates via its ask_* tools. Structural routing
+    # (tenet 5): a 4B model can't pick the wrong specialist if specialists
+    # aren't on its menu.
+    emit("route", text_preview=text[:60], route="direct", rule="default")
+    return "direct", "default"

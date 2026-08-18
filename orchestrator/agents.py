@@ -180,7 +180,7 @@ AGENTS: dict[str, AgentConfig] = {
     ),
     "research": AgentConfig(
         name="research",
-        description="Web search, current events, news, online information, URL lookups",
+        description="Web search, current events, news, online information, URL lookups, and current prices or rates (utility, market, retail) — anything needing live external data",
         routing_hint="Lookups against the live web: news, prices, scores, events, current officeholders or other currently-held positions, but ALSO any factual lookup where verbatim precision matters (quotes, statistics, specific dates, lyrics, biographies, technical definitions). NOT for operations on text the user already provided (translation, summarization of a pasted paragraph, rewriting, math) — those go direct.",
         icon="🔍",
         probe="tools",
@@ -208,7 +208,7 @@ AGENTS: dict[str, AgentConfig] = {
     ),
     "home": AgentConfig(
         name="home",
-        description="Weather lookups, shopping list management, hot tub status, solar system health, playing music, and updating the magic mirror",
+        description="Weather lookups, shopping list management, hot tub status, solar panel health and energy production (kWh), playing music, and updating the magic mirror",
         routing_hint="weather, forecast, shopping list, hot tub, spa, solar, solar panels, inverters, play music, songs, albums, speakers, updating the magic mirror",
         icon="🏠",
         probe="tools",
@@ -257,7 +257,7 @@ AGENTS: dict[str, AgentConfig] = {
     ),
     "finance": AgentConfig(
         name="finance",
-        description="Bank statements, spending, income, tax returns, uploaded financial documents",
+        description="The operator's OWN financial documents: bank statements, spending, income, tax returns, uploads. NOT market prices, utility rates, or anything needing a live lookup — that's the research specialist",
         routing_hint="bank statements, spending, taxes, investments",
         icon="💰",
         probe="finance",
@@ -365,6 +365,53 @@ def agent_tool_defs() -> list[dict]:
     ]
 
 
+# ── Escalation terminal (Phase 2, COORDINATOR_ROUTING_PLAN) ─────────────────
+# A shortcut-pinned specialist can't answer the out-of-domain half of a
+# composite ("how much money did my SOLAR PANELS make" pins to home, which
+# has no rates — trace 02e8b817). The escalate terminal lets it hand the
+# whole request back: the loop yields an `escalated` event and the pipeline
+# re-enters at the coordinator, note attached. NOT a peer tool — the
+# specialist never learns other agents exist; it only declines. Offered
+# ONLY on top-level pinned runs (run_stream allow_escalation=True): the
+# coordinator and ask_*-delegated runs never see it, so escalation is
+# structurally once-per-request.
+
+ESCALATE_TOOL = {
+    "type": "function",
+    "function": {
+        "name": "escalate",
+        "description": (
+            "End your turn and hand this request to the Kronk coordinator "
+            "because part of it needs data or tools outside your domain. "
+            "Use ONLY when your own tools cannot cover part of the request "
+            "— never for requests you can fully answer yourself."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "note": {
+                    "type": "string",
+                    "description": (
+                        "One sentence: what you CAN provide, and which part "
+                        "you cannot."
+                    ),
+                },
+            },
+            "required": ["note"],
+        },
+    },
+}
+
+ESCALATION_GUIDANCE = (
+    "ESCALATION: you also have an `escalate` tool. If part of this request "
+    "needs data or tools outside your domain (prices, rates, web facts, "
+    "another system's state), call escalate with a one-sentence note of "
+    "what you CAN provide and what you cannot — instead of guessing, using "
+    "placeholders, or answering only half the question. If your tools fully "
+    "cover the request, do NOT escalate — just answer."
+)
+
+
 COORDINATOR = AgentConfig(
     name="coordinator",
     description="Direct answers; delegates to specialists for live or personal data",
@@ -374,11 +421,21 @@ COORDINATOR = AgentConfig(
     system_prompt=(
         "You are Kronk, a helpful home assistant. Be direct and concise. "
         "Do not use action text, emotes, or filler expressions like *winks* — no theatrical language.\n"
-        "Answer from your own knowledge whenever you can — most questions need no tools.\n"
+        "Answer from your own knowledge whenever you can — most questions need no tools. "
+        "Time zones, capitals, definitions, science, history, math, how-things-work: answer "
+        "directly, never delegate ('What time zone is Denver in?' needs NO specialist).\n"
         "Call an ask_* specialist ONLY when the answer requires live data (news, current "
         "officeholders, prices, schedules, recent events), the user's personal data (health, "
         "finances, shopping list, home devices, weather), or web verification of specific facts.\n"
         "Never invent live or personal data: if you cannot answer without it, delegate.\n"
+        "MULTI-PART questions whose parts each need live or personal data take one ask_* "
+        "call per part: e.g. 'how much money did my panels make today' = energy produced "
+        "(ask_home, in kWh) AND the electricity rate (ask_research) — gather every needed "
+        "piece before answering, then do the arithmetic.\n"
+        "Phrase each delegated query in the specialist's own domain: ask home for the kWh, "
+        "ask research for the rate — never ask a specialist for a figure it doesn't own.\n"
+        "Never answer with a placeholder like [kWh] or [rate] — a bracket in your draft "
+        "means a missing piece you must fetch first.\n"
         "When a specialist answers, relay the substance concisely — do not re-verify it."
     ),
     tool_names=[],  # filled below — ask_* names aren't in tools.TOOL_DEFINITIONS
@@ -389,51 +446,10 @@ COORDINATOR.tool_names = [d["function"]["name"] for d in agent_tool_defs()]
 COORDINATOR.tool_defs = agent_tool_defs  # type: ignore[method-assign]
 
 
-# ── Derived: router prompt + valid-route set ────────────────────────────────
-
-VALID_ROUTES = set(AGENTS.keys()) | {"direct"}
-
-
-def build_routing_prompt() -> str:
-    width = max(len(k) for k in AGENTS) + 1
-    lines = [
-        "You are a request classifier for a home assistant. Output exactly one word — nothing else.",
-        "",
-        "Routes:",
-        "",
-    ]
-    for key, agent in AGENTS.items():
-        lines.append(f"  {key:<{width}} — {agent.routing_hint}")
-    lines.append(
-        f"  {'direct':<{width}} — factual questions, explanations, definitions, science, history, "
-        "analysis, advice, math, opinions — anything answerable from general knowledge without live data"
-    )
-    lines += [
-        "",
-        "Key rule: Use 'research' ONLY when the answer genuinely requires live or current data that "
-        "changes day to day. For all other questions — even complex or detailed ones — use 'direct'.",
-        "When in doubt between 'research' and 'direct', choose 'direct'.",
-        "",
-        "Examples:",
-        "  'What is the capital of France?' → direct",
-        "  'What time zone is Denver in?' → direct",
-        "  'Is zinc good for colds?' → direct",
-        "  'How does TCP/IP work?' → direct",
-        "  'What are the drawbacks of sitting on the floor?' → direct",
-        "  'Why did the Roman Empire fall?' → direct",
-        "  'What is the news today?' → research",
-        "  'What are current mortgage rates?' → research",
-        "  'Who is the current county executive?' → research",
-        "  'Who is the mayor of Baltimore?' → research",
-        "  'Write a bash script to rename files' → coding",
-        "  'How is my sleep this week?' → health",
-        "",
-        "Your entire response must be exactly one word from the list above. Do not explain. Do not add punctuation.",
-    ]
-    return "\n".join(lines)
-
-
-ROUTING_PROMPT = build_routing_prompt()
+# The LLM router (ROUTING_PROMPT / VALID_ROUTES / build_routing_prompt) was
+# removed 2026-08-18: routing is deterministic shortcuts or the coordinator
+# (docs/plans/COORDINATOR_ROUTING_PLAN.md). The per-agent `routing_hint`
+# fields above remain as documentation of each agent's intended domain.
 
 
 # ── Agent loop ──────────────────────────────────────────────────────────────
@@ -494,7 +510,8 @@ def kronk_facts() -> str:
 async def run_stream(agent: AgentConfig, task: str, context: list[dict],
                      system_extra: str | None = None,
                      history_messages: list[dict] | None = None,
-                     error_style: str = errors.DEBUG):
+                     error_style: str = errors.DEBUG,
+                     allow_escalation: bool = False):
     """Run an agent's tool-calling loop with unified streaming.
 
     Used by specialists AND the coordinator (which carries ask_* agent-tools
@@ -508,6 +525,8 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
       {"type": "token",     "text": str}              — incremental content token
       {"type": "narration", "text": str}              — pre-tool status string
       {"type": "error",     "message": str}           — terminal; no more events follow
+      {"type": "escalated", "note": str}              — terminal; specialist handed the
+                                                        request back (allow_escalation only)
       {"type": "done",      "model": str, "ok": bool} — terminal
 
     One streaming LLM call per round. Tokens stream as they arrive; tool_calls
@@ -515,12 +534,18 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
     no accumulated tool_calls terminates the loop.
     """
     agent_tool_defs = agent.tool_defs() or None
+    if allow_escalation:
+        # Top-level pinned specialist runs only (see ESCALATE_TOOL comment) —
+        # ask_*-delegated runs and the coordinator never get this tool.
+        agent_tool_defs = (agent_tool_defs or []) + [ESCALATE_TOOL]
 
     system_content = agent.system_prompt + "\n\n" + kronk_facts()
     if error_style == errors.FRIENDLY:
         # Tool results keep full failure detail (the model needs it to act);
         # this changes only how the model phrases it to the user.
         system_content += "\n\n" + errors.FRIENDLY_TOOL_PHRASING
+    if allow_escalation:
+        system_content += "\n\n" + ESCALATION_GUIDANCE
     if system_extra:
         system_content += "\n\n" + system_extra
     if agent.name == "home":
@@ -620,6 +645,19 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
             for call in round_tool_calls:
                 fn_name = call["function"]["name"]
                 fn_args = call["function"]["arguments"] or {}
+
+                # Escalation terminal: the specialist is handing the whole
+                # request back — end the turn immediately; the pipeline
+                # re-enters at the coordinator with the note.
+                if fn_name == "escalate" and allow_escalation:
+                    note = str(fn_args.get("note") or "").strip() or (
+                        f"the {agent.name} specialist could not fully answer this"
+                    )
+                    emit("escalate", agent=agent.name, note=note[:120])
+                    agent_span.end(output=f"[escalated] {note}")
+                    yield {"type": "escalated", "note": note}
+                    return
+
                 key = _args_key(fn_name, fn_args)
                 if key in seen_calls:
                     result = f"[{fn_name} was already called with these exact arguments this turn; use the earlier result]"

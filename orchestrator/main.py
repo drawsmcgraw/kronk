@@ -303,11 +303,14 @@ async def _run_pipeline(
 
                 agent_first_token_t: float | None = None
                 agent_error: str | None = None
+                agent_escalation: str | None = None
                 agent_model_used = agent_cfg.model
                 stage_sent = False
+                reply_mark = len(assistant_reply)
 
                 async for ev in agents.run_stream(agent_cfg, text, list(history[-5:]),
-                                                  error_style=error_style):
+                                                  error_style=error_style,
+                                                  allow_escalation=True):
                     etype = ev.get("type")
                     if etype == "narration":
                         yield {"type": "narration", "text": ev["text"]}
@@ -320,12 +323,14 @@ async def _run_pipeline(
                             agent_first_token_t = time.monotonic()
                         assistant_reply.append(ev["text"])
                         yield {"type": "token", "text": ev["text"]}
+                    elif etype == "escalated":
+                        agent_escalation = ev["note"]
                     elif etype == "error":
                         agent_error = ev["message"]
                     elif etype == "done":
                         agent_model_used = ev.get("model", agent_model_used)
 
-                agent_ok = agent_error is None
+                agent_ok = agent_error is None and agent_escalation is None
                 t_end = time.monotonic()
                 stages.append({
                     "tool": f"delegate_{agent_name}",
@@ -333,6 +338,7 @@ async def _run_pipeline(
                     "ok":   agent_ok,
                 })
                 emit("agent_complete", agent=agent_name, ok=agent_ok,
+                     escalated=agent_escalation is not None,
                      duration_s=round(t_end - t_agent, 2))
 
                 if agent_ok:
@@ -348,17 +354,36 @@ async def _run_pipeline(
                          duration_s=round(time.monotonic() - t_request, 2))
                     return
 
-                # Agent errored — fall through to the coordinator, honestly
-                # labeled. The old block called this a "specialist result —
-                # use this to answer": the coordinator was never told it was
-                # a failure and would apologize vaguely or invent an answer,
-                # swallowing detail like "provider may need re-authentication"
-                # (review P1.1). The trace is marked ERROR even if the
-                # coordinator recovers, so the failure stays findable.
-                pipeline_error = f"{agent_name} specialist: {agent_error}"
-                extra_parts.append(
-                    errors.specialist_failed_block(agent_name, agent_error, error_style)
-                )
+                if agent_escalation is not None:
+                    # Phase-2 escalation (COORDINATOR_ROUTING_PLAN): the
+                    # specialist handed the request back — part of it is
+                    # outside its domain. NOT an error: fall through to the
+                    # coordinator with the note. Any partial specialist tokens
+                    # are dropped from the reply record (already-streamed SSE
+                    # tokens can't be unsent; in practice escalate fires in
+                    # round 1 before prose).
+                    del assistant_reply[reply_mark:]
+                    yield {"type": "narration",
+                           "text": f"the {agent_name} agent handed this back — coordinating"}
+                    extra_parts.append(
+                        f"[The {agent_name} specialist escalated this request back to "
+                        f"you with the note: \"{agent_escalation}\". Complete the FULL "
+                        f"request: delegate each part to the right ask_* specialist "
+                        f"(ask_{agent_name} still answers its own domain), then combine "
+                        "the results into one answer.]"
+                    )
+                else:
+                    # Agent errored — fall through to the coordinator, honestly
+                    # labeled. The old block called this a "specialist result —
+                    # use this to answer": the coordinator was never told it was
+                    # a failure and would apologize vaguely or invent an answer,
+                    # swallowing detail like "provider may need re-authentication"
+                    # (review P1.1). The trace is marked ERROR even if the
+                    # coordinator recovers, so the failure stays findable.
+                    pipeline_error = f"{agent_name} specialist: {agent_error}"
+                    extra_parts.append(
+                        errors.specialist_failed_block(agent_name, agent_error, error_style)
+                    )
 
             # ── Phase 3: coordinator (direct answers, delegation via ask_*,
             #    and specialist-failure fallback). Same run_stream loop as

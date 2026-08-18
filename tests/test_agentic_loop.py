@@ -5,7 +5,8 @@ Covers:
 - No regex-based intent matching in orchestrator (routing.py has regex shortcuts,
   orchestrator/main.py should not).
 - Tool catalog registered.
-- `routing.classify()` deterministic pre-checks + LLM fallback + invalid-route guard.
+- `routing.classify()` deterministic shortcuts + coordinator default (the
+  LLM router was removed 2026-08-18 — COORDINATOR_ROUTING_PLAN).
 - `agents.run_stream()` event sequence (token + done) on both direct-answer
   and tool-then-synthesis paths.
 - /message streaming of direct (coordinator) answers.
@@ -28,7 +29,6 @@ os.environ.setdefault("TOOL_SERVICE_URL",    "http://fake-tools:8003")
 os.environ.setdefault("HEALTH_SERVICE_URL",  "http://fake-health:8004")
 os.environ.setdefault("FINANCE_SERVICE_URL", "http://fake-finance:8005")
 os.environ.setdefault("COORDINATOR_MODEL",   "gemma-4-e4b")
-os.environ.setdefault("ROUTER_MODEL",        "gemma-3-4b")
 
 import unittest.mock as mock_module
 _open_orig = open
@@ -94,45 +94,34 @@ def test_tool_definitions_registered():
 
 @pytest.mark.asyncio
 async def test_route_url_shortcut_is_deterministic():
-    """A message containing http(s)://… bypasses the LLM and routes to research."""
+    """A message containing http(s)://… routes to research."""
     import routing
-    with patch("routing.llm.complete", new=AsyncMock()) as fake_complete:
-        route = await routing.classify("Summarize https://example.com/post", [])
-    assert route == "research"
-    fake_complete.assert_not_awaited()
+    assert await routing.classify("Summarize https://example.com/post", []) == "research"
 
 
 @pytest.mark.asyncio
 async def test_route_search_phrase_shortcut_is_deterministic():
-    """Explicit 'search for' / 'look up' phrases bypass the LLM."""
+    """Explicit 'search the web' / 'look up' phrases route to research."""
     import routing
-    with patch("routing.llm.complete", new=AsyncMock()) as fake_complete:
-        route = await routing.classify("search for the latest ROCm driver", [])
-    assert route == "research"
-    fake_complete.assert_not_awaited()
+    assert await routing.classify("search the web for the latest ROCm driver", []) == "research"
 
 
 @pytest.mark.asyncio
 async def test_route_magic_mirror_split_is_deterministic():
-    """update/upgrade → home (fast terminal tool); any other mirror mention
-    → devops (remote_exec loop). Neither consults the LLM router."""
+    """Exact phrase 'update the magic mirror' → home (fast terminal tool);
+    any other mirror mention → devops (remote_exec loop)."""
     import routing
-    with patch("routing.llm.complete", new=AsyncMock()) as fake:
-        assert await routing.classify("update the magic mirror", []) == "home"
-        assert await routing.classify("what's the uptime of the magic mirror", []) == "devops"
-        assert await routing.classify("why is the magic mirror slow", []) == "devops"
-    fake.assert_not_awaited()
+    assert await routing.classify("update the magic mirror", []) == "home"
+    assert await routing.classify("what's the uptime of the magic mirror", []) == "devops"
+    assert await routing.classify("why is the magic mirror slow", []) == "devops"
 
 
 @pytest.mark.asyncio
 async def test_route_weather_shortcut_is_deterministic():
-    """Weather/forecast queries bypass the LLM and route to home (incident
-    2026-07-05: 'what is tomorrow's forecast?' went to research)."""
+    """Contextual weather queries route to home (incident 2026-07-05:
+    'what is tomorrow's forecast?' went to research)."""
     import routing
-    with patch("routing.llm.complete", new=AsyncMock()) as fake_complete:
-        route = await routing.classify("what is tomorrow's forecast?", [])
-    assert route == "home"
-    fake_complete.assert_not_awaited()
+    assert await routing.classify("what is tomorrow's forecast?", []) == "home"
 
 
 @pytest.mark.asyncio
@@ -140,30 +129,18 @@ async def test_route_search_phrase_outranks_weather():
     """Explicit search phrasing keeps weather queries on research — NWS is
     US-only, so 'look up the weather in Tokyo' must stay a web search."""
     import routing
-    with patch("routing.llm.complete", new=AsyncMock()) as fake_complete:
-        route = await routing.classify("look up the weather in Tokyo", [])
-    assert route == "research"
-    fake_complete.assert_not_awaited()
+    assert await routing.classify("look up the weather in Tokyo", []) == "research"
 
 
 @pytest.mark.asyncio
-async def test_route_llm_picks_valid_agent():
-    """When no shortcut applies, the router LLM's single-word output is returned."""
+async def test_route_unmatched_defaults_to_coordinator():
+    """No LLM router remains (COORDINATOR_ROUTING_PLAN, 2026-08-18):
+    anything unmatched — including previously LLM-routed single-domain
+    queries — goes to the coordinator, which delegates via ask_*."""
     import routing
-    fake = AsyncMock(return_value={"content": "health", "usage": {}})
-    with patch("routing.llm.complete", new=fake):
-        route = await routing.classify("how did I sleep last night?", [])
-    assert route == "health"
-
-
-@pytest.mark.asyncio
-async def test_route_invalid_llm_output_falls_back_to_direct():
-    """If the router returns garbage, classify() must fall back to 'direct'."""
-    import routing
-    fake = AsyncMock(return_value={"content": "¯\\_(ツ)_/¯", "usage": {}})
-    with patch("routing.llm.complete", new=fake):
-        route = await routing.classify("hello", [])
-    assert route == "direct"
+    assert not hasattr(routing, "llm")   # no code path can consult a model
+    assert await routing.classify("how did I sleep last night?", []) == "direct"
+    assert await routing.classify("hello", []) == "direct"
 
 
 # ── agents.run_stream tests ───────────────────────────────────────────────────
@@ -223,6 +200,57 @@ async def test_run_stream_tool_then_synthesis_streams_tokens():
     assert "".join(tokens) == "You slept well."
     assert any(e["type"] == "done" and e["ok"] for e in events)
     assert call_count["n"] == 2
+
+
+@pytest.mark.asyncio
+async def test_run_stream_escalation_is_terminal():
+    """Phase-2 escalation (COORDINATOR_ROUTING_PLAN): a top-level pinned
+    specialist calling `escalate` ends its turn with an `escalated` event —
+    no answer tokens, no done event — carrying the note for the pipeline."""
+    import agents
+
+    async def fake_stream(messages, model, tools=None):
+        yield {"tool_calls": [
+            {"id": "call_1", "function": {"name": "escalate", "arguments": {
+                "note": "I can provide yesterday's kWh but not electricity rates."}}}
+        ]}
+        yield {"usage": {}}
+
+    agent = agents.AGENTS["home"]
+    with patch("agents.llm.stream", new=fake_stream):
+        events = [ev async for ev in agents.run_stream(
+            agent, "money's worth of solar yesterday?", [], allow_escalation=True)]
+
+    assert events[-1]["type"] == "escalated"
+    assert "kWh" in events[-1]["note"]
+    assert not any(e["type"] == "done" for e in events)
+    assert not any(e["type"] == "token" for e in events)
+
+
+@pytest.mark.asyncio
+async def test_escalate_tool_only_offered_on_top_level_runs():
+    """The escalate tool is injected ONLY when allow_escalation=True —
+    delegated (ask_*) runs and the coordinator never see it, so escalation
+    is structurally once-per-request."""
+    import agents
+
+    captured_tools: list = []
+
+    async def fake_stream(messages, model, tools=None):
+        captured_tools.append(tools)
+        yield {"token": "answer"}
+        yield {"usage": {}}
+
+    agent = agents.AGENTS["home"]
+    with patch("agents.llm.stream", new=fake_stream):
+        [ev async for ev in agents.run_stream(agent, "status?", [])]
+        [ev async for ev in agents.run_stream(agent, "status?", [],
+                                              allow_escalation=True)]
+
+    def names(defs):
+        return {d["function"]["name"] for d in (defs or [])}
+    assert "escalate" not in names(captured_tools[0])   # default: no escape hatch
+    assert "escalate" in names(captured_tools[1])       # top-level pinned run
 
 
 @pytest.mark.asyncio
@@ -409,6 +437,50 @@ def test_specialist_failure_reaches_coordinator_labeled_as_failure(client):
     _, kwargs = fake_end.call_args
     assert kwargs.get("level") == "ERROR"
     assert "health specialist" in (kwargs.get("status_message") or "")
+
+
+def test_escalation_reaches_coordinator_with_note(client):
+    """Phase-2 escalation (COORDINATOR_ROUTING_PLAN, trace 02e8b817): a
+    shortcut-pinned specialist hands a composite back; the pipeline re-enters
+    at the coordinator carrying the specialist's note, the coordinator's
+    answer replaces the specialist's output, the re-entry run cannot itself
+    escalate, and the turn is NOT recorded as a pipeline error."""
+    from unittest.mock import MagicMock
+    captured = {}
+
+    async def fake_classify(text, history):
+        return "home"
+
+    def fake_run_stream(agent, task, context, system_extra=None,
+                        history_messages=None, **kwargs):
+        async def gen():
+            if agent.name == "home":
+                assert kwargs.get("allow_escalation") is True
+                yield {"type": "escalated",
+                       "note": "I can provide yesterday's kWh but not electricity rates."}
+            else:  # coordinator re-entry
+                captured["system_extra"] = system_extra
+                captured["allow_escalation"] = kwargs.get("allow_escalation", False)
+                yield {"type": "token", "text": "Yesterday: 12 kWh, worth about $1.94."}
+                yield {"type": "done", "model": "gemma-4-e4b", "ok": True}
+        return gen()
+
+    fake_end = MagicMock()
+    with patch("orchestrator.main.routing.classify", new=fake_classify), \
+         patch("orchestrator.main.agents.run_stream", new=fake_run_stream), \
+         patch("orchestrator.main.telemetry.end_pipeline", new=fake_end):
+        resp = client.post("/message",
+                           json={"text": "how much money's worth did the solar panels produce yesterday?"})
+
+    tokens = "".join(e["token"] for e in _collect_sse_events(resp.text) if "token" in e)
+    assert tokens == "Yesterday: 12 kWh, worth about $1.94."  # coordinator's answer only
+    extra = captured["system_extra"]
+    assert "escalated this request back" in extra
+    assert "yesterday's kWh but not electricity rates" in extra
+    assert "ask_home" in extra                       # the specialist stays reachable
+    assert captured["allow_escalation"] is False     # re-entry can't escalate again
+    _, kwargs = fake_end.call_args
+    assert kwargs.get("level") != "ERROR"            # escalation is not a failure
 
 
 def test_router_failure_message_is_specific_not_speculative(client):
