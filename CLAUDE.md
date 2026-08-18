@@ -147,6 +147,16 @@ verbatim — never summarized away.
   restart nginx`. `litellm/config.yaml` is bind-mounted, hot-editable.
 - **Never `docker compose down -v`** on the `kronk-ha` or `kronk-ma` stacks —
   their volumes hold all HA integrations / the MA library and auth tokens.
+- **Never modify files on managed remote hosts** (the MagicMirror Pi, and
+  any host in the ops registry) without the operator's explicit permission
+  for that specific action, each time — a past grant is not a standing one
+  (directive 2026-08-17; the 2026-08-16 lockfile revert was an authorized
+  exception). Read-only investigation via the audited `/ops/exec` path is
+  fine unprompted. The sanctioned mirror-update flow mutates the Pi — run
+  it only when the operator asks. Note: the `kronk-mm-update` SSH key is
+  general-purpose, so this boundary is policy, not physics — see
+  `docs/incidents/INVESTIGATION_2026-08-14_mm_banner.md` (tenet-10 note;
+  re-scoping the key remains an open operator decision).
 - **Git**: the operator runs `git commit` / `git push` themselves. Suggest a
   commit at milestones; don't run those commands.
 - **Secrets**: `.env` (gitignored) holds `HA_TOKEN`. `searxng/settings.yml` is
