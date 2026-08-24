@@ -115,6 +115,31 @@ the docs use them. 1 and 2 are in Shipped.)*
   exist in tool_service (weather). Honesty requirement for the alert:
   crowdsourced data lags reality, so a new node means "newly *mapped*",
   not "newly installed" — say so in the notification.
+- **Doorbell package watch (UniFi Protect)** — tell the operator when a
+  package lands on the doorstep, video never leaving the house. Bridge:
+  HA's UniFi Protect integration against the Dream Machine (currently not
+  installed — zero Protect entities in HA, probed 2026-08-21). Tiered:
+  (0) if the doorbell is a G4 Pro / AI model, Protect detects packages
+  natively on the NVR → HA event → notification, no Kronk vision needed;
+  (1) same event through Kronk's announce primitive + a delivery log for
+  "when did it arrive?"; (2) if the model lacks package smart-detect:
+  event-driven snapshot → local VLM on the GPU (gemma-3-4b + vision
+  projector is the idle-hardware candidate; bake off vs a small
+  purpose-built VLM) → verdict → notify. **Gating question: doorbell
+  model / whether Smart Detections lists "Package".** Hard rule from the
+  hang saga: event-triggered frames only, never continuous stream
+  analysis — the UDM watches always, Kronk judges moments.
+- **Instant Pot cook times** — kitchen voice skill: "how long for black
+  beans in the instant pot?" answered fast and *correctly*. Curated local
+  table (beans/legumes soaked vs dry, grains, rice, common staples —
+  time, pressure level, release method), served by a small tool on the
+  home agent — NOT model recall (4B models confabulate cook times; math
+  in code, model narrates) and NOT web search (slow for a
+  standing-at-the-counter question; answer is static). Open design
+  choices at plan time: tool vs prompt-injected table on the coordinator
+  path (voice latency: coordinator → ask_home adds a hop); where the
+  table lives (tool_service data file, operator-editable); honest "not
+  in my table — want me to look it up?" fallback for exotic foods.
 - **Proactive Kronk** — announcements pushed to the Voice PE / other
   speakers (timer callbacks are the trailhead; laundry, hot-tub alerts,
   calendar reminders, solar-failure alerts follow). Design whatever timer
@@ -191,6 +216,13 @@ the docs use them. 1 and 2 are in Shipped.)*
 
 Newest first; feature docs in `docs/features/`.
 
+- **News brief** *(2026-08-24)* — pre-generated editions (6am/noon/6pm)
+  from 8 RSS feeds (world + tech/AI + cybersecurity), one LiteLLM
+  summarize call, cached in tool_service and delivered VERBATIM by the
+  coordinator's first terminal service tool — fixes the
+  double-summarization tax (754-char briefs) and the confabulated-brief
+  failure. Follow-ups by story name ride ask_research. 1.7 s delivery.
+  See `docs/features/news-brief.md`, `docs/plans/NEWS_BRIEF_PLAN.md`.
 - **Coordinator-default routing** *(2026-08-18)* — routing collapsed to
   narrow deterministic shortcuts or the coordinator; the gemma-3-4b LLM
   classifier deleted (a shortcut miss now costs seconds, never a wrong

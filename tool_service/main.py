@@ -19,9 +19,11 @@ from pydantic import BaseModel
 # tests (from . import x). The relative form also avoids the repo-root ops/
 # registry dir shadowing the ops module on the test sys.path.
 try:
+    from . import news
     from . import ops
     from . import solar
 except ImportError:
+    import news
     import ops
     import solar
 
@@ -110,10 +112,18 @@ async def lifespan(app: FastAPI):
     if solar.SOLAR_SERIAL:
         solar.init_db()
         solar_task = asyncio.create_task(_solar_poll_loop())
+    # News editions (docs/plans/NEWS_BRIEF_PLAN.md) — gated the same way
+    # tests expect: no loop unless explicitly enabled (default on in the
+    # container via compose env).
+    news_task = None
+    if os.getenv("NEWS_ENABLED", "1") == "1":
+        news_task = asyncio.create_task(news.refresh_loop())
     yield
     task.cancel()
     if solar_task:
         solar_task.cancel()
+    if news_task:
+        news_task.cancel()
 
 
 app = FastAPI(title="Kronk Tool Service", lifespan=lifespan)
@@ -541,6 +551,33 @@ async def solar_energy(period: str = "lifetime"):
         return await solar.energy_for_period(period)
     except solar.SolarError as e:
         raise HTTPException(status_code=502, detail=f"Could not reach the solar system: {e}")
+
+
+# ── News brief (docs/plans/NEWS_BRIEF_PLAN.md) ──────────────────────────────
+# The cached edition, served verbatim by the coordinator's terminal
+# news_brief tool. Generation happens in news.refresh_loop(); this endpoint
+# never generates — a request must stay a cache read (voice budget).
+
+@app.get("/news/brief")
+async def news_brief_get():
+    rec = news.load_record()
+    if not rec:
+        raise HTTPException(
+            status_code=503,
+            detail="no news brief has been generated yet — "
+                   "check tool_service logs for feed or LLM errors")
+    return {**rec, "age_min": int((time.time() - rec["generated_ts"]) // 60)}
+
+
+@app.post("/news/refresh")
+async def news_refresh():
+    """Force a regeneration (deploy verification, operator use)."""
+    try:
+        rec = await news.generate()
+    except news.NewsError as e:
+        raise HTTPException(status_code=502, detail=str(e))
+    return {"status": "ok", "edition": rec["edition"],
+            "generated_at_local": rec["generated_at_local"]}
 
 
 @app.get("/hottub")

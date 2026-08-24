@@ -465,6 +465,33 @@ TOOL_DEFINITIONS = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "news_brief",
+            "description": (
+                "Deliver the pre-generated news brief (world, tech & AI, "
+                "cybersecurity — refreshed at 6am/noon/6pm). Use whenever the "
+                "user asks for a news brief, 'brief me', 'the news', or "
+                "headlines. TERMINAL: its text reaches the user verbatim. For "
+                "a SPECIFIC news question ('what happened with X?'), use "
+                "ask_research instead."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "refresh": {
+                        "type": "boolean",
+                        "description": (
+                            "Set true ONLY when the user asks to update, "
+                            "refresh, or fetch the latest news (takes ~30 "
+                            "seconds). Omit for a normal brief request."
+                        ),
+                    },
+                },
+            },
+        },
+    },
 ]
 
 
@@ -484,6 +511,8 @@ TOOL_TIMEOUTS = {
     "remote_exec": 35,         # tool_service caps the exec at 30s + SSH setup
     "update_magicmirror": 30,  # SSH preflight to the Pi (~5-20s); the update
                                # itself runs as a tool_service background task
+    "news_brief": 90,          # cache read is <2s; refresh=true regenerates
+                               # (feeds + one LLM call, ~20-35s)
 }
 
 
@@ -834,6 +863,43 @@ async def _tool_update_magicmirror(client: httpx.AsyncClient, args: dict) -> str
     )
 
 
+async def _tool_news_brief(client: httpx.AsyncClient, args: dict) -> str:
+    """Terminal on the coordinator — the returned text is delivered to the
+    user verbatim (both success and failure must read as finished prose,
+    never as instructions to a model)."""
+    refresh_note = ""
+    if args.get("refresh"):
+        # On-demand regeneration; a failed refresh falls through to the
+        # cached brief but says so — the header's timestamp keeps the
+        # staleness visible either way.
+        try:
+            r = await client.post(f"{TOOL_SERVICE_URL}/news/refresh")
+            if r.status_code != 200:
+                try:
+                    cause = r.json().get("detail", "")[:150]
+                except Exception:
+                    cause = r.text[:150]
+                refresh_note = ("I couldn't fetch fresh news "
+                                f"({cause or 'refresh failed'}) — here's the "
+                                "latest brief I have.\n\n")
+        except Exception as e:
+            refresh_note = ("I couldn't fetch fresh news "
+                            f"({str(e)[:100]}) — here's the latest brief I "
+                            "have.\n\n")
+    resp = await client.get(f"{TOOL_SERVICE_URL}/news/brief")
+    if resp.status_code != 200:
+        try:
+            detail = resp.json().get("detail", "")
+        except Exception:
+            detail = resp.text[:200]
+        return ("The news brief isn't available right now — "
+                f"{detail or 'the generator has not produced one yet'}. "
+                "Ask me to research the news live if you need it sooner.")
+    d = resp.json()
+    return (f"{refresh_note}{d['edition'].capitalize()} news brief, "
+            f"generated {d['generated_at_local']}:\n\n{d['brief']}")
+
+
 async def _tool_query_finances(client: httpx.AsyncClient, args: dict) -> str:
     query = args.get("query", "")
     resp = await client.get(f"{FINANCE_SERVICE_URL}/api/query", params={"q": query})
@@ -873,6 +939,7 @@ _HANDLERS = {
     "update_magicmirror":   _tool_update_magicmirror,
     "remote_exec":          _tool_remote_exec,
     "query_finances":       _tool_query_finances,
+    "news_brief":           _tool_news_brief,
 }
 
 

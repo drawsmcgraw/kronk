@@ -84,8 +84,13 @@ def _tool_narration(name: str, args: dict) -> str:
     return f"running {name}..."
 
 
-def _terminal_speech(result: str, style: str = errors.DEBUG) -> str:
+def _terminal_speech(result: str, style: str = errors.DEBUG,
+                     tool: str | None = None) -> str:
     """Speakable sentence from a terminal tool's structural result line."""
+    # news_brief returns display-ready prose, success or failure — the whole
+    # point of the tool is that nothing rephrases it (NEWS_BRIEF_PLAN).
+    if tool == "news_brief":
+        return result
     line = result.split("\n", 1)[0].strip().strip("[]")
     if line.startswith("Music playing: "):
         return f"Now playing {line[len('Music playing: '):]}."
@@ -434,16 +439,34 @@ COORDINATOR = AgentConfig(
         "piece before answering, then do the arithmetic.\n"
         "Phrase each delegated query in the specialist's own domain: ask home for the kWh, "
         "ask research for the rate — never ask a specialist for a figure it doesn't own.\n"
+        "NEWS BRIEF: when the user asks for a news brief, 'brief me', 'the news', or "
+        "headlines, call news_brief. If they ask to UPDATE or refresh the news first "
+        "('update the news feed', 'get the latest news'), call news_brief with "
+        "refresh=true. Never compose a brief yourself and never use "
+        "ask_research for a general briefing — research is for specific questions.\n"
         "Never answer with a placeholder like [kWh] or [rate] — a bracket in your draft "
         "means a missing piece you must fetch first.\n"
         "When a specialist answers, relay the substance concisely — do not re-verify it."
     ),
+    # news_brief is the coordinator's one service tool, and it's TERMINAL:
+    # a briefing's text must reach the user without a synthesis round
+    # compressing it (rid 99ce926c: a brief re-summarized to 754 chars).
+    terminal_tools=frozenset({"news_brief"}),
     tool_names=[],  # filled below — ask_* names aren't in tools.TOOL_DEFINITIONS
 )
-COORDINATOR.tool_names = [d["function"]["name"] for d in agent_tool_defs()]
+
+
+def _coordinator_tool_defs() -> list[dict]:
+    """ask_* agent-tools plus the coordinator's own service tools."""
+    own = [d for d in tools.TOOL_DEFINITIONS
+           if d["function"]["name"] in ("news_brief",)]
+    return agent_tool_defs() + own
+
+
+COORDINATOR.tool_names = [d["function"]["name"] for d in _coordinator_tool_defs()]
 # AgentConfig.tool_defs() only knows tools.TOOL_DEFINITIONS; give the
-# coordinator its agent-tools directly.
-COORDINATOR.tool_defs = agent_tool_defs  # type: ignore[method-assign]
+# coordinator its combined menu directly.
+COORDINATOR.tool_defs = _coordinator_tool_defs  # type: ignore[method-assign]
 
 
 # The LLM router (ROUTING_PROMPT / VALID_ROUTES / build_routing_prompt) was
@@ -695,7 +718,8 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
                         # Set the span output too — terminal turns otherwise
                         # end the agent span with output=None and the spoken
                         # answer is invisible in Langfuse (review P2.5).
-                        last_round_text = _terminal_speech(result, error_style)
+                        last_round_text = _terminal_speech(result, error_style,
+                                                           tool=fn_name)
                         yield {"type": "token", "text": last_round_text}
                         yield {"type": "done", "model": agent.model, "ok": True}
                         return

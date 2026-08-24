@@ -203,6 +203,57 @@ async def test_run_stream_tool_then_synthesis_streams_tokens():
 
 
 @pytest.mark.asyncio
+async def test_news_brief_is_terminal_and_verbatim_on_coordinator():
+    """NEWS_BRIEF_PLAN: the brief's text must reach the user with no
+    synthesis round after it (rid 99ce926c — a brief re-summarized to 754
+    chars). One LLM call, tool text streamed exactly, turn over."""
+    import agents
+
+    BRIEF = ("Midday news brief, generated Sun 12:04 PM:\n\n"
+             "World\nA multi-paragraph brief that must arrive uncompressed.\n\n"
+             "Tech & AI\nMore paragraphs.\n\nCybersecurity\nStill more.")
+    llm_calls = {"n": 0}
+
+    async def fake_stream(messages, model, tools=None):
+        llm_calls["n"] += 1
+        yield {"tool_calls": [
+            {"id": "c1", "function": {"name": "news_brief", "arguments": {}}}
+        ]}
+        yield {"usage": {}}
+
+    async def fake_execute(name, args):
+        assert name == "news_brief"
+        return BRIEF
+
+    with patch("agents.llm.stream", new=fake_stream), \
+         patch("agents.tools.execute", new=fake_execute):
+        events = [ev async for ev in agents.run_stream(
+            agents.COORDINATOR, "give me a news brief", [])]
+
+    tokens = "".join(e["text"] for e in events if e["type"] == "token")
+    assert tokens == BRIEF                       # verbatim, all sections
+    assert llm_calls["n"] == 1                   # no synthesis round ran
+    assert any(e["type"] == "done" and e["ok"] for e in events)
+
+
+def test_coordinator_menu_carries_news_brief_as_terminal():
+    import agents
+    names = {d["function"]["name"] for d in agents.COORDINATOR.tool_defs()}
+    assert "news_brief" in names
+    assert any(n.startswith("ask_") for n in names)   # agent-tools intact
+    assert "news_brief" in agents.COORDINATOR.terminal_tools
+    # Specialists must NOT have it — the brief belongs to the coordinator.
+    assert "news_brief" not in agents.AGENTS["home"].tool_names
+    assert "news_brief" not in agents.AGENTS["research"].tool_names
+
+
+def test_terminal_speech_passthrough_for_news_brief():
+    import agents
+    text = "Evening news brief, generated Sun 06:02 PM:\n\nWorld\nlines\nlines"
+    assert agents._terminal_speech(text, tool="news_brief") == text
+
+
+@pytest.mark.asyncio
 async def test_run_stream_escalation_is_terminal():
     """Phase-2 escalation (COORDINATOR_ROUTING_PLAN): a top-level pinned
     specialist calling `escalate` ends its turn with an `escalated` event —
