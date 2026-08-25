@@ -547,6 +547,7 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
     Async generator. Yielded events:
       {"type": "token",     "text": str}              — incremental content token
       {"type": "narration", "text": str}              — pre-tool status string
+      {"type": "delegating","agent": str}             — ask_* call starting
       {"type": "error",     "message": str}           — terminal; no more events follow
       {"type": "escalated", "note": str}              — terminal; specialist handed the
                                                         request back (allow_escalation only)
@@ -686,6 +687,12 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
                     result = f"[{fn_name} was already called with these exact arguments this turn; use the earlier result]"
                 else:
                     yield {"type": "narration", "text": _tool_narration(fn_name, fn_args)}
+                    if fn_name.startswith("ask_"):
+                        # Structured delegation signal — the pipeline maps
+                        # this to a labeled UI stage entry. Narration alone
+                        # went dark in the UI after the Aug-18 routing
+                        # collapse moved delegation inside this loop.
+                        yield {"type": "delegating", "agent": fn_name[4:]}
                     t_tool = time.monotonic()
                     emit("tool_call", agent=agent.name, tool=fn_name, args=list(fn_args.keys()))
                     tool_span = agent_span.child_span(f"tool.{fn_name}", input=fn_args)

@@ -68,6 +68,28 @@ yesterday-answers summed yesterday+today (home chose
 `period=yesterday`). Candidate one-line fix in the `solar_energy` tool
 description; not yet applied.
 
+## Update 2026-08-25: the stage-log regression, and labels-in-payload
+
+The routing collapse silently killed the web UI's "thinking" indicators
+for delegated queries: delegation moved from the pipeline's Phase-2 path
+(which emitted `stage: fetching_delegate_<agent>`) into the coordinator's
+`run_stream` loop, which had no stage vocabulary — only the transient
+narration line, cleared at first token. Undetected for a week because
+delegation testing ran through the shims, which render no stages.
+
+Fix, two parts:
+
+1. `run_stream` yields `{"type": "delegating", "agent": …}` when an
+   `ask_*` call starts; the pipeline maps it to the stage event the UI
+   already renders.
+2. **Stage/timing display text is authored at the emitter** and shipped in
+   the payload (`stage_label`; timing entries carry `label`/`service`).
+   The UI's two client-side lookup tables are deleted — they drifted (one
+   still labeled a `fetching_delegate_assistant` agent that doesn't
+   exist) and taxed every new tool/agent with a second edit in a second
+   file. Generic server-side fallbacks mean future agents label
+   themselves ("newagent agent working...") with zero UI changes.
+
 ## Gotchas
 
 - **The coordinator prompt is a balance, not a list.** First deploy

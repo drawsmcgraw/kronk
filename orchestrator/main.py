@@ -231,10 +231,49 @@ def _clear_history_stream(session_id: str):
 # transport; thin framers adapt its semantic events to SSE (/message),
 # OpenAI chunks (/v1/chat/completions), and Ollama NDJSON (/api/chat).
 # Yielded events:
-#   {"type": "stage",     "name": str}    — UI progress hints (SSE only)
+#   {"type": "stage",     "name": str, "label": str} — UI progress hints (SSE only)
 #   {"type": "narration", "text": str}    — human-readable status line
 #   {"type": "token",     "text": str}    — assistant content (incl. errors)
 #   {"type": "timing",    "data": dict}   — final timing payload (SSE only)
+
+# ── Stage/timing display text — authored at the emitter ─────────────────────
+# The pipeline says what it's doing IN WORDS; the UI just renders. The old
+# client-side label tables drifted (the UI still knew a 'fetching_delegate_
+# assistant' agent that doesn't exist) and taxed every new tool/agent with
+# a second edit in a second file. Generic fallbacks mean additions get a
+# serviceable label automatically; polished text is a one-line entry here.
+
+_STAGE_LABELS = {
+    "thinking":   "thinking...",
+    "waiting":    "waiting for Kronk...",
+    "generating": "generating...",
+}
+_DELEGATE_FLAVOR = {"research": "research agent searching..."}
+
+
+def _stage(name: str) -> dict:
+    if name in _STAGE_LABELS:
+        label = _STAGE_LABELS[name]
+    elif name.startswith("fetching_delegate_"):
+        agent = name[len("fetching_delegate_"):]
+        label = _DELEGATE_FLAVOR.get(agent, f"{agent} agent working...")
+    elif name.startswith("fetching_"):
+        label = f"fetching {name[len('fetching_'):].replace('_', ' ')}..."
+    else:
+        label = name.replace("_", " ") + "..."
+    return {"type": "stage", "name": name, "label": label}
+
+
+def _timing_stage(tool: str, **fields) -> dict:
+    """Timing-breakdown entry with its display label and owning service."""
+    if tool == "routing":
+        label, service = "routing", "orchestrator"
+    elif tool.startswith("delegate_"):
+        label, service = f"{tool[len('delegate_'):]} agent", "orchestrator"
+    else:
+        label, service = tool.replace("_", " "), ""
+    return {"tool": tool, "label": label, "service": service, **fields}
+
 
 async def _run_pipeline(
     text: str,
@@ -279,7 +318,7 @@ async def _run_pipeline(
                     extra_parts.append(f"[Attached file: {fc['name']}]\n{fc['content']}")
 
             # ── Phase 1: route ────────────────────────────────────────────
-            yield {"type": "stage", "name": "thinking"}
+            yield _stage("thinking")
             t0 = time.monotonic()
             try:
                 agent_name = await routing.classify(text, history)
@@ -293,12 +332,12 @@ async def _run_pipeline(
                 assistant_reply.append(err)
                 yield {"type": "token", "text": err}
                 return
-            stages.append({"tool": "routing", "s": round(time.monotonic() - t0, 2)})
+            stages.append(_timing_stage("routing", s=round(time.monotonic() - t0, 2)))
 
             # ── Phase 2: specialist agent (if routed to one) ──────────────
             if agent_name in agents.AGENTS:
                 agent_cfg = agents.AGENTS[agent_name]
-                yield {"type": "stage", "name": f"fetching_delegate_{agent_name}"}
+                yield _stage(f"fetching_delegate_{agent_name}")
                 yield {"type": "narration", "text": f"let me ask the {agent_name} agent about that"}
                 t_agent = time.monotonic()
 
@@ -317,7 +356,7 @@ async def _run_pipeline(
                         yield {"type": "narration", "text": ev["text"]}
                     elif etype == "token":
                         if not stage_sent:
-                            yield {"type": "stage", "name": "generating"}
+                            yield _stage("generating")
                             yield {"type": "narration", "text": ""}
                             stage_sent = True
                         if agent_first_token_t is None:
@@ -333,11 +372,11 @@ async def _run_pipeline(
 
                 agent_ok = agent_error is None and agent_escalation is None
                 t_end = time.monotonic()
-                stages.append({
-                    "tool": f"delegate_{agent_name}",
-                    "s":    round(t_end - t_agent, 2),
-                    "ok":   agent_ok,
-                })
+                stages.append(_timing_stage(
+                    f"delegate_{agent_name}",
+                    s=round(t_end - t_agent, 2),
+                    ok=agent_ok,
+                ))
                 emit("agent_complete", agent=agent_name, ok=agent_ok,
                      escalated=agent_escalation is not None,
                      duration_s=round(t_end - t_agent, 2))
@@ -390,7 +429,7 @@ async def _run_pipeline(
             #    and specialist-failure fallback). Same run_stream loop as
             #    the agents; telemetry/metrics come from inside it.
             t_llm_start = time.monotonic()
-            yield {"type": "stage", "name": "waiting"}
+            yield _stage("waiting")
 
             first_token = True
             t_first_token: float | None = None
@@ -405,10 +444,16 @@ async def _run_pipeline(
                 etype = ev.get("type")
                 if etype == "narration":
                     yield {"type": "narration", "text": ev["text"]}
+                elif etype == "delegating":
+                    # Structured delegation signal from the loop → the UI's
+                    # stage log (regression fix: the Aug-18 routing collapse
+                    # moved delegation inside run_stream, which had no stage
+                    # vocabulary, and the "thinking" indicators went dark).
+                    yield _stage(f"fetching_delegate_{ev['agent']}")
                 elif etype == "token":
                     if first_token:
                         t_first_token = time.monotonic()
-                        yield {"type": "stage", "name": "generating"}
+                        yield _stage("generating")
                         yield {"type": "narration", "text": ""}
                         first_token = False
                     assistant_reply.append(ev["text"])
@@ -476,7 +521,7 @@ async def message(req: MessageRequest):
         ):
             etype = ev["type"]
             if etype == "stage":
-                yield f"data: {json.dumps({'stage': ev['name']})}\n\n"
+                yield f"data: {json.dumps({'stage': ev['name'], 'stage_label': ev['label']})}\n\n"
             elif etype == "narration":
                 yield f"data: {json.dumps({'narration': ev['text']})}\n\n"
             elif etype == "token":

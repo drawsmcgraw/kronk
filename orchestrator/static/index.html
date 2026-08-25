@@ -571,46 +571,10 @@
   }
 
 
-  const stageLabels = {
-    thinking:                       'thinking...',
-    waiting:                        'waiting for Kronk...',
-    generating:                     'generating...',
-    fetching_get_weather:           'fetching weather...',
-    fetching_web_search:            'searching the web...',
-    fetching_fetch_url:             'reading page...',
-    fetching_shopping_list_view:    'reading list...',
-    fetching_shopping_list_add:     'updating list...',
-    fetching_shopping_list_remove:  'updating list...',
-    fetching_shopping_list_clear:   'clearing list...',
-    fetching_query_health:          'querying health data...',
-    fetching_query_finances:        'searching documents...',
-    fetching_get_kronk_context:     'reading system context...',
-    fetching_generate_diagram:      'generating diagram...',
-    fetching_delegate_health:       'health agent working...',
-    fetching_delegate_research:     'research agent searching...',
-    fetching_delegate_home:         'home agent working...',
-    fetching_delegate_assistant:    'assistant agent working...',
-    fetching_delegate_finance:      'finance agent working...',
-    fetching_delegate_coding:       'coding agent working...',
-    fetching_delegate_devops:       'devops agent working...',
-    fetching_delegate_unknown:      'delegating...',
-  };
+  // Stage labels arrive in the SSE payload (stage_label) — authored at
+  // the emitter, so new tools/agents never need a UI edit.
 
-  // Maps tool/stage names to { label, service } for the timing breakdown
-  const stageInfo = {
-    thinking:                    { label: 'thinking',          service: 'coordinator' },
-    get_weather:                 { label: 'weather',           service: 'tool_service' },
-    web_search:                  { label: 'web search',        service: 'searxng' },
-    fetch_url:                   { label: 'page fetch',        service: 'tool_service' },
-    shopping_list_view:          { label: 'list · view',       service: 'tool_service' },
-    shopping_list_add:           { label: 'list · add',        service: 'tool_service' },
-    shopping_list_remove:        { label: 'list · remove',     service: 'tool_service' },
-    shopping_list_clear:         { label: 'list · clear',      service: 'tool_service' },
-    query_health:                { label: 'health agent',      service: 'health_service' },
-    query_finances:              { label: 'finance agent',     service: 'finance_service' },
-    get_kronk_context:           { label: 'system context',    service: 'orchestrator' },
-    generate_diagram:            { label: 'diagram',           service: 'tool_service' },
-  };
+  // Timing-breakdown labels/services arrive in the timing payload.
 
   function addMessage(role, text) {
     document.getElementById('empty-state')?.remove();
@@ -675,12 +639,12 @@
       }).join('');
     }
 
-    function openStage(stage) {
+    function openStage(stage, label) {
       const now = Date.now();
       if (currentStageIdx >= 0 && stageEntries[currentStageIdx].endMs === null) {
         stageEntries[currentStageIdx].endMs = now;
       }
-      stageEntries.push({ label: stageLabels[stage] ?? stage, startMs: now, endMs: null });
+      stageEntries.push({ label: label ?? stage, startMs: now, endMs: null });
       currentStageIdx = stageEntries.length - 1;
       renderStageLog();
     }
@@ -719,7 +683,7 @@
           try {
             const data = JSON.parse(payload);
             if (data.stage) {
-              openStage(data.stage);
+              openStage(data.stage, data.stage_label);
             }
             if (data.router_text) {
               // Router transitional content — show as inline thinking text above the bubble
@@ -766,7 +730,7 @@
       if (timingData) {
         const rows = [];
         for (const stage of (timingData.stages || [])) {
-          const info = stageInfo[stage.tool] || { label: stage.tool, service: '' };
+          const info = { label: stage.label || stage.tool, service: stage.service || '' };
           rows.push({ label: info.label, service: info.service, value: `${stage.s}s`, ok: stage.ok !== false });
         }
         if (timingData.ttft_s != null)       rows.push({ label: 'first token', service: '', value: `${timingData.ttft_s}s`, ok: true });

@@ -203,6 +203,81 @@ async def test_run_stream_tool_then_synthesis_streams_tokens():
 
 
 @pytest.mark.asyncio
+async def test_run_stream_emits_delegating_event_for_ask_tools():
+    """Regression (2026-08-25): the Aug-18 routing collapse moved delegation
+    inside run_stream, which had no stage vocabulary — the UI's 'research
+    agent searching...' indicator went dark. ask_* calls now announce
+    themselves structurally."""
+    import agents
+
+    calls = {"n": 0}
+
+    async def fake_stream(messages, model, tools=None):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            yield {"tool_calls": [
+                {"id": "c1", "function": {"name": "ask_research",
+                                          "arguments": {"query": "tariffs"}}}
+            ]}
+            yield {"usage": {}}
+        else:
+            yield {"token": "Tariffs are complicated."}
+            yield {"usage": {}}
+
+    async def fake_run(agent, task, context):
+        return "research findings here"
+
+    with patch("agents.llm.stream", new=fake_stream), \
+         patch("agents.run", new=fake_run):
+        events = [ev async for ev in agents.run_stream(
+            agents.COORDINATOR, "tariffs?", [])]
+
+    assert {"type": "delegating", "agent": "research"} in events
+
+
+def test_stage_and_timing_labels_authored_at_emitter():
+    """Display text is payload, not a UI lookup table (the old client-side
+    table drifted — it still knew an 'assistant' agent that doesn't exist)."""
+    import orchestrator.main as orch
+    assert orch._stage("thinking") == {
+        "type": "stage", "name": "thinking", "label": "thinking..."}
+    assert orch._stage("fetching_delegate_research")["label"] == \
+        "research agent searching..."
+    assert orch._stage("fetching_delegate_home")["label"] == "home agent working..."
+    assert orch._stage("fetching_delegate_newagent")["label"] == \
+        "newagent agent working..."            # future agents label themselves
+    t = orch._timing_stage("delegate_health", s=1.2, ok=True)
+    assert t["label"] == "health agent" and t["service"] == "orchestrator"
+    assert orch._timing_stage("routing", s=0.1)["label"] == "routing"
+
+
+def test_sse_carries_stage_labels_and_delegation_stage(client):
+    """The wire format: every stage event ships its label, and a coordinator
+    delegation produces the fetching_delegate_* stage the UI renders."""
+    async def fake_classify(text, history):
+        return "direct"
+
+    def fake_run_stream(agent, task, context, **kwargs):
+        async def gen():
+            yield {"type": "delegating", "agent": "research"}
+            yield {"type": "token", "text": "Answer."}
+            yield {"type": "done", "model": "gemma-4-e4b", "ok": True}
+        return gen()
+
+    with patch("orchestrator.main.routing.classify", new=fake_classify), \
+         patch("orchestrator.main.agents.run_stream", new=fake_run_stream):
+        resp = client.post("/message", json={"text": "tariffs?"})
+
+    events = _collect_sse_events(resp.text)
+    stages = {e["stage"]: e.get("stage_label") for e in events if "stage" in e}
+    assert stages["thinking"] == "thinking..."
+    assert stages["fetching_delegate_research"] == "research agent searching..."
+    assert stages["generating"] == "generating..."
+    timing = next(e["timing"] for e in events if "timing" in e)
+    assert all("label" in st and "service" in st for st in timing["stages"])
+
+
+@pytest.mark.asyncio
 async def test_news_brief_is_terminal_and_verbatim_on_coordinator():
     """NEWS_BRIEF_PLAN: the brief's text must reach the user with no
     synthesis round after it (rid 99ce926c — a brief re-summarized to 754
