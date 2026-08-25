@@ -186,8 +186,9 @@ def build_prompt(items: list[dict], label: str, now_local: datetime) -> str:
         "words with exactly three sections titled World, Tech & AI, and",
         "Cybersecurity. Lead each section with its most important story and",
         "use clear story names — the listener asks follow-ups by name.",
-        "No preamble, no closing remarks, no URLs, no markdown beyond the",
-        "three section titles.",
+        "Format in markdown: '### ' headers for the three sections, and bold",
+        "the lead story name in each section on its own line, with a blank",
+        "line after it. No preamble, no closing remarks, no URLs.",
         "",
         "Items:",
     ]
@@ -221,7 +222,18 @@ async def summarize(prompt: str, client: httpx.AsyncClient) -> str:
                         "refusing to store a truncated edition")
     if not content.strip():
         raise NewsError("LLM returned an empty brief")
-    return content.strip()
+    return _normalize_markdown(content.strip())
+
+
+# A standalone bold headline followed by a single newline fuses with the
+# story text when markdown renders (single \n is a soft break). Guarantee
+# the blank line deterministically — the prompt asks for it, but formatting
+# is not left to model compliance. Blank lines are no-ops for speech.
+_BOLD_LINE = re.compile(r"^(\*\*[^\n*]+\*\*)\n(?!\n)", re.M)
+
+
+def _normalize_markdown(text: str) -> str:
+    return _BOLD_LINE.sub(r"\1\n\n", text)
 
 
 def load_record() -> dict | None:

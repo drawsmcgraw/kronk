@@ -216,6 +216,15 @@ the docs use them. 1 and 2 are in Shipped.)*
 
 Newest first; feature docs in `docs/features/`.
 
+- **Render profiles** *(2026-08-25)* — canonical markdown inside, one
+  render seam at the transport boundary: display (default) passes
+  through, speech (`/voice` mount, an explicit client declaration)
+  deterministically scrubs markdown for TTS. HA's Ollama integration
+  re-pointed at `/voice` via storage edit (main entry not reconfigurable
+  by API), so all voice devices ride the speech profile with no
+  per-device or per-skill work; the news prompt's markdown suppression
+  deleted. See `docs/features/render-profiles.md`,
+  `docs/plans/RENDER_PROFILES_PLAN.md`.
 - **News brief** *(2026-08-24)* — pre-generated editions (6am/noon/6pm)
   from 8 RSS feeds (world + tech/AI + cybersecurity), one LiteLLM
   summarize call, cached in tool_service and delivered VERBATIM by the

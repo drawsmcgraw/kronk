@@ -154,6 +154,19 @@ async def test_summarize_refuses_truncated_brief():
         await news.summarize("prompt", client)
 
 
+def test_normalize_markdown_blank_line_after_bold_headline():
+    """Web UI: a single \\n after a bold headline is a markdown soft break —
+    headline and story fuse into one paragraph. The normalizer guarantees
+    the blank line; idempotent; inline bold untouched."""
+    src = "### World\n**Big Story**\nThe text.\n\n**Spaced Story**\n\nMore text."
+    out = news._normalize_markdown(src)
+    assert "**Big Story**\n\nThe text." in out
+    assert "**Spaced Story**\n\nMore text." in out          # already-spaced unchanged
+    assert news._normalize_markdown(out) == out             # idempotent
+    inline = "It was **bold inline** mid-sentence.\nNext line."
+    assert news._normalize_markdown(inline) == inline       # not a headline
+
+
 @pytest.mark.asyncio
 async def test_summarize_accepts_complete_brief():
     client = AsyncMock()

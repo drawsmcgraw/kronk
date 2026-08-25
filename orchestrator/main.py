@@ -16,6 +16,7 @@ from pypdf import PdfReader
 
 import agents
 import errors
+import render
 import metrics
 import routing
 import servers
@@ -745,21 +746,9 @@ async def ollama_show():
     }
 
 
-@app.post("/api/chat")
-async def ollama_chat(req: _OllamaChatRequest):
-    user_msgs = [m for m in req.messages if m.role == "user" and m.content]
-    if not user_msgs:
-        raise HTTPException(400, "no user message with content")
-    text = user_msgs[-1].content
-    model = COORDINATOR_MODEL
-    context = _shim_context(req.messages, text)
-
-    if req.stream:
-        return StreamingResponse(
-            _ollama_pipeline_stream(text, model, context),
-            media_type="application/x-ndjson",
-        )
-
+async def _ollama_collect(text: str, model: str,
+                          context: list[dict] | None) -> str:
+    """Run the pipeline to completion and return the full reply text."""
     parts: list[str] = []
     async for line in _ollama_pipeline_stream(text, model, context):
         try:
@@ -769,8 +758,57 @@ async def ollama_chat(req: _OllamaChatRequest):
         tok = obj.get("message", {}).get("content", "")
         if tok and not obj.get("done"):
             parts.append(tok)
+    return "".join(parts)
 
-    full = "".join(parts)
+
+async def _ollama_single_chunk_stream(full: str, text: str, model: str):
+    """Protocol-valid NDJSON stream carrying one pre-rendered content chunk.
+
+    The speech profile buffers the whole reply before scrubbing (markdown
+    markers can straddle token boundaries), then answers a streaming
+    request with a single content chunk + the terminal chunk. No perceived
+    cost: TTS needs the complete text before speaking anyway."""
+    created = time.strftime("%Y-%m-%dT%H:%M:%S.000000000Z", time.gmtime())
+    yield json.dumps({
+        "model": model, "created_at": created,
+        "message": {"role": "assistant", "content": full},
+        "done": False,
+    }) + "\n"
+    yield json.dumps({
+        "model": model, "created_at": created,
+        "message": {"role": "assistant", "content": ""},
+        "done": True, "done_reason": "stop",
+        "total_duration": 0, "load_duration": 0,
+        "prompt_eval_count": _estimate_tokens(text),
+        "eval_count": _estimate_tokens(full),
+    }) + "\n"
+
+
+async def _ollama_chat_impl(req: _OllamaChatRequest, profile: str):
+    """Shared /api/chat implementation. profile: 'display' streams tokens
+    untouched (today's behavior); 'speech' buffers and runs render.to_speech
+    so no markdown ever reaches a speaker (RENDER_PROFILES_PLAN)."""
+    user_msgs = [m for m in req.messages if m.role == "user" and m.content]
+    if not user_msgs:
+        raise HTTPException(400, "no user message with content")
+    text = user_msgs[-1].content
+    model = COORDINATOR_MODEL
+    context = _shim_context(req.messages, text)
+
+    if profile == "speech":
+        full = render.to_speech(await _ollama_collect(text, model, context))
+        if req.stream:
+            return StreamingResponse(
+                _ollama_single_chunk_stream(full, text, model),
+                media_type="application/x-ndjson",
+            )
+    else:
+        if req.stream:
+            return StreamingResponse(
+                _ollama_pipeline_stream(text, model, context),
+                media_type="application/x-ndjson",
+            )
+        full = await _ollama_collect(text, model, context)
     return {
         "model":      model,
         "created_at": time.strftime("%Y-%m-%dT%H:%M:%S.000000000Z", time.gmtime()),
@@ -782,6 +820,38 @@ async def ollama_chat(req: _OllamaChatRequest):
         "prompt_eval_count": _estimate_tokens(text),
         "eval_count":        _estimate_tokens(full),
     }
+
+
+@app.post("/api/chat")
+async def ollama_chat(req: _OllamaChatRequest):
+    return await _ollama_chat_impl(req, profile="display")
+
+
+# ── /voice mount: same Ollama protocol, speech render profile ────────────────
+# Speech is a client DECLARATION (the mount), never an inference from the
+# protocol — a future Ollama-dialect client may be a screen and gets the
+# display default. HA's integration base URL points at /voice; nginx's
+# catch-all forwards the prefix, so no nginx change. The mount mirrors the
+# full protocol surface HA touches (chat, tags, version, show).
+
+@app.post("/voice/api/chat")
+async def ollama_chat_voice(req: _OllamaChatRequest):
+    return await _ollama_chat_impl(req, profile="speech")
+
+
+@app.get("/voice/api/tags")
+async def ollama_tags_voice():
+    return await ollama_tags()
+
+
+@app.get("/voice/api/version")
+async def ollama_version_voice():
+    return await ollama_version()
+
+
+@app.post("/voice/api/show")
+async def ollama_show_voice():
+    return await ollama_show()
 
 
 @app.delete("/history")
