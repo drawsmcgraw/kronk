@@ -843,6 +843,11 @@
       ? `⚠ ~${data.total_tokens} tokens in attached files — context window may fill up`
       : '';
   }
+
+  // Focus the input on load — the first keystroke should land in the box.
+  // (Script runs at the end of <body>, so the element exists; the
+  // post-response focus in sendMessage covers the rest of the session.)
+  document.getElementById('input').focus();
 </script>
 </body>
 </html>
