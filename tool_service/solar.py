@@ -154,6 +154,30 @@ def parse_lifetime_energy(values: list[dict]) -> float | None:
     return None
 
 
+_COUNTER_NAMES = {
+    "/sys/livedata/pv_en":        "pv_en",
+    "/sys/livedata/site_load_en": "site_load_en",
+    "/sys/livedata/net_en":       "net_en",
+}
+
+
+def parse_counters(values: list[dict]) -> dict:
+    """All lifetime counters from /vars?match=livedata. site_load_en and
+    net_en are recorded as BASELINE even though this install mirrors them
+    (no consumption CTs — probed 2026-08-27, values byte-identical):
+    history starts when snapshots start, and CTs may get wired later.
+    Consumers gate on consumption_data_real()."""
+    out = {"pv_en": None, "site_load_en": None, "net_en": None}
+    for v in values:
+        key = _COUNTER_NAMES.get(v.get("name"))
+        if key:
+            try:
+                out[key] = float(v.get("value"))
+            except (TypeError, ValueError):
+                pass
+    return out
+
+
 def parse_inverter_lifetime(values: list[dict]) -> dict[str, float]:
     """Per-inverter lifetime energy (kWh) → {sn: ltea3phsumKwh}, from
     /vars?match=inverter. Keyed by serial like parse_inverters."""
@@ -272,6 +296,13 @@ def init_db():
                 ts REAL PRIMARY KEY, day TEXT NOT NULL, pv_en REAL NOT NULL
             );
         """)
+        # 2026-08-27: consumption/net counter baseline (SOLAR_VIZ_PLAN).
+        # Idempotent widening; pre-existing rows stay NULL.
+        for col in ("site_load_en", "net_en"):
+            try:
+                c.execute(f"ALTER TABLE energy ADD COLUMN {col} REAL")
+            except sqlite3.OperationalError:
+                pass  # column already present
 
 
 def record_poll(inverters: dict[str, dict], med: float, ts: float | None = None) -> None:
@@ -291,15 +322,18 @@ def record_poll(inverters: dict[str, dict], med: float, ts: float | None = None)
 
 # ── energy: live lifetime + past-period diffs from snapshots ──────────────────
 
-def record_energy(pv_en: float | None, ts: float | None = None) -> None:
-    """Snapshot the lifetime counter for one poll (skip if the read failed)."""
+def record_energy(pv_en: float | None, ts: float | None = None,
+                  site_load_en: float | None = None,
+                  net_en: float | None = None) -> None:
+    """Snapshot the lifetime counters for one poll (skip if pv read failed)."""
     if pv_en is None:
         return
     ts = ts if ts is not None else time.time()
     day = datetime.fromtimestamp(ts, timezone.utc).strftime("%Y-%m-%d")
     with _db() as c:
-        c.execute("INSERT OR REPLACE INTO energy (ts, day, pv_en) VALUES (?,?,?)",
-                  (ts, day, pv_en))
+        c.execute("INSERT OR REPLACE INTO energy (ts, day, pv_en, site_load_en, net_en) "
+                  "VALUES (?,?,?,?,?)",
+                  (ts, day, pv_en, site_load_en, net_en))
 
 
 def _snapshot_near(ts: float) -> tuple[float, float] | None:
@@ -602,3 +636,106 @@ async def _ha_service(domain: str, service: str, data: dict) -> bool:
     except Exception as e:
         logger.error("HA %s.%s failed: %s", domain, service, e)
         return False
+
+
+# ── Viz series (docs/plans/SOLAR_VIZ_PLAN.md) ────────────────────────────────
+# Read-only aggregations for the /solar dashboard page. Buckets are chosen
+# by window so the payload stays small; verdicts are DERIVED from readings
+# with the same rules as the daily rollup (no verdict-history table exists
+# — derive, don't duplicate).
+
+def _bucket_seconds(days: int) -> int:
+    if days <= 2:
+        return 900
+    if days <= 14:
+        return 3600
+    return 86400
+
+
+def power_series(days: int, sn: str | None = None) -> list[dict]:
+    """Bucketed power series — system total (per-poll sum over inverters,
+    averaged per bucket) or one inverter's power/vmppt/temp."""
+    since = time.time() - days * 86400
+    bs = _bucket_seconds(days)
+    with _db() as c:
+        if sn:
+            rows = c.execute(
+                "SELECT CAST(ts/? AS INTEGER) b, AVG(power), AVG(vmppt), AVG(temp) "
+                "FROM readings WHERE ts >= ? AND sn = ? GROUP BY b ORDER BY b",
+                (bs, since, sn)).fetchall()
+            return [{"t": int(b * bs + bs / 2),
+                     "kw":    round(p, 3) if p is not None else None,
+                     "vmppt": round(v, 1) if v is not None else None,
+                     "temp":  round(tp, 1) if tp is not None else None}
+                    for b, p, v, tp in rows]
+        rows = c.execute(
+            "SELECT CAST(ts/? AS INTEGER) b, AVG(psum) FROM "
+            "(SELECT ts, SUM(power) psum FROM readings WHERE ts >= ? GROUP BY ts) "
+            "GROUP BY b ORDER BY b", (bs, since)).fetchall()
+    return [{"t": int(b * bs + bs / 2), "kw": round(p, 3) if p is not None else None}
+            for b, p in rows]
+
+
+def daily_energy(days: int) -> list[dict]:
+    """Per-day kWh: last snapshot of each stored (UTC) day diffed against
+    the previous day's. UTC midnight is ~20:00 local — after generation
+    ends — so daily figures track solar_energy's within rounding.
+    load/net stay None until those counters were recorded (and consumers
+    should gate display on consumption_data_real())."""
+    with _db() as c:
+        rows = c.execute(
+            "SELECT e.day, e.pv_en, e.site_load_en, e.net_en FROM energy e "
+            "JOIN (SELECT day, MAX(ts) mt FROM energy GROUP BY day) last "
+            "ON e.day = last.day AND e.ts = last.mt ORDER BY e.day").fetchall()
+
+    def diff(a, b):
+        return round(a - b, 1) if a is not None and b is not None else None
+
+    out: list[dict] = []
+    prev = None
+    for day, pv, load, net in rows:
+        if prev is not None:
+            out.append({"day": day, "pv_kwh": diff(pv, prev[0]),
+                        "load_kwh": diff(load, prev[1]),
+                        "net_kwh": diff(net, prev[2])})
+        prev = (pv, load, net)
+    return out[-days:]
+
+
+def heatmap(days: int) -> dict:
+    """Per inverter × day verdicts for the health heatmap, derived from
+    producing-gated readings with the rollup's own thresholds."""
+    since = time.time() - days * 86400
+    with _db() as c:
+        rows = c.execute(
+            "SELECT day, sn, COUNT(*) n, "
+            "SUM(CASE WHEN array_median > 0 AND power < ? * array_median "
+            "    THEN 1 ELSE 0 END) low "
+            "FROM readings WHERE ts >= ? AND producing = 1 GROUP BY day, sn",
+            (FAIL_RATIO, since)).fetchall()
+        state = {sn: {"bad_days": bd, "confirmed": bool(cf)}
+                 for sn, bd, cf in c.execute(
+                     "SELECT sn, bad_days, confirmed FROM inverter_state")}
+    cells: dict[str, dict] = {}
+    days_seen: set[str] = set()
+    for day, sn, n, low in rows:
+        days_seen.add(day)
+        if n < MIN_SAMPLES:
+            verdict = "few"
+        elif low / n > 0.7:
+            verdict = "bad"
+        else:
+            verdict = "good"
+        cells.setdefault(sn, {})[day] = verdict
+    return {"days": sorted(days_seen), "cells": cells, "state": state}
+
+
+def consumption_data_real() -> bool:
+    """True once site_load_en genuinely diverges from net_en — i.e. the
+    install has working consumption CTs. Until then the mirror data is
+    baseline-only and no consumption view should render."""
+    with _db() as c:
+        row = c.execute(
+            "SELECT COUNT(*) FROM energy WHERE site_load_en IS NOT NULL "
+            "AND net_en IS NOT NULL AND ABS(site_load_en - net_en) > 0.01").fetchone()
+    return bool(row[0])

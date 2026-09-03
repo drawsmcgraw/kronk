@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kronk — Solar</title>
+<link rel="stylesheet" href="/static/kronk.css">
+<style>
+  header { position: sticky; top: 0; z-index: 10; gap: 12px; }
+  .header-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+  .last-updated { font-size: 11px; color: var(--text3); font-family: monospace; }
+
+  main { max-width: 1000px; margin: 0 auto; padding: 2rem 1.5rem;
+         display: flex; flex-direction: column; gap: 1.6rem; }
+
+  .card { background: var(--bg2); border: 1px solid var(--border);
+          border-radius: 10px; padding: 1.1rem 1.3rem; }
+  .card h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em;
+             color: var(--text3); margin: 0 0 .8rem; }
+
+  /* now strip */
+  .now-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+               gap: 12px; }
+  .stat { background: var(--bg3); border-radius: 8px; padding: .8rem 1rem; }
+  .stat .v { font-size: 22px; font-weight: 650; }
+  .stat .k { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .stat.warn .v { color: var(--red, #e05555); }
+
+  /* window buttons */
+  .windows { display: flex; gap: 6px; }
+  .win-btn { background: var(--bg3); border: 1px solid var(--border); color: var(--text2);
+             border-radius: 6px; font-size: 12px; padding: 4px 12px; cursor: pointer; }
+  .win-btn.active { border-color: var(--blue); color: var(--blue); }
+
+  /* heatmap */
+  .hm-wrap { overflow-x: auto; }
+  table.hm { border-collapse: collapse; font-size: 11px; font-family: monospace; }
+  .hm th { color: var(--text3); font-weight: 400; padding: 2px 6px; text-align: left; }
+  .hm td.cell { width: 14px; height: 14px; padding: 0; border: 1px solid var(--bg2); }
+  .hm td.good { background: #2e7d4f; }
+  .hm td.bad  { background: #c0392b; }
+  .hm td.few  { background: #6b6b3a; }
+  .hm td.none { background: var(--bg3); }
+  .hm tr.rowlink { cursor: pointer; }
+  .hm tr.rowlink:hover th { color: var(--blue); }
+  .hm .badge { color: var(--red, #e05555); font-weight: 600; }
+  .legend { font-size: 11px; color: var(--text3); margin-top: .6rem; display: flex; gap: 14px; }
+  .legend span::before { content: '■ '; }
+  .lg-good::before { color: #2e7d4f; } .lg-bad::before { color: #c0392b; }
+  .lg-few::before { color: #6b6b3a; } .lg-none::before { color: var(--bg3); }
+
+  .drill-note { font-size: 12px; color: var(--text3); }
+  .back-btn { background: none; border: none; color: var(--blue); cursor: pointer;
+              font-size: 12px; padding: 0; }
+  .gate-note { font-size: 12px; color: var(--text3); margin-top: .5rem; }
+</style>
+<script src="/static/chart.min.js"></script>
+</head>
+<body>
+
+<header>
+  <div class="header-dot"></div>
+  <h1>Solar</h1>
+  <div class="header-right">
+    <div class="windows" id="windows"></div>
+    <span class="last-updated" id="last-updated">—</span>
+  </div>
+</header>
+
+<main>
+  <div class="card">
+    <h2>Now</h2>
+    <div class="now-strip" id="now-strip">loading…</div>
+  </div>
+
+  <div class="card">
+    <h2 id="power-title">Power</h2>
+    <div class="drill-note" id="drill-note" style="display:none">
+      <button class="back-btn" onclick="showSystem()">← back to system view</button>
+    </div>
+    <canvas id="power-chart" height="90"></canvas>
+  </div>
+
+  <div class="card">
+    <h2>Daily energy</h2>
+    <canvas id="daily-chart" height="90"></canvas>
+    <div class="gate-note" id="consumption-note"></div>
+  </div>
+
+  <div class="card" id="heatmap-card">
+    <h2>Inverter health — click a row for the per-panel view</h2>
+    <div class="hm-wrap" id="heatmap">loading…</div>
+    <div class="legend">
+      <span class="lg-good">good day</span><span class="lg-bad">bad day</span>
+      <span class="lg-few">too few samples</span><span class="lg-none">no data</span>
+    </div>
+  </div>
+</main>
+
+<script>
+  const WINDOWS = [1, 7, 30, 90];
+  let windowDays = 7;
+  let currentInverter = null;
+  let powerChart = null, dailyChart = null;
+
+  function fmtT(epoch, days) {
+    const d = new Date(epoch * 1000);
+    if (days <= 2) return d.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+    if (days <= 14) return d.toLocaleDateString([], {month: 'short', day: 'numeric'}) +
+                           ' ' + d.toLocaleTimeString([], {hour: '2-digit'});
+    return d.toLocaleDateString([], {month: 'short', day: 'numeric'});
+  }
+
+  function renderWindows() {
+    const el = document.getElementById('windows');
+    el.innerHTML = WINDOWS.map(w =>
+      `<button class="win-btn ${w === windowDays ? 'active' : ''}"
+               onclick="setWindow(${w})">${w}d</button>`).join('');
+  }
+  function setWindow(w) { windowDays = w; renderWindows(); loadSeries(); }
+
+  async function loadNow() {
+    try {
+      const [status, today, week, life] = await Promise.all([
+        fetch('/api/solar/status').then(r => r.json()),
+        fetch('/api/solar/energy?period=today').then(r => r.json()),
+        fetch('/api/solar/energy?period=week').then(r => r.json()),
+        fetch('/api/solar/energy?period=lifetime').then(r => r.json()),
+      ]);
+      const failing = (status.confirmed_failing || []).length;
+      document.getElementById('now-strip').innerHTML = `
+        <div class="stat"><div class="v">${status.total_kw ?? '—'} kW</div><div class="k">generating now</div></div>
+        <div class="stat"><div class="v">${today.kwh ?? '—'}</div><div class="k">kWh today</div></div>
+        <div class="stat"><div class="v">${week.kwh ?? '—'}</div><div class="k">kWh this week</div></div>
+        <div class="stat"><div class="v">${(life.lifetime_kwh ?? 0).toLocaleString()}</div><div class="k">kWh lifetime</div></div>
+        <div class="stat ${failing ? 'warn' : ''}"><div class="v">${failing}</div><div class="k">confirmed failing</div></div>`;
+    } catch (e) {
+      document.getElementById('now-strip').textContent = 'status unavailable: ' + e;
+    }
+  }
+
+  function lineChart(ctx, labels, datasets) {
+    return new Chart(ctx, {
+      type: 'line',
+      data: { labels, datasets },
+      options: {
+        animation: false, responsive: true,
+        interaction: { mode: 'index', intersect: false },
+        plugins: { legend: { display: datasets.length > 1 } },
+        scales: { x: { ticks: { maxTicksLimit: 12 } } },
+      },
+    });
+  }
+
+  async function loadSeries() {
+    const url = `/api/solar/series?days=${windowDays}` +
+                (currentInverter ? `&inverter=${encodeURIComponent(currentInverter)}` : '');
+    const s = await fetch(url).then(r => r.json());
+
+    // power chart
+    const labels = s.power.map(p => fmtT(p.t, windowDays));
+    const sets = [{ label: currentInverter ? 'panel W' : 'system kW',
+                    data: s.power.map(p => p.kw), borderWidth: 1.5, pointRadius: 0,
+                    tension: 0.2 }];
+    if (currentInverter) {
+      sets.push({ label: 'vMPPT (V)', data: s.power.map(p => p.vmppt),
+                  borderWidth: 1, pointRadius: 0, yAxisID: 'y1', tension: 0.2 });
+    }
+    powerChart?.destroy();
+    const opts = { animation: false };
+    powerChart = lineChart(document.getElementById('power-chart'), labels, sets);
+    if (currentInverter) {
+      powerChart.options.scales.y1 = { position: 'right', grid: { drawOnChartArea: false } };
+      powerChart.update();
+    }
+    document.getElementById('power-title').textContent =
+      currentInverter ? `Power + vMPPT — inverter …${currentInverter.slice(-6)}` : 'Power';
+    document.getElementById('drill-note').style.display = currentInverter ? '' : 'none';
+
+    // daily bars
+    const dsets = [{ label: 'produced kWh', data: s.daily.map(d => d.pv_kwh),
+                     backgroundColor: '#2e7d4f' }];
+    if (s.consumption_real) {
+      dsets.push({ label: 'consumed kWh', data: s.daily.map(d => d.load_kwh),
+                   backgroundColor: '#a06a2c' });
+    }
+    dailyChart?.destroy();
+    dailyChart = new Chart(document.getElementById('daily-chart'), {
+      type: 'bar',
+      data: { labels: s.daily.map(d => d.day.slice(5)), datasets: dsets },
+      options: { animation: false, plugins: { legend: { display: dsets.length > 1 } },
+                 scales: { x: { ticks: { maxTicksLimit: 15 } } } },
+    });
+    document.getElementById('consumption-note').textContent = s.consumption_real ? '' :
+      'Consumption/net counters are recorded as baseline, but this install’s ' +
+      'site_load mirrors net (no consumption CTs detected) — consumption bars ' +
+      'will appear if that data becomes real.';
+
+    // heatmap (system view only)
+    if (!currentInverter && s.heatmap) renderHeatmap(s.heatmap);
+    document.getElementById('heatmap-card').style.display = currentInverter ? 'none' : '';
+    document.getElementById('last-updated').textContent = new Date().toLocaleTimeString();
+  }
+
+  function renderHeatmap(hm) {
+    const days = hm.days;
+    const sns = Object.keys(hm.cells).sort((a, b) => {
+      const sa = hm.state[a] || {}, sb = hm.state[b] || {};
+      return (sb.confirmed - sa.confirmed) || (sb.bad_days || 0) - (sa.bad_days || 0) ||
+             a.localeCompare(b);
+    });
+    let html = '<table class="hm"><tr><th></th>' +
+      days.map(d => `<th title="${d}"></th>`).join('') + '<th></th></tr>';
+    for (const sn of sns) {
+      const st = hm.state[sn] || {};
+      const badge = st.confirmed ? ` <span class="badge">✗ ${st.bad_days}d</span>` : '';
+      html += `<tr class="rowlink" onclick="drill('${sn}')"><th>…${sn.slice(-6)}</th>` +
+        days.map(d => {
+          const v = (hm.cells[sn] || {})[d] || 'none';
+          return `<td class="cell ${v}" title="${d}: ${v}"></td>`;
+        }).join('') + `<th>${badge}</th></tr>`;
+    }
+    document.getElementById('heatmap').innerHTML = html + '</table>';
+  }
+
+  function drill(sn) { currentInverter = sn; loadSeries(); }
+  function showSystem() { currentInverter = null; loadSeries(); }
+
+  renderWindows();
+  loadNow();
+  loadSeries();
+  setInterval(loadNow, 60000);
+</script>
+</body>
+</html>

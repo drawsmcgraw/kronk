@@ -105,6 +105,8 @@ async def health_page():   return _serve("health.html")
 async def resources_page():return _serve("resources.html")
 @app.get("/performance", response_class=HTMLResponse)
 async def performance_page(): return _serve("performance.html")
+@app.get("/solar",       response_class=HTMLResponse)
+async def solar_page():    return _serve("solar.html")
 
 
 # ── API: metrics / system / status / agents ──────────────────────────────────

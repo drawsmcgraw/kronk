@@ -83,7 +83,13 @@ async def _solar_poll_loop() -> None:
             solar.record_poll(inv, med)
             live = await solar._get_vars("livedata")   # one fetch: power + energy
             _solar_last_total["kw"] = solar.parse_total_kw(live)
-            solar.record_energy(solar.parse_lifetime_energy(live))  # snapshot for past-period queries
+            # Snapshot ALL lifetime counters for past-period queries — the
+            # PVS keeps no history of its own (site_load/net recorded as
+            # baseline even while the install mirrors them; SOLAR_VIZ_PLAN).
+            counters = solar.parse_counters(live)
+            solar.record_energy(counters["pv_en"],
+                                site_load_en=counters["site_load_en"],
+                                net_en=counters["net_en"])
             for t in solar.rollup_and_confirm():
                 if t["event"] == "confirmed_failing":
                     await solar.notify_ha_failing(t["sn"], t["days"], _solar_last_total.get("kw"))
@@ -551,6 +557,24 @@ async def solar_energy(period: str = "lifetime"):
         return await solar.energy_for_period(period)
     except solar.SolarError as e:
         raise HTTPException(status_code=502, detail=f"Could not reach the solar system: {e}")
+
+
+@app.get("/solar/series")
+async def solar_series(days: int = 7, inverter: str | None = None):
+    """Aggregated history for the /solar dashboard (SOLAR_VIZ_PLAN).
+    Read-only; heavy lifting is SQL-side so the payload stays small."""
+    days = max(1, min(days, 365))
+    payload = {
+        "window_days":      days,
+        "power":            solar.power_series(days, inverter),
+        "daily":            solar.daily_energy(days),
+        "consumption_real": solar.consumption_data_real(),
+    }
+    if inverter:
+        payload["inverter"] = inverter
+    else:
+        payload["heatmap"] = solar.heatmap(days)
+    return payload
 
 
 # ── News brief (docs/plans/NEWS_BRIEF_PLAN.md) ──────────────────────────────

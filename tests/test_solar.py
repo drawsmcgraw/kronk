@@ -492,3 +492,112 @@ def test_solar_energy_route(monkeypatch):
     client = TestClient(main_mod.app)
     assert client.get("/solar/energy").json()["lifetime_kwh"] == 65649.8
     assert client.get("/solar/energy", params={"period": "week"}).json()["kwh"] == 42.0
+
+
+# ── Counter baseline + viz series (docs/plans/SOLAR_VIZ_PLAN.md) ─────────────
+
+def test_parse_counters_all_and_missing():
+    vals = [
+        {"name": "/sys/livedata/pv_en",        "value": "66735.4"},
+        {"name": "/sys/livedata/site_load_en", "value": "122818.6"},
+        {"name": "/sys/livedata/net_en",       "value": "122818.6"},
+        {"name": "/sys/livedata/ess_en",       "value": "0.0"},
+    ]
+    c = solar.parse_counters(vals)
+    assert c == {"pv_en": 66735.4, "site_load_en": 122818.6, "net_en": 122818.6}
+    assert solar.parse_counters([]) == {
+        "pv_en": None, "site_load_en": None, "net_en": None}
+
+
+def test_energy_migration_widens_legacy_table(tmp_path, monkeypatch):
+    """Pre-2026-08-27 installs have energy(ts, day, pv_en) — init_db must
+    add the counter columns idempotently and keep old rows readable."""
+    import sqlite3
+    monkeypatch.setattr(solar, "SOLAR_DB", tmp_path / "solar.db")
+    conn = sqlite3.connect(solar.SOLAR_DB)
+    conn.execute("CREATE TABLE energy (ts REAL PRIMARY KEY, day TEXT NOT NULL, "
+                 "pv_en REAL NOT NULL)")
+    conn.execute("INSERT INTO energy VALUES (1000.0, '2026-08-01', 100.0)")
+    conn.commit(); conn.close()
+    solar.init_db()
+    solar.init_db()   # second run must be a no-op, not an error
+    solar.record_energy(200.0, ts=2000.0, site_load_en=500.0, net_en=400.0)
+    conn = sqlite3.connect(solar.SOLAR_DB)
+    rows = conn.execute("SELECT ts, pv_en, site_load_en, net_en FROM energy "
+                        "ORDER BY ts").fetchall()
+    assert rows[0] == (1000.0, 100.0, None, None)      # legacy row intact
+    assert rows[1] == (2000.0, 200.0, 500.0, 400.0)
+
+
+def _snap(ts, pv, load=None, net=None):
+    solar.record_energy(pv, ts=ts, site_load_en=load, net_en=net)
+
+
+def test_daily_energy_diffs_and_null_counters(soldb):
+    import calendar, datetime
+    def utc_ts(day, hour):
+        return calendar.timegm((2026, 8, day, hour, 0, 0))
+    _snap(utc_ts(20, 23), 100.0)                          # legacy-style day
+    _snap(utc_ts(21, 23), 130.0, load=1000.0, net=900.0)
+    _snap(utc_ts(22, 12), 140.0, load=1010.0, net=905.0)  # mid-day snapshot
+    _snap(utc_ts(22, 23), 160.0, load=1030.0, net=920.0)  # last of day wins
+    days = solar.daily_energy(30)
+    assert days[0] == {"day": "2026-08-21", "pv_kwh": 30.0,
+                       "load_kwh": None, "net_kwh": None}   # prior day lacked counters
+    assert days[1] == {"day": "2026-08-22", "pv_kwh": 30.0,
+                       "load_kwh": 30.0, "net_kwh": 20.0}
+
+
+def test_power_series_system_sums_and_inverter_filter(soldb):
+    import time as _t
+    now = _t.time()
+    with solar._db() as c:
+        for i, ts in enumerate([now - 600, now - 300]):
+            for sn, p in (("A", 0.2), ("B", 0.3)):
+                c.execute("INSERT INTO readings VALUES (?,?,?,?,?,?,?,?)",
+                          (ts, "2026-08-27", sn, p + i * 0.1, 51.0, 40.0, 0.25, 1))
+    sys_series = solar.power_series(1)
+    assert [p["kw"] for p in sys_series] == [0.5, 0.7] or \
+           [p["kw"] for p in sys_series] == [0.6]   # both polls may share a bucket
+    inv = solar.power_series(1, sn="A")
+    assert all("vmppt" in p and "temp" in p for p in inv)
+
+
+def test_heatmap_verdicts_and_state(soldb):
+    import time as _t
+    now = _t.time()
+    with solar._db() as c:
+        for i in range(6):   # ≥ MIN_SAMPLES(4) producing samples
+            ts = now - i * 900
+            c.execute("INSERT INTO readings VALUES (?,?,?,?,?,?,?,?)",
+                      (ts, "2026-08-27", "GOOD", 0.24, 51.0, 40.0, 0.25, 1))
+            c.execute("INSERT INTO readings VALUES (?,?,?,?,?,?,?,?)",
+                      (ts, "2026-08-27", "DEAD", 0.01, 61.0, 40.0, 0.25, 1))
+        c.execute("INSERT INTO readings VALUES (?,?,?,?,?,?,?,?)",
+                  (now, "2026-08-27", "SPARSE", 0.2, 51.0, 40.0, 0.25, 1))
+        c.execute("INSERT INTO inverter_state (sn, bad_days, confirmed) "
+                  "VALUES ('DEAD', 12, 1)")
+    hm = solar.heatmap(2)
+    assert hm["cells"]["GOOD"]["2026-08-27"] == "good"
+    assert hm["cells"]["DEAD"]["2026-08-27"] == "bad"
+    assert hm["cells"]["SPARSE"]["2026-08-27"] == "few"
+    assert hm["state"]["DEAD"] == {"bad_days": 12, "confirmed": True}
+
+
+def test_consumption_real_only_when_counters_diverge(soldb):
+    _snap(1000.0, 100.0, load=500.0, net=500.0)     # the mirror install
+    assert solar.consumption_data_real() is False
+    _snap(2000.0, 110.0, load=510.0, net=490.0)     # CTs arrived
+    assert solar.consumption_data_real() is True
+
+
+def test_solar_series_endpoint_shape(soldb):
+    from fastapi.testclient import TestClient
+    import tool_service.main as ts
+    _snap(1000.0, 100.0)
+    client = TestClient(ts.app)
+    body = client.get("/solar/series?days=7").json()
+    assert set(body) >= {"window_days", "power", "daily",
+                         "consumption_real", "heatmap"}
+    body_inv = client.get("/solar/series?days=7&inverter=A").json()
+    assert "heatmap" not in body_inv and body_inv["inverter"] == "A"

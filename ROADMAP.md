@@ -35,8 +35,11 @@ the docs use them. 1 and 2 are in Shipped.)*
 
 4. **Backups** — nightly automated backup of the irreplaceable state: HA
    config volume, MA library/auth volume, orchestrator SQLite (sessions,
-   metrics, shopping list), Langfuse Postgres/ClickHouse (or accept
-   telemetry as disposable — decide). Target a second disk or the NAS.
+   metrics), tool_service `/data` (**solar.db** — the energy-counter
+   snapshots are the ONLY copy of past production history, the PVS keeps
+   none; plus shopping list, news state, mm-update state), Langfuse
+   Postgres/ClickHouse (or accept telemetry as disposable — decide).
+   Target a second disk or the NAS.
    *Why: "never `down -v`" is a rule because there is no second copy of
    anything. One bad disk erases the project. Cheapest risk-kill on this
    page.*
@@ -216,6 +219,15 @@ the docs use them. 1 and 2 are in Shipped.)*
 
 Newest first; feature docs in `docs/features/`.
 
+- **Solar dashboard** *(2026-08-27)* — `/solar` page: now-strip, power
+  curve, daily energy bars, and the inverter-health heatmap with
+  per-panel drill-down (1/7/30/90-day windows); `GET /solar/series`
+  aggregation endpoint; zero new dependencies. Counter baseline shipped
+  with it: every poll now snapshots `site_load_en`/`net_en` alongside
+  `pv_en` — this install mirrors them (no consumption CTs), so
+  consumption views are gated until the data is real, but history counts
+  from today. See `docs/features/solar-viz.md`,
+  `docs/plans/SOLAR_VIZ_PLAN.md`.
 - **Render profiles** *(2026-08-25)* — canonical markdown inside, one
   render seam at the transport boundary: display (default) passes
   through, speech (`/voice` mount, an explicit client declaration)
