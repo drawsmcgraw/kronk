@@ -72,13 +72,50 @@ the docs use them. 1 and 2 are in Shipped.)*
 ## Next — agreed, not started
 
 12. **Voice music, Kronk tier: play on the device that asked — DONE
-    2026-09-04** (same day as the HA tier; see Shipped). Left behind
-    from it, pinned: **Whisper's tense drift** — "Played the album…"
-    transcripts miss every local tier and read to Kronk as a statement
-    (rid `2881890a`, answered "acknowledged"). Try `--initial-prompt` on
-    the wyoming-whisper unit (supported by the installed 3.1.0), measured
-    before/after on a handful of utterances through
-    `assist_pipeline/run`. *Why: it sits in front of all three tiers.*
+    2026-09-04** (same day as the HA tier; see Shipped). The STT miss it
+    surfaced is item 13.
+
+13. **STT accuracy bench — Whisper alternatives and knobs** *(added
+    2026-09-04; research done, bench not started — operator decision to
+    park)*. Trigger: "play the album Toys in the Attic…" transcribed as
+    " Played the album Toys in the Attic." (rid `2881890a`) — missed
+    every local tier and read to Kronk as a statement. The error is
+    architectural: Whisper's autoregressive decoder is a language model
+    and prefers likelier English over bare imperatives; large-v3-turbo
+    keeps 4 of 32 decoder layers, so short context-free commands are
+    where it drifts. Findings:
+    - The Wyoming server we run (`wyoming-faster-whisper` 3.1.0) already
+      ships sherpa-onnx and onnx-asr handlers and its own auto-select
+      **prefers NVIDIA Parakeet TDT 0.6B via sherpa-onnx for English**
+      when that library is installed; our unit pins Whisper explicitly.
+      Parakeet is a transducer (no LM decoder → literal transcripts),
+      punctuates and capitalizes, tops the Open ASR leaderboard for
+      English, runs on **CPU** (`provider="cpu"` in the handler) — which
+      would take STT off the iGPU and the HIP runtime entirely. One
+      `pip install sherpa-onnx` + `--stt-library sherpa --model
+      sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8 --device cpu`.
+    - Cheaper knobs on the incumbent: `--initial-prompt` in the command
+      register ("Play the album. Play the artist. Shuffle the playlist.
+      Pause. What's the weather?") — steers the prior, can pull words on
+      noise; `distil-large-v3.5` (CT2 drop-in, English, slightly better
+      short-form than turbo); full `large-v3` (+1–2 WER points, ~4×
+      slower). HA-side completeness knob: satellite "finished speaking
+      detection" (relaxed = fewer clipped endings; not tense).
+    - Ruled out: Speech-to-Phrase (constrained grammar, one STT per
+      pipeline → would remove Kronk's open-vocabulary tier);
+      Canary-Qwen / Voxtral (LLM-class, GPU contention with Kronk's
+      models); streaming models (latency, not accuracy).
+    **Method (pre-committed):** real audio first — a Wyoming tee proxy
+    on a bench port in front of the unchanged Whisper for a day captures
+    every real utterance + production transcript (Piper-synthesized
+    utterances only as a controlled corpus); each candidate runs on a
+    bench port against the same WAVs, production untouched; metrics =
+    WER, command-form check (imperative verb + entity names preserved),
+    p95 latency; single variable per run. **Rule:** switch only on fewer
+    command-form errors on real audio with p95 latency no worse than
+    today; the switch itself is one flag change on the unit + restart,
+    old unit file kept for rollback. *Why: it sits in front of all three
+    music tiers and every other voice request.*
 
 5. **Context/fact cache** — a small keyed store (SQLite table in the
    orchestrator, or in-memory in tool_service) of low-volatility facts with
