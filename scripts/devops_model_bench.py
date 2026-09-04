@@ -31,13 +31,19 @@ import httpx
 
 BENCH_DIR = Path(__file__).parent.parent / "docs" / "bench"
 
-# name -> OpenAI-compat base. 11440 is the PRODUCTION devstral (shared slots
-# — don't run this while someone is using the coding agent). 1149x are bench
-# ports, started by hand.
+# name -> OpenAI-compat base. ALL bench ports, started by hand — the incumbent
+# too: since 2026-09-03 devstral is benched as an isolated copy with the
+# production flags on 11498 (production 11440 keeps its slots for live use;
+# the July run used 11440 directly). 1149x are bench ports.
 MODELS = {
-    "devstral-2512-q4":     "http://127.0.0.1:11440",
+    "devstral-2512-q4":     "http://127.0.0.1:11498",
     "qwen3-coder-30b-a3b":  "http://127.0.0.1:11497",
-    "qwen3.6-27b":          "http://127.0.0.1:11496",
+    "qwen3.6-27b":          "http://127.0.0.1:11495",
+    # K2-Horizon-7B Q4_K_M on the IFM llama.cpp fork, reasoning_effort=high
+    # (the only effort whose think markers llama.cpp parses — see
+    # docs/plans/MODEL_BENCH_K2_HORIZON_PLAN.md). The bench's temperature=0.0
+    # overrides the server's --temp 1.0, same regime as every other row.
+    "k2-horizon-7b-q4":     "http://127.0.0.1:11496",
 }
 
 SYSTEM = (

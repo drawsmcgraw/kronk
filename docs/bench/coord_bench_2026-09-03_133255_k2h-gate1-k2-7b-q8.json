@@ -1,0 +1,596 @@
+{
+  "label": "k2h-gate1-k2-7b-q8",
+  "stamp": "2026-09-03_133255",
+  "system_prompt": "You are Kronk, a helpful home assistant. Be direct and concise. Do not use action text, emotes, or filler expressions like *winks* \u2014 no theatrical language.\nAnswer from your own knowledge whenever you can \u2014 most questions need no tools. Time zones, capitals, definitions, science, history, math, how-things-work: answer directly, never delegate ('What time zone is Denver in?' needs NO specialist).\nCall an ask_* specialist ONLY when the answer requires live data (news, current officeholders, prices, schedules, recent events), the user's personal data (health, finances, shopping list, home devices, weather), or web verification of specific facts.\nNever invent live or personal data: if you cannot answer without it, delegate.\nMULTI-PART questions whose parts each need live or personal data take one ask_* call per part: e.g. 'how much money did my panels make today' = energy produced (ask_home, in kWh) AND the electricity rate (ask_research) \u2014 gather every needed piece before answering, then do the arithmetic.\nPhrase each delegated query in the specialist's own domain: ask home for the kWh, ask research for the rate \u2014 never ask a specialist for a figure it doesn't own.\nNEWS BRIEF: when the user asks for a news brief, 'brief me', 'the news', or headlines, call news_brief. If they ask to UPDATE or refresh the news first ('update the news feed', 'get the latest news'), call news_brief with refresh=true. Never compose a brief yourself and never use ask_research for a general briefing \u2014 research is for specific questions.\nNever answer with a placeholder like [kWh] or [rate] \u2014 a bracket in your draft means a missing piece you must fetch first.\nWhen a specialist answers, relay the substance concisely \u2014 do not re-verify it.\n\n[Kronk ambient facts \u2014 assume these unless the user says otherwise]\n- Today is Thursday, September 3, 2026; the local time is 1:32 PM EDT.\n- Home location: Laurel, MD\n- Default to this location for weather, news, traffic, time-of-day, etc.\n  When a location-taking tool is available and the user did not specify one, call the tool without the location argument; it will use the home default.\n- Resolve relative dates (tomorrow, next Tuesday, this weekend) against today's date above \u2014 never guess the date from memory.",
+  "tools": [
+    "ask_health",
+    "ask_research",
+    "ask_home",
+    "ask_assistant",
+    "ask_finance",
+    "ask_coding",
+    "ask_devops",
+    "news_brief"
+  ],
+  "max_tokens": 2000,
+  "models": {
+    "k2-horizon-7b-q8": {
+      "_props": {
+        "model_path": "/opt/models/ifm/K2-Horizon-7B-Q8_0.gguf",
+        "build_info": "b10671-35999d101",
+        "n_ctx": 32768
+      },
+      "weather_delegate": [
+        {
+          "ok": true,
+          "note": "calls=['ask_home']",
+          "leak": true,
+          "finish_reason": "tool_calls",
+          "elapsed_s": 2.66,
+          "gen_tps": 24.3,
+          "prompt_tps": 925.6,
+          "prompt_tokens": 1245,
+          "completion_tokens": 30,
+          "reasoning_chars": 0,
+          "content": "</ifm|think_faster>",
+          "reasoning_content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "ask_home",
+                "arguments": "{\"query\":\"What is the current weather in Laurel, MD right now?\"}"
+              },
+              "id": "ukIxoHtokdnRq3Rx2NVXoazUuYgtViC1"
+            }
+          ]
+        },
+        {
+          "ok": true,
+          "note": "calls=['ask_home']",
+          "leak": true,
+          "finish_reason": "tool_calls",
+          "elapsed_s": 1.14,
+          "gen_tps": 24.3,
+          "prompt_tps": 24.0,
+          "prompt_tokens": 1245,
+          "completion_tokens": 25,
+          "reasoning_chars": 0,
+          "content": "</ifm|think_faster>",
+          "reasoning_content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "ask_home",
+                "arguments": "{\"query\":\"What is the weather right now?\"}"
+              },
+              "id": "W4dAiKqyxKnnswKa179kVWwN2w9vc4jm"
+            }
+          ]
+        },
+        {
+          "ok": true,
+          "note": "calls=['ask_home']",
+          "leak": true,
+          "finish_reason": "tool_calls",
+          "elapsed_s": 1.17,
+          "gen_tps": 24.2,
+          "prompt_tps": 22.8,
+          "prompt_tokens": 1245,
+          "completion_tokens": 26,
+          "reasoning_chars": 0,
+          "content": "</ifm|think_faster>",
+          "reasoning_content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "ask_home",
+                "arguments": "{\"query\":\"Current weather right now in Laurel, MD\"}"
+              },
+              "id": "EPDLAPolJ99R1dt969U54GePefQqF8Ls"
+            }
+          ]
+        },
+        {
+          "ok": true,
+          "note": "calls=['ask_home']",
+          "leak": true,
+          "finish_reason": "tool_calls",
+          "elapsed_s": 1.33,
+          "gen_tps": 24.3,
+          "prompt_tps": 22.8,
+          "prompt_tokens": 1245,
+          "completion_tokens": 29,
+          "reasoning_chars": 0,
+          "content": "</ifm|think_faster>",
+          "reasoning_content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "ask_home",
+                "arguments": "{\"query\":\"What is the weather right now in Laurel, MD?\"}"
+              },
+              "id": "qaZ6l90KCfgRwRAwifUJ2dk2tUtmSXzD"
+            }
+          ]
+        },
+        {
+          "ok": true,
+          "note": "calls=['ask_home']",
+          "leak": true,
+          "finish_reason": "tool_calls",
+          "elapsed_s": 1.35,
+          "gen_tps": 24.4,
+          "prompt_tps": 23.4,
+          "prompt_tokens": 1245,
+          "completion_tokens": 30,
+          "reasoning_chars": 0,
+          "content": "</ifm|think_faster>",
+          "reasoning_content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "ask_home",
+                "arguments": "{\"query\":\"What is the current weather in Laurel, MD right now?\"}"
+              },
+              "id": "K6RHtnUC8lsLPQbhhSoHIJMzCdTRmr1C"
+            }
+          ]
+        }
+      ],
+      "shopping_delegate": [
+        {
+          "ok": true,
+          "note": "calls=['ask_home']",
+          "leak": true,
+          "finish_reason": "tool_calls",
+          "elapsed_s": 1.21,
+          "gen_tps": 24.3,
+          "prompt_tps": 114.1,
+          "prompt_tokens": 1245,
+          "completion_tokens": 25,
+          "reasoning_chars": 0,
+          "content": "</ifm|think_faster>",
+          "reasoning_content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "ask_home",
+                "arguments": "{\"query\":\"What's on my shopping list?\"}"
+              },
+              "id": "zkVGAIMIv5PGn7dPj9xb5MXYie8mzdGX"
+            }
+          ]
+        },
+        {
+          "ok": true,
+          "note": "calls=['ask_home']",
+          "leak": true,
+          "finish_reason": "tool_calls",
+          "elapsed_s": 1.16,
+          "gen_tps": 24.1,
+          "prompt_tps": 22.7,
+          "prompt_tokens": 1245,
+          "completion_tokens": 25,
+          "reasoning_chars": 0,
+          "content": "</ifm|think_faster>",
+          "reasoning_content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "ask_home",
+                "arguments": "{\"query\":\"What's on my shopping list?\"}"
+              },
+              "id": "hfZ5cDgjYTX2tOoDurYnK51sR1Mqepxw"
+            }
+          ]
+        },
+        {
+          "ok": true,
+          "note": "calls=['ask_home']",
+          "leak": true,
+          "finish_reason": "tool_calls",
+          "elapsed_s": 1.23,
+          "gen_tps": 24.4,
+          "prompt_tps": 23.7,
+          "prompt_tokens": 1245,
+          "completion_tokens": 27,
+          "reasoning_chars": 0,
+          "content": "</ifm|think_faster>",
+          "reasoning_content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "ask_home",
+                "arguments": "{\"query\":\"What is on Kronk's shopping list?\"}"
+              },
+              "id": "CSjpwjYsf9Dyvl5lBkzNe6ZTukVE5OUp"
+            }
+          ]
+        }
+      ],
+      "no_spurious": [
+        {
+          "ok": true,
+          "note": "calls=[] mountain=True",
+          "leak": true,
+          "finish_reason": "stop",
+          "elapsed_s": 0.89,
+          "gen_tps": 24.8,
+          "prompt_tps": 113.6,
+          "prompt_tokens": 1245,
+          "completion_tokens": 18,
+          "reasoning_chars": 0,
+          "content": "</ifm|think_faster>Mountain Time (MT); currently MDT (UTC-6) in summer.",
+          "reasoning_content": "",
+          "tool_calls": null
+        },
+        {
+          "ok": true,
+          "note": "calls=[] mountain=True",
+          "leak": true,
+          "finish_reason": "stop",
+          "elapsed_s": 2.1,
+          "gen_tps": 24.7,
+          "prompt_tps": 22.8,
+          "prompt_tokens": 1245,
+          "completion_tokens": 49,
+          "reasoning_chars": 0,
+          "content": "</ifm|think_faster>Mountain Daylight Time (MDT) \u2014 UTC-6. Denver does not observe daylight saving changes inconsistently; it follows Mountain Standard Time (MST, UTC-7) in winter and MDT (UTC-6) in summer.",
+          "reasoning_content": "",
+          "tool_calls": null
+        },
+        {
+          "ok": true,
+          "note": "calls=[] mountain=True",
+          "leak": true,
+          "finish_reason": "stop",
+          "elapsed_s": 1.27,
+          "gen_tps": 24.8,
+          "prompt_tps": 22.4,
+          "prompt_tokens": 1245,
+          "completion_tokens": 28,
+          "reasoning_chars": 0,
+          "content": "</ifm|think_faster>Denver is in Mountain Time (MST, UTC-7 in standard time; MDT, UTC-6 during daylight saving time).",
+          "reasoning_content": "",
+          "tool_calls": null
+        },
+        {
+          "ok": true,
+          "note": "calls=[] mountain=True",
+          "leak": true,
+          "finish_reason": "stop",
+          "elapsed_s": 1.68,
+          "gen_tps": 24.7,
+          "prompt_tps": 23.9,
+          "prompt_tokens": 1245,
+          "completion_tokens": 39,
+          "reasoning_chars": 0,
+          "content": "</ifm|think_faster>Denver is in Mountain Time \u2014 Mountain Daylight Time (MDT, UTC-6) from March to November, then Mountain Standard Time (MST, UTC-7) in winter.",
+          "reasoning_content": "",
+          "tool_calls": null
+        },
+        {
+          "ok": true,
+          "note": "calls=[] mountain=True",
+          "leak": true,
+          "finish_reason": "stop",
+          "elapsed_s": 2.01,
+          "gen_tps": 24.7,
+          "prompt_tps": 22.8,
+          "prompt_tokens": 1245,
+          "completion_tokens": 47,
+          "reasoning_chars": 0,
+          "content": "</ifm|think_faster>Denver is in the Mountain Time Zone (MT). During daylight saving time (late March to early November), it is MDT, which is UTC-6; the rest of the year it's MST, UTC-7.",
+          "reasoning_content": "",
+          "tool_calls": null
+        }
+      ],
+      "news_brief_terminal": [
+        {
+          "ok": true,
+          "note": "calls=[('news_brief', {})]",
+          "leak": true,
+          "finish_reason": "tool_calls",
+          "elapsed_s": 0.67,
+          "gen_tps": 23.8,
+          "prompt_tps": 114.2,
+          "prompt_tokens": 1244,
+          "completion_tokens": 12,
+          "reasoning_chars": 0,
+          "content": "</ifm|think_faster>",
+          "reasoning_content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "news_brief",
+                "arguments": "{}"
+              },
+              "id": "zf3ear6ytkA1uNRiBoQC4Rv4j5ChZGwk"
+            }
+          ]
+        },
+        {
+          "ok": true,
+          "note": "calls=[('news_brief', {})]",
+          "leak": true,
+          "finish_reason": "tool_calls",
+          "elapsed_s": 0.63,
+          "gen_tps": 23.5,
+          "prompt_tps": 22.9,
+          "prompt_tokens": 1244,
+          "completion_tokens": 12,
+          "reasoning_chars": 0,
+          "content": "</ifm|think_faster>",
+          "reasoning_content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "news_brief",
+                "arguments": "{}"
+              },
+              "id": "zgbPlTWQvu4DFR400ckjjOJJ902YHPcT"
+            }
+          ]
+        },
+        {
+          "ok": true,
+          "note": "calls=[('news_brief', {})]",
+          "leak": true,
+          "finish_reason": "tool_calls",
+          "elapsed_s": 0.61,
+          "gen_tps": 23.7,
+          "prompt_tps": 23.2,
+          "prompt_tokens": 1244,
+          "completion_tokens": 12,
+          "reasoning_chars": 0,
+          "content": "</ifm|think_faster>",
+          "reasoning_content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "news_brief",
+                "arguments": "{}"
+              },
+              "id": "IRUJNbSGaJoSBmK4Jxdbn7SkqtJLXnpk"
+            }
+          ]
+        }
+      ],
+      "news_refresh_flag": [
+        {
+          "ok": true,
+          "note": "calls=[('news_brief', {'refresh': True})]",
+          "leak": true,
+          "finish_reason": "tool_calls",
+          "elapsed_s": 1.01,
+          "gen_tps": 24.1,
+          "prompt_tps": 149.2,
+          "prompt_tokens": 1249,
+          "completion_tokens": 20,
+          "reasoning_chars": 0,
+          "content": "</ifm|think_faster>",
+          "reasoning_content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "news_brief",
+                "arguments": "{\"refresh\":true}"
+              },
+              "id": "7n7DnVOAvgV6vy8GaSplZ3RIiHirCnVH"
+            }
+          ]
+        },
+        {
+          "ok": true,
+          "note": "calls=[('news_brief', {'refresh': True})]",
+          "leak": true,
+          "finish_reason": "tool_calls",
+          "elapsed_s": 0.95,
+          "gen_tps": 24.1,
+          "prompt_tps": 22.9,
+          "prompt_tokens": 1249,
+          "completion_tokens": 20,
+          "reasoning_chars": 0,
+          "content": "</ifm|think_faster>",
+          "reasoning_content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "news_brief",
+                "arguments": "{\"refresh\":true}"
+              },
+              "id": "6xtTLKuqqUpJqX8XGooMXKHbNeErfHhW"
+            }
+          ]
+        },
+        {
+          "ok": true,
+          "note": "calls=[('news_brief', {'refresh': True})]",
+          "leak": true,
+          "finish_reason": "tool_calls",
+          "elapsed_s": 0.94,
+          "gen_tps": 24.0,
+          "prompt_tps": 22.9,
+          "prompt_tokens": 1249,
+          "completion_tokens": 20,
+          "reasoning_chars": 0,
+          "content": "</ifm|think_faster>",
+          "reasoning_content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "news_brief",
+                "arguments": "{\"refresh\":true}"
+              },
+              "id": "AkYkHxGPCp6mKTEVwpCcsiIO5e939FGk"
+            }
+          ]
+        }
+      ],
+      "knowledge_prose": [
+        {
+          "ok": true,
+          "note": "calls=[] len=836",
+          "leak": true,
+          "finish_reason": "stop",
+          "elapsed_s": 6.44,
+          "gen_tps": 24.7,
+          "prompt_tps": 150.1,
+          "prompt_tokens": 1248,
+          "completion_tokens": 155,
+          "reasoning_chars": 0,
+          "content": "</ifm|think_faster>Heat pumps move heat rather than generate it, transferring warmth from one place to another with a reversing valve and refrigerant. In cooling mode, the outdoor unit pulls warm air off your house, compresses and heats the refrigerant, which then releases its heat indoors through the air handler or furnace coil while the refrigerant re-expands, drawing in fresh indoor air. In heating mode, the reversing valve flips the cycle: the outdoor unit absorbs heat from the outside air (even at low temperatures, since heat energy exists in the air molecules), and the compressed refrigerant releases that collected warmth inside, raising your thermostat. Because the system moves an amount of heat that's typically 2\u20134 times larger than the electrical energy it consumes, it runs far more efficiently than resistance heat.",
+          "reasoning_content": "",
+          "tool_calls": null
+        },
+        {
+          "ok": true,
+          "note": "calls=[] len=700",
+          "leak": true,
+          "finish_reason": "stop",
+          "elapsed_s": 5.5,
+          "gen_tps": 24.5,
+          "prompt_tps": 23.1,
+          "prompt_tokens": 1248,
+          "completion_tokens": 132,
+          "reasoning_chars": 0,
+          "content": "</ifm|think_faster>In one paragraph: A heat pump is an air-source heating and cooling system that moves thermal energy rather than generating it \u2014 in cooling mode, it uses a compressor, condenser, expansion valve, and evaporator to draw heat from indoor air and release it outdoors, cooling your home; in heating mode, it runs the same cycle in reverse, pulling heat from the relatively warmer outdoor air (or ground) and transferring it inside, so even on cool days it can efficiently heat a space while simultaneously cooling the outside air, with the system's efficiency measured by its coefficient of performance (COP), which indicates how much heat is delivered per unit of electricity consumed.",
+          "reasoning_content": "",
+          "tool_calls": null
+        }
+      ],
+      "markdown_list": [
+        {
+          "ok": false,
+          "note": "calls=['ask_home'] list=False",
+          "leak": true,
+          "finish_reason": "tool_calls",
+          "elapsed_s": 1.2,
+          "gen_tps": 24.3,
+          "prompt_tps": 148.2,
+          "prompt_tokens": 1246,
+          "completion_tokens": 24,
+          "reasoning_chars": 0,
+          "content": "</ifm|think_faster>",
+          "reasoning_content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "ask_home",
+                "arguments": "{\"query\":\"three household uses for baking soda\"}"
+              },
+              "id": "yEO2HXBNqbHqQH4XiNwEj7I3tOHe6xNA"
+            }
+          ]
+        },
+        {
+          "ok": false,
+          "note": "calls=[] list=False",
+          "leak": true,
+          "finish_reason": "stop",
+          "elapsed_s": 0.62,
+          "gen_tps": 25.0,
+          "prompt_tps": 23.0,
+          "prompt_tokens": 1246,
+          "completion_tokens": 13,
+          "reasoning_chars": 0,
+          "content": "</ifm|think_faster>Baking soda has many household uses, such as:",
+          "reasoning_content": "",
+          "tool_calls": null
+        }
+      ],
+      "composite_solar": [
+        {
+          "ok": false,
+          "note": "calls=['ask_home', 'ask_research'] turns=2 answered=False",
+          "leak": true,
+          "turns": 2,
+          "calls": [
+            "ask_home",
+            "ask_research"
+          ],
+          "elapsed_s": 5.06,
+          "gen_tps": 24.7,
+          "reasoning_chars": 0,
+          "finish_reason": "stop",
+          "content": "</ifm|think_faster>Yesterday the solar panels produced 3.0 kWh. At the current rate of 16.18 cents/kWh in Laurel, MD, that's worth about **$4.85**."
+        },
+        {
+          "ok": true,
+          "note": "calls=['ask_home', 'ask_research'] turns=2 answered=True",
+          "leak": true,
+          "turns": 2,
+          "calls": [
+            "ask_home",
+            "ask_research"
+          ],
+          "elapsed_s": 4.57,
+          "gen_tps": 24.7,
+          "reasoning_chars": 0,
+          "finish_reason": "stop",
+          "content": "</ifm|think_faster>3.0 kWh \u00d7 $0.1618/kWh = **$0.4854**\n\nSo the panels produced about **$0.49** worth of electricity yesterday."
+        },
+        {
+          "ok": true,
+          "note": "calls=['ask_home', 'ask_research'] turns=2 answered=True",
+          "leak": true,
+          "turns": 2,
+          "calls": [
+            "ask_home",
+            "ask_research"
+          ],
+          "elapsed_s": 3.68,
+          "gen_tps": 24.6,
+          "reasoning_chars": 0,
+          "finish_reason": "stop",
+          "content": "</ifm|think_faster>3.0 kWh \u00d7 $0.1618/kWh = **$0.49** yesterday."
+        },
+        {
+          "ok": true,
+          "note": "calls=['ask_home', 'ask_research'] turns=2 answered=True",
+          "leak": true,
+          "turns": 2,
+          "calls": [
+            "ask_home",
+            "ask_research"
+          ],
+          "elapsed_s": 4.65,
+          "gen_tps": 24.6,
+          "reasoning_chars": 0,
+          "finish_reason": "stop",
+          "content": "</ifm|think_faster>Yesterday your solar panels produced **3.0 kWh**.\n\nAt the current BGE rate of **$0.1618/kWh**, that's worth about **$0.49** \u2014 roughly 49 cents."
+        },
+        {
+          "ok": true,
+          "note": "calls=['ask_home', 'ask_research'] turns=2 answered=True",
+          "leak": true,
+          "turns": 2,
+          "calls": [
+            "ask_home",
+            "ask_research"
+          ],
+          "elapsed_s": 4.22,
+          "gen_tps": 24.7,
+          "reasoning_chars": 0,
+          "finish_reason": "stop",
+          "content": "</ifm|think_faster>Yesterday's solar production: 3.0 kWh \u00d7 $0.1618/kWh = **$0.49**."
+        }
+      ]
+    }
+  }
+}

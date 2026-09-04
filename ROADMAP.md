@@ -44,6 +44,31 @@ the docs use them. 1 and 2 are in Shipped.)*
    anything. One bad disk erases the project. Cheapest risk-kill on this
    page.*
 
+11. **Model bench — K2 Horizon vs incumbents — DONE 2026-09-03, no
+    swap.** Coordinator: Gemma 4 12B tied E4B on correctness at half
+    the speed; K2-Horizon-7B (IFM's fork of llama.cpp, own Q8/Q4
+    quants) tied-minus-one at a quarter to a third of the speed and only
+    keeps its thinking out of the reply at `reasoning_effort=high`.
+    Devops slot: K2 ties Devstral 17/17 at 2.6× tok/s but equal
+    wall-clock (reasoning tax) with one confident prose error —
+    operator's call, precedent says keep Devstral. Research slot: K2
+    answers 8/8 vs E4B's 4/8 but confabulated stale officeholders where
+    E4B abstained — keep E4B; a "cite or mark unverified" guard for
+    officeholder claims is the structural follow-up (Later).
+    Verdict, scoreboards and the exact configs:
+    `docs/plans/MODEL_BENCH_K2_HORIZON_PLAN.md`; raw runs
+    `docs/bench/coord_bench_2026-09-03_*`. The harness
+    (`scripts/coordinator_model_bench.py`, tested) stays: it benches any
+    coordinator candidate with the production prompt and menu. *Why: the
+    coordinator is the model every request touches; a same-regime bench
+    with a rule fixed before the numbers is the only honest answer to
+    "is the new thing better".* **Revisit** (Later): when upstream
+    llama.cpp ships K2 Horizon with a parser that knows the
+    `think_fast`/`think_faster` markers, or IFM ships a draft head or
+    QAT checkpoint — and separately, K2-7B as a *research/coding* agent
+    candidate, where its card's agentic scores matter and tok/s matters
+    less (different bench, harder probes).
+
 ## Next — agreed, not started
 
 5. **Context/fact cache** — a small keyed store (SQLite table in the
@@ -108,6 +133,16 @@ the docs use them. 1 and 2 are in Shipped.)*
 
 ## Later — wanted, unscoped
 
+- **Research agent: cite-or-mark-unverified guard for officeholder
+  claims** *(added 2026-09-03 from the K2 research bench)*. When the
+  research answer names a *current* officeholder/CEO/leader, the claim
+  must trace to a fetched page in this run or be labelled unverified.
+  Receipt: K2-7B answered "Joe Biden" / "Fumio Kishida" as current
+  leaders in Sept 2026 after its searches came up empty, where E4B
+  abstained — a structural rule would have turned both into honest
+  partials and costs E4B nothing. Tenet 5/6 shape: change the loop, not
+  the prompt (e.g. a post-check that flags proper nouns absent from every
+  tool result). Plan doc first; pair with the research bench as its test.
 - **Flock/ALPR camera watch** — alert when a Flock Safety (or other ALPR)
   camera newly appears near home or anywhere in town. Likely source:
   OpenStreetMap surveillance nodes via the Overpass API

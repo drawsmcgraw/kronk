@@ -174,5 +174,11 @@ example that made a 4B router drag timezone questions to web search).
 - Pinning rolling Docker tags after a stealth-upgrade scare (`main-latest`)
 - The voice latency journey end-to-end: 11s → ~2.6s across five techniques
 - Gemma 4 QAT swap: +15% generation for free, benchmark-gated
+- Day-one bench of a new open model family (K2 Horizon, 2026-09-03):
+  fork build, own quants, a rule written before the numbers, and why the
+  incumbent 4B won on the metric that matters at home (tok/s under a
+  voice budget) — plus the parser gotcha (`enable_thinking` vs
+  `reasoning_effort`) that decides whether a reasoning model leaks its
+  thoughts. `docs/plans/MODEL_BENCH_K2_HORIZON_PLAN.md`
 - HA owns voice history: reading Home Assistant's source instead of
   building a session store you don't need

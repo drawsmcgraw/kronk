@@ -1,0 +1,63 @@
+{
+  "label": "k2h-research-k2",
+  "at": "2026-09-03T14:58:08-04:00",
+  "reps": 2,
+  "results": [
+    {
+      "id": "gdp_heads",
+      "rep": 1,
+      "wall_s": 183.1,
+      "leaked_tool_syntax": false,
+      "answer": "The heads of state for the top five countries ranked by GDP are:\n\n*   **United States:** Joe Biden (President)\n*   **China:** Xi Jinping (President/General Secretary of the CCP)\n*   **Germany:** Frank-Walter Steinmeier (President)\n*   **Japan:** Naruhito (Emperor)\n*   **India:** Droupadi Murmu (President)\n\nNote that for some countries, such as China and Japan, there are separate governmental titles (e.g., General Secretary or Emperor) that are also relevant to their leadership."
+    },
+    {
+      "id": "sa_capitals",
+      "rep": 1,
+      "wall_s": 3.2,
+      "leaked_tool_syntax": false,
+      "answer": "The capitals of the three most populous countries in South America are:\n\n*   **Brazil:** Brasília\n*   **Colombia:** Bogotá\n*   **Argentina:** Buenos Aires"
+    },
+    {
+      "id": "ceo_marketcap",
+      "rep": 1,
+      "wall_s": 14.6,
+      "leaked_tool_syntax": false,
+      "answer": "The CEOs of the three largest US companies by market cap are Satya Nadella (Microsoft), Tim Cook (Apple), and Jensen Huang (Nvidia)."
+    },
+    {
+      "id": "py_version",
+      "rep": 1,
+      "wall_s": 24.2,
+      "leaked_tool_syntax": false,
+      "answer": "The latest stable Python version is 3.14.7, released on August 5, 2026."
+    },
+    {
+      "id": "gdp_heads",
+      "rep": 2,
+      "wall_s": 136.4,
+      "leaked_tool_syntax": false,
+      "answer": "The current heads of state for the top five countries by GDP are:\n\n1.  **United States:** Joe Biden\n2.  **China:** Xi Jinping\n3.  **Japan:** Fumio Kishida\n4.  **Germany:** Frank-Walter Steinmeier\n5.  **India:** Droupadi Murmu"
+    },
+    {
+      "id": "sa_capitals",
+      "rep": 2,
+      "wall_s": 1.6,
+      "leaked_tool_syntax": false,
+      "answer": "The capitals of the three most populous countries in South America are:\n\n1.  **Brazil:** Brasília\n2.  **Colombia:** Bogotá\n3.  **Argentina:** Buenos Aires"
+    },
+    {
+      "id": "ceo_marketcap",
+      "rep": 2,
+      "wall_s": 44.7,
+      "leaked_tool_syntax": false,
+      "answer": "Jensen Huang is the CEO of NVIDIA, Tim Cook is the CEO of Apple, and Satya Nadella is the CEO of Microsoft.\n\nPlease note that my searches could not provide a current (September 2026) market-cap ranking to verify this order, so the ranking should be considered based on generally accepted leaders rather than a confirmed live list."
+    },
+    {
+      "id": "py_version",
+      "rep": 2,
+      "wall_s": 23.0,
+      "leaked_tool_syntax": false,
+      "answer": "The latest stable Python version is **Python 3.14.7**."
+    }
+  ]
+}
