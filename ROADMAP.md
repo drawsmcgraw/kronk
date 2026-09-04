@@ -71,22 +71,14 @@ the docs use them. 1 and 2 are in Shipped.)*
 
 ## Next — agreed, not started
 
-12. **Voice music, Kronk tier: play on the device that asked** *(added
-    2026-09-04)*. The HA tier does this now (fork of the MA blueprint);
-    fuzzy requests that fall through to Kronk's `play_music` still land
-    on the default. Mechanism verified in HA's source: the Ollama
-    conversation prompt is a Jinja template with `llm_context.device_id`
-    in scope (editable in the UI via Reconfigure, no restart), so one
-    stamped line can carry the satellite's device id and area; the shim
-    reads that one line (keeps dropping the rest), carries it in a
-    request-scoped context variable through the delegation hop, and the
-    tool passes it to tool_service, whose resolver already has the
-    `origin_area` rung — extend it with the device (MAC) rung and group
-    preference to match the fork. Zero added latency. Also pinned nearby:
-    Whisper's tense drift ("Played the album…" transcripts miss both
-    tiers) — try `--initial-prompt` on the wyoming-whisper unit, measured
-    before/after. *Why: the operator's stated ideal, and the fuzzy tier
-    is where natural phrasings land.*
+12. **Voice music, Kronk tier: play on the device that asked — DONE
+    2026-09-04** (same day as the HA tier; see Shipped). Left behind
+    from it, pinned: **Whisper's tense drift** — "Played the album…"
+    transcripts miss every local tier and read to Kronk as a statement
+    (rid `2881890a`, answered "acknowledged"). Try `--initial-prompt` on
+    the wyoming-whisper unit (supported by the installed 3.1.0), measured
+    before/after on a handful of utterances through
+    `assist_pipeline/run`. *Why: it sits in front of all three tiers.*
 
 5. **Context/fact cache** — a small keyed store (SQLite table in the
    orchestrator, or in-memory in tool_service) of low-volatility facts with
@@ -257,6 +249,13 @@ the docs use them. 1 and 2 are in Shipped.)*
 
 ## Chores / quick wins
 
+- **play_music: verify before failing on a 5xx** *(2026-09-04)* — MA's
+  `play_media` returned HTTP 500 and still started playback ("put on
+  some jazz"); tool_service reported failure while the kitchen played.
+  On a 5xx from `play_media`, poll the targets for `playing` for the
+  verify window before declaring failure; log the 5xx either way.
+  Test with a fake HA that 500s then reports `playing`.
+
 - Rename MA player "Sonos Move Derp" → "Sonos Move" in the MA UI so the
   blueprint fast path resolves natural phrasing (entity_id is unchanged;
   nothing else moves).
@@ -271,6 +270,18 @@ the docs use them. 1 and 2 are in Shipped.)*
 
 Newest first; feature docs in `docs/features/`.
 
+- **Voice music plays on the device that asked (Kronk tier)**
+  *(2026-09-04)* — HA stamps the requesting satellite's device id and
+  area onto the prompt it already sends (one Jinja line in the Ollama
+  conversation instructions); the shim reads that line into a
+  request-scoped origin (`orchestrator/origin.py`), the play tool passes
+  it to tool_service, which resolves named player → named room → own
+  device (MAC join) → own room → default, matching the blueprint fork.
+  Verified live: "put on some aerosmith" from the office played in the
+  office. Finding: HA's built-in `HassMediaSearchAndPlay` intent is a
+  third, area-aware local tier ahead of both. See
+  `docs/features/voice-music-control.md`,
+  `docs/plans/VOICE_MUSIC_ORIGIN_KRONK_PLAN.md`.
 - **Voice music plays on the device that asked (HA tier)** *(2026-09-04)*
   — a Kronk fork of the MA voice blueprint resolves named player → named
   room → **own device** (MAC join) → own room → default, prefers a room's

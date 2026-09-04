@@ -1,9 +1,10 @@
-"""tool_service /music — players discovered from HA, resolved in the MA
-blueprint's order (docs/plans/MUSIC_PLAYERS_FROM_HA_PLAN.md).
+"""tool_service /music — players discovered from HA, resolved in the Kronk
+blueprint fork's order (docs/plans/MUSIC_PLAYERS_FROM_HA_PLAN.md,
+docs/plans/VOICE_MUSIC_ORIGIN_KRONK_PLAN.md).
 
-The resolution order is pinned here because the blueprint's Jinja and this
-Python cannot share code: name → area → origin area → default. First tests
-the /music route has had (2026-09-04).
+The order is pinned here because the fork's Jinja and this Python cannot
+share code: exact name → exact room (group-preferred) → substring name →
+substring room → own device → own room (group-preferred) → default.
 """
 import json
 from unittest.mock import patch
@@ -14,16 +15,21 @@ from fastapi.testclient import TestClient
 
 import tool_service.main as ts
 
-KITCHEN = {"entity_id": "media_player.kitchen_ma", "name": "kitchen voice pe", "area": "Kitchen", "state": "idle"}
-OFFICE = {"entity_id": "media_player.satellite1", "name": "satellite-01-ma", "area": "Office", "state": "idle"}
-OFFICE2 = {"entity_id": "media_player.office_sonos", "name": "Office Sonos", "area": "Office", "state": "idle"}
-SONOS = {"entity_id": "media_player.sonos_move_2", "name": "Sonos Move Derp", "area": None, "state": "unavailable"}
+KITCHEN = {"entity_id": "media_player.kitchen_ma", "name": "kitchen voice pe", "area": "Kitchen",
+           "state": "idle", "type": "player", "device_key": "up20f83b0ac919"}
+OFFICE = {"entity_id": "media_player.satellite1", "name": "satellite-01-ma", "area": "Office",
+          "state": "idle", "type": "player", "device_key": "up14c19fd8d1bc"}
+OFFICE2 = {"entity_id": "media_player.office_sonos", "name": "Office Sonos", "area": "Office",
+           "state": "idle", "type": "player", "device_key": "upaaaaaaaaaaaa"}
+SONOS = {"entity_id": "media_player.sonos_move_2", "name": "Sonos Move Derp", "area": None,
+         "state": "unavailable", "type": None, "device_key": "upbbbbbbbbbbbb"}
 PLAYERS = [KITCHEN, OFFICE, OFFICE2, SONOS]
 DEFAULT = KITCHEN["entity_id"]
+OFFICE_DEV = "ac6dd1f1c8cf1d229cda0f42224a2013"
 
 
-def _resolve(spoken=None, origin=None, players=PLAYERS, default=DEFAULT):
-    return ts.resolve_players(spoken, origin, players, default)
+def _resolve(spoken=None, origin=None, players=PLAYERS, default=DEFAULT, origin_key=None):
+    return ts.resolve_players(spoken, origin, players, default, origin_key=origin_key)
 
 
 def _err(*a, **kw) -> HTTPException:
@@ -32,19 +38,22 @@ def _err(*a, **kw) -> HTTPException:
     return ei.value
 
 
-# ── parser ──────────────────────────────────────────────────────────────────
+# ── parsers ─────────────────────────────────────────────────────────────────
 
 def test_parse_players_normalizes_and_skips_junk():
     raw = json.dumps([
-        {"entity_id": "media_player.a", "name": "A", "area": "Kitchen", "state": "idle"},
+        {"entity_id": "media_player.a", "name": "A", "area": "Kitchen", "state": "idle",
+         "type": "player", "device_key": "up1"},
         {"entity_id": "media_player.b", "name": None, "area": None, "state": None},
         {"name": "no entity"},
         "garbage",
     ])
     out = ts.parse_players(raw)
     assert out == [
-        {"entity_id": "media_player.a", "name": "A", "area": "Kitchen", "state": "idle"},
-        {"entity_id": "media_player.b", "name": "media_player.b", "area": None, "state": "unknown"},
+        {"entity_id": "media_player.a", "name": "A", "area": "Kitchen", "state": "idle",
+         "type": "player", "device_key": "up1"},
+        {"entity_id": "media_player.b", "name": "media_player.b", "area": None, "state": "unknown",
+         "type": None, "device_key": None},
     ]
 
 
@@ -53,10 +62,26 @@ def test_parse_players_rejects_non_list():
         ts.parse_players('{"not": "a list"}')
 
 
-# ── resolution order: name → area → origin → default ────────────────────────
+def test_parse_player_payload_dict_and_bare_list():
+    players, key = ts.parse_player_payload(json.dumps({"players": [KITCHEN], "origin_key": "up20f83b0ac919"}))
+    assert players[0]["entity_id"] == KITCHEN["entity_id"] and key == "up20f83b0ac919"
+    players, key = ts.parse_player_payload(json.dumps({"players": [KITCHEN], "origin_key": ""}))
+    assert key is None
+    players, key = ts.parse_player_payload(json.dumps([KITCHEN]))
+    assert players[0]["entity_id"] == KITCHEN["entity_id"] and key is None
+    with pytest.raises(ValueError):
+        ts.parse_player_payload('{"players": "nope"}')
+
+
+def test_players_template_only_injects_a_valid_device_id():
+    assert f"'{OFFICE_DEV}'" in ts._players_template(OFFICE_DEV)
+    assert "none" in ts._players_template(None)
+    assert "none" in ts._players_template("'; drop table") and "drop" not in ts._players_template("'; drop table")
+
+
+# ── spoken: name → room → substring ─────────────────────────────────────────
 
 def test_exact_player_name_wins_over_area():
-    # "Office Sonos" is both a player name and contains an area name; name wins.
     targets, label = _resolve("Office Sonos")
     assert targets == [OFFICE2] and label == "the Office Sonos speaker"
 
@@ -66,6 +91,13 @@ def test_area_name_targets_every_player_in_the_room():
     assert targets == [OFFICE, OFFICE2] and label == "the Office speakers"
 
 
+def test_room_with_a_sync_group_targets_the_group_only():
+    group = {"entity_id": "media_player.office_group", "name": "Office Group", "area": "Office",
+             "state": "idle", "type": "group", "device_key": None}
+    targets, label = _resolve("the office", players=PLAYERS + [group])
+    assert targets == [group] and label == "the Office speaker"
+
+
 def test_spoken_phrasing_is_normalized():
     for spoken in ("the office", "Office speaker", "the office speakers", "office room"):
         targets, _ = _resolve(spoken)
@@ -73,7 +105,6 @@ def test_spoken_phrasing_is_normalized():
 
 
 def test_technical_names_match_spoken_forms():
-    # "satellite-01-ma" is unspeakable; hyphens fold to spaces for matching.
     targets, _ = _resolve("satellite 01 ma")
     assert targets == [OFFICE]
 
@@ -95,13 +126,35 @@ def test_unknown_speaker_lists_what_exists():
     assert "garage" in err.detail and "Kitchen" in err.detail and "kitchen voice pe" in err.detail
 
 
-def test_origin_area_used_when_nothing_spoken():
-    targets, label = _resolve(None, origin="Office")
+# ── unspoken: own device → own room → default ───────────────────────────────
+
+def test_own_device_wins_over_own_room():
+    # heard by satellite 1 in the Office, which also has the Office Sonos
+    targets, label = _resolve(None, origin="Office", origin_key=OFFICE["device_key"])
+    assert targets == [OFFICE] and label == "the Office speaker"
+
+
+def test_own_device_without_area_is_labelled_by_name():
+    lone = dict(OFFICE, area=None)
+    targets, label = _resolve(None, origin=None, origin_key=lone["device_key"],
+                              players=[KITCHEN, lone])
+    assert targets == [lone] and label == "the satellite-01-ma speaker"
+
+
+def test_unknown_device_key_falls_to_own_room():
+    targets, label = _resolve(None, origin="Office", origin_key="upnobody")
     assert targets == [OFFICE, OFFICE2] and label == "the Office speakers"
 
 
-def test_spoken_name_beats_origin_area():
-    targets, _ = _resolve("kitchen", origin="Office")
+def test_own_room_prefers_its_sync_group():
+    group = {"entity_id": "media_player.office_group", "name": "Office Group", "area": "Office",
+             "state": "idle", "type": "group", "device_key": None}
+    targets, _ = _resolve(None, origin="Office", origin_key="upnobody", players=PLAYERS + [group])
+    assert targets == [group]
+
+
+def test_spoken_name_beats_own_device():
+    targets, _ = _resolve("kitchen", origin="Office", origin_key=OFFICE["device_key"])
     assert targets == [KITCHEN]
 
 
@@ -143,11 +196,10 @@ class _Resp:
 
 
 class FakeHA:
-    """Minimal httpx.AsyncClient stand-in: template → players, play_media → 200,
-    state polls → `playing` on the first live target after one poll."""
+    """Minimal httpx.AsyncClient stand-in: template → payload, play_media → 200,
+    state polls → `playing` on the configured entity."""
     def __init__(self, *a, **kw):
         self.posts = []
-        self.polls = 0
 
     async def __aenter__(self):
         return self
@@ -165,7 +217,6 @@ class FakeHA:
         raise AssertionError(url)
 
     async def get(self, url, headers=None):
-        self.polls += 1
         entity = url.rsplit("/", 1)[1]
         playing = entity == FakeHA.playing_entity
         return _Resp(200, {"state": "playing" if playing else "idle",
@@ -175,7 +226,7 @@ class FakeHA:
 @pytest.fixture
 def ha():
     FakeHA.template_status = 200
-    FakeHA.template_text = json.dumps(PLAYERS)
+    FakeHA.template_text = json.dumps({"players": PLAYERS, "origin_key": ""})
     FakeHA.playing_entity = OFFICE["entity_id"]
     FakeHA.last = None
 
@@ -189,29 +240,47 @@ def ha():
         yield FakeHA
 
 
+def _play_calls(ha):
+    return [j for u, j in ha.last.posts if u.endswith("play_media")]
+
+
 def test_route_plays_on_every_live_player_in_the_room(ha):
     resp = TestClient(ts.app).post("/music", json={"query": "Aerosmith", "player": "the office"})
     assert resp.status_code == 200, resp.text
     body = resp.json()
     assert body["status"] == "playing" and body["player"] == "the Office speakers"
     assert body["artist"] == "Aerosmith" and body["title"] == "Toys in the Attic"
-    play = [j for u, j in ha.last.posts if u.endswith("play_media")][0]
+    play = _play_calls(ha)[0]
     assert play["entity_id"] == [OFFICE["entity_id"], OFFICE2["entity_id"]]
     assert play["media_id"] == "Aerosmith"
 
 
-def test_route_uses_origin_area_when_nothing_named(ha):
-    resp = TestClient(ts.app).post("/music", json={"query": "Aerosmith", "origin_area": "Office"})
+def test_route_own_device_from_origin_key(ha):
+    ha.template_text = json.dumps({"players": PLAYERS, "origin_key": OFFICE["device_key"]})
+    resp = TestClient(ts.app).post("/music", json={"query": "Aerosmith", "origin_device": OFFICE_DEV,
+                                                   "origin_area": "Office"})
     assert resp.status_code == 200
-    play = [j for u, j in ha.last.posts if u.endswith("play_media")][0]
-    assert OFFICE["entity_id"] in play["entity_id"]
+    assert _play_calls(ha)[0]["entity_id"] == [OFFICE["entity_id"]]
+    assert resp.json()["player"] == "the Office speaker"
+    # the origin device id reached the template
+    tmpl = [j for u, j in ha.last.posts if u.endswith("/api/template")][0]["template"]
+    assert f"'{OFFICE_DEV}'" in tmpl
+
+
+def test_route_uses_origin_area_when_device_has_no_player(ha):
+    resp = TestClient(ts.app).post("/music", json={"query": "Aerosmith", "origin_area": "Office",
+                                                   "origin_device": "not-a-device-id"})
+    assert resp.status_code == 200
+    assert OFFICE["entity_id"] in _play_calls(ha)[0]["entity_id"]
+    tmpl = [j for u, j in ha.last.posts if u.endswith("/api/template")][0]["template"]
+    assert "not-a-device-id" not in tmpl and "device_attr(none" in tmpl
 
 
 def test_route_unavailable_target_is_spoken_clearly(ha):
     resp = TestClient(ts.app).post("/music", json={"query": "Aerosmith", "player": "sonos move"})
     assert resp.status_code == 503
     assert "Sonos Move Derp is unavailable" in resp.json()["detail"]
-    assert not [u for u, _ in ha.last.posts if u.endswith("play_media")]
+    assert not _play_calls(ha)
 
 
 def test_route_ha_template_failure_is_specific(ha):

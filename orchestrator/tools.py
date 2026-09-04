@@ -6,6 +6,7 @@ import os
 import httpx
 
 from events import emit
+import origin
 
 logger = logging.getLogger(__name__)
 
@@ -809,6 +810,16 @@ async def _tool_play_music(client: httpx.AsyncClient, args: dict) -> str:
         payload["media_type"] = args["media_type"]
     if args.get("player"):
         payload["player"] = args["player"]
+    # Where the request came from (voice satellite) — set by the shim for the
+    # life of the request (origin.py). tool_service prefers a spoken speaker
+    # or room, then this device, then its room, then the default. The model
+    # never sees it and never has to know where the user is.
+    o = origin.current.get()
+    if o:
+        if o.device_id:
+            payload["origin_device"] = o.device_id
+        if o.area:
+            payload["origin_area"] = o.area
     resp = await client.post(f"{TOOL_SERVICE_URL}/music", json=payload)
     if resp.status_code == 200:
         info = resp.json()

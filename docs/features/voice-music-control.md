@@ -40,8 +40,43 @@ The automation built from it is `automation.kronk_music_assistant_voice_device_f
 (default player: kitchen Voice PE); both upstream-blueprint automations
 are disabled and kept for rollback.
 
-Kronk's tier still plays on the default for fuzzy requests — the origin
-stamp for that tier is the follow-on (ROADMAP, Next).
+## Tier 2 targeting: Kronk knows who asked (2026-09-04)
+
+Plan: `../plans/VOICE_MUSIC_ORIGIN_KRONK_PLAN.md`. Fuzzy requests that
+miss every local grammar ("put on some jazz", "shuffle my YouTube
+playlist anime bangers") fall through to Kronk, and Kronk now plays them
+where they were asked:
+
+- **HA stamps the origin** onto the system prompt it already sends every
+  voice request — the Ollama conversation instructions are a Jinja
+  template with `llm_context.device_id` in scope. The line (installed
+  2026-09-04 by storage edit; also editable via the integration's
+  Reconfigure form):
+  `[kronk-origin] device={{ llm_context.device_id or '' }} area={{ area_name(llm_context.device_id) if llm_context.device_id else '' }}`
+  A template error there breaks every voice request ("Sorry, I had a
+  problem with my template") — dry-run any edit through `/api/template`
+  first; rollback is deleting the line.
+- **The shim reads that one line** (`orchestrator/origin.py`) and still
+  discards the rest of HA's prompt; the origin rides a request-scoped
+  ContextVar for the whole run (see the module docstring for why not a
+  parameter), the play tool adds `origin_device`/`origin_area` to its
+  request, and tool_service resolves with the fork's order — named
+  player → named room → **own device** (MAC join, in the same template
+  call) → own room → default. The model never sees the origin. Every
+  request logs an `origin` event (rid-scoped) so a wrong-room play is
+  one grep away.
+- Web UI / OpenAI shim / other clients carry no stamp and play on the
+  default, as before.
+
+**Three local tiers, not two.** HA's built-in `HassMediaSearchAndPlay`
+intent catches "play X [in/on Y]" phrasings before the blueprint or
+Kronk see them, searches the media player in the requesting device's
+area, and answers a terse "Playing media". It is area-aware on its own.
+Order of precedence for a spoken request: HA built-in intent → Kronk
+blueprint fork → Kronk. "Put on…", "shuffle my…", and other loose
+phrasings are what reach Kronk.
+
+Kronk's tier: shipped; the blueprint fork and Kronk agree on targeting.
 
 ## How it works (tier 2)
 
@@ -119,7 +154,11 @@ mechanism, the model never gets a chance to editorialize about the result.
   media name; it needs "by the **artist** Y".
 - MA 2.8.8's YT Music provider can 500 transiently (`ytmusicapi has no
   attribute YTMusicError` — upstream bug). tool_service logs the full body,
-  speaks one clean sentence.
+  speaks one clean sentence. **Observed 2026-09-04: `play_media` can
+  return 500 and still start playback** ("put on some jazz" — Kronk said
+  it failed while the kitchen played). Follow-up on the roadmap: on a
+  5xx, poll for `playing` before declaring failure (tenet 6 cuts both
+  ways).
 
 ## Blog hooks
 

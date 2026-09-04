@@ -911,38 +911,72 @@ MUSIC_DEFAULT_PLAYER = os.getenv("MUSIC_DEFAULT_PLAYER", "")
 
 MUSIC_VERIFY_TIMEOUT_S = 8   # how long to wait for a player to reach `playing`
 
+# One template call answers everything the resolver needs: every MA player
+# with name / area / state / player type / its MA device key ('up' + MAC —
+# the identifier MA gives Sendspin players), plus the key of the ORIGIN
+# device (the ESPHome satellite that heard the request: its MAC under
+# `connections`, keyed the same way) so "own device" is a string compare.
+# `ORIGIN` is substituted with a validated 32-hex HA device id or `none`.
 _PLAYERS_TEMPLATE = (
     "{% set ns = namespace(out=[]) %}"
     "{% for e in integration_entities('music_assistant') if e.startswith('media_player.') %}"
+    "{% set d = device_id(e) %}"
+    "{% set ids = (device_attr(d, 'identifiers') | list) if d else [] %}"
+    "{% set key = ids | selectattr(0, 'eq', 'music_assistant') | map(attribute=1) | first | default('') %}"
     "{% set ns.out = ns.out + [{'entity_id': e, 'name': state_attr(e, 'friendly_name'), "
-    "'area': area_name(e), 'state': states(e)}] %}"
-    "{% endfor %}{{ ns.out | to_json }}"
+    "'area': area_name(e), 'state': states(e), 'type': state_attr(e, 'mass_player_type'), "
+    "'device_key': key}] %}"
+    "{% endfor %}"
+    "{% set conns = device_attr(ORIGIN, 'connections') if ORIGIN else none %}"
+    "{% set mac = (conns | selectattr(0, 'eq', 'mac') | map(attribute=1) | first | default('')) if conns else '' %}"
+    "{{ {'players': ns.out, 'origin_key': ('up' ~ (mac | replace(':', ''))) if mac else ''} | to_json }}"
 )
+_DEVICE_ID_RE = re.compile(r"^[0-9a-f]{32}$")
 
 
 class MusicRequest(BaseModel):
     query: str
-    media_type: str | None = None   # artist | album | track | playlist | radio
-    player: str | None = None       # spoken speaker OR room, as the user said it
-    origin_area: str | None = None  # area the request came from (voice satellite); reserved
+    media_type: str | None = None    # artist | album | track | playlist | radio
+    player: str | None = None        # spoken speaker OR room, as the user said it
+    origin_area: str | None = None   # area of the satellite that heard the request
+    origin_device: str | None = None  # HA device id of that satellite
+
+
+def _players_template(origin_device: str | None) -> str:
+    dev = origin_device if origin_device and _DEVICE_ID_RE.match(origin_device) else None
+    return _PLAYERS_TEMPLATE.replace("ORIGIN", f"'{dev}'" if dev else "none")
+
+
+def _norm_player(p: dict) -> dict:
+    return {
+        "entity_id": p["entity_id"],
+        "name": p.get("name") or p["entity_id"],
+        "area": p.get("area") or None,
+        "state": p.get("state") or "unknown",
+        "type": p.get("type") or None,           # mass_player_type: player | group | …
+        "device_key": p.get("device_key") or None,
+    }
 
 
 def parse_players(raw: str) -> list[dict]:
-    """HA template output → [{entity_id, name, area, state}] (ValueError if not a list)."""
+    """HA template output → [{entity_id, name, area, state, type, device_key}]
+    (ValueError if not a list)."""
     data = json.loads(raw)
     if not isinstance(data, list):
         raise ValueError("player list is not a JSON array")
-    out = []
-    for p in data:
-        if not isinstance(p, dict) or not p.get("entity_id"):
-            continue
-        out.append({
-            "entity_id": p["entity_id"],
-            "name": p.get("name") or p["entity_id"],
-            "area": p.get("area") or None,
-            "state": p.get("state") or "unknown",
-        })
-    return out
+    return [_norm_player(p) for p in data if isinstance(p, dict) and p.get("entity_id")]
+
+
+def parse_player_payload(raw: str) -> tuple[list[dict], str | None]:
+    """Full template payload → (players, origin_key). A bare list is accepted
+    too (no origin)."""
+    data = json.loads(raw)
+    if isinstance(data, list):
+        return parse_players(raw), None
+    if not isinstance(data, dict) or not isinstance(data.get("players"), list):
+        raise ValueError("player payload is not {players: [...]}")
+    players = [_norm_player(p) for p in data["players"] if isinstance(p, dict) and p.get("entity_id")]
+    return players, (data.get("origin_key") or None)
 
 
 def _norm(s: str | None) -> str:
@@ -960,12 +994,19 @@ def _label(targets: list[dict], area: str | None) -> str:
 
 
 def _by_area(players: list[dict], area: str) -> list[dict]:
-    return [p for p in players if p["area"] and _norm(p["area"]) == _norm(area)]
+    """Every MA player in `area` — but a room with a sync group targets the
+    group only (the fork's rule; individual players would play unsynced)."""
+    ps = [p for p in players if p["area"] and _norm(p["area"]) == _norm(area)]
+    groups = [p for p in ps if p.get("type") == "group"]
+    return groups or ps
 
 
 def resolve_players(spoken: str | None, origin_area: str | None,
-                    players: list[dict], default_entity: str) -> tuple[list[dict], str]:
-    """Blueprint order: player name → area name → origin area → default.
+                    players: list[dict], default_entity: str,
+                    origin_key: str | None = None) -> tuple[list[dict], str]:
+    """The Kronk blueprint fork's order (ha/blueprints/mass_assist_kronk.yaml):
+    named player → named room (group-preferred) → substring name → substring
+    room → OWN DEVICE (origin_key) → own room (group-preferred) → default.
 
     Returns (targets, speakable label). Raises HTTPException carrying the
     sentence the voice pipeline will speak.
@@ -1020,12 +1061,17 @@ def resolve_players(spoken: str | None, origin_area: str | None,
             detail=(f"I don't know a speaker or room called '{spoken}'. "
                     f"Speakers: {known_names}. Rooms with a speaker: {known_areas}."),
         )
-    # 3. origin area (the satellite that heard the request)
+    # 5. own device: the MA player on the satellite that heard the request
+    if origin_key:
+        own = [p for p in players if p.get("device_key") == origin_key]
+        if own:
+            return own, _label(own, own[0]["area"])
+    # 6. own room (the satellite's area), group-preferred
     if origin_area:
         targets = _by_area(players, origin_area)
         if targets:
             return targets, _label(targets, targets[0]["area"])
-    # 4. default
+    # 7. default
     if not default_entity:
         raise HTTPException(status_code=400, detail="No speaker named and no default speaker is configured.")
     dflt = [p for p in players if p["entity_id"] == default_entity]
@@ -1037,10 +1083,12 @@ def resolve_players(spoken: str | None, origin_area: str | None,
     return dflt, _label(dflt, dflt[0]["area"])
 
 
-async def _fetch_players(client: httpx.AsyncClient, headers: dict) -> list[dict]:
+async def _fetch_players(client: httpx.AsyncClient, headers: dict,
+                         origin_device: str | None = None) -> tuple[list[dict], str | None]:
+    """(players, origin_key) from one HA template call."""
     try:
         resp = await client.post(f"{HA_URL}/api/template", headers=headers,
-                                 json={"template": _PLAYERS_TEMPLATE})
+                                 json={"template": _players_template(origin_device)})
     except httpx.HTTPError as e:
         raise HTTPException(status_code=502, detail=f"Home Assistant is unreachable ({type(e).__name__}).")
     if resp.status_code >= 400:
@@ -1050,7 +1098,7 @@ async def _fetch_players(client: httpx.AsyncClient, headers: dict) -> list[dict]
             detail=f"Home Assistant could not list the music players (HTTP {resp.status_code}).",
         )
     try:
-        return parse_players(resp.text)
+        return parse_player_payload(resp.text)
     except ValueError:
         logger.warning("player list template returned non-JSON: %s", resp.text[:300])
         raise HTTPException(status_code=502, detail="Home Assistant returned an unreadable player list.")
@@ -1065,8 +1113,9 @@ async def play_music(req: MusicRequest):
 
     headers = {"Authorization": f"Bearer {HA_TOKEN}", "Content-Type": "application/json"}
     async with httpx.AsyncClient(timeout=10) as client:
-        players = await _fetch_players(client, headers)
-        targets, label = resolve_players(req.player, req.origin_area, players, MUSIC_DEFAULT_PLAYER)
+        players, origin_key = await _fetch_players(client, headers, req.origin_device)
+        targets, label = resolve_players(req.player, req.origin_area, players,
+                                         MUSIC_DEFAULT_PLAYER, origin_key=origin_key)
 
         # The list carries live state, so a powered-off player is caught here
         # with a clear sentence instead of a misleading 200 from the service call.

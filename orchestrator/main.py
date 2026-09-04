@@ -18,6 +18,7 @@ import agents
 import errors
 import render
 import metrics
+import origin
 import routing
 import servers
 import sessions
@@ -289,6 +290,9 @@ async def _run_pipeline(
     rid = new_request_id()
     t_request = time.monotonic()
     emit("request", text_preview=text[:80], model=COORDINATOR_MODEL)
+    if (o := origin.current.get()):
+        # Findable in one step when music lands in the wrong room (tenet 7).
+        emit("origin", device=o.device_id, area=o.area)
 
     assistant_reply: list[str] = []
     stages: list[dict] = []
@@ -598,11 +602,15 @@ def _shim_context(messages, current_text: str) -> list[dict]:
     return ctx
 
 
-async def _kronk_pipeline_tokens(text: str, model: str, context: list[dict] | None = None):
+async def _kronk_pipeline_tokens(text: str, model: str, context: list[dict] | None = None,
+                                 req_origin: origin.Origin | None = None):
     """Shim wrapper around _run_pipeline: token events only.
 
     context: prior conversation turns supplied by the client (HA resends the
     whole conversation each request — the voice path's history lives there).
+    req_origin: the voice satellite that heard the request (origin.py) —
+    held in a request-scoped ContextVar for the whole run so play_music can
+    target it, three async layers down, without a parameter at every hop.
     """
     # Voice "clear my history": confirm and stop. There is no Kronk-side
     # store for shim clients (HA owns and resends voice history; its window
@@ -612,12 +620,13 @@ async def _kronk_pipeline_tokens(text: str, model: str, context: list[dict] | No
         yield {"type": "token", "text": "Done — fresh start."}
         return
 
-    async for ev in _run_pipeline(
-        text, context or [],
-        transport="shim", pipeline_name="pipeline.shim",
-    ):
-        if ev["type"] == "token":
-            yield {"type": "token", "text": ev["text"]}
+    with origin.scope(req_origin):
+        async for ev in _run_pipeline(
+            text, context or [],
+            transport="shim", pipeline_name="pipeline.shim",
+        ):
+            if ev["type"] == "token":
+                yield {"type": "token", "text": ev["text"]}
 
 
 def _openai_chunk(rid: str, model: str, delta: dict, finish_reason: str | None = None) -> str:
@@ -642,10 +651,11 @@ async def _openai_pipeline_stream(text: str, model: str, rid: str,
 
 
 async def _ollama_pipeline_stream(text: str, model: str,
-                                  context: list[dict] | None = None):
+                                  context: list[dict] | None = None,
+                                  req_origin: origin.Origin | None = None):
     """Ollama /api/chat NDJSON framing around the core pipeline."""
     created = time.strftime("%Y-%m-%dT%H:%M:%S.000000000Z", time.gmtime())
-    async for ev in _kronk_pipeline_tokens(text, model, context):
+    async for ev in _kronk_pipeline_tokens(text, model, context, req_origin):
         chunk = {
             "model":      model,
             "created_at": created,
@@ -794,10 +804,11 @@ async def ollama_show():
 
 
 async def _ollama_collect(text: str, model: str,
-                          context: list[dict] | None) -> str:
+                          context: list[dict] | None,
+                          req_origin: origin.Origin | None = None) -> str:
     """Run the pipeline to completion and return the full reply text."""
     parts: list[str] = []
-    async for line in _ollama_pipeline_stream(text, model, context):
+    async for line in _ollama_pipeline_stream(text, model, context, req_origin):
         try:
             obj = json.loads(line)
         except json.JSONDecodeError:
@@ -841,9 +852,12 @@ async def _ollama_chat_impl(req: _OllamaChatRequest, profile: str):
     text = user_msgs[-1].content
     model = COORDINATOR_MODEL
     context = _shim_context(req.messages, text)
+    # The voice satellite that heard the request, stamped by HA onto its
+    # system prompt (origin.py). None for clients that don't stamp.
+    req_origin = origin.from_messages(req.messages)
 
     if profile == "speech":
-        full = render.to_speech(await _ollama_collect(text, model, context))
+        full = render.to_speech(await _ollama_collect(text, model, context, req_origin))
         if req.stream:
             return StreamingResponse(
                 _ollama_single_chunk_stream(full, text, model),
@@ -852,10 +866,10 @@ async def _ollama_chat_impl(req: _OllamaChatRequest, profile: str):
     else:
         if req.stream:
             return StreamingResponse(
-                _ollama_pipeline_stream(text, model, context),
+                _ollama_pipeline_stream(text, model, context, req_origin),
                 media_type="application/x-ndjson",
             )
-        full = await _ollama_collect(text, model, context)
+        full = await _ollama_collect(text, model, context, req_origin)
     return {
         "model":      model,
         "created_at": time.strftime("%Y-%m-%dT%H:%M:%S.000000000Z", time.gmtime()),
