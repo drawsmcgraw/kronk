@@ -123,6 +123,8 @@ Live journal for the Voice PE / HA / Wyoming integration work driven by
   success (MA queues async; HA 200 ≠ playing). Player map + default via
   `MUSIC_PLAYERS` / `MUSIC_DEFAULT_PLAYER` env on `tool_service` — entries
   must be the **MA** entities (`_2` suffixed), not native Sonos/Cast ones.
+  *(Superseded 2026-09-04: the map is gone; players are discovered from
+  HA per request — `docs/plans/MUSIC_PLAYERS_FROM_HA_PLAN.md`.)*
 - **2026-07-03** — **Fixed the voice-path router 400** (pre-existing, hit
   every spoken query that matched a built-in HA intent without a backing
   entity, e.g. "what is the weather" → `no_valid_targets` → fallback to

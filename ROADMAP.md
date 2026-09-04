@@ -71,6 +71,23 @@ the docs use them. 1 and 2 are in Shipped.)*
 
 ## Next — agreed, not started
 
+12. **Voice music, Kronk tier: play on the device that asked** *(added
+    2026-09-04)*. The HA tier does this now (fork of the MA blueprint);
+    fuzzy requests that fall through to Kronk's `play_music` still land
+    on the default. Mechanism verified in HA's source: the Ollama
+    conversation prompt is a Jinja template with `llm_context.device_id`
+    in scope (editable in the UI via Reconfigure, no restart), so one
+    stamped line can carry the satellite's device id and area; the shim
+    reads that one line (keeps dropping the rest), carries it in a
+    request-scoped context variable through the delegation hop, and the
+    tool passes it to tool_service, whose resolver already has the
+    `origin_area` rung — extend it with the device (MAC) rung and group
+    preference to match the fork. Zero added latency. Also pinned nearby:
+    Whisper's tense drift ("Played the album…" transcripts miss both
+    tiers) — try `--initial-prompt` on the wyoming-whisper unit, measured
+    before/after. *Why: the operator's stated ideal, and the fuzzy tier
+    is where natural phrasings land.*
+
 5. **Context/fact cache** — a small keyed store (SQLite table in the
    orchestrator, or in-memory in tool_service) of low-volatility facts with
    per-key TTLs: weather (~15 min), calendar, news top-of-feed, kronk
@@ -254,6 +271,23 @@ the docs use them. 1 and 2 are in Shipped.)*
 
 Newest first; feature docs in `docs/features/`.
 
+- **Voice music plays on the device that asked (HA tier)** *(2026-09-04)*
+  — a Kronk fork of the MA voice blueprint resolves named player → named
+  room → **own device** (MAC join) → own room → default, prefers a room's
+  sync group, and says "playing in the Office" instead of reading device
+  names. Verified by pipeline runs as each satellite; the group rung
+  awaits the second kitchen satellite. Maintenance line: re-apply the
+  three marked changes when MA updates the blueprint. See
+  `docs/features/voice-music-control.md`,
+  `docs/plans/VOICE_MUSIC_DEVICE_FIRST_PLAN.md`.
+- **Music players discovered from HA** *(2026-09-04)* — the compose-side
+  player map is gone; the play tool asks HA for every Music Assistant
+  player with its area and resolves spoken speaker/room in the MA
+  blueprint's own order (name → area → origin area → default), so a new
+  satellite only needs an area in HA. `origin_area` slot reserved for
+  "play from the device that asked". See
+  `docs/features/voice-music-control.md`,
+  `docs/plans/MUSIC_PLAYERS_FROM_HA_PLAN.md`.
 - **Solar dashboard** *(2026-08-27)* — `/solar` page: now-strip, power
   curve, daily energy bars, and the inverter-health heatmap with
   per-panel drill-down (1/7/30/90-day windows); `GET /solar/series`

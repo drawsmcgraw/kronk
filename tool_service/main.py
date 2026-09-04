@@ -887,51 +887,173 @@ HA_TOKEN = os.getenv("HA_TOKEN", "")
 # ── Music Assistant proxy ────────────────────────────────────────────────────
 # Calls HA's `music_assistant.play_media` action. MA runs its own fuzzy search
 # across providers for the media string, so `media_id` is free text ("pink
-# floyd", "wish you were here"). Player resolution is a fixed env-configured
-# map of spoken name → HA entity_id of the *Music Assistant* player entity
-# (platform music_assistant — NOT the native Sonos/Cast entity, which MA
-# cannot drive).
+# floyd", "wish you were here").
+#
+# Players are discovered from HA at request time (docs/plans/
+# MUSIC_PLAYERS_FROM_HA_PLAN.md): one template call lists every media_player
+# the Music Assistant integration registered — exactly the set MA can drive
+# (the native Sonos/Cast entities are not in it) — with friendly name, area
+# and state. Resolution follows the MA voice blueprint's own order so the
+# fast local tier and this tier agree: spoken player name → spoken area →
+# origin area → MUSIC_DEFAULT_PLAYER. Membership is by integration, not by
+# the `mass_player_type` attribute: an unavailable player drops its
+# attributes (observed 2026-09-04). `area_name(entity)` resolves through the
+# device when the entity has no area of its own — how the satellites are set.
 #
 # play_media returns 200 as soon as MA queues the request; provider failures
 # (expired YouTube Music auth, etc.) happen asynchronously during stream
-# start. So success here is defined as "the player actually reached
+# start. So success here is defined as "a target actually reached
 # `playing`", verified by polling — a 200 from HA alone is not success.
 
+# The one preference discovery can't answer: where music goes when the
+# request names no speaker/room and has no origin (the web UI).
 MUSIC_DEFAULT_PLAYER = os.getenv("MUSIC_DEFAULT_PLAYER", "")
-# Format: "sonos move:media_player.a, kitchen:media_player.b"
-MUSIC_PLAYERS = {
-    name.strip().lower(): entity.strip()
-    for name, _, entity in (
-        pair.partition(":") for pair in os.getenv("MUSIC_PLAYERS", "").split(",") if ":" in pair
-    )
-}
 
-MUSIC_VERIFY_TIMEOUT_S = 8   # how long to wait for the player to reach `playing`
+MUSIC_VERIFY_TIMEOUT_S = 8   # how long to wait for a player to reach `playing`
+
+_PLAYERS_TEMPLATE = (
+    "{% set ns = namespace(out=[]) %}"
+    "{% for e in integration_entities('music_assistant') if e.startswith('media_player.') %}"
+    "{% set ns.out = ns.out + [{'entity_id': e, 'name': state_attr(e, 'friendly_name'), "
+    "'area': area_name(e), 'state': states(e)}] %}"
+    "{% endfor %}{{ ns.out | to_json }}"
+)
 
 
 class MusicRequest(BaseModel):
     query: str
     media_type: str | None = None   # artist | album | track | playlist | radio
-    player: str | None = None       # spoken player name; None → default player
+    player: str | None = None       # spoken speaker OR room, as the user said it
+    origin_area: str | None = None  # area the request came from (voice satellite); reserved
 
 
-def _resolve_player(spoken: str | None) -> tuple[str, str] | None:
-    """Resolve a spoken player name → (entity_id, speakable label)."""
-    if not spoken:
-        if not MUSIC_DEFAULT_PLAYER:
-            return None
-        for name, entity in MUSIC_PLAYERS.items():
-            if entity == MUSIC_DEFAULT_PLAYER:
-                return MUSIC_DEFAULT_PLAYER, f"the {name} speaker"
-        return MUSIC_DEFAULT_PLAYER, "the default speaker"
-    key = spoken.strip().lower()
-    if key in MUSIC_PLAYERS:
-        return MUSIC_PLAYERS[key], f"the {key} speaker"
-    # tolerate partial names ("the sonos" / "sonos move speaker")
-    for name, entity in MUSIC_PLAYERS.items():
-        if name in key or key in name:
-            return entity, f"the {name} speaker"
-    return None
+def parse_players(raw: str) -> list[dict]:
+    """HA template output → [{entity_id, name, area, state}] (ValueError if not a list)."""
+    data = json.loads(raw)
+    if not isinstance(data, list):
+        raise ValueError("player list is not a JSON array")
+    out = []
+    for p in data:
+        if not isinstance(p, dict) or not p.get("entity_id"):
+            continue
+        out.append({
+            "entity_id": p["entity_id"],
+            "name": p.get("name") or p["entity_id"],
+            "area": p.get("area") or None,
+            "state": p.get("state") or "unknown",
+        })
+    return out
+
+
+def _norm(s: str | None) -> str:
+    """Case/punctuation-insensitive key: 'the Office speaker' → 'office'."""
+    s = " ".join((s or "").lower().replace("-", " ").replace("_", " ").split())
+    s = re.sub(r"^(the|my)\s+", "", s)
+    s = re.sub(r"\s+(speakers?|players?|room)$", "", s)
+    return s
+
+
+def _label(targets: list[dict], area: str | None) -> str:
+    if area:
+        return f"the {area} speaker{'s' if len(targets) > 1 else ''}"
+    return f"the {targets[0]['name']} speaker"
+
+
+def _by_area(players: list[dict], area: str) -> list[dict]:
+    return [p for p in players if p["area"] and _norm(p["area"]) == _norm(area)]
+
+
+def resolve_players(spoken: str | None, origin_area: str | None,
+                    players: list[dict], default_entity: str) -> tuple[list[dict], str]:
+    """Blueprint order: player name → area name → origin area → default.
+
+    Returns (targets, speakable label). Raises HTTPException carrying the
+    sentence the voice pipeline will speak.
+    """
+    if not players:
+        raise HTTPException(
+            status_code=503,
+            detail="Home Assistant lists no Music Assistant players — is Music Assistant running and connected?",
+        )
+    if spoken and spoken.strip():
+        key = _norm(spoken)
+        areas = sorted({p["area"] for p in players if p["area"]}, key=str.lower)
+
+        def _pick_name(cands: list[dict]) -> tuple[list[dict], str] | None:
+            if len(cands) > 1:
+                names = ", ".join(p["name"] for p in cands)
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"'{spoken}' matches more than one speaker: {names}. Say which one.",
+                )
+            return (cands, _label(cands, None)) if cands else None
+
+        def _pick_area(hit: list[str]) -> tuple[list[dict], str] | None:
+            if len(hit) > 1:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"'{spoken}' matches more than one room: {', '.join(hit)}. Say which one.",
+                )
+            if not hit:
+                return None
+            targets = _by_area(players, hit[0])
+            return targets, _label(targets, hit[0])
+
+        # The blueprint matches exactly, name before area. Substring tolerance
+        # ("the sonos", "sonos move speaker") comes AFTER both exact rungs so
+        # a room name inside a device name ("kitchen" in "kitchen-voice-pe-ma")
+        # never steals a room request from the area.
+        if picked := _pick_name([p for p in players if _norm(p["name"]) == key]):
+            return picked                                                   # 1. exact player name
+        if picked := _pick_area([a for a in areas if _norm(a) == key]):
+            return picked                                                   # 2. exact area
+        if key and (picked := _pick_name([p for p in players
+                                          if key in _norm(p["name"]) or _norm(p["name"]) in key])):
+            return picked                                                   # 3. substring player name
+        if key and (picked := _pick_area([a for a in areas
+                                          if key in _norm(a) or _norm(a) in key])):
+            return picked                                                   # 4. substring area
+        known_names = ", ".join(sorted(p["name"] for p in players))
+        known_areas = ", ".join(areas) or "none assigned"
+        raise HTTPException(
+            status_code=400,
+            detail=(f"I don't know a speaker or room called '{spoken}'. "
+                    f"Speakers: {known_names}. Rooms with a speaker: {known_areas}."),
+        )
+    # 3. origin area (the satellite that heard the request)
+    if origin_area:
+        targets = _by_area(players, origin_area)
+        if targets:
+            return targets, _label(targets, targets[0]["area"])
+    # 4. default
+    if not default_entity:
+        raise HTTPException(status_code=400, detail="No speaker named and no default speaker is configured.")
+    dflt = [p for p in players if p["entity_id"] == default_entity]
+    if not dflt:
+        raise HTTPException(
+            status_code=503,
+            detail=f"The default speaker '{default_entity}' is not registered with Music Assistant in Home Assistant.",
+        )
+    return dflt, _label(dflt, dflt[0]["area"])
+
+
+async def _fetch_players(client: httpx.AsyncClient, headers: dict) -> list[dict]:
+    try:
+        resp = await client.post(f"{HA_URL}/api/template", headers=headers,
+                                 json={"template": _PLAYERS_TEMPLATE})
+    except httpx.HTTPError as e:
+        raise HTTPException(status_code=502, detail=f"Home Assistant is unreachable ({type(e).__name__}).")
+    if resp.status_code >= 400:
+        logger.warning("player list template failed (%s): %s", resp.status_code, resp.text[:300])
+        raise HTTPException(
+            status_code=502,
+            detail=f"Home Assistant could not list the music players (HTTP {resp.status_code}).",
+        )
+    try:
+        return parse_players(resp.text)
+    except ValueError:
+        logger.warning("player list template returned non-JSON: %s", resp.text[:300])
+        raise HTTPException(status_code=502, detail="Home Assistant returned an unreadable player list.")
 
 
 @app.post("/music")
@@ -941,32 +1063,24 @@ async def play_music(req: MusicRequest):
     if not req.query.strip():
         raise HTTPException(status_code=400, detail="query must not be empty")
 
-    resolved = _resolve_player(req.player)
-    if resolved is None:
-        known = ", ".join(sorted(MUSIC_PLAYERS)) or "none configured"
-        raise HTTPException(
-            status_code=400,
-            detail=f"Unknown speaker '{req.player}'. Known speakers: {known}.",
-        )
-    entity, label = resolved
-
     headers = {"Authorization": f"Bearer {HA_TOKEN}", "Content-Type": "application/json"}
     async with httpx.AsyncClient(timeout=10) as client:
-        # Pre-check: catch a powered-off / missing player with a clear message
-        # instead of a misleading 200 from the service call.
-        state_resp = await client.get(f"{HA_URL}/api/states/{entity}", headers=headers)
-        if state_resp.status_code == 404:
-            raise HTTPException(status_code=503, detail=f"Player entity '{entity}' does not exist in Home Assistant.")
-        if state_resp.status_code >= 400:
-            raise HTTPException(status_code=502, detail=f"HA state check returned {state_resp.status_code}.")
-        friendly = state_resp.json().get("attributes", {}).get("friendly_name", entity)
-        if state_resp.json().get("state") == "unavailable":
+        players = await _fetch_players(client, headers)
+        targets, label = resolve_players(req.player, req.origin_area, players, MUSIC_DEFAULT_PLAYER)
+
+        # The list carries live state, so a powered-off player is caught here
+        # with a clear sentence instead of a misleading 200 from the service call.
+        live = [t for t in targets if t["state"] != "unavailable"]
+        if not live:
+            names = " and ".join(t["name"] for t in targets)
+            verb = "is" if len(targets) == 1 else "are"
             raise HTTPException(
                 status_code=503,
-                detail=f"The speaker '{friendly}' is unavailable — it may be powered off or asleep.",
+                detail=f"{names} {verb} unavailable — it may be powered off or asleep.",
             )
+        entities = [t["entity_id"] for t in live]
 
-        payload = {"entity_id": entity, "media_id": req.query}
+        payload = {"entity_id": entities, "media_id": req.query}
         if req.media_type:
             payload["media_type"] = req.media_type
         resp = await client.post(
@@ -982,25 +1096,27 @@ async def play_music(req: MusicRequest):
                 detail=f"Music Assistant rejected the request (HTTP {resp.status_code}).",
             )
 
-        # Verify playback actually started (see header comment).
+        # Verify playback actually started (see header comment): any target
+        # reaching `playing` is success.
         deadline = asyncio.get_event_loop().time() + MUSIC_VERIFY_TIMEOUT_S
         while asyncio.get_event_loop().time() < deadline:
             await asyncio.sleep(1)
-            state = (await client.get(f"{HA_URL}/api/states/{entity}", headers=headers)).json()
-            if state.get("state") == "playing":
-                attrs = state.get("attributes", {})
-                return {
-                    "status": "playing",
-                    "player": label,
-                    "artist": attrs.get("media_artist"),
-                    "title":  attrs.get("media_title"),
-                }
+            for entity in entities:
+                state = (await client.get(f"{HA_URL}/api/states/{entity}", headers=headers)).json()
+                if state.get("state") == "playing":
+                    attrs = state.get("attributes", {})
+                    return {
+                        "status": "playing",
+                        "player": label,
+                        "artist": attrs.get("media_artist"),
+                        "title":  attrs.get("media_title"),
+                    }
 
     raise HTTPException(
         status_code=502,
         detail=(
             "Music Assistant accepted the request but playback did not start "
-            f"on '{friendly}' within {MUSIC_VERIFY_TIMEOUT_S}s — the music "
+            f"on {label} within {MUSIC_VERIFY_TIMEOUT_S}s — the music "
             "provider may need re-authentication in Music Assistant."
         ),
     )

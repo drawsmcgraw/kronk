@@ -418,7 +418,7 @@ TOOL_DEFINITIONS = [
                     },
                     "player": {
                         "type": "string",
-                        "description": "Which speaker to play on, as the user named it (e.g. 'sonos move', 'kitchen'). Omit for the default speaker.",
+                        "description": "Which speaker OR room to play in, exactly as the user said it (e.g. 'the office', 'kitchen', 'sonos move'). Omit when the user named none.",
                     },
                 },
                 "required": ["query"],

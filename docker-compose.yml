@@ -95,9 +95,12 @@ services:
       - SOLAR_HOST=http://sunpower-bridge.home.hippiehouse.net
       - SOLAR_SERIAL=${SOLAR_SERIAL}
       # Music Assistant playback (POST /music → HA music_assistant.play_media).
-      # Spoken name → HA entity_id of the *MA* player entity (platform
-      # music_assistant, not the native Sonos/Cast entity).
-      - MUSIC_PLAYERS=sonos move:media_player.sonos_move_derp_2,kitchen:media_player.home_assistant_voice_0ac919_pe_01
+      # Players are discovered from HA at request time — every media_player
+      # the Music Assistant integration registered, with its area — so a new
+      # satellite only needs an area in HA. The one preference discovery
+      # can't answer: where music goes when nothing is named and the request
+      # has no origin (the web UI). Must be an MA entity (platform
+      # music_assistant, not the native Sonos/Cast one).
       - MUSIC_DEFAULT_PLAYER=media_player.home_assistant_voice_0ac919_pe_01
       # MagicMirror Pi (POST /magicmirror/update → SSH; the script backs up,
       # updates, restarts pm2, verifies). tool_service stages MM_SCRIPT to

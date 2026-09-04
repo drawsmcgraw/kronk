@@ -232,7 +232,7 @@ AGENTS: dict[str, AgentConfig] = {
             "'Which panel produced the most/least energy' is an ENERGY question → solar_energy (lifetime), "
             "not solar_detail (which is about faults/health from recent power, not cumulative production).\n"
             "Use play_music when the user asks to play or put on music. Pass what they want to hear "
-            "as the query; name the speaker only if the user did. Call play_music at most once — "
+            "as the query; pass the speaker or room only if the user named one. Call play_music at most once — "
             "when it reports music playing, report that back and stop. If the tool reports failure, tell "
             "the user playback failed and why — never claim music is playing after a failed tool call.\n"
             "Use update_magicmirror when the user asks to update or upgrade the magic mirror. "
