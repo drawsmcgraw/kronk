@@ -4,11 +4,11 @@ Adding music streaming on top of the existing voice/HA stack so the Voice PE
 (and any other media_player devices HA sees) can play from a streaming
 service. Synology NAS music comes later as Phase 6+.
 
-Status: **shipped through Phase 5** (MA running — `docker-compose.ma.yml`,
-project `kronk-ma`). **Phase 7 (voice control) shipped 2026-07-03** via a
-different design than sketched here — see
-`../features/voice-music-control.md`. **Phase 6 (Synology NAS music) is the
-only open remnant** — tracked in `ROADMAP.md` (Later). Written 2026-05-31.
+Status: **all phases shipped.** Phases 1–5 2026-06; **Phase 7 (voice
+control) 2026-07-03** via a different design than sketched here — see
+`../features/voice-music-control.md`; **Phase 6 (Synology NAS music)
+2026-09-04** — host-side read-only CIFS mount bound into the container,
+no container caps; see the Phase 6 section. Written 2026-05-31.
 
 ---
 
@@ -148,17 +148,47 @@ No code changes needed. Just confirm what's on the table.
 - Verify play/pause/next from HA UI also works (proves the integration is
   wired both ways)
 
-### Phase 6 (later) — Synology NAS music
+### Phase 6 — Synology NAS music (decided + built 2026-09-04)
 
-Two viable paths, pick when we get there:
+Options weighed (operator conversation 2026-09-04): (1) host mounts the
+share, read-only bind into MA, MA's local filesystem provider; (2) same
+but Docker's volume driver does the mount — fails MA startup when the
+NAS is down; (3) Navidrome/Plex/Jellyfin on the Synology, MA as an HTTP
+client — cleanest boundary, one more service to run and pin; (4) MA's
+in-container SMB/NFS provider — needs `SYS_ADMIN` + `DAC_READ_SEARCH` +
+AppArmor off on a host-networked container; rejected again on tenet 10.
+**Chosen: (1) over SMB** — the operator created a read-only NAS user
+`kronk`; SMB authenticates per user (NFS would have keyed on kronk's IP,
+which is DHCP). NFS vs SMB is otherwise a wash for one Linux reader.
 
-- **Subsonic API**: install Subsonic or [Navidrome](https://www.navidrome.org/)
-  on the Synology (Navidrome is the modern Subsonic-compatible server,
-  Docker image available). MA has native Subsonic support — just point
-  at the URL.
-- **SMB mount**: enable MA's optional SMB mount feature, point at the NAS
-  share. **This is where we'd need the elevated caps** the docs recommend.
-  Decide if the security trade is worth it; Subsonic is cleaner.
+Design:
+- Host: `cifs-utils`; credentials root-only at `/etc/kronk/nas-music.cred`
+  (never in the repo); fstab `//atlas.local/music → /mnt/nas-music`
+  read-only (SMB version negotiated — the Synology refused a pinned 3.1.1, kernel log "Dialect not supported by server"), `ip=192.168.1.14` so the mount never waits on mDNS at boot,
+  `nofail,_netdev` so a NAS outage never blocks boot (the dir is just
+  empty until `sudo mount /mnt/nas-music`).
+- Container: bind `/mnt/nas-music → /media/nas`, `read_only`,
+  propagation `rslave` so a later host (re)mount shows up without a
+  restart (Docker's default private propagation would hide it).
+- Three read-only layers: NAS user, mount, bind. No container caps.
+- MA: "Filesystem (local)" provider at `/media/nas` (added in MA's UI).
+- Known cost: CIFS metadata is slower than NFS — the first library scan
+  of a large collection takes longer; playback unaffected.
+
+Steps: operator runs the sudo block (package, credentials file with the
+password filled in, mount point, fstab line, first mount) → compose
+`up -d music-assistant` → verify `/media/nas` lists the library from
+inside the container → provider in MA UI → play a NAS track on a
+satellite by voice → docs.
+
+Built 2026-09-04: first mount failed with kernel "Dialect not supported
+by server" — the Synology's maximum SMB protocol was below SMB3; the
+operator raised it to SMB3 and the mount negotiated 3.1.1 (the fstab
+line pins no version). Verified inside the container: 250 entries at
+`/media/nas`, `touch` fails with "Read-only file system". The share
+exposes Synology's `#recycle` folder — restrict the recycle bin to
+administrators on the NAS (Shared Folder → Edit → Recycle Bin) so MA
+never scans deleted files.
 
 ### Phase 7 (later, much later) — Kronk voice control of music
 

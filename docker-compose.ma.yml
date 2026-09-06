@@ -22,8 +22,11 @@
 #
 # Security: starts with default Docker caps. The upstream MA sample adds
 # `SYS_ADMIN` + `DAC_READ_SEARCH` + `apparmor:unconfined` for the in-container
-# SMB mount feature; we don't use that (Phase 6 will use Subsonic/Navidrome
-# over HTTP to the Synology instead). Re-add only if we ever need SMB mounts.
+# SMB mount feature; we don't use that. The Synology music share is mounted
+# by the HOST (read-only CIFS, /etc/fstab, credentials root-only under
+# /etc/kronk/) and bind-mounted read-only into the container as /media/nas
+# (Phase 6, 2026-09-04 — docs/plans/MUSIC_ASSISTANT_PLAN.md). Three
+# read-only layers: NAS user, mount, bind. Never add the caps for this.
 #
 # Resource use: MA docs note 2 GB RAM minimum, 4 GB+ recommended when sharing
 # a host with other workloads. pot-provider is tiny (Node.js, ~50 MB). Neither
@@ -50,12 +53,21 @@ services:
     image: ghcr.io/music-assistant/server:2.8.8
     container_name: music-assistant-server
     network_mode: host
-    # Intentionally NO cap_add / security_opt — we don't need SMB mount support
-    # (Synology will be reached via Subsonic/Navidrome over HTTP in Phase 6).
-    # See docs/MUSIC_ASSISTANT_PLAN.md for the security rationale.
+    # Intentionally NO cap_add / security_opt — the NAS share is mounted by
+    # the host, not by the container (see the Security note above).
     volumes:
       - ma-config:/data
       - /etc/localtime:/etc/localtime:ro
+      # Synology music (host CIFS mount at /mnt/nas-music, see /etc/fstab).
+      # rslave: if the host (re)mounts after a NAS outage, the container sees
+      # it without a restart. MA's "Filesystem (local)" provider points at
+      # /media/nas.
+      - type: bind
+        source: /mnt/nas-music
+        target: /media/nas
+        read_only: true
+        bind:
+          propagation: rslave
     environment:
       - TZ=America/New_York
       - LOG_LEVEL=info

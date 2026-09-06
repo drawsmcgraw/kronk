@@ -696,6 +696,7 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
                     t_tool = time.monotonic()
                     emit("tool_call", agent=agent.name, tool=fn_name, args=list(fn_args.keys()))
                     tool_span = agent_span.child_span(f"tool.{fn_name}", input=fn_args)
+                    delegated_terminal = False
                     try:
                         if fn_name.startswith("ask_"):
                             # Agent-as-tool: delegate to a specialist. The
@@ -704,7 +705,8 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
                             if sub is None:
                                 result = f"[no such specialist: {fn_name[4:]}]"
                             else:
-                                result = await run(sub, fn_args.get("query") or task, [])
+                                result, delegated_terminal = await run_delegated(
+                                    sub, fn_args.get("query") or task, [])
                         else:
                             result = await tools.execute(fn_name, fn_args)
                     except Exception as e:
@@ -719,6 +721,19 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
                     )
                     seen_calls.add(key)
 
+                    # A specialist that ended on a TERMINAL tool has already
+                    # spoken the answer ("Now playing …", "I couldn't play
+                    # that. Playback failed for …"). Relay it verbatim and
+                    # end this turn — a synthesis round here is where the
+                    # cause got reworded into "can't play music right now"
+                    # (ERROR_SURFACING_PLAN; the news_brief rule generalized).
+                    if delegated_terminal:
+                        emit("terminal_passthrough", agent=agent.name, tool=fn_name)
+                        last_round_text = result
+                        yield {"type": "token", "text": result}
+                        yield {"type": "done", "model": agent.model, "ok": True, "terminal": fn_name}
+                        return
+
                     # Terminal tool: the result IS the answer — speak it and
                     # end the turn (see AgentConfig.terminal_tools).
                     if fn_name in agent.terminal_tools:
@@ -728,7 +743,9 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
                         last_round_text = _terminal_speech(result, error_style,
                                                            tool=fn_name)
                         yield {"type": "token", "text": last_round_text}
-                        yield {"type": "done", "model": agent.model, "ok": True}
+                        # `terminal` lets a delegating coordinator relay this
+                        # verbatim instead of synthesizing (run_delegated).
+                        yield {"type": "done", "model": agent.model, "ok": True, "terminal": fn_name}
                         return
 
                     # Repeat-call guardrail: models re-issue the same tool
@@ -831,19 +848,32 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
         agent_span.end(output=last_round_text or None)
 
 
-async def run(agent: AgentConfig, task: str, context: list[dict]) -> str:
-    """Non-streaming convenience wrapper — collects all tokens from run_stream."""
+async def run_delegated(agent: AgentConfig, task: str, context: list[dict]) -> tuple[str, bool]:
+    """Run a specialist for a delegating agent: (text, ended_on_terminal_tool).
+
+    The flag is how a terminal result (spoken verbatim by the specialist)
+    survives the hop back to the coordinator without a synthesis round."""
     parts: list[str] = []
     error: str | None = None
+    terminal = False
     async for ev in run_stream(agent, task, context):
         t = ev.get("type")
         if t == "token":
             parts.append(ev["text"])
         elif t == "error":
             error = ev["message"]
+        elif t == "done" and ev.get("terminal"):
+            terminal = True
     if error and not parts:
-        return error
-    return "".join(parts) or error or f"[{agent.name} agent returned no response]"
+        return error, False
+    text = "".join(parts) or error or f"[{agent.name} agent returned no response]"
+    return text, terminal and bool(parts)
+
+
+async def run(agent: AgentConfig, task: str, context: list[dict]) -> str:
+    """Non-streaming convenience wrapper — collects all tokens from run_stream."""
+    text, _ = await run_delegated(agent, task, context)
+    return text
 
 
 def roster() -> list[dict]:

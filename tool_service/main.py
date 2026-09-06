@@ -645,6 +645,69 @@ ANNOUNCE_SATELLITE = os.getenv(
     "assist_satellite.home_assistant_voice_0ac919_assist_satellite")
 
 
+# ── HA service calls over the websocket ──────────────────────────────────────
+# HA's REST API drops the reason a service call failed: a HomeAssistantError
+# raised inside the integration is not caught by the API view, so aiohttp
+# answers a bare "500 Internal Server Error" and the message ("Playback
+# failed for Portishead Radio - no more tracks available") lives only in
+# HA's log. The websocket `call_service` returns it (error code
+# home_assistant_error + message). Tenet 7: the most specific cause must
+# reach the user — so anything that can fail with a message goes this way;
+# REST stays for state reads. docs/plans/ERROR_SURFACING_PLAN.md
+
+HA_WS_TIMEOUT_S = 20
+
+
+class HAServiceError(Exception):
+    """A service call HA refused, carrying HA's own message."""
+
+
+def _ha_ws_url() -> str:
+    base = HA_URL.rstrip("/")
+    return base.replace("https://", "wss://", 1).replace("http://", "ws://", 1) + "/api/websocket"
+
+
+async def ha_call_service(domain: str, service: str, service_data: dict | None = None,
+                          target: dict | None = None) -> None:
+    """Call an HA service and return on success; raise HAServiceError with
+    HA's message on failure. Connection/auth problems raise HAServiceError
+    too, with a transport-flavoured message."""
+    import websockets  # local import: the test suite stubs this function
+
+    msg_id = 1
+    try:
+        async with websockets.connect(_ha_ws_url(), open_timeout=HA_WS_TIMEOUT_S,
+                                      close_timeout=5) as ws:
+            hello = json.loads(await asyncio.wait_for(ws.recv(), HA_WS_TIMEOUT_S))
+            if hello.get("type") != "auth_required":
+                raise HAServiceError(f"Home Assistant websocket did not ask for auth ({hello.get('type')}).")
+            await ws.send(json.dumps({"type": "auth", "access_token": HA_TOKEN}))
+            auth = json.loads(await asyncio.wait_for(ws.recv(), HA_WS_TIMEOUT_S))
+            if auth.get("type") != "auth_ok":
+                raise HAServiceError("Home Assistant rejected the token.")
+            req = {"id": msg_id, "type": "call_service", "domain": domain, "service": service,
+                   "service_data": service_data or {}}
+            if target:
+                req["target"] = target
+            await ws.send(json.dumps(req))
+            while True:
+                resp = json.loads(await asyncio.wait_for(ws.recv(), HA_WS_TIMEOUT_S))
+                if resp.get("id") != msg_id or resp.get("type") != "result":
+                    continue
+                if resp.get("success"):
+                    return
+                err = resp.get("error") or {}
+                message = (err.get("message") or "").strip() or f"{domain}.{service} failed ({err.get('code', 'unknown')})."
+                logger.warning("HA %s.%s failed: code=%s message=%s", domain, service, err.get("code"), message)
+                raise HAServiceError(message)
+    except HAServiceError:
+        raise
+    except (OSError, asyncio.TimeoutError) as e:
+        raise HAServiceError(f"Home Assistant is unreachable ({type(e).__name__}).") from e
+    except Exception as e:  # websocket protocol errors etc.
+        raise HAServiceError(f"Home Assistant websocket error ({type(e).__name__}).") from e
+
+
 async def _ha_announce(message: str, satellite: str = ANNOUNCE_SATELLITE) -> bool:
     """Speak `message` on a satellite outside the conversation flow. Returns
     success; never raises — announcement is a notification layer, not truth."""
@@ -652,18 +715,10 @@ async def _ha_announce(message: str, satellite: str = ANNOUNCE_SATELLITE) -> boo
         logger.warning("announce skipped: HA_TOKEN not configured")
         return False
     try:
-        async with httpx.AsyncClient(timeout=15) as client:
-            resp = await client.post(
-                f"{HA_URL}/api/services/assist_satellite/announce",
-                headers={"Authorization": f"Bearer {HA_TOKEN}",
-                         "Content-Type": "application/json"},
-                json={"entity_id": satellite, "message": message})
-        if resp.status_code // 100 != 2:
-            logger.error("announce failed (HTTP %s): %s",
-                         resp.status_code, resp.text[:200])
-            return False
+        await ha_call_service("assist_satellite", "announce",
+                              {"message": message}, target={"entity_id": satellite})
         return True
-    except Exception as e:
+    except HAServiceError as e:
         logger.error("announce failed: %s", e)
         return False
 
@@ -1129,21 +1184,19 @@ async def play_music(req: MusicRequest):
             )
         entities = [t["entity_id"] for t in live]
 
-        payload = {"entity_id": entities, "media_id": req.query}
+        service_data = {"media_id": req.query}
         if req.media_type:
-            payload["media_type"] = req.media_type
-        resp = await client.post(
-            f"{HA_URL}/api/services/music_assistant/play_media",
-            headers=headers, json=payload,
-        )
-        if resp.status_code >= 400:
-            # Full body (often an HTML error page) goes to the log only —
-            # the detail string ends up spoken aloud by the voice pipeline.
-            logger.warning("play_media failed (%s): %s", resp.status_code, resp.text[:300])
-            raise HTTPException(
-                status_code=502,
-                detail=f"Music Assistant rejected the request (HTTP {resp.status_code}).",
-            )
+            service_data["media_type"] = req.media_type
+        # Over the websocket so a failure carries HA's / MA's own message
+        # (the REST API drops it — see ha_call_service). A failed call still
+        # gets the verify poll below: MA has been seen to fail the call AND
+        # start playing (2026-09-04, "put on some jazz").
+        failure: str | None = None
+        try:
+            await ha_call_service("music_assistant", "play_media", service_data,
+                                  target={"entity_id": entities})
+        except HAServiceError as e:
+            failure = str(e)
 
         # Verify playback actually started (see header comment): any target
         # reaching `playing` is success.
@@ -1153,6 +1206,8 @@ async def play_music(req: MusicRequest):
             for entity in entities:
                 state = (await client.get(f"{HA_URL}/api/states/{entity}", headers=headers)).json()
                 if state.get("state") == "playing":
+                    if failure:
+                        logger.warning("play_media reported failure but %s is playing: %s", entity, failure)
                     attrs = state.get("attributes", {})
                     return {
                         "status": "playing",
@@ -1161,6 +1216,16 @@ async def play_music(req: MusicRequest):
                         "title":  attrs.get("media_title"),
                     }
 
+    if failure:
+        # HA's / MA's own sentence, spoken as-is ("Playback failed for
+        # Portishead Radio - no more tracks available"). Prefixed only when
+        # the message doesn't already say what failed. MA renders the
+        # unresolved query as a Python list — "['Zorblax Radio']" — which a
+        # TTS engine reads bracket by bracket; unwrap that one shape.
+        failure = re.sub(r"\['([^']*)'\]", r"\1", failure)
+        detail = failure if failure.lower().startswith(("playback", "music", "home assistant")) \
+            else f"Playback failed: {failure}"
+        raise HTTPException(status_code=502, detail=detail)
     raise HTTPException(
         status_code=502,
         detail=(

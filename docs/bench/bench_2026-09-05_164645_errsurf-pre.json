@@ -1,0 +1,437 @@
+{
+  "label": "errsurf-pre",
+  "started_at": "2026-09-05T16:46:45-04:00",
+  "finished_at": "2026-09-05T16:48:31-04:00",
+  "reps": 3,
+  "results": [
+    {
+      "id": "direct_short",
+      "transport": "message",
+      "rep": 1,
+      "wall_s": 0.46,
+      "timing": {
+        "model": "gemma-4-e4b",
+        "stages": [
+          {
+            "tool": "routing",
+            "label": "routing",
+            "service": "orchestrator",
+            "s": 0.0
+          }
+        ],
+        "ttft_s": 0.07,
+        "generation_s": 0.37
+      },
+      "stream_tokens": 30
+    },
+    {
+      "id": "direct_long",
+      "transport": "message",
+      "rep": 1,
+      "wall_s": 1.38,
+      "timing": {
+        "model": "gemma-4-e4b",
+        "stages": [
+          {
+            "tool": "routing",
+            "label": "routing",
+            "service": "orchestrator",
+            "s": 0.0
+          }
+        ],
+        "ttft_s": 0.07,
+        "generation_s": 1.28
+      },
+      "stream_tokens": 110
+    },
+    {
+      "id": "weather_now",
+      "transport": "message",
+      "rep": 1,
+      "wall_s": 5.55,
+      "timing": {
+        "model": "gemma-4-e4b",
+        "stages": [
+          {
+            "tool": "routing",
+            "label": "routing",
+            "service": "orchestrator",
+            "s": 0.0
+          },
+          {
+            "tool": "delegate_home",
+            "label": "home agent",
+            "service": "orchestrator",
+            "s": 5.53,
+            "ok": true
+          }
+        ],
+        "ttft_s": 5.25,
+        "generation_s": 0.28
+      },
+      "stream_tokens": 23
+    },
+    {
+      "id": "weather_umbrella",
+      "transport": "message",
+      "rep": 1,
+      "wall_s": 3.53,
+      "timing": {
+        "model": "gemma-4-e4b",
+        "stages": [
+          {
+            "tool": "routing",
+            "label": "routing",
+            "service": "orchestrator",
+            "s": 0.0
+          }
+        ],
+        "ttft_s": 3.3,
+        "generation_s": 0.21
+      },
+      "stream_tokens": 21
+    },
+    {
+      "id": "shopping_list",
+      "transport": "message",
+      "rep": 1,
+      "wall_s": 3.66,
+      "timing": {
+        "model": "gemma-4-e4b",
+        "stages": [
+          {
+            "tool": "routing",
+            "label": "routing",
+            "service": "orchestrator",
+            "s": 0.0
+          }
+        ],
+        "ttft_s": 3.55,
+        "generation_s": 0.09
+      },
+      "stream_tokens": 8
+    },
+    {
+      "id": "research_bios",
+      "transport": "message",
+      "rep": 1,
+      "wall_s": 13.77,
+      "timing": {
+        "model": "gemma-4-e4b",
+        "stages": [
+          {
+            "tool": "routing",
+            "label": "routing",
+            "service": "orchestrator",
+            "s": 0.0
+          }
+        ],
+        "ttft_s": 13.38,
+        "generation_s": 0.36
+      },
+      "stream_tokens": 30
+    },
+    {
+      "id": "shim_timezone",
+      "transport": "openai",
+      "rep": 1,
+      "wall_s": 0.18,
+      "timing": null,
+      "stream_tokens": 3
+    },
+    {
+      "id": "shim_weather",
+      "transport": "ollama",
+      "rep": 1,
+      "wall_s": 3.97,
+      "timing": null,
+      "stream_tokens": 32
+    },
+    {
+      "id": "direct_short",
+      "transport": "message",
+      "rep": 2,
+      "wall_s": 2.62,
+      "timing": {
+        "model": "gemma-4-e4b",
+        "stages": [
+          {
+            "tool": "routing",
+            "label": "routing",
+            "service": "orchestrator",
+            "s": 0.0
+          }
+        ],
+        "ttft_s": 2.23,
+        "generation_s": 0.37
+      },
+      "stream_tokens": 31
+    },
+    {
+      "id": "direct_long",
+      "transport": "message",
+      "rep": 2,
+      "wall_s": 3.65,
+      "timing": {
+        "model": "gemma-4-e4b",
+        "stages": [
+          {
+            "tool": "routing",
+            "label": "routing",
+            "service": "orchestrator",
+            "s": 0.0
+          }
+        ],
+        "ttft_s": 2.47,
+        "generation_s": 1.16
+      },
+      "stream_tokens": 97
+    },
+    {
+      "id": "weather_now",
+      "transport": "message",
+      "rep": 2,
+      "wall_s": 2.48,
+      "timing": {
+        "model": "gemma-4-e4b",
+        "stages": [
+          {
+            "tool": "routing",
+            "label": "routing",
+            "service": "orchestrator",
+            "s": 0.0
+          },
+          {
+            "tool": "delegate_home",
+            "label": "home agent",
+            "service": "orchestrator",
+            "s": 2.46,
+            "ok": true
+          }
+        ],
+        "ttft_s": 2.19,
+        "generation_s": 0.27
+      },
+      "stream_tokens": 24
+    },
+    {
+      "id": "weather_umbrella",
+      "transport": "message",
+      "rep": 2,
+      "wall_s": 2.65,
+      "timing": {
+        "model": "gemma-4-e4b",
+        "stages": [
+          {
+            "tool": "routing",
+            "label": "routing",
+            "service": "orchestrator",
+            "s": 0.0
+          }
+        ],
+        "ttft_s": 2.42,
+        "generation_s": 0.21
+      },
+      "stream_tokens": 19
+    },
+    {
+      "id": "shopping_list",
+      "transport": "message",
+      "rep": 2,
+      "wall_s": 3.85,
+      "timing": {
+        "model": "gemma-4-e4b",
+        "stages": [
+          {
+            "tool": "routing",
+            "label": "routing",
+            "service": "orchestrator",
+            "s": 0.0
+          }
+        ],
+        "ttft_s": 3.74,
+        "generation_s": 0.09
+      },
+      "stream_tokens": 9
+    },
+    {
+      "id": "research_bios",
+      "transport": "message",
+      "rep": 2,
+      "wall_s": 11.85,
+      "timing": {
+        "model": "gemma-4-e4b",
+        "stages": [
+          {
+            "tool": "routing",
+            "label": "routing",
+            "service": "orchestrator",
+            "s": 0.0
+          }
+        ],
+        "ttft_s": 11.49,
+        "generation_s": 0.34
+      },
+      "stream_tokens": 35
+    },
+    {
+      "id": "shim_timezone",
+      "transport": "openai",
+      "rep": 2,
+      "wall_s": 2.66,
+      "timing": null,
+      "stream_tokens": 10
+    },
+    {
+      "id": "shim_weather",
+      "transport": "ollama",
+      "rep": 2,
+      "wall_s": 4.70,
+      "timing": null,
+      "stream_tokens": 42
+    },
+    {
+      "id": "direct_short",
+      "transport": "message",
+      "rep": 3,
+      "wall_s": 4.41,
+      "timing": {
+        "model": "gemma-4-e4b",
+        "stages": [
+          {
+            "tool": "routing",
+            "label": "routing",
+            "service": "orchestrator",
+            "s": 0.0
+          }
+        ],
+        "ttft_s": 4.08,
+        "generation_s": 0.31
+      },
+      "stream_tokens": 36
+    },
+    {
+      "id": "direct_long",
+      "transport": "message",
+      "rep": 3,
+      "wall_s": 1.34,
+      "timing": {
+        "model": "gemma-4-e4b",
+        "stages": [
+          {
+            "tool": "routing",
+            "label": "routing",
+            "service": "orchestrator",
+            "s": 0.0
+          }
+        ],
+        "ttft_s": 0.07,
+        "generation_s": 1.23
+      },
+      "stream_tokens": 90
+    },
+    {
+      "id": "weather_now",
+      "transport": "message",
+      "rep": 3,
+      "wall_s": 2.81,
+      "timing": {
+        "model": "gemma-4-e4b",
+        "stages": [
+          {
+            "tool": "routing",
+            "label": "routing",
+            "service": "orchestrator",
+            "s": 0.0
+          },
+          {
+            "tool": "delegate_home",
+            "label": "home agent",
+            "service": "orchestrator",
+            "s": 2.79,
+            "ok": true
+          }
+        ],
+        "ttft_s": 2.49,
+        "generation_s": 0.3
+      },
+      "stream_tokens": 26
+    },
+    {
+      "id": "weather_umbrella",
+      "transport": "message",
+      "rep": 3,
+      "wall_s": 4.43,
+      "timing": {
+        "model": "gemma-4-e4b",
+        "stages": [
+          {
+            "tool": "routing",
+            "label": "routing",
+            "service": "orchestrator",
+            "s": 0.0
+          }
+        ],
+        "ttft_s": 4.1,
+        "generation_s": 0.31
+      },
+      "stream_tokens": 29
+    },
+    {
+      "id": "shopping_list",
+      "transport": "message",
+      "rep": 3,
+      "wall_s": 5.55,
+      "timing": {
+        "model": "gemma-4-e4b",
+        "stages": [
+          {
+            "tool": "routing",
+            "label": "routing",
+            "service": "orchestrator",
+            "s": 0.0
+          }
+        ],
+        "ttft_s": 5.43,
+        "generation_s": 0.1
+      },
+      "stream_tokens": 9
+    },
+    {
+      "id": "research_bios",
+      "transport": "message",
+      "rep": 3,
+      "wall_s": 12.92,
+      "timing": {
+        "model": "gemma-4-e4b",
+        "stages": [
+          {
+            "tool": "routing",
+            "label": "routing",
+            "service": "orchestrator",
+            "s": 0.0
+          }
+        ],
+        "ttft_s": 12.62,
+        "generation_s": 0.28
+      },
+      "stream_tokens": 43
+    },
+    {
+      "id": "shim_timezone",
+      "transport": "openai",
+      "rep": 3,
+      "wall_s": 0.74,
+      "timing": null,
+      "stream_tokens": 37
+    },
+    {
+      "id": "shim_weather",
+      "transport": "ollama",
+      "rep": 3,
+      "wall_s": 5.21,
+      "timing": null,
+      "stream_tokens": 40
+    }
+  ]
+}

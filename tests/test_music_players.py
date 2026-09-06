@@ -196,8 +196,11 @@ class _Resp:
 
 
 class FakeHA:
-    """Minimal httpx.AsyncClient stand-in: template → payload, play_media → 200,
-    state polls → `playing` on the configured entity."""
+    """Minimal httpx.AsyncClient stand-in for the READS: template → payload,
+    state polls → `playing` on the configured entity. The play_media call
+    itself goes over the websocket helper, recorded in FakeHA.calls."""
+    calls: list = []
+
     def __init__(self, *a, **kw):
         self.posts = []
 
@@ -212,9 +215,7 @@ class FakeHA:
         FakeHA.last = self
         if url.endswith("/api/template"):
             return _Resp(FakeHA.template_status, text=FakeHA.template_text)
-        if url.endswith("/music_assistant/play_media"):
-            return _Resp(200, {})
-        raise AssertionError(url)
+        raise AssertionError(f"unexpected REST POST {url} — service calls go over the websocket")
 
     async def get(self, url, headers=None):
         entity = url.rsplit("/", 1)[1]
@@ -233,15 +234,22 @@ def ha():
     async def no_sleep(_):
         return None
 
+    FakeHA.calls = []
+
+    async def fake_call(domain, service, service_data=None, target=None):
+        assert (domain, service) == ("music_assistant", "play_media")
+        FakeHA.calls.append({**(service_data or {}), "entity_id": (target or {}).get("entity_id")})
+
     with patch.object(ts.httpx, "AsyncClient", FakeHA), \
          patch.object(ts.asyncio, "sleep", new=no_sleep), \
+         patch.object(ts, "ha_call_service", new=fake_call), \
          patch.object(ts, "HA_TOKEN", "t"), \
          patch.object(ts, "MUSIC_DEFAULT_PLAYER", DEFAULT):
         yield FakeHA
 
 
 def _play_calls(ha):
-    return [j for u, j in ha.last.posts if u.endswith("play_media")]
+    return ha.calls
 
 
 def test_route_plays_on_every_live_player_in_the_room(ha):

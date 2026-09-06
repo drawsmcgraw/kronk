@@ -141,6 +141,41 @@ gemma-4-e4b narrated fake tool scaffolding aloud, hallucinated "Jazz is now
 playing" after a 503, and retried the tool to budget exhaustion. With the
 mechanism, the model never gets a chance to editorialize about the result.
 
+## Music sources
+
+Streaming providers are configured in MA's UI. The **Synology library**
+(since 2026-09-04) arrives as a host-side read-only CIFS mount
+(`/mnt/nas-music`, `/etc/fstab`, credentials root-only in `/etc/kronk/`)
+bound read-only into the container at `/media/nas` with `rslave`
+propagation, feeding MA's local filesystem provider — no container
+capabilities involved. If the NAS was down at boot the directory is
+simply empty until `sudo mount /mnt/nas-music`; the container sees the
+remount without a restart. Details and the SMB-dialect gotcha:
+`../plans/MUSIC_ASSISTANT_PLAN.md` Phase 6.
+
+## Failures are spoken verbatim (2026-09-05)
+
+Plan: `../plans/ERROR_SURFACING_PLAN.md`. Two rules, both structural:
+
+- **tool_service calls HA services over the websocket**, not REST. HA's
+  REST API answers a bare "500 Internal Server Error" for any error an
+  integration raises during a service call; the websocket returns the
+  message ("Playback failed for Portishead Radio - no more tracks
+  available"). `ha_call_service()` is the helper; REST stays for reads.
+  A failed call is still followed by the playback poll — MA has failed
+  the call and played anyway.
+- **A delegated specialist's terminal result passes through the
+  coordinator untouched.** The home agent ends its turn verbatim on
+  `play_music`; the coordinator used to receive that as an ordinary
+  `ask_home` result and reword it ("can't play music right now"). Now
+  `run_delegated()` reports "ended on a terminal tool" and the
+  coordinator ends its own turn with the same text (`terminal_passthrough`
+  event). Success sentences pass through the same way.
+
+Limit: the deepest cause (Pandora's HTTP 429 under that Portishead
+failure) never leaves MA's own log; HA's message is the most specific
+thing obtainable while HA is the broker.
+
 ## Gotchas
 
 - `MUSIC_DEFAULT_PLAYER` must be an **MA entity** (`_2`-suffixed, platform

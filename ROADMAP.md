@@ -117,6 +117,69 @@ the docs use them. 1 and 2 are in Shipped.)*
     old unit file kept for rollback. *Why: it sits in front of all three
     music tiers and every other voice request.*
 
+14. **Per-client sessions for the web UI** *(added 2026-09-05; operator
+    decision on semantics pending)*. Today every browser/device shares
+    the one fixed `webui` session. Server side is half there: the store
+    is keyed by session id and `/message` already accepts `session_id`;
+    the UI never sends one and `/history` (GET/DELETE) plus the
+    uploaded-file context are hardwired to the fixed session. Build =
+    client id in localStorage sent with every message, history endpoints
+    take the id, clear-history scopes to it, uploads scoped or left
+    global by choice; schema unchanged. **Open decision:** (1) per
+    device — phone and desktop each keep their own thread (an
+    afternoon); (2) per conversation — "new chat" + a list of past
+    threads; (3) threads you can pick up on any device — same list, every
+    device sees every thread. Prerequisite for item 15. *Why: two devices
+    on one thread interleave; the PWA makes a second device the norm.*
+
+15. **Kronk as a PWA on the phone** *(added 2026-09-05; pinned by the
+    operator, plan discussed, cert decision pending)*. LAN-only; remote
+    reach is Tailscale on the operator's side, so Kronk sees LAN traffic
+    either way. **Gate: HTTPS** (installability, service worker, and mic
+    access all need a secure context; nginx is HTTP :80 today — keep :80
+    for HA's shim, add :443). Cert options: (a) local CA, root installed
+    per device; (b) public cert for a `home.hippiehouse.net` name via a
+    DNS challenge; (c) if kronk joins the tailnet, `tailscale cert` for
+    its `…ts.net` name + MagicDNS — no trust step, no DNS API; cloud
+    contact is the ACME issuance either way. Phase 1: manifest, icons,
+    service worker (app shell cached, never the message stream),
+    mobile layout pass, per-device sessions (item 14). Phase 2:
+    push-to-talk — mic clip → new endpoint → the existing Wyoming
+    Whisper → pipeline → Piper → playback in the page; a **room picker**
+    supplies the origin so music plays where the phone is. Out: public
+    exposure (needs auth), Web Push (rides Google/Apple relays). *Why:
+    the operator's ask — Kronk that "just appears to be an app."*
+
+16. **Pandora thumbs by voice** *(added 2026-09-05; plan
+    `docs/plans/PANDORA_THUMBS_PLAN.md`; not started)*. "Thumbs up /
+    down" to a satellite trains the playing Pandora station, Echo-style.
+    Finding: MA plays a station as one radio item and the current track
+    (with its `trackToken`) exists only inside the provider's session,
+    so no outside client can thumb — the plan is a small patch to MA's
+    Pandora provider (a feedback route on its stream server, overlay
+    mounted over the pinned image with a hash guard; maintenance line)
+    plus a tool_service `/music/rate` route, a `rate_music` terminal
+    tool, and blueprint sentences. Thumbs land in the account that
+    plays (the bot), forking shared stations on first use — recorded as
+    the operator's call. Depends on item 17. **Next steps, in order:**
+    (1) operator: bot account + share one station, confirm thumbs show;
+    (2) Claude: the go/no-go script — log in as the bot the way the
+    provider does, fetch one fragment of a throwaway station, thumb one
+    track, confirm in Pandora's UI (kills or validates the plan before
+    any patch); (3) operator: decide where training lands (bot as the
+    house account, recommended, vs. personal account + one-stream
+    limit). *Why: the operator's stated want; the training is the value
+    of Pandora.*
+
+17. **Bot account for Kronk's music providers** *(added 2026-09-05;
+    operator-side, in flight)*. Pandora first: a Premium Family member
+    account, stations shared into it as linked copies (verify one first
+    — thumbs should show), MA's Pandora provider re-authenticated to it.
+    Fixes Pandora's one-stream-per-account collision (the operator's
+    "limited number of places" message; likely yesterday's 429 too) and
+    keeps personal credentials out of the MA config volume (tenet 10).
+    YouTube Music next via the family plan. Prerequisite for item 16.
+
 5. **Context/fact cache** — a small keyed store (SQLite table in the
    orchestrator, or in-memory in tool_service) of low-volatility facts with
    per-key TTLs: weather (~15 min), calendar, news top-of-feed, kronk
@@ -246,9 +309,6 @@ the docs use them. 1 and 2 are in Shipped.)*
   relax the Voice PE's `finished_speaking_detection` if empty
   transcriptions on borderline audio start to bite (~30 min each,
   low-risk; from `docs/VOICE_SETUP.md`).
-- **Synology NAS music** — MA's local-files/SMB provider, Phase 6 of
-  `docs/plans/MUSIC_ASSISTANT_PLAN.md` (may need the elevated container
-  caps we deliberately skipped at MA install).
 - **Peer agent handoffs** — a multi-domain query routed to a *specialist*
   still gets a single-domain answer; agents-as-tools fixed this for the
   coordinator path only. Attack if it bites in practice. See
@@ -286,12 +346,6 @@ the docs use them. 1 and 2 are in Shipped.)*
 
 ## Chores / quick wins
 
-- **play_music: verify before failing on a 5xx** *(2026-09-04)* — MA's
-  `play_media` returned HTTP 500 and still started playback ("put on
-  some jazz"); tool_service reported failure while the kitchen played.
-  On a 5xx from `play_media`, poll the targets for `playing` for the
-  verify window before declaring failure; log the 5xx either way.
-  Test with a fake HA that 500s then reports `playing`.
 
 - Rename MA player "Sonos Move Derp" → "Sonos Move" in the MA UI so the
   blueprint fast path resolves natural phrasing (entity_id is unchanged;
@@ -307,6 +361,25 @@ the docs use them. 1 and 2 are in Shipped.)*
 
 Newest first; feature docs in `docs/features/`.
 
+- **Real errors reach the speaker** *(2026-09-05)* — the cause of a
+  failed play was being dropped three times: HA's REST API answers a
+  bare 500 for integration errors (the message lives only in HA's log),
+  tool_service spoke a generic sentence, and the coordinator reworded
+  the specialist's terminal sentence. Now tool_service calls HA services
+  over the **websocket** (which returns the message), speaks it
+  verbatim after still verifying playback, and a delegated specialist
+  that ended on a terminal tool passes through the coordinator
+  untouched (the news_brief rule generalized). Live: "Could not resolve
+  Zorblax Fnordwave Nonexistent to playable media item" came out of the
+  pipeline word for word. See `docs/plans/ERROR_SURFACING_PLAN.md`.
+- **Synology NAS music in Music Assistant** *(2026-09-04)* — the host
+  mounts `//atlas.local/music` read-only over SMB (root-only credentials
+  under `/etc/kronk/`, `nofail` so a NAS outage never blocks boot) and
+  binds it read-only into the MA container with `rslave` propagation;
+  MA's local filesystem provider at `/media/nas`. No container
+  capabilities — the in-container SMB feature stays off. Three read-only
+  layers: NAS user, mount, bind. See `docs/plans/MUSIC_ASSISTANT_PLAN.md`
+  Phase 6.
 - **Voice music plays on the device that asked (Kronk tier)**
   *(2026-09-04)* — HA stamps the requesting satellite's device id and
   area onto the prompt it already sends (one Jinja line in the Ollama
