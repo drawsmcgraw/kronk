@@ -1236,6 +1236,107 @@ async def play_music(req: MusicRequest):
     )
 
 
+# ── Playback control ─────────────────────────────────────────────────────────
+# action → (HA service, states that prove it worked, spoken word).
+# "stop" is deliberately media_pause: pause keeps the queue so "resume"
+# works; a real stop on an MA player clears it (operator decision
+# 2026-09-10, PLAYBACK_CONTROL_PLAN). Volume has no target state — it is
+# verified by the level moving (or already sitting at a bound).
+_CONTROL_ACTIONS: dict[str, tuple[str, tuple[str, ...] | None, str]] = {
+    "pause":       ("media_pause",      ("paused", "idle", "standby", "off"), "Paused"),
+    "stop":        ("media_pause",      ("paused", "idle", "standby", "off"), "Paused"),
+    "resume":      ("media_play",       ("playing", "buffering"),             "Resumed"),
+    "next":        ("media_next_track", ("playing", "buffering"),             "Skipped"),
+    "volume_up":   ("volume_up",        None,                                 "Turned up"),
+    "volume_down": ("volume_down",      None,                                 "Turned down"),
+}
+_NEEDS_PLAYBACK = {"pause", "stop", "next", "volume_up", "volume_down"}
+
+
+class MusicControlRequest(BaseModel):
+    action: str
+    player: str | None = None         # spoken speaker OR room, as the user said it
+    origin_area: str | None = None
+    origin_device: str | None = None
+
+
+@app.post("/music/control")
+async def control_music(req: MusicControlRequest):
+    if not HA_TOKEN:
+        raise HTTPException(status_code=500, detail="HA_TOKEN not configured")
+    action = (req.action or "").strip().lower().replace(" ", "_")
+    if action not in _CONTROL_ACTIONS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"I can't '{req.action}'. I can pause, resume, stop, skip, or change the volume.",
+        )
+    service, expect_states, word = _CONTROL_ACTIONS[action]
+
+    headers = {"Authorization": f"Bearer {HA_TOKEN}", "Content-Type": "application/json"}
+    async with httpx.AsyncClient(timeout=10) as client:
+        players, origin_key = await _fetch_players(client, headers, req.origin_device)
+        targets, label = resolve_players(req.player, req.origin_area, players,
+                                         MUSIC_DEFAULT_PLAYER, origin_key=origin_key)
+        live = [t for t in targets if t["state"] != "unavailable"]
+        if not live:
+            names = " and ".join(t["name"] for t in targets)
+            raise HTTPException(status_code=503,
+                                detail=f"{names} {'is' if len(targets) == 1 else 'are'} unavailable.")
+        active = [t for t in live if t["state"] in ("playing", "buffering", "paused")]
+        if action in _NEEDS_PLAYBACK and not any(t["state"] in ("playing", "buffering") for t in live):
+            raise HTTPException(status_code=409, detail=f"Nothing is playing on {label}.")
+        # No precondition for resume: MA reports an ESPHome/Sendspin player as
+        # `idle` (not `paused`) after a pause while keeping its queue, and
+        # media_play resumes that queue. The verify poll below is the guard —
+        # if nothing resumes, the answer is an honest failure, not a claim.
+        entities = [t["entity_id"] for t in (active or live)]
+
+        async def _state(entity: str) -> dict:
+            return (await client.get(f"{HA_URL}/api/states/{entity}", headers=headers)).json()
+
+        before_vol = None
+        if expect_states is None:
+            levels = [(await _state(e)).get("attributes", {}).get("volume_level") for e in entities]
+            levels = [v for v in levels if isinstance(v, (int, float))]
+            before_vol = max(levels) if levels else None
+
+        try:
+            await ha_call_service("media_player", service, {}, target={"entity_id": entities})
+        except HAServiceError as e:
+            raise HTTPException(status_code=502, detail=str(e))
+
+        # Verify the effect, not the status code (tenet 6).
+        deadline = asyncio.get_event_loop().time() + MUSIC_VERIFY_TIMEOUT_S
+        while asyncio.get_event_loop().time() < deadline:
+            await asyncio.sleep(1)
+            states = [await _state(e) for e in entities]
+            if expect_states is not None:
+                hit = next((s for s in states if s.get("state") in expect_states), None)
+                if hit:
+                    attrs = hit.get("attributes", {})
+                    return {"status": action, "player": label, "detail": f"{word} on {label}.",
+                            "artist": attrs.get("media_artist"), "title": attrs.get("media_title")}
+            else:
+                levels = [s.get("attributes", {}).get("volume_level") for s in states]
+                levels = [v for v in levels if isinstance(v, (int, float))]
+                after = max(levels) if levels else None
+                if before_vol is None or after is None:
+                    return {"status": action, "player": label, "detail": f"{word} on {label}."}
+                moved = (after > before_vol) if action == "volume_up" else (after < before_vol)
+                at_bound = (before_vol >= 0.999) if action == "volume_up" else (before_vol <= 0.001)
+                if moved or at_bound:
+                    pct = int(round(after * 100))
+                    return {"status": action, "player": label,
+                            "detail": f"{word} to {pct} percent on {label}." if moved
+                            else f"{label} is already at {'full' if action == 'volume_up' else 'zero'} volume."}
+
+    raise HTTPException(
+        status_code=502,
+        detail=f"Home Assistant accepted the request but {label} did not {action.replace('_', ' ')} "
+               f"within {MUSIC_VERIFY_TIMEOUT_S}s.",
+    )
+
+
 @app.get("/health")
 async def health():
     return {"status": "ok"}

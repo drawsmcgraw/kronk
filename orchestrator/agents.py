@@ -79,6 +79,11 @@ def _tool_narration(name: str, args: dict) -> str:
     if name == "play_music":
         q = args.get("query", "")
         return f"putting on {q}" if q else "starting the music..."
+    if name == "control_music":
+        return {"pause": "pausing the music...", "stop": "pausing the music...",
+                "resume": "resuming the music...", "next": "skipping this track...",
+                "volume_up": "turning it up...", "volume_down": "turning it down..."
+                }.get(args.get("action", ""), "adjusting playback...")
     if name == "update_magicmirror":
         return "checking the mirror and starting the update..."
     return f"running {name}..."
@@ -98,6 +103,12 @@ def _terminal_speech(result: str, style: str = errors.DEBUG,
         # The detail here is already a human sentence ("The speaker may be
         # powered off") — spoken in both styles.
         return f"I couldn't play that. {line[len('Could not play music: '):]}"
+    if line.startswith("Music control: "):
+        # tool_service's detail is already the sentence ("Paused on the
+        # Office speaker.") — ends with a period so HA closes the mic.
+        return line[len("Music control: "):]
+    if line.startswith("Could not control music: "):
+        return f"I couldn't do that. {line[len('Could not control music: '):]}"
     if line.startswith("Magic mirror update started: "):
         return f"The magic mirror is {line[len('Magic mirror update started: '):]}."
     if line.startswith("Could not update the magic mirror: "):
@@ -213,8 +224,8 @@ AGENTS: dict[str, AgentConfig] = {
     ),
     "home": AgentConfig(
         name="home",
-        description="Weather lookups, shopping list management, hot tub status, solar panel health and energy production (kWh), playing music, and updating the magic mirror",
-        routing_hint="weather, forecast, shopping list, hot tub, spa, solar, solar panels, inverters, play music, songs, albums, speakers, updating the magic mirror",
+        description="Weather lookups, shopping list management, hot tub status, solar panel health and energy production (kWh), playing music and controlling playback (stop, pause, resume, skip, volume), and updating the magic mirror",
+        routing_hint="weather, forecast, shopping list, hot tub, spa, solar, solar panels, inverters, play music, songs, albums, speakers, stop, pause, resume, skip, volume, updating the magic mirror",
         icon="🏠",
         probe="tools",
         system_prompt=(
@@ -235,6 +246,10 @@ AGENTS: dict[str, AgentConfig] = {
             "as the query; pass the speaker or room only if the user named one. Call play_music at most once — "
             "when it reports music playing, report that back and stop. If the tool reports failure, tell "
             "the user playback failed and why — never claim music is playing after a failed tool call.\n"
+            "Use control_music for stop, pause, resume, skip/next, louder/quieter ('stop' means pause). "
+            "It is the ONLY way you can control playback: never say you paused, stopped, or skipped "
+            "anything unless control_music reported it. Call it at most once; the speaker is chosen "
+            "automatically unless the user named one.\n"
             "Use update_magicmirror when the user asks to update or upgrade the magic mirror. "
             "Call it at most once; a full backup happens automatically first.\n"
             "When the user asks about weather without naming a place, call get_weather "
@@ -244,8 +259,8 @@ AGENTS: dict[str, AgentConfig] = {
             "Never restate tool calls, tool arguments, or tool output syntax in your reply — "
             "reply in plain sentences only."
         ),
-        tool_names=["get_weather", "shopping_list_view", "shopping_list_add", "shopping_list_remove", "shopping_list_clear", "query_hottub", "solar_status", "solar_detail", "solar_energy", "play_music", "update_magicmirror"],
-        terminal_tools=frozenset({"play_music", "update_magicmirror"}),
+        tool_names=["get_weather", "shopping_list_view", "shopping_list_add", "shopping_list_remove", "shopping_list_clear", "query_hottub", "solar_status", "solar_detail", "solar_energy", "play_music", "control_music", "update_magicmirror"],
+        terminal_tools=frozenset({"play_music", "control_music", "update_magicmirror"}),
     ),
     "assistant": AgentConfig(
         name="assistant",
@@ -444,6 +459,9 @@ COORDINATOR = AgentConfig(
         "('update the news feed', 'get the latest news'), call news_brief with "
         "refresh=true. Never compose a brief yourself and never use "
         "ask_research for a general briefing — research is for specific questions.\n"
+        "PLAYBACK: 'stop', 'pause', 'skip', 'resume', 'louder', 'quieter', 'kill the music', "
+        "'turn it off' are commands for the music on the speaker that asked — call ask_home "
+        "at once with the command; never ask what to stop, and never claim you stopped anything.\n"
         "Never answer with a placeholder like [kWh] or [rate] — a bracket in your draft "
         "means a missing piece you must fetch first.\n"
         "When a specialist answers, relay the substance concisely — do not re-verify it."

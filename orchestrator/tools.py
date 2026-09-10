@@ -429,6 +429,33 @@ TOOL_DEFINITIONS = [
     {
         "type": "function",
         "function": {
+            "name": "control_music",
+            "description": (
+                "Control music that is already playing: pause, resume, stop (same as "
+                "pause — keeps the queue), skip to the next track, or turn the volume "
+                "up or down. Use for 'stop', 'pause', 'shut up', 'skip this', 'next', "
+                "'louder', 'quieter'. This is the ONLY way to control playback — never "
+                "claim to have paused or stopped anything without calling it."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "action": {
+                        "type": "string",
+                        "enum": ["pause", "resume", "stop", "next", "volume_up", "volume_down"],
+                    },
+                    "player": {
+                        "type": "string",
+                        "description": "Which speaker OR room, exactly as the user said it. Omit when the user named none.",
+                    },
+                },
+                "required": ["action"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "update_magicmirror",
             "description": (
                 "Update the MagicMirror software on the hallway Raspberry Pi. "
@@ -509,6 +536,7 @@ TOOL_TIMEOUTS = {
     "query_hottub": 5,       # local file read — fail fast
     "query_finances": 10,
     "play_music": 20,        # tool_service polls up to 8s to confirm playback
+    "control_music": 20,     # same verify poll for pause/resume/skip/volume
     "remote_exec": 35,         # tool_service caps the exec at 30s + SSH setup
     "update_magicmirror": 30,  # SSH preflight to the Pi (~5-20s); the update
                                # itself runs as a tool_service background task
@@ -836,6 +864,33 @@ async def _tool_play_music(client: httpx.AsyncClient, args: dict) -> str:
     )
 
 
+async def _tool_control_music(client: httpx.AsyncClient, args: dict) -> str:
+    action = (args.get("action") or "").strip()
+    if not action:
+        return "[control_music error: action is required]"
+    payload: dict = {"action": action}
+    if args.get("player"):
+        payload["player"] = args["player"]
+    o = origin.current.get()           # the satellite that heard the request (origin.py)
+    if o:
+        if o.device_id:
+            payload["origin_device"] = o.device_id
+        if o.area:
+            payload["origin_area"] = o.area
+    resp = await client.post(f"{TOOL_SERVICE_URL}/music/control", json=payload)
+    if resp.status_code == 200:
+        return f"[Music control: {resp.json().get('detail', 'Done.')}]"
+    try:
+        detail = resp.json().get("detail", "")
+    except Exception:
+        detail = resp.text[:200]
+    return (
+        f"[Could not control music: {detail}]\n"
+        "The action FAILED — tell the user it failed and why. "
+        "Do NOT claim it worked. Do NOT call control_music again."
+    )
+
+
 async def _tool_remote_exec(client: httpx.AsyncClient, args: dict) -> str:
     command = (args.get("command") or "").strip()
     if not command:
@@ -947,6 +1002,7 @@ _HANDLERS = {
     "solar_detail":         _tool_solar_detail,
     "solar_energy":         _tool_solar_energy,
     "play_music":           _tool_play_music,
+    "control_music":        _tool_control_music,
     "update_magicmirror":   _tool_update_magicmirror,
     "remote_exec":          _tool_remote_exec,
     "query_finances":       _tool_query_finances,

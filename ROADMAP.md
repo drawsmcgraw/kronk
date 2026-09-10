@@ -180,6 +180,22 @@ the docs use them. 1 and 2 are in Shipped.)*
     keeps personal credentials out of the MA config volume (tenet 10).
     YouTube Music next via the family plan. Prerequisite for item 16.
 
+18. **Playback control by voice — stop / pause / resume / skip / volume**
+    *(added 2026-09-10; investigation
+    `docs/incidents/INVESTIGATION_2026-09-10_voice_stop.md`)*.
+    **Part (2) SHIPPED 2026-09-10** — `control_music` terminal tool on
+    the home agent, origin-aware, `stop == pause`, effect verified, HA's
+    error text spoken, plus a routing pin for bare playback verbs
+    ("Stop!" → home agent in 5 s; see
+    `docs/plans/PLAYBACK_CONTROL_PLAN.md`). **Still open:** (1) the
+    ~1 s fast path — sentence triggers in the blueprint fork calling
+    `media_player.*` on the device-first-resolved player; (3) HA's
+    built-in bare "pause" with only the satellite's area as context did
+    not match in testing (bare "resume" did, later) — cause not pinned;
+    set areas on the MA player devices (basement, kitchen) so the
+    built-in intents and Kronk's labels both name the room. *Why: the
+    most common thing said to a playing speaker is "stop".*
+
 5. **Context/fact cache** — a small keyed store (SQLite table in the
    orchestrator, or in-memory in tool_service) of low-volatility facts with
    per-key TTLs: weather (~15 min), calendar, news top-of-feed, kronk

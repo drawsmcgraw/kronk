@@ -183,6 +183,14 @@ verbatim — never summarized away.
   restart nginx`. `litellm/config.yaml` is bind-mounted, hot-editable.
 - **Never `docker compose down -v`** on the `kronk-ha` or `kronk-ma` stacks —
   their volumes hold all HA integrations / the MA library and auth tokens.
+- **HA and MA restarts are never a side effect** (directive 2026-09-10).
+  A restart of `homeassistant` or `music-assistant-server` is its own
+  step, only when the change lives inside HA/MA and can't load any other
+  way, and it is **called out in the plan before execution** so the
+  operator can pick the moment — someone may be listening to music. A
+  Kronk-stack `up -d --build` must never touch either container. Prefer
+  the no-restart path when one exists (HA's Reconfigure forms, MA's UI)
+  over storage edits and recreates.
 - **Never modify files on managed remote hosts** (the MagicMirror Pi, and
   any host in the ops registry) without the operator's explicit permission
   for that specific action, each time — a past grant is not a standing one

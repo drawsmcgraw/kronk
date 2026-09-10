@@ -102,6 +102,24 @@ _WEATHER_RE = re.compile(
 _MM_RE        = re.compile(r'\bmagic\s*mirror\b', re.IGNORECASE)
 _MM_UPDATE_RE = re.compile(r'\bupdate\s+the\s+magic\s*mirror\b', re.IGNORECASE)
 
+# Bare playback commands ("Stop!", "pause the music", "skip this song",
+# "louder") pin to the home agent, which owns control_music. A METHOD pin
+# in the plan's sense: the whole utterance IS the command, so there is no
+# compositeness to lose. Added 2026-09-10 after the coordinator answered a
+# bare "Stop!" with "Stop what?" (INVESTIGATION_2026-09-10_voice_stop).
+# Anchored start-to-end on purpose: "stop the timer", "pause my
+# subscription", "what is the next holiday" must not match.
+_PLAYBACK_RE = re.compile(
+    r"^\W*(?:please\s+)?(?:"
+    r"(?:stop|pause|resume|unpause|skip|next|shut\s+up)"
+    r"(?:\s+(?:the|this|that|my)?\s*(?:music|song|track|it|playback|playing))?"
+    r"|(?:skip|next)\s+(?:this\s+|the\s+)?(?:song|track)"
+    r"|turn\s+(?:it|that|the\s+(?:music|volume))\s+(?:up|down)"
+    r"|louder|quieter|volume\s+(?:up|down)"
+    r")(?:\s+please)?\W*$",
+    re.IGNORECASE,
+)
+
 
 async def classify(text: str, prior_history: list[dict]) -> str:
     """Return a route: a shortcut-pinned specialist, else "direct" (the
@@ -137,6 +155,9 @@ async def _classify_inner(text: str) -> tuple[str, str]:
     if _WEATHER_RE.search(text):
         emit("route_shortcut", rule="weather", route="home")
         return "home", "weather"
+    if _PLAYBACK_RE.search(text):
+        emit("route_shortcut", rule="playback", route="home")
+        return "home", "playback"
     if _MM_RE.search(text):
         if _MM_UPDATE_RE.search(text):
             emit("route_shortcut", rule="mm_update", route="home")

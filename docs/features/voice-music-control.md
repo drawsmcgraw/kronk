@@ -153,6 +153,24 @@ simply empty until `sudo mount /mnt/nas-music`; the container sees the
 remount without a restart. Details and the SMB-dialect gotcha:
 `../plans/MUSIC_ASSISTANT_PLAN.md` Phase 6.
 
+## Playback control: stop, pause, resume, skip, volume (2026-09-10)
+
+Plan: `../plans/PLAYBACK_CONTROL_PLAN.md`. `control_music(action)` is a
+terminal tool on the home agent next to `play_music`: the model supplies
+only the action (and a speaker/room if the user named one); the origin
+stamp supplies the speaker that heard the request; tool_service
+`/music/control` resolves the target with the same rule as play, calls
+the `media_player` service over the websocket helper, and **verifies
+the effect** (state reaches paused/playing, or the volume moved) before
+answering. **"stop" is pause** — it keeps the queue so "resume" works.
+Bare playback verbs ("Stop!", "pause", "skip this song", "louder") are
+**pinned** to the home agent by `routing._PLAYBACK_RE` — the coordinator
+otherwise answered "Stop what?". Gotchas: MA reports a Sendspin player
+`idle` after pause while keeping the queue (resume works from idle);
+the spoken label names the player unless its MA device has an HA area.
+HA's own "resume" intent sometimes answers first (2 s) — fine, same
+result. The ~1 s sentence-trigger fast path is still open (ROADMAP 18).
+
 ## Failures are spoken verbatim (2026-09-05)
 
 Plan: `../plans/ERROR_SURFACING_PLAN.md`. Two rules, both structural:
