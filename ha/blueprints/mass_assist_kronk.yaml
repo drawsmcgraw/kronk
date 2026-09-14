@@ -15,6 +15,10 @@
 #      the group only, not every player in the room
 #   3. the spoken confirmation names the room when the match was by device
 #      or room, so technical device names are never read aloud
+#   4. (2026-09-14) a second radio sentence for station-FIRST phrasing —
+#      "play anime pop radio on pandora" — which upstream's grammar misses;
+#      without it HA's built-in search-and-play intent takes the request
+#      and lands on YouTube Music title matches (MUSIC_ACCURACY_PLAN)
 #
 # Resolution: named player → named room (group-preferred) → own device →
 # own device's room (group-preferred) → default.
@@ -192,6 +196,9 @@ blueprint:
           default:
           - (shuffle|play|listen to) [the ]((radio station)|(radio)|(station)) {media_name}
             [(in|on|using) [the ]{area_or_player_name}]
+          # KRONK change 4: station-first phrasing ("anime pop radio on pandora").
+          - (play|listen to) [the ]{media_name} (radio|station) [(on|from|via) pandora][
+            (in|on) [the ]{area_or_player_name}]
         playlist_trigger:
           name: Playlist trigger
           description: The trigger sentences to request a specific playlist.

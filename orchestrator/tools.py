@@ -456,6 +456,26 @@ TOOL_DEFINITIONS = [
     {
         "type": "function",
         "function": {
+            "name": "now_playing",
+            "description": (
+                "Report what is playing right now on a speaker: song, artist, "
+                "album, and source. Use for 'what song is this', 'what's "
+                "playing', 'who is this'. Reads the speaker — never guess."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "player": {
+                        "type": "string",
+                        "description": "Which speaker OR room, exactly as the user said it. Omit when the user named none.",
+                    },
+                },
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "update_magicmirror",
             "description": (
                 "Update the MagicMirror software on the hallway Raspberry Pi. "
@@ -537,6 +557,7 @@ TOOL_TIMEOUTS = {
     "query_finances": 10,
     "play_music": 20,        # tool_service polls up to 8s to confirm playback
     "control_music": 20,     # same verify poll for pause/resume/skip/volume
+    "now_playing": 15,
     "remote_exec": 35,         # tool_service caps the exec at 30s + SSH setup
     "update_magicmirror": 30,  # SSH preflight to the Pi (~5-20s); the update
                                # itself runs as a tool_service background task
@@ -891,6 +912,29 @@ async def _tool_control_music(client: httpx.AsyncClient, args: dict) -> str:
     )
 
 
+async def _tool_now_playing(client: httpx.AsyncClient, args: dict) -> str:
+    payload: dict = {}
+    if args.get("player"):
+        payload["player"] = args["player"]
+    o = origin.current.get()
+    if o:
+        if o.device_id:
+            payload["origin_device"] = o.device_id
+        if o.area:
+            payload["origin_area"] = o.area
+    resp = await client.post(f"{TOOL_SERVICE_URL}/music/now_playing", json=payload)
+    if resp.status_code == 200:
+        return f"[Now playing: {resp.json().get('detail', 'Unknown.')}]"
+    try:
+        detail = resp.json().get("detail", "")
+    except Exception:
+        detail = resp.text[:200]
+    return (
+        f"[Could not read the player: {detail}]\n"
+        "Tell the user you couldn't tell what's playing and why. Do NOT guess a song."
+    )
+
+
 async def _tool_remote_exec(client: httpx.AsyncClient, args: dict) -> str:
     command = (args.get("command") or "").strip()
     if not command:
@@ -1003,6 +1047,7 @@ _HANDLERS = {
     "solar_energy":         _tool_solar_energy,
     "play_music":           _tool_play_music,
     "control_music":        _tool_control_music,
+    "now_playing":          _tool_now_playing,
     "update_magicmirror":   _tool_update_magicmirror,
     "remote_exec":          _tool_remote_exec,
     "query_finances":       _tool_query_finances,

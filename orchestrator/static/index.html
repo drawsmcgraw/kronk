@@ -205,6 +205,10 @@
     color: var(--green);
   }
 
+  .stage-note {
+    color: var(--text3); font-size: 11px; font-style: italic;
+    margin: 0 0 4px 22px; white-space: pre-wrap; max-height: 4.5em; overflow: hidden;
+  }
   .stage-time {
     font-family: 'JetBrains Mono', 'Fira Code', monospace;
   }
@@ -518,6 +522,14 @@
       return this.frozen;
     }
 
+    // A retract (tool-round text taken back by the pipeline) rebuilds the
+    // renderer from the trimmed full text — frozen blocks may have contained it.
+    reset(text = '') {
+      this.frozen = '';
+      this.pending = '';
+      if (text) this.push(text);
+    }
+
     // Render current state as HTML. Frozen is parsed; pending is escaped plain
     // text that streams live. Cursor injected as HTML so it survives innerHTML.
     currentHtml(showCursor = false) {
@@ -632,11 +644,12 @@
     function renderStageLog() {
       const el = getOrCreateLog();
       el.innerHTML = stageEntries.map(e => {
+        const note = e.note ? `<div class="stage-note">${escapeHtml(e.note)}</div>` : '';
         if (e.endMs === null) {
-          return `<div class="stage-entry active"><div class="stage-spinner"></div><span class="stage-label">${e.label}</span></div>`;
+          return `<div class="stage-entry active"><div class="stage-spinner"></div><span class="stage-label">${e.label}</span></div>${note}`;
         }
         const elapsed = ((e.endMs - e.startMs) / 1000).toFixed(1) + 's';
-        return `<div class="stage-entry done"><span class="stage-icon">✓</span><span class="stage-label">${e.label}</span><span class="stage-time"> · ${elapsed}</span></div>`;
+        return `<div class="stage-entry done"><span class="stage-icon">✓</span><span class="stage-label">${e.label}</span><span class="stage-time"> · ${elapsed}</span></div>${note}`;
       }).join('');
     }
 
@@ -707,6 +720,19 @@
             }
             if (data.timing) {
               timingData = data.timing;
+            }
+            if (data.retract) {
+              // Tool-round text (usually leaked thinking) taken back by the
+              // pipeline: trim it from the bubble and park it, muted, on the
+              // current stage entry — nothing flickers away, it moves.
+              const removed = fullText.slice(-data.retract);
+              fullText = fullText.slice(0, fullText.length - data.retract);
+              renderer.reset(fullText);
+              bubble.innerHTML = renderer.currentHtml(true);
+              if (currentStageIdx >= 0 && removed.trim()) {
+                stageEntries[currentStageIdx].note = removed.trim();
+                renderStageLog();
+              }
             }
             if (data.token) {
               fullText += data.token;

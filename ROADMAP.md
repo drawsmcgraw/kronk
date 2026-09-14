@@ -19,19 +19,7 @@ Conventions:
 ## Now — committed, in flight
 
 *(Items keep their numbers when they ship — cross-references elsewhere in
-the docs use them. 1 and 2 are in Shipped.)*
-
-3. **Timers via HA native intents — DONE 2026-07-12.** Confirmed by live
-   observation: a spoken 7-minute timer was caught by HA's local Assist
-   intent and run on the Voice PE on-device — it created no `timer.*`
-   entity, no logbook entry, and never touched Kronk (router/shim). The old
-   Kronk timer code was then decommissioned (branch `decomm-timer`):
-   `set_timer` tool + handler + `DEFAULT_TIMER_LABEL`, the tool_service
-   `/timer` route + `TimerRequest` + `HA_TIMER_ENTITY` (compose env), and
-   the home-agent wiring/prompt. `HA_URL`/`HA_TOKEN` kept (music + mirror
-   announce). *Operator-side leftover to remove at leisure: the unused
-   `timer.voice_timer` HA helper and the broken timer-finished announce
-   automation — neither is referenced by any code now.*
+the docs use them. 1, 2, 3, 11 and 12 are in Shipped. Pruned 2026-09-14.)*
 
 4. **Backups** — nightly automated backup of the irreplaceable state: HA
    config volume, MA library/auth volume, orchestrator SQLite (sessions,
@@ -44,36 +32,7 @@ the docs use them. 1 and 2 are in Shipped.)*
    anything. One bad disk erases the project. Cheapest risk-kill on this
    page.*
 
-11. **Model bench — K2 Horizon vs incumbents — DONE 2026-09-03, no
-    swap.** Coordinator: Gemma 4 12B tied E4B on correctness at half
-    the speed; K2-Horizon-7B (IFM's fork of llama.cpp, own Q8/Q4
-    quants) tied-minus-one at a quarter to a third of the speed and only
-    keeps its thinking out of the reply at `reasoning_effort=high`.
-    Devops slot: K2 ties Devstral 17/17 at 2.6× tok/s but equal
-    wall-clock (reasoning tax) with one confident prose error —
-    operator's call, precedent says keep Devstral. Research slot: K2
-    answers 8/8 vs E4B's 4/8 but confabulated stale officeholders where
-    E4B abstained — keep E4B; a "cite or mark unverified" guard for
-    officeholder claims is the structural follow-up (Later).
-    Verdict, scoreboards and the exact configs:
-    `docs/plans/MODEL_BENCH_K2_HORIZON_PLAN.md`; raw runs
-    `docs/bench/coord_bench_2026-09-03_*`. The harness
-    (`scripts/coordinator_model_bench.py`, tested) stays: it benches any
-    coordinator candidate with the production prompt and menu. *Why: the
-    coordinator is the model every request touches; a same-regime bench
-    with a rule fixed before the numbers is the only honest answer to
-    "is the new thing better".* **Revisit** (Later): when upstream
-    llama.cpp ships K2 Horizon with a parser that knows the
-    `think_fast`/`think_faster` markers, or IFM ships a draft head or
-    QAT checkpoint — and separately, K2-7B as a *research/coding* agent
-    candidate, where its card's agentic scores matter and tok/s matters
-    less (different bench, harder probes).
-
 ## Next — agreed, not started
-
-12. **Voice music, Kronk tier: play on the device that asked — DONE
-    2026-09-04** (same day as the HA tier; see Shipped). The STT miss it
-    surfaced is item 13.
 
 13. **STT accuracy bench — Whisper alternatives and knobs** *(added
     2026-09-04; research done, bench not started — operator decision to
@@ -114,8 +73,14 @@ the docs use them. 1 and 2 are in Shipped.)*
     p95 latency; single variable per run. **Rule:** switch only on fewer
     command-form errors on real audio with p95 latency no worse than
     today; the switch itself is one flag change on the unit + restart,
-    old unit file kept for rollback. *Why: it sits in front of all three
-    music tiers and every other voice request.*
+    old unit file kept for rollback. Folded in 2026-09-14: the cheap
+    knobs (`--vad-filter`; relax the satellites' "finished speaking
+    detection" if clipped endings bite) and the Voxtral revisit
+    condition (no gfx1151 PyTorch wheels; watch for `wyoming-voxtral` or
+    llama.cpp support — rationale in `docs/VOICE_SETUP.md`). *Why: it
+    sits in front of all three music tiers and every other voice
+    request; two mistranscriptions in one week ("Played the album…",
+    "stop" → "What's up?").*
 
 14. **Per-client sessions for the web UI** *(added 2026-09-05; operator
     decision on semantics pending)*. Today every browser/device shares
@@ -147,7 +112,10 @@ the docs use them. 1 and 2 are in Shipped.)*
     push-to-talk — mic clip → new endpoint → the existing Wyoming
     Whisper → pipeline → Piper → playback in the page; a **room picker**
     supplies the origin so music plays where the phone is. Out: public
-    exposure (needs auth), Web Push (rides Google/Apple relays). *Why:
+    exposure, Web Push (rides Google/Apple relays). **External access +
+    auth** lives here too (folded 2026-09-14): the posture is LAN +
+    Tailscale, no public endpoint; if that ever changes, real
+    authentication and rate limiting come first, decided once. *Why:
     the operator's ask — Kronk that "just appears to be an app."*
 
 16. **Pandora thumbs by voice** *(added 2026-09-05; plan
@@ -161,40 +129,47 @@ the docs use them. 1 and 2 are in Shipped.)*
     plus a tool_service `/music/rate` route, a `rate_music` terminal
     tool, and blueprint sentences. Thumbs land in the account that
     plays (the bot), forking shared stations on first use — recorded as
-    the operator's call. Depends on item 17. **Next steps, in order:**
-    (1) operator: bot account + share one station, confirm thumbs show;
-    (2) Claude: the go/no-go script — log in as the bot the way the
-    provider does, fetch one fragment of a throwaway station, thumb one
-    track, confirm in Pandora's UI (kills or validates the plan before
-    any patch); (3) operator: decide where training lands (bot as the
-    house account, recommended, vs. personal account + one-stream
-    limit). *Why: the operator's stated want; the training is the value
-    of Pandora.*
+    the operator's call. **Steps, in order:** (1) operator: the **bot
+    account** (folded from former item 17, 2026-09-14) — a Pandora
+    Premium Family member account, stations shared into it as linked
+    copies, verify one first (thumbs should show), MA's Pandora provider
+    re-authenticated to it; this also fixes the one-stream-per-account
+    collision and gets personal credentials out of the MA config volume
+    (tenet 10); YouTube Music the same way later; (2) Claude: the
+    go/no-go script — log in as the bot the way the provider does, fetch
+    one fragment of a throwaway station, thumb one track, confirm in
+    Pandora's UI (kills or validates the plan before any patch); (3)
+    operator: decide where training lands (bot as the house account,
+    recommended, vs. personal account + one-stream limit). *Why: the
+    operator's stated want; the training is the value of Pandora.*
 
-17. **Bot account for Kronk's music providers** *(added 2026-09-05;
-    operator-side, in flight)*. Pandora first: a Premium Family member
-    account, stations shared into it as linked copies (verify one first
-    — thumbs should show), MA's Pandora provider re-authenticated to it.
-    Fixes Pandora's one-stream-per-account collision (the operator's
-    "limited number of places" message; likely yesterday's 429 too) and
-    keeps personal credentials out of the MA config volume (tenet 10).
-    YouTube Music next via the family plan. Prerequisite for item 16.
+18. **Playback control — the ~1 s fast path** *(added 2026-09-10; the
+    Kronk tier shipped 2026-09-10, see Shipped)*. Sentence triggers in
+    the blueprint fork ("stop", "pause", "resume", "skip", "louder",
+    "quieter") calling `media_player.*` on the device-first-resolved
+    player — matches before HA's intents and the LLM. Also: set areas on
+    the MA player devices (basement, kitchen) so HA's built-in intents
+    have a target and Kronk's labels name the room; HA's built-in bare
+    "pause" with only the satellite's area as context did not match in
+    testing (bare "resume" did) — cause not pinned
+    (`docs/incidents/INVESTIGATION_2026-09-10_voice_stop.md`). *Why:
+    "stop" is the most common thing said to a playing speaker; today it
+    takes five seconds through Kronk.*
 
-18. **Playback control by voice — stop / pause / resume / skip / volume**
-    *(added 2026-09-10; investigation
-    `docs/incidents/INVESTIGATION_2026-09-10_voice_stop.md`)*.
-    **Part (2) SHIPPED 2026-09-10** — `control_music` terminal tool on
-    the home agent, origin-aware, `stop == pause`, effect verified, HA's
-    error text spoken, plus a routing pin for bare playback verbs
-    ("Stop!" → home agent in 5 s; see
-    `docs/plans/PLAYBACK_CONTROL_PLAN.md`). **Still open:** (1) the
-    ~1 s fast path — sentence triggers in the blueprint fork calling
-    `media_player.*` on the device-first-resolved player; (3) HA's
-    built-in bare "pause" with only the satellite's area as context did
-    not match in testing (bare "resume" did, later) — cause not pinned;
-    set areas on the MA player devices (basement, kitchen) so the
-    built-in intents and Kronk's labels both name the room. *Why: the
-    most common thing said to a playing speaker is "stop".*
+19. **Per-agent reasoning budgets (llama.cpp pin bump)** *(added
+    2026-09-14)*. The E4B server's `--reasoning-budget 256` is one cap
+    for every agent it serves; when it closes the thinking channel
+    mid-thought the model finishes out loud (the leak the retract now
+    hides). Measured: 27% of E4B rounds in the last week hit ≥256 output
+    tokens — home 42%, research 31%. The running build (b9611, June)
+    ignores a per-request `reasoning_budget_tokens`; the current llama.cpp
+    tree accepts it. Bumping the pin (one unit file, MTP drafter compat
+    to re-verify) would let home think briefly and research think long,
+    attacking the leak at its source and cutting the home agent's tail
+    latency. Single-variable: bump, bench (`pipeline_bench` pre/post +
+    coordinator battery), then set budgets per agent in `llm.py`.
+    *Why: the cap is a statistical latency tool with a known leak; the
+    retract makes leaks invisible, budgets per agent make them rare.*
 
 5. **Context/fact cache** — a small keyed store (SQLite table in the
    orchestrator, or in-memory in tool_service) of low-volatility facts with
@@ -217,15 +192,25 @@ the docs use them. 1 and 2 are in Shipped.)*
    both depend on it; better to re-found it now than accrete on a
    prototype.*
 
-7. **MagicMirror agent** — **tier 1 BUILT 2026-07-06** (branch
-   `magicmirror-updater`): `update_magicmirror` terminal tool → tool_service
-   SSH (forced-command key, user kronk, sudoers pinned to one script) →
-   full-backup-then-update on the Pi, async ack + `/magicmirror/status`.
-   Awaiting Pi-side setup (operator steps in
-   `docs/plans/MAGICMIRROR_PLAN.md`) and live test. Tier 2 (devops agent
-   with allowlisted verbs — status/logs/restart/screen/config) comes after;
-   model bench done, devstral retained. *Why: first Kronk capability that
-   reaches another machine; sets the pattern for doing that safely.*
+7. **MagicMirror — read-only investigation over voice and web**
+   *(rescoped 2026-09-14)*. Tier 1 — `update_magicmirror` (the one
+   sanctioned mutation: backup-then-update over a forced-command SSH
+   key) — **shipped and in use** (2026-07-06; repaired 2026-08-16, see
+   `docs/incidents/INVESTIGATION_2026-08-14_mm_banner.md`). Tier 2 is
+   now just this: the devops agent answers questions about the mirror
+   ("is it running?", "why is the weather module stale?", "what changed
+   in the last update?") through the audited read-only `remote_exec`
+   path, from a satellite or the web UI, and **makes no changes** —
+   the standing no-mutation rule for managed hosts holds, the update
+   flow is the only exception. Open work: the ops classifier's Phase-B
+   quirks that block real investigations (`git -C` misparse, quoted
+   pipes, `journalctl --user`); voice-shaped answers (Devstral runs
+   ~15 tok/s, so a spoken answer must be two sentences, not a log dump —
+   detail stays in the web UI); a small battery of investigation
+   questions as the test, in the voice smoke test's shape (item 8);
+   confirm the mirror phrasings route to devops from voice. *Why: the
+   first Kronk capability that reaches another machine; investigation
+   is the value, mutation is the risk.*
 
 8. **Voice regression smoke test** — script fires ~10 canned utterances
    through HA's `assist_pipeline/run` websocket and asserts which tier
@@ -307,24 +292,15 @@ the docs use them. 1 and 2 are in Shipped.)*
   speakers (timer callbacks are the trailhead; laundry, hot-tub alerts,
   calendar reminders, solar-failure alerts follow). Design whatever timer
   verification (item 3) reveals about HA's announce path.
-- **External access + auth** — the real question behind "publish the
-  shopping list off-network." Decide the posture once (Tailscale sidesteps
-  most of it) before any endpoint goes public.
 - **Health RAG completion** — `query_bloodwork` / `search_health_data`
   tools exist in `orchestrator/tools.py` but are wired to no agent;
   `health_service` parsing/chunking/vector-store code is in place.
 - **Secrets management rebuild** — the Infisical retirement left Garmin
   and Withings sync as no-op stubs; current plan is per-service
   `/data/<service>_tokens.json` bind mounts. Unblocks the health sources.
-- **More integrations** — Philips Hue, calendar, Fitbit (family member),
-  Withings scale.
 - **More expressive TTS** — effort-ordered options already scoped in the
   README/`docs/VOICE_SETUP.md`: different Piper voice → voicebox.sh →
   XTTS-v2 on gfx1151 → Bark.
-- **STT accuracy quick wins** — enable faster-whisper `--vad-filter` and/or
-  relax the Voice PE's `finished_speaking_detection` if empty
-  transcriptions on borderline audio start to bite (~30 min each,
-  low-risk; from `docs/VOICE_SETUP.md`).
 - **Peer agent handoffs** — a multi-domain query routed to a *specialist*
   still gets a single-domain answer; agents-as-tools fixed this for the
   coordinator path only. Attack if it bites in practice. See
@@ -332,29 +308,10 @@ the docs use them. 1 and 2 are in Shipped.)*
 - **Voice latency program** — the Kronk fallback tier runs 15–25 s, the
   edge of tolerable. Treat as a standing constraint on new voice features;
   attack when it bites (candidate levers: context cache, smaller/faster
-  routing, Voxtral when unblocked).
-- **Ollama blob reclaim** — delete `/usr/share/ollama/.ollama/models/blobs/`
-  (~50+ GB) now that llama.cpp is stable. Chore; needs one careful look
-  first.
-- **Productize Kronk** - Kronk can be an open source project to allow 
-  people to run their own local AI server. Investigate what we need to
-  to (configs, parameterizations, etc) to support this.
-
-## Stretch
-
-- **Kronk self-description** — "Kronk, how do you work?" answered from live
-  system knowledge, possibly with generated architecture diagrams. More
-  built than first thought: the `assistant` agent is already wired with
-  `get_kronk_context` + `generate_diagram` (2026-07-05 review). The real
-  remaining gap is keeping `kronk-context.md` from drifting — it's
-  hand-maintained (tenet 8 violation waiting to happen) — plus routing
-  quality into that agent.
+  routing, per-agent reasoning budgets — item 19).
 
 ## Deferred / parked — with revisit conditions
 
-- **Voxtral STT** — no gfx1151 PyTorch/vLLM wheels. Revisit when AMD ships
-  wheels, `wyoming-voxtral` appears, or llama.cpp adds Voxtral support.
-  Full rationale in `docs/VOICE_SETUP.md`.
 - **Hot tub monitor** — parked 2026-06-12; spa pack unreachable. See
   `TECH_DEBT.md` [HOTTUB-01].
 - **Deliberately rejected** (per-domain tool services, SQLite pooling,
@@ -362,7 +319,8 @@ the docs use them. 1 and 2 are in Shipped.)*
 
 ## Chores / quick wins
 
-
+- **Ollama blob reclaim** — delete `/usr/share/ollama/.ollama/models/blobs/`
+  (~50+ GB) now that llama.cpp is stable. One careful look first.
 - Rename MA player "Sonos Move Derp" → "Sonos Move" in the MA UI so the
   blueprint fast path resolves natural phrasing (entity_id is unchanged;
   nothing else moves).
@@ -377,6 +335,22 @@ the docs use them. 1 and 2 are in Shipped.)*
 
 Newest first; feature docs in `docs/features/`.
 
+- **Leaked thinking never reaches the user** *(2026-09-14)* — text a
+  model produces in a round that ends with a tool call is retracted by
+  the loop before it is spoken or stored (voice drops it, the web UI
+  parks it in the stage log, delegations and history get the clean
+  text; streaming API shims keep today's behaviour). Trigger: "pause"
+  answered with "5. Construct the tool call…" when the reasoning cap
+  closed the channel mid-thought. See
+  `docs/plans/TOOL_ROUND_RETRACT_PLAN.md`; the cap itself is item 19.
+- **Playback control + now-playing by voice (Kronk tier)** *(2026-09-10,
+  2026-09-14)* — `control_music` (stop == pause, effect verified) and
+  `now_playing` terminal tools on the home agent, origin-aware, with
+  routing pins for bare verbs ("Stop!") and the "what song is this"
+  questions; fork change 4 routes station-first phrasing ("Anime Pop
+  Radio on Pandora") to MA as radio instead of HA's built-in
+  search-and-play, which had been playing YouTube title matches. See
+  `docs/plans/PLAYBACK_CONTROL_PLAN.md`, `docs/plans/MUSIC_ACCURACY_PLAN.md`.
 - **Real errors reach the speaker** *(2026-09-05)* — the cause of a
   failed play was being dropped three times: HA's REST API answers a
   bare 500 for integration errors (the message lives only in HA's log),
@@ -396,6 +370,16 @@ Newest first; feature docs in `docs/features/`.
   capabilities — the in-container SMB feature stays off. Three read-only
   layers: NAS user, mount, bind. See `docs/plans/MUSIC_ASSISTANT_PLAN.md`
   Phase 6.
+- **Model bench — K2 Horizon vs incumbents, no swap** *(item 11,
+  2026-09-03)* — Gemma 4 12B tied E4B at half the speed; K2-Horizon-7B
+  (IFM's llama.cpp fork, own quants) tied-minus-one at a quarter to a
+  third of the speed and keeps its thinking out of the reply only at
+  `reasoning_effort=high`; ties Devstral on the devops battery at 2.6×
+  tok/s but equal wall-clock; answers more research questions than E4B
+  but confabulated stale officeholders where E4B abstained. Harness
+  `scripts/coordinator_model_bench.py` stays. Revisit when upstream
+  llama.cpp parses K2's fast-thinking markers or IFM ships a draft
+  head/QAT checkpoint. See `docs/plans/MODEL_BENCH_K2_HORIZON_PLAN.md`.
 - **Voice music plays on the device that asked (Kronk tier)**
   *(2026-09-04)* — HA stamps the requesting satellite's device id and
   area onto the prompt it already sends (one Jinja line in the Ollama
@@ -471,6 +455,11 @@ Newest first; feature docs in `docs/features/`.
   sketch — the PVS5 varserver API turned out reachable via the bridge Pi.
   See `docs/features/solar-monitoring.md`,
   `docs/plans/SOLAR_MONITOR_PLAN.md`.
+- **Timers via HA native intents** *(item 3, 2026-07-12)* — a spoken
+  timer is caught by HA's local Assist intent and runs on the Voice PE
+  on-device; Kronk's timer tool, route, and env were decommissioned.
+  Operator leftover: the unused `timer.voice_timer` helper and the
+  broken timer-finished announce automation in HA.
 - **Verbose error reporting** *(item 2, 2026-07-05)* — every layer surfaces
   its most specific failure cause; failed turns marked ERROR in Langfuse;
   "an unexpected error occurred" is now a bug by tenet. Includes the

@@ -183,10 +183,21 @@ def test_volume_is_verified_by_the_level_moving(env):
     assert r.status_code == 200 and "already at full volume" in r.json()["detail"]
 
 
-def test_nothing_playing_is_refused_clearly(env):
-    r = _ctl(action="pause", player="kitchen")          # kitchen is idle
-    assert r.status_code == 409
-    assert r.json()["detail"] == "Nothing is playing on the Kitchen speaker."
+def test_pause_on_a_paused_speaker_is_a_calm_noop(env):
+    """A 'pause' four seconds after a 'stop' (2026-09-14) was answered
+    'I couldn't do that' — pausing nothing is a no-op, not a failure."""
+    for action in ("pause", "stop"):
+        r = _ctl(action=action, player="kitchen")          # kitchen is idle
+        assert r.status_code == 200, r.text
+        assert r.json()["detail"] == "The Kitchen speaker is already paused."
+    assert env.calls == []                                 # no service call made
+
+
+def test_skip_and_volume_with_nothing_playing_are_refused_clearly(env):
+    for action in ("next", "volume_up"):
+        r = _ctl(action=action, player="kitchen")
+        assert r.status_code == 409
+        assert r.json()["detail"] == "Nothing is playing on the Kitchen speaker."
     assert env.calls == []
 
 

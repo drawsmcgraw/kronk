@@ -1284,6 +1284,12 @@ async def control_music(req: MusicControlRequest):
                                 detail=f"{names} {'is' if len(targets) == 1 else 'are'} unavailable.")
         active = [t for t in live if t["state"] in ("playing", "buffering", "paused")]
         if action in _NEEDS_PLAYBACK and not any(t["state"] in ("playing", "buffering") for t in live):
+            if action in ("pause", "stop"):
+                # Idempotent: pausing a paused/idle speaker is a no-op, not a
+                # failure (2026-09-14: a "pause" four seconds after a "stop"
+                # was answered "I couldn't do that").
+                return {"status": "noop", "player": label,
+                        "detail": f"{label[0].upper()}{label[1:]} is already paused."}
             raise HTTPException(status_code=409, detail=f"Nothing is playing on {label}.")
         # No precondition for resume: MA reports an ESPHome/Sendspin player as
         # `idle` (not `paused`) after a pause while keeping its queue, and
@@ -1335,6 +1341,80 @@ async def control_music(req: MusicControlRequest):
         detail=f"Home Assistant accepted the request but {label} did not {action.replace('_', ' ')} "
                f"within {MUSIC_VERIFY_TIMEOUT_S}s.",
     )
+
+
+# ── Now playing ───────────────────────────────────────────────────────────────
+# MA player entities carry title/artist/album and a content id whose scheme
+# names the provider ("ytmusic--<id>://track/…", "pandora://radio/…",
+# "library://radio/15"). The speaker is resolved exactly as for play.
+_SOURCE_NAMES = {
+    "ytmusic": "YouTube Music", "pandora": "Pandora", "spotify": "Spotify",
+    "library": "your library", "filesystem_local": "the NAS", "filesystem_smb": "the NAS",
+    "radiobrowser": "internet radio", "tunein": "TuneIn", "apple_music": "Apple Music",
+}
+
+
+class NowPlayingRequest(BaseModel):
+    player: str | None = None
+    origin_area: str | None = None
+    origin_device: str | None = None
+
+
+def describe_playing(state: dict, label: str) -> str:
+    """One spoken sentence from an HA media_player state."""
+    attrs = state.get("attributes", {}) or {}
+    st = state.get("state")
+    if st not in ("playing", "paused", "buffering"):
+        return f"Nothing is playing on {label}."
+    title = attrs.get("media_title")
+    artist = attrs.get("media_artist")
+    album = attrs.get("media_album_name")
+    content = attrs.get("media_content_id") or ""
+    scheme = content.split("://", 1)[0].split("--", 1)[0].lower() if "://" in content else ""
+    source = _SOURCE_NAMES.get(scheme)
+    if not title:
+        return f"Something is playing on {label}, but the speaker didn't say what."
+    what = f"{title} by {artist}" if artist else title
+    lead = "Paused" if st == "paused" else "Playing"
+    # A station: MA puts the station name in media_album_name and the
+    # content id under .../radio/... (media_content_type still says "music").
+    # "library://radio/N" hides which provider backs it, so no source then.
+    is_radio = "://radio/" in content or "/radio/" in content
+    if is_radio:
+        where = f"on the {album} station" if album else "on a radio station"
+        tail = f", from {source}" if source and scheme != "library" else ""
+        return f"{lead}: {what}, {where}, on {label}{tail}."
+    if album and album != title:
+        what += f", from the album {album}"
+    tail = f", from {source}" if source else ""
+    return f"{lead}: {what} on {label}{tail}."
+
+
+@app.post("/music/now_playing")
+async def now_playing(req: NowPlayingRequest):
+    if not HA_TOKEN:
+        raise HTTPException(status_code=500, detail="HA_TOKEN not configured")
+    headers = {"Authorization": f"Bearer {HA_TOKEN}", "Content-Type": "application/json"}
+    async with httpx.AsyncClient(timeout=10) as client:
+        players, origin_key = await _fetch_players(client, headers, req.origin_device)
+        targets, label = resolve_players(req.player, req.origin_area, players,
+                                         MUSIC_DEFAULT_PLAYER, origin_key=origin_key)
+        live = [t for t in targets if t["state"] != "unavailable"]
+        if not live:
+            raise HTTPException(status_code=503, detail=f"{label} is unavailable.")
+        # prefer whichever target is actually playing
+        live.sort(key=lambda t: 0 if t["state"] in ("playing", "buffering") else 1)
+        resp = await client.get(f"{HA_URL}/api/states/{live[0]['entity_id']}", headers=headers)
+        if resp.status_code >= 400:
+            raise HTTPException(status_code=502, detail=f"Home Assistant could not read {label} (HTTP {resp.status_code}).")
+        state = resp.json()
+        attrs = state.get("attributes", {}) or {}
+        return {
+            "detail": describe_playing(state, label),
+            "player": label, "state": state.get("state"),
+            "title": attrs.get("media_title"), "artist": attrs.get("media_artist"),
+            "album": attrs.get("media_album_name"), "content_id": attrs.get("media_content_id"),
+        }
 
 
 @app.get("/health")

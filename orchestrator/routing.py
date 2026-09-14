@@ -120,6 +120,22 @@ _PLAYBACK_RE = re.compile(
     re.IGNORECASE,
 )
 
+# "What song is this?" and its siblings pin to the home agent's now_playing
+# tool (2026-09-14, MUSIC_ACCURACY_PLAN). Anchored; the "what's" branch is
+# limited to this/that/playing/song so "what's the weather" never matches.
+_NOW_PLAYING_RE = re.compile(
+    r"^\W*(?:"
+    r"what(?:'s|\s+is)\s+(?:this|that|playing|on|(?:this|that|the)\s+song|currently\s+playing|playing\s+(?:right\s+)?now)"
+    r"|what\s+song\s+is\s+(?:this|that|playing|on)"
+    r"|which\s+song\s+is\s+this"
+    r"|who(?:'s|\s+is)\s+(?:this|that|singing|playing)(?:\s+song)?"
+    r"|who\s+(?:sings|sang|made|performs)\s+this(?:\s+song)?"
+    r"|what\s+am\s+i\s+listening\s+to"
+    r"|what\s+(?:song|track|artist|band)\s+is\s+this"
+    r")\W*$",
+    re.IGNORECASE,
+)
+
 
 async def classify(text: str, prior_history: list[dict]) -> str:
     """Return a route: a shortcut-pinned specialist, else "direct" (the
@@ -158,6 +174,9 @@ async def _classify_inner(text: str) -> tuple[str, str]:
     if _PLAYBACK_RE.search(text):
         emit("route_shortcut", rule="playback", route="home")
         return "home", "playback"
+    if _NOW_PLAYING_RE.search(text):
+        emit("route_shortcut", rule="now_playing", route="home")
+        return "home", "now_playing"
     if _MM_RE.search(text):
         if _MM_UPDATE_RE.search(text):
             emit("route_shortcut", rule="mm_update", route="home")

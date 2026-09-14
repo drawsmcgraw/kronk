@@ -79,6 +79,8 @@ def _tool_narration(name: str, args: dict) -> str:
     if name == "play_music":
         q = args.get("query", "")
         return f"putting on {q}" if q else "starting the music..."
+    if name == "now_playing":
+        return "checking what's playing..."
     if name == "control_music":
         return {"pause": "pausing the music...", "stop": "pausing the music...",
                 "resume": "resuming the music...", "next": "skipping this track...",
@@ -109,6 +111,10 @@ def _terminal_speech(result: str, style: str = errors.DEBUG,
         return line[len("Music control: "):]
     if line.startswith("Could not control music: "):
         return f"I couldn't do that. {line[len('Could not control music: '):]}"
+    if line.startswith("Now playing: "):
+        return line[len("Now playing: "):]        # tool_service's sentence, as-is
+    if line.startswith("Could not read the player: "):
+        return f"I couldn't tell. {line[len('Could not read the player: '):]}"
     if line.startswith("Magic mirror update started: "):
         return f"The magic mirror is {line[len('Magic mirror update started: '):]}."
     if line.startswith("Could not update the magic mirror: "):
@@ -243,9 +249,12 @@ AGENTS: dict[str, AgentConfig] = {
             "'Which panel produced the most/least energy' is an ENERGY question → solar_energy (lifetime), "
             "not solar_detail (which is about faults/health from recent power, not cumulative production).\n"
             "Use play_music when the user asks to play or put on music. Pass what they want to hear "
-            "as the query; pass the speaker or room only if the user named one. Call play_music at most once — "
+            "as the query; pass the speaker or room only if the user named one. 'X radio', 'X station', "
+            "or 'X on Pandora' means media_type 'radio' with query X. Call play_music at most once — "
             "when it reports music playing, report that back and stop. If the tool reports failure, tell "
             "the user playback failed and why — never claim music is playing after a failed tool call.\n"
+            "Use now_playing when the user asks what song/artist is playing or what this is — it reads the "
+            "speaker; never guess or say you can't tell.\n"
             "Use control_music for stop, pause, resume, skip/next, louder/quieter ('stop' means pause). "
             "It is the ONLY way you can control playback: never say you paused, stopped, or skipped "
             "anything unless control_music reported it. Call it at most once; the speaker is chosen "
@@ -259,8 +268,8 @@ AGENTS: dict[str, AgentConfig] = {
             "Never restate tool calls, tool arguments, or tool output syntax in your reply — "
             "reply in plain sentences only."
         ),
-        tool_names=["get_weather", "shopping_list_view", "shopping_list_add", "shopping_list_remove", "shopping_list_clear", "query_hottub", "solar_status", "solar_detail", "solar_energy", "play_music", "control_music", "update_magicmirror"],
-        terminal_tools=frozenset({"play_music", "control_music", "update_magicmirror"}),
+        tool_names=["get_weather", "shopping_list_view", "shopping_list_add", "shopping_list_remove", "shopping_list_clear", "query_hottub", "solar_status", "solar_detail", "solar_energy", "play_music", "control_music", "now_playing", "update_magicmirror"],
+        terminal_tools=frozenset({"play_music", "control_music", "now_playing", "update_magicmirror"}),
     ),
     "assistant": AgentConfig(
         name="assistant",
@@ -682,6 +691,22 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
                 return
 
             # Execute tools, then loop for the next round.
+            #
+            # Content produced in a round that ends with tool calls is never the
+            # answer — the loop continues after the tool result, or a terminal
+            # tool speaks — so it is RETRACTED before anything speaks or stores
+            # it. In practice it is leaked thinking: the server's reasoning
+            # budget closes the channel mid-thought and the model finishes out
+            # loud (2026-09-14, "Pause" answered with "5. Construct the tool
+            # call…"; TOOL_ROUND_RETRACT_PLAN). The model still gets its own
+            # text back in the transcript below; only the user-facing copy goes.
+            # Streaming clients that can't retract keep it; the event log keeps
+            # a preview so leaks stay findable (tenet 7).
+            retracted = "".join(round_content)
+            if retracted:
+                emit("round_content_retracted", agent=agent.name,
+                     chars=len(retracted), preview=retracted[:160])
+                yield {"type": "retract", "chars": len(retracted), "preview": retracted[:160]}
             messages.append(_build_assistant_msg("".join(round_content), round_tool_calls))
 
             for call in round_tool_calls:
@@ -871,21 +896,24 @@ async def run_delegated(agent: AgentConfig, task: str, context: list[dict]) -> t
 
     The flag is how a terminal result (spoken verbatim by the specialist)
     survives the hop back to the coordinator without a synthesis round."""
-    parts: list[str] = []
+    text = ""
     error: str | None = None
     terminal = False
     async for ev in run_stream(agent, task, context):
         t = ev.get("type")
         if t == "token":
-            parts.append(ev["text"])
+            text += ev["text"]
+        elif t == "retract":
+            # tool-round content (usually leaked thinking) — never the answer
+            text = text[:-ev["chars"]] if ev["chars"] <= len(text) else ""
         elif t == "error":
             error = ev["message"]
         elif t == "done" and ev.get("terminal"):
             terminal = True
-    if error and not parts:
+    if error and not text:
         return error, False
-    text = "".join(parts) or error or f"[{agent.name} agent returned no response]"
-    return text, terminal and bool(parts)
+    text = text or error or f"[{agent.name} agent returned no response]"
+    return text, terminal and bool(text)
 
 
 async def run(agent: AgentConfig, task: str, context: list[dict]) -> str:

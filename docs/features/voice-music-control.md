@@ -153,6 +153,24 @@ simply empty until `sudo mount /mnt/nas-music`; the container sees the
 remount without a restart. Details and the SMB-dialect gotcha:
 `../plans/MUSIC_ASSISTANT_PLAN.md` Phase 6.
 
+## Request accuracy: station-first phrasing, and "what song is this" (2026-09-14)
+
+Plan: `../plans/MUSIC_ACCURACY_PLAN.md`. Analysis of a day's requests
+found "Play X Radio on Pandora" missing the fork's radio grammar and
+being taken by **HA's built-in search-and-play intent**, which searches
+plain text across all providers, doesn't verify, and lands on YouTube
+Music title matches ("Anime Pop Radio on Pandora" → a song called
+"Pandora"). Fork change 4 adds a station-first radio sentence, so those
+requests reach MA typed as radio. `now_playing` (terminal, origin-aware,
+pinned by `routing._NOW_PLAYING_RE` for "what song is this" and kin)
+reads the speaker and answers one sentence: track, artist, station or
+album, room, source. Gotcha: MA reports a station as `media_content_type:
+music` with the station name in `media_album_name`; the id path
+(`…/radio/N`) is what says "station". Rejected on latency: confirming
+the fork's fast-tier play from the player's actual title (would add
+1–2 s); the fork still echoes the request, so a fuzzy mismatch there is
+silent until you ask "what song is this".
+
 ## Playback control: stop, pause, resume, skip, volume (2026-09-10)
 
 Plan: `../plans/PLAYBACK_CONTROL_PLAN.md`. `control_music(action)` is a

@@ -129,3 +129,21 @@ Fix, two parts:
   the improvement isn't real until the marker won't stay on.
 - A 4B coordinator can orchestrate — if the loop, not the model, owns the
   budget (3 rounds, forced synthesis, structural depth cap).
+
+## Tool-round text is retracted (2026-09-14)
+
+Plan: `../plans/TOOL_ROUND_RETRACT_PLAN.md`. Content a model streams in
+a round that ends with a tool call is never the answer (the loop
+continues after the tool result, or a terminal tool speaks), so
+`run_stream` yields `{"type": "retract", "chars": N}` before executing
+the tools and logs `round_content_retracted` with a preview. Consumers:
+`run_delegated` trims the delegated text; `_run_pipeline` trims the
+stored reply and forwards `{"retract": N}` on `/message`, where the web
+UI trims the bubble and parks the text as a muted note on the current
+stage entry; `_ollama_collect` (voice) trims before `to_speech`. The
+streaming shims (`/api/chat` display, `/v1`) can't take text back and
+keep it. Why it exists: the E4B server's `--reasoning-budget 256` closes
+the thinking channel mid-thought on ~27% of rounds (home agent ~42%) and
+the model finishes the thought as visible text — "pause" was once
+answered with "5. Construct the tool call…". The cap itself is ROADMAP
+item 19 (per-agent budgets need a llama.cpp pin bump).

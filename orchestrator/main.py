@@ -369,6 +369,9 @@ async def _run_pipeline(
                             agent_first_token_t = time.monotonic()
                         assistant_reply.append(ev["text"])
                         yield {"type": "token", "text": ev["text"]}
+                    elif etype == "retract":
+                        _trim_reply(assistant_reply, ev["chars"])
+                        yield {"type": "retract", "chars": ev["chars"]}
                     elif etype == "escalated":
                         agent_escalation = ev["note"]
                     elif etype == "error":
@@ -464,6 +467,9 @@ async def _run_pipeline(
                         first_token = False
                     assistant_reply.append(ev["text"])
                     yield {"type": "token", "text": ev["text"]}
+                elif etype == "retract":
+                    _trim_reply(assistant_reply, ev["chars"])
+                    yield {"type": "retract", "chars": ev["chars"]}
                 elif etype == "error":
                     pipeline_error = f"coordinator: {ev['message'][:200]}"
                     msg = errors.render("llm", ev["message"], rid, error_style)
@@ -532,6 +538,10 @@ async def message(req: MessageRequest):
                 yield f"data: {json.dumps({'narration': ev['text']})}\n\n"
             elif etype == "token":
                 yield f"data: {json.dumps({'token': ev['text']})}\n\n"
+            elif etype == "retract":
+                # The UI trims the last N streamed chars from the bubble and
+                # parks them in the stage log (tool-round text, see agents.py).
+                yield f"data: {json.dumps({'retract': ev['chars']})}\n\n"
             elif etype == "timing":
                 yield f"data: {json.dumps({'timing': ev['data']})}\n\n"
         yield "data: [DONE]\n\n"
@@ -583,6 +593,20 @@ class _OpenAIChatRequest(BaseModel):
         extra = "allow"
 
 
+def _trim_reply(parts: list[str], chars: int) -> None:
+    """Drop the last `chars` characters from a list of streamed token strings
+    in place (a retract: tool-round text that must not be stored or spoken)."""
+    remaining = chars
+    while remaining > 0 and parts:
+        last = parts[-1]
+        if len(last) <= remaining:
+            remaining -= len(last)
+            parts.pop()
+        else:
+            parts[-1] = last[:-remaining]
+            remaining = 0
+
+
 def _shim_context(messages, current_text: str) -> list[dict]:
     """Prior user/assistant turns from a shim request's message array.
 
@@ -625,8 +649,8 @@ async def _kronk_pipeline_tokens(text: str, model: str, context: list[dict] | No
             text, context or [],
             transport="shim", pipeline_name="pipeline.shim",
         ):
-            if ev["type"] == "token":
-                yield {"type": "token", "text": ev["text"]}
+            if ev["type"] in ("token", "retract"):
+                yield ev
 
 
 def _openai_chunk(rid: str, model: str, delta: dict, finish_reason: str | None = None) -> str:
@@ -645,6 +669,8 @@ async def _openai_pipeline_stream(text: str, model: str, rid: str,
     """OpenAI Chat Completions SSE framing around the core pipeline."""
     yield _openai_chunk(rid, model, {"role": "assistant", "content": ""})
     async for ev in _kronk_pipeline_tokens(text, model, context):
+        if ev["type"] != "token":
+            continue        # SSE can't retract already-sent text; see agents.py
         yield _openai_chunk(rid, model, {"content": ev["text"]})
     yield _openai_chunk(rid, model, {}, finish_reason="stop")
     yield "data: [DONE]\n\n"
@@ -653,9 +679,13 @@ async def _openai_pipeline_stream(text: str, model: str, rid: str,
 async def _ollama_pipeline_stream(text: str, model: str,
                                   context: list[dict] | None = None,
                                   req_origin: origin.Origin | None = None):
-    """Ollama /api/chat NDJSON framing around the core pipeline."""
+    """Ollama /api/chat NDJSON framing around the core pipeline. A streaming
+    client can't take back text already sent, so `retract` events are
+    dropped here (the buffered speech path in _ollama_collect honours them)."""
     created = time.strftime("%Y-%m-%dT%H:%M:%S.000000000Z", time.gmtime())
     async for ev in _kronk_pipeline_tokens(text, model, context, req_origin):
+        if ev["type"] != "token":
+            continue
         chunk = {
             "model":      model,
             "created_at": created,
@@ -806,17 +836,16 @@ async def ollama_show():
 async def _ollama_collect(text: str, model: str,
                           context: list[dict] | None,
                           req_origin: origin.Origin | None = None) -> str:
-    """Run the pipeline to completion and return the full reply text."""
-    parts: list[str] = []
-    async for line in _ollama_pipeline_stream(text, model, context, req_origin):
-        try:
-            obj = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        tok = obj.get("message", {}).get("content", "")
-        if tok and not obj.get("done"):
-            parts.append(tok)
-    return "".join(parts)
+    """Run the pipeline to completion and return the full reply text —
+    with tool-round text retracted (this is the speech path; nothing has
+    been sent yet, so retracts are honoured exactly)."""
+    reply = ""
+    async for ev in _kronk_pipeline_tokens(text, model, context, req_origin):
+        if ev["type"] == "token":
+            reply += ev["text"]
+        elif ev["type"] == "retract":
+            reply = reply[:-ev["chars"]] if ev["chars"] <= len(reply) else ""
+    return reply
 
 
 async def _ollama_single_chunk_stream(full: str, text: str, model: str):
