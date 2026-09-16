@@ -171,6 +171,34 @@ the fork's fast-tier play from the player's actual title (would add
 1–2 s); the fork still echoes the request, so a fuzzy mismatch there is
 silent until you ask "what song is this".
 
+## Shuffle, and keep playing when the queue ends (2026-09-16)
+
+- **Shuffle** was always in the blueprint: any matched sentence that starts
+  with "shuffle" sets shuffle on the player after `play_media`. "Shuffle my
+  YouTube playlist X" did not match (`[the ]playlist` only) and fell to
+  Kronk, whose tool had no shuffle, so the playlist played in order.
+  Two fixes: KRONK change 5 in the blueprint accepts `[my ][the ][youtube
+  [music] ]playlist`, and `play_music` gained a `shuffle` flag —
+  tool_service sets `media_player.shuffle_set` after a verified play,
+  **on or off every time** (like the blueprint, so a previous shuffle never
+  leaks into the next album), and reports the player's own `shuffle`
+  attribute back; the spoken line says "shuffled" only if the player says so.
+- **Keep playing after the song/playlist ends** — two MA features, both
+  supported by YouTube Music (similar-tracks), not by Pandora:
+  *radio mode* per request (blueprint: "... with radio mode"; Kronk's tool
+  does not pass it) seeds the queue with the item and keeps adding the
+  provider's song-radio picks; *Don't stop the music* per player queue
+  continues with similar tracks when the queue runs dry. The kitchen
+  queue (`up20f83b0ac919`) has Don't stop the music **on** (set via the MA
+  API `player_queues/dont_stop_the_music`, 2026-09-16); the other six
+  queues are off. Whether MA keeps the flag across its own restart is
+  unverified — check it after the next deliberate MA restart.
+- Gotcha kept from the same day: song titles containing "in"/"on" get
+  chopped by the blueprint's optional `[(in|on|using) {area_or_player_name}]`
+  clause ("The Girl with the Sun in Her Head by Orbital" → media "The Girl
+  with the Sun", room "Her Head by Orbital"); it fell through to the kitchen
+  and found the track by luck.
+
 ## Playback control: stop, pause, resume, skip, volume (2026-09-10)
 
 Plan: `../plans/PLAYBACK_CONTROL_PLAN.md`. `control_music(action)` is a
@@ -230,6 +258,22 @@ thing obtainable while HA is the broker.
   it failed while the kitchen played). Follow-up on the roadmap: on a
   5xx, poll for `playing` before declaring failure (tenet 6 cuts both
   ways).
+
+- **Local library credits come from the album-artist tag, and ours has
+  none.** MA's filesystem provider setting "Action when a track is
+  missing the Albumartist ID3 tag" defaults to *Use Various Artists*;
+  with that, 85% of the NAS albums were "Various Artists" and "album X
+  by Y" resolved to the YouTube Music copy instead of the local one.
+  Set to *Use Track artist(s)* (2026-09-15). Name resolution
+  (`music_assistant_client.get_item_by_name`) is exact-match on the
+  library first, then a provider search — a misheard word never matches
+  locally, and streaming search is more forgiving than the library.
+- **A rescan does not re-read unchanged files** (size+mtime checksum),
+  so a provider setting that changes how files are parsed only applies
+  after removing and re-adding the provider — and **removing a
+  filesystem provider makes MA reset the whole library database** and
+  re-sync every provider, quietly. Back up `/data/library.db` and
+  `settings.json` first; never do it as a side effect.
 
 ## Blog hooks
 

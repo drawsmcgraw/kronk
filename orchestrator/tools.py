@@ -417,6 +417,10 @@ TOOL_DEFINITIONS = [
                         "enum": ["artist", "album", "track", "playlist", "radio"],
                         "description": "What kind of thing the query names, if the user said so (album/song/etc). Omit when unsure.",
                     },
+                    "shuffle": {
+                        "type": "boolean",
+                        "description": "True when the user said 'shuffle' (e.g. 'shuffle my playlist X'). Otherwise omit.",
+                    },
                     "player": {
                         "type": "string",
                         "description": "Which speaker OR room to play in, exactly as the user said it (e.g. 'the office', 'kitchen', 'sonos move'). Omit when the user named none.",
@@ -859,6 +863,8 @@ async def _tool_play_music(client: httpx.AsyncClient, args: dict) -> str:
         payload["media_type"] = args["media_type"]
     if args.get("player"):
         payload["player"] = args["player"]
+    if args.get("shuffle"):
+        payload["shuffle"] = True
     # Where the request came from (voice satellite) — set by the shim for the
     # life of the request (origin.py). tool_service prefers a spoken speaker
     # or room, then this device, then its room, then the default. The model
@@ -873,7 +879,8 @@ async def _tool_play_music(client: httpx.AsyncClient, args: dict) -> str:
     if resp.status_code == 200:
         info = resp.json()
         what = " by ".join(p for p in (info.get("title"), info.get("artist")) if p) or query
-        return f"[Music playing: {what} on {info.get('player')}]"
+        shuffled = ", shuffled" if info.get("shuffle") else ""
+        return f"[Music playing: {what} on {info.get('player')}{shuffled}]"
     try:
         detail = resp.json().get("detail", "")
     except Exception:

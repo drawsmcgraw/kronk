@@ -993,6 +993,7 @@ class MusicRequest(BaseModel):
     query: str
     media_type: str | None = None    # artist | album | track | playlist | radio
     player: str | None = None        # spoken speaker OR room, as the user said it
+    shuffle: bool = False            # "shuffle X" — set on the player after play, like the blueprint
     origin_area: str | None = None   # area of the satellite that heard the request
     origin_device: str | None = None  # HA device id of that satellite
 
@@ -1209,11 +1210,27 @@ async def play_music(req: MusicRequest):
                     if failure:
                         logger.warning("play_media reported failure but %s is playing: %s", entity, failure)
                     attrs = state.get("attributes", {})
+                    # Shuffle is a player (queue) setting, not a play_media
+                    # option — set it explicitly every time, on or off, the
+                    # way the blueprint does, so a previous "shuffle" never
+                    # leaks into the next album. Reported from the player's
+                    # own attribute afterwards, not from the request.
+                    shuffle = bool(attrs.get("shuffle"))
+                    if bool(req.shuffle) != shuffle:
+                        try:
+                            await ha_call_service("media_player", "shuffle_set",
+                                                  {"shuffle": bool(req.shuffle)},
+                                                  target={"entity_id": entities})
+                            state = (await client.get(f"{HA_URL}/api/states/{entity}", headers=headers)).json()
+                            shuffle = bool(state.get("attributes", {}).get("shuffle"))
+                        except HAServiceError as e:
+                            logger.warning("shuffle_set failed on %s: %s", entity, e)
                     return {
                         "status": "playing",
                         "player": label,
                         "artist": attrs.get("media_artist"),
                         "title":  attrs.get("media_title"),
+                        "shuffle": shuffle,
                     }
 
     if failure:

@@ -152,9 +152,15 @@ the docs use them. 1, 2, 3, 11 and 12 are in Shipped. Pruned 2026-09-14.)*
     have a target and Kronk's labels name the room; HA's built-in bare
     "pause" with only the satellite's area as context did not match in
     testing (bare "resume" did) — cause not pinned
-    (`docs/incidents/INVESTIGATION_2026-09-10_voice_stop.md`). *Why:
-    "stop" is the most common thing said to a playing speaker; today it
-    takes five seconds through Kronk.*
+    (`docs/incidents/INVESTIGATION_2026-09-10_voice_stop.md`). Update
+    2026-09-15: HA's pipeline log shows bare "Pause." and "Skip." from
+    the kitchen on 2026-09-14 handled *locally* by HA's built-in media
+    intents in ~0.02 s intent time, against the exposed MA players — the
+    fast path already exists for those two; "stop" and volume phrasing
+    still fall to Kronk. Un-exposing the MA players from Assist (tried
+    and reverted, `INVESTIGATION_2026-09-15_album_played_one_track.md`)
+    would lose it. *Why: "stop" is the most common thing said to a
+    playing speaker; today it takes five seconds through Kronk.*
 
 19. **Per-agent reasoning budgets (llama.cpp pin bump)** *(added
     2026-09-14)*. The E4B server's `--reasoning-budget 256` is one cap
@@ -170,6 +176,50 @@ the docs use them. 1, 2, 3, 11 and 12 are in Shipped. Pruned 2026-09-14.)*
     coordinator battery), then set budgets per agent in `llm.py`.
     *Why: the cap is a statistical latency tool with a known leak; the
     retract makes leaks invisible, budgets per agent make them rare.*
+
+20. **ESPHome device logs, then a dashboard** *(added 2026-09-14; from
+    the kitchen ducking investigation — the Voice PE's 20 dB music duck
+    stayed applied after a timer request, HA showed volume 1.0 and idle,
+    and there was no way to see the device's own state)*. HA runs in
+    Docker, so there are no add-ons; the ESPHome tooling is ours to host.
+    Two steps, the first with no flash: (1) **logs only** — the ESPHome
+    CLI in a venv, one YAML per satellite that pulls the upstream firmware
+    package at the installed version (26.6.0 today) with the API key HA
+    already holds (`.storage/core.config_entries`, three devices: the two
+    Voice PEs and the Satellite1), and `scripts/esphome_logs.sh <device>`
+    to stream the native-API log on demand. Read-only; ducking, pipeline
+    state, and dropout evidence instead of theory. (2) **dashboard** —
+    `ghcr.io/esphome/esphome` pinned (2026.8.2 as of writing) in its own
+    `docker-compose.esphome.yml` with an Operations block, host network
+    for mDNS/OTA. Adopt the Satellite1 first (expendable); adoption means
+    one OTA flash from a build compiled here and, from then on, upstream
+    firmware changes arrive by merging their YAML into ours (upstream
+    copy kept pristine, like `ha/blueprints/upstream/`) rather than via
+    HA's update entity — firmware becomes a pinned line in the repo
+    (tenet 3). Firmware changes queued behind it: expose the internal
+    `timer_ringing` switch and a ducking-state sensor to HA, an un-duck
+    safety net when the device goes idle, and item 21. A bad build is
+    recoverable over USB, not over the air. *Why: every satellite bug so
+    far has been debugged blind; this is the instrument.*
+
+21. **Custom wake word — "Hey Kronk"** *(added 2026-09-14; depends on
+    item 20 step 2)*. Wake words on the Voice PE are microWakeWord models
+    compiled into the firmware (installed build: Okay Nabu, Hey Jarvis,
+    Hey Mycroft, plus the internal "stop"); HA's wake-word select only
+    lists what is compiled in, and the HA-side openWakeWord path is off
+    in this firmware, so a new wake word is a custom build. Route:
+    (1) train with the microWakeWord pipeline — Piper generates a few
+    thousand synthetic utterances across voices, augmented with room
+    impulse responses and background noise, a small streaming model
+    trained on top, exported to `.tflite` + manifest; CPU-only here, ~a
+    day unattended; the model file lives in the repo beside the YAML.
+    (2) Train two phrasings and test both: two syllables ("Hey Kronk") is
+    short for a wake word and false-triggers more; "Okay Kronk" is the
+    safer bet. (3) Flash the Satellite1 first, live with it a week, tune
+    the probability cutoff against real voices in real rooms (the model
+    learns Piper's pronunciation of "Kronk", not the household's), then
+    the PEs, keeping Okay Nabu in the second slot as the fallback.
+    *Why: the assistant is named Kronk; the pucks answer to Nabu.*
 
 5. **Context/fact cache** — a small keyed store (SQLite table in the
    orchestrator, or in-memory in tool_service) of low-volatility facts with
@@ -202,15 +252,28 @@ the docs use them. 1, 2, 3, 11 and 12 are in Shipped. Pruned 2026-09-14.)*
    in the last update?") through the audited read-only `remote_exec`
    path, from a satellite or the web UI, and **makes no changes** —
    the standing no-mutation rule for managed hosts holds, the update
-   flow is the only exception. Open work: the ops classifier's Phase-B
-   quirks that block real investigations (`git -C` misparse, quoted
-   pipes, `journalctl --user`); voice-shaped answers (Devstral runs
-   ~15 tok/s, so a spoken answer must be two sentences, not a log dump —
-   detail stays in the web UI); a small battery of investigation
-   questions as the test, in the voice smoke test's shape (item 8);
-   confirm the mirror phrasings route to devops from voice. *Why: the
-   first Kronk capability that reaches another machine; investigation
-   is the value, mutation is the risk.*
+   flow is the only exception. The questions are **arbitrary** — the
+   agent runs whatever read-only commands the audited allowlist permits
+   and reasons over the output; the only fixed list is the test battery.
+   Open work, in order: (1) **model** — benched 2026-09-14 with
+   `devops_model_bench.py` plus two log-reading probes (journal, git),
+   July rule (beat the incumbent, or tie and ≥2× tok/s):
+   Devstral 24B Q4 23/23 @ 14.8 tok/s, median answer 4.9 s;
+   gemma-4-e4b 22/23 @ 122 tok/s, 2.7 s (drops the "why skipped" detail
+   from a journal read one run in three; same on the July-refresh
+   weights); Ministral-3-8B Q8 23/23 @ 24 tok/s, 3.2 s (only 1.7×, so
+   the rule keeps Devstral). Files: `docs/bench/devops_bench_2026-09-14_*`.
+   Next single-variable step: Ministral at Q4_K_M — if it holds 23/23 at
+   ~2× it takes the slot; otherwise it is an operator override between
+   E4B (fastest, one dropped detail) and Ministral Q8 (complete, 1.6×
+   faster than Devstral). The coding agent keeps Devstral regardless; (2) the ops classifier's
+   Phase-B quirks that block real investigations (`git -C` misparse,
+   quoted pipes, `journalctl --user`); (3) voice-shaped answers — two
+   sentences spoken, the detail in the web UI; (4) the test battery in
+   the voice smoke test's shape (item 8); (5) confirm mirror phrasings
+   route to devops from a satellite. *Why: the first Kronk capability
+   that reaches another machine; investigation is the value, mutation
+   is the risk.*
 
 8. **Voice regression smoke test** — script fires ~10 canned utterances
    through HA's `assist_pipeline/run` websocket and asserts which tier
@@ -324,6 +387,34 @@ the docs use them. 1, 2, 3, 11 and 12 are in Shipped. Pruned 2026-09-14.)*
 - Rename MA player "Sonos Move Derp" → "Sonos Move" in the MA UI so the
   blueprint fast path resolves natural phrasing (entity_id is unchanged;
   nothing else moves).
+- **"Who is this?" grabbed by an HA built-in intent** — 2026-09-14
+  19:00 UTC, kitchen: processed locally, spoken reply `Not any`; Kronk's
+  now-playing route never saw it. Find which intent's sentence matches
+  it and decide (custom sentence for the blueprint, or accept). Evidence
+  in `INVESTIGATION_2026-09-15_album_played_one_track.md`.
+- **NAS library: album artist fallback — done 2026-09-15.** The local
+  files have artist/album/title/track tags but no album-artist tag, and
+  MA's filesystem provider defaulted "Action when a track is missing the
+  Albumartist ID3 tag" to *Use Various Artists*: 910 of 1,063 local
+  albums were credited to Various Artists, so "album X by Y" never hit
+  the local copy and MA streamed the YouTube Music copy. Set the option
+  to **Use Track artist(s)** via the MA API (the UI-equivalent path).
+  Gotcha: a rescan skips unchanged files (size+mtime checksum), so the
+  setting only applied after removing and re-adding the provider — and
+  **removing a filesystem provider makes MA reset the whole library
+  database** and re-sync every provider (YT Music, Pandora included;
+  quiet, DEBUG-level). Backup taken first (`library.db`, `settings.json`).
+  After: 1,305 local albums, 12 under Various Artists; Daisies of the
+  Galaxy credited to Eels; the stale folder row gone. New provider
+  instance id `filesystem_local--C7G2mf6f`, default display name
+  ("Filesystem (local disk)") — rename to *atlas* in the MA UI when
+  convenient. Left over, operator hygiene: 11 album folders with
+  case/underscore twins (e.g. `Deep_Forest/Deep_Forest` vs
+  `Deep Forest/Deep Forest`) and loose files tagged with an album name
+  that create a second "virtual" album (`Fun_List/` holds three Eels
+  tracks → a 3-track *Daisies of the Galaxy*); 156 files MA cannot
+  parse at all (Bill Cosby albums, some TMBG, audiobook m4a under
+  `Unknown Artist`).
 - Operator kitchen voice tests — real "Okay Nabu" music commands from the
   Voice PE (the one untested layer of the 2026-07-03 music work).
 - Backfill tests for the 2026-07-03 fixes — routing-history merge/drop
@@ -370,6 +461,15 @@ Newest first; feature docs in `docs/features/`.
   capabilities — the in-container SMB feature stays off. Three read-only
   layers: NAS user, mount, bind. See `docs/plans/MUSIC_ASSISTANT_PLAN.md`
   Phase 6.
+- **Gemma 4 E4B — July-2026 weight refresh** *(2026-09-14)* — Google
+  re-issued every Gemma 4 checkpoint on 2026-07-15 (tool-calling and
+  chat-template fixes; E4B +8/+6 on two agentic benchmarks); our QAT
+  GGUF was the June file. New unsloth QAT UD-Q4_K_XL + MTP drafter,
+  hash-verified, stored as `*-202607.gguf` beside the old files for
+  rollback. Coordinator battery 28/28, 0 leaks, 112 tok/s (was 104),
+  median reasoning 530 chars (was 712); devops battery unchanged
+  (22/23). `systemd/llama-gemma4-e4b.service` and the live unit point
+  at the new files; restarted and verified through `/api/chat`.
 - **Model bench — K2 Horizon vs incumbents, no swap** *(item 11,
   2026-09-03)* — Gemma 4 12B tied E4B at half the speed; K2-Horizon-7B
   (IFM's llama.cpp fork, own quants) tied-minus-one at a quarter to a

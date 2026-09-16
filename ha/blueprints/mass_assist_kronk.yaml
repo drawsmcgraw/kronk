@@ -207,8 +207,11 @@ blueprint:
               multiline: false
               multiple: true
           default:
-          - (shuffle|play|listen to) [the ]playlist {media_name} [(in|on|using) [the
-            ]{area_or_player_name}][ (with|using) {radio_mode}]
+          # KRONK change 5: allow "my" / "YouTube [Music]" before "playlist"
+          # ("shuffle my YouTube playlist X" fell through to Kronk, which
+          # could not shuffle — 2026-09-16).
+          - (shuffle|play|listen to) [my ][the ][(youtube music|youtube|you tube) ]playlist
+            {media_name} [(in|on|using) [the ]{area_or_player_name}][ (with|using) {radio_mode}]
         response_input:
           name: Response for Assist
           description: The response which will be given by Assist. `mass_player_where`

@@ -78,7 +78,8 @@ def _tool_narration(name: str, args: dict) -> str:
         return "generating a diagram..."
     if name == "play_music":
         q = args.get("query", "")
-        return f"putting on {q}" if q else "starting the music..."
+        verb = "shuffling" if args.get("shuffle") else "putting on"
+        return f"{verb} {q}" if q else "starting the music..."
     if name == "now_playing":
         return "checking what's playing..."
     if name == "control_music":
@@ -249,7 +250,7 @@ AGENTS: dict[str, AgentConfig] = {
             "'Which panel produced the most/least energy' is an ENERGY question → solar_energy (lifetime), "
             "not solar_detail (which is about faults/health from recent power, not cumulative production).\n"
             "Use play_music when the user asks to play or put on music. Pass what they want to hear "
-            "as the query; pass the speaker or room only if the user named one. 'X radio', 'X station', "
+            "as the query; pass the speaker or room only if the user named one. If they say 'shuffle', pass shuffle true. 'X radio', 'X station', "
             "or 'X on Pandora' means media_type 'radio' with query X. Call play_music at most once — "
             "when it reports music playing, report that back and stop. If the tool reports failure, tell "
             "the user playback failed and why — never claim music is playing after a failed tool call.\n"

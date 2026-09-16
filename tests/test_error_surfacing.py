@@ -125,6 +125,7 @@ class _Resp:
 class FakeHA:
     """httpx stand-in for the reads (template + state polls)."""
     playing = False
+    shuffle = False          # the player's own shuffle attribute
 
     def __init__(self, *a, **kw):
         pass
@@ -141,12 +142,14 @@ class FakeHA:
 
     async def get(self, url, headers=None):
         return _Resp({"state": "playing" if FakeHA.playing else "idle",
-                      "attributes": {"media_artist": "Portishead", "media_title": "Glory Box"}})
+                      "attributes": {"media_artist": "Portishead", "media_title": "Glory Box",
+                                     "shuffle": FakeHA.shuffle}})
 
 
 @pytest.fixture
 def music_env():
     FakeHA.playing = False
+    FakeHA.shuffle = False
     env = types.SimpleNamespace(calls=[], fail=None)
 
     async def no_sleep(_):
@@ -156,6 +159,8 @@ def music_env():
         env.calls.append((domain, service, service_data, target))
         if env.fail:
             raise ts.HAServiceError(env.fail)
+        if service == "shuffle_set":                 # the player takes the setting
+            FakeHA.shuffle = service_data["shuffle"]
 
     with patch.object(ts.httpx, "AsyncClient", FakeHA), \
          patch.object(ts.asyncio, "sleep", new=no_sleep), \
@@ -210,6 +215,40 @@ def test_music_success_path_unchanged(music_env):
     with patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 5):
         resp = TestClient(ts.app).post("/music", json={"query": "Portishead"})
     assert resp.status_code == 200 and resp.json()["player"] == "the Kitchen speaker"
+
+
+# ── Shuffle: a player setting, set explicitly on every play (2026-09-16) ────
+
+def test_music_shuffle_requested_sets_the_player_and_reports_it(music_env):
+    FakeHA.playing = True
+    with patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 5):
+        resp = TestClient(ts.app).post("/music", json={"query": "Video Games Pretty Songs",
+                                                       "media_type": "playlist", "shuffle": True})
+    assert resp.status_code == 200
+    assert resp.json()["shuffle"] is True                    # read back from the player
+    services = [(d, sv, data) for d, sv, data, _ in music_env.calls]
+    assert services[0][:2] == ("music_assistant", "play_media")
+    assert services[1] == ("media_player", "shuffle_set", {"shuffle": True})
+    assert music_env.calls[1][3] == {"entity_id": ["media_player.kitchen_ma"]}
+
+
+def test_music_without_shuffle_turns_a_shuffling_player_off(music_env):
+    FakeHA.playing = True
+    FakeHA.shuffle = True                                     # left on by an earlier request
+    with patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 5):
+        resp = TestClient(ts.app).post("/music", json={"query": "Daisies of the Galaxy", "media_type": "album"})
+    assert resp.status_code == 200
+    assert resp.json()["shuffle"] is False
+    assert [sv for _, sv, _, _ in music_env.calls] == ["play_media", "shuffle_set"]
+    assert music_env.calls[1][2] == {"shuffle": False}
+
+
+def test_music_no_shuffle_call_when_the_player_already_matches(music_env):
+    FakeHA.playing = True
+    with patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 5):
+        resp = TestClient(ts.app).post("/music", json={"query": "jazz"})
+    assert resp.status_code == 200 and resp.json()["shuffle"] is False
+    assert [sv for _, sv, _, _ in music_env.calls] == ["play_media"]
 
 
 # ── coordinator passthrough: a delegated terminal result is relayed verbatim ─
