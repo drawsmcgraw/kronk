@@ -44,6 +44,14 @@ MODELS = {
     # docs/plans/MODEL_BENCH_K2_HORIZON_PLAN.md). The bench's temperature=0.0
     # overrides the server's --temp 1.0, same regime as every other row.
     "k2-horizon-7b-q4":     "http://127.0.0.1:11496",
+    # gemma-4-e4b — the coordinator's model, benched for the devops slot
+    # 2026-09-14 (ROADMAP 7: read-only mirror investigation over voice;
+    # Devstral's ~15 tok/s makes a spoken answer 15–25 s). Isolated copy
+    # with the production flags (QAT + MTP, reasoning budget 256) on 11497.
+    "gemma-4-e4b":          "http://127.0.0.1:11497",
+    # Ministral 3 8B Instruct 2512 (Apache 2.0, native function calling) —
+    # Mistral's small agentic model, benched for the devops slot 2026-09-14.
+    "ministral-3-8b":       "http://127.0.0.1:11495",
 }
 
 SYSTEM = (
@@ -110,6 +118,30 @@ PM2_LOG = """\
 0|mm |     at listenInCluster (node:net:1865:12)
 0|mm | PM2      | App [mm:0] exited with code [1] via signal [SIGINT]
 0|mm | PM2      | App [mm:0] starting in -fork mode-
+"""
+
+# Investigation-shaped material (2026-09-14, ROADMAP 7): the agent's real
+# job is reading command output and reasoning over it, not just picking a
+# verb. Both excerpts are shaped like the mirror's actual outputs.
+JOURNAL_EXCERPT = """\
+Sep 13 06:00:02 mirror systemd[1]: Starting mm-update.service - MagicMirror weekly update...
+Sep 13 06:00:04 mirror mm-update.sh[2210]: git pull: Already up to date.
+Sep 13 06:00:05 mirror mm-update.sh[2210]: npm ci: skipped (HEAD unchanged, node_modules present)
+Sep 13 06:00:05 mirror mm-update.sh[2210]: modules: MMM-Solar dirty (untracked: package-lock.json) — skipped
+Sep 13 06:00:06 mirror mm-update.sh[2210]: KRONK-OK core=unchanged mods_updated=2 mods_dirty=MMM-Solar
+Sep 13 06:00:06 mirror systemd[1]: Finished mm-update.service - MagicMirror weekly update.
+"""
+
+GIT_EXCERPT = """\
+$ git log --oneline -5
+a41c9e2 (HEAD -> master, origin/master) Release 2.34.0
+7f3d0b1 Merge pull request #3801 from weather-provider-fix
+c0ffee1 weather: bump openmeteo endpoint, drop deprecated hourly param
+19b8ad3 calendar: fix broken ics parsing for all-day events
+5e1a2c4 Release 2.33.0
+$ git status --short
+ M modules/default/weather/providers/openmeteo.js
+?? modules/MMM-Solar/package-lock.json
 """
 
 
@@ -224,6 +256,41 @@ PROBES = [
             "8080" in c and ("port" in c.lower())
             and any(k in c.lower() for k in ("lsof", "fuser", "ss -", "netstat", "kill", "another process", "already running")),
             "port-conflict diagnosis",
+        ),
+    },
+    {
+        "id": "journal_reading",
+        "label": "Read a journal excerpt: which module was skipped and why",
+        "prompt": (
+            "Here is the mirror's update log from this morning:\n\n"
+            f"```\n{JOURNAL_EXCERPT}```\n\n"
+            "Did the update run, what was updated, and was anything skipped? Two sentences."
+        ),
+        "tools": False,
+        "repeats": 3,
+        "check": lambda m, c: (
+            "mmm-solar" in c.lower()
+            and ("skip" in c.lower())
+            and any(k in c.lower() for k in ("dirty", "untracked", "package-lock"))
+            and not any(k in c.lower() for k in ("failed", "did not run", "didn't run")),
+            "names MMM-Solar + skipped + dirty/untracked reason, no false failure",
+        ),
+    },
+    {
+        "id": "git_reading",
+        "label": "Read git output: what changed in the last release and is the tree dirty",
+        "prompt": (
+            "Here is output from the mirror's MagicMirror checkout:\n\n"
+            f"```\n{GIT_EXCERPT}```\n\n"
+            "What changed between 2.33.0 and 2.34.0, and is the working tree clean? Be brief."
+        ),
+        "tools": False,
+        "repeats": 3,
+        "check": lambda m, c: (
+            "weather" in c.lower() and "calendar" in c.lower()
+            and any(k in c.lower() for k in ("not clean", "dirty", "modified", "uncommitted", "untracked"))
+            and "openmeteo" in c.lower(),
+            "weather + calendar changes, tree not clean, names the modified file",
         ),
     },
     {

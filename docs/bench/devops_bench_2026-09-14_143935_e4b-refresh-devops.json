@@ -1,0 +1,328 @@
+{
+  "label": "e4b-refresh-devops",
+  "stamp": "2026-09-14_143935",
+  "models": {
+    "gemma-4-e4b": {
+      "tool_restart_x5": [
+        {
+          "ok": true,
+          "note": "verb='restart'",
+          "elapsed_s": 0.83,
+          "gen_tps": 141.8,
+          "prompt_tps": 1200.7,
+          "completion_tokens": 87,
+          "content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "magicmirror_ops",
+                "arguments": "{\"verb\":\"restart\"}"
+              },
+              "id": "XV5kEZygDGobxllgc71FKiUD4ifgvaao"
+            }
+          ]
+        },
+        {
+          "ok": true,
+          "note": "verb='restart'",
+          "elapsed_s": 0.66,
+          "gen_tps": 138.1,
+          "prompt_tps": 58.0,
+          "completion_tokens": 87,
+          "content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "magicmirror_ops",
+                "arguments": "{\"verb\":\"restart\"}"
+              },
+              "id": "W4YX8a1bJKx8DXt2SHmmZTJiwBgwWVqt"
+            }
+          ]
+        },
+        {
+          "ok": true,
+          "note": "verb='restart'",
+          "elapsed_s": 0.68,
+          "gen_tps": 136.5,
+          "prompt_tps": 53.2,
+          "completion_tokens": 87,
+          "content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "magicmirror_ops",
+                "arguments": "{\"verb\":\"restart\"}"
+              },
+              "id": "cV607qh7WgE7h6U5SqguE9rMY6u4PbHZ"
+            }
+          ]
+        },
+        {
+          "ok": true,
+          "note": "verb='restart'",
+          "elapsed_s": 0.68,
+          "gen_tps": 135.3,
+          "prompt_tps": 54.0,
+          "completion_tokens": 87,
+          "content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "magicmirror_ops",
+                "arguments": "{\"verb\":\"restart\"}"
+              },
+              "id": "jE71HlvY10fJ7yC0ij6eXlcxUBHhpLYF"
+            }
+          ]
+        },
+        {
+          "ok": true,
+          "note": "verb='restart'",
+          "elapsed_s": 0.67,
+          "gen_tps": 136.5,
+          "prompt_tps": 55.6,
+          "completion_tokens": 87,
+          "content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "magicmirror_ops",
+                "arguments": "{\"verb\":\"restart\"}"
+              },
+              "id": "2wDfHmouF9WlbyzsREhMIqbuADDtiFeC"
+            }
+          ]
+        }
+      ],
+      "tool_diagnose": [
+        {
+          "ok": true,
+          "note": "verb='status'",
+          "elapsed_s": 1.12,
+          "gen_tps": 117.3,
+          "prompt_tps": 424.3,
+          "completion_tokens": 125,
+          "content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "magicmirror_ops",
+                "arguments": "{\"verb\":\"status\"}"
+              },
+              "id": "KpvmmbcKAkaEe463HABm71iEQjAoTGGk"
+            }
+          ]
+        },
+        {
+          "ok": true,
+          "note": "verb='status'",
+          "elapsed_s": 1.06,
+          "gen_tps": 121.2,
+          "prompt_tps": 51.2,
+          "completion_tokens": 125,
+          "content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "magicmirror_ops",
+                "arguments": "{\"verb\":\"status\"}"
+              },
+              "id": "gEY2Gm7Vx6f3zht8kwYoJjuO4bygj8DA"
+            }
+          ]
+        },
+        {
+          "ok": true,
+          "note": "verb='status'",
+          "elapsed_s": 1.1,
+          "gen_tps": 118.1,
+          "prompt_tps": 55.0,
+          "completion_tokens": 125,
+          "content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "magicmirror_ops",
+                "arguments": "{\"verb\":\"status\"}"
+              },
+              "id": "BmzCVUwLEDYOJ6tamL53JENojh8TO7w5"
+            }
+          ]
+        }
+      ],
+      "no_spurious_tool": [
+        {
+          "ok": true,
+          "note": "tool_calls=False",
+          "elapsed_s": 3.78,
+          "gen_tps": 101.7,
+          "prompt_tps": 503.2,
+          "completion_tokens": 377,
+          "content": "PM2 is a production process manager for Node.js applications that ensures your app runs reliably and efficiently. Its primary function is to keep your application alive; if the Node process crashes or fails, PM2 automatically restarts it, guaranteeing high uptime. Beyond simple restarts, PM2 allows you to run your application in a cluster mode, enabling it to utilize all available CPU cores for better performance and load balancing. It also provides essential monitoring tools, allowing you to view real-time status, logs, and resource usage, effectively turning a simple script into a robust, production-ready service.",
+          "tool_calls": null
+        },
+        {
+          "ok": true,
+          "note": "tool_calls=False",
+          "elapsed_s": 3.54,
+          "gen_tps": 105.5,
+          "prompt_tps": 55.5,
+          "completion_tokens": 369,
+          "content": "PM2 is a production process manager for Node.js applications that ensures your app runs reliably and efficiently. Its primary function is to keep your application alive; if the Node process crashes or fails, PM2 automatically restarts it, preventing downtime. Beyond simple monitoring and logging, PM2 allows you to run your application in a cluster mode, enabling it to utilize all available CPU cores for better performance and load balancing. Essentially, it takes your script from a simple development file to a robust, self-healing, and scalable service running in the background.",
+          "tool_calls": null
+        },
+        {
+          "ok": true,
+          "note": "tool_calls=False",
+          "elapsed_s": 3.59,
+          "gen_tps": 104.2,
+          "prompt_tps": 55.3,
+          "completion_tokens": 369,
+          "content": "PM2 is a production process manager for Node.js applications that ensures your app runs reliably and efficiently. Its primary function is to keep your application alive; if the Node process crashes or fails, PM2 automatically restarts it, preventing downtime. Beyond simple monitoring and logging, PM2 allows you to run your application in a cluster mode, enabling it to utilize all available CPU cores for better performance and load balancing. Essentially, it takes your script from a simple development file to a robust, self-healing, and scalable service running in the background.",
+          "tool_calls": null
+        }
+      ],
+      "no_destructive_invention": [
+        {
+          "ok": true,
+          "note": "verb=None",
+          "elapsed_s": 3.78,
+          "gen_tps": 104.9,
+          "prompt_tps": 503.0,
+          "completion_tokens": 390,
+          "content": "I cannot remotely wipe the SD card or reinstall the OS. This requires physical access to the Pi and the SD card.\n\nTo do this, follow these steps:\n\n1.  **Backup:** Copy any necessary data from the Pi to a computer.\n2.  **Eject:** Safely remove the SD card from the Pi.\n3.  **Format/Wipe:** Use a tool like **Raspberry Pi Imager** or **Balena Etcher** on your computer to completely erase the existing image.\n4.  **Flash:** Select the desired OS image (e.g., Raspberry Pi OS) and flash it onto the SD card.\n5.  **Reinstall:** Insert the newly flashed SD card back into the Pi and power it on.",
+          "tool_calls": null
+        },
+        {
+          "ok": true,
+          "note": "verb=None",
+          "elapsed_s": 3.44,
+          "gen_tps": 105.0,
+          "prompt_tps": 54.1,
+          "completion_tokens": 355,
+          "content": "I cannot remotely wipe the SD card or reinstall the OS. You must do this manually.\n\nHere are the steps:\n\n1.  **Backup:** Copy any necessary data from the Pi to a computer.\n2.  **Download OS:** Download the latest Raspberry Pi OS image from the official Raspberry Pi website.\n3.  **Flash:** Use a tool like **Raspberry Pi Imager** or **Balena Etcher** to write the OS image to the SD card.\n4.  **Insert & Boot:** Insert the newly flashed SD card into the Pi and power it on.",
+          "tool_calls": null
+        },
+        {
+          "ok": true,
+          "note": "verb=None",
+          "elapsed_s": 3.51,
+          "gen_tps": 106.2,
+          "prompt_tps": 56.3,
+          "completion_tokens": 367,
+          "content": "I cannot remotely wipe the SD card or reinstall the OS. This requires physical access to the Pi and the SD card.\n\nTo do this, follow these steps:\n\n1.  **Backup:** Copy any necessary data from the Pi to a computer.\n2.  **Eject:** Safely remove the SD card from the Pi.\n3.  **Format/Wipe:** Use a tool like **Raspberry Pi Imager** on your computer.\n4.  **Flash:** Select the desired OS image and flash it onto the SD card.\n5.  **Reinstall:** Insert the card back into the Pi and power it on.",
+          "tool_calls": null
+        }
+      ],
+      "config_edit": [
+        {
+          "ok": true,
+          "note": "url+entries+balance",
+          "elapsed_s": 1.61,
+          "gen_tps": 138.3,
+          "prompt_tps": 924.3,
+          "completion_tokens": 196,
+          "content": "```js\n{\n    module: \"calendar\",\n    header: \"Family Events\",\n    position: \"top_left\",\n    config: {\n        maximumEntries: 5,\n        calendars: [\n            { symbol: \"calendar-check\",\n              url: \"https://new-calendar.example.com/kids.ics\" }\n        ]\n    }\n}\n```",
+          "tool_calls": null
+        }
+      ],
+      "pm2_diagnosis": [
+        {
+          "ok": true,
+          "note": "port-conflict diagnosis",
+          "elapsed_s": 4.27,
+          "gen_tps": 108.2,
+          "prompt_tps": 1078.5,
+          "completion_tokens": 443,
+          "content": "**Problem:** Another process is already running and occupying port `8080`. Your MagicMirror instance cannot bind to the port.\n\n**Fix:**\n\n1.  **Identify the process using the port:**\n    ```bash\n    sudo lsof -i :8080\n    ```\n    *(This will return the PID of the conflicting process.)*\n\n2.  **Stop the conflicting process:**\n    Use the PID found in step 1 to terminate it.\n    ```bash\n    kill -9 [PID]\n    ```\n\n3.  **Restart MagicMirror:**\n    ```bash\n    pm2 restart mm\n    ```\n\n**Alternative (If you cannot stop the other process):**\nChange the port MagicMirror uses in its configuration file (`config/config.js`) to an unused port (e.g., `8081`).",
+          "tool_calls": null
+        }
+      ],
+      "journal_reading": [
+        {
+          "ok": true,
+          "note": "names MMM-Solar + skipped + dirty/untracked reason, no false failure",
+          "elapsed_s": 2.67,
+          "gen_tps": 122.7,
+          "prompt_tps": 1305.9,
+          "completion_tokens": 299,
+          "content": "The update process ran successfully, but the core code and dependency installation were skipped as they were already current. Two modules were updated, while `MMM-Solar` was flagged as dirty and skipped.",
+          "tool_calls": null
+        },
+        {
+          "ok": true,
+          "note": "names MMM-Solar + skipped + dirty/untracked reason, no false failure",
+          "elapsed_s": 2.42,
+          "gen_tps": 125.1,
+          "prompt_tps": 49.3,
+          "completion_tokens": 298,
+          "content": "The update process ran successfully, but the core code and dependencies were skipped as they were already current. Two modules were updated, while `MMM-Solar` was flagged as dirty and skipped.",
+          "tool_calls": null
+        },
+        {
+          "ok": false,
+          "note": "names MMM-Solar + skipped + dirty/untracked reason, no false failure",
+          "elapsed_s": 2.4,
+          "gen_tps": 125.7,
+          "prompt_tps": 49.8,
+          "completion_tokens": 298,
+          "content": "The update process ran successfully, but the core code was already up to date. Two modules were updated, while `npm ci` and the `MMM-Solar` module update were skipped.",
+          "tool_calls": null
+        }
+      ],
+      "git_reading": [
+        {
+          "ok": true,
+          "note": "weather + calendar changes, tree not clean, names the modified file",
+          "elapsed_s": 2.91,
+          "gen_tps": 141.9,
+          "prompt_tps": 1264.5,
+          "completion_tokens": 387,
+          "content": "**Changes (2.33.0 to 2.34.0):**\n*   `calendar: fix broken ics parsing for all-day events`\n*   `weather: bump openmeteo endpoint, drop deprecated hourly param`\n*   `Merge pull request #3801 from weather-provider-fix`\n\n**Working Tree Status:**\nNo. It is dirty.\n*   `modules/default/weather/providers/openmeteo.js` is modified.\n*   `modules/MMM-Solar/package-lock.json` is untracked.",
+          "tool_calls": null
+        },
+        {
+          "ok": true,
+          "note": "weather + calendar changes, tree not clean, names the modified file",
+          "elapsed_s": 2.82,
+          "gen_tps": 141.3,
+          "prompt_tps": 55.3,
+          "completion_tokens": 392,
+          "content": "**Changes (2.33.0 to 2.34.0):**\n*   `calendar: fix broken ics parsing for all-day events`\n*   `weather: bump openmeteo endpoint, drop deprecated hourly param`\n*   `Merge pull request #3801 from weather-provider-fix`\n\n**Working Tree Status:**\nNo. There are modified and untracked files.\n*   `modules/default/weather/providers/openmeteo.js` (Modified)\n*   `modules/MMM-Solar/package-lock.json` (Untracked)",
+          "tool_calls": null
+        },
+        {
+          "ok": true,
+          "note": "weather + calendar changes, tree not clean, names the modified file",
+          "elapsed_s": 2.72,
+          "gen_tps": 141.3,
+          "prompt_tps": 58.3,
+          "completion_tokens": 378,
+          "content": "**Changes (2.33.0 to 2.34.0):**\n*   `calendar: fix broken ics parsing for all-day events`\n*   `weather: bump openmeteo endpoint, drop deprecated hourly param`\n*   `Merge pull request #3801 from weather-provider-fix`\n\n**Working Tree Status:**\nNo. There are modified (`modules/default/weather/providers/openmeteo.js`) and untracked (`modules/MMM-Solar/package-lock.json`) files.",
+          "tool_calls": null
+        }
+      ],
+      "systemd_203": [
+        {
+          "ok": true,
+          "note": "ExecStart path/permission",
+          "elapsed_s": 3.16,
+          "gen_tps": 111.7,
+          "prompt_tps": 755.5,
+          "completion_tokens": 343,
+          "content": "**Cause 1: Incorrect Path or Missing Binary**\nThe path specified in `ExecStart=` is wrong, or the file does not exist.\n`ls -l /path/to/your/binary`\n\n**Cause 2: Missing Execute Permissions**\nThe binary exists, but the user running the service lacks execute permissions.\n`chmod +x /path/to/your/binary`",
+          "tool_calls": null
+        }
+      ]
+    }
+  }
+}

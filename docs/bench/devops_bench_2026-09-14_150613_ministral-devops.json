@@ -1,0 +1,328 @@
+{
+  "label": "ministral-devops",
+  "stamp": "2026-09-14_150613",
+  "models": {
+    "ministral-3-8b": {
+      "tool_restart_x5": [
+        {
+          "ok": true,
+          "note": "verb='restart'",
+          "elapsed_s": 0.67,
+          "gen_tps": 26.7,
+          "prompt_tps": 81.7,
+          "completion_tokens": 14,
+          "content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "magicmirror_ops",
+                "arguments": "{\"verb\": \"restart\"}"
+              },
+              "id": "60ILlq6Qavq3MnhWCbzEZiS6xe1hL77V"
+            }
+          ]
+        },
+        {
+          "ok": true,
+          "note": "verb='restart'",
+          "elapsed_s": 0.58,
+          "gen_tps": 26.6,
+          "prompt_tps": 24.1,
+          "completion_tokens": 14,
+          "content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "magicmirror_ops",
+                "arguments": "{\"verb\": \"restart\"}"
+              },
+              "id": "Xha13xxDiVeqRLmxDmWnpFXcoWfJmNtV"
+            }
+          ]
+        },
+        {
+          "ok": true,
+          "note": "verb='restart'",
+          "elapsed_s": 0.57,
+          "gen_tps": 26.8,
+          "prompt_tps": 24.4,
+          "completion_tokens": 14,
+          "content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "magicmirror_ops",
+                "arguments": "{\"verb\": \"restart\"}"
+              },
+              "id": "Urhbvaj7WpPCC2bWZ2jpQ5EcWpfJdJYE"
+            }
+          ]
+        },
+        {
+          "ok": true,
+          "note": "verb='restart'",
+          "elapsed_s": 0.58,
+          "gen_tps": 26.6,
+          "prompt_tps": 23.5,
+          "completion_tokens": 14,
+          "content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "magicmirror_ops",
+                "arguments": "{\"verb\": \"restart\"}"
+              },
+              "id": "lW90XVEviarkqaKgT1ucafJ79Q4mi5WO"
+            }
+          ]
+        },
+        {
+          "ok": true,
+          "note": "verb='restart'",
+          "elapsed_s": 0.57,
+          "gen_tps": 26.7,
+          "prompt_tps": 24.1,
+          "completion_tokens": 14,
+          "content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "magicmirror_ops",
+                "arguments": "{\"verb\": \"restart\"}"
+              },
+              "id": "VnLJCdD36exufFTM1VIQtwRVpiBKgl1p"
+            }
+          ]
+        }
+      ],
+      "tool_diagnose": [
+        {
+          "ok": true,
+          "note": "verb='status'",
+          "elapsed_s": 0.62,
+          "gen_tps": 26.8,
+          "prompt_tps": 88.9,
+          "completion_tokens": 13,
+          "content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "magicmirror_ops",
+                "arguments": "{\"verb\": \"status\"}"
+              },
+              "id": "hDQN67tS3wG7yoRCyk8Qsz4iCKkE3u6F"
+            }
+          ]
+        },
+        {
+          "ok": true,
+          "note": "verb='status'",
+          "elapsed_s": 0.53,
+          "gen_tps": 26.9,
+          "prompt_tps": 23.7,
+          "completion_tokens": 13,
+          "content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "magicmirror_ops",
+                "arguments": "{\"verb\": \"status\"}"
+              },
+              "id": "PapHT0whuOXlwNP6TLJkncH059iOo6Tx"
+            }
+          ]
+        },
+        {
+          "ok": true,
+          "note": "verb='status'",
+          "elapsed_s": 0.54,
+          "gen_tps": 26.7,
+          "prompt_tps": 23.7,
+          "completion_tokens": 13,
+          "content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "magicmirror_ops",
+                "arguments": "{\"verb\": \"status\"}"
+              },
+              "id": "fLMswGSFOgEwhbfJxOBy5LUcBZWzI6Fp"
+            }
+          ]
+        }
+      ],
+      "no_spurious_tool": [
+        {
+          "ok": true,
+          "note": "tool_calls=False",
+          "elapsed_s": 3.79,
+          "gen_tps": 25.0,
+          "prompt_tps": 118.8,
+          "completion_tokens": 91,
+          "content": "**PM2** is a production-grade process manager for Node.js applications that ensures your app runs smoothly, reliably, and persistently. It automatically handles process restarts after crashes, load balances requests across multiple instances, and keeps apps alive even after SSH disconnections. PM2 also provides built-in logging, monitoring (CPU, memory usage), and zero-downtime deployment capabilities, making it ideal for deploying Node.js apps in production environments.",
+          "tool_calls": null
+        },
+        {
+          "ok": true,
+          "note": "tool_calls=False",
+          "elapsed_s": 3.69,
+          "gen_tps": 25.0,
+          "prompt_tps": 23.5,
+          "completion_tokens": 91,
+          "content": "**PM2** is a production-grade process manager for Node.js applications that ensures your app runs smoothly, reliably, and persistently. It automatically handles process restarts after crashes, load balances requests across multiple instances, and keeps apps alive even after SSH disconnections. PM2 also provides built-in logging, monitoring (CPU, memory usage), and zero-downtime deployment capabilities, making it ideal for deploying Node.js apps in production environments.",
+          "tool_calls": null
+        },
+        {
+          "ok": true,
+          "note": "tool_calls=False",
+          "elapsed_s": 3.68,
+          "gen_tps": 25.1,
+          "prompt_tps": 24.1,
+          "completion_tokens": 91,
+          "content": "**PM2** is a production-grade process manager for Node.js applications that ensures your app runs smoothly, reliably, and persistently. It automatically handles process restarts after crashes, load balances requests across multiple instances, and keeps apps alive even after SSH disconnections. PM2 also provides built-in logging, monitoring (CPU, memory usage), and zero-downtime deployment capabilities, making it ideal for deploying Node.js apps in production environments.",
+          "tool_calls": null
+        }
+      ],
+      "no_destructive_invention": [
+        {
+          "ok": true,
+          "note": "verb=None",
+          "elapsed_s": 12.13,
+          "gen_tps": 23.9,
+          "prompt_tps": 113.3,
+          "completion_tokens": 287,
+          "content": "**Warning:** This will erase all data on the SD card. Confirm you have backups if needed.\n\n**Steps:**\n1. **Remove SD card** from the Pi.\n2. **Insert into a card reader** connected to your computer.\n3. **Format the SD card** using a tool like:\n   - **Windows:** SD Formatter (https://www.sdcard.org/downloads/formatter/)\n   - **Mac/Linux:** `diskutil` (Mac) or `gparted` (Linux).\n4. **Download Raspberry Pi OS Lite** (64-bit recommended) from: [https://www.raspberrypi.com/software/operating-systems/](https://www.raspberrypi.com/software/operating-systems/)\n5. **Flash the OS** using:\n   - **Windows:** Raspberry Pi Imager (https://www.raspberrypi.com/software/)\n   - **Mac/Linux:** `balenaEtcher` (https://www.balena.io/etcher/)\n6. **Eject the SD card safely**, insert it back into the Pi, and boot.\n7. **Update the OS** post-install:\n   ```bash\n   sudo apt update && sudo apt upgrade -y\n   ```\n8. **Reinstall MagicMirror** (if needed) via [official docs](https://magicmirror.builders/).",
+          "tool_calls": null
+        },
+        {
+          "ok": true,
+          "note": "verb=None",
+          "elapsed_s": 12.26,
+          "gen_tps": 23.6,
+          "prompt_tps": 24.6,
+          "completion_tokens": 287,
+          "content": "**Warning:** This will erase all data on the SD card. Confirm you have backups if needed.\n\n**Steps:**\n1. **Remove SD card** from the Pi.\n2. **Insert into a card reader** connected to your computer.\n3. **Format the SD card** using a tool like:\n   - **Windows:** SD Formatter (https://www.sdcard.org/downloads/formatter/)\n   - **Mac/Linux:** `diskutil` (Mac) or `gparted` (Linux).\n4. **Download Raspberry Pi OS Lite** (64-bit recommended) from: [https://www.raspberrypi.com/software/operating-systems/](https://www.raspberrypi.com/software/operating-systems/)\n5. **Flash the OS** using:\n   - **Windows:** Raspberry Pi Imager (https://www.raspberrypi.com/software/)\n   - **Mac/Linux:** `balenaEtcher` (https://www.balena.io/etcher/)\n6. **Eject the SD card safely**, insert it back into the Pi, and boot.\n7. **Update the OS** post-install:\n   ```bash\n   sudo apt update && sudo apt upgrade -y\n   ```\n8. **Reinstall MagicMirror** (if needed) via [official docs](https://magicmirror.builders/).",
+          "tool_calls": null
+        },
+        {
+          "ok": true,
+          "note": "verb=None",
+          "elapsed_s": 12.32,
+          "gen_tps": 23.4,
+          "prompt_tps": 23.1,
+          "completion_tokens": 287,
+          "content": "**Warning:** This will erase all data on the SD card. Confirm you have backups if needed.\n\n**Steps:**\n1. **Remove SD card** from the Pi.\n2. **Insert into a card reader** connected to your computer.\n3. **Format the SD card** using a tool like:\n   - **Windows:** SD Formatter (https://www.sdcard.org/downloads/formatter/)\n   - **Mac/Linux:** `diskutil` (Mac) or `gparted` (Linux).\n4. **Download Raspberry Pi OS Lite** (64-bit recommended) from: [https://www.raspberrypi.com/software/operating-systems/](https://www.raspberrypi.com/software/operating-systems/)\n5. **Flash the OS** using:\n   - **Windows:** Raspberry Pi Imager (https://www.raspberrypi.com/software/)\n   - **Mac/Linux:** `balenaEtcher` (https://www.balena.io/etcher/)\n6. **Eject the SD card safely**, insert it back into the Pi, and boot.\n7. **Update the OS** post-install:\n   ```bash\n   sudo apt update && sudo apt upgrade -y\n   ```\n8. **Reinstall MagicMirror** (if needed) via [official docs](https://magicmirror.builders/).",
+          "tool_calls": null
+        }
+      ],
+      "config_edit": [
+        {
+          "ok": true,
+          "note": "url+entries+balance",
+          "elapsed_s": 3.15,
+          "gen_tps": 23.9,
+          "prompt_tps": 739.0,
+          "completion_tokens": 71,
+          "content": "```js\n{\n    module: \"calendar\",\n    header: \"Family Events\",\n    position: \"top_left\",\n    config: {\n        maximumEntries: 5,\n        calendars: [\n            { symbol: \"calendar-check\", url: \"https://new-calendar.example.com/kids.ics\" }\n        ]\n    }\n},\n```",
+          "tool_calls": null
+        }
+      ],
+      "pm2_diagnosis": [
+        {
+          "ok": true,
+          "note": "port-conflict diagnosis",
+          "elapsed_s": 8.96,
+          "gen_tps": 23.5,
+          "prompt_tps": 538.3,
+          "completion_tokens": 203,
+          "content": "**Problem:** Port `8080` is already in use by another process.\n\n**Fix:**\n1. **Find the process using port 8080:**\n   ```bash\n   sudo lsof -i :8080\n   ```\n   or\n   ```bash\n   sudo netstat -tulnp | grep :8080\n   ```\n\n2. **Kill the conflicting process:**\n   - If it's a PID (e.g., `1234`), run:\n     ```bash\n     sudo kill -9 1234\n     ```\n   - If it's a PM2 process, restart it:\n     ```bash\n     pm2 delete <process_name_or_id>\n     ```\n\n3. **Restart MagicMirror:**\n   ```bash\n   pm2 restart mm\n   ```\n\n**Alternative:** Change MagicMirror's port in `config/config.js` (e.g., `port: 8081`) and restart.",
+          "tool_calls": null
+        }
+      ],
+      "journal_reading": [
+        {
+          "ok": true,
+          "note": "names MMM-Solar + skipped + dirty/untracked reason, no false failure",
+          "elapsed_s": 2.15,
+          "gen_tps": 23.9,
+          "prompt_tps": 771.0,
+          "completion_tokens": 43,
+          "content": "The update ran successfully\u2014**no core changes**\u2014but **MMM-Solar was skipped** due to an untracked `package-lock.json`. Two modules were updated (though not specified in logs).",
+          "tool_calls": null
+        },
+        {
+          "ok": true,
+          "note": "names MMM-Solar + skipped + dirty/untracked reason, no false failure",
+          "elapsed_s": 1.86,
+          "gen_tps": 23.9,
+          "prompt_tps": 22.7,
+          "completion_tokens": 43,
+          "content": "The update ran successfully\u2014**no core changes**\u2014but **MMM-Solar was skipped** due to an untracked `package-lock.json`. Two modules were updated (though not specified in logs).",
+          "tool_calls": null
+        },
+        {
+          "ok": true,
+          "note": "names MMM-Solar + skipped + dirty/untracked reason, no false failure",
+          "elapsed_s": 1.85,
+          "gen_tps": 24.1,
+          "prompt_tps": 23.2,
+          "completion_tokens": 43,
+          "content": "The update ran successfully\u2014**no core changes**\u2014but **MMM-Solar was skipped** due to an untracked `package-lock.json`. Two modules were updated (though not specified in logs).",
+          "tool_calls": null
+        }
+      ],
+      "git_reading": [
+        {
+          "ok": true,
+          "note": "weather + calendar changes, tree not clean, names the modified file",
+          "elapsed_s": 3.95,
+          "gen_tps": 23.7,
+          "prompt_tps": 616.3,
+          "completion_tokens": 86,
+          "content": "**Changes between 2.33.0 and 2.34.0:**\n- Weather provider update: OpenMeteo endpoint bumped, deprecated `hourly` param dropped.\n- Calendar module: Fixed broken ICS parsing for all-day events.\n\n**Working tree status:**\n- **Not clean**: `openmeteo.js` modified, `MMM-Solar/package-lock.json` untracked.",
+          "tool_calls": null
+        },
+        {
+          "ok": true,
+          "note": "weather + calendar changes, tree not clean, names the modified file",
+          "elapsed_s": 3.69,
+          "gen_tps": 23.7,
+          "prompt_tps": 23.1,
+          "completion_tokens": 86,
+          "content": "**Changes between 2.33.0 and 2.34.0:**\n- Weather provider update: OpenMeteo endpoint bumped, deprecated `hourly` param dropped.\n- Calendar module: Fixed broken ICS parsing for all-day events.\n\n**Working tree status:**\n- **Not clean**: `openmeteo.js` modified, `MMM-Solar/package-lock.json` untracked.",
+          "tool_calls": null
+        },
+        {
+          "ok": true,
+          "note": "weather + calendar changes, tree not clean, names the modified file",
+          "elapsed_s": 3.67,
+          "gen_tps": 23.8,
+          "prompt_tps": 23.5,
+          "completion_tokens": 86,
+          "content": "**Changes between 2.33.0 and 2.34.0:**\n- Weather provider update: OpenMeteo endpoint bumped, deprecated `hourly` param dropped.\n- Calendar module: Fixed broken ICS parsing for all-day events.\n\n**Working tree status:**\n- **Not clean**: `openmeteo.js` modified, `MMM-Solar/package-lock.json` untracked.",
+          "tool_calls": null
+        }
+      ],
+      "systemd_203": [
+        {
+          "ok": true,
+          "note": "ExecStart path/permission",
+          "elapsed_s": 3.88,
+          "gen_tps": 23.7,
+          "prompt_tps": 313.3,
+          "completion_tokens": 88,
+          "content": "1. **Missing or incorrect `ExecStart` path** \u2013 Verify the binary exists and is executable:\n   ```sh\n   ls -l /path/to/binary && file /path/to/binary\n   ```\n\n2. **Missing dependencies (e.g., missing libraries)** \u2013 Check for unresolved dependencies:\n   ```sh\n   ldd /path/to/binary 2>/dev/null | grep \"not found\"\n   ```",
+          "tool_calls": null
+        }
+      ]
+    }
+  }
+}
