@@ -275,6 +275,33 @@ thing obtainable while HA is the broker.
   re-sync every provider, quietly. Back up `/data/library.db` and
   `settings.json` first; never do it as a side effect.
 
+- **YouTube Music runs as a dedicated Google account (2026-10-02).** MA's
+  provider searches with the account cookie, so every voice request (often
+  one search per media type) landed in the operator's YouTube search
+  history. The provider now uses a Kronk-owned account (search history
+  off). Cookie recipe: private window, sign in as that account only,
+  DevTools → Network → a `browse` request → copy the whole `cookie` header,
+  close the window without signing out, paste into the provider's
+  reconfigure form. Proving which account is live: MA serves provider
+  browse from its library DB, the home feed from a 1 h cache, and searches
+  from a 7-day cache — only a fresh, unique search shows up in the right
+  account's history. The library then follows the new account at the next
+  YT sync; the operator's playlists must be shared to it to stay playable.
+
+- **Kronk never lets the coordinator answer a music request (2026-10-05).**
+  Blueprint misses ("Start an orbital radio station on YouTube Music")
+  used to land on the coordinator, which answered with invented refusals
+  or copied failure text and no tool call. `_MUSIC_RE` in `routing.py`
+  pins request-verb-at-start music phrasings to the home agent; the play
+  tool's verbatim result is what gets spoken. Known miss: a STT-mangled
+  verb ("like massive attack radio") still reaches the coordinator.
+
+- **MA 2.11 refuses shuffle on a dynamic radio** ("Cannot change shuffle
+  while the queue is in dynamic mode"). The blueprint's shuffle step is
+  `continue_on_error: true` (KRONK change 7, 2026-10-07) — without it the
+  script aborted after the station had started and Assist said "Done".
+  `/music` wraps its own shuffle_set the same way.
+
 ## Blog hooks
 
 - Terminal tools: when prompt engineering loses to a 4B model, change the

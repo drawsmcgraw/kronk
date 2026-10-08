@@ -1,0 +1,18 @@
+# Daily music-provider canary: reloads MA's YouTube Music provider (re-running
+# MA's own cookie/Premium check) and alerts via HA if ytmusic, pandora or the
+# NAS provider is unavailable. Fired by kronk-music-canary.timer.
+#
+# Operations:
+#   install:  cp systemd/kronk-music-canary.{service,timer} ~/.config/systemd/user/
+#             systemctl --user daemon-reload
+#             systemctl --user enable --now kronk-music-canary.timer
+#   run now:  systemctl --user start kronk-music-canary.service
+#   log:      journalctl --user -u kronk-music-canary.service -n 50
+[Unit]
+Description=Kronk — daily music provider canary
+
+[Service]
+Type=oneshot
+ExecStart=%h/git-repos/drawsmcgraw/kronk/scripts/music_provider_canary.sh
+Environment=KRONK_REPO_DIR=%h/git-repos/drawsmcgraw/kronk
+SuccessExitStatus=3

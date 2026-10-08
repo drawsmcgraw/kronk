@@ -82,6 +82,8 @@ def _tool_narration(name: str, args: dict) -> str:
         return f"{verb} {q}" if q else "starting the music..."
     if name == "now_playing":
         return "checking what's playing..."
+    if name == "rate_music":
+        return "thumbs down, skipping..." if args.get("thumb") == "down" else "thumbs up..."
     if name == "control_music":
         return {"pause": "pausing the music...", "stop": "pausing the music...",
                 "resume": "resuming the music...", "next": "skipping this track...",
@@ -112,6 +114,10 @@ def _terminal_speech(result: str, style: str = errors.DEBUG,
         return line[len("Music control: "):]
     if line.startswith("Could not control music: "):
         return f"I couldn't do that. {line[len('Could not control music: '):]}"
+    if line.startswith("Music rated: "):
+        return line[len("Music rated: "):]
+    if line.startswith("Could not rate music: "):
+        return f"I couldn't rate that. {line[len('Could not rate music: '):]}"
     if line.startswith("Now playing: "):
         return line[len("Now playing: "):]        # tool_service's sentence, as-is
     if line.startswith("Could not read the player: "):
@@ -260,6 +266,9 @@ AGENTS: dict[str, AgentConfig] = {
             "It is the ONLY way you can control playback: never say you paused, stopped, or skipped "
             "anything unless control_music reported it. Call it at most once; the speaker is chosen "
             "automatically unless the user named one.\n"
+            "Use rate_music for 'thumbs up', 'thumbs down', 'I love this song', 'never play this again' — "
+            "it rates the track playing on a Pandora station and thumbs down also skips. It is the ONLY "
+            "way to rate; never claim a rating was recorded unless rate_music reported it.\n"
             "Use update_magicmirror when the user asks to update or upgrade the magic mirror. "
             "Call it at most once; a full backup happens automatically first.\n"
             "When the user asks about weather without naming a place, call get_weather "
@@ -269,8 +278,8 @@ AGENTS: dict[str, AgentConfig] = {
             "Never restate tool calls, tool arguments, or tool output syntax in your reply — "
             "reply in plain sentences only."
         ),
-        tool_names=["get_weather", "shopping_list_view", "shopping_list_add", "shopping_list_remove", "shopping_list_clear", "query_hottub", "solar_status", "solar_detail", "solar_energy", "play_music", "control_music", "now_playing", "update_magicmirror"],
-        terminal_tools=frozenset({"play_music", "control_music", "now_playing", "update_magicmirror"}),
+        tool_names=["get_weather", "shopping_list_view", "shopping_list_add", "shopping_list_remove", "shopping_list_clear", "query_hottub", "solar_status", "solar_detail", "solar_energy", "play_music", "control_music", "now_playing", "rate_music", "update_magicmirror"],
+        terminal_tools=frozenset({"play_music", "control_music", "now_playing", "rate_music", "update_magicmirror"}),
     ),
     "assistant": AgentConfig(
         name="assistant",

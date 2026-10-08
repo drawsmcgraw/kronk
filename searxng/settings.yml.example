@@ -31,7 +31,10 @@ use_default_settings:
       - brave
       - duckduckgo
       - qwant
-      - mojeek
+      # mojeek removed 2026-10-05: upstream marks it (and startpage) inactive —
+      # proof-of-work CAPTCHA — so SearXNG never loads it; keeping it here only
+      # made probes look like it answered (they fell back to the defaults).
+      - yahoo
       - wikipedia
       - wikidata
 
@@ -75,9 +78,17 @@ outgoing:
 # keep_only keeps an engine but preserves its default disabled flag —
 # these three are disabled in SearXNG's defaults, so enable explicitly.
 engines:
+  # bing disabled 2026-10-05: from this address it answers any query of ~6+
+  # words with results for the FIRST WORD only ("Last Week Tonight…" ->
+  # Last.fm), on the June and October builds alike, with or without a
+  # region, and its ten confident junk rows outrank the good engines in the
+  # merge (INVESTIGATION_2026-10-05_last_week_tonight.md). Re-test on a
+  # later bump with the canary before re-enabling.
   - name: bing
-    disabled: false
+    disabled: true
   - name: qwant
     disabled: false
-  - name: mojeek
+  # yahoo enabled 2026-10-05 as the second English web engine next to
+  # duckduckgo (brave 429s, qwant CAPTCHAs, google 403s from this address).
+  - name: yahoo
     disabled: false

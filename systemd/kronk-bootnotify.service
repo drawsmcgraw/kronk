@@ -10,7 +10,7 @@ WorkingDirectory=%h/git-repos/drawsmcgraw/kronk
 ExecStart=%h/git-repos/drawsmcgraw/kronk/scripts/boot_notify.sh
 Environment=KRONK_REPO_DIR=%h/git-repos/drawsmcgraw/kronk
 Environment=HA_URL=http://localhost:8123
-Environment=HA_NOTIFY_SERVICE=notify/mobile_app_pixel_7
+Environment=HA_NOTIFY_SERVICE=notify/mobile_app_drew_pixel_11_pro
 Environment=WAIT_MAX_SEC=300
 
 # Don't let the notifier itself become a problem.

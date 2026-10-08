@@ -1,0 +1,20 @@
+# Weekly SearXNG canary: search quality through tool_service + image-pin age
+# versus Docker Hub; pushes one HA mobile-app alert on failure. Fired by
+# kronk-searxng-canary.timer. Design: ROADMAP chore 2026-10-05 and
+# docs/incidents/INVESTIGATION_2026-10-05_last_week_tonight.md.
+#
+# Operations:
+#   install:  cp systemd/kronk-searxng-canary.{service,timer} ~/.config/systemd/user/
+#             systemctl --user daemon-reload
+#             systemctl --user enable --now kronk-searxng-canary.timer
+#   run now:  systemctl --user start kronk-searxng-canary.service
+#   log:      journalctl --user -u kronk-searxng-canary.service -n 50
+#   check:    systemctl --user list-timers kronk-searxng-canary.timer
+[Unit]
+Description=Kronk — SearXNG search canary + pin-age check
+After=default.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/git-repos/drawsmcgraw/kronk/scripts/searxng_canary.sh
+Environment=KRONK_REPO_DIR=%h/git-repos/drawsmcgraw/kronk

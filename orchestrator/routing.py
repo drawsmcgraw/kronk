@@ -120,6 +120,51 @@ _PLAYBACK_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Music requests pin to the home agent, which owns play_music. Added
+# 2026-10-05 after the coordinator answered blueprint misses itself with no
+# tool call: "Like massive attack radio" → a copy of the previous turn's
+# failure text (2026-10-04); "Start an orbital radio station on YouTube
+# Music" → "I am unable to play specific streams from YouTube Music"
+# (2026-10-05, INVESTIGATION_2026-10-04_radio_failures.md). The prompt's
+# PLAYBACK rule did not hold; the loop does (tenet 5). Three shapes, all
+# anchored to a request verb at the start:
+#   - verbs that only ever mean music (put on, listen to, shuffle, queue
+#     up, throw on) need no noun: "put on some jazz";
+#   - "play"/"start" + a music noun or source anywhere after: "start an
+#     orbital radio station on youtube music";
+#   - bare "play <object>" ("play daft punk") unless the object is a game,
+#     video, movie or the news — HA's built-in intent usually takes bare
+#     "play X" before Kronk sees it; this covers the prefixed/mangled rest.
+# "news" is excluded everywhere (news_brief is the coordinator's tool).
+# A STT-mangled verb ("like massive attack radio") is a documented miss —
+# it still rides the coordinator. Bare "start X" without a music noun is
+# left alone on purpose (timers).
+_MUSIC_RE = re.compile(
+    r"^\W*(?:please\s+|kronk,?\s+|hey\s+kronk,?\s+|tell\s+kronk\s+to\s+|can\s+you\s+|could\s+you\s+)*"
+    r"(?!.*\bnews\b)(?:"
+    r"(?:put\s+on|throw\s+on|listen\s+to|shuffle|queue\s+up)\b"
+    r"|(?:play|start)\b.*\b(?:radio|station|music|song|songs|track|tracks|album|albums"
+    r"|playlist|playlists|artist|mix|pandora|youtube|spotify|atlas|the\s+nas)\b"
+    r"|play\b(?!.*\b(?:game|games|video|videos|movie|movies|podcast)\b)\s+\S"
+    r")",
+    re.IGNORECASE | re.DOTALL,
+)
+
+# Thumbs on the playing track pin to the home agent's rate_music tool
+# (2026-10-06, MA_LOCAL_PANDORA_FEATURES_PLAN). Anchored; the whole utterance
+# is the verdict. "I like this" alone is left to the coordinator — too
+# ambiguous without "song"/"one"/"track".
+_RATE_RE = re.compile(
+    r"^\W*(?:please\s+|kronk,?\s+)*(?:"
+    r"thumbs?\s*(?:up|down)(?:\s+(?:on|for|to)?\s*(?:this|that|the)?\s*(?:song|track|one|station|it))?"
+    r"|(?:i\s+)?(?:like|love|hate|dislike|don'?t\s+like)\s+(?:this|that)\s+(?:song|track|one|tune)"
+    r"|(?:never|don'?t)\s+play\s+(?:this|that)(?:\s+(?:song|track|one))?\s+again"
+    r"|(?:up|down)\s*vote(?:\s+(?:this|that)(?:\s+(?:song|track|one))?)?"
+    r"|(?:more|less)\s+like\s+(?:this|that)(?:\s+(?:song|track|one))?"
+    r")(?:\s+please)?\W*$",
+    re.IGNORECASE,
+)
+
 # "What song is this?" and its siblings pin to the home agent's now_playing
 # tool (2026-09-14, MUSIC_ACCURACY_PLAN). Anchored; the "what's" branch is
 # limited to this/that/playing/song so "what's the weather" never matches.
@@ -177,6 +222,12 @@ async def _classify_inner(text: str) -> tuple[str, str]:
     if _NOW_PLAYING_RE.search(text):
         emit("route_shortcut", rule="now_playing", route="home")
         return "home", "now_playing"
+    if _RATE_RE.search(text):
+        emit("route_shortcut", rule="rate", route="home")
+        return "home", "rate"
+    if _MUSIC_RE.search(text):
+        emit("route_shortcut", rule="music", route="home")
+        return "home", "music"
     if _MM_RE.search(text):
         if _MM_UPDATE_RE.search(text):
             emit("route_shortcut", rule="mm_update", route="home")

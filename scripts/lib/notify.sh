@@ -12,7 +12,11 @@
 
 REPO_DIR="${KRONK_REPO_DIR:-/home/drew/git-repos/drawsmcgraw/kronk}"
 HA_URL="${HA_URL:-http://localhost:8123}"
-HA_NOTIFY_SERVICE="${HA_NOTIFY_SERVICE:-notify/mobile_app_pixel_7}"
+HA_NOTIFY_SERVICE="${HA_NOTIFY_SERVICE:-notify/mobile_app_drew_pixel_11_pro}"
+# Was mobile_app_pixel_7 until 2026-10-05: the old phone stayed registered in
+# HA and silently received every watchdog alert after the Pixel 11 Pro arrived.
+# The device list is `GET /api/services` → notify.mobile_app_*; nothing fails
+# when the target is a phone in a drawer.
 
 _notify_log() { echo "$(date '+%Y-%m-%d %H:%M:%S') ${NOTIFY_LOG_PREFIX:-notify}: $*"; }
 

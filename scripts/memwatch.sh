@@ -34,7 +34,7 @@ set -euo pipefail
 REPO_DIR="${KRONK_REPO_DIR:-/home/drew/git-repos/drawsmcgraw/kronk}"
 KRONK_API="${KRONK_API:-http://localhost/api/system}"
 HA_URL="${HA_URL:-http://localhost:8123}"
-HA_NOTIFY_SERVICE="${HA_NOTIFY_SERVICE:-notify/mobile_app_pixel_7}"  # path under /api/services/
+HA_NOTIFY_SERVICE="${HA_NOTIFY_SERVICE:-notify/mobile_app_drew_pixel_11_pro}"  # path under /api/services/
 POLL_INTERVAL="${POLL_INTERVAL:-60}"
 
 # Thresholds (GB)

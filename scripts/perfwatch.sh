@@ -15,7 +15,7 @@
 #       kernel.perf_event_max_sample_rate to 51000
 #
 # Same notification path as memwatch / bootnotify: POST to
-# notify/mobile_app_pixel_7 with HA_TOKEN from .env. Different `tag` so
+# notify/mobile_app_drew_pixel_11_pro with HA_TOKEN from .env. Different `tag` so
 # Android doesn't collapse these with the others.
 #
 # Coalescing: kernel only emits a new warning when latency crosses a higher
@@ -23,7 +23,7 @@
 # belt-and-suspenders against any future kernel behavior change.
 #
 # Env overrides (set in the systemd unit):
-#   HA_NOTIFY_SERVICE  — defaults to notify/mobile_app_pixel_7
+#   HA_NOTIFY_SERVICE  — defaults to notify/mobile_app_drew_pixel_11_pro
 #   MIN_GAP_SEC        — minimum seconds between notifications (default 300)
 #   TEST_MODE=1        — send one synthetic alert and exit (for verification)
 set -euo pipefail

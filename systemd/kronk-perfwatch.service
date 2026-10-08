@@ -11,7 +11,7 @@ ExecStart=%h/git-repos/drawsmcgraw/kronk/scripts/perfwatch.sh
 
 Environment=KRONK_REPO_DIR=%h/git-repos/drawsmcgraw/kronk
 Environment=HA_URL=http://localhost:8123
-Environment=HA_NOTIFY_SERVICE=notify/mobile_app_pixel_7
+Environment=HA_NOTIFY_SERVICE=notify/mobile_app_drew_pixel_11_pro
 Environment=MIN_GAP_SEC=300
 
 # Tiny tail-and-grep loop — doesn't need much.

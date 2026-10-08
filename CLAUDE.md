@@ -203,7 +203,9 @@ verbatim — never summarized away.
   re-scoping the key remains an open operator decision).
 - **Git**: the operator runs `git commit` / `git push` themselves. Suggest a
   commit at milestones; don't run those commands.
-- **Secrets**: `.env` (gitignored) holds `HA_TOKEN`. `searxng/settings.yml` is
+- **Secrets**: `.env` (gitignored) holds `HA_TOKEN` and, since 2026-10-06,
+  `MA_TOKEN` (a Music Assistant long-lived token for tool_service's Pandora
+  thumbs; 1-year expiry, no auto-renew). `searxng/settings.yml` is
   gitignored; its `.example` is the template. No other secrets exist.
 - **New compose files** get an `# Operations:` comment block (up / restart /
   logs / down recipes) like the existing ones.

@@ -20,3 +20,4 @@ __pycache__/
 
 # ops host registry (real hosts; example is committed)
 ops/hosts.json
+

@@ -10,6 +10,8 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import List
 import httpx
+import websockets
+import websockets.exceptions
 import trafilatura
 from bs4 import BeautifulSoup
 from fastapi import FastAPI, HTTPException, Query
@@ -398,12 +400,24 @@ async def search(q: str = Query(..., description="Search query"), count: int = 5
             "title": r.get("title", ""),
             "url": r.get("url", ""),
             "snippet": r.get("content", ""),
+            "engine": r.get("engine", ""),
         })
+    # Which engines answered and which SearXNG benched (CAPTCHA, 429, 403) —
+    # the 2026-10-05 Last Week Tonight incident ran seven "successful"
+    # searches that were all first-word junk from the one engine left
+    # standing. A result that names its engines makes that visible in the
+    # trace and to the model (tenet 7).
+    # SearXNG dedups identical URLs across engines: the merged row carries one
+    # `engine` plus an `engines` list of everyone who returned it (2026-10-05:
+    # yahoo "never answered" until this read the list).
+    engines = sorted({e for r in data.get("results", []) for e in (r.get("engines") or [r.get("engine", "")]) if e})
+    unresponsive = sorted({f"{u[0]}: {u[1]}" for u in data.get("unresponsive_engines", []) if u})
 
     if not results:
-        raise HTTPException(status_code=404, detail="No results found")
+        why = f" (engines unavailable: {'; '.join(unresponsive)})" if unresponsive else ""
+        raise HTTPException(status_code=404, detail=f"No results found{why}")
 
-    return {"query": q, "results": results}
+    return {"query": q, "results": results, "engines": engines, "unresponsive_engines": unresponsive}
 
 
 _BROWSER_UA = (
@@ -1160,6 +1174,16 @@ async def _fetch_players(client: httpx.AsyncClient, headers: dict,
         raise HTTPException(status_code=502, detail="Home Assistant returned an unreadable player list.")
 
 
+async def _get_state(client: httpx.AsyncClient, headers: dict, entity: str) -> dict:
+    return (await client.get(f"{HA_URL}/api/states/{entity}", headers=headers)).json()
+
+
+def _now_playing_key(state: dict) -> tuple:
+    """What a player is doing, for before/after comparison around play_media."""
+    attrs = state.get("attributes", {}) or {}
+    return (state.get("state"), attrs.get("media_content_id"), attrs.get("media_title"))
+
+
 @app.post("/music")
 async def play_music(req: MusicRequest):
     if not HA_TOKEN:
@@ -1184,6 +1208,15 @@ async def play_music(req: MusicRequest):
                 detail=f"{names} {verb} unavailable — it may be powered off or asleep.",
             )
         entities = [t["entity_id"] for t in live]
+        logger.info("music request query=%r media_type=%r player=%r shuffle=%r -> %s",
+                    req.query, req.media_type, req.player, req.shuffle, entities)
+
+        # What each target is doing before the call. Success is the player
+        # *changing* to something new, not merely being in `playing`: with
+        # music already on, a failed call left the old track playing and the
+        # old check reported it as the new one (2026-09-30, "deep house chill
+        # music" → spoken "now playing Fountains of Wayne"). Tenet 6.
+        before = {e: _now_playing_key(await _get_state(client, headers, e)) for e in entities}
 
         service_data = {"media_id": req.query}
         if req.media_type:
@@ -1198,40 +1231,60 @@ async def play_music(req: MusicRequest):
                                   target={"entity_id": entities})
         except HAServiceError as e:
             failure = str(e)
+        # No blind retry without media_type: MA's untyped search always
+        # returns *something* — "zzqx florbent nonexistent" played Akon
+        # (2026-09-30, live test). A retry has to check the hit resembles the
+        # query first; see ROADMAP chore "music: media_type miss".
 
-        # Verify playback actually started (see header comment): any target
-        # reaching `playing` is success.
+        # Verify playback actually started (see header comment): a target
+        # reaching `playing` with something other than what it had before.
+        # A call that did not fail and a player that stays on the same item
+        # (asked for what is already playing) is accepted at the deadline.
         deadline = asyncio.get_event_loop().time() + MUSIC_VERIFY_TIMEOUT_S
-        while asyncio.get_event_loop().time() < deadline:
+        same_item: dict | None = None
+        while True:
             await asyncio.sleep(1)
+            started = None
             for entity in entities:
-                state = (await client.get(f"{HA_URL}/api/states/{entity}", headers=headers)).json()
-                if state.get("state") == "playing":
-                    if failure:
-                        logger.warning("play_media reported failure but %s is playing: %s", entity, failure)
-                    attrs = state.get("attributes", {})
-                    # Shuffle is a player (queue) setting, not a play_media
-                    # option — set it explicitly every time, on or off, the
-                    # way the blueprint does, so a previous "shuffle" never
-                    # leaks into the next album. Reported from the player's
-                    # own attribute afterwards, not from the request.
-                    shuffle = bool(attrs.get("shuffle"))
-                    if bool(req.shuffle) != shuffle:
-                        try:
-                            await ha_call_service("media_player", "shuffle_set",
-                                                  {"shuffle": bool(req.shuffle)},
-                                                  target={"entity_id": entities})
-                            state = (await client.get(f"{HA_URL}/api/states/{entity}", headers=headers)).json()
-                            shuffle = bool(state.get("attributes", {}).get("shuffle"))
-                        except HAServiceError as e:
-                            logger.warning("shuffle_set failed on %s: %s", entity, e)
-                    return {
-                        "status": "playing",
-                        "player": label,
-                        "artist": attrs.get("media_artist"),
-                        "title":  attrs.get("media_title"),
-                        "shuffle": shuffle,
-                    }
+                state = await _get_state(client, headers, entity)
+                if state.get("state") != "playing":
+                    continue
+                if _now_playing_key(state) != before[entity]:
+                    started = (entity, state)
+                    break
+                same_item = same_item or state
+            if started is None and asyncio.get_event_loop().time() >= deadline:
+                if same_item is not None and failure is None:
+                    started = (entities[0], same_item)
+                else:
+                    break
+            if started is not None:
+                entity, state = started
+                if failure:
+                    logger.warning("play_media reported failure but %s started playing: %s", entity, failure)
+                attrs = state.get("attributes", {})
+                # Shuffle is a player (queue) setting, not a play_media
+                # option — set it explicitly every time, on or off, the
+                # way the blueprint does, so a previous "shuffle" never
+                # leaks into the next album. Reported from the player's
+                # own attribute afterwards, not from the request.
+                shuffle = bool(attrs.get("shuffle"))
+                if bool(req.shuffle) != shuffle:
+                    try:
+                        await ha_call_service("media_player", "shuffle_set",
+                                              {"shuffle": bool(req.shuffle)},
+                                              target={"entity_id": entities})
+                        state = (await client.get(f"{HA_URL}/api/states/{entity}", headers=headers)).json()
+                        shuffle = bool(state.get("attributes", {}).get("shuffle"))
+                    except HAServiceError as e:
+                        logger.warning("shuffle_set failed on %s: %s", entity, e)
+                return {
+                    "status": "playing",
+                    "player": label,
+                    "artist": attrs.get("media_artist"),
+                    "title":  attrs.get("media_title"),
+                    "shuffle": shuffle,
+                }
 
     if failure:
         # HA's / MA's own sentence, spoken as-is ("Playback failed for
@@ -1268,6 +1321,45 @@ _CONTROL_ACTIONS: dict[str, tuple[str, tuple[str, ...] | None, str]] = {
     "volume_down": ("volume_down",      None,                                 "Turned down"),
 }
 _NEEDS_PLAYBACK = {"pause", "stop", "next", "volume_up", "volume_down"}
+
+
+# ── Music Assistant API (for what HA's integration does not expose) ─────────
+# MA's HTTP /api collapses every typed error into "Internal server error"
+# (verified 2026-10-06); its websocket carries error_code + details, so the
+# thumbs path talks to the websocket. Protocol: server greets with its
+# info, client sends `auth` with the token, then command messages keyed by
+# message_id. MA_TOKEN is a long-lived token (1-year expiry, no renew).
+MA_URL   = os.getenv("MA_URL", "http://host.docker.internal:8095")
+MA_TOKEN = os.getenv("MA_TOKEN", "")
+
+
+class MAError(Exception):
+    """A Music Assistant command failed; str(e) is MA's own `details`."""
+
+
+async def ma_command(command: str, **args) -> object:
+    """Run one MA API command over its websocket and return the result."""
+    if not MA_TOKEN:
+        raise MAError("MA_TOKEN not configured")
+    url = MA_URL.replace("http://", "ws://", 1).replace("https://", "wss://", 1).rstrip("/") + "/ws"
+    try:
+        async with websockets.connect(url, open_timeout=5, max_size=None) as ws:
+            await asyncio.wait_for(ws.recv(), timeout=5)                  # server info greeting
+            async def call(mid: str, cmd: str, a: dict) -> object:
+                await ws.send(json.dumps({"message_id": mid, "command": cmd, "args": a}))
+                while True:
+                    msg = json.loads(await asyncio.wait_for(ws.recv(), timeout=20))
+                    if msg.get("message_id") != mid:
+                        continue                                         # an event, not our reply
+                    if "error_code" in msg:
+                        raise MAError(str(msg.get("details") or msg["error_code"]))
+                    return msg.get("result")
+            await call("auth", "auth", {"token": MA_TOKEN})
+            return await call(f"k-{command}", command, args)
+    except MAError:
+        raise
+    except (OSError, asyncio.TimeoutError, websockets.exceptions.WebSocketException) as e:
+        raise MAError(f"Music Assistant is unreachable ({type(e).__name__}).") from e
 
 
 class MusicControlRequest(BaseModel):
@@ -1375,6 +1467,93 @@ class NowPlayingRequest(BaseModel):
     player: str | None = None
     origin_area: str | None = None
     origin_device: str | None = None
+
+
+class MusicRateRequest(BaseModel):
+    thumb: str                        # up | down
+    player: str | None = None
+    origin_area: str | None = None
+    origin_device: str | None = None
+
+
+_PANDORA_TRACK = "pandora://track/"
+
+
+@app.post("/music/rate")
+async def rate_music(req: MusicRateRequest):
+    """Thumb the track playing on a Pandora station; thumbs down also skips.
+
+    The rating goes to MA's `pandora/feedback` (our provider patch), keyed by
+    the track id HA exposes as `media_content_id = pandora://track/<id>`.
+    Anything else playing is refused by name. Thumbs down then calls
+    media_next_track and waits for the title to change (tenet 6).
+    """
+    if not HA_TOKEN:
+        raise HTTPException(status_code=500, detail="HA_TOKEN not configured")
+    thumb = (req.thumb or "").strip().lower()
+    if thumb not in ("up", "down"):
+        raise HTTPException(status_code=400, detail="I can rate a track thumbs up or thumbs down.")
+
+    headers = {"Authorization": f"Bearer {HA_TOKEN}", "Content-Type": "application/json"}
+    async with httpx.AsyncClient(timeout=10) as client:
+        players, origin_key = await _fetch_players(client, headers, req.origin_device)
+        targets, label = resolve_players(req.player, req.origin_area, players,
+                                         MUSIC_DEFAULT_PLAYER, origin_key=origin_key)
+
+        async def _state(entity: str) -> dict:
+            return (await client.get(f"{HA_URL}/api/states/{entity}", headers=headers)).json()
+
+        playing = None
+        for t in targets:
+            st = await _state(t["entity_id"])
+            if st.get("state") in ("playing", "buffering"):
+                playing = (t["entity_id"], st); break
+        if playing is None:
+            raise HTTPException(status_code=409, detail=f"Nothing is playing on {label}.")
+        entity, st = playing
+        attrs = st.get("attributes", {}) or {}
+        content = attrs.get("media_content_id") or ""
+        if not content.startswith(_PANDORA_TRACK):
+            raise HTTPException(
+                status_code=409,
+                detail=f"That's not a Pandora station — I can only rate Pandora tracks.",
+            )
+        item_id = content[len(_PANDORA_TRACK):]
+        try:
+            info = await ma_command("pandora/feedback", item_id=item_id, positive=(thumb == "up"))
+        except MAError as e:
+            raise HTTPException(status_code=502, detail=str(e))
+        info = info if isinstance(info, dict) else {}
+        song = info.get("song") or attrs.get("media_title") or "that track"
+        artist = info.get("artist") or attrs.get("media_artist")
+        station = info.get("station") or attrs.get("media_album_name")
+        what = f"{song} by {artist}" if artist else song
+        where = f" on {station}" if station else ""
+        if thumb == "up":
+            return {"status": "up", "player": label, "song": song, "artist": artist, "station": station,
+                    "detail": f"Thumbs up for {what}{where}."}
+
+        # Thumbs down: skip, and verify the skip (a Pandora station skip is a real
+        # queue advance on MA 2.11; the title must change).
+        before = attrs.get("media_title")
+        skipped = None
+        try:
+            await ha_call_service("media_player", "media_next_track", {}, target={"entity_id": [entity]})
+            deadline = asyncio.get_event_loop().time() + MUSIC_VERIFY_TIMEOUT_S
+            while asyncio.get_event_loop().time() < deadline:
+                await asyncio.sleep(1)
+                now = (await _state(entity)).get("attributes", {}) or {}
+                if now.get("media_title") and now.get("media_title") != before:
+                    skipped = now; break
+        except HAServiceError as e:
+            logger.warning("thumbs down recorded but skip failed on %s: %s", entity, e)
+        # Spoken line stays short on purpose: the next song is already playing
+        # under it (operator, 2026-10-06: the full sentence ate ten seconds of
+        # the next track). The details ride in the JSON for the trace/UI.
+        detail = "Thumbs down." if skipped else "Thumbs down, but the skip didn't take."
+        return {"status": "down", "player": label, "song": song, "artist": artist, "station": station,
+                "skipped": bool(skipped), "detail": detail,
+                "next": {"song": skipped.get("media_title"), "artist": skipped.get("media_artist")} if skipped else None}
 
 
 def describe_playing(state: dict, label: str) -> str:

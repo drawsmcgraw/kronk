@@ -126,6 +126,7 @@ class FakeHA:
     """httpx stand-in for the reads (template + state polls)."""
     playing = False
     shuffle = False          # the player's own shuffle attribute
+    title = "Glory Box"      # what the player reports; a successful play changes it
 
     def __init__(self, *a, **kw):
         pass
@@ -142,7 +143,8 @@ class FakeHA:
 
     async def get(self, url, headers=None):
         return _Resp({"state": "playing" if FakeHA.playing else "idle",
-                      "attributes": {"media_artist": "Portishead", "media_title": "Glory Box",
+                      "attributes": {"media_artist": "Portishead", "media_title": FakeHA.title,
+                                     "media_content_id": f"ytmusic://track/{FakeHA.title}",
                                      "shuffle": FakeHA.shuffle}})
 
 
@@ -150,15 +152,23 @@ class FakeHA:
 def music_env():
     FakeHA.playing = False
     FakeHA.shuffle = False
-    env = types.SimpleNamespace(calls=[], fail=None)
+    FakeHA.title = "Glory Box"
+    # fail: message raised on play_media; fail_if: raise only when it returns
+    # True for the service data; plays_anyway: the player starts the new
+    # item even though the call raised (MA, 2026-09-04).
+    env = types.SimpleNamespace(calls=[], fail=None, fail_if=None, plays_anyway=False)
 
     async def no_sleep(_):
         return None
 
     async def fake_call(domain, service, service_data=None, target=None):
         env.calls.append((domain, service, service_data, target))
-        if env.fail:
-            raise ts.HAServiceError(env.fail)
+        if service == "play_media":
+            failing = env.fail and (env.fail_if is None or env.fail_if(service_data))
+            if not failing or env.plays_anyway:
+                FakeHA.playing, FakeHA.title = True, f"new: {service_data['media_id']}"
+            if failing:
+                raise ts.HAServiceError(env.fail)
         if service == "shuffle_set":                 # the player takes the setting
             FakeHA.shuffle = service_data["shuffle"]
 
@@ -203,11 +213,11 @@ def test_music_failure_unwraps_ma_list_repr(music_env):
 def test_music_failed_call_but_player_plays_is_success(music_env):
     """MA has failed the call and played anyway (2026-09-04, 'put on some jazz')."""
     music_env.fail = MA_MSG
-    FakeHA.playing = True
+    music_env.plays_anyway = True
     with patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 5):
         resp = TestClient(ts.app).post("/music", json={"query": "jazz"})
     assert resp.status_code == 200
-    assert resp.json()["status"] == "playing" and resp.json()["title"] == "Glory Box"
+    assert resp.json()["status"] == "playing" and resp.json()["title"] == "new: jazz"
 
 
 def test_music_success_path_unchanged(music_env):
@@ -215,6 +225,59 @@ def test_music_success_path_unchanged(music_env):
     with patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 5):
         resp = TestClient(ts.app).post("/music", json={"query": "Portishead"})
     assert resp.status_code == 200 and resp.json()["player"] == "the Kitchen speaker"
+
+
+# ── Verify the change, not the state (2026-09-30) ──────────────────────────
+
+def test_music_failed_call_with_old_music_still_playing_is_a_failure(music_env):
+    """"Deep house chill music" failed to resolve while Fountains of Wayne was
+    playing; the old check saw `playing` and spoke the old track as the new."""
+    FakeHA.playing, FakeHA.title = True, "All Kinds Of Time"
+    music_env.fail = "Could not resolve ['deep house chill music'] to playable media item"
+    with patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 0.2):
+        resp = TestClient(ts.app).post("/music", json={"query": "deep house chill music"})
+    assert resp.status_code == 502
+    assert resp.json()["detail"] == "Playback failed: Could not resolve deep house chill music to playable media item"
+
+
+def test_music_success_reports_the_new_track_not_the_old_one(music_env):
+    FakeHA.playing, FakeHA.title = True, "All Kinds Of Time"
+    with patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 5):
+        resp = TestClient(ts.app).post("/music", json={"query": "Portishead"})
+    assert resp.status_code == 200 and resp.json()["title"] == "new: Portishead"
+
+
+def test_music_asking_for_what_is_already_playing_succeeds_at_the_deadline(music_env):
+    FakeHA.playing, FakeHA.title = True, "new: jazz"      # the call "replays" the same item
+    with patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 0.2):
+        resp = TestClient(ts.app).post("/music", json={"query": "jazz"})
+    assert resp.status_code == 200 and resp.json()["title"] == "new: jazz"
+
+
+def test_music_unresolved_with_media_type_is_not_blindly_retried(music_env):
+    """An untyped retry played Akon for "zzqx florbent nonexistent" (2026-09-30)."""
+    FakeHA.playing, FakeHA.title = True, "All Kinds Of Time"
+    music_env.fail = "Could not resolve ['deep house chill music'] to playable media item"
+    music_env.fail_if = lambda data: "media_type" in data
+    with patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 0.2):
+        resp = TestClient(ts.app).post("/music", json={"query": "deep house chill music",
+                                                       "media_type": "radio"})
+    assert resp.status_code == 502
+    assert [sv for _, sv, _, _ in music_env.calls] == ["play_media"]
+
+
+def test_music_other_failures_are_not_retried(music_env):
+    music_env.fail = MA_MSG
+    resp = TestClient(ts.app).post("/music", json={"query": "Portishead Radio", "media_type": "radio"})
+    assert resp.status_code == 502
+    assert [sv for _, sv, _, _ in music_env.calls] == ["play_media"]
+
+
+def test_music_unresolved_without_media_type_is_not_retried(music_env):
+    music_env.fail = "Could not resolve ['zzz'] to playable media item"
+    resp = TestClient(ts.app).post("/music", json={"query": "zzz"})
+    assert resp.status_code == 502
+    assert [sv for _, sv, _, _ in music_env.calls] == ["play_media"]
 
 
 # ── Shuffle: a player setting, set explicitly on every play (2026-09-16) ────

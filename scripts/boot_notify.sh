@@ -10,7 +10,7 @@
 # (sp5100_tco) + systemd RuntimeWatchdog: watchdog auto-reboots the box when
 # wedged, this script tells the operator's phone it happened.
 #
-# Same notification path as memwatch (notify/mobile_app_pixel_7, same HA_TOKEN
+# Same notification path as memwatch (notify/mobile_app_drew_pixel_11_pro, same HA_TOKEN
 # in .env, same shape of POST). Different `tag` so notifications don't collide
 # in Android's notification shade.
 #
@@ -21,7 +21,7 @@
 #
 # Env overrides (set in the systemd unit):
 #   FORCE_UNCLEAN=1    — bypass detection, always notify (for testing)
-#   HA_NOTIFY_SERVICE  — defaults to notify/mobile_app_pixel_7
+#   HA_NOTIFY_SERVICE  — defaults to notify/mobile_app_drew_pixel_11_pro
 #   WAIT_MAX_SEC       — how long to wait for HA to be reachable (default 300)
 set -euo pipefail
 

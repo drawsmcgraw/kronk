@@ -460,6 +460,29 @@ TOOL_DEFINITIONS = [
     {
         "type": "function",
         "function": {
+            "name": "rate_music",
+            "description": (
+                "Thumbs up or thumbs down the track playing right now on a Pandora station "
+                "(trains the station). Use for 'thumbs up', 'thumbs down', 'I love this song', "
+                "'never play this again'. Thumbs down also skips to the next track. This is the "
+                "ONLY way to rate — never claim a rating was recorded without calling it."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "thumb": {"type": "string", "enum": ["up", "down"]},
+                    "player": {
+                        "type": "string",
+                        "description": "Which speaker OR room, exactly as the user said it. Omit when the user named none.",
+                    },
+                },
+                "required": ["thumb"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "now_playing",
             "description": (
                 "Report what is playing right now on a speaker: song, artist, "
@@ -561,6 +584,7 @@ TOOL_TIMEOUTS = {
     "query_finances": 10,
     "play_music": 20,        # tool_service polls up to 8s to confirm playback
     "control_music": 20,     # same verify poll for pause/resume/skip/volume
+    "rate_music": 25,        # MA feedback call + the skip verify poll on thumbs down
     "now_playing": 15,
     "remote_exec": 35,         # tool_service caps the exec at 30s + SSH setup
     "update_magicmirror": 30,  # SSH preflight to the Pi (~5-20s); the update
@@ -604,7 +628,12 @@ async def _tool_web_search(client: httpx.AsyncClient, args: dict) -> str:
             f"[{r['title']}]({r['url']})\n{r['snippet']}"
             for r in sr.get("results", [])
         )
-        return f"[Web search results for '{args.get('query')}']\n\n{snippets}"
+        header = f"[Web search results for '{args.get('query')}'"
+        if sr.get("engines"):
+            header += f" — answered by {', '.join(sr['engines'])}"
+        if sr.get("unresponsive_engines"):
+            header += f"; unavailable: {', '.join(sr['unresponsive_engines'])}"
+        return f"{header}]\n\n{snippets}"
     return _fail("Web search", resp)
 
 
@@ -919,6 +948,33 @@ async def _tool_control_music(client: httpx.AsyncClient, args: dict) -> str:
     )
 
 
+async def _tool_rate_music(client: httpx.AsyncClient, args: dict) -> str:
+    thumb = (args.get("thumb") or "").strip().lower()
+    if thumb not in ("up", "down"):
+        return "[rate_music error: thumb must be 'up' or 'down']"
+    payload: dict = {"thumb": thumb}
+    if args.get("player"):
+        payload["player"] = args["player"]
+    o = origin.current.get()           # the satellite that heard the request (origin.py)
+    if o:
+        if o.device_id:
+            payload["origin_device"] = o.device_id
+        if o.area:
+            payload["origin_area"] = o.area
+    resp = await client.post(f"{TOOL_SERVICE_URL}/music/rate", json=payload)
+    if resp.status_code == 200:
+        return f"[Music rated: {resp.json().get('detail', 'Done.')}]"
+    try:
+        detail = resp.json().get("detail", "")
+    except Exception:
+        detail = resp.text[:200]
+    return (
+        f"[Could not rate music: {detail}]\n"
+        "The rating FAILED — tell the user it failed and why. "
+        "Do NOT claim it was recorded. Do NOT call rate_music again."
+    )
+
+
 async def _tool_now_playing(client: httpx.AsyncClient, args: dict) -> str:
     payload: dict = {}
     if args.get("player"):
@@ -1054,6 +1110,7 @@ _HANDLERS = {
     "solar_energy":         _tool_solar_energy,
     "play_music":           _tool_play_music,
     "control_music":        _tool_control_music,
+    "rate_music":           _tool_rate_music,
     "now_playing":          _tool_now_playing,
     "update_magicmirror":   _tool_update_magicmirror,
     "remote_exec":          _tool_remote_exec,

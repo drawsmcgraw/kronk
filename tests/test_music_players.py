@@ -219,7 +219,8 @@ class FakeHA:
 
     async def get(self, url, headers=None):
         entity = url.rsplit("/", 1)[1]
-        playing = entity == FakeHA.playing_entity
+        # idle until play_media is called — /music verifies a change (2026-09-30)
+        playing = FakeHA.calls != [] and entity == FakeHA.playing_entity
         return _Resp(200, {"state": "playing" if playing else "idle",
                            "attributes": {"media_artist": "Aerosmith", "media_title": "Toys in the Attic"}})
 

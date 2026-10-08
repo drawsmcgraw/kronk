@@ -1,0 +1,11 @@
+# Daily at 07:00 local (operator, 2026-10-08: not before the house is up). Persistent: runs at next boot if missed.
+[Unit]
+Description=Kronk — daily music provider canary
+
+[Timer]
+OnCalendar=*-*-* 07:00
+Persistent=true
+RandomizedDelaySec=5m
+
+[Install]
+WantedBy=timers.target

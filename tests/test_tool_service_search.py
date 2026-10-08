@@ -52,3 +52,23 @@ def test_search_network_failure_returns_502_with_cause():
     detail = resp.json()["detail"]
     assert "Could not reach SearXNG" in detail
     assert "ConnectError" in detail
+
+
+# ── engines answered / benched travel with the result (2026-10-05) ──────────
+
+def test_search_reports_engines_and_unresponsive():
+    body = {"results": [{"title": "A", "url": "http://a", "content": "x", "engine": "duckduckgo", "engines": ["duckduckgo", "yahoo"]},
+                        {"title": "B", "url": "http://b", "content": "y", "engine": "mojeek"}],
+            "unresponsive_engines": [["brave", "Suspended: too many requests"], ["qwant", "CAPTCHA"]]}
+    resp = _search({"/search": FakeResponse(200, json_data=body)})
+    assert resp.status_code == 200
+    assert resp.json()["engines"] == ["duckduckgo", "mojeek", "yahoo"]   # dedup'd rows list every contributor
+    assert resp.json()["unresponsive_engines"] == ["brave: Suspended: too many requests", "qwant: CAPTCHA"]
+    assert resp.json()["results"][0]["engine"] == "duckduckgo"
+
+
+def test_search_no_results_names_the_benched_engines():
+    body = {"results": [], "unresponsive_engines": [["duckduckgo", "CAPTCHA"], ["brave", "Suspended: too many requests"]]}
+    resp = _search({"/search": FakeResponse(200, json_data=body)})
+    assert resp.status_code == 404
+    assert resp.json()["detail"] == "No results found (engines unavailable: brave: Suspended: too many requests; duckduckgo: CAPTCHA)"

@@ -1,0 +1,12 @@
+# Fires kronk-searxng-canary.service weekly (Monday 07:30 local). Persistent:
+# a missed window (box off) runs at the next boot instead of skipping.
+[Unit]
+Description=Kronk — weekly SearXNG canary
+
+[Timer]
+OnCalendar=Mon 07:30
+Persistent=true
+RandomizedDelaySec=10m
+
+[Install]
+WantedBy=timers.target

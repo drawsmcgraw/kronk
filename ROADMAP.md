@@ -21,6 +21,45 @@ Conventions:
 *(Items keep their numbers when they ship — cross-references elsewhere in
 the docs use them. 1, 2, 3, 11 and 12 are in Shipped. Pruned 2026-09-14.)*
 
+22. **Shopping list — HA owns it, Kronk speaks and shows it, Netlify
+    mirrors it** *(added 2026-09-17; approved in conversation, build
+    gated on the operator's go; plan `docs/plans/SHOPPING_LIST_PLAN.md`)*.
+    `todo.shopping_list` is the single store; tool_service `/shopping/*`
+    reads it live and holds the logic (normalize, dedupe with a spoken
+    refusal, "is X on the list", check-off); HA sentence triggers →
+    `rest_command` for the ~1 s voice path (HA's built-in add intent
+    creates duplicates); Kronk's tools re-pointed and the JSON store
+    removed; a rebuilt LAN page (open, app-like); and an encrypted
+    read-only copy pushed to Netlify after every change for the family
+    outside the house — one password, no client software, **no inbound
+    traffic** (operator's showstopper). Includes one planned HA restart
+    (first `rest_command`). *Why: the weekly paper list is copied off a
+    phone; voice mistakes need voice deletes; the family needs it off
+    the LAN without a VPN.*
+
+23. **"X radio" falls back to YouTube Music artist radio** *(added
+    2026-10-04; plan `docs/plans/RADIO_FALLBACK_PLAN.md`, decisions
+    pending)*. MA's Pandora provider cannot create stations; on the Kronk
+    Pandora account, unshared stations fail. Order: Pandora station → YT
+    Music artist radio (`radio_mode`) only when the artist name matches →
+    honest failure. Recommended shape: one `/music/radio` endpoint in
+    tool_service used by both tiers, the blueprint calling it via
+    `rest_command` — whose first use costs one HA restart, shared with
+    item 22. *Why: the operator expects "X radio" to just work.*
+
+24. **Learned intent router behind the regex pins — benched 2026-10-05, no
+    swap** *(`docs/plans/INTENT_ROUTER_PLAN.md`)*. Eval set of 497 real
+    utterances (150 hand-relabelled) and `scripts/routing_bench.py` are in
+    the repo. Embedding kNN (bge-small) pinned 1–2 of the 26 home requests
+    the pins miss with zero new mistakes; the open "Jev"-style decision
+    models (Julia-1, Laya, Kev-4B via llama.cpp b11413 `/v1/systemone`)
+    scored 39–60% raw and could not be thresholded (Julia-1 says "home" at
+    p≈1.0 for "What day is it today?"). Pass rule (coverage ≥ 50%, p95 <
+    50 ms) not met by any arm. Regex pins stay; revisit with ~100 more voice
+    utterances in the eval set or an independent routing benchmark for the
+    decision models. The b11413 Vulkan build exists on the box for the next
+    deliberate pin bump (item 19).
+
 4. **Backups** — nightly automated backup of the irreplaceable state: HA
    config volume, MA library/auth volume, orchestrator SQLite (sessions,
    metrics), tool_service `/data` (**solar.db** — the energy-counter
@@ -141,7 +180,20 @@ the docs use them. 1, 2, 3, 11 and 12 are in Shipped. Pruned 2026-09-14.)*
     Pandora's UI (kills or validates the plan before any patch); (3)
     operator: decide where training lands (bot as the house account,
     recommended, vs. personal account + one-stream limit). *Why: the
-    operator's stated want; the training is the value of Pandora.*
+    operator's stated want; the training is the value of Pandora.* **Update 2026-10-04:** the bot account exists and
+    MA runs on it; the mechanics in that plan predate MA 2.11 (stations
+    are real track queues now). Research and three plans — ride upstream,
+    patch MA's provider, or a Kronk-side Pandora client — plus the
+    station-creation goal are in `docs/plans/PANDORA_STATIONS_AND_THUMBS_PLAN.md`;
+    decision 2026-10-04: **contribute upstream** — two standalone PRs against
+    MA `dev`, station creation first (porting the stalled
+    `feat/pandora-station-management` commit, with credit), thumbs second
+    after a design question in the thread; operator posts/forks/pushes. **Thumbs shipped 2026-10-06** (`docs/features/pandora-thumbs.md`): MA runs
+    the derived image with `pandora/feedback`; Kronk-tier voice works
+    (operator-verified from the office). Left: the HA fast tier
+    (`rest_command`, one HA restart, shared with item 22), a least-privilege
+    MA user, the YouTube-radio fallback (item 23), station creation
+    (Feature A), and the upstream PRs.
 
 18. **Playback control — the ~1 s fast path** *(added 2026-09-10; the
     Kronk tier shipped 2026-09-10, see Shipped)*. Sentence triggers in
@@ -415,6 +467,90 @@ the docs use them. 1, 2, 3, 11 and 12 are in Shipped. Pruned 2026-09-14.)*
   tracks → a 3-track *Daisies of the Galaxy*); 156 files MA cannot
   parse at all (Bill Cosby albums, some TMBG, audiobook m4a under
   `Unknown Artist`).
+- **Skip on a Pandora station — done 2026-09-19 by taking MA 2.11.0b2 in
+  place** (`INVESTIGATION_2026-09-19_pandora_skip.md`). On 2.8.8 a station
+  was one radio queue item and `next` had nowhere to go. Upgrade recipe as
+  run: `~/backups/ma/ma-config-2.8.8-*-quiesced.tgz` (volume tarball with
+  MA stopped; DB migrated 38→58, forward-only, so rollback = restore the
+  tarball + old tag), tag change, one named MA restart, tests from the
+  kitchen. Two things the jump needed: (1) the YouTube PO-token helper
+  had to move to **2.0.0** (the plugin bundled in 2.11 is 2.x and refuses
+  a 1.x server; 2.0.0 is also an RCE security release — and the running
+  container had drifted to `:latest` while the compose said 1.3.1, now
+  pinned); (2) Pandora's first login after the restart got a transient
+  403 and its stations only play after a **Pandora library resync** marks
+  them `is_dynamic` (2.11 serves stations as track-based dynamic radio;
+  the pre-migration rows failed with "Unsupported media type: radio").
+  Verified: YouTube album, Pandora station (two skips, song changes in
+  1 s, no idle), local album; HA integration loaded, no repair issues.
+  Side effect: Pandora now reports `pandora://track/…` per song, so
+  Kronk's now-playing wording falls to the generic "on Pandora" instead
+  of naming the station (HA exposes no station attribute). Left: Kronk's
+  `control_music next` still verifies only that the player stays
+  `playing` — make it verify a `media_title` change (voice smoke test,
+  item 8, gets a Pandora skip probe). Stable 2.11 lands on the item 9 list.
+- **Wi-Fi visibility for the satellites** *(added 2026-09-30,
+  `INVESTIGATION_2026-09-30_kitchen_stutter.md`)*. The operator created a
+  read-only UniFi controller account (`UNIFI_USER`/`UNIFI_PASSWORD` in
+  `.env`; custom role, every permission `readonly` — trim Protect/Access/
+  Talk off it to Network only). Two small pieces: (1) a latency probe on
+  Kronk that pings the named satellites every 30 s and keeps a day of
+  history (known devices only, no discovery); (2) HA's local UniFi Network
+  integration with that account, so AP utilization and per-puck rate/
+  retries sit next to MA's Sendspin logs. The 2026-09-30 stutter took a
+  console login and three rounds of pings to diagnose; this makes it one
+  query.
+- **Music: media_type miss, and the 8 s honest failure** *(added
+  2026-09-30, `INVESTIGATION_2026-09-30_music_false_success.md`)*. (1) The
+  home agent's `media_type` guess can make MA fail on a query it can find
+  ("deep house chill music" as radio). A blind untyped retry is unsafe — it
+  played Akon for gibberish — so any retry must run `music_assistant.search`
+  first and only play a hit whose name shares the query's words; gibberish
+  stays a failure. (2) A failed call while music is playing now waits the
+  full 8 s verify window before saying so; the plays-anyway case (2026-09-04)
+  could get a shorter window after a failed call. One change at a time.
+- **Measure before building a tool-result guard** *(added 2026-10-05,
+  `MUSIC_ROUTING_PIN_PLAN.md`)*: after a week on the music pin, count
+  coordinator replies matching `^(I couldn't play|Now playing|Playback
+  failed|I am unable to play)` with no tool call in the turn (Langfuse).
+  Zero → the guard is not built. Also the blueprint's 10 s failure wait:
+  6 s would cover every success seen.
+- **SearXNG canary + monthly pin check** *(added 2026-10-05; **step 1 built
+  the same day**: `scripts/searxng_canary.sh`, `systemd/kronk-searxng-canary.{service,timer}`
+  enabled weekly Mon 07:30, `docs/runbooks/searxng-bump.md`; step 2 — the
+  headless monthly bump — waits until the runbook has been run twice by hand)*.
+  The "bump monthly" comment in `docker-compose.yml` lapsed for four
+  months and every search was junk for at least a month. Mechanism, in the
+  shape of the existing watchdogs (`scripts/memwatch.sh` + `lib/notify.sh`
+  + a systemd user unit): `scripts/searxng_canary.sh` on a **weekly
+  `kronk-searxng-canary.timer`** that (1) runs two fixed multi-word
+  queries through tool_service `/search` and fails unless ≥2 engines
+  answered and ≥3 of the top 5 titles contain the query's key term,
+  (2) compares the compose pin's date to the newest `2026.*` tag on Docker
+  Hub and flags a pin older than 35 days, (3) on either failure pushes one
+  HA mobile-app alert (same `ha_notify`, tag `searxng`, 24 h cooldown) that
+  names the failing engines and the newest tag. The bump itself stays a
+  deliberate step (tenet 3): a runbook `docs/runbooks/searxng-bump.md`
+  (pull, `up -d searxng`, canary, re-test bing, revert path), run by the
+  operator or by Claude in a session. Step two, once the runbook has been
+  run twice by hand: a monthly timer that runs `claude -p` with the runbook
+  and a Bash allowlist limited to compose pull/up for searxng and the
+  canary, so the bump happens without a human remembering — reported
+  through the same alert. Not before the runbook is proven.
+- **Music provider canary — built 2026-10-08** (`scripts/music_provider_canary.sh`,
+  `kronk-music-canary.timer` daily 07:00) *(added 2026-10-06,
+  `INVESTIGATION_2026-10-06_youtube_cookie.md`)*: YouTube Music's cookie
+  died silently sometime in the 3.75 days after it was pasted; MA only
+  checks at provider load, so the restart found it. Same shape as the
+  SearXNG canary: a daily timer that asks MA (`ma_command("providers")`)
+  whether `ytmusic`/`pandora`/`filesystem_local` report `available`, and
+  pushes one HA alert naming the dead one with the fix (fresh cookie
+  recipe in `docs/features/voice-music-control.md`). Correction
+  2026-10-07: static cookie snapshots do not die of age — the operator's own
+  paste lived ≥124 days under the same check; the Kronk account's died in
+  <4 days because the account is new and untrusted (or a security event
+  hit it). Fix is on the account side (age it, or use a brand account under
+  the operator's Google account), not the paste.
 - Operator kitchen voice tests — real "Okay Nabu" music commands from the
   Voice PE (the one untested layer of the 2026-07-03 music work).
 - Backfill tests for the 2026-07-03 fixes — routing-history merge/drop

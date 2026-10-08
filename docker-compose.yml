@@ -45,11 +45,11 @@ services:
     restart: unless-stopped
 
   searxng:
-    # Pinned (2026-06-12): SearXNG ships engine/bot-detection fixes weekly;
+    # Pinned (2026-06-12, bumped 2026-10-05): SearXNG ships engine/bot-detection fixes weekly;
     # a stale build is a CAPTCHA magnet (the 2026.4.1 build ended up with
     # every engine but aol suspended). Bump the pin ~monthly:
     #   check hub.docker.com/r/searxng/searxng/tags, update, `up -d searxng`.
-    image: searxng/searxng:2026.6.12-cc196f2a5
+    image: searxng/searxng:2026.10.4-d48c4b555
     volumes:
       - ./searxng:/etc/searxng:rw
     mem_limit: 512m
@@ -89,6 +89,10 @@ services:
       # (HA_TIMER_ENTITY removed 2026-07-12: timers are native HA Assist now.)
       - HA_URL=http://host.docker.internal:8123
       - HA_TOKEN=${HA_TOKEN}
+      # Music Assistant, for the Pandora thumbs path (/music/rate): MA's own
+      # websocket API, long-lived token minted 2026-10-06 (1-year expiry).
+      - MA_URL=${MA_URL:-http://host.docker.internal:8095}
+      - MA_TOKEN=${MA_TOKEN}
       # Solar monitoring (SunPower PVS5 via the HAProxy bridge). SOLAR_SERIAL
       # is a credential → in .env. Thresholds tunable; defaults in solar.py.
       # See docs/plans/SOLAR_MONITOR_PLAN.md.
