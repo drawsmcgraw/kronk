@@ -1331,14 +1331,24 @@ _NEEDS_PLAYBACK = {"pause", "stop", "next", "volume_up", "volume_down"}
 # message_id. MA_TOKEN is a long-lived token (1-year expiry, no renew).
 MA_URL   = os.getenv("MA_URL", "http://host.docker.internal:8095")
 MA_TOKEN = os.getenv("MA_TOKEN", "")
+# Operator-only alerts (failures the household shouldn't hear about), as
+# "<domain>/<service>" — same default target as scripts/lib/notify.sh.
+HA_NOTIFY_SERVICE = os.getenv("HA_NOTIFY_SERVICE", "notify/mobile_app_drew_pixel_11_pro")
+# A like on a track not yet in MA's library awaits a full metadata scan
+# before MA stores it or tells Pandora: measured 24.6–31.1 s on 2.11.0b5
+# (INVESTIGATION_2026-10-16_ma_like_latency.md). Background likes wait this long.
+MA_LIKE_TIMEOUT_S = float(os.getenv("MA_LIKE_TIMEOUT_S", "180"))
 
 
 class MAError(Exception):
     """A Music Assistant command failed; str(e) is MA's own `details`."""
 
 
-async def ma_command(command: str, **args) -> object:
-    """Run one MA API command over its websocket and return the result."""
+async def ma_command(command: str, _timeout: float = 20, **args) -> object:
+    """Run one MA API command over its websocket and return the result.
+
+    `_timeout` bounds the wait for MA's reply (not the connect/auth steps).
+    """
     if not MA_TOKEN:
         raise MAError("MA_TOKEN not configured")
     url = MA_URL.replace("http://", "ws://", 1).replace("https://", "wss://", 1).rstrip("/") + "/ws"
@@ -1348,13 +1358,15 @@ async def ma_command(command: str, **args) -> object:
             async def call(mid: str, cmd: str, a: dict) -> object:
                 await ws.send(json.dumps({"message_id": mid, "command": cmd, "args": a}))
                 while True:
-                    msg = json.loads(await asyncio.wait_for(ws.recv(), timeout=20))
+                    msg = json.loads(await asyncio.wait_for(ws.recv(), timeout=read_timeout))
                     if msg.get("message_id") != mid:
                         continue                                         # an event, not our reply
                     if "error_code" in msg:
                         raise MAError(str(msg.get("details") or msg["error_code"]))
                     return msg.get("result")
+            read_timeout = 20
             await call("auth", "auth", {"token": MA_TOKEN})
+            read_timeout = _timeout
             return await call(f"k-{command}", command, args)
     except MAError:
         raise
@@ -1477,16 +1489,57 @@ class MusicRateRequest(BaseModel):
 
 
 _PANDORA_TRACK = "pandora://track/"
+_BACKGROUND_TASKS: set[asyncio.Task] = set()   # strong refs until done (asyncio holds weak ones)
+
+
+async def notify_operator(title: str, message: str, tag: str) -> None:
+    """Push an alert to the operator's phone; a failure to notify is only logged."""
+    domain, _, service = HA_NOTIFY_SERVICE.partition("/")
+    try:
+        await ha_call_service(domain, service, {"title": title, "message": message, "data": {"tag": tag}})
+    except HAServiceError as e:
+        logger.error("operator notification failed (%s): %s — was: %s: %s", HA_NOTIFY_SERVICE, e, title, message)
+
+
+async def like_in_background(uri: str, what: str) -> None:
+    """Send a like to MA and wait it out; tell the operator if it fails.
+
+    The voice reply has already gone out. A like can block for half a minute
+    in MA's metadata scan, so the household never waits on it; the operator
+    gets a push with MA's own error text when it fails.
+    """
+    try:
+        await ma_command("music/favorites/set_item", _timeout=MA_LIKE_TIMEOUT_S, item=uri, favorite=True)
+        logger.info("thumbs up landed: %s (%s)", what, uri)
+    except Exception as e:                                       # every failure must reach the operator
+        detail = str(e) or type(e).__name__
+        logger.error("thumbs up failed: %s (%s): %s", what, uri, detail)
+        await notify_operator("Kronk: thumbs up failed", f"{what} ({uri}): {detail}", tag="kronk-music-rate")
+
+
+def _spawn(coro) -> asyncio.Task:
+    task = asyncio.create_task(coro)
+    _BACKGROUND_TASKS.add(task)
+    task.add_done_callback(_BACKGROUND_TASKS.discard)
+    return task
 
 
 @app.post("/music/rate")
 async def rate_music(req: MusicRateRequest):
     """Thumb the track playing on a Pandora station; thumbs down also skips.
 
-    The rating goes to MA's `pandora/feedback` (our provider patch), keyed by
-    the track id HA exposes as `media_content_id = pandora://track/<id>`.
+    The rating is MA's own like/dislike (`music/favorites/set_item`) on the
+    URI HA exposes as `media_content_id = pandora://track/<id>`; the Pandora
+    provider forwards it to Pandora as thumbs up/down (`set_favorite`).
     Anything else playing is refused by name. Thumbs down then calls
     media_next_track and waits for the title to change (tenet 6).
+
+    Thumbs up is fire-and-forget (operator, 2026-10-16): a like on a track
+    new to MA's library blocks for ~25–30 s in MA's metadata scan, so the
+    reply goes out at once and `like_in_background` pushes a phone alert to
+    the operator if it fails. Thumbs down is fast and awaited; MA forwards
+    the dislike to Pandora in its own background task, so a Pandora failure
+    there only reaches MA's log.
     """
     if not HA_TOKEN:
         raise HTTPException(status_code=500, detail="HA_TOKEN not configured")
@@ -1518,20 +1571,17 @@ async def rate_music(req: MusicRateRequest):
                 status_code=409,
                 detail=f"That's not a Pandora station — I can only rate Pandora tracks.",
             )
-        item_id = content[len(_PANDORA_TRACK):]
+        song = attrs.get("media_title") or "that track"
+        artist = attrs.get("media_artist")
+        what = f"{song} by {artist}" if artist else song
+        if thumb == "up":
+            _spawn(like_in_background(content, what))
+            return {"status": "up", "player": label, "song": song, "artist": artist, "confirmed": False,
+                    "detail": f"Thumbs up for {what}."}
         try:
-            info = await ma_command("pandora/feedback", item_id=item_id, positive=(thumb == "up"))
+            await ma_command("music/favorites/set_item", item=content, favorite=False)
         except MAError as e:
             raise HTTPException(status_code=502, detail=str(e))
-        info = info if isinstance(info, dict) else {}
-        song = info.get("song") or attrs.get("media_title") or "that track"
-        artist = info.get("artist") or attrs.get("media_artist")
-        station = info.get("station") or attrs.get("media_album_name")
-        what = f"{song} by {artist}" if artist else song
-        where = f" on {station}" if station else ""
-        if thumb == "up":
-            return {"status": "up", "player": label, "song": song, "artist": artist, "station": station,
-                    "detail": f"Thumbs up for {what}{where}."}
 
         # Thumbs down: skip, and verify the skip (a Pandora station skip is a real
         # queue advance on MA 2.11; the title must change).
@@ -1551,7 +1601,7 @@ async def rate_music(req: MusicRateRequest):
         # under it (operator, 2026-10-06: the full sentence ate ten seconds of
         # the next track). The details ride in the JSON for the trace/UI.
         detail = "Thumbs down." if skipped else "Thumbs down, but the skip didn't take."
-        return {"status": "down", "player": label, "song": song, "artist": artist, "station": station,
+        return {"status": "down", "player": label, "song": song, "artist": artist,
                 "skipped": bool(skipped), "detail": detail,
                 "next": {"song": skipped.get("media_title"), "artist": skipped.get("media_artist")} if skipped else None}
 
