@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Build Kronk's derived Music Assistant image from a clone/fork checkout.
-#   ma/build.sh <checkout-dir> <N>     → kronk/music-assistant:2.11.0b2-kronk.N
+#   ma/build.sh <checkout-dir> <N>     → kronk/music-assistant:${BASE_TAG}-kronk.N (default 2.11.0b5)
 # The checkout must be clean (the image label records its commit). Swap-in is
 # a NAMED MA restart — see docs/plans/MA_LOCAL_PANDORA_FEATURES_PLAN.md §1.
 set -euo pipefail
 SRC="${1:?checkout dir}"; N="${2:?build number}"
-BASE_TAG="${BASE_TAG:-2.11.0b2}"
+BASE_TAG="${BASE_TAG:-2.11.0b5}"
 REV=$(git -C "$SRC" rev-parse --short HEAD)
 [ -z "$(git -C "$SRC" status --porcelain)" ] || { echo "checkout is dirty — commit first" >&2; exit 1; }
 TAG="kronk/music-assistant:${BASE_TAG}-kronk.${N}"

@@ -14,6 +14,8 @@ ExecStart=%h/git-repos/drawsmcgraw/kronk/scripts/memwatch.sh
 # Defaults in the script match these; included for visibility.
 Environment=MEM_WARN_GB=12
 Environment=MEM_CRIT_GB=4
+Environment=MEM_FLOOR_GB=2
+Environment=PSI_GATE_PCT=0.5
 Environment=GTT_ALERT_GB=90
 Environment=GPU_BUSY_ALERT=95
 Environment=GPU_CONSEC=5

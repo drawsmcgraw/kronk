@@ -1,5 +1,12 @@
 # Pandora thumbs and station creation in a locally built Music Assistant — Plan
 
+Status (2026-10-16): **thumbs superseded by MA's own like/dislike.** The
+`pandora/feedback` command below is retired; the patch now implements the
+provider hook `set_favorite` on MA 2.11.0b5. Current state:
+`docs/plans/MA_FORK_STATUS.md` and `docs/features/pandora-thumbs.md`.
+Feature A (station creation) below is still unbuilt; the preferred seam
+is now the iHeartRadio pattern (see MA_FORK_STATUS.md).
+
 Status: **planned 2026-10-05, not started.** Operator decision: build and
 run both features in our own MA image before any upstream PR. Supersedes
 the "PRs first" order in `PANDORA_STATIONS_AND_THUMBS_PLAN.md` (its API

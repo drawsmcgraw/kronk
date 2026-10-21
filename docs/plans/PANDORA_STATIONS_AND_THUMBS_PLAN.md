@@ -1,5 +1,13 @@
 # Pandora: create stations by voice, and thumbs — Plans
 
+Status (2026-10-16): **PR #5557 is merged; the drafted comment below is
+obsolete.** The operator opened discussion #6770 (thumbs); maintainer
+OzGav: "We already have favourite and dislike" (MA #6482). PR 2 is now a
+`set_favorite` implementation, not a new hook — no models change. Station
+creation: no create seam exists upstream; the iHeartRadio provider's
+lazy-create pattern needs no core change. Current state:
+`docs/plans/MA_FORK_STATUS.md`.
+
 Status: **decided 2026-10-04: contribute upstream as two standalone PRs
 (below). Parked the same day, not started.** To resume: post the drafted
 comment (bottom of this doc) on music-assistant/server PR #5557, fork the

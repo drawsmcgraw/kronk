@@ -1,6 +1,7 @@
 """Pandora thumbs by voice (2026-10-06, MA_LOCAL_PANDORA_FEATURES_PLAN):
-tool_service /music/rate → MA `pandora/feedback` (our provider patch), the
-rate_music terminal tool, its speech, and the routing pin.
+tool_service /music/rate → MA `music/favorites/set_item` (like/dislike, which
+the Pandora provider forwards as thumbs), the rate_music terminal tool, its
+speech, and the routing pin.
 """
 import json
 import types
@@ -61,7 +62,7 @@ def env():
     FakeHA.states = {OFFICE["entity_id"]: "playing", KITCHEN["entity_id"]: "idle"}
     RateFakeHA.content = {OFFICE["entity_id"]: "pandora://track/TR:123"}
     RateFakeHA.titles = {OFFICE["entity_id"]: "Halcyon"}
-    e = types.SimpleNamespace(ha_calls=[], ma_calls=[], ma_fail=None, ma_reply=None, skip_effect=True)
+    e = types.SimpleNamespace(ha_calls=[], ma_calls=[], ma_fail=None, skip_effect=True, spawned=[])
 
     async def no_sleep(_):
         return None
@@ -76,10 +77,14 @@ def env():
         e.ma_calls.append((command, args))
         if e.ma_fail:
             raise ts.MAError(e.ma_fail)
-        return e.ma_reply if e.ma_reply is not None else {
-            "song": "Halcyon + On + On", "artist": "Orbital", "station": "Orbital Radio", "positive": args["positive"]}
+        return None                                             # set_item returns nothing
+
+    def fake_like(uri, what):
+        return ("like", uri, what)                              # stands in for the coroutine
 
     with patch.object(ts.httpx, "AsyncClient", RateFakeHA), \
+         patch.object(ts, "like_in_background", new=fake_like), \
+         patch.object(ts, "_spawn", new=e.spawned.append), \
          patch.object(ts.asyncio, "sleep", new=no_sleep), \
          patch.object(ts, "ha_call_service", new=fake_ha_call), \
          patch.object(ts, "ma_command", new=fake_ma), \
@@ -93,23 +98,25 @@ def _rate(body):
     return TestClient(ts.app).post("/music/rate", json={"origin_device": OFFICE_DEV, "origin_area": "Office", **body})
 
 
-def test_thumbs_up_rates_the_playing_pandora_track(env):
+def test_thumbs_up_hands_the_like_off_and_answers_at_once(env):
     resp = _rate({"thumb": "up"})
     assert resp.status_code == 200, resp.text
-    assert env.ma_calls == [("pandora/feedback", {"item_id": "TR:123", "positive": True})]
+    assert env.spawned == [("like", "pandora://track/TR:123", "Halcyon by Orbital")]
+    assert env.ma_calls == []                                   # nothing awaited on MA
     assert env.ha_calls == []                                   # no skip on thumbs up
-    assert resp.json()["detail"] == "Thumbs up for Halcyon + On + On by Orbital on Orbital Radio."
+    assert resp.json()["detail"] == "Thumbs up for Halcyon by Orbital."
+    assert resp.json()["confirmed"] is False
 
 
 def test_thumbs_down_rates_then_skips_and_verifies(env):
     resp = _rate({"thumb": "down"})
     assert resp.status_code == 200, resp.text
-    assert env.ma_calls[0][1]["positive"] is False
+    assert env.ma_calls == [("music/favorites/set_item", {"item": "pandora://track/TR:123", "favorite": False})]
     assert env.ha_calls == [("media_player", "media_next_track", {"entity_id": [OFFICE["entity_id"]]})]
     assert resp.json()["skipped"] is True
     assert resp.json()["detail"] == "Thumbs down."                    # short: the next song is already playing
     assert resp.json()["next"] == {"song": "Belfast", "artist": "Orbital"}
-    assert resp.json()["song"] == "Halcyon + On + On"
+    assert resp.json()["song"] == "Halcyon"
 
 
 def test_thumbs_down_whose_skip_does_not_take_says_so(env):
@@ -137,19 +144,106 @@ def test_nothing_playing_is_refused(env):
 
 def test_ma_error_text_is_surfaced_verbatim(env):
     env.ma_fail = "Pandora does not allow feedback on track TR:123"
-    resp = _rate({"thumb": "up"})
+    resp = _rate({"thumb": "down"})
     assert resp.status_code == 502
     assert resp.json()["detail"] == "Pandora does not allow feedback on track TR:123"
 
 
-def test_reply_falls_back_to_ha_attributes_when_ma_returns_little(env):
-    env.ma_reply = {"positive": True}
-    resp = _rate({"thumb": "up"})
-    assert resp.json()["detail"] == "Thumbs up for Halcyon by Orbital on Orbital Radio."
+def test_dislike_is_sent_before_the_skip(env):
+    """The dislike goes out while the disliked track is still current, then the skip."""
+    order = []
+    env_ma, env_ha = ts.ma_command, ts.ha_call_service
+
+    async def ma(command, **args):
+        order.append("ma"); return await env_ma(command, **args)
+
+    async def ha(*a, **k):
+        order.append("skip"); return await env_ha(*a, **k)
+
+    with patch.object(ts, "ma_command", new=ma), patch.object(ts, "ha_call_service", new=ha):
+        assert _rate({"thumb": "down"}).status_code == 200
+    assert order == ["ma", "skip"]
+
+
+def test_dislike_failure_is_not_skipped_over(env):
+    env.ma_fail = "Track TR:123 is not in any retained Pandora fragment"
+    resp = _rate({"thumb": "down"})
+    assert resp.status_code == 502
+    assert env.ha_calls == []                                   # no skip when MA refused the dislike
 
 
 def test_bad_thumb_value(env):
     assert _rate({"thumb": "sideways"}).status_code == 400
+
+
+# ── the background like and the operator alert ──────────────────────────────
+
+@pytest.fixture
+def like_env():
+    e = types.SimpleNamespace(ma_calls=[], ma_fail=None, notes=[], notify_fail=None)
+
+    async def fake_ma(command, _timeout=20, **args):
+        e.ma_calls.append((command, _timeout, args))
+        if e.ma_fail:
+            raise e.ma_fail
+
+    async def fake_ha_call(domain, service, service_data=None, target=None):
+        if e.notify_fail:
+            raise ts.HAServiceError(e.notify_fail)
+        e.notes.append((domain, service, service_data))
+
+    with patch.object(ts, "ma_command", new=fake_ma), \
+         patch.object(ts, "ha_call_service", new=fake_ha_call), \
+         patch.object(ts, "HA_NOTIFY_SERVICE", "notify/mobile_app_test_phone"):
+        yield e
+
+
+@pytest.mark.asyncio
+async def test_background_like_waits_out_mas_metadata_scan_and_stays_quiet(like_env):
+    await ts.like_in_background("pandora://track/TR:1", "Halcyon by Orbital")
+    assert like_env.ma_calls == [("music/favorites/set_item", ts.MA_LIKE_TIMEOUT_S,
+                                  {"item": "pandora://track/TR:1", "favorite": True})]
+    assert ts.MA_LIKE_TIMEOUT_S >= 60                            # a like measured 24.6–31.1 s
+    assert like_env.notes == []                                 # success: nobody is bothered
+
+
+@pytest.mark.asyncio
+async def test_failed_background_like_pushes_the_operator_with_mas_error(like_env):
+    like_env.ma_fail = ts.MAError("Track TR:1 is not in any retained Pandora fragment")
+    await ts.like_in_background("pandora://track/TR:1", "Halcyon by Orbital")
+    assert like_env.notes == [("notify", "mobile_app_test_phone", {
+        "title": "Kronk: thumbs up failed",
+        "message": "Halcyon by Orbital (pandora://track/TR:1): Track TR:1 is not in any retained Pandora fragment",
+        "data": {"tag": "kronk-music-rate"}})]
+
+
+@pytest.mark.asyncio
+async def test_unexpected_errors_reach_the_operator_too(like_env):
+    like_env.ma_fail = RuntimeError()
+    await ts.like_in_background("pandora://track/TR:1", "Halcyon")
+    assert like_env.notes[0][2]["message"] == "Halcyon (pandora://track/TR:1): RuntimeError"
+
+
+@pytest.mark.asyncio
+async def test_a_failed_notification_is_logged_not_raised(like_env, caplog):
+    like_env.ma_fail = ts.MAError("boom")
+    like_env.notify_fail = "Unable to find service notify.mobile_app_test_phone"
+    await ts.like_in_background("pandora://track/TR:1", "Halcyon")   # must not raise
+    assert "operator notification failed" in caplog.text and "boom" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_spawn_keeps_a_reference_until_the_task_finishes():
+    import asyncio
+    done = asyncio.Event()
+
+    async def work():
+        await done.wait()
+
+    task = ts._spawn(work())
+    assert task in ts._BACKGROUND_TASKS
+    done.set(); await task; await asyncio.sleep(0)
+    assert task not in ts._BACKGROUND_TASKS
 
 
 # ── the tool and its speech ──────────────────────────────────────────────────
@@ -220,24 +314,25 @@ def _connect_with(replies):
 
 @pytest.mark.asyncio
 async def test_ma_command_authenticates_then_sends_the_command():
-    connect = _connect_with({"auth": {"result": {"ok": True}}, "pandora/feedback": {"result": {"song": "S"}}})
+    connect = _connect_with({"auth": {"result": {"ok": True}}, "music/favorites/set_item": {"result": None}})
     with patch.object(ts.websockets, "connect", new=connect), patch.object(ts, "MA_TOKEN", "tok"), \
          patch.object(ts, "MA_URL", "http://ma:8095"):
-        out = await ts.ma_command("pandora/feedback", item_id="TR:1", positive=True)
-    assert out == {"song": "S"}
+        out = await ts.ma_command("music/favorites/set_item", item="pandora://track/TR:1", favorite=True)
+    assert out is None
     assert connect.url == "ws://ma:8095/ws"
     sent = [json.loads(m) for m in connect.ws.sent]
     assert sent[0]["command"] == "auth" and sent[0]["args"] == {"token": "tok"}
-    assert sent[1]["command"] == "pandora/feedback" and sent[1]["args"] == {"item_id": "TR:1", "positive": True}
+    assert sent[1]["command"] == "music/favorites/set_item"
+    assert sent[1]["args"] == {"item": "pandora://track/TR:1", "favorite": True}
 
 
 @pytest.mark.asyncio
 async def test_ma_command_raises_the_servers_details_on_error():
     connect = _connect_with({"auth": {"result": True},
-                             "pandora/feedback": {"error_code": "media_not_found", "details": "Track TR:9 is not in any retained Pandora fragment"}})
+                             "music/favorites/set_item": {"error_code": "media_not_found", "details": "Track TR:9 is not in any retained Pandora fragment"}})
     with patch.object(ts.websockets, "connect", new=connect), patch.object(ts, "MA_TOKEN", "tok"):
         with pytest.raises(ts.MAError) as ei:
-            await ts.ma_command("pandora/feedback", item_id="TR:9", positive=False)
+            await ts.ma_command("music/favorites/set_item", item="pandora://track/TR:9", favorite=True)
     assert str(ei.value) == "Track TR:9 is not in any retained Pandora fragment"
 
 
@@ -246,3 +341,13 @@ async def test_ma_command_without_a_token_is_a_named_failure():
     with patch.object(ts, "MA_TOKEN", ""):
         with pytest.raises(ts.MAError, match="MA_TOKEN not configured"):
             await ts.ma_command("providers")
+
+
+@pytest.mark.asyncio
+async def test_ma_command_timeout_is_ours_not_an_ma_argument():
+    connect = _connect_with({"auth": {"result": {"ok": True}}, "music/favorites/set_item": {"result": None}})
+    with patch.object(ts.websockets, "connect", new=connect), patch.object(ts, "MA_TOKEN", "tok"), \
+         patch.object(ts, "MA_URL", "http://ma:8095"):
+        await ts.ma_command("music/favorites/set_item", _timeout=5, item="pandora://track/TR:1", favorite=True)
+    sent = [json.loads(m) for m in connect.ws.sent]
+    assert sent[1]["args"] == {"item": "pandora://track/TR:1", "favorite": True}

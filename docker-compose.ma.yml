@@ -50,7 +50,7 @@ name: kronk-ma
 services:
   music-assistant:
     # Pinned 2026-06-12 to the running version — MA upgrades are deliberate acts.
-    image: kronk/music-assistant:2.11.0b2-kronk.1   # derived: stock 2.11.0b2 + patched Pandora provider (ma/Dockerfile, clone c814b2490). Rollback: ghcr.io/music-assistant/server:2.11.0b2
+    image: kronk/music-assistant:2.11.0b5-kronk.7   # derived: stock 2.11.0b5 + Pandora set_favorite (thumbs) patch (ma/Dockerfile, fork f7acc5c62). Previous: kronk.6 (fork 5e65e1bf8, before the SOCKS close and exception fixes). Rollback: kronk/music-assistant:2.11.0b2-kronk.1 + restore ~/backups/ma/ma-config-2.11.0b2-20261016-155012-quiesced.tgz (b5 migrates the DB)
     container_name: music-assistant-server
     network_mode: host
     # Intentionally NO cap_add / security_opt — the NAS share is mounted by

@@ -193,7 +193,36 @@ the docs use them. 1, 2, 3, 11 and 12 are in Shipped. Pruned 2026-09-14.)*
     (operator-verified from the office). Left: the HA fast tier
     (`rest_command`, one HA restart, shared with item 22), a least-privilege
     MA user, the YouTube-radio fallback (item 23), station creation
-    (Feature A), and the upstream PRs.
+    (Feature A), and the upstream PRs. **Update 2026-10-16:** the MA
+    maintainer (discussion #6770) pointed at MA's built-in like/dislike
+    (#6482, MA ≥ 2.11.0b3). `pandora/feedback` is dropped; the patch now
+    implements the provider hook `set_favorite` + `FAVORITE_TRACKS_EDIT`
+    (fork branch `pandora-track-feedback`, PR pending operator review).
+    MA moved to `kronk/music-assistant:2.11.0b5-kronk.1`; `/music/rate`
+    uses `music/favorites/set_item`. Thumbs up is fire-and-forget with an
+    operator phone push on failure — a like blocks ~25–30 s in MA's
+    metadata scan (`INVESTIGATION_2026-10-16_ma_like_latency.md`).
+    Follow-ups: (a) upstream PR to run the post-like metadata scan in the
+    background — plan `docs/plans/MA_ASYNC_LIKE_METADATA_PLAN.md`
+    (2026-10-21: a like took 55–70 s while LRCLIB retried under its
+    1-per-30 s throttle; LRCLIB disabled in Kronk's MA as the interim
+    fix); (b) station creation via the iHeartRadio pattern (search
+    returns seed radios, first play calls `createStation`; no core change)
+    — its own discussion, see `docs/plans/MA_FORK_STATUS.md`; (c) `/music`
+    reports `shuffle: true` on a dynamic Pandora station though MA 2.11.0b5
+    rejects shuffle there ("Cannot change shuffle while the queue is in
+    dynamic mode") — a false claim to fix; (d) the bgutil PO-token helper
+    is 2.0.0 vs the 2.0.2 plugin in b5 (warning only; bump deliberately);
+    (e) later, operator 2026-10-21: trim MA's auto-loaded providers for
+    tenet 1, not speed. MA sets up its builtin and first-boot default
+    providers on its own; Kronk only added YouTube Music, Pandora and Local
+    files. Candidates: Wikipedia, fanart.tv, TheAudioDB, Cover Art Archive,
+    iTunes Artwork, Last.fm (each sends artist/track names off the box; the
+    cost is artwork and bios in MA's UI), plus unused player providers
+    (AirPlay, Chromecast, DLNA, Party, Ambient Sounds). MusicBrainz and
+    Playlist Metadata can't be disabled. Inventory what's in use first. Only
+    TheAudioDB is on the like path (about a second, unmeasured); time a like
+    with LRCLIB off for the new baseline.
 
 18. **Playback control — the ~1 s fast path** *(added 2026-09-10; the
     Kronk tier shipped 2026-09-10, see Shipped)*. Sentence triggers in
@@ -551,6 +580,28 @@ the docs use them. 1, 2, 3, 11 and 12 are in Shipped. Pruned 2026-09-14.)*
   <4 days because the account is new and untrusted (or a security event
   hit it). Fix is on the account side (age it, or use a brand account under
   the operator's Google account), not the paste.
+- **Office Satellite1 mishears more than the kitchen PE? (pinned
+  2026-10-09)** — "pause" → "Pasta", "anime bangers" → "Anime Bankers" from
+  the office; none from the kitchen PE in the same window (6 vs 9 Kronk-tier
+  requests since 10-06 — too few to conclude). Differences: Satellite1 on
+  **beta firmware** (XMOS v1.0.3), −65 dBm on the basement AP vs −56 dBm.
+  To get evidence: (1) log the origin device into Langfuse trace metadata
+  (no restart); (2) HA `assist_pipeline: debug_recording_dir` to keep the
+  raw audio per device (HA restart — ride the planned one); free A/B: turn
+  the Satellite1's beta-firmware switch off. Whisper priming
+  (`--initial-prompt`) shelved by the operator — too close to regex hacks.
+- **Voice thumbs refuse songs already in MA's library** *(added
+  2026-10-19, found in the PR #7068 live test; `MA_FORK_STATUS.md`)*. When
+  a Pandora station plays a track that is in MA's library (anything liked
+  through MA), HA reports `media_content_id = library://track/N`, not
+  `pandora://track/…`, and `/music/rate` (`tool_service/main.py`, the
+  `_PANDORA_TRACK` check) answers "That's not a Pandora station". So a
+  liked song can't be re-rated or thumbed down by voice. Seen with
+  `library://track/15356` (Pandora `TR:213938455`). Fix: for a
+  `library://track/` id, fetch the item from MA and rate it if it has a
+  Pandora provider mapping (`set_item` accepts the library URI; its clear
+  path was verified live). Test: a library-URI track with and without a
+  Pandora mapping.
 - Operator kitchen voice tests — real "Okay Nabu" music commands from the
   Voice PE (the one untested layer of the 2026-07-03 music work).
 - Backfill tests for the 2026-07-03 fixes — routing-history merge/drop

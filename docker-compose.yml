@@ -106,6 +106,9 @@ services:
       # has no origin (the web UI). Must be an MA entity (platform
       # music_assistant, not the native Sonos/Cast one).
       - MUSIC_DEFAULT_PLAYER=media_player.home_assistant_voice_0ac919_pe_01
+      # Operator-only push alerts (e.g. a voice thumbs up that failed after
+      # the household already heard "Thumbs up"). Same phone as the scripts.
+      - HA_NOTIFY_SERVICE=notify/mobile_app_drew_pixel_11_pro
       # MagicMirror Pi (POST /magicmirror/update → SSH; the script backs up,
       # updates, restarts pm2, verifies). tool_service stages MM_SCRIPT to
       # the Pi via scp then runs it — no manual file drops, always current.

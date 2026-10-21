@@ -33,8 +33,9 @@ thumbs down also skips. Plans: `docs/plans/MA_LOCAL_PANDORA_FEATURES_PLAN.md`
    refuse if gone / no `trackToken` / `allowFeedback: false`, POST Pandora's
    `station/addFeedback {trackToken, isPositive}`. Clearing (None) is
    ignored — Pandora deletes feedback by a feedback id that is not kept.
-   Running image: `kronk/music-assistant:2.11.0b5-kronk.1` (stock 2.11.0b5
-   + the patched Pandora package; `ma/Dockerfile`, `ma/build.sh`). The
+   Running image: `kronk/music-assistant:2.11.0b5-kronk.2` (stock 2.11.0b5
+   + the patched Pandora package from fork commit adeb99d34; `ma/Dockerfile`,
+   `ma/build.sh`). The
    Dockerfile hash-guards every file of the stock Pandora package.
 3. **tool_service `POST /music/rate`** resolves the player as the other
    music endpoints do, reads HA's state for the playing track

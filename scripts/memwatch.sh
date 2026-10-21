@@ -5,6 +5,8 @@
 # Pushes alerts via Home Assistant's notify.mobile_app_<device> service when:
 #   - free RAM drops below MEM_WARN_GB for WARN_CONSEC consecutive polls (warning)
 #   - free RAM drops below MEM_CRIT_GB for CRIT_CONSEC consecutive polls (critical)
+#     Both RAM alerts are gated on memory pressure (PSI, see below); below
+#     MEM_FLOOR_GB the critical alert fires regardless of pressure.
 #   - GTT (GPU memory) exceeds GTT_ALERT_GB for GTT_CONSEC consecutive polls
 #   - GPU busy% pinned ≥ GPU_BUSY_ALERT while the model servers accumulate
 #     ~zero GPU engine time, for GPU_CONSEC consecutive polls — the ROCm
@@ -18,6 +20,15 @@
 # unobserved; this check exists so that never happens again).
 # `mem_free` (not mem_available) is the load-bearing signal on this hardware:
 # the immediately-available pool that goes tight before the system locks up.
+#
+# PSI gate (added 2026-10-16): MemFree also drops whenever page cache grows
+# (backups, image builds), with nothing wrong — that produced a CRITICAL on
+# 2026-10-16 18:08 with 55 GB available and flat commit. A low-MemFree poll
+# now counts only if /proc/pressure/memory "some avg60" ≥ PSI_GATE_PCT, i.e.
+# tasks are actually stalling on reclaim. Below MEM_FLOOR_GB (historical
+# crash territory) the gate is skipped. If PSI is unavailable the gate fails
+# open (pre-gate behaviour). Suppressed polls are logged with the PSI value,
+# which is the calibration data for PSI_GATE_PCT.
 #
 # Testing: MEMWATCH_DRY_RUN=1 logs alerts instead of pushing to HA. Force the
 # GPU canary to fire (harmless, no push) with:
@@ -40,6 +51,8 @@ POLL_INTERVAL="${POLL_INTERVAL:-60}"
 # Thresholds (GB)
 MEM_WARN_GB="${MEM_WARN_GB:-12}"   # was 4 originally; operator picked 12 for early-warning headroom
 MEM_CRIT_GB="${MEM_CRIT_GB:-4}"    # crash territory historically was ~2 GB; 4 GB gives margin
+MEM_FLOOR_GB="${MEM_FLOOR_GB:-2}"  # below this, CRIT fires without the PSI gate
+PSI_GATE_PCT="${PSI_GATE_PCT:-0.5}" # memory PSI "some avg60" (%) that counts as pressure; uncalibrated
 GTT_ALERT_GB="${GTT_ALERT_GB:-90}" # GTT cap is ~101 GB; >90 = saturation imminent
 
 # GPU idle-spin canary (values in %; see header)
@@ -67,7 +80,14 @@ log() { echo "$(date '+%Y-%m-%d %H:%M:%S') memwatch: $*"; }
 
 awk_lt() { awk -v a="$1" -v b="$2" 'BEGIN { exit !(a < b) }'; }
 awk_gt() { awk -v a="$1" -v b="$2" 'BEGIN { exit !(a > b) }'; }
+awk_ge() { awk -v a="$1" -v b="$2" 'BEGIN { exit !(a >= b) }'; }
 to_gb()  { awk -v b="$1" 'BEGIN { printf "%.1f", b / 1e9 }'; }
+
+# Memory PSI "some avg60" in percent, or empty if PSI is unavailable.
+mem_psi() {
+    awk '/^some/ { for (i = 2; i <= NF; i++) if ($i ~ /^avg60=/) { sub(/^avg60=/, "", $i); print $i } }' \
+        /proc/pressure/memory 2>/dev/null || true
+}
 
 # Highest gpu_busy_percent across cards (one iGPU on this box; glob for safety).
 gpu_busy() {
@@ -118,7 +138,8 @@ notify() {
 
 # ── poll loop ────────────────────────────────────────────────────────────────
 log "started — polling $KRONK_API every ${POLL_INTERVAL}s"
-log "thresholds: mem_warn=${MEM_WARN_GB}GB mem_crit=${MEM_CRIT_GB}GB gtt_alert=${GTT_ALERT_GB}GB"
+log "thresholds: mem_warn=${MEM_WARN_GB}GB mem_crit=${MEM_CRIT_GB}GB mem_floor=${MEM_FLOOR_GB}GB gtt_alert=${GTT_ALERT_GB}GB"
+log "psi gate: memory some avg60 ≥ ${PSI_GATE_PCT}% (skipped below mem_floor)"
 log "gpu canary: busy≥${GPU_BUSY_ALERT}% with fleet-engine<${GPU_ENGINE_MIN_PCT}% of interval"
 log "consec: warn=${WARN_CONSEC} crit=${CRIT_CONSEC} gtt=${GTT_CONSEC} gpu=${GPU_CONSEC}  cooldown=${COOLDOWN_SEC}s"
 [[ "${MEMWATCH_DRY_RUN:-0}" == "1" ]] && log "DRY-RUN mode — alerts will be logged, not pushed"
@@ -136,21 +157,29 @@ while true; do
     gtt_used_gb=$(to_gb "$gtt_used")
 
     # ── RAM checks (CRIT dominates WARN — count up to whichever band we're in) ──
-    if awk_lt "$mem_free_gb" "$MEM_CRIT_GB"; then
+    # A low-MemFree poll counts only under memory pressure (PSI gate, see
+    # header), except below MEM_FLOOR_GB.
+    psi=$(mem_psi)
+    if [[ -z "$psi" ]] || awk_ge "$psi" "$PSI_GATE_PCT"; then pressured=1; else pressured=0; fi
+    psi_txt="PSI some avg60=${psi:-n/a}%"
+    if awk_lt "$mem_free_gb" "$MEM_FLOOR_GB" || { (( pressured )) && awk_lt "$mem_free_gb" "$MEM_CRIT_GB"; }; then
         consec[crit]=$(( consec[crit] + 1 ))
         consec[warn]=$(( consec[warn] + 1 ))
         if (( consec[crit] >= CRIT_CONSEC )); then
             notify crit "Kronk: CRITICAL free RAM" \
-                "free=${mem_free_gb} GB (≤ ${MEM_CRIT_GB} GB) for ${consec[crit]} polls. Risk of host hang. Investigate."
+                "free=${mem_free_gb} GB (≤ ${MEM_CRIT_GB} GB), ${psi_txt}, for ${consec[crit]} polls. Risk of host hang. Investigate."
         fi
-    elif awk_lt "$mem_free_gb" "$MEM_WARN_GB"; then
+    elif (( pressured )) && awk_lt "$mem_free_gb" "$MEM_WARN_GB"; then
         consec[warn]=$(( consec[warn] + 1 ))
         consec[crit]=0
         if (( consec[warn] >= WARN_CONSEC )); then
             notify warn "Kronk: low free RAM" \
-                "free=${mem_free_gb} GB (≤ ${MEM_WARN_GB} GB) for ${consec[warn]} polls. Memory is tightening."
+                "free=${mem_free_gb} GB (≤ ${MEM_WARN_GB} GB), ${psi_txt}, for ${consec[warn]} polls. Memory is tightening."
         fi
     else
+        if awk_lt "$mem_free_gb" "$MEM_WARN_GB"; then
+            log "free=${mem_free_gb} GB below warn but ${psi_txt} < ${PSI_GATE_PCT}% — not counted"
+        fi
         consec[warn]=0
         consec[crit]=0
     fi
