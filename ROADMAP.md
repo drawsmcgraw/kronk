@@ -460,8 +460,36 @@ the docs use them. 1, 2, 3, 11 and 12 are in Shipped. Pruned 2026-09-14.)*
   `TECH_DEBT.md` [HOTTUB-01].
 - **Deliberately rejected** (per-domain tool services, SQLite pooling,
   Redis, etc.) — see `TECH_DEBT.md` "Considered and rejected."
+- **Gemma 4 26B-A4B as coordinator** — benched 2026-10-24
+  (`docs/plans/MODEL_BENCH_GEMMA4_26B_PLAN.md`): 27/28 base and 22/24 on
+  the new hard set vs E4B's 26/28 and 20/24, at 0.76x the tok/s, about
+  the same composite latency, and 21.4 GiB GTT. Missed two pre-committed
+  lines (hard-set margin +2 of the +3 required; memory over 20 GiB), and
+  its two arithmetic misses were confident wrong dollar figures. Revisit:
+  a pre-registered 10-repeat hard-set round, a coordinator calculator
+  tool, or memory freed by retiring `llama-bonsai`. Files stay in
+  `/opt/models/google/`.
 
 ## Chores / quick wins
+
+- **/resources is stale** (found 2026-10-24). The catalog metadata in
+  `litellm/config.yaml` (`kronk:` blocks) is hand-written and wrong:
+  gemma-4-e4b says Q4_K_M/128k (it runs QAT UD-Q4_K_XL, 32k, MTP draft),
+  gemma-3-4b says 128k (8k), bonsai says 1.1 GB (6.6 GB measured),
+  devstral-q4 says 14 GB (36.5 GB measured at 128k). Three dead entries
+  (mistral-nemo, devstral Q8, talkie) still show as unhealthy servers.
+  "Measured" counts GPU memory only, so E4B's 8 GiB host-RAM prompt
+  cache (`--cache-ram` default 8192 MiB) is invisible. Fix: derive
+  quant/ctx from the running unit or `/props`, add RssAnon to the
+  measurement, and prune or mark the dead entries.
+- **Coordinator bench checker:** `COMPOSITE_ANSWERS` grades "48.54 cents"
+  (correct) as a miss. Accept unrounded cents before the next bench.
+- **Solar test DST flake** (found 2026-11-04):
+  `tests/test_solar.py::test_energy_for_period_diffs_snapshots` puts its
+  snapshot at exactly `now − 7×86400 s`, but the "week" window is seven
+  wall-clock days. In the week after a DST change those differ by an hour,
+  the snapshot falls outside the window, and `clamped_to` is set. Fails
+  2026-11-01..08. Fix: place the snapshot inside the window or pin `now`.
 
 - **Ollama blob reclaim** — delete `/usr/share/ollama/.ollama/models/blobs/`
   (~50+ GB) now that llama.cpp is stable. One careful look first.
@@ -530,7 +558,8 @@ the docs use them. 1, 2, 3, 11 and 12 are in Shipped. Pruned 2026-09-14.)*
   console login and three rounds of pings to diagnose; this makes it one
   query.
 - **Music: media_type miss, and the 8 s honest failure** *(added
-  2026-09-30, `INVESTIGATION_2026-09-30_music_false_success.md`)*. (1) The
+  2026-09-30, `INVESTIGATION_2026-09-30_music_false_success.md`; (1) done
+  2026-10-21 by the resolver, `docs/features/music-taste.md` — (2) open)*. (1) The
   home agent's `media_type` guess can make MA fail on a query it can find
   ("deep house chill music" as radio). A blind untyped retry is unsafe — it
   played Akon for gibberish — so any retry must run `music_assistant.search`
@@ -602,6 +631,15 @@ the docs use them. 1, 2, 3, 11 and 12 are in Shipped. Pruned 2026-09-14.)*
   Pandora provider mapping (`set_item` accepts the library URI; its clear
   path was verified live). Test: a library-URI track with and without a
   Pandora mapping.
+- **New personal YTM playlists can't be played for up to 12 h** *(added
+  2026-10-21, `docs/incidents/INVESTIGATION_2026-10-21_playlist_miss_wrong_music.md`)*.
+  MA syncs YouTube Music playlists every 12 hours; until then the playlist
+  isn't in the library and search only reaches public ones. Kronk now
+  fails instead of playing a stranger's playlist. Options: shorten the
+  sync in MA's UI, or have `/music` run a YTM playlist sync on a playlist
+  miss and re-resolve once (< 10 s, misses only). Same incident: the
+  blueprint fast path still plays MA's top hit for a playlist it can't
+  find, and "what did you just play?" has no access to the last play.
 - Operator kitchen voice tests — real "Okay Nabu" music commands from the
   Voice PE (the one untested layer of the 2026-07-03 music work).
 - Backfill tests for the 2026-07-03 fixes — routing-history merge/drop
@@ -612,6 +650,19 @@ the docs use them. 1, 2, 3, 11 and 12 are in Shipped. Pruned 2026-09-14.)*
 ## Shipped
 
 Newest first; feature docs in `docs/features/`.
+
+- **Music that knows the household** *(2026-10-21)* — named requests resolve
+  through search + scoring (misspellings, STT, provider hints, YouTube Music
+  links); genre requests ("some deep house", "something chill") pick from
+  household taste learned nightly from MA play history, Pandora stations
+  and the NAS library, plus an operator-editable `data/music_taste.yaml`
+  that "we love X" / "never play X" also write; "not that" plays the next
+  pick; skips/stops/long listens on Kronk's picks feed back. The HA music
+  blueprint (change 9) hands loose phrasings and failed named plays to
+  Kronk. Subsumes the "media_type miss" chore. See
+  `docs/features/music-taste.md`, `docs/plans/MUSIC_TASTE_AGENT_PLAN.md`.
+  Open: the `rest_command` voice path (needs one HA restart, operator's
+  call).
 
 - **Leaked thinking never reaches the user** *(2026-09-14)* — text a
   model produces in a round that ends with a tool call is retracted by

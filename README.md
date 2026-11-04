@@ -210,7 +210,9 @@ The `AGENTS` dict in `orchestrator/agents.py` is authoritative.
 
 `get_weather` (NWS), `web_search` (SearXNG), `fetch_url`, `query_health`,
 `query_finances`, `query_hottub`, `shopping_list_{view,add,remove,clear}`,
-`set_timer` (HA), `play_music` (HA → Music Assistant),
+`set_timer` (HA), `play_music` (HA → Music Assistant; resolves misspellings
+and picks for genre requests — `docs/features/music-taste.md`),
+`remember_music_preference` (household taste file),
 `get_kronk_context`, `generate_diagram`. Definitions live in
 `orchestrator/tools.py`. (`query_bloodwork` and `search_health_data` are defined
 but not yet wired to an agent — see Roadmap.)
