@@ -139,3 +139,96 @@ def test_scoreboard_counts_passes_and_leaks():
     }}}
     md = bench.scoreboard(results)
     assert "| m |" in md and "0/1" in md and "| 1 |" in md   # one leak counted
+
+
+# ── hard set (2026-10-24) ───────────────────────────────────────────────────
+
+def _hard(pid):
+    return next(p for p in bench.HARD_PROBES if p["id"] == pid)
+
+
+def test_weekday_in_counts_from_the_given_day():
+    from datetime import datetime
+    sat = datetime(2026, 10, 24)                      # a Saturday
+    assert bench.weekday_in(100, today=sat) == "monday"   # 2027-02-01
+    assert bench.weekday_in(7, today=sat) == "saturday"
+
+
+def test_word_count_ignores_punctuation():
+    assert bench.word_count("Keeps food cold.") == 3
+    assert bench.word_count("It keeps food cold.") == 4
+    assert bench.word_count("Keeps food fresh-tasting!") == 3
+
+
+def test_hard_delegation_checkers():
+    off = _hard("officeholder_delegate")["check"]
+    assert off(_msg(calls=[("ask_research", {"query": "Japan PM"})]), "")[0]
+    assert not off(_msg("Shigeru Ishiba is the prime minister."), "Shigeru Ishiba")[0]
+
+    mort = _hard("mortgage_rate_research")["check"]
+    assert mort(_msg(calls=[("ask_research", {"query": "30-year rate"})]), "")[0]
+    assert not mort(_msg(calls=[("ask_research", {}), ("ask_finance", {})]), "")[0]
+
+    riddle = _hard("weather_by_riddle")["check"]
+    assert riddle(_msg(calls=[("ask_home", {"query": "Weather in Baltimore, MD"})]), "")[0]
+    assert not riddle(_msg(calls=[("ask_home", {"query": "weather where the Orioles play"})]), "")[0]
+    assert not riddle(_msg(calls=[("ask_research", {"query": "Baltimore weather"})]), "")[0]
+
+
+def test_hard_direct_answer_checkers():
+    clock = _hard("clock_math")["check"]
+    assert clock(_msg("It arrives at 12:15 PM."), "It arrives at 12:15 PM.")[0]
+    assert not clock(_msg("It arrives at 12:05 PM."), "It arrives at 12:05 PM.")[0]
+
+    words = _hard("exact_words")["check"]
+    assert words(_msg("Keeps food cold."), "Keeps food cold.")[0]
+    assert not words(_msg("It keeps food cold."), "It keeps food cold.")[0]
+
+    date = _hard("date_math")["check"]
+    want = bench.weekday_in(100).capitalize()
+    assert date(_msg(f"It will be a {want}."), f"It will be a {want}.")[0]
+    assert not date(_msg(calls=[("ask_research", {})]), "")[0]
+
+
+def test_hard_composite_answer_checkers():
+    hot = next(c for c in bench.HARD_COMPOSITES if c["id"] == "composite_hottub")["answered"]
+    assert hot("That's 990 kWh, about $160.18 a month.")
+    assert hot("Roughly 160.2 dollars per month.")
+    assert not hot("About $1,601.80 a month.")
+    assert not hot("About $16.02 a month.")
+
+    md = next(c for c in bench.HARD_COMPOSITES if c["id"] == "multi_domain")["answered"]
+    assert md("You slept 7 hours 12 minutes. Tomorrow has an 80% chance of rain.")
+    assert not md("You slept well. Tomorrow has an 80% chance of rain.")
+    assert not md("You slept 7 hours 12 minutes.")
+
+
+def test_hard_composite_uses_its_own_canned_answers_and_needs(monkeypatch):
+    spec = dict(next(c for c in bench.HARD_COMPOSITES if c["id"] == "multi_domain"), repeats=1)
+    fed = []
+
+    def transport(base, messages, tools):
+        if messages[-1]["role"] == "tool":
+            fed.append(messages[-1]["content"])
+        if len(fed) == 0:
+            return ({"choices": [{"message": _msg(calls=[("ask_health", {"query": "sleep"})]),
+                                  "finish_reason": "tool_calls"}], "timings": {}}, 0.1)
+        if len(fed) == 1:
+            return ({"choices": [{"message": _msg(calls=[("ask_home", {"query": "rain"})]),
+                                  "finish_reason": "tool_calls"}], "timings": {}}, 0.1)
+        return ({"choices": [{"message": _msg("You slept 7 hours 12 minutes; 80% chance of rain."),
+                              "finish_reason": "stop"}], "timings": {}}, 0.1)
+
+    runs = bench.run_composite("http://x", "sys", transport=transport, spec=spec)
+    assert runs[0]["ok"] and runs[0]["calls"] == ["ask_health", "ask_home"]
+    assert "slept 7 hours" in fed[0] and "rain" in fed[1]
+
+
+def test_scoreboard_adds_a_hard_section_only_when_hard_runs_exist():
+    run = {"ok": True, "leak": False, "gen_tps": 40, "elapsed_s": 1, "reasoning_chars": 0}
+    base = {p["id"]: [run] for p in bench.PROBES} | {bench.COMPOSITE["id"]: [run]}
+    md = bench.scoreboard({"label": "t", "stamp": "s", "models": {"m": base}})
+    assert "## Hard set" not in md
+    hard = base | {p["id"]: [run] for p in bench.HARD_PROBES}
+    md = bench.scoreboard({"label": "t", "stamp": "s", "models": {"m": hard}})
+    assert "## Hard set" in md and "6/6" in md

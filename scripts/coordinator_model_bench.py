@@ -17,7 +17,9 @@ Regime fidelity, deliberately:
 
 Decision rule (pre-committed in the plan doc): a challenger must beat the
 incumbent on correctness, or tie on correctness and win >=2x on
-generation speed.
+generation speed. The hard set (2026-10-24, HARD_PROBES/HARD_COMPOSITES)
+runs after the base battery and is judged by the quality-first rule in
+docs/plans/MODEL_BENCH_GEMMA4_26B_PLAN.md.
 
 Usage:
     tests/.venv/bin/python scripts/coordinator_model_bench.py <label> [model ...]
@@ -34,7 +36,7 @@ import re
 import statistics
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import httpx
@@ -214,6 +216,117 @@ COMPOSITE = {
 }
 
 
+# ── hard set ────────────────────────────────────────────────────────────────
+# Added 2026-10-24 (docs/plans/MODEL_BENCH_GEMMA4_26B_PLAN.md): E4B scored
+# 28/28 on the base battery above, so it could only confirm the incumbent.
+# These target failure classes seen in production or the September research
+# round. Scored in their own section; the base battery stays comparable.
+
+def weekday_in(days: int, today=None) -> str:
+    """Weekday name `days` from today (local time, as kronk_facts stamps it)."""
+    return ((today or datetime.now()) + timedelta(days=days)).strftime("%A").lower()
+
+
+def word_count(content: str) -> int:
+    return len(re.findall(r"[A-Za-z0-9'’-]+", content or ""))
+
+
+def query_mentions(msg: dict, name: str, needle: str) -> bool:
+    return any(n == name and needle in str((a or {}).get("query", "")).lower()
+               for n, a in _calls(msg))
+
+
+HARD_PROBES = [
+    {
+        "id": "officeholder_delegate",
+        "label": "Current officeholder -> ask_research, never from memory",
+        "prompt": "Who is the current prime minister of Japan?",
+        "tools": True, "repeats": 3,
+        "check": lambda m, c: (has_call(m, "ask_research"), f"calls={call_names(m)}"),
+    },
+    {
+        "id": "mortgage_rate_research",
+        "label": "Market rate -> ask_research, not ask_finance",
+        "prompt": "What's the current 30-year mortgage rate?",
+        "tools": True, "repeats": 3,
+        "check": lambda m, c: (
+            has_call(m, "ask_research") and "ask_finance" not in call_names(m),
+            f"calls={call_names(m)}"),
+    },
+    {
+        "id": "weather_by_riddle",
+        "label": "Resolve then delegate: Orioles city -> ask_home(query mentions Baltimore)",
+        "prompt": "What's the weather like in the city where the Orioles play?",
+        "tools": True, "repeats": 3,
+        "check": lambda m, c: (query_mentions(m, "ask_home", "baltimore"),
+                               f"calls={[(n, a) for n, a in _calls(m)]}"),
+    },
+    {
+        "id": "date_math",
+        "label": "Date arithmetic from the ambient date: weekday 100 days out",
+        "prompt": "What day of the week will it be 100 days from today?",
+        "tools": True, "repeats": 3,
+        "check": lambda m, c: (
+            not m.get("tool_calls") and weekday_in(100) in (c or "").lower(),
+            f"calls={call_names(m)} want={weekday_in(100)}"),
+    },
+    {
+        "id": "clock_math",
+        "label": "Clock arithmetic: 9:40 + 2h35m = 12:15",
+        "prompt": "A train leaves at 9:40 AM and the trip takes 2 hours 35 minutes. When does it arrive?",
+        "tools": True, "repeats": 3,
+        "check": lambda m, c: (not m.get("tool_calls") and "12:15" in (c or ""),
+                               f"calls={call_names(m)} 12:15={'12:15' in (c or '')}"),
+    },
+    {
+        "id": "exact_words",
+        "label": "Hard constraint: answer in exactly three words",
+        "prompt": "In exactly three words, what does a refrigerator do?",
+        "tools": True, "repeats": 3,
+        "check": lambda m, c: (not m.get("tool_calls") and word_count(c) == 3,
+                               f"calls={call_names(m)} words={word_count(c)}"),
+    },
+]
+
+
+def _sleep_and_rain(c: str) -> bool:
+    low = (c or "").lower()
+    return bool(re.search(r"\b7\s*(h|hours?|hrs?)\b|7:12", low)) and "rain" in low and "80" in low
+
+
+def _hottub_cost(c: str) -> bool:
+    return bool(re.search(r"\$\s?160(\.[0-9]+)?\b|\b160\.(1[5-9]?|2[0-2]?)\b", c or ""))
+
+
+HARD_COMPOSITES = [
+    {
+        "id": "multi_domain",
+        "label": "Two domains, one question: ask_health (sleep) + ask_home (rain), both in the answer",
+        "prompt": "How did I sleep last night, and is it going to rain tomorrow?",
+        "repeats": 3, "max_turns": 4,
+        "needs": ("ask_health", "ask_home"),
+        "canned": {
+            "ask_health": "Last night you slept 7 hours 12 minutes; sleep score 81.",
+            "ask_home": "Tomorrow in Laurel, MD: 80% chance of rain, high of 61°F.",
+        },
+        "answered": _sleep_and_rain,
+    },
+    {
+        "id": "composite_hottub",
+        "label": "Composite: hot tub heater 5.5 kW x 6 h/day x 30 days x 16.18 ¢ = $160.18",
+        "prompt": ("If the hot tub heater runs 6 hours a day, what does that cost us "
+                   "for a 30-day month?"),
+        "repeats": 3, "max_turns": 4,
+        "needs": ("ask_home", "ask_research"),
+        "canned": {
+            "ask_home": "The hot tub heater draws 5.5 kW while it is heating.",
+            "ask_research": CANNED["ask_research"],
+        },
+        "answered": _hottub_cost,
+    },
+]
+
+
 # ── transport ───────────────────────────────────────────────────────────────
 
 def chat(base: str, messages: list[dict], tools: bool) -> tuple[dict, float]:
@@ -267,13 +380,18 @@ def run_probe(base: str, probe: dict, sysprompt: str) -> list[dict]:
     return runs
 
 
-def run_composite(base: str, sysprompt: str, transport=chat) -> list[dict]:
-    """Scripted multi-turn: the model must gather kWh AND rate, then do the
-    arithmetic. Canned specialist replies stand in for the ask_* tools."""
+def run_composite(base: str, sysprompt: str, transport=chat, spec=None) -> list[dict]:
+    """Scripted multi-turn: the model must gather every piece the spec needs
+    (default: kWh AND rate), then answer. Canned specialist replies stand in
+    for the ask_* tools."""
+    spec = spec or COMPOSITE
+    canned = spec.get("canned", CANNED)
+    needs = spec.get("needs", ("ask_home", "ask_research"))
+    answered_fn = spec.get("answered") or (lambda c: any(a in c for a in COMPOSITE_ANSWERS))
     runs = []
-    for i in range(COMPOSITE["repeats"]):
+    for i in range(spec["repeats"]):
         messages = [{"role": "system", "content": sysprompt},
-                    {"role": "user", "content": COMPOSITE["prompt"]}]
+                    {"role": "user", "content": spec["prompt"]}]
         called: list[str] = []
         total_elapsed = 0.0
         turns = 0
@@ -282,7 +400,7 @@ def run_composite(base: str, sysprompt: str, transport=chat) -> list[dict]:
         reasoning_chars = 0
         content = ""
         data = None
-        while turns < COMPOSITE["max_turns"]:
+        while turns < spec["max_turns"]:
             data, elapsed = transport(base, messages, True)
             turns += 1
             total_elapsed += elapsed
@@ -302,9 +420,9 @@ def run_composite(base: str, sysprompt: str, transport=chat) -> list[dict]:
                 name = tc.get("function", {}).get("name")
                 called.append(name)
                 messages.append({"role": "tool", "tool_call_id": tc.get("id"),
-                                 "content": CANNED.get(name, CANNED_DEFAULT)})
-        gathered = "ask_home" in called and "ask_research" in called
-        answered = any(a in content for a in COMPOSITE_ANSWERS)
+                                 "content": canned.get(name, CANNED_DEFAULT)})
+        gathered = all(n in called for n in needs)
+        answered = answered_fn(content)
         ok = gathered and answered
         note = f"calls={called} turns={turns} answered={answered}"
         runs.append({
@@ -315,7 +433,7 @@ def run_composite(base: str, sysprompt: str, transport=chat) -> list[dict]:
             "finish_reason": data["choices"][0].get("finish_reason") if data else None,
             "content": content,
         })
-        print(f"    run {i+1}/{COMPOSITE['repeats']}: {'PASS' if ok else 'FAIL'} "
+        print(f"    run {i+1}/{spec['repeats']}: {'PASS' if ok else 'FAIL'} "
               f"({note}, {total_elapsed:.1f}s{', LEAK' if leak else ''})")
     return runs
 
@@ -335,24 +453,39 @@ def _median(xs):
     return round(statistics.median(xs), 1) if xs else 0
 
 
-def scoreboard(results: dict) -> str:
-    ids = [p["id"] for p in PROBES] + [COMPOSITE["id"]]
-    lines = [f"# Coordinator model bench — {results['label']} ({results['stamp']})", ""]
-    lines.append("| Model | " + " | ".join(ids) +
-                 " | leaks | med gen tok/s | med composite s | med reasoning chars |")
-    lines.append("|---" * (len(ids) + 5) + "|")
+def _score_rows(results: dict, ids: list[str]) -> list[str]:
+    lines = ["| Model | " + " | ".join(ids) +
+             " | total | leaks | med gen tok/s | med composite s | med reasoning chars |",
+             "|---" * (len(ids) + 6) + "|"]
+    comp_ids = {COMPOSITE["id"], *(c["id"] for c in HARD_COMPOSITES)}
     for name, res in results["models"].items():
-        cells, leaks, tps, rchars = [], 0, [], []
+        cells, leaks, tps, rchars, comp = [], 0, [], [], []
+        passed = total = 0
         for pid in ids:
             runs = res.get(pid, [])
-            cells.append(f"{sum(r['ok'] for r in runs)}/{len(runs)}")
+            ok = sum(r["ok"] for r in runs)
+            passed, total = passed + ok, total + len(runs)
+            cells.append(f"{ok}/{len(runs)}")
             leaks += sum(r.get("leak", False) for r in runs)
             tps += [r["gen_tps"] for r in runs]
             rchars += [r.get("reasoning_chars", 0) for r in runs]
-        comp = [r["elapsed_s"] for r in res.get(COMPOSITE["id"], [])]
+            if pid in comp_ids:
+                comp += [r["elapsed_s"] for r in runs]
         lines.append(f"| {name} | " + " | ".join(cells) +
-                     f" | {leaks} | {_median(tps)} | {_median(comp)} | {_median(rchars)} |")
-    lines += ["", "Rule: beat the incumbent on correctness, or tie and win >=2x on gen tok/s. "
+                     f" | {passed}/{total} | {leaks} | {_median(tps)} | {_median(comp)} | {_median(rchars)} |")
+    return lines
+
+
+def scoreboard(results: dict) -> str:
+    lines = [f"# Coordinator model bench — {results['label']} ({results['stamp']})", "",
+             "## Base battery", ""]
+    lines += _score_rows(results, [p["id"] for p in PROBES] + [COMPOSITE["id"]])
+    hard_ids = [p["id"] for p in HARD_PROBES] + [c["id"] for c in HARD_COMPOSITES]
+    if any(pid in res for res in results["models"].values() for pid in hard_ids):
+        lines += ["", "## Hard set (2026-10-24)", ""]
+        lines += _score_rows(results, hard_ids)
+    lines += ["", "Base rule (2026-09-03): beat the incumbent on correctness, or tie and win >=2x on gen tok/s. "
+              "Hard-set rule: docs/plans/MODEL_BENCH_GEMMA4_26B_PLAN.md. "
               "`leaks` counts runs where deliberation or raw tool-call syntax reached `content`."]
     return "\n".join(lines) + "\n"
 
@@ -364,6 +497,7 @@ def main() -> int:
     if sys.argv[1] == "--list":
         print("models:", ", ".join(MODELS))
         print("probes:", ", ".join(p["id"] for p in PROBES), "+", COMPOSITE["id"])
+        print("hard:", ", ".join(p["id"] for p in HARD_PROBES + HARD_COMPOSITES))
         print(f"tools: {[d['function']['name'] for d in tool_defs()]}")
         return 0
     label = sys.argv[1]
@@ -388,6 +522,12 @@ def main() -> int:
             res[probe["id"]] = run_probe(base, probe, sysprompt)
         print(f"  {COMPOSITE['id']}:")
         res[COMPOSITE["id"]] = run_composite(base, sysprompt)
+        for probe in HARD_PROBES:
+            print(f"  {probe['id']} (hard):")
+            res[probe["id"]] = run_probe(base, probe, sysprompt)
+        for spec in HARD_COMPOSITES:
+            print(f"  {spec['id']} (hard):")
+            res[spec["id"]] = run_composite(base, sysprompt, spec=spec)
         results["models"][name] = res
 
     BENCH_DIR.mkdir(parents=True, exist_ok=True)

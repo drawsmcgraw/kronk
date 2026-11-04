@@ -1,0 +1,1050 @@
+{
+  "label": "g4-26b-e4b",
+  "stamp": "2026-10-24_141309",
+  "system_prompt": "You are Kronk, a helpful home assistant. Be direct and concise. Do not use action text, emotes, or filler expressions like *winks* \u2014 no theatrical language.\nAnswer from your own knowledge whenever you can \u2014 most questions need no tools. Time zones, capitals, definitions, science, history, math, how-things-work: answer directly, never delegate ('What time zone is Denver in?' needs NO specialist).\nCall an ask_* specialist ONLY when the answer requires live data (news, current officeholders, prices, schedules, recent events), the user's personal data (health, finances, shopping list, home devices, weather), or web verification of specific facts.\nNever invent live or personal data: if you cannot answer without it, delegate.\nMULTI-PART questions whose parts each need live or personal data take one ask_* call per part: e.g. 'how much money did my panels make today' = energy produced (ask_home, in kWh) AND the electricity rate (ask_research) \u2014 gather every needed piece before answering, then do the arithmetic.\nPhrase each delegated query in the specialist's own domain: ask home for the kWh, ask research for the rate \u2014 never ask a specialist for a figure it doesn't own.\nNEWS BRIEF: when the user asks for a news brief, 'brief me', 'the news', or headlines, call news_brief. If they ask to UPDATE or refresh the news first ('update the news feed', 'get the latest news'), call news_brief with refresh=true. Never compose a brief yourself and never use ask_research for a general briefing \u2014 research is for specific questions.\nPLAYBACK: 'stop', 'pause', 'skip', 'resume', 'louder', 'quieter', 'kill the music', 'turn it off' are commands for the music on the speaker that asked \u2014 call ask_home at once with the command; never ask what to stop, and never claim you stopped anything.\nNever answer with a placeholder like [kWh] or [rate] \u2014 a bracket in your draft means a missing piece you must fetch first.\nWhen a specialist answers, relay the substance concisely \u2014 do not re-verify it.\n\n[Kronk ambient facts \u2014 assume these unless the user says otherwise]\n- Today is Saturday, October 24, 2026; the local time is 2:13 PM EDT.\n- Home location: Laurel, MD\n- Default to this location for weather, news, traffic, time-of-day, etc.\n  When a location-taking tool is available and the user did not specify one, call the tool without the location argument; it will use the home default.\n- Resolve relative dates (tomorrow, next Tuesday, this weekend) against today's date above \u2014 never guess the date from memory.",
+  "tools": [
+    "ask_health",
+    "ask_research",
+    "ask_home",
+    "ask_assistant",
+    "ask_finance",
+    "ask_coding",
+    "ask_devops",
+    "news_brief"
+  ],
+  "max_tokens": 2000,
+  "models": {
+    "gemma-4-e4b": {
+      "_props": {
+        "model_path": "/opt/models/google/gemma-4-E4B-it-qat-UD-Q4_K_XL-202607.gguf",
+        "build_info": "b9611-02182fc5b",
+        "n_ctx": 32768
+      },
+      "weather_delegate": [
+        {
+          "ok": true,
+          "note": "calls=['ask_home']",
+          "leak": false,
+          "finish_reason": "tool_calls",
+          "elapsed_s": 1.53,
+          "gen_tps": 126.7,
+          "prompt_tps": 1547.4,
+          "prompt_tokens": 1431,
+          "completion_tokens": 74,
+          "reasoning_chars": 233,
+          "content": "",
+          "reasoning_content": "The user is asking for the current weather. This is a common query that requires live data tied to the home location. The `ask_home` tool is designed for weather lookups. I will call `ask_home` with a query about the current weather.",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "ask_home",
+                "arguments": "{\"query\":\"current weather\"}"
+              },
+              "id": "uZ0x5QT49qz8hSHbxXzHZvnPvqKu8Azx"
+            }
+          ]
+        },
+        {
+          "ok": true,
+          "note": "calls=['ask_home']",
+          "leak": false,
+          "finish_reason": "tool_calls",
+          "elapsed_s": 0.67,
+          "gen_tps": 138.0,
+          "prompt_tps": 34.7,
+          "prompt_tokens": 1431,
+          "completion_tokens": 86,
+          "reasoning_chars": 230,
+          "content": "",
+          "reasoning_content": "The user is asking for the current weather.\nI have a tool `ask_home` that can look up weather.\nThe current location is defined in the ambient facts as Laurel, MD.\nI will call `ask_home` with a query asking for the current weather.",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "ask_home",
+                "arguments": "{\"query\":\"What is the current weather in Laurel, MD?\"}"
+              },
+              "id": "c94AkIhCelyRC0LI1mfqHNbe9PxCyd7b"
+            }
+          ]
+        },
+        {
+          "ok": true,
+          "note": "calls=['ask_home']",
+          "leak": false,
+          "finish_reason": "tool_calls",
+          "elapsed_s": 0.81,
+          "gen_tps": 125.5,
+          "prompt_tps": 55.4,
+          "prompt_tokens": 1431,
+          "completion_tokens": 97,
+          "reasoning_chars": 308,
+          "content": "",
+          "reasoning_content": "The user is asking for the current weather.\nThis is a live data request, but specifically for weather, which is handled by the `ask_home` specialist.\nThe user did not specify a location, so the default home location (Laurel, MD) should be used.\nI need to call `ask_home` with a query for the current weather.",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "ask_home",
+                "arguments": "{\"query\":\"weather right now\"}"
+              },
+              "id": "s2WUnvNyWkxywQ51DO9JRAlq9wGfKJZB"
+            }
+          ]
+        },
+        {
+          "ok": true,
+          "note": "calls=['ask_home']",
+          "leak": false,
+          "finish_reason": "tool_calls",
+          "elapsed_s": 0.74,
+          "gen_tps": 117.4,
+          "prompt_tps": 53.0,
+          "prompt_tokens": 1431,
+          "completion_tokens": 83,
+          "reasoning_chars": 282,
+          "content": "",
+          "reasoning_content": "The user is asking for the current weather. This is a standard query that requires live, location-specific data, which falls under the `ask_home` specialist. The ambient facts provide the home location (Laurel, MD), so I can call the tool without explicitly specifying the location.",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "ask_home",
+                "arguments": "{\"query\":\"what is the weather right now\"}"
+              },
+              "id": "sXSsn0CGN128rGUumOOsYiSGWHtIpWqz"
+            }
+          ]
+        },
+        {
+          "ok": true,
+          "note": "calls=['ask_home']",
+          "leak": false,
+          "finish_reason": "tool_calls",
+          "elapsed_s": 0.79,
+          "gen_tps": 128.0,
+          "prompt_tps": 54.7,
+          "prompt_tokens": 1431,
+          "completion_tokens": 97,
+          "reasoning_chars": 272,
+          "content": "",
+          "reasoning_content": "The user is asking for the current weather.\nThis requires live, location-based data, which is handled by `ask_home`.\nThe user did not specify a location, so the default home location (Laurel, MD) will be used.\nI will call `ask_home` with a query about the current weather.",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "ask_home",
+                "arguments": "{\"query\":\"What is the current weather in Laurel, MD?\"}"
+              },
+              "id": "pOVeVur2rYGgKa2syyWAxPAzDfX1qHRj"
+            }
+          ]
+        }
+      ],
+      "shopping_delegate": [
+        {
+          "ok": true,
+          "note": "calls=['ask_home']",
+          "leak": false,
+          "finish_reason": "tool_calls",
+          "elapsed_s": 0.64,
+          "gen_tps": 128.4,
+          "prompt_tps": 325.2,
+          "prompt_tokens": 1432,
+          "completion_tokens": 74,
+          "reasoning_chars": 237,
+          "content": "",
+          "reasoning_content": "The user is asking for the contents of their shopping list. This information is personal data related to their home and tasks, which falls under the scope of the `ask_home` specialist. I need to formulate a direct query for this purpose.",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "ask_home",
+                "arguments": "{\"query\":\"What is on my shopping list?\"}"
+              },
+              "id": "CJjc46CKEZwtctRmEjlxBffIp9EtcycD"
+            }
+          ]
+        },
+        {
+          "ok": true,
+          "note": "calls=['ask_home']",
+          "leak": false,
+          "finish_reason": "tool_calls",
+          "elapsed_s": 2.05,
+          "gen_tps": 139.0,
+          "prompt_tps": 55.5,
+          "prompt_tokens": 1432,
+          "completion_tokens": 280,
+          "reasoning_chars": 904,
+          "content": "",
+          "reasoning_content": "1.  **Analyze the Request:** The user is asking, \"What's on my shopping list?\"\n\n2.  **Identify the Information Needed:** This requires accessing personal data related to the user's home/shopping list.\n\n3.  **Consult Tool Definitions:**\n    *   `ask_health`: Health data. (No)\n    *   `ask_research`: External live data (weather, market prices). (No)\n    *   `ask_home`: Weather, shopping list management, hot tub status, solar. (Yes)\n    *   `ask_assistant`: Architecture, services. (No)\n    *   `ask_finance`: User's own financial documents. (No)\n    *   `ask_coding`: Programming. (No)\n    *   `ask_devops`: Server administration. (No)\n    *   `news_brief`: News. (No)\n\n4.  **Determine the Appropriate Tool Call:** `ask_home` is the correct tool for shopping list management.\n\n5.  **Formulate the Query:** The query must be complete and self-contained. \"What is on my shopping list?\" is sufficient.\n\n6.",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "ask_home",
+                "arguments": "{\"query\":\"What is on my shopping list?\"}"
+              },
+              "id": "dQkg3fK6yNt3KtoLuAJfjWEGK8XtKYpN"
+            }
+          ]
+        },
+        {
+          "ok": true,
+          "note": "calls=['ask_home']",
+          "leak": false,
+          "finish_reason": "tool_calls",
+          "elapsed_s": 1.35,
+          "gen_tps": 124.3,
+          "prompt_tps": 53.0,
+          "prompt_tokens": 1432,
+          "completion_tokens": 162,
+          "reasoning_chars": 540,
+          "content": "",
+          "reasoning_content": "1. **Identify the user's request:** The user is asking \"What's on my shopping list?\"\n2. **Determine the necessary tool:** The shopping list is a personal piece of data related to home management and tasks. The `ask_home` tool handles \"shopping list management\".\n3. **Check for required parameters:** The `ask_home` tool takes a `query` (STRING). A simple query like \"What is on my shopping list?\" is sufficient.\n4. **Construct the tool call:** `ask_home(query=\"What is on my shopping list?\")`\n5. **Format the output:** Return the tool call.",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "ask_home",
+                "arguments": "{\"query\":\"What is on my shopping list?\"}"
+              },
+              "id": "azSXk3F0YvkQ6WIqkdqHYD0pGtoCxiC1"
+            }
+          ]
+        }
+      ],
+      "no_spurious": [
+        {
+          "ok": true,
+          "note": "calls=[] mountain=True",
+          "leak": false,
+          "finish_reason": "stop",
+          "elapsed_s": 2.29,
+          "gen_tps": 119.9,
+          "prompt_tps": 298.4,
+          "prompt_tokens": 1431,
+          "completion_tokens": 268,
+          "reasoning_chars": 955,
+          "content": "Denver is in the Mountain Time Zone.",
+          "reasoning_content": "1.  **Analyze the user request:** The user is asking, \"What time zone is Denver in?\"\n\n2.  **Check available tools/knowledge:**\n    *   `ask_health`: For health data. Not relevant.\n    *   `ask_research`: For web search, current events, online information, URL lookups, and current prices or rates (utility, market, retail). This is for live external data.\n    *   `ask_home`: For weather, shopping list, solar, music, etc. Not relevant.\n    *   `ask_assistant`: For Kronk's internal architecture/services. Not relevant.\n    *   `ask_finance`: For user's personal financial documents. Not relevant.\n    *   `ask_coding`: For programming. Not relevant.\n    *   `ask_devops`: For server/Linux admin. Not relevant.\n    *   `news_brief`: For news headlines. Not relevant.\n\n3.  **Determine if the question needs a tool:**\n    *   The user is asking for a definition/fact about a location's time zone.\n    *   According to the instructions: \"Time zones, capitals",
+          "tool_calls": null
+        },
+        {
+          "ok": true,
+          "note": "calls=[] mountain=True",
+          "leak": false,
+          "finish_reason": "stop",
+          "elapsed_s": 2.45,
+          "gen_tps": 89.2,
+          "prompt_tps": 53.7,
+          "prompt_tokens": 1431,
+          "completion_tokens": 215,
+          "reasoning_chars": 815,
+          "content": "Denver is in Mountain Time (MST/MDT).",
+          "reasoning_content": "1.  **Analyze the user request:** The user is asking for the time zone of Denver.\n2.  **Identify the required information:** Time zones are general knowledge, geographic facts, or standard definitions.\n3.  **Determine the appropriate tool:** Kronk's own knowledge base should be used for definitions, capitals, and standard geographical/scientific facts, as they do not require live or personal data. No specialist call is necessary.\n4.  **Formulate the answer:** State the time zone for Denver (Mountain Time, or UTC-7/UTC-6 depending on DST, but stating \"Mountain Time\" is the most direct answer).\n5.  **Final check against constraints:**\n    *   Be direct and concise. (Yes)\n    *   Do not use action text/emotes/filler. (Yes)\n    *   Answer from own knowledge. (Yes)\n    *   No specialist call needed. (Correct)",
+          "tool_calls": null
+        },
+        {
+          "ok": true,
+          "note": "calls=[] mountain=True",
+          "leak": false,
+          "finish_reason": "stop",
+          "elapsed_s": 0.12,
+          "gen_tps": 56.1,
+          "prompt_tps": 49.6,
+          "prompt_tokens": 1431,
+          "completion_tokens": 4,
+          "reasoning_chars": 0,
+          "content": "Mountain Time.",
+          "reasoning_content": "",
+          "tool_calls": null
+        },
+        {
+          "ok": true,
+          "note": "calls=[] mountain=True",
+          "leak": false,
+          "finish_reason": "stop",
+          "elapsed_s": 0.12,
+          "gen_tps": 70.8,
+          "prompt_tps": 50.6,
+          "prompt_tokens": 1431,
+          "completion_tokens": 5,
+          "reasoning_chars": 0,
+          "content": "Mountain Time Zone.",
+          "reasoning_content": "",
+          "tool_calls": null
+        },
+        {
+          "ok": false,
+          "note": "calls=['ask_research'] mountain=False",
+          "leak": false,
+          "finish_reason": "tool_calls",
+          "elapsed_s": 2.56,
+          "gen_tps": 111.8,
+          "prompt_tps": 54.9,
+          "prompt_tokens": 1431,
+          "completion_tokens": 282,
+          "reasoning_chars": 888,
+          "content": "",
+          "reasoning_content": "1.  **Analyze the Request:** The user is asking \"What time zone is Denver in?\"\n2.  **Identify the Information Needed:** This is a factual question about geography/time.\n3.  **Determine the Tool:**\n    *   `ask_home`: Weather, home devices, local time (Laurel, MD). Not suitable for Denver's time zone.\n    *   `ask_health`: Health data. Irrelevant.\n    *   `ask_research`: Web search, current events, factual information. Suitable for this.\n    *   `ask_assistant`: Kronk's architecture. Irrelevant.\n    *   `ask_finance`: Personal finances. Irrelevant.\n    *   `ask_coding`, `ask_devops`: Programming/IT. Irrelevant.\n    *   `news_brief`: News. Irrelevant.\n4.  **Formulate the Query:** The query for `ask_research` should be specific: \"What time zone is Denver, Colorado in?\"\n5.  **Construct the Tool Call:**\n    ```json\n    {\n      \"tool_name\": \"ask_research\",\n      \"query\": \"What time",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "ask_research",
+                "arguments": "{\"query\":\"What time zone is Denver, Colorado in?\"}"
+              },
+              "id": "DqvOS8nDhv0o6iaIXtaoaE10LV9eYcrq"
+            }
+          ]
+        }
+      ],
+      "news_brief_terminal": [
+        {
+          "ok": true,
+          "note": "calls=[('news_brief', {})]",
+          "leak": false,
+          "finish_reason": "tool_calls",
+          "elapsed_s": 1.49,
+          "gen_tps": 102.6,
+          "prompt_tps": 271.1,
+          "prompt_tokens": 1430,
+          "completion_tokens": 145,
+          "reasoning_chars": 524,
+          "content": "",
+          "reasoning_content": "1.  **Analyze the Request:** The user is asking for a \"news brief.\"\n\n2.  **Identify Relevant Tools:** The `news_brief` tool is specifically designed for this purpose.\n\n3.  **Determine Tool Parameters:**\n    *   The request is a general \"Give me a news brief,\" not asking for an update or refresh.\n    *   Therefore, the `refresh` parameter should be omitted or set to `false` (the default behavior of a normal brief).\n\n4.  **Construct the Tool Call:** `news_brief()`\n\n5.  **Final Output Generation:** Generate the tool call.",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "news_brief",
+                "arguments": "{}"
+              },
+              "id": "aza8MktFCN6MkRnKkg4kEVbvt0ZvNzR5"
+            }
+          ]
+        },
+        {
+          "ok": true,
+          "note": "calls=[('news_brief', {})]",
+          "leak": false,
+          "finish_reason": "tool_calls",
+          "elapsed_s": 0.81,
+          "gen_tps": 99.4,
+          "prompt_tps": 51.6,
+          "prompt_tokens": 1430,
+          "completion_tokens": 75,
+          "reasoning_chars": 262,
+          "content": "",
+          "reasoning_content": "The user wants a news brief. The `news_brief` tool is appropriate for this. Since the user is just asking for \"a news brief\" and not to update it, the `refresh` parameter should be omitted (or set to `false`, but omitting it is standard for the initial request).",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "news_brief",
+                "arguments": "{}"
+              },
+              "id": "lGEDMblcVQWtCs3l9PqDbRNhdV0EZ4IF"
+            }
+          ]
+        },
+        {
+          "ok": true,
+          "note": "calls=[('news_brief', {})]",
+          "leak": false,
+          "finish_reason": "tool_calls",
+          "elapsed_s": 0.98,
+          "gen_tps": 106.1,
+          "prompt_tps": 52.4,
+          "prompt_tokens": 1430,
+          "completion_tokens": 99,
+          "reasoning_chars": 365,
+          "content": "",
+          "reasoning_content": "The user is asking for a \"news brief\".\nThe instructions specify that for news briefs, I must call the `news_brief` tool.\nSince the user did not ask to update or refresh the news, the `refresh` argument should be omitted or set to `false` (though the tool description implies omitting it is the default).\n\nAction: Call `news_brief()` without the `refresh` parameter.",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "news_brief",
+                "arguments": "{}"
+              },
+              "id": "vJDue8jc98BQSmXsIszNmkKVrEpDFyBc"
+            }
+          ]
+        }
+      ],
+      "news_refresh_flag": [
+        {
+          "ok": true,
+          "note": "calls=[('news_brief', {'refresh': True})]",
+          "leak": false,
+          "finish_reason": "tool_calls",
+          "elapsed_s": 1.42,
+          "gen_tps": 99.8,
+          "prompt_tps": 363.9,
+          "prompt_tokens": 1435,
+          "completion_tokens": 135,
+          "reasoning_chars": 489,
+          "content": "",
+          "reasoning_content": "The user wants two things: first, to update (refresh) the news feed, and second, to receive the brief. The `news_brief` tool handles both. Since the user explicitly requested an update first, I will call `news_brief` with `refresh=true` to fetch the latest data, and then I will provide the brief. The instruction says \"call news_brief with refresh=true\" and \"Never compose a brief yourself and never use ask_research for a general briefing\".\n\nFirst, call `news_brief` with `refresh=true`.",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "news_brief",
+                "arguments": "{\"refresh\":true}"
+              },
+              "id": "oJcnb5md2VA3N9rmPxi9gIhUXLiJTdli"
+            }
+          ]
+        },
+        {
+          "ok": true,
+          "note": "calls=[('news_brief', {'refresh': True})]",
+          "leak": false,
+          "finish_reason": "tool_calls",
+          "elapsed_s": 1.02,
+          "gen_tps": 108.5,
+          "prompt_tps": 53.5,
+          "prompt_tokens": 1435,
+          "completion_tokens": 106,
+          "reasoning_chars": 355,
+          "content": "",
+          "reasoning_content": "The user wants two actions: \"Update the news feed\" and then \"give me the brief\".\nThe `news_brief` tool handles both.\nUpdating/refreshing the news feed requires setting the `refresh` parameter to `true`.\nGiving the brief is the primary function of the tool.\n\nI will call `news_brief` with `refresh=true` to fulfill both parts of the request in one action.\n",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "news_brief",
+                "arguments": "{\"refresh\":true}"
+              },
+              "id": "PPeKjGxCWc3ShPOtDAGghWjkN3xrummX"
+            }
+          ]
+        },
+        {
+          "ok": true,
+          "note": "calls=[('news_brief', {'refresh': True})]",
+          "leak": false,
+          "finish_reason": "tool_calls",
+          "elapsed_s": 1.46,
+          "gen_tps": 107.0,
+          "prompt_tps": 53.4,
+          "prompt_tokens": 1435,
+          "completion_tokens": 152,
+          "reasoning_chars": 554,
+          "content": "",
+          "reasoning_content": "The user wants to update the news feed and then get the news brief.\nThis requires calling the `news_brief` tool with `refresh=true` first, and then calling `news_brief` again (with `refresh=false` or omitting it) to deliver the brief.\nSince the prompt specifies \"Update the news feed and *then* give me the brief,\" I should perform the update/refresh call first.\n\nTool call 1: `news_brief(refresh=true)`\nThe output of this call will provide the updated news, which will then be delivered in the subsequent turn. I should only make the first call for now.",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "news_brief",
+                "arguments": "{\"refresh\":true}"
+              },
+              "id": "0bBD9qTWLmGTTdP49qxA3lUArFzzOaR4"
+            }
+          ]
+        }
+      ],
+      "knowledge_prose": [
+        {
+          "ok": true,
+          "note": "calls=[] len=526",
+          "leak": false,
+          "finish_reason": "stop",
+          "elapsed_s": 1.51,
+          "gen_tps": 74.5,
+          "prompt_tps": 369.9,
+          "prompt_tokens": 1434,
+          "completion_tokens": 108,
+          "reasoning_chars": 0,
+          "content": "A heat pump works by moving heat from a cooler area to a warmer area, rather than generating heat directly. It operates by circulating a fluid through refrigerant coils. In heating mode, it absorbs heat from the outdoor air (even when it's cold), causing the refrigerant to boil and turn into a gas. This gas is then compressed, which raises its temperature and pressure, and finally, it releases its heat into the indoor air via an evaporator. In cooling mode, the cycle reverses, moving heat from the indoors to the outside.",
+          "reasoning_content": "",
+          "tool_calls": null
+        },
+        {
+          "ok": true,
+          "note": "calls=[] len=543",
+          "leak": false,
+          "finish_reason": "stop",
+          "elapsed_s": 2.73,
+          "gen_tps": 84.7,
+          "prompt_tps": 56.7,
+          "prompt_tokens": 1434,
+          "completion_tokens": 228,
+          "reasoning_chars": 553,
+          "content": "A heat pump is a device that transfers thermal energy from one location to another, functioning effectively as both a heater and air conditioner. It works by circulating a refrigerant through a closed system, which changes state to absorb or release heat. In heating mode, the heat pump takes heat energy from the cooler outdoor air and uses a compressor and a refrigerant cycle to move that energy indoors, warming the building. In cooling mode, it reverses this process, extracting heat from inside the home and moving it to the outdoor air.",
+          "reasoning_content": "The user is asking for an explanation of how a heat pump works. This is a request for general scientific/technical knowledge, not live data, personal data, or something requiring a specialist's live database. I can answer this directly from my own knowledge base.\n\nPlan:\n1. Define a heat pump's function (moving heat).\n2. Briefly explain the core components (refrigerant, compressor, expansion valve).\n3. Describe the basic cycle (absorbing heat in cold conditions, releasing it in warm conditions).\n4. Keep it concise and in one paragraph as requested.",
+          "tool_calls": null
+        }
+      ],
+      "markdown_list": [
+        {
+          "ok": true,
+          "note": "calls=[] list=True",
+          "leak": false,
+          "finish_reason": "stop",
+          "elapsed_s": 1.67,
+          "gen_tps": 74.9,
+          "prompt_tps": 330.5,
+          "prompt_tokens": 1432,
+          "completion_tokens": 120,
+          "reasoning_chars": 0,
+          "content": "Baking soda has several common household uses. Here are three:\n\n1.  **Cleaning:** It is a mild abrasive used to scrub sinks, tubs, and countertops without scratching. It can also be used in paste form to remove stains and odors.\n2.  **Deodorizing:** It is excellent for absorbing smells. Placing an open container in a refrigerator, shoe rack, or closet can neutralize odors.\n3.  **Odor Neutralizer in Drain:** Adding baking soda followed by vinegar to a clogged drain can help fizz and break down grease and grime, improving drainage.",
+          "reasoning_content": "",
+          "tool_calls": null
+        },
+        {
+          "ok": true,
+          "note": "calls=[] list=True",
+          "leak": false,
+          "finish_reason": "stop",
+          "elapsed_s": 1.96,
+          "gen_tps": 78.2,
+          "prompt_tps": 54.0,
+          "prompt_tokens": 1432,
+          "completion_tokens": 149,
+          "reasoning_chars": 223,
+          "content": "Baking soda can be used to:\n\n1.  **Clean:** It is a mild abrasive that helps remove odors and grime from kitchen counters, sinks, and stovetops.\n2.  **Deodorize:** Placing an open box or bowl of baking soda in closets, refrigerators, or small spaces helps absorb strong odors.\n3.  **Clean drains:** Pouring baking soda down a drain followed by vinegar can create a bubbling reaction that helps loosen clogs.",
+          "reasoning_content": "The user is asking for three common household uses of baking soda.\nThis is general knowledge, a definition/how-things-work type of query.\nI can answer this directly from my internal knowledge base without calling any tools.",
+          "tool_calls": null
+        }
+      ],
+      "composite_solar": [
+        {
+          "ok": true,
+          "note": "calls=['ask_home', 'ask_research'] turns=2 answered=True",
+          "leak": false,
+          "turns": 2,
+          "calls": [
+            "ask_home",
+            "ask_research"
+          ],
+          "elapsed_s": 4.03,
+          "gen_tps": 108.2,
+          "reasoning_chars": 1162,
+          "finish_reason": "stop",
+          "content": "The solar panels produced a value of $0.49 yesterday based on a production of 3.0 kWh and the local electricity rate of 16.18 cents per kWh."
+        },
+        {
+          "ok": true,
+          "note": "calls=['ask_home', 'ask_research'] turns=2 answered=True",
+          "leak": false,
+          "turns": 2,
+          "calls": [
+            "ask_home",
+            "ask_research"
+          ],
+          "elapsed_s": 4.19,
+          "gen_tps": 113.8,
+          "reasoning_chars": 1387,
+          "finish_reason": "stop",
+          "content": "The solar panels produced 3.0 kWh yesterday, which is worth $0.49."
+        },
+        {
+          "ok": true,
+          "note": "calls=['ask_home', 'ask_research'] turns=2 answered=True",
+          "leak": false,
+          "turns": 2,
+          "calls": [
+            "ask_home",
+            "ask_research"
+          ],
+          "elapsed_s": 3.86,
+          "gen_tps": 111.1,
+          "reasoning_chars": 1181,
+          "finish_reason": "stop",
+          "content": "The solar panels produced 3.0 kWh yesterday, which is worth $0.49 based on the current residential rate in Laurel, MD."
+        },
+        {
+          "ok": false,
+          "note": "calls=['ask_home', 'ask_research'] turns=2 answered=False",
+          "leak": false,
+          "turns": 2,
+          "calls": [
+            "ask_home",
+            "ask_research"
+          ],
+          "elapsed_s": 3.84,
+          "gen_tps": 108.8,
+          "reasoning_chars": 1077,
+          "finish_reason": "stop",
+          "content": "The solar panels produced 3.0 kWh yesterday, which is worth 48.54 cents based on the current residential rate of 16.18 cents per kWh in Laurel, MD."
+        },
+        {
+          "ok": true,
+          "note": "calls=['ask_home', 'ask_research'] turns=2 answered=True",
+          "leak": false,
+          "turns": 2,
+          "calls": [
+            "ask_home",
+            "ask_research"
+          ],
+          "elapsed_s": 4.1,
+          "gen_tps": 105.5,
+          "reasoning_chars": 1294,
+          "finish_reason": "stop",
+          "content": "The solar panels produced a total of $0.49 yesterday."
+        }
+      ],
+      "officeholder_delegate": [
+        {
+          "ok": true,
+          "note": "calls=['ask_research']",
+          "leak": false,
+          "finish_reason": "tool_calls",
+          "elapsed_s": 2.69,
+          "gen_tps": 106.0,
+          "prompt_tps": 349.4,
+          "prompt_tokens": 1433,
+          "completion_tokens": 278,
+          "reasoning_chars": 964,
+          "content": "",
+          "reasoning_content": "1.  **Analyze the Request:** The user is asking for \"the current prime minister of Japan.\"\n\n2.  **Determine the Information Type:** This is a factual query about a current public figure and officeholder. This information changes and requires external, up-to-date knowledge.\n\n3.  **Check Tool Availability:**\n    *   `ask_health`: Not relevant.\n    *   `ask_research`: Relevant. This is for web search, current events, and information needing live external data.\n    *   `ask_home`: Not relevant.\n    *   `ask_assistant`: Not relevant.\n    *   `ask_finance`: Not relevant (this is about *personal* finances).\n    *   `ask_coding`: Not relevant.\n    *   `ask_devops`: Not relevant.\n    *   `news_brief`: Not relevant. This is for general news cycles, not a specific fact.\n\n4.  **Formulate the Query (for `ask_research`):** The query needs to be specific and complete: \"Who is the current prime minister of Japan?\"\n\n5.  **Construct the Tool Call:**\n    ```json\n    {\n",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "ask_research",
+                "arguments": "{\"query\":\"current prime minister of Japan\"}"
+              },
+              "id": "U6o9Q9oaA37TVYzHrLaOqoIKplpI4TnE"
+            }
+          ]
+        },
+        {
+          "ok": true,
+          "note": "calls=['ask_research']",
+          "leak": false,
+          "finish_reason": "tool_calls",
+          "elapsed_s": 0.59,
+          "gen_tps": 115.3,
+          "prompt_tps": 51.6,
+          "prompt_tokens": 1433,
+          "completion_tokens": 63,
+          "reasoning_chars": 183,
+          "content": "",
+          "reasoning_content": "The user is asking for the current Prime Minister of Japan. This is a piece of information that changes over time and requires live, external data. I must use the `ask_research` tool.",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "ask_research",
+                "arguments": "{\"query\":\"current prime minister of Japan\"}"
+              },
+              "id": "pb8TKoTD9FHT2n0c9cIFJMlyGEjt3L3c"
+            }
+          ]
+        },
+        {
+          "ok": true,
+          "note": "calls=['ask_research']",
+          "leak": false,
+          "finish_reason": "tool_calls",
+          "elapsed_s": 0.56,
+          "gen_tps": 112.2,
+          "prompt_tps": 51.0,
+          "prompt_tokens": 1433,
+          "completion_tokens": 58,
+          "reasoning_chars": 159,
+          "content": "",
+          "reasoning_content": "The user is asking for the current prime minister of Japan. This is a factual question that requires live, external data. I should use the `ask_research` tool.",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "ask_research",
+                "arguments": "{\"query\":\"current prime minister of Japan\"}"
+              },
+              "id": "KAHsqHEomhslZo4KVyWtdLqsM4XwGryU"
+            }
+          ]
+        }
+      ],
+      "mortgage_rate_research": [
+        {
+          "ok": true,
+          "note": "calls=['ask_research']",
+          "leak": false,
+          "finish_reason": "tool_calls",
+          "elapsed_s": 0.9,
+          "gen_tps": 123.0,
+          "prompt_tps": 425.0,
+          "prompt_tokens": 1437,
+          "completion_tokens": 103,
+          "reasoning_chars": 309,
+          "content": "",
+          "reasoning_content": "The user is asking for the current 30-year mortgage rate. This requires live external data, specifically a current financial/market rate. I should use the `ask_research` tool.\n\nPlan:\n1. Call `ask_research` with a query about the current 30-year mortgage rate.\n2. Present the retrieved information to the user.",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "ask_research",
+                "arguments": "{\"query\":\"current 30-year mortgage rate\"}"
+              },
+              "id": "SBoylBx8v9z6P3xfAzpCIV09gDONuuf7"
+            }
+          ]
+        },
+        {
+          "ok": true,
+          "note": "calls=['ask_research']",
+          "leak": false,
+          "finish_reason": "tool_calls",
+          "elapsed_s": 2.01,
+          "gen_tps": 108.4,
+          "prompt_tps": 51.9,
+          "prompt_tokens": 1437,
+          "completion_tokens": 214,
+          "reasoning_chars": 741,
+          "content": "",
+          "reasoning_content": "1.  **Analyze the Request:** The user is asking for \"the current 30-year mortgage rate.\"\n\n2.  **Determine Tool/Knowledge:** This is a request for real-time, external financial data (current market rates). This falls under the domain of `ask_research`.\n\n3.  **Check Constraints & Guidelines:**\n    *   Be direct and concise.\n    *   Do not use action text, emotes, or filler expressions.\n    *   Answer from own knowledge if possible (not applicable here, as it requires live data).\n    *   Call `ask_research` for live data/rates.\n\n4.  **Formulate the Tool Call:** The query needs to be specific enough for the research specialist to find the current rate.\n\n5.  **Construct the Output:** `ask_research(query=\"current 30-year mortgage rate\")`",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "ask_research",
+                "arguments": "{\"query\":\"current 30-year mortgage rate\"}"
+              },
+              "id": "fC34B1tjTzYyp5su9TiiwQcPJFxm8AXR"
+            }
+          ]
+        },
+        {
+          "ok": true,
+          "note": "calls=['ask_research']",
+          "leak": false,
+          "finish_reason": "tool_calls",
+          "elapsed_s": 2.08,
+          "gen_tps": 111.2,
+          "prompt_tps": 53.6,
+          "prompt_tokens": 1437,
+          "completion_tokens": 227,
+          "reasoning_chars": 805,
+          "content": "",
+          "reasoning_content": "1. **Identify the user's request:** The user is asking for the \"current 30-year mortgage rate.\"\n\n2. **Analyze the required information:** This is a real-time financial rate that needs external, live data (market prices/rates).\n\n3. **Check available tools:**\n    * `ask_finance`: Deals with the operator's *own* financial documents (bank statements, spending). Not suitable for market rates.\n    * `ask_research`: Deals with web search, current events, and current prices or rates (utility, market, retail). This is the correct tool.\n\n4. **Determine the necessary action:** Call `ask_research` with a query that asks for the current 30-year mortgage rate.\n\n5. **Construct the tool call:**\n   `ask_research(query=\"current 30-year mortgage rate\")`\n\n6. **Final output generation:** Provide only the tool call.",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "ask_research",
+                "arguments": "{\"query\":\"current 30-year mortgage rate\"}"
+              },
+              "id": "s0ySpsL2qGxvnr7tHZtMvEcHMakPc5DS"
+            }
+          ]
+        }
+      ],
+      "weather_by_riddle": [
+        {
+          "ok": true,
+          "note": "calls=[('ask_home', {'query': 'What is the current weather in Baltimore?'})]",
+          "leak": false,
+          "finish_reason": "tool_calls",
+          "elapsed_s": 2.38,
+          "gen_tps": 107.8,
+          "prompt_tps": 347.1,
+          "prompt_tokens": 1438,
+          "completion_tokens": 249,
+          "reasoning_chars": 919,
+          "content": "",
+          "reasoning_content": "1. **Search**: The user is asking for the weather in the city where the Orioles play. This requires identifying the city and then checking the weather.\n\n2. **Tool Check (City Identification)**: I need to find the city where the Orioles play. This is a general knowledge question, so I can answer it directly or use `ask_research` if I'm unsure, but usually, I can access this from my internal knowledge base. The Orioles play in Baltimore.\n\n3. **Tool Check (Weather)**: Once the city is known (Baltimore), I need the weather. `ask_home` is the correct tool for weather lookups.\n\n4. **Constraint Check**: The prompt asks for a direct and concise answer and requires using tools when live data is needed.\n\n5. **Plan**:\n    a. Identify the city: Baltimore (internal knowledge).\n    b. Call `ask_home` to get the weather in Baltimore.\n\n6. **Execution**:\n    *   `ask_home(query=\"What is the current weather in Baltimore?\")`",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "ask_home",
+                "arguments": "{\"query\":\"What is the current weather in Baltimore?\"}"
+              },
+              "id": "G5FFhNKmIPvENTR8poc6IAOL4CF3IaCH"
+            }
+          ]
+        },
+        {
+          "ok": true,
+          "note": "calls=[('ask_home', {'query': 'weather in Baltimore, MD'})]",
+          "leak": false,
+          "finish_reason": "tool_calls",
+          "elapsed_s": 2.79,
+          "gen_tps": 99.1,
+          "prompt_tps": 53.9,
+          "prompt_tokens": 1438,
+          "completion_tokens": 272,
+          "reasoning_chars": 1005,
+          "content": "",
+          "reasoning_content": "1. **Analyze the Request:** The user is asking for the weather in the city where the Orioles play.\n\n2. **Identify Necessary Information:**\n    *   Which city does the Baltimore Orioles play in? (Requires knowledge or lookup)\n    *   What is the weather in that city? (Requires location and weather tool)\n\n3. **Determine the Tool/Information Source:**\n    *   I know (or can quickly ascertain) that the Baltimore Orioles play in Baltimore.\n    *   The `ask_home` tool handles weather lookups.\n\n4. **Check for Required Information in Context:**\n    *   The ambient facts state the home location is Laurel, MD. The Orioles play in Baltimore, MD. I need the weather for Baltimore, MD.\n\n5. **Formulate the Plan (Self-Correction/Refinement):**\n    *   Since I know the city is Baltimore, I can use `ask_home` for the weather.\n    *   I should specify \"Baltimore\" in the query to ensure accuracy.\n\n6. **Execute the Plan (Tool Call Generation):**\n    *   Call `ask_home` with a query for the weather in Baltimore.",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "ask_home",
+                "arguments": "{\"query\":\"weather in Baltimore, MD\"}"
+              },
+              "id": "O1ie8iZaEAnp2UMv5hIh7OdyzQjjx5tx"
+            }
+          ]
+        },
+        {
+          "ok": true,
+          "note": "calls=[('ask_home', {'query': 'Weather in Baltimore'})]",
+          "leak": false,
+          "finish_reason": "tool_calls",
+          "elapsed_s": 1.74,
+          "gen_tps": 88.5,
+          "prompt_tps": 50.1,
+          "prompt_tokens": 1438,
+          "completion_tokens": 150,
+          "reasoning_chars": 535,
+          "content": "",
+          "reasoning_content": "The user is asking for the weather in the city where the Orioles play.\nThe Baltimore Orioles are a Major League Baseball team, and they play in Baltimore, Maryland.\nThe user is asking for current weather.\n\nI need to use the `ask_home` tool for weather.\nThe location is \"Baltimore\".\nSince I have a home location default (Laurel, MD), and Baltimore is nearby/relevant to that default, I will specify \"Baltimore\" to be precise, or rely on the tool's capability to handle the city name.\n\nTool call: `ask_home(query=\"Weather in Baltimore\")`",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "ask_home",
+                "arguments": "{\"query\":\"Weather in Baltimore\"}"
+              },
+              "id": "6Eo8VTtfVYkX4VAInEEOZk5NSCaoaWYL"
+            }
+          ]
+        }
+      ],
+      "date_math": [
+        {
+          "ok": true,
+          "note": "calls=[] want=monday",
+          "leak": false,
+          "finish_reason": "stop",
+          "elapsed_s": 1.59,
+          "gen_tps": 108.1,
+          "prompt_tps": 466.1,
+          "prompt_tokens": 1440,
+          "completion_tokens": 165,
+          "reasoning_chars": 500,
+          "content": "It will be Monday.",
+          "reasoning_content": "The user is asking for the day of the week 100 days from today.\nToday's date is Saturday, October 24, 2026.\nThis is a calculation, not a request for live data or a complex specialist query.\nI can calculate this directly.\n\nStart date: Saturday, October 24, 2026.\nNumber of days to advance: 100.\n\n100 days / 7 days per week = 14 weeks and 2 days.\nStarting day: Saturday.\nAdvance by 14 full weeks (returns to Saturday).\nAdvance another 2 days: Saturday + 2 = Monday.\n\nThe day of the week will be Monday.",
+          "tool_calls": null
+        },
+        {
+          "ok": false,
+          "note": "calls=[] want=monday",
+          "leak": false,
+          "finish_reason": "stop",
+          "elapsed_s": 2.83,
+          "gen_tps": 106.8,
+          "prompt_tps": 52.1,
+          "prompt_tokens": 1440,
+          "completion_tokens": 297,
+          "reasoning_chars": 796,
+          "content": "The date 100 days from today, Saturday, October 24, 2026, will be Wednesday, February 2, 2027.",
+          "reasoning_content": "1. **Analyze the Request:** The user is asking for the day of the week 100 days from \"today.\"\n\n2. **Check Knowledge/Tools:** This is a calculation based on a fixed date. I have the current date: Saturday, October 24, 2026. This does not require live data lookup (like weather or news) or specialized external data (like current stock prices). It is a straightforward date arithmetic problem.\n\n3. **Determine the Method:**\n    *   Current date: October 24, 2026.\n    *   Target: October 24, 2026 + 100 days.\n    *   I need to calculate the day of the week for the resulting date.\n\n4. **Calculate the Date:**\n    *   Days remaining in October: 31 - 24 = 7 days.\n    *   Days left to count: 100 - 7 = 93 days.\n    *   November: 30 days. 93 - 30 = 63 days remaining.\n    *   December: 31 days. 63 - 3",
+          "tool_calls": null
+        },
+        {
+          "ok": false,
+          "note": "calls=[] want=monday",
+          "leak": false,
+          "finish_reason": "stop",
+          "elapsed_s": 2.74,
+          "gen_tps": 102.1,
+          "prompt_tps": 51.4,
+          "prompt_tokens": 1440,
+          "completion_tokens": 275,
+          "reasoning_chars": 822,
+          "content": "It will be Tuesday, January 2, 2027.",
+          "reasoning_content": "1. **Identify the core request:** The user wants to know the day of the week 100 days from today.\n\n2. **Check for tools:** This is a calculation based on the current date, which is an \"ambient fact\" provided in the prompt: \"Today is Saturday, October 24, 2026; the local time is 2:13 PM EDT.\"\n\n3. **Determine if a tool is necessary:** No live data, external lookup, or special calculation engine is needed beyond basic calendar math. The model can handle this internally.\n\n4. **Execute the calculation (mental/internal check):**\n    * Today: Saturday, October 24, 2026.\n    * Days to add: 100.\n    * Total days in 2026 remaining (starting from Oct 24):\n        * Oct: 31 - 24 = 7 days\n        * Nov: 30 days\n        * Dec: 31 days\n        * Total remaining 2026: 7 + 30 + 31 = 68 days.\n    * Days remaining to count into 2",
+          "tool_calls": null
+        }
+      ],
+      "clock_math": [
+        {
+          "ok": true,
+          "note": "calls=[] 12:15=True",
+          "leak": false,
+          "finish_reason": "stop",
+          "elapsed_s": 1.04,
+          "gen_tps": 125.8,
+          "prompt_tps": 582.9,
+          "prompt_tokens": 1451,
+          "completion_tokens": 120,
+          "reasoning_chars": 333,
+          "content": "The train arrives at 12:15 PM.",
+          "reasoning_content": "The user wants to calculate an arrival time based on a departure time and a trip duration. This is a math problem and can be answered directly without any tools.\n\nDeparture time: 9:40 AM\nTrip duration: 2 hours 35 minutes\n\nCalculation:\n9:40 AM + 2 hours = 11:40 AM\n11:40 AM + 35 minutes = 12:15 PM\n\nKronk should be direct and concise.",
+          "tool_calls": null
+        },
+        {
+          "ok": true,
+          "note": "calls=[] 12:15=True",
+          "leak": false,
+          "finish_reason": "stop",
+          "elapsed_s": 1.37,
+          "gen_tps": 107.3,
+          "prompt_tps": 53.5,
+          "prompt_tokens": 1451,
+          "completion_tokens": 142,
+          "reasoning_chars": 399,
+          "content": "The train arrives at 12:15 PM.",
+          "reasoning_content": "The user is asking for a simple time calculation: adding 2 hours 35 minutes to 9:40 AM. This is a mathematical problem that can be answered directly from internal knowledge. No tools are needed.\nCalculation:\nStart time: 9:40 AM\nTrip duration: 2 hours 35 minutes\n9:40 AM + 2 hours = 11:40 AM\n11:40 AM + 35 minutes = 12:15 PM\nKronk's response must be direct and concise, without action text or filler.",
+          "tool_calls": null
+        },
+        {
+          "ok": true,
+          "note": "calls=[] 12:15=True",
+          "leak": false,
+          "finish_reason": "stop",
+          "elapsed_s": 1.32,
+          "gen_tps": 116.0,
+          "prompt_tps": 53.9,
+          "prompt_tokens": 1451,
+          "completion_tokens": 148,
+          "reasoning_chars": 388,
+          "content": "The train will arrive at 12:15 PM.",
+          "reasoning_content": "The user is asking for the arrival time of a train given a departure time (9:40 AM) and a duration (2 hours 35 minutes). This is a simple arithmetic calculation based on time. I can calculate this directly without needing any tools.\n\nCalculation:\nStart time: 9:40 AM\nAdd 2 hours: 9:40 AM + 2 hours = 11:40 AM\nAdd 35 minutes: 11:40 AM + 35 minutes = 12:15 PM\n\nThe arrival time is 12:15 PM.",
+          "tool_calls": null
+        }
+      ],
+      "exact_words": [
+        {
+          "ok": true,
+          "note": "calls=[] words=3",
+          "leak": false,
+          "finish_reason": "stop",
+          "elapsed_s": 0.13,
+          "gen_tps": 83.2,
+          "prompt_tps": 387.7,
+          "prompt_tokens": 1435,
+          "completion_tokens": 6,
+          "reasoning_chars": 0,
+          "content": "Keeps food cold.",
+          "reasoning_content": "",
+          "tool_calls": null
+        },
+        {
+          "ok": true,
+          "note": "calls=[] words=3",
+          "leak": false,
+          "finish_reason": "stop",
+          "elapsed_s": 2.77,
+          "gen_tps": 97.7,
+          "prompt_tps": 50.0,
+          "prompt_tokens": 1435,
+          "completion_tokens": 267,
+          "reasoning_chars": 998,
+          "content": "Cools, stores, preserves.",
+          "reasoning_content": "*   **Analyze the user's request:** The user is asking for a definition of what a refrigerator does, with a strict constraint: \"In exactly three words\".\n    *   Query: \"In exactly three words, what does a refrigerator do?\"\n    *   Constraint: Exactly three words.\n*   **Determine the best tool:** This is a general knowledge question. The `ask_research` tool can provide factual information, but since the concept of a refrigerator is fundamental and doesn't require live external data, I should answer from my own knowledge base to be \"direct and concise\" as per the instructions, without tool usage.\n*   **Formulate the answer:** A refrigerator cools and preserves food.\n*   **Apply constraints:** \"In exactly three words.\"\n    *   Draft 1: It keeps food cold. (4 words)\n    *   Draft 2: It preserves and cools. (3 words)\n    *   Draft 3: It cools stored food. (4 words)\n    *   Draft 4: Keeps food fresh cool. (4 words)\n    *   Draft 5: Cool, store, preserve. (3 words, but a bit abstract)\n    *",
+          "tool_calls": null
+        },
+        {
+          "ok": false,
+          "note": "calls=[] words=4",
+          "leak": false,
+          "finish_reason": "stop",
+          "elapsed_s": 0.16,
+          "gen_tps": 58.9,
+          "prompt_tps": 48.8,
+          "prompt_tokens": 1435,
+          "completion_tokens": 7,
+          "reasoning_chars": 0,
+          "content": "Cools and preserves food.",
+          "reasoning_content": "",
+          "tool_calls": null
+        }
+      ],
+      "multi_domain": [
+        {
+          "ok": true,
+          "note": "calls=['ask_health', 'ask_home'] turns=2 answered=True",
+          "leak": false,
+          "turns": 2,
+          "calls": [
+            "ask_health",
+            "ask_home"
+          ],
+          "elapsed_s": 4.22,
+          "gen_tps": 106.0,
+          "reasoning_chars": 1258,
+          "finish_reason": "stop",
+          "content": "You slept for 7 hours and 12 minutes last night, achieving a sleep score of 81. Tomorrow in Laurel, MD, there is an 80% chance of rain with a high of 61\u00b0F."
+        },
+        {
+          "ok": true,
+          "note": "calls=['ask_health', 'ask_home'] turns=2 answered=True",
+          "leak": false,
+          "turns": 2,
+          "calls": [
+            "ask_health",
+            "ask_home"
+          ],
+          "elapsed_s": 3.16,
+          "gen_tps": 102.1,
+          "reasoning_chars": 882,
+          "finish_reason": "stop",
+          "content": "You slept for 7 hours and 12 minutes last night with a sleep score of 81. Tomorrow in Laurel, MD, there is an 80% chance of rain, and the high will be 61\u00b0F."
+        },
+        {
+          "ok": true,
+          "note": "calls=['ask_health', 'ask_home'] turns=2 answered=True",
+          "leak": false,
+          "turns": 2,
+          "calls": [
+            "ask_health",
+            "ask_home"
+          ],
+          "elapsed_s": 3.12,
+          "gen_tps": 111.5,
+          "reasoning_chars": 928,
+          "finish_reason": "stop",
+          "content": "You slept 7 hours and 12 minutes last night, with a sleep score of 81. Tomorrow in Laurel, MD, there is an 80% chance of rain with a high of 61\u00b0F."
+        }
+      ],
+      "composite_hottub": [
+        {
+          "ok": false,
+          "note": "calls=[] turns=1 answered=False",
+          "leak": false,
+          "turns": 1,
+          "calls": [],
+          "elapsed_s": 3.64,
+          "gen_tps": 87.8,
+          "reasoning_chars": 1029,
+          "finish_reason": "stop",
+          "content": "To calculate the total cost, I need the power rating (in watts) of your hot tub heater and the current electricity rate in your area.\n\nI can look up the current electricity rate for Laurel, MD. What is the power rating of your hot tub heater?"
+        },
+        {
+          "ok": true,
+          "note": "calls=['ask_home', 'ask_research'] turns=3 answered=True",
+          "leak": false,
+          "turns": 3,
+          "calls": [
+            "ask_home",
+            "ask_research"
+          ],
+          "elapsed_s": 7.09,
+          "gen_tps": 105.4,
+          "reasoning_chars": 1982,
+          "finish_reason": "stop",
+          "content": "Running the hot tub heater for 6 hours a day for 30 days will cost approximately $160.18."
+        },
+        {
+          "ok": true,
+          "note": "calls=['ask_home', 'ask_research'] turns=3 answered=True",
+          "leak": false,
+          "turns": 3,
+          "calls": [
+            "ask_home",
+            "ask_research"
+          ],
+          "elapsed_s": 8.41,
+          "gen_tps": 103.8,
+          "reasoning_chars": 2235,
+          "finish_reason": "stop",
+          "content": "The cost would be approximately $160.18.\n\n**Calculation:**\n*   **Daily usage:** 5.5 kW \u00d7 6 hours = 33 kWh\n*   **Monthly usage:** 33 kWh/day \u00d7 30 days = 990 kWh\n*   **Total cost:** 990 kWh \u00d7 $0.1618/kWh = $160.18"
+        }
+      ]
+    }
+  }
+}
