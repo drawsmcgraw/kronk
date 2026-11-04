@@ -168,13 +168,11 @@ verbatim — never summarized away.
    results land in `docs/bench/`). For perf-sensitive work run it before
    (`<x>-pre`) and after (`<x>-post`) — the files are diffable. **Caveat: it
    clears chat history**; confirm with the operator if a session is live.
-4. **Voice-touching changes** → no automated smoke test exists yet
-   (ROADMAP item 8). Until it ships: run the utterance checks manually via
+4. **Voice-touching changes** → no automated smoke test exists (dropped
+   from the roadmap 2026-11-04). Run the utterance checks manually via
    HA's websocket (`assist_pipeline/run` — recipe in
    `docs/features/voice-pipeline.md` → "Testing utterances"), and
    ask the operator for a real "Okay Nabu" test on anything user-facing.
-   **When item 8 ships, replace this bullet with the script and make it
-   mandatory.**
 
 ## Ground rules
 

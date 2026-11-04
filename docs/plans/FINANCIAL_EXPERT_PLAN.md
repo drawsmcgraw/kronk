@@ -1,8 +1,10 @@
 # Financial expert — Plan
 
-Status: **draft** — written 2026-07-07 from the design conversation.
-Operator decisions incorporated; awaiting sign-off on the phases + open
-questions at the bottom.
+Status: **phase 1 shipped 2026-07-10** (positions store and zero-question
+ingestion, `finance_service/positions_db.py`, commit `61b7b5b`). Phase 2 (the
+retire_calc math as a library, liquidity-gated withdrawal, chat tools) is on
+ROADMAP "Later", not started. The body below is the plan as written
+2026-07-07.
 
 The finance agent grows into an expert on the operator's actual investment
 positions, in service of one goal: **early retirement** (operator retires

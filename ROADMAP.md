@@ -7,645 +7,100 @@ what's *wrong* (this page tracks what's *wanted*); `docs/plans/` holds design
 docs; `docs/features/` holds docs for shipped features.
 
 Conventions:
-- Items move **Later → Next → Now → Shipped**. Anything in **Now** or **Next**
-  that's bigger than a day gets a plan doc in `docs/plans/` before build.
+- **Admission (operator, 2026-11-04):** an item goes on this page only if it
+  matters and is worth doing. A defect found in passing is fixed, recorded in
+  its incident doc, or dropped; it is not parked here. Pruned 2026-11-04 from
+  57 open entries to 14.
+- An entry is at most a few lines: what, status, why, a link. History and
+  evidence live in the plan and incident docs.
+- **Now** holds only work in flight. Items move Later → Next → Now → Shipped;
+  anything bigger than a day gets a plan doc in `docs/plans/` before build.
 - When something ships: distill the plan/journal into `docs/features/<name>.md`
   (including a "blog hooks" section), mark the plan doc shipped, move the line
   here to Shipped, and add/refresh the `docs/BLOG_TOPICS.md` entry.
-- Every entry says *why* in one line, so future-us doesn't have to re-derive it.
+- Entries are no longer numbered. Older docs that cite "item N" refer to the
+  page before the 2026-11-04 prune (commit `3bfabe8`).
 
 ---
 
-## Now — committed, in flight
+## Now — in flight
 
-*(Items keep their numbers when they ship — cross-references elsewhere in
-the docs use them. 1, 2, 3, 11 and 12 are in Shipped. Pruned 2026-09-14.)*
-
-22. **Shopping list — HA owns it, Kronk speaks and shows it, Netlify
-    mirrors it** *(added 2026-09-17; approved in conversation, build
-    gated on the operator's go; plan `docs/plans/SHOPPING_LIST_PLAN.md`)*.
-    `todo.shopping_list` is the single store; tool_service `/shopping/*`
-    reads it live and holds the logic (normalize, dedupe with a spoken
-    refusal, "is X on the list", check-off); HA sentence triggers →
-    `rest_command` for the ~1 s voice path (HA's built-in add intent
-    creates duplicates); Kronk's tools re-pointed and the JSON store
-    removed; a rebuilt LAN page (open, app-like); and an encrypted
-    read-only copy pushed to Netlify after every change for the family
-    outside the house — one password, no client software, **no inbound
-    traffic** (operator's showstopper). Includes one planned HA restart
-    (first `rest_command`). *Why: the weekly paper list is copied off a
-    phone; voice mistakes need voice deletes; the family needs it off
-    the LAN without a VPN.*
-
-23. **"X radio" falls back to YouTube Music artist radio** *(added
-    2026-10-04; plan `docs/plans/RADIO_FALLBACK_PLAN.md`, decisions
-    pending)*. MA's Pandora provider cannot create stations; on the Kronk
-    Pandora account, unshared stations fail. Order: Pandora station → YT
-    Music artist radio (`radio_mode`) only when the artist name matches →
-    honest failure. Recommended shape: one `/music/radio` endpoint in
-    tool_service used by both tiers, the blueprint calling it via
-    `rest_command` — whose first use costs one HA restart, shared with
-    item 22. *Why: the operator expects "X radio" to just work.*
-
-24. **Learned intent router behind the regex pins — benched 2026-10-05, no
-    swap** *(`docs/plans/INTENT_ROUTER_PLAN.md`)*. Eval set of 497 real
-    utterances (150 hand-relabelled) and `scripts/routing_bench.py` are in
-    the repo. Embedding kNN (bge-small) pinned 1–2 of the 26 home requests
-    the pins miss with zero new mistakes; the open "Jev"-style decision
-    models (Julia-1, Laya, Kev-4B via llama.cpp b11413 `/v1/systemone`)
-    scored 39–60% raw and could not be thresholded (Julia-1 says "home" at
-    p≈1.0 for "What day is it today?"). Pass rule (coverage ≥ 50%, p95 <
-    50 ms) not met by any arm. Regex pins stay; revisit with ~100 more voice
-    utterances in the eval set or an independent routing benchmark for the
-    decision models. The b11413 Vulkan build exists on the box for the next
-    deliberate pin bump (item 19).
-
-4. **Backups** — nightly automated backup of the irreplaceable state: HA
-   config volume, MA library/auth volume, orchestrator SQLite (sessions,
-   metrics), tool_service `/data` (**solar.db** — the energy-counter
-   snapshots are the ONLY copy of past production history, the PVS keeps
-   none; plus shopping list, news state, mm-update state), Langfuse
-   Postgres/ClickHouse (or accept telemetry as disposable — decide).
-   Target a second disk or the NAS.
-   *Why: "never `down -v`" is a rule because there is no second copy of
-   anything. One bad disk erases the project. Cheapest risk-kill on this
-   page.*
+*(Nothing in flight.)*
 
 ## Next — agreed, not started
 
-13. **STT accuracy bench — Whisper alternatives and knobs** *(added
-    2026-09-04; research done, bench not started — operator decision to
-    park)*. Trigger: "play the album Toys in the Attic…" transcribed as
-    " Played the album Toys in the Attic." (rid `2881890a`) — missed
-    every local tier and read to Kronk as a statement. The error is
-    architectural: Whisper's autoregressive decoder is a language model
-    and prefers likelier English over bare imperatives; large-v3-turbo
-    keeps 4 of 32 decoder layers, so short context-free commands are
-    where it drifts. Findings:
-    - The Wyoming server we run (`wyoming-faster-whisper` 3.1.0) already
-      ships sherpa-onnx and onnx-asr handlers and its own auto-select
-      **prefers NVIDIA Parakeet TDT 0.6B via sherpa-onnx for English**
-      when that library is installed; our unit pins Whisper explicitly.
-      Parakeet is a transducer (no LM decoder → literal transcripts),
-      punctuates and capitalizes, tops the Open ASR leaderboard for
-      English, runs on **CPU** (`provider="cpu"` in the handler) — which
-      would take STT off the iGPU and the HIP runtime entirely. One
-      `pip install sherpa-onnx` + `--stt-library sherpa --model
-      sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8 --device cpu`.
-    - Cheaper knobs on the incumbent: `--initial-prompt` in the command
-      register ("Play the album. Play the artist. Shuffle the playlist.
-      Pause. What's the weather?") — steers the prior, can pull words on
-      noise; `distil-large-v3.5` (CT2 drop-in, English, slightly better
-      short-form than turbo); full `large-v3` (+1–2 WER points, ~4×
-      slower). HA-side completeness knob: satellite "finished speaking
-      detection" (relaxed = fewer clipped endings; not tense).
-    - Ruled out: Speech-to-Phrase (constrained grammar, one STT per
-      pipeline → would remove Kronk's open-vocabulary tier);
-      Canary-Qwen / Voxtral (LLM-class, GPU contention with Kronk's
-      models); streaming models (latency, not accuracy).
-    **Method (pre-committed):** real audio first — a Wyoming tee proxy
-    on a bench port in front of the unchanged Whisper for a day captures
-    every real utterance + production transcript (Piper-synthesized
-    utterances only as a controlled corpus); each candidate runs on a
-    bench port against the same WAVs, production untouched; metrics =
-    WER, command-form check (imperative verb + entity names preserved),
-    p95 latency; single variable per run. **Rule:** switch only on fewer
-    command-form errors on real audio with p95 latency no worse than
-    today; the switch itself is one flag change on the unit + restart,
-    old unit file kept for rollback. Folded in 2026-09-14: the cheap
-    knobs (`--vad-filter`; relax the satellites' "finished speaking
-    detection" if clipped endings bite) and the Voxtral revisit
-    condition (no gfx1151 PyTorch wheels; watch for `wyoming-voxtral` or
-    llama.cpp support — rationale in `docs/VOICE_SETUP.md`). *Why: it
-    sits in front of all three music tiers and every other voice
-    request; two mistranscriptions in one week ("Played the album…",
-    "stop" → "What's up?").*
+- **Music selection refinement** — Kronk plays what was meant, not the
+  literal words. First step: every radio request from the HA blueprint goes
+  to Kronk (blueprint change 11, docker cp + `automation.reload`, no HA
+  restart), and tool_service scores library stations before MA's exact
+  `item_by_name`, which can create a station from the wrong seed
+  (`INVESTIGATION_2026-10-21_pandora_station_match.md`,
+  `INVESTIGATION_2026-10-25_pandora_station_name_miss.md`). Cost: radio goes
+  from ~1.3 s to 7–8 s. Awaiting the operator's go.
+  *Why: three radio misfires in four days, one of them a wrong success.*
+- **Backups** — nightly copies of the HA config volume, the MA volume, the
+  orchestrator SQLite, tool_service `/data` (`solar.db` is the only copy of
+  past production history) and, if wanted, Langfuse, to the NAS or a second
+  disk. Only hand-taken MA tarballs exist today.
+  *Why: there is no second copy of anything.*
+- **Reclaim storage and memory** — disk: the Ollama blobs
+  (`/usr/share/ollama/.ollama/models/blobs/`, 241 GB, unused since the
+  llama.cpp migration) and unused GGUFs in `/opt/models`. GPU memory: retire
+  the unassigned `llama-bonsai` (6.1 GiB GTT) and the dead llama units
+  (mistral-nemo, devstral Q8, talkie). One careful look before each delete.
+- **Voice accuracy** — track and improve STT accuracy on real household
+  speech. Known misses: "Played the album…" (rid `2881890a`), "stop" →
+  "What's up?", Satellite1 "pause" → "Pasta". Capture real utterances first,
+  then bench candidates against them one at a time (Parakeet TDT via
+  sherpa-onnx on CPU, already supported by the installed
+  `wyoming-faster-whisper` 3.1.0; distil-large-v3.5; VAD filter). Switch only
+  on fewer command-form errors at no worse p95 latency.
+- **SearXNG stays healthy** — search must not silently degrade (a lapsed pin
+  made every search junk for a month). Built 2026-10-05: weekly
+  `kronk-searxng-canary.timer` and `docs/runbooks/searxng-bump.md`. Next: once
+  the runbook has been run twice by hand, a monthly headless bump (`claude -p`
+  limited to compose pull/up for searxng and the canary).
+- **Telemetry v2** — trace every interaction (chat UI, voice, shims) end to
+  end for troubleshooting and usage analysis. Langfuse v1 is a prototype;
+  replacing it is on the table. Requirements pass and plan doc first.
 
-14. **Per-client sessions for the web UI** *(added 2026-09-05; operator
-    decision on semantics pending)*. Today every browser/device shares
-    the one fixed `webui` session. Server side is half there: the store
-    is keyed by session id and `/message` already accepts `session_id`;
-    the UI never sends one and `/history` (GET/DELETE) plus the
-    uploaded-file context are hardwired to the fixed session. Build =
-    client id in localStorage sent with every message, history endpoints
-    take the id, clear-history scopes to it, uploads scoped or left
-    global by choice; schema unchanged. **Open decision:** (1) per
-    device — phone and desktop each keep their own thread (an
-    afternoon); (2) per conversation — "new chat" + a list of past
-    threads; (3) threads you can pick up on any device — same list, every
-    device sees every thread. Prerequisite for item 15. *Why: two devices
-    on one thread interleave; the PWA makes a second device the norm.*
+## Later — wanted
 
-15. **Kronk as a PWA on the phone** *(added 2026-09-05; pinned by the
-    operator, plan discussed, cert decision pending)*. LAN-only; remote
-    reach is Tailscale on the operator's side, so Kronk sees LAN traffic
-    either way. **Gate: HTTPS** (installability, service worker, and mic
-    access all need a secure context; nginx is HTTP :80 today — keep :80
-    for HA's shim, add :443). Cert options: (a) local CA, root installed
-    per device; (b) public cert for a `home.hippiehouse.net` name via a
-    DNS challenge; (c) if kronk joins the tailnet, `tailscale cert` for
-    its `…ts.net` name + MagicDNS — no trust step, no DNS API; cloud
-    contact is the ACME issuance either way. Phase 1: manifest, icons,
-    service worker (app shell cached, never the message stream),
-    mobile layout pass, per-device sessions (item 14). Phase 2:
-    push-to-talk — mic clip → new endpoint → the existing Wyoming
-    Whisper → pipeline → Piper → playback in the page; a **room picker**
-    supplies the origin so music plays where the phone is. Out: public
-    exposure, Web Push (rides Google/Apple relays). **External access +
-    auth** lives here too (folded 2026-09-14): the posture is LAN +
-    Tailscale, no public endpoint; if that ever changes, real
-    authentication and rate limiting come first, decided once. *Why:
-    the operator's ask — Kronk that "just appears to be an app."*
+- **Financial expert, phase 2** — phase 1 (positions store, zero-question
+  ingestion) shipped 2026-07-10. Next: retire_calc's FERS and Monte Carlo
+  math as a tested library in finance_service, liquidity-gated withdrawal,
+  then "am I on track?", what-if and bridge-strategy tools.
+  `docs/plans/FINANCIAL_EXPERT_PLAN.md`. *Why: early retirement is the goal
+  all of this serves.*
+- **Shopping list** — HA owns the list, Kronk speaks and shows it, an
+  encrypted read-only copy on Netlify for the family, no inbound traffic.
+  Approved 2026-09-17, parked 2026-09-19. Includes one planned HA restart.
+  `docs/plans/SHOPPING_LIST_PLAN.md`.
+- **Per-client web UI sessions** — every browser shares the one `webui`
+  session today. Operator decision pending: per device, per conversation, or
+  threads shared across devices. *Why: two devices on one thread interleave.*
+- **Instant Pot cook times** — "how long for black beans?" answered from a
+  curated local table behind a home-agent tool, not model recall or web
+  search. Honest "not in my table" fallback.
+- **Health RAG completion** — `query_bloodwork` and `search_health_data`
+  exist in `orchestrator/tools.py` but are wired to no agent; the
+  `health_service` parsing, chunking and vector store are in place.
+- **MagicMirror read-only investigation** — the devops agent answers
+  questions about the mirror through the audited read-only `remote_exec`
+  path and makes no changes. Open, in order: pick the model (Ministral Q4
+  next; `docs/bench/devops_bench_2026-09-14_*`), fix the ops classifier
+  quirks (`git -C`, quoted pipes, `journalctl --user`), voice-shaped answers,
+  a test battery, satellite routing.
+- **Wi-Fi visibility for the satellites** — a ping-history probe for the
+  named satellites, plus HA's UniFi Network integration on the read-only
+  account in `.env`. *Why: the 2026-09-30 stutter took a console login and
+  three rounds of pings to diagnose* (`INVESTIGATION_2026-09-30_kitchen_stutter.md`).
 
-16. **Pandora thumbs by voice** *(added 2026-09-05; plan
-    `docs/plans/PANDORA_THUMBS_PLAN.md`; not started)*. "Thumbs up /
-    down" to a satellite trains the playing Pandora station, Echo-style.
-    Finding: MA plays a station as one radio item and the current track
-    (with its `trackToken`) exists only inside the provider's session,
-    so no outside client can thumb — the plan is a small patch to MA's
-    Pandora provider (a feedback route on its stream server, overlay
-    mounted over the pinned image with a hash guard; maintenance line)
-    plus a tool_service `/music/rate` route, a `rate_music` terminal
-    tool, and blueprint sentences. Thumbs land in the account that
-    plays (the bot), forking shared stations on first use — recorded as
-    the operator's call. **Steps, in order:** (1) operator: the **bot
-    account** (folded from former item 17, 2026-09-14) — a Pandora
-    Premium Family member account, stations shared into it as linked
-    copies, verify one first (thumbs should show), MA's Pandora provider
-    re-authenticated to it; this also fixes the one-stream-per-account
-    collision and gets personal credentials out of the MA config volume
-    (tenet 10); YouTube Music the same way later; (2) Claude: the
-    go/no-go script — log in as the bot the way the provider does, fetch
-    one fragment of a throwaway station, thumb one track, confirm in
-    Pandora's UI (kills or validates the plan before any patch); (3)
-    operator: decide where training lands (bot as the house account,
-    recommended, vs. personal account + one-stream limit). *Why: the
-    operator's stated want; the training is the value of Pandora.* **Update 2026-10-04:** the bot account exists and
-    MA runs on it; the mechanics in that plan predate MA 2.11 (stations
-    are real track queues now). Research and three plans — ride upstream,
-    patch MA's provider, or a Kronk-side Pandora client — plus the
-    station-creation goal are in `docs/plans/PANDORA_STATIONS_AND_THUMBS_PLAN.md`;
-    decision 2026-10-04: **contribute upstream** — two standalone PRs against
-    MA `dev`, station creation first (porting the stalled
-    `feat/pandora-station-management` commit, with credit), thumbs second
-    after a design question in the thread; operator posts/forks/pushes. **Thumbs shipped 2026-10-06** (`docs/features/pandora-thumbs.md`): MA runs
-    the derived image with `pandora/feedback`; Kronk-tier voice works
-    (operator-verified from the office). Left: the HA fast tier
-    (`rest_command`, one HA restart, shared with item 22), a least-privilege
-    MA user, the YouTube-radio fallback (item 23), station creation
-    (Feature A), and the upstream PRs. **Update 2026-10-16:** the MA
-    maintainer (discussion #6770) pointed at MA's built-in like/dislike
-    (#6482, MA ≥ 2.11.0b3). `pandora/feedback` is dropped; the patch now
-    implements the provider hook `set_favorite` + `FAVORITE_TRACKS_EDIT`
-    (fork branch `pandora-track-feedback`, PR pending operator review).
-    MA moved to `kronk/music-assistant:2.11.0b5-kronk.1`; `/music/rate`
-    uses `music/favorites/set_item`. Thumbs up is fire-and-forget with an
-    operator phone push on failure — a like blocks ~25–30 s in MA's
-    metadata scan (`INVESTIGATION_2026-10-16_ma_like_latency.md`).
-    Follow-ups: (a) upstream PR to run the post-like metadata scan in the
-    background — plan `docs/plans/MA_ASYNC_LIKE_METADATA_PLAN.md`
-    (2026-10-21: a like took 55–70 s while LRCLIB retried under its
-    1-per-30 s throttle; LRCLIB disabled in Kronk's MA as the interim
-    fix); (b) station creation via the iHeartRadio pattern (search
-    returns seed radios, first play calls `createStation`; no core change)
-    — its own discussion, see `docs/plans/MA_FORK_STATUS.md`; (c) `/music`
-    reports `shuffle: true` on a dynamic Pandora station though MA 2.11.0b5
-    rejects shuffle there ("Cannot change shuffle while the queue is in
-    dynamic mode") — a false claim to fix; (d) the bgutil PO-token helper
-    is 2.0.0 vs the 2.0.2 plugin in b5 (warning only; bump deliberately);
-    (e) later, operator 2026-10-21: trim MA's auto-loaded providers for
-    tenet 1, not speed. MA sets up its builtin and first-boot default
-    providers on its own; Kronk only added YouTube Music, Pandora and Local
-    files. Candidates: Wikipedia, fanart.tv, TheAudioDB, Cover Art Archive,
-    iTunes Artwork, Last.fm (each sends artist/track names off the box; the
-    cost is artwork and bios in MA's UI), plus unused player providers
-    (AirPlay, Chromecast, DLNA, Party, Ambient Sounds). MusicBrainz and
-    Playlist Metadata can't be disabled. Inventory what's in use first. Only
-    TheAudioDB is on the like path (about a second, unmeasured); time a like
-    with LRCLIB off for the new baseline.
+## Chores
 
-18. **Playback control — the ~1 s fast path** *(added 2026-09-10; the
-    Kronk tier shipped 2026-09-10, see Shipped)*. Sentence triggers in
-    the blueprint fork ("stop", "pause", "resume", "skip", "louder",
-    "quieter") calling `media_player.*` on the device-first-resolved
-    player — matches before HA's intents and the LLM. Also: set areas on
-    the MA player devices (basement, kitchen) so HA's built-in intents
-    have a target and Kronk's labels name the room; HA's built-in bare
-    "pause" with only the satellite's area as context did not match in
-    testing (bare "resume" did) — cause not pinned
-    (`docs/incidents/INVESTIGATION_2026-09-10_voice_stop.md`). Update
-    2026-09-15: HA's pipeline log shows bare "Pause." and "Skip." from
-    the kitchen on 2026-09-14 handled *locally* by HA's built-in media
-    intents in ~0.02 s intent time, against the exposed MA players — the
-    fast path already exists for those two; "stop" and volume phrasing
-    still fall to Kronk. Un-exposing the MA players from Assist (tried
-    and reverted, `INVESTIGATION_2026-09-15_album_played_one_track.md`)
-    would lose it. *Why: "stop" is the most common thing said to a
-    playing speaker; today it takes five seconds through Kronk.*
-
-19. **Per-agent reasoning budgets (llama.cpp pin bump)** *(added
-    2026-09-14)*. The E4B server's `--reasoning-budget 256` is one cap
-    for every agent it serves; when it closes the thinking channel
-    mid-thought the model finishes out loud (the leak the retract now
-    hides). Measured: 27% of E4B rounds in the last week hit ≥256 output
-    tokens — home 42%, research 31%. The running build (b9611, June)
-    ignores a per-request `reasoning_budget_tokens`; the current llama.cpp
-    tree accepts it. Bumping the pin (one unit file, MTP drafter compat
-    to re-verify) would let home think briefly and research think long,
-    attacking the leak at its source and cutting the home agent's tail
-    latency. Single-variable: bump, bench (`pipeline_bench` pre/post +
-    coordinator battery), then set budgets per agent in `llm.py`.
-    *Why: the cap is a statistical latency tool with a known leak; the
-    retract makes leaks invisible, budgets per agent make them rare.*
-
-20. **ESPHome device logs, then a dashboard** *(added 2026-09-14; from
-    the kitchen ducking investigation — the Voice PE's 20 dB music duck
-    stayed applied after a timer request, HA showed volume 1.0 and idle,
-    and there was no way to see the device's own state)*. HA runs in
-    Docker, so there are no add-ons; the ESPHome tooling is ours to host.
-    Two steps, the first with no flash: (1) **logs only** — the ESPHome
-    CLI in a venv, one YAML per satellite that pulls the upstream firmware
-    package at the installed version (26.6.0 today) with the API key HA
-    already holds (`.storage/core.config_entries`, three devices: the two
-    Voice PEs and the Satellite1), and `scripts/esphome_logs.sh <device>`
-    to stream the native-API log on demand. Read-only; ducking, pipeline
-    state, and dropout evidence instead of theory. (2) **dashboard** —
-    `ghcr.io/esphome/esphome` pinned (2026.8.2 as of writing) in its own
-    `docker-compose.esphome.yml` with an Operations block, host network
-    for mDNS/OTA. Adopt the Satellite1 first (expendable); adoption means
-    one OTA flash from a build compiled here and, from then on, upstream
-    firmware changes arrive by merging their YAML into ours (upstream
-    copy kept pristine, like `ha/blueprints/upstream/`) rather than via
-    HA's update entity — firmware becomes a pinned line in the repo
-    (tenet 3). Firmware changes queued behind it: expose the internal
-    `timer_ringing` switch and a ducking-state sensor to HA, an un-duck
-    safety net when the device goes idle, and item 21. A bad build is
-    recoverable over USB, not over the air. *Why: every satellite bug so
-    far has been debugged blind; this is the instrument.*
-
-21. **Custom wake word — "Hey Kronk"** *(added 2026-09-14; depends on
-    item 20 step 2)*. Wake words on the Voice PE are microWakeWord models
-    compiled into the firmware (installed build: Okay Nabu, Hey Jarvis,
-    Hey Mycroft, plus the internal "stop"); HA's wake-word select only
-    lists what is compiled in, and the HA-side openWakeWord path is off
-    in this firmware, so a new wake word is a custom build. Route:
-    (1) train with the microWakeWord pipeline — Piper generates a few
-    thousand synthetic utterances across voices, augmented with room
-    impulse responses and background noise, a small streaming model
-    trained on top, exported to `.tflite` + manifest; CPU-only here, ~a
-    day unattended; the model file lives in the repo beside the YAML.
-    (2) Train two phrasings and test both: two syllables ("Hey Kronk") is
-    short for a wake word and false-triggers more; "Okay Kronk" is the
-    safer bet. (3) Flash the Satellite1 first, live with it a week, tune
-    the probability cutoff against real voices in real rooms (the model
-    learns Piper's pronunciation of "Kronk", not the household's), then
-    the PEs, keeping Okay Nabu in the second slot as the fallback.
-    *Why: the assistant is named Kronk; the pucks answer to Nabu.*
-
-5. **Context/fact cache** — a small keyed store (SQLite table in the
-   orchestrator, or in-memory in tool_service) of low-volatility facts with
-   per-key TTLs: weather (~15 min), calendar, news top-of-feed, kronk
-   context. Written by fetchers, injected into agent prompts by *one* code
-   path. Replaces the hand-edited-prompt weather cache, subsumes the README's
-   old "tool-result cache" sketch, and is a prerequisite for MagicMirror
-   (the mirror wants exactly this data). No Redis — wrong scale.
-   *Why: prompt-editing as a cache doesn't scale past one fact.*
-
-6. **Telemetry v2** — trace **every** interaction (chat UI, voice, shims)
-   end-to-end, serving two masters: troubleshooting (find the trace for
-   "that thing Kronk just said" in one step — pairs with item 2) and usage
-   analysis (which agents/tools/phrasings actually get used, tier hit-rates
-   for voice, latency percentiles over time). Today's Langfuse setup is a
-   **prototype — throwing it away is on the table.** Start with a
-   requirements pass: retention, what a "usage report" should answer,
-   whether Langfuse v3 still fits or something lighter/heavier serves
-   better. Plan doc required. *Why: troubleshooting and pattern analysis
-   both depend on it; better to re-found it now than accrete on a
-   prototype.*
-
-7. **MagicMirror — read-only investigation over voice and web**
-   *(rescoped 2026-09-14)*. Tier 1 — `update_magicmirror` (the one
-   sanctioned mutation: backup-then-update over a forced-command SSH
-   key) — **shipped and in use** (2026-07-06; repaired 2026-08-16, see
-   `docs/incidents/INVESTIGATION_2026-08-14_mm_banner.md`). Tier 2 is
-   now just this: the devops agent answers questions about the mirror
-   ("is it running?", "why is the weather module stale?", "what changed
-   in the last update?") through the audited read-only `remote_exec`
-   path, from a satellite or the web UI, and **makes no changes** —
-   the standing no-mutation rule for managed hosts holds, the update
-   flow is the only exception. The questions are **arbitrary** — the
-   agent runs whatever read-only commands the audited allowlist permits
-   and reasons over the output; the only fixed list is the test battery.
-   Open work, in order: (1) **model** — benched 2026-09-14 with
-   `devops_model_bench.py` plus two log-reading probes (journal, git),
-   July rule (beat the incumbent, or tie and ≥2× tok/s):
-   Devstral 24B Q4 23/23 @ 14.8 tok/s, median answer 4.9 s;
-   gemma-4-e4b 22/23 @ 122 tok/s, 2.7 s (drops the "why skipped" detail
-   from a journal read one run in three; same on the July-refresh
-   weights); Ministral-3-8B Q8 23/23 @ 24 tok/s, 3.2 s (only 1.7×, so
-   the rule keeps Devstral). Files: `docs/bench/devops_bench_2026-09-14_*`.
-   Next single-variable step: Ministral at Q4_K_M — if it holds 23/23 at
-   ~2× it takes the slot; otherwise it is an operator override between
-   E4B (fastest, one dropped detail) and Ministral Q8 (complete, 1.6×
-   faster than Devstral). The coding agent keeps Devstral regardless; (2) the ops classifier's
-   Phase-B quirks that block real investigations (`git -C` misparse,
-   quoted pipes, `journalctl --user`); (3) voice-shaped answers — two
-   sentences spoken, the detail in the web UI; (4) the test battery in
-   the voice smoke test's shape (item 8); (5) confirm mirror phrasings
-   route to devops from a satellite. *Why: the first Kronk capability
-   that reaches another machine; investigation is the value, mutation
-   is the risk.*
-
-8. **Voice regression smoke test** — script fires ~10 canned utterances
-   through HA's `assist_pipeline/run` websocket and asserts which tier
-   answered (local intent / MA blueprint / Kronk fallback) and
-   success/failure shape. Run after any orchestrator/HA/MA change.
-   Always runs with `ERROR_STYLE=debug` — its deliberate-failure
-   assertions expect specific detail (operator decision 2026-07-05).
-   *Why: three-tier routing changes silently; every layer broke
-   independently during the music build. This is also the gate for
-   item 9.*
-
-10. **Financial expert** *(added 2026-07-07; plan approved-in-conversation,
-   `docs/plans/FINANCIAL_EXPERT_PLAN.md`)* — the finance agent learns the
-   operator's actual investment positions in service of early retirement:
-   positions store with liquid-vs-age-gated as a first-class distinction,
-   format-agnostic monthly-export ingestion (LLM maps columns once,
-   deterministic upsert extraction forever), absorption of retirement-calc's
-   validated math (FERS matrix, Monte Carlo) as a tested library with
-   liquidity-gated withdrawal, then chat tools: "am I on track?",
-   "my retirement number", what-ifs, and bridge strategies (Roth ladder,
-   72(t), Rule of 55). retire_calc app is retired at parity. *Why: the
-   actual goal all of this serves — early retirement — deserves the same
-   engineering as the plumbing.*
-
-9. **Upgrade cadence** — a deliberate, scheduled "update day" for HA, MA,
-   Langfuse, and llama.cpp rebuilds, gated by the smoke test (item 8),
-   instead of upgrading only when something breaks. MA 2.8.8 is already
-   carrying a known ytmusicapi bug fixed upstream. *Why: drift accumulates;
-   planned upgrades fail politely, forced ones don't.*
-
-## Later — wanted, unscoped
-
-- **Research agent: cite-or-mark-unverified guard for officeholder
-  claims** *(added 2026-09-03 from the K2 research bench)*. When the
-  research answer names a *current* officeholder/CEO/leader, the claim
-  must trace to a fetched page in this run or be labelled unverified.
-  Receipt: K2-7B answered "Joe Biden" / "Fumio Kishida" as current
-  leaders in Sept 2026 after its searches came up empty, where E4B
-  abstained — a structural rule would have turned both into honest
-  partials and costs E4B nothing. Tenet 5/6 shape: change the loop, not
-  the prompt (e.g. a post-check that flags proper nouns absent from every
-  tool result). Plan doc first; pair with the research bench as its test.
-- **Flock/ALPR camera watch** — alert when a Flock Safety (or other ALPR)
-  camera newly appears near home or anywhere in town. Likely source:
-  OpenStreetMap surveillance nodes via the Overpass API
-  (`man_made=surveillance` + ALPR/operator tags — the dataset behind
-  DeFlock.me), polled on a slow cadence (daily is plenty); diff against a
-  stored roster, alert on new nodes via the HA notification path. Same
-  poll → diff → notify shape as the solar monitor; home coords already
-  exist in tool_service (weather). Honesty requirement for the alert:
-  crowdsourced data lags reality, so a new node means "newly *mapped*",
-  not "newly installed" — say so in the notification.
-- **Doorbell package watch (UniFi Protect)** — tell the operator when a
-  package lands on the doorstep, video never leaving the house. Bridge:
-  HA's UniFi Protect integration against the Dream Machine (currently not
-  installed — zero Protect entities in HA, probed 2026-08-21). Tiered:
-  (0) if the doorbell is a G4 Pro / AI model, Protect detects packages
-  natively on the NVR → HA event → notification, no Kronk vision needed;
-  (1) same event through Kronk's announce primitive + a delivery log for
-  "when did it arrive?"; (2) if the model lacks package smart-detect:
-  event-driven snapshot → local VLM on the GPU (gemma-3-4b + vision
-  projector is the idle-hardware candidate; bake off vs a small
-  purpose-built VLM) → verdict → notify. **Gating question: doorbell
-  model / whether Smart Detections lists "Package".** Hard rule from the
-  hang saga: event-triggered frames only, never continuous stream
-  analysis — the UDM watches always, Kronk judges moments.
-- **Instant Pot cook times** — kitchen voice skill: "how long for black
-  beans in the instant pot?" answered fast and *correctly*. Curated local
-  table (beans/legumes soaked vs dry, grains, rice, common staples —
-  time, pressure level, release method), served by a small tool on the
-  home agent — NOT model recall (4B models confabulate cook times; math
-  in code, model narrates) and NOT web search (slow for a
-  standing-at-the-counter question; answer is static). Open design
-  choices at plan time: tool vs prompt-injected table on the coordinator
-  path (voice latency: coordinator → ask_home adds a hop); where the
-  table lives (tool_service data file, operator-editable); honest "not
-  in my table — want me to look it up?" fallback for exotic foods.
-- **Proactive Kronk** — announcements pushed to the Voice PE / other
-  speakers (timer callbacks are the trailhead; laundry, hot-tub alerts,
-  calendar reminders, solar-failure alerts follow). Design whatever timer
-  verification (item 3) reveals about HA's announce path.
-- **Health RAG completion** — `query_bloodwork` / `search_health_data`
-  tools exist in `orchestrator/tools.py` but are wired to no agent;
-  `health_service` parsing/chunking/vector-store code is in place.
-- **Secrets management rebuild** — the Infisical retirement left Garmin
-  and Withings sync as no-op stubs; current plan is per-service
-  `/data/<service>_tokens.json` bind mounts. Unblocks the health sources.
-- **More expressive TTS** — effort-ordered options already scoped in the
-  README/`docs/VOICE_SETUP.md`: different Piper voice → voicebox.sh →
-  XTTS-v2 on gfx1151 → Bark.
-- **Peer agent handoffs** — a multi-domain query routed to a *specialist*
-  still gets a single-domain answer; agents-as-tools fixed this for the
-  coordinator path only. Attack if it bites in practice. See
-  `TECH_DEBT.md` [ROUTING-01].
-- **Voice latency program** — the Kronk fallback tier runs 15–25 s, the
-  edge of tolerable. Treat as a standing constraint on new voice features;
-  attack when it bites (candidate levers: context cache, smaller/faster
-  routing, per-agent reasoning budgets — item 19).
-
-## Deferred / parked — with revisit conditions
-
-- **Hot tub monitor** — parked 2026-06-12; spa pack unreachable. See
-  `TECH_DEBT.md` [HOTTUB-01].
-- **Deliberately rejected** (per-domain tool services, SQLite pooling,
-  Redis, etc.) — see `TECH_DEBT.md` "Considered and rejected."
-- **Gemma 4 26B-A4B as coordinator** — benched 2026-10-24
-  (`docs/plans/MODEL_BENCH_GEMMA4_26B_PLAN.md`): 27/28 base and 22/24 on
-  the new hard set vs E4B's 26/28 and 20/24, at 0.76x the tok/s, about
-  the same composite latency, and 21.4 GiB GTT. Missed two pre-committed
-  lines (hard-set margin +2 of the +3 required; memory over 20 GiB), and
-  its two arithmetic misses were confident wrong dollar figures. Revisit:
-  a pre-registered 10-repeat hard-set round, a coordinator calculator
-  tool, or memory freed by retiring `llama-bonsai`. Files stay in
-  `/opt/models/google/`.
-
-## Chores / quick wins
-
-- **/resources is stale** (found 2026-10-24). The catalog metadata in
-  `litellm/config.yaml` (`kronk:` blocks) is hand-written and wrong:
-  gemma-4-e4b says Q4_K_M/128k (it runs QAT UD-Q4_K_XL, 32k, MTP draft),
-  gemma-3-4b says 128k (8k), bonsai says 1.1 GB (6.6 GB measured),
-  devstral-q4 says 14 GB (36.5 GB measured at 128k). Three dead entries
-  (mistral-nemo, devstral Q8, talkie) still show as unhealthy servers.
-  "Measured" counts GPU memory only, so E4B's 8 GiB host-RAM prompt
-  cache (`--cache-ram` default 8192 MiB) is invisible. Fix: derive
-  quant/ctx from the running unit or `/props`, add RssAnon to the
-  measurement, and prune or mark the dead entries.
-- **Coordinator bench checker:** `COMPOSITE_ANSWERS` grades "48.54 cents"
-  (correct) as a miss. Accept unrounded cents before the next bench.
-- **Solar test DST flake** (found 2026-11-04):
-  `tests/test_solar.py::test_energy_for_period_diffs_snapshots` puts its
-  snapshot at exactly `now − 7×86400 s`, but the "week" window is seven
-  wall-clock days. In the week after a DST change those differ by an hour,
-  the snapshot falls outside the window, and `clamped_to` is set. Fails
-  2026-11-01..08. Fix: place the snapshot inside the window or pin `now`.
-
-- **Ollama blob reclaim** — delete `/usr/share/ollama/.ollama/models/blobs/`
-  (~50+ GB) now that llama.cpp is stable. One careful look first.
-- Rename MA player "Sonos Move Derp" → "Sonos Move" in the MA UI so the
-  blueprint fast path resolves natural phrasing (entity_id is unchanged;
-  nothing else moves).
-- **"Who is this?" grabbed by an HA built-in intent** — 2026-09-14
-  19:00 UTC, kitchen: processed locally, spoken reply `Not any`; Kronk's
-  now-playing route never saw it. Find which intent's sentence matches
-  it and decide (custom sentence for the blueprint, or accept). Evidence
-  in `INVESTIGATION_2026-09-15_album_played_one_track.md`.
-- **NAS library: album artist fallback — done 2026-09-15.** The local
-  files have artist/album/title/track tags but no album-artist tag, and
-  MA's filesystem provider defaulted "Action when a track is missing the
-  Albumartist ID3 tag" to *Use Various Artists*: 910 of 1,063 local
-  albums were credited to Various Artists, so "album X by Y" never hit
-  the local copy and MA streamed the YouTube Music copy. Set the option
-  to **Use Track artist(s)** via the MA API (the UI-equivalent path).
-  Gotcha: a rescan skips unchanged files (size+mtime checksum), so the
-  setting only applied after removing and re-adding the provider — and
-  **removing a filesystem provider makes MA reset the whole library
-  database** and re-sync every provider (YT Music, Pandora included;
-  quiet, DEBUG-level). Backup taken first (`library.db`, `settings.json`).
-  After: 1,305 local albums, 12 under Various Artists; Daisies of the
-  Galaxy credited to Eels; the stale folder row gone. New provider
-  instance id `filesystem_local--C7G2mf6f`, default display name
-  ("Filesystem (local disk)") — rename to *atlas* in the MA UI when
-  convenient. Left over, operator hygiene: 11 album folders with
-  case/underscore twins (e.g. `Deep_Forest/Deep_Forest` vs
-  `Deep Forest/Deep Forest`) and loose files tagged with an album name
-  that create a second "virtual" album (`Fun_List/` holds three Eels
-  tracks → a 3-track *Daisies of the Galaxy*); 156 files MA cannot
-  parse at all (Bill Cosby albums, some TMBG, audiobook m4a under
-  `Unknown Artist`).
-- **Skip on a Pandora station — done 2026-09-19 by taking MA 2.11.0b2 in
-  place** (`INVESTIGATION_2026-09-19_pandora_skip.md`). On 2.8.8 a station
-  was one radio queue item and `next` had nowhere to go. Upgrade recipe as
-  run: `~/backups/ma/ma-config-2.8.8-*-quiesced.tgz` (volume tarball with
-  MA stopped; DB migrated 38→58, forward-only, so rollback = restore the
-  tarball + old tag), tag change, one named MA restart, tests from the
-  kitchen. Two things the jump needed: (1) the YouTube PO-token helper
-  had to move to **2.0.0** (the plugin bundled in 2.11 is 2.x and refuses
-  a 1.x server; 2.0.0 is also an RCE security release — and the running
-  container had drifted to `:latest` while the compose said 1.3.1, now
-  pinned); (2) Pandora's first login after the restart got a transient
-  403 and its stations only play after a **Pandora library resync** marks
-  them `is_dynamic` (2.11 serves stations as track-based dynamic radio;
-  the pre-migration rows failed with "Unsupported media type: radio").
-  Verified: YouTube album, Pandora station (two skips, song changes in
-  1 s, no idle), local album; HA integration loaded, no repair issues.
-  Side effect: Pandora now reports `pandora://track/…` per song, so
-  Kronk's now-playing wording falls to the generic "on Pandora" instead
-  of naming the station (HA exposes no station attribute). Left: Kronk's
-  `control_music next` still verifies only that the player stays
-  `playing` — make it verify a `media_title` change (voice smoke test,
-  item 8, gets a Pandora skip probe). Stable 2.11 lands on the item 9 list.
-- **Wi-Fi visibility for the satellites** *(added 2026-09-30,
-  `INVESTIGATION_2026-09-30_kitchen_stutter.md`)*. The operator created a
-  read-only UniFi controller account (`UNIFI_USER`/`UNIFI_PASSWORD` in
-  `.env`; custom role, every permission `readonly` — trim Protect/Access/
-  Talk off it to Network only). Two small pieces: (1) a latency probe on
-  Kronk that pings the named satellites every 30 s and keeps a day of
-  history (known devices only, no discovery); (2) HA's local UniFi Network
-  integration with that account, so AP utilization and per-puck rate/
-  retries sit next to MA's Sendspin logs. The 2026-09-30 stutter took a
-  console login and three rounds of pings to diagnose; this makes it one
-  query.
-- **Music: media_type miss, and the 8 s honest failure** *(added
-  2026-09-30, `INVESTIGATION_2026-09-30_music_false_success.md`; (1) done
-  2026-10-21 by the resolver, `docs/features/music-taste.md` — (2) open)*. (1) The
-  home agent's `media_type` guess can make MA fail on a query it can find
-  ("deep house chill music" as radio). A blind untyped retry is unsafe — it
-  played Akon for gibberish — so any retry must run `music_assistant.search`
-  first and only play a hit whose name shares the query's words; gibberish
-  stays a failure. (2) A failed call while music is playing now waits the
-  full 8 s verify window before saying so; the plays-anyway case (2026-09-04)
-  could get a shorter window after a failed call. One change at a time.
-- **Measure before building a tool-result guard** *(added 2026-10-05,
-  `MUSIC_ROUTING_PIN_PLAN.md`)*: after a week on the music pin, count
-  coordinator replies matching `^(I couldn't play|Now playing|Playback
-  failed|I am unable to play)` with no tool call in the turn (Langfuse).
-  Zero → the guard is not built. Also the blueprint's 10 s failure wait:
-  6 s would cover every success seen.
-- **SearXNG canary + monthly pin check** *(added 2026-10-05; **step 1 built
-  the same day**: `scripts/searxng_canary.sh`, `systemd/kronk-searxng-canary.{service,timer}`
-  enabled weekly Mon 07:30, `docs/runbooks/searxng-bump.md`; step 2 — the
-  headless monthly bump — waits until the runbook has been run twice by hand)*.
-  The "bump monthly" comment in `docker-compose.yml` lapsed for four
-  months and every search was junk for at least a month. Mechanism, in the
-  shape of the existing watchdogs (`scripts/memwatch.sh` + `lib/notify.sh`
-  + a systemd user unit): `scripts/searxng_canary.sh` on a **weekly
-  `kronk-searxng-canary.timer`** that (1) runs two fixed multi-word
-  queries through tool_service `/search` and fails unless ≥2 engines
-  answered and ≥3 of the top 5 titles contain the query's key term,
-  (2) compares the compose pin's date to the newest `2026.*` tag on Docker
-  Hub and flags a pin older than 35 days, (3) on either failure pushes one
-  HA mobile-app alert (same `ha_notify`, tag `searxng`, 24 h cooldown) that
-  names the failing engines and the newest tag. The bump itself stays a
-  deliberate step (tenet 3): a runbook `docs/runbooks/searxng-bump.md`
-  (pull, `up -d searxng`, canary, re-test bing, revert path), run by the
-  operator or by Claude in a session. Step two, once the runbook has been
-  run twice by hand: a monthly timer that runs `claude -p` with the runbook
-  and a Bash allowlist limited to compose pull/up for searxng and the
-  canary, so the bump happens without a human remembering — reported
-  through the same alert. Not before the runbook is proven.
-- **Music provider canary — built 2026-10-08** (`scripts/music_provider_canary.sh`,
-  `kronk-music-canary.timer` daily 07:00) *(added 2026-10-06,
-  `INVESTIGATION_2026-10-06_youtube_cookie.md`)*: YouTube Music's cookie
-  died silently sometime in the 3.75 days after it was pasted; MA only
-  checks at provider load, so the restart found it. Same shape as the
-  SearXNG canary: a daily timer that asks MA (`ma_command("providers")`)
-  whether `ytmusic`/`pandora`/`filesystem_local` report `available`, and
-  pushes one HA alert naming the dead one with the fix (fresh cookie
-  recipe in `docs/features/voice-music-control.md`). Correction
-  2026-10-07: static cookie snapshots do not die of age — the operator's own
-  paste lived ≥124 days under the same check; the Kronk account's died in
-  <4 days because the account is new and untrusted (or a security event
-  hit it). Fix is on the account side (age it, or use a brand account under
-  the operator's Google account), not the paste.
-- **Office Satellite1 mishears more than the kitchen PE? (pinned
-  2026-10-09)** — "pause" → "Pasta", "anime bangers" → "Anime Bankers" from
-  the office; none from the kitchen PE in the same window (6 vs 9 Kronk-tier
-  requests since 10-06 — too few to conclude). Differences: Satellite1 on
-  **beta firmware** (XMOS v1.0.3), −65 dBm on the basement AP vs −56 dBm.
-  To get evidence: (1) log the origin device into Langfuse trace metadata
-  (no restart); (2) HA `assist_pipeline: debug_recording_dir` to keep the
-  raw audio per device (HA restart — ride the planned one); free A/B: turn
-  the Satellite1's beta-firmware switch off. Whisper priming
-  (`--initial-prompt`) shelved by the operator — too close to regex hacks.
-- **Voice thumbs refuse songs already in MA's library** *(added
-  2026-10-19, found in the PR #7068 live test; `MA_FORK_STATUS.md`)*. When
-  a Pandora station plays a track that is in MA's library (anything liked
-  through MA), HA reports `media_content_id = library://track/N`, not
-  `pandora://track/…`, and `/music/rate` (`tool_service/main.py`, the
-  `_PANDORA_TRACK` check) answers "That's not a Pandora station". So a
-  liked song can't be re-rated or thumbed down by voice. Seen with
-  `library://track/15356` (Pandora `TR:213938455`). Fix: for a
-  `library://track/` id, fetch the item from MA and rate it if it has a
-  Pandora provider mapping (`set_item` accepts the library URI; its clear
-  path was verified live). Test: a library-URI track with and without a
-  Pandora mapping.
-- **New personal YTM playlists can't be played for up to 12 h** *(added
-  2026-10-21, `docs/incidents/INVESTIGATION_2026-10-21_playlist_miss_wrong_music.md`)*.
-  MA syncs YouTube Music playlists every 12 hours; until then the playlist
-  isn't in the library and search only reaches public ones. Kronk now
-  fails instead of playing a stranger's playlist. Options: shorten the
-  sync in MA's UI, or have `/music` run a YTM playlist sync on a playlist
-  miss and re-resolve once (< 10 s, misses only). Same incident: the
-  blueprint fast path still plays MA's top hit for a playlist it can't
-  find, and "what did you just play?" has no access to the last play.
-- Operator kitchen voice tests — real "Okay Nabu" music commands from the
-  Voice PE (the one untested layer of the 2026-07-03 music work).
-- Backfill tests for the 2026-07-03 fixes — routing-history merge/drop
-  (`routing.py`), terminal-tool turn-ending (`agents.py`), hooks.py
-  `call_type` normalization. They shipped before the definition-of-done
-  rule existed; each is a regression waiting for cover.
+- **Dirty MagicMirror modules** — the 2026-10-24 update skipped
+  MMM-DarkSkyRadar and MMM-RAIN-RADAR as dirty. Investigate read-only via
+  `/ops/exec`; any change on the Pi needs the operator's per-action go.
 
 ## Shipped
 
@@ -661,9 +116,24 @@ Newest first; feature docs in `docs/features/`.
   blueprint (change 9) hands loose phrasings and failed named plays to
   Kronk. Subsumes the "media_type miss" chore. See
   `docs/features/music-taste.md`, `docs/plans/MUSIC_TASTE_AGENT_PLAN.md`.
-  Open: the `rest_command` voice path (needs one HA restart, operator's
-  call).
 
+- **Pandora station creation** *(2026-10-21; search-cache fix in kronk.9)* —
+  "play X radio" creates the Pandora station when it doesn't exist, through
+  a patched MA provider in the derived image. Upstream PR pending.
+  `docs/plans/PANDORA_CREATE_STATION_PLAN.md`.
+- **Music provider canary** *(2026-10-08)* — daily `kronk-music-canary.timer`
+  alerts when YouTube Music, Pandora or the NAS provider stops reporting
+  available (`INVESTIGATION_2026-10-06_youtube_cookie.md`).
+- **Pandora thumbs by voice** *(2026-10-06; on MA's `set_favorite` since
+  2026-10-16)* — "thumbs up/down" trains the playing station. See
+  `docs/features/pandora-thumbs.md`.
+- **SearXNG canary** *(2026-10-05)* — weekly quality and pin-age check with
+  a phone alert, plus the bump runbook `docs/runbooks/searxng-bump.md`.
+- **Skip on a Pandora station** *(2026-09-19)* — MA 2.11.0b2 serves stations
+  as track queues, so `next` works. `INVESTIGATION_2026-09-19_pandora_skip.md`.
+- **NAS library credited to the right artists** *(2026-09-15)* — MA's
+  filesystem provider set to use track artists when the album-artist tag is
+  missing; 910 of 1,063 albums had been "Various Artists".
 - **Leaked thinking never reaches the user** *(2026-09-14)* — text a
   model produces in a round that ends with a tool call is retracted by
   the loop before it is spoken or stored (voice drops it, the web UI
@@ -798,6 +268,14 @@ Newest first; feature docs in `docs/features/`.
   on-device; Kronk's timer tool, route, and env were decommissioned.
   Operator leftover: the unused `timer.voice_timer` helper and the
   broken timer-finished announce automation in HA.
+- **Financial expert, phase 1** *(2026-07-10)* — positions store with
+  liquid vs age-gated accounts and zero-question ingestion (CSV, XLSX,
+  statement PDF; LLM extraction behind a reconciliation gate).
+  `docs/plans/FINANCIAL_EXPERT_PLAN.md`.
+- **MagicMirror updates by voice** *(2026-07-06; repaired 2026-08-16 and
+  2026-10-22)* — backup-then-update over a forced-command SSH key.
+  `INVESTIGATION_2026-08-14_mm_banner.md`,
+  `INVESTIGATION_2026-10-22_mm_core_lockfile.md`.
 - **Verbose error reporting** *(item 2, 2026-07-05)* — every layer surfaces
   its most specific failure cause; failed turns marked ERROR in Langfuse;
   "an unexpected error occurred" is now a bug by tenet. Includes the
