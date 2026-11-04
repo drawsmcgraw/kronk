@@ -779,6 +779,18 @@ def _mm_update_speech(ok: bool, fields: dict, detail: str) -> str:
     # for an explicit rollback request.
     step = ""
     m = re.search(r"step=(\S+)", detail)
+    # Preflight and backup run before anything changes: there is no backup
+    # to keep and nothing to roll back. Saying so anyway sent the operator
+    # looking for a rollback that didn't exist (2026-10-22, twice,
+    # INVESTIGATION_2026-10-22_mm_core_lockfile.md).
+    if m and m.group(1) in ("preflight", "backup"):
+        if m.group(1) == "backup":
+            why = "the backup failed"
+        elif "local changes" in detail:
+            why = "the mirror has local file changes that need a look first"
+        else:
+            why = "a pre-update check failed"
+        return f"The magic mirror update didn't start: {why}. Nothing was changed."
     if m:
         step = f" at the {m.group(1).replace('-', ' ')} step"
     return (f"The magic mirror update failed{step}. I kept a backup and left "
@@ -993,6 +1005,9 @@ HA_TOKEN = os.getenv("HA_TOKEN", "")
 MUSIC_DEFAULT_PLAYER = os.getenv("MUSIC_DEFAULT_PLAYER", "")
 
 MUSIC_VERIFY_TIMEOUT_S = 8   # how long to wait for a player to reach `playing`
+# HA's music_assistant integration found nothing by that name; raised before
+# it calls MA, so no playback can follow (media_player.py, async_play_media).
+_RESOLVE_MISS_RE = re.compile(r"Could not resolve .* to playable media item")
 
 # One template call answers everything the resolver needs: every MA player
 # with name / area / state / player type / its MA device key ('up' + MAC —
@@ -1005,9 +1020,6 @@ _PLAYERS_TEMPLATE = (
     "{% for e in integration_entities('music_assistant') if e.startswith('media_player.') %}"
     "{% set d = device_id(e) %}"
     "{% set ids = (device_attr(d, 'identifiers') | list) if d else [] %}"
-# HA's music_assistant integration found nothing by that name; raised before
-# it calls MA, so no playback can follow (media_player.py, async_play_media).
-_RESOLVE_MISS_RE = re.compile(r"Could not resolve .* to playable media item")
     "{% set key = ids | selectattr(0, 'eq', 'music_assistant') | map(attribute=1) | first | default('') %}"
     "{% set ns.out = ns.out + [{'entity_id': e, 'name': state_attr(e, 'friendly_name'), "
     "'area': area_name(e), 'state': states(e), 'type': state_attr(e, 'mass_player_type'), "
@@ -1023,6 +1035,8 @@ _DEVICE_ID_RE = re.compile(r"^[0-9a-f]{32}$")
 class MusicRequest(BaseModel):
     query: str
     media_type: str | None = None    # artist | album | track | playlist | radio
+    artist: str | None = None        # "by Y", when the caller already split it (the blueprint)
+    kind: str | None = None          # named | genre | another; None = decide (genre if the query is one)
     player: str | None = None        # spoken speaker OR room, as the user said it
     shuffle: bool = False            # "shuffle X" — set on the player after play, like the blueprint
     origin_area: str | None = None   # area of the satellite that heard the request
@@ -1035,8 +1049,6 @@ def _players_template(origin_device: str | None) -> str:
 
 
 def _norm_player(p: dict) -> dict:
-    artist: str | None = None        # "by Y", when the caller already split it (the blueprint)
-    kind: str | None = None          # named | genre | another; None = decide (genre if the query is one)
     return {
         "entity_id": p["entity_id"],
         "name": p.get("name") or p["entity_id"],
@@ -1875,18 +1887,6 @@ async def ma_command(command: str, _timeout: float = 20, **args) -> object:
         raise MAError(f"Music Assistant is unreachable ({type(e).__name__}).") from e
 
 
-class MusicControlRequest(BaseModel):
-    action: str
-    player: str | None = None         # spoken speaker OR room, as the user said it
-    origin_area: str | None = None
-    origin_device: str | None = None
-
-
-@app.post("/music/control")
-async def control_music(req: MusicControlRequest):
-    if not HA_TOKEN:
-        raise HTTPException(status_code=500, detail="HA_TOKEN not configured")
-    action = (req.action or "").strip().lower().replace(" ", "_")
 # Item id prefix of a Pandora station offered from the catalogue but not
 # created yet (MA's Pandora provider, kronk.8+: PANDORA_CREATE_STATION_PLAN).
 PANDORA_SEED_PREFIX = "seed:"
@@ -1921,6 +1921,18 @@ async def _pandora_station(query: str) -> dict | None:
     }
 
 
+class MusicControlRequest(BaseModel):
+    action: str
+    player: str | None = None         # spoken speaker OR room, as the user said it
+    origin_area: str | None = None
+    origin_device: str | None = None
+
+
+@app.post("/music/control")
+async def control_music(req: MusicControlRequest):
+    if not HA_TOKEN:
+        raise HTTPException(status_code=500, detail="HA_TOKEN not configured")
+    action = (req.action or "").strip().lower().replace(" ", "_")
     if action not in _CONTROL_ACTIONS:
         raise HTTPException(
             status_code=400,
@@ -2109,6 +2121,7 @@ async def rate_music(req: MusicRateRequest):
         song = attrs.get("media_title") or "that track"
         artist = attrs.get("media_artist")
         what = f"{song} by {artist}" if artist else song
+        _taste_feedback(artist, FEEDBACK_THUMB if thumb == "up" else -FEEDBACK_THUMB, f"thumb_{thumb}")
         if thumb == "up":
             _spawn(like_in_background(content, what))
             return {"status": "up", "player": label, "song": song, "artist": artist, "confirmed": False,
@@ -2121,7 +2134,6 @@ async def rate_music(req: MusicRateRequest):
         # Thumbs down: skip, and verify the skip (a Pandora station skip is a real
         # queue advance on MA 2.11; the title must change).
         before = attrs.get("media_title")
-        _taste_feedback(artist, FEEDBACK_THUMB if thumb == "up" else -FEEDBACK_THUMB, f"thumb_{thumb}")
         skipped = None
         try:
             await ha_call_service("media_player", "media_next_track", {}, target={"entity_id": [entity]})

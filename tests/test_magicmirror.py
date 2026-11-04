@@ -186,6 +186,24 @@ def test_mm_update_speech_failure_keeps_state_and_offers_rollback():
     assert "rolled" not in s.replace("roll it back", "")  # no auto-rollback claim
 
 
+def test_mm_update_speech_preflight_failure_claims_no_backup():
+    """Preflight fails before the backup is taken — nothing changed, nothing
+    to roll back (2026-10-22: the announce offered a rollback anyway)."""
+    s = ts._mm_update_speech(False, {"step": "preflight"},
+                             "KRONK-FAIL update step=preflight tracked local changes in "
+                             "/home/pi/MagicMirror — resolve by hand first (git status)")
+    assert s == ("The magic mirror update didn't start: the mirror has local file "
+                 "changes that need a look first. Nothing was changed.")
+    assert "backup" not in s and "roll" not in s
+
+
+def test_mm_update_speech_backup_failure_claims_no_backup():
+    s = ts._mm_update_speech(False, {"step": "backup"},
+                             "KRONK-FAIL update step=backup tar exit 1: tar: MagicMirror/.git: "
+                             "file changed as we read it")
+    assert s == "The magic mirror update didn't start: the backup failed. Nothing was changed."
+
+
 @pytest.mark.asyncio
 async def test_announce_is_non_fatal(monkeypatch):
     """A failed announce must never break the update flow — the status file

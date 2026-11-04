@@ -113,19 +113,40 @@ case "$verb" in
     # incl. config.js, custom.css, modules/ and node_modules, so a rollback
     # is a pure restore with no npm reinstall. Exclude prior backups if they
     # live under the tree (they don't by default; guard anyway).
+    # GNU tar exits 1 when a file changed while it was read — a live mirror
+    # touches .git (index, objects) mid-backup; 2026-10-22 failed on
+    # "MagicMirror/.git: file changed as we read it" with 100 GB free
+    # (INVESTIGATION_2026-10-22_mm_core_lockfile.md). That archive may hold a
+    # half-read file, so it is not kept: retry once, then fail with tar's own
+    # words. Exit 2 is fatal (disk, permissions) — no retry. A failed archive
+    # is deleted so rotation never counts it as a good backup.
     mkdir -p "$BACKUP_DIR"
-    stamp=$(date +%Y%m%d-%H%M%S)
-    backup="$BACKUP_DIR/mm-backup-$stamp-$old_rev.tar.gz"
-    tar --exclude="$(basename "$BACKUP_DIR")" -czf "$backup" \
-        -C "$(dirname "$MM_DIR")" "$(basename "$MM_DIR")" \
-      || fail backup "tar failed (disk full?)"
+    for attempt in 1 2; do
+      stamp=$(date +%Y%m%d-%H%M%S)
+      backup="$BACKUP_DIR/mm-backup-$stamp-$old_rev.tar.gz"
+      tar_rc=0
+      tar_err=$(tar --exclude="$(basename "$BACKUP_DIR")" -czf "$backup" \
+                  -C "$(dirname "$MM_DIR")" "$(basename "$MM_DIR")" 2>&1) || tar_rc=$?
+      [ "$tar_rc" -eq 0 ] && break
+      rm -f "$backup"
+      [ "$tar_rc" -eq 1 ] && [ "$attempt" -eq 1 ] && { sleep 5; continue; }
+      fail backup "tar exit $tar_rc: $(printf '%s\n' "$tar_err" | tail -n 1)"
+    done
     ls -1t "$BACKUP_DIR"/mm-backup-*.tar.gz | tail -n +$((KEEP_BACKUPS + 1)) | xargs -r rm -f
 
-    # Official upgrade procedure (docs.magicmirror.builders upgrade guide):
-    # git pull && node --run install-mm. npm-install fallback for older MM.
+    # Official upgrade procedure (docs.magicmirror.builders upgrade guide) is
+    # git pull && node --run install-mm, but install-mm is `npm install`, and
+    # the Pi's npm 10.9.9 rewrote 2.38.0's tracked lockfile (dropped `libc`
+    # fields a newer npm writes). The preflight guard then refused every later
+    # update (INVESTIGATION_2026-10-22_mm_core_lockfile.md). npm ci installs
+    # the same prod deps and never rewrites the lockfile — the module fix of
+    # 2026-08-16, applied to core. install-mm / npm install remain the
+    # fallback (lockfile out of sync with package.json, older MM); after
+    # them the tracked lockfile is restored so the next preflight passes.
     git pull --ff-only || fail git-pull "git pull failed — see output above; backup at $backup"
-    if node --run install-mm 2>/dev/null; then :
-    elif npm install --no-audit --no-fund; then :
+    if npm ci --omit=dev --no-audit --no-fund --no-update-notifier; then :
+    elif node --run install-mm 2>/dev/null || npm install --no-audit --no-fund; then
+      git checkout -- package-lock.json 2>/dev/null || true
     else fail npm-install "dependency install failed; backup at $backup"
     fi
 
