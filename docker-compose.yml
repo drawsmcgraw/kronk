@@ -64,6 +64,11 @@ services:
 
   tool_service:
     build: ./tool_service
+    # Loopback only: Home Assistant (host networking) calls /music/voice from
+    # the music blueprint's rest_command (MUSIC_TASTE_AGENT_PLAN step 7).
+    # Not reachable from the LAN — everything else goes through nginx.
+    ports:
+      - "127.0.0.1:8003:8003"
     volumes:
       - ./data:/data
       # MagicMirror SSH key (gitignored; private key lives only here).

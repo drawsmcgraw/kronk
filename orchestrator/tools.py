@@ -401,9 +401,13 @@ TOOL_DEFINITIONS = [
             "description": (
                 "Play music through Music Assistant on a home speaker. Use "
                 "whenever the user asks to play, put on, or listen to music — "
-                "an artist, album, song, playlist, or genre. Music Assistant "
-                "searches for the query itself, so pass the artist/album/song "
-                "name as plain text."
+                "an artist, album, song, playlist, or genre. Pass the "
+                "artist/album/song name as plain text; spelling mistakes are "
+                "corrected for you. For a style instead of a specific record "
+                "('some deep house', 'something chill', 'jazz', 'some music') "
+                "pass kind 'genre' and Kronk picks something the household "
+                "likes. For 'not that' / 'something else' right after Kronk "
+                "picked, pass kind 'another'."
             ),
             "parameters": {
                 "type": "object",
@@ -416,6 +420,13 @@ TOOL_DEFINITIONS = [
                         "type": "string",
                         "enum": ["artist", "album", "track", "playlist", "radio"],
                         "description": "What kind of thing the query names, if the user said so (album/song/etc). Omit when unsure.",
+                    },
+                    "kind": {
+                        "type": "string",
+                        "enum": ["named", "genre", "another"],
+                        "description": "genre = a style or vibe, not a specific record (query is the style, "
+                                       "or 'music' for 'play some music'); another = replace Kronk's last pick "
+                                       "(query 'another'). Omit for a specific artist/album/song.",
                     },
                     "shuffle": {
                         "type": "boolean",
@@ -477,6 +488,39 @@ TOOL_DEFINITIONS = [
                     },
                 },
                 "required": ["thumb"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "remember_music_preference",
+            "description": (
+                "Save a household music preference to Kronk's taste file. Use for 'we love "
+                "Ulrich Schnauss', 'never play Nickelback', 'forget that we love X', 'when I say "
+                "chill I mean deep house and downtempo'. Not for rating the song playing now "
+                "(that is rate_music). This is the ONLY way to save one — never claim it was "
+                "saved without calling it."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "action": {
+                        "type": "string",
+                        "enum": ["love", "never", "forget", "means"],
+                        "description": "love = favor it; never = don't pick it; forget = remove it; "
+                                       "means = what a genre word means here.",
+                    },
+                    "value": {
+                        "type": "string",
+                        "description": "The artist, album, or genre — or for 'means', the word being defined (e.g. 'chill').",
+                    },
+                    "meaning": {
+                        "type": "string",
+                        "description": "For 'means' only: the genres, comma-separated (e.g. 'deep house, downtempo').",
+                    },
+                },
+                "required": ["action", "value"],
             },
         },
     },
@@ -894,6 +938,8 @@ async def _tool_play_music(client: httpx.AsyncClient, args: dict) -> str:
         payload["player"] = args["player"]
     if args.get("shuffle"):
         payload["shuffle"] = True
+    if args.get("kind") in ("named", "genre", "another"):
+        payload["kind"] = args["kind"]
     # Where the request came from (voice satellite) — set by the shim for the
     # life of the request (origin.py). tool_service prefers a spoken speaker
     # or room, then this device, then its room, then the default. The model
@@ -908,6 +954,21 @@ async def _tool_play_music(client: httpx.AsyncClient, args: dict) -> str:
     if resp.status_code == 200:
         info = resp.json()
         what = " by ".join(p for p in (info.get("title"), info.get("artist")) if p) or query
+        res = info.get("resolved") or {}
+        if res.get("media_type") in ("album", "playlist", "artist"):
+            # The record that was asked for, not its first track — and its
+            # real spelling, which is how a misheard title gets corrected.
+            what = " by ".join(p for p in (res.get("name"), res.get("artist")) if p)
+        if pick := info.get("pick"):
+            # Kronk chose this one — say what, and for what, so "not that"
+            # has something to refer to.
+            for_what = f", for {pick['phrase']}," if pick.get("phrase") else ""
+            return f"[Music playing: {pick['label']}{for_what} on {info.get('player')}]"
+        if station := info.get("station"):
+            # Radio queues always report shuffle on, so no "shuffled" here.
+            lead = (f"Made a new Pandora station, {station['name']}." if station.get("created")
+                    else f"Playing your Pandora station, {station['name']}.")
+            return f"[Station playing: {lead} Now playing {what} on {info.get('player')}.]"
         shuffled = ", shuffled" if info.get("shuffle") else ""
         return f"[Music playing: {what} on {info.get('player')}{shuffled}]"
     try:
@@ -972,6 +1033,24 @@ async def _tool_rate_music(client: httpx.AsyncClient, args: dict) -> str:
         f"[Could not rate music: {detail}]\n"
         "The rating FAILED — tell the user it failed and why. "
         "Do NOT claim it was recorded. Do NOT call rate_music again."
+    )
+
+
+async def _tool_remember_music_preference(client: httpx.AsyncClient, args: dict) -> str:
+    payload: dict = {"action": (args.get("action") or "").strip().lower(),
+                     "value": (args.get("value") or "").strip()}
+    if args.get("meaning"):
+        payload["meaning"] = [m.strip() for m in str(args["meaning"]).split(",") if m.strip()]
+    resp = await client.post(f"{TOOL_SERVICE_URL}/music/taste", json=payload)
+    if resp.status_code == 200:
+        return f"[Music taste: {resp.json().get('detail', 'Saved.')}]"
+    try:
+        detail = resp.json().get("detail", "")
+    except Exception:
+        detail = resp.text[:200]
+    return (
+        f"[Could not save music taste: {detail}]\n"
+        "Saving FAILED — tell the user it failed and why. Do NOT claim it was saved."
     )
 
 
@@ -1111,6 +1190,7 @@ _HANDLERS = {
     "play_music":           _tool_play_music,
     "control_music":        _tool_control_music,
     "rate_music":           _tool_rate_music,
+    "remember_music_preference": _tool_remember_music_preference,
     "now_playing":          _tool_now_playing,
     "update_magicmirror":   _tool_update_magicmirror,
     "remote_exec":          _tool_remote_exec,

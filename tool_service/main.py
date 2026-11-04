@@ -3,12 +3,15 @@ import json
 import logging
 import os
 import re
+import sqlite3
 import subprocess
 import time
 import uuid
 from contextlib import asynccontextmanager
+from datetime import datetime
 from pathlib import Path
 from typing import List
+from zoneinfo import ZoneInfo
 import httpx
 import websockets
 import websockets.exceptions
@@ -21,13 +24,17 @@ from pydantic import BaseModel
 # tests (from . import x). The relative form also avoids the repo-root ops/
 # registry dir shadowing the ops module on the test sys.path.
 try:
+    from . import music_resolve
     from . import news
     from . import ops
     from . import solar
+    from . import taste
 except ImportError:
+    import music_resolve
     import news
     import ops
     import solar
+    import taste
 
 # Without this, INFO logs are silently dropped under uvicorn (only WARNING+
 # escapes via the last-resort handler) — the /music "full error body goes to
@@ -126,7 +133,14 @@ async def lifespan(app: FastAPI):
     news_task = None
     if os.getenv("NEWS_ENABLED", "1") == "1":
         news_task = asyncio.create_task(news.refresh_loop())
+    # Household taste, learned half (MUSIC_TASTE_AGENT_PLAN step 4): built
+    # at startup when stale, then nightly. Needs MA's API token.
+    taste_task = None
+    if os.getenv("MUSIC_TASTE_ENABLED", "1") == "1" and MA_TOKEN:
+        taste_task = asyncio.create_task(taste.refresh_loop(ma_command))
     yield
+    if taste_task:
+        taste_task.cancel()
     task.cancel()
     if solar_task:
         solar_task.cancel()
@@ -991,6 +1005,9 @@ _PLAYERS_TEMPLATE = (
     "{% for e in integration_entities('music_assistant') if e.startswith('media_player.') %}"
     "{% set d = device_id(e) %}"
     "{% set ids = (device_attr(d, 'identifiers') | list) if d else [] %}"
+# HA's music_assistant integration found nothing by that name; raised before
+# it calls MA, so no playback can follow (media_player.py, async_play_media).
+_RESOLVE_MISS_RE = re.compile(r"Could not resolve .* to playable media item")
     "{% set key = ids | selectattr(0, 'eq', 'music_assistant') | map(attribute=1) | first | default('') %}"
     "{% set ns.out = ns.out + [{'entity_id': e, 'name': state_attr(e, 'friendly_name'), "
     "'area': area_name(e), 'state': states(e), 'type': state_attr(e, 'mass_player_type'), "
@@ -1018,6 +1035,8 @@ def _players_template(origin_device: str | None) -> str:
 
 
 def _norm_player(p: dict) -> dict:
+    artist: str | None = None        # "by Y", when the caller already split it (the blueprint)
+    kind: str | None = None          # named | genre | another; None = decide (genre if the query is one)
     return {
         "entity_id": p["entity_id"],
         "name": p.get("name") or p["entity_id"],
@@ -1211,99 +1230,581 @@ async def play_music(req: MusicRequest):
         logger.info("music request query=%r media_type=%r player=%r shuffle=%r -> %s",
                     req.query, req.media_type, req.player, req.shuffle, entities)
 
-        # What each target is doing before the call. Success is the player
-        # *changing* to something new, not merely being in `playing`: with
-        # music already on, a failed call left the old track playing and the
-        # old check reported it as the new one (2026-09-30, "deep house chill
-        # music" → spoken "now playing Fountains of Wayne"). Tenet 6.
-        before = {e: _now_playing_key(await _get_state(client, headers, e)) for e in entities}
+        # A radio request names the Pandora station it will play, and whether
+        # this play creates it; the play then goes by that station's URI so
+        # the station named is the station played.
+        # A provider hint ("… on YouTube Music", "… from Atlas") is not part
+        # of the title — MA searched for it and found nothing — and a pasted
+        # YouTube Music link plays by its URI (music_resolve.py).
+        nq = music_resolve.normalize(req.query, req.artist)
+        media_type = nq.uri_type or req.media_type
+        kind = (req.kind or "").strip().lower()
 
-        service_data = {"media_id": req.query}
-        if req.media_type:
-            service_data["media_type"] = req.media_type
-        # Over the websocket so a failure carries HA's / MA's own message
-        # (the REST API drops it — see ha_call_service). A failed call still
-        # gets the verify poll below: MA has been seen to fail the call AND
-        # start playing (2026-09-04, "put on some jazz").
-        failure: str | None = None
-        try:
-            await ha_call_service("music_assistant", "play_media", service_data,
-                                  target={"entity_id": entities})
-        except HAServiceError as e:
-            failure = str(e)
+        # A genre or "not that" request: Kronk picks (MUSIC_TASTE_AGENT_PLAN
+        # step 5). An undeclared request is a genre when the query is one
+        # ("jazz", "some deep house") and nothing says it's a specific item.
+        if kind == "another":
+            return await _play_genre(client, headers, entities, label, req, _another_plan(entities))
+        if kind == "genre" or (kind != "named" and not media_type and not nq.uri):
+            plan = await _genre_plan(nq, forced=(kind == "genre"), area=live[0].get("area"))
+            if plan:
+                return await _play_genre(client, headers, entities, label, req, plan)
+
+        station = await _pandora_station(nq.text) if (media_type or "").lower() == "radio" else None
+        # Everything else named resolves through search + scoring first, so
+        # a misspelling plays the record that was meant. When search found
+        # candidates and rejected them all, stop: a literal play_media runs
+        # MA's own search and plays its top hit — one of the candidates just
+        # rejected ("Old Man Sings" played "Late Night with Jimmy Fallon",
+        # 2026-10-21, docs/incidents/INVESTIGATION_2026-10-21_playlist_miss_wrong_music.md).
+        # No candidates at all, or MA unreachable, keeps the old literal play.
+        # A radio request MA can't name exactly goes through the same scoring
+        # against the stations search finds: Pandora names stations "<seed>
+        # Radio", and "90s, 2000's and today's hits" missed "90s, 2000s,
+        # Today's Hits Radio" (2026-10-25,
+        # docs/incidents/INVESTIGATION_2026-10-25_pandora_station_name_miss.md).
+        is_radio = (media_type or "").lower() == "radio"
+        resolved, best_guess = None, None
+        if not nq.uri and (not is_radio or station is None):
+            resolved, best_guess = await _resolve_named(nq, media_type)
+            if best_guess and not resolved:
+                raise HTTPException(status_code=502, detail=_not_found_sentence(nq, media_type, best_guess))
+            if resolved and is_radio and "pandora" in resolved.providers:
+                station = {"name": resolved.name, "uri": resolved.uri, "created": False}
+        if resolved:
+            service_data = {"media_id": resolved.uri, "media_type": resolved.media_type}
+        else:
+            service_data = {"media_id": nq.uri or (station["uri"] if station else nq.text)}
+            if media_type:
+                service_data["media_type"] = media_type
+        if nq.provider or nq.uri:
+            logger.info("music query normalized %r -> %r (provider=%s)", req.query,
+                        service_data["media_id"], nq.provider)
         # No blind retry without media_type: MA's untyped search always
         # returns *something* — "zzqx florbent nonexistent" played Akon
-        # (2026-09-30, live test). A retry has to check the hit resembles the
-        # query first; see ROADMAP chore "music: media_type miss".
-
-        # Verify playback actually started (see header comment): a target
-        # reaching `playing` with something other than what it had before.
-        # A call that did not fail and a player that stays on the same item
-        # (asked for what is already playing) is accepted at the deadline.
-        deadline = asyncio.get_event_loop().time() + MUSIC_VERIFY_TIMEOUT_S
-        same_item: dict | None = None
-        while True:
-            await asyncio.sleep(1)
-            started = None
-            for entity in entities:
-                state = await _get_state(client, headers, entity)
-                if state.get("state") != "playing":
-                    continue
-                if _now_playing_key(state) != before[entity]:
-                    started = (entity, state)
-                    break
-                same_item = same_item or state
-            if started is None and asyncio.get_event_loop().time() >= deadline:
-                if same_item is not None and failure is None:
-                    started = (entities[0], same_item)
-                else:
-                    break
-            if started is not None:
-                entity, state = started
-                if failure:
-                    logger.warning("play_media reported failure but %s started playing: %s", entity, failure)
-                attrs = state.get("attributes", {})
-                # Shuffle is a player (queue) setting, not a play_media
-                # option — set it explicitly every time, on or off, the
-                # way the blueprint does, so a previous "shuffle" never
-                # leaks into the next album. Reported from the player's
-                # own attribute afterwards, not from the request.
-                shuffle = bool(attrs.get("shuffle"))
-                if bool(req.shuffle) != shuffle:
-                    try:
-                        await ha_call_service("media_player", "shuffle_set",
-                                              {"shuffle": bool(req.shuffle)},
-                                              target={"entity_id": entities})
-                        state = (await client.get(f"{HA_URL}/api/states/{entity}", headers=headers)).json()
-                        shuffle = bool(state.get("attributes", {}).get("shuffle"))
-                    except HAServiceError as e:
-                        logger.warning("shuffle_set failed on %s: %s", entity, e)
-                return {
-                    "status": "playing",
-                    "player": label,
-                    "artist": attrs.get("media_artist"),
-                    "title":  attrs.get("media_title"),
-                    "shuffle": shuffle,
-                }
+        # (2026-09-30, live test). The resolver above is the checked retry.
+        await _shuffle_before_play(client, headers, entities, bool(req.shuffle))
+        started, failure = await _play_verified(client, headers, entities, service_data)
+        if started is not None:
+            entity, state = started
+            attrs = state.get("attributes", {})
+            # Shuffle is a player (queue) setting, not a play_media
+            # option — set it explicitly every time, on or off, so a
+            # previous "shuffle" never leaks into the next album. Set
+            # before the play (above); this is the retry for a queue that
+            # refused it then. Reported from the player's own attribute
+            # afterwards, not from the request.
+            shuffle = bool(attrs.get("shuffle"))
+            if bool(req.shuffle) != shuffle:
+                try:
+                    await ha_call_service("media_player", "shuffle_set",
+                                          {"shuffle": bool(req.shuffle)},
+                                          target={"entity_id": entities})
+                    state = (await client.get(f"{HA_URL}/api/states/{entity}", headers=headers)).json()
+                    shuffle = bool(state.get("attributes", {}).get("shuffle"))
+                except HAServiceError as e:
+                    logger.warning("shuffle_set failed on %s: %s", entity, e)
+            result = {
+                "status": "playing",
+                "player": label,
+                "artist": attrs.get("media_artist"),
+                "title":  attrs.get("media_title"),
+                "shuffle": shuffle,
+            }
+            if station:
+                result["station"] = {"name": station["name"], "created": station["created"]}
+            if resolved:
+                result["resolved"] = {"name": resolved.name, "artist": resolved.artist,
+                                      "media_type": resolved.media_type}
+            return result
 
     if failure:
-        # HA's / MA's own sentence, spoken as-is ("Playback failed for
-        # Portishead Radio - no more tracks available"). Prefixed only when
-        # the message doesn't already say what failed. MA renders the
-        # unresolved query as a Python list — "['Zorblax Radio']" — which a
-        # TTS engine reads bracket by bracket; unwrap that one shape.
-        failure = re.sub(r"\['([^']*)'\]", r"\1", failure)
-        detail = failure if failure.lower().startswith(("playback", "music", "home assistant")) \
-            else f"Playback failed: {failure}"
-        raise HTTPException(status_code=502, detail=detail)
-    raise HTTPException(
-        status_code=502,
-        detail=(
-            "Music Assistant accepted the request but playback did not start "
+        raise HTTPException(status_code=502, detail=_failure_sentence(failure))
+    raise HTTPException(status_code=502, detail=_no_start_sentence(label))
+
+
+def _not_found_sentence(nq: "music_resolve.Query", media_type: str | None,
+                        best_guess: "music_resolve.Candidate | None") -> str:
+    mt = (media_type or "").lower()
+    mt = "station" if mt == "radio" else mt
+    what = f"{'an' if mt[:1] in 'aeiou' else 'a'} {mt}" if mt else "anything"
+    by = f" by {nq.artist}" if nq.artist else ""
+    detail = f"I couldn't find {what} called {nq.name or nq.text}{by} in Music Assistant."
+    if best_guess and best_guess.score >= RESOLVE_HINT_MIN_SCORE:
+        gby = f" by {best_guess.artist}" if best_guess.artist else ""
+        detail += f" The closest I found was {best_guess.name}{gby}."
+    return detail
+
+
+# ── The voice tier's handoff (MUSIC_TASTE_AGENT_PLAN step 7) ────────────────
+# HA's music blueprint (ha/blueprints/mass_assist_kronk.yaml) calls this via
+# rest_command when its own literal play_media fails, and directly for the
+# loose phrasings it now owns ("play some deep house", "play something",
+# "not that"). Same resolver and taste as /music, the satellite's device id
+# for targeting, and one sentence back for Assist to speak. Always 200: the
+# rest_command response is the blueprint's only channel, so the outcome
+# rides in `ok`.
+_VOICE_ANOTHER = {"else", "different", "something else", "something different", "another", "another one"}
+
+
+def voice_sentence(info: dict) -> str:
+    player = info.get("player") or "the speaker"
+    if pick := info.get("pick"):
+        for_what = f", for {pick['phrase']}," if pick.get("phrase") else ""
+        return f"{pick['label']}{for_what} on {player}."
+    if station := info.get("station"):
+        lead = "Made a new Pandora station" if station.get("created") else "Playing your Pandora station"
+        return f"{lead}, {station['name']}, on {player}."
+    res = info.get("resolved") or {}
+    if res.get("media_type") in ("album", "playlist", "artist"):
+        what = " by ".join(x for x in (res.get("name"), res.get("artist")) if x)
+    else:
+        what = " by ".join(x for x in (info.get("title"), info.get("artist")) if x) or "Music"
+    shuffled = "Shuffling " if info.get("shuffle") and res.get("media_type") not in (None, "artist") else ""
+    return f"{shuffled}{what} on {player}."
+
+
+@app.post("/music/voice")
+async def play_music_voice(req: MusicRequest):
+    q = music_resolve.fold(req.query)
+    if q in _VOICE_ANOTHER:
+        req.kind = "another"
+    elif not q:
+        req.query, req.kind = "music", req.kind or "genre"
+    logger.info("voice handoff query=%r media_type=%r artist=%r kind=%r player=%r",
+                req.query, req.media_type, req.artist, req.kind, req.player)
+    try:
+        info = await play_music(req)
+    except HTTPException as e:
+        return {"ok": False, "say": f"I couldn't play that. {e.detail}"}
+    return {"ok": True, "say": voice_sentence(info), "result": info}
+
+
+def _failure_sentence(failure: str) -> str:
+    """HA's / MA's own sentence, spoken as-is ("Playback failed for
+    Portishead Radio - no more tracks available"). Prefixed only when the
+    message doesn't already say what failed. MA renders the unresolved query
+    as a Python list — "['Zorblax Radio']" — which a TTS engine reads
+    bracket by bracket; unwrap that one shape."""
+    failure = re.sub(r"\['([^']*)'\]", r"\1", failure)
+    return failure if failure.lower().startswith(("playback", "music", "home assistant")) \
+        else f"Playback failed: {failure}"
+
+
+def _no_start_sentence(label: str) -> str:
+    return ("Music Assistant accepted the request but playback did not start "
             f"on {label} within {MUSIC_VERIFY_TIMEOUT_S}s — the music "
-            "provider may need re-authentication in Music Assistant."
-        ),
-    )
+            "provider may need re-authentication in Music Assistant.")
+
+
+async def _shuffle_before_play(client: httpx.AsyncClient, headers: dict, entities: list[str],
+                               on: bool) -> None:
+    """Set the queue's shuffle before play_media, not after. MA shuffles
+    only the items after the current one: set after the play, a shuffled
+    playlist always opens on its track 1 ("Old Man Sings" opened on "Man
+    About a Dog", kitchen 2026-10-21). Set before, MA shuffles as it
+    enqueues — three of three random first tracks (basement, same day).
+    Best effort: a queue in dynamic (radio) mode refuses it, and the
+    caller's after-play set tries again."""
+    try:
+        state = await _get_state(client, headers, entities[0])
+    except httpx.HTTPError as e:
+        logger.warning("could not read %s before play: %s", entities[0], e)
+        return
+    if bool((state.get("attributes") or {}).get("shuffle")) == on:
+        return
+    try:
+        await ha_call_service("media_player", "shuffle_set", {"shuffle": on},
+                              target={"entity_id": entities})
+    except HAServiceError as e:
+        logger.info("shuffle_set before play refused on %s: %s", entities[0], e)
+
+
+async def _play_verified(client: httpx.AsyncClient, headers: dict, entities: list[str],
+                         service_data: dict) -> tuple[tuple[str, dict] | None, str | None]:
+    """play_media, then poll until a target plays something new.
+    Returns ((entity, state) or None, HA's failure message or None)."""
+    # What each target is doing before the call. Success is the player
+    # *changing* to something new, not merely being in `playing`: with
+    # music already on, a failed call left the old track playing and the
+    # old check reported it as the new one (2026-09-30, "deep house chill
+    # music" → spoken "now playing Fountains of Wayne"). Tenet 6.
+    before = {e: _now_playing_key(await _get_state(client, headers, e)) for e in entities}
+    # Over the websocket so a failure carries HA's / MA's own message
+    # (the REST API drops it — see ha_call_service). A failed call still
+    # gets the verify poll below: MA has been seen to fail the call AND
+    # start playing (2026-09-04, "put on some jazz").
+    failure: str | None = None
+    try:
+        await ha_call_service("music_assistant", "play_media", service_data,
+                              target={"entity_id": entities})
+    except HAServiceError as e:
+        failure = str(e)
+    # Verify playback actually started (see header comment): a target
+    # reaching `playing` with something other than what it had before.
+    # A call that did not fail and a player that stays on the same item
+    # (asked for what is already playing) is accepted at the deadline.
+    # A resolve miss skips the poll: HA raises it before it calls MA's
+    # play_media, so nothing can start, and the poll only added
+    # MUSIC_VERIFY_TIMEOUT_S to every "no such radio"
+    # (INVESTIGATION_2026-10-21_radio_miss_latency.md).
+    deadline = asyncio.get_event_loop().time() + MUSIC_VERIFY_TIMEOUT_S
+    same_item: dict | None = None
+    while not (failure and _RESOLVE_MISS_RE.search(failure)):
+        await asyncio.sleep(1)
+        for entity in entities:
+            state = await _get_state(client, headers, entity)
+            if state.get("state") != "playing":
+                continue
+            if _now_playing_key(state) != before[entity]:
+                if failure:
+                    logger.warning("play_media reported failure but %s started playing: %s", entity, failure)
+                return (entity, state), failure
+            same_item = same_item or state
+        if asyncio.get_event_loop().time() >= deadline:
+            if same_item is not None and failure is None:
+                return (entities[0], same_item), None
+            break
+    return None, failure
+
+
+# ── Genre requests: Kronk picks (MUSIC_TASTE_AGENT_PLAN steps 5–6) ──────────
+# "Play some deep house" → the household's artists tagged deep house (as
+# artist radio), our own stations for it, and YTM/Pandora genre playlists
+# found by search — ranked by learned taste plus feedback, minus `never`.
+# One of the top three plays (weighted random); the ranked list is kept per
+# speaker so "not that" plays the next one instantly.
+GENRE_SEARCH_TERMS = 2          # provider searches per request (latency)
+GENRE_TRIES = 2                 # a pick that won't start → try the next one
+PICK_MEMORY_S = 3 * 3600        # how long "not that" can refer back to a pick
+_LAST_PICKS: dict[tuple, dict] = {}
+
+
+def _taste_con():
+    try:
+        return taste.db()
+    except (OSError, sqlite3.Error) as e:
+        logger.warning("taste db unavailable, picking without it: %s", e)
+        return None
+
+
+async def _genre_plan(nq: "music_resolve.Query", forced: bool, area: str | None) -> dict | None:
+    """The ranked picks for a genre request, or None when the request isn't
+    a genre (and wasn't declared one) or nothing fits — the caller then
+    treats it as a named request."""
+    taste_doc = taste.TASTE.load()
+    phrase = taste.genre_phrase(nq.text)
+    con = _taste_con()
+    try:
+        if phrase and not forced:
+            known = taste.is_genre(phrase, con, taste_doc) if con else phrase in taste.BUILTIN_GENRES
+            if not known:
+                return None
+        rule = None
+        if not phrase:          # "play some music": a standing rule, else the profile's top
+            rule = taste.rule_for(taste_doc, datetime.now(ZoneInfo(taste.TASTE_TZ)), area)
+        want = phrase or rule or ""
+        terms = taste.genre_terms(want, taste_doc) if want else []
+        local = taste.local_genre_picks(terms, con, taste_doc) if con else []
+        remote = []
+        if terms:
+            # One search per type: MA 2.11 answers a combined playlist+radio
+            # search with the radio only (measured 2026-10-21, "deep house").
+            results = await asyncio.gather(*(_ma_search(t, [mt], RESOLVE_SEARCH_LIMIT)
+                                             for t in terms[:GENRE_SEARCH_TERMS]
+                                             for mt in ("playlist", "radio")))
+            remote = taste.provider_genre_picks(terms, results, con, taste_doc)
+        picks = taste.choose(local + remote)
+    finally:
+        if con:
+            con.close()
+    logger.info("genre request %r -> terms %s rule %r: %d picks, first %s", nq.text, terms, rule,
+                len(picks), picks[:4])
+    if not picks:
+        return None
+    return {"phrase": want, "picks": picks, "start": 0}
+
+
+def _another_plan(entities: list[str]) -> dict:
+    """'Not that': the next pick from the last genre list on this speaker."""
+    last = _LAST_PICKS.get(tuple(sorted(entities)))
+    if not last or time.time() - last["ts"] > PICK_MEMORY_S:
+        raise HTTPException(status_code=409, detail=(
+            "I didn't pick what's playing, so I've got nothing to swap in. Tell me what you'd like."))
+    cur = last["picks"][last["i"]]
+    if last.get("watch"):
+        last["watch"].cancel()
+    try:
+        taste.set_pick_outcome(last["pick_id"], "rejected", FEEDBACK_REJECTED, cur.key)
+    except (OSError, sqlite3.Error) as e:
+        logger.warning("could not record the rejection of %s: %s", cur, e)
+    nxt = last["i"] + 1
+    if nxt >= len(last["picks"]):
+        raise HTTPException(status_code=404, detail=(
+            f"That's everything I had for {last['phrase'] or 'you'}. Try another genre."))
+    return {"phrase": last["phrase"], "picks": last["picks"], "start": nxt}
+
+
+async def _play_genre(client: httpx.AsyncClient, headers: dict, entities: list[str], label: str,
+                      req: MusicRequest, plan: dict) -> dict:
+    failures = []
+    for i in range(plan["start"], min(len(plan["picks"]), plan["start"] + GENRE_TRIES)):
+        pick = plan["picks"][i]
+        if pick.kind == "artist" and not pick.radio_mode:
+            await _shuffle_before_play(client, headers, entities, True)
+        started, failure = await _play_verified(client, headers, entities, pick.play_data())
+        if started is None:
+            logger.warning("genre pick %s did not start: %s", pick, failure)
+            failures.append(_failure_sentence(failure) if failure else _no_start_sentence(label))
+            continue
+        entity, state = started
+        attrs = state.get("attributes", {})
+        shuffled = bool(attrs.get("shuffle"))
+        if pick.kind == "artist" and not pick.radio_mode and not shuffled:
+            # An artist's own tracks in album order is a discography, not a
+            # mix. Set before the play; this retries a queue that refused.
+            try:
+                await ha_call_service("media_player", "shuffle_set", {"shuffle": True},
+                                      target={"entity_id": entities})
+                shuffled = True
+                # Shuffling jumps to another track; the watcher must start
+                # from that one or it reads our own jump as a skip (live
+                # test 2026-10-21).
+                await asyncio.sleep(1)
+                state = await _get_state(client, headers, entity)
+            except HAServiceError as e:
+                logger.warning("shuffle_set for genre pick failed on %s: %s", entity, e)
+        pick_id = None
+        try:
+            pick_id = taste.record_pick(entity, plan["phrase"], pick)
+        except (OSError, sqlite3.Error) as e:
+            logger.warning("could not record pick %s: %s", pick, e)
+        key = tuple(sorted(entities))
+        old = _LAST_PICKS.get(key)
+        if old and old.get("watch") and old["pick_id"] != pick_id:
+            old["watch"].cancel()
+        _LAST_PICKS[key] = {"phrase": plan["phrase"], "picks": plan["picks"], "i": i,
+                            "pick_id": pick_id, "ts": time.time(), "watch": None}
+        if pick_id is not None:
+            _LAST_PICKS[key]["watch"] = _watch_pick(entity, pick_id, pick, state)
+        logger.info("genre pick %r on %s: %s (%s)", plan["phrase"], entities, pick, pick.uri)
+        return {
+            "status": "playing", "player": label,
+            "artist": attrs.get("media_artist"), "title": attrs.get("media_title"),
+            "shuffle": shuffled,
+            "pick": {"label": pick.label, "phrase": plan["phrase"], "kind": pick.kind},
+        }
+    raise HTTPException(status_code=502, detail=(
+        f"I couldn't start anything for {plan['phrase'] or 'you'}. " + (failures[-1] if failures else "")).strip())
+
+
+# ── Feedback on Kronk's own picks (MUSIC_TASTE_AGENT_PLAN step 6) ─────────
+# Kronk learns from its guesses, not from requests by name. After a genre
+# pick starts, a watcher polls the speaker: skipped within 30 s or stopped
+# within 60 s counts against the pick, still playing at 10 minutes counts
+# for it, "not that" (_another_plan) counts against it hardest. Replacing a
+# pick with anything else inside the skip window reads as a skip — it is.
+# Pandora thumbs feed the same artist scores (rate_music).
+FEEDBACK_REJECTED = -1.0
+FEEDBACK_SKIPPED  = -0.5
+FEEDBACK_STOPPED  = -0.5
+FEEDBACK_LISTENED = 0.3
+FEEDBACK_THUMB    = 0.5
+WATCH_POLL_S      = 10
+WATCH_SKIP_S      = 30
+WATCH_STOP_S      = 60
+WATCH_LISTEN_S    = 600
+
+
+def _taste_feedback(artist: str | None, delta: float, reason: str) -> None:
+    if not artist:
+        return
+    try:
+        taste.record_feedback(taste.artist_key(artist.split(",")[0].strip()), delta, reason)
+    except (OSError, sqlite3.Error) as e:
+        logger.warning("could not record taste feedback for %r: %s", artist, e)
+
+
+def _watch_pick(entity: str, pick_id: int, pick, state: dict) -> asyncio.Task:
+    return asyncio.get_event_loop().create_task(
+        _watch_pick_loop(entity, pick_id, pick, (state.get("attributes") or {}).get("media_title")))
+
+
+_clock = time.monotonic      # patched in tests
+
+
+async def _watch_pick_loop(entity: str, pick_id: int, pick, first_title: str | None) -> None:
+    headers = {"Authorization": f"Bearer {HA_TOKEN}", "Content-Type": "application/json"}
+    t0 = _clock()
+
+    def done(outcome: str, delta: float) -> None:
+        try:
+            taste.set_pick_outcome(pick_id, outcome, delta, pick.key)
+        except (OSError, sqlite3.Error) as e:
+            logger.warning("could not record pick %d outcome %s: %s", pick_id, outcome, e)
+
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            while True:
+                await asyncio.sleep(WATCH_POLL_S)
+                elapsed = _clock() - t0
+                try:
+                    st = await _get_state(client, headers, entity)
+                except (httpx.HTTPError, ValueError):
+                    continue
+                playing = st.get("state") in ("playing", "buffering")
+                title = (st.get("attributes") or {}).get("media_title")
+                if not playing:
+                    if elapsed <= WATCH_STOP_S:
+                        done("stopped", FEEDBACK_STOPPED)
+                    return                     # a later pause says nothing about the pick
+                if elapsed <= WATCH_SKIP_S and title != first_title:
+                    done("skipped", FEEDBACK_SKIPPED)
+                    return
+                if elapsed >= WATCH_LISTEN_S:
+                    done("listened", FEEDBACK_LISTENED)
+                    return
+    except asyncio.CancelledError:             # "not that" or a newer pick took over
+        raise
+    except Exception as e:                     # a watcher must never take anything down
+        logger.warning("pick watcher for %d stopped: %s", pick_id, e)
+
+
+# ── Named-request resolution (MUSIC_TASTE_AGENT_PLAN step 2) ────────────────
+# One literal play_media found nothing for "Destiny Waving by Ulrich
+# Schnauss" (the album is "Destiny Waiving"). Search MA wide, score every
+# candidate against the request (music_resolve.py), play the winner by URI.
+# Stage 2 only on a miss: a "X by Y" request whose title search found
+# nothing confident lists Y's albums and tracks — the misspelled title is
+# usually there. Measured 2026-10-21: ~1–1.5 s per fresh search, ~0 cached.
+RESOLVE_TYPES = ["artist", "album", "track", "playlist"]
+RESOLVE_SEARCH_LIMIT = 10
+RESOLVE_ARTIST_LIMIT = 50
+RESOLVE_SEARCH_TIMEOUT_S = 8
+RESOLVE_HINT_MIN_SCORE = 0.5    # below this a "closest I found" is noise
+
+
+async def _ma_search(text: str, media_types: list[str], limit: int) -> dict | None:
+    try:
+        r = await ma_command("music/search", _timeout=RESOLVE_SEARCH_TIMEOUT_S,
+                             search_query=text, media_types=media_types, limit=limit)
+    except MAError as e:
+        logger.warning("music search for %r failed: %s", text, e)
+        return None
+    return r if isinstance(r, dict) else None
+
+
+async def _search_each(text: str, media_types: list[str], limit: int) -> dict | None:
+    """One MA search per media type, merged. MA 2.11 shares one `limit`
+    across every type of a combined search: "Ulrich Schnauss" as album+track
+    with limit 50 answered 7 albums and 49 tracks and missed the album
+    "Destiny Waiving" that an album-only search finds (measured 2026-10-21)."""
+    parts = await asyncio.gather(*(_ma_search(text, [mt], limit) for mt in media_types))
+    if all(p is None for p in parts):
+        return None
+    merged: dict = {}
+    for part in parts:
+        for k, v in (part or {}).items():
+            if isinstance(v, list):
+                merged.setdefault(k, []).extend(v)
+    return merged
+
+
+RESOLVE_RADIO_LIBRARY_LIMIT = 500
+
+
+async def _library_radios() -> dict | None:
+    """Every station in the library, shaped like a search result. MA's search
+    matches substrings, so "90s, 2000's and today's hits" finds nothing while
+    "today's hits" finds "90s, 2000s, Today's Hits Radio" (measured
+    2026-10-25). The household owns a few dozen stations at most; scoring
+    all of them is cheaper than guessing which words MA will match."""
+    try:
+        items = await ma_command("music/radios/library_items", limit=RESOLVE_RADIO_LIBRARY_LIMIT)
+    except MAError as e:
+        logger.warning("library radio listing failed: %s", e)
+        return None
+    if isinstance(items, dict):
+        items = items.get("items")
+    if not isinstance(items, list):
+        return None
+    return {"radio": [it for it in items if isinstance(it, dict)]}
+
+
+async def _resolve_named(nq: "music_resolve.Query", media_type: str | None
+                         ) -> tuple["music_resolve.Candidate | None", "music_resolve.Candidate | None"]:
+    """(winner to play, best guess) — winner is None below PLAY_MIN_SCORE;
+    both are None when MA can't be searched or found nothing, the cases the
+    caller plays the text literally."""
+    types = [media_type] if media_type in RESOLVE_TYPES + ["radio"] else RESOLVE_TYPES
+    variants = [nq.text] + ([nq.name] if nq.artist and nq.name and nq.name != nq.text else [])
+    results = await asyncio.gather(*(_search_each(v, types, RESOLVE_SEARCH_LIMIT) for v in variants))
+    if media_type == "radio":
+        results.append(await _library_radios())
+    if all(r is None for r in results):
+        return None, None
+    cands: dict[str, music_resolve.Candidate] = {}
+    for r in results:
+        for c in music_resolve.candidates_from_search(r):
+            cands.setdefault(c.uri, c)
+    typed = media_type if media_type in types else None
+    ranked = music_resolve.rank(list(cands.values()), nq, typed)
+    stage = 1
+    if nq.artist and (not ranked or ranked[0].score < music_resolve.PLAY_MIN_SCORE):
+        stage = 2
+        works = [t for t in types if t in ("album", "track")] or ["album", "track"]
+        for c in music_resolve.candidates_from_search(await _search_each(nq.artist, works, RESOLVE_ARTIST_LIMIT)):
+            cands.setdefault(c.uri, c)
+        ranked = music_resolve.rank(list(cands.values()), nq, typed)
+    best = ranked[0] if ranked else None
+    winner = best if best and best.score >= music_resolve.PLAY_MIN_SCORE else None
+    logger.info("music resolve %r [%s] stage %d, %d candidates -> %s",
+                nq.text, media_type, stage, len(cands),
+                f"{best.media_type} {best.name!r} by {best.artist!r} {best.uri} ({best.score:.2f})"
+                + ("" if winner else " BELOW THRESHOLD") if best else "nothing")
+    return winner, best
+
+
+# ── Household taste: the told half (MUSIC_TASTE_AGENT_PLAN step 3) ───────────
+# One operator-editable file (/data/music_taste.yaml); "we love X" by voice
+# or chat writes the same file. See taste.py.
+
+class TasteRequest(BaseModel):
+    action: str                      # love | never | forget | means
+    value: str                       # an artist, album, or genre word
+    meaning: list[str] | None = None  # for "means": the genres the word stands for
+
+
+@app.get("/music/taste")
+async def get_taste():
+    t = taste.TASTE.load()
+    return {**t, "error": taste.TASTE.error, "path": str(taste.TASTE.path)}
+
+
+@app.post("/music/taste")
+async def set_taste(req: TasteRequest):
+    try:
+        said = taste.TASTE.update(req.action, req.value, req.meaning)
+    except taste.TasteError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except OSError as e:
+        raise HTTPException(status_code=500, detail=f"I couldn't save that — the taste file isn't writable ({e.strerror}).")
+    return {"detail": said}
+
+
+@app.get("/music/taste/profile")
+async def get_taste_profile(limit: int = Query(30, ge=1, le=500)):
+    """What Kronk has learned: top artists with scores and genres, stations."""
+    return taste.profile(limit)
+
+
+@app.post("/music/taste/rebuild")
+async def rebuild_taste_profile():
+    """Rebuild the learned profile now (the nightly job, on demand)."""
+    try:
+        return await taste.rebuild(ma_command)
+    except MAError as e:
+        raise HTTPException(status_code=502, detail=f"Couldn't read Music Assistant: {e}")
 
 
 # ── Playback control ─────────────────────────────────────────────────────────
@@ -1386,6 +1887,40 @@ async def control_music(req: MusicControlRequest):
     if not HA_TOKEN:
         raise HTTPException(status_code=500, detail="HA_TOKEN not configured")
     action = (req.action or "").strip().lower().replace(" ", "_")
+# Item id prefix of a Pandora station offered from the catalogue but not
+# created yet (MA's Pandora provider, kronk.8+: PANDORA_CREATE_STATION_PLAN).
+PANDORA_SEED_PREFIX = "seed:"
+MA_STATION_LOOKUP_TIMEOUT_S = 10
+
+
+async def _pandora_station(query: str) -> dict | None:
+    """The Pandora station MA will play for a radio request, or None.
+
+    Asks MA's own name resolution — the call HA's play_media makes — so the
+    answer is the item MA would pick. A `seed:` item is a station the account
+    does not have: the provider creates it on the first play, and that play
+    cannot start unless the create succeeded, so a verified play of it is a
+    created station. Any MA failure falls back to the plain play by name,
+    without the station sentence. Returns {"name", "uri", "created"}.
+    """
+    try:
+        item = await ma_command("music/item_by_name", _timeout=MA_STATION_LOOKUP_TIMEOUT_S,
+                                name=query, media_type="radio")
+    except MAError as e:
+        logger.warning("station lookup for %r failed: %s", query, e)
+        return None
+    if not isinstance(item, dict) or not item.get("uri"):
+        return None
+    domains = {item.get("provider")} | {m.get("provider_domain") for m in item.get("provider_mappings") or []}
+    if "pandora" not in domains:
+        return None
+    return {
+        "name": item.get("name") or query,
+        "uri": item["uri"],
+        "created": str(item.get("item_id", "")).startswith(PANDORA_SEED_PREFIX),
+    }
+
+
     if action not in _CONTROL_ACTIONS:
         raise HTTPException(
             status_code=400,
@@ -1586,6 +2121,7 @@ async def rate_music(req: MusicRateRequest):
         # Thumbs down: skip, and verify the skip (a Pandora station skip is a real
         # queue advance on MA 2.11; the title must change).
         before = attrs.get("media_title")
+        _taste_feedback(artist, FEEDBACK_THUMB if thumb == "up" else -FEEDBACK_THUMB, f"thumb_{thumb}")
         skipped = None
         try:
             await ha_call_service("media_player", "media_next_track", {}, target={"entity_id": [entity]})

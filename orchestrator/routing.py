@@ -17,6 +17,17 @@ from events import emit
 
 _URL_RE = re.compile(r'https?://')
 
+# A YouTube Music link is a play request, not a page to read: the research
+# agent fetched one and chatted about it (2026-10-19,
+# INVESTIGATION_2026-10-19_ytmusic_album_misses.md). tool_service turns the
+# link into an MA URI. Plain youtube.com / youtu.be links pin only with a
+# play verb — "summarize this video" stays with research.
+_MUSIC_URL_RE = re.compile(
+    r"https?://music\.youtube\.com/"
+    r"|^\W*(?:please\s+)?(?:play|put\s+on|listen\s+to)\b.*https?://(?:www\.)?(?:youtube\.com/watch|youtu\.be/)",
+    re.IGNORECASE | re.DOTALL,
+)
+
 # Talkie is a vintage 1930s character model — only invoke it when explicitly named.
 # Checked first so it takes priority over all other routing.
 _TALKIE_PHRASES = re.compile(
@@ -165,6 +176,37 @@ _RATE_RE = re.compile(
     re.IGNORECASE,
 )
 
+# "Not that" after Kronk picked a genre plays the next pick (MUSIC_TASTE_
+# AGENT_PLAN step 5). Anchored: the whole utterance is the rejection.
+_ANOTHER_RE = re.compile(
+    r"^\W*(?:please\s+|kronk,?\s+)*(?:"
+    r"(?:no,?\s+)?not\s+(?:that|this)(?:\s+one)?"
+    r"|(?:play\s+|try\s+|put\s+on\s+)?something\s+(?:else|different)"
+    r"|(?:play\s+|try\s+)?(?:a\s+)?different\s+(?:one|song|station|music|genre|artist)"
+    r")(?:\s+please)?"
+    # the music blueprint appends the satellite's room (KRONK change 9)
+    r"(?:\s+(?:in|on)\s+the\s+[\w' -]{1,40}?)?\W*$",
+    re.IGNORECASE,
+)
+
+# Stated household taste pins to the home agent's remember_music_preference
+# (MUSIC_TASTE_AGENT_PLAN step 3). Precision-first: "never play X" (not
+# this/that — those are thumbs, _RATE_RE), "remember (that) we love X",
+# "we love X" only with a music noun ("we love the band X"), and "when I
+# say X I mean Y". Bare "we love Ulrich Schnauss" rides the coordinator,
+# which reaches the tool through ask_home.
+_TASTE_RE = re.compile(
+    r"^\W*(?:please\s+|kronk,?\s+)*(?:"
+    r"(?:never|don'?t\s+ever|do\s+not\s+ever)\s+play\s+(?!(?:this|that|it)\b)\S"
+    r"|remember\s+(?:that\s+)?(?:we|i)\s+(?:really\s+)?(?:love|like|hate|dislike|don'?t\s+like|can'?t\s+stand)\s+\S"
+    r"|(?:we|i)\s+(?:really\s+)?(?:love|like|hate|dislike|don'?t\s+like|can'?t\s+stand)\s+"
+    r"(?!(?:this|that|it)\b).*\b(?:music|band|artist|album|songs)\b"
+    r"|when\s+(?:we|i)\s+say\s+\S.*\b(?:we|i)\s+mean\s+\S"
+    r"|forget\s+(?:that\s+)?(?:we|i)\s+(?:love|like|hate|dislike)\s+\S"
+    r")",
+    re.IGNORECASE,
+)
+
 # "What song is this?" and its siblings pin to the home agent's now_playing
 # tool (2026-09-14, MUSIC_ACCURACY_PLAN). Anchored; the "what's" branch is
 # limited to this/that/playing/song so "what's the weather" never matches.
@@ -207,6 +249,9 @@ async def _classify_inner(text: str) -> tuple[str, str]:
     if _DIRECT_OVERRIDE.search(text):
         emit("route_shortcut", rule="direct_override", route="direct")
         return "direct", "direct_override"
+    if _MUSIC_URL_RE.search(text):
+        emit("route_shortcut", rule="music_url", route="home")
+        return "home", "music_url"
     if _URL_RE.search(text):
         emit("route_shortcut", rule="url", route="research")
         return "research", "url"
@@ -225,6 +270,12 @@ async def _classify_inner(text: str) -> tuple[str, str]:
     if _RATE_RE.search(text):
         emit("route_shortcut", rule="rate", route="home")
         return "home", "rate"
+    if _ANOTHER_RE.search(text):
+        emit("route_shortcut", rule="music_another", route="home")
+        return "home", "music_another"
+    if _TASTE_RE.search(text):
+        emit("route_shortcut", rule="taste", route="home")
+        return "home", "taste"
     if _MUSIC_RE.search(text):
         emit("route_shortcut", rule="music", route="home")
         return "home", "music"

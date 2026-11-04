@@ -5,3 +5,4 @@ beautifulsoup4==4.12.3
 lxml==6.1.1
 trafilatura==2.1.0
 websockets==16.0
+ruamel.yaml==0.19.1

@@ -76,12 +76,19 @@ def _tool_narration(name: str, args: dict) -> str:
         return "reading Kronk's configuration..."
     if name == "generate_diagram":
         return "generating a diagram..."
+    if name == "play_music" and args.get("kind") == "another":
+        return "trying something else..."
+    if name == "play_music" and args.get("kind") == "genre":
+        q = args.get("query", "")
+        return f"picking some {q}..." if q and q != "music" else "picking something..."
     if name == "play_music":
         q = args.get("query", "")
         verb = "shuffling" if args.get("shuffle") else "putting on"
         return f"{verb} {q}" if q else "starting the music..."
     if name == "now_playing":
         return "checking what's playing..."
+    if name == "remember_music_preference":
+        return "noting that..."
     if name == "rate_music":
         return "thumbs down, skipping..." if args.get("thumb") == "down" else "thumbs up..."
     if name == "control_music":
@@ -104,6 +111,8 @@ def _terminal_speech(result: str, style: str = errors.DEBUG,
     line = result.split("\n", 1)[0].strip().strip("[]")
     if line.startswith("Music playing: "):
         return f"Now playing {line[len('Music playing: '):]}."
+    if line.startswith("Station playing: "):
+        return line[len("Station playing: "):]    # tools.py's sentence, as-is
     if line.startswith("Could not play music: "):
         # The detail here is already a human sentence ("The speaker may be
         # powered off") — spoken in both styles.
@@ -118,6 +127,10 @@ def _terminal_speech(result: str, style: str = errors.DEBUG,
         return line[len("Music rated: "):]
     if line.startswith("Could not rate music: "):
         return f"I couldn't rate that. {line[len('Could not rate music: '):]}"
+    if line.startswith("Music taste: "):
+        return line[len("Music taste: "):]        # tool_service's sentence, as-is
+    if line.startswith("Could not save music taste: "):
+        return f"I couldn't save that. {line[len('Could not save music taste: '):]}"
     if line.startswith("Now playing: "):
         return line[len("Now playing: "):]        # tool_service's sentence, as-is
     if line.startswith("Could not read the player: "):
@@ -255,8 +268,13 @@ AGENTS: dict[str, AgentConfig] = {
             "'today'/'this week'/'this month' → the matching period; a specific start → 'since:YYYY-MM-DD'. "
             "'Which panel produced the most/least energy' is an ENERGY question → solar_energy (lifetime), "
             "not solar_detail (which is about faults/health from recent power, not cumulative production).\n"
-            "Use play_music when the user asks to play or put on music. Pass what they want to hear "
-            "as the query; pass the speaker or room only if the user named one. If they say 'shuffle', pass shuffle true. 'X radio', 'X station', "
+            "Use play_music when the user asks to play or put on music. For a style rather than a specific "
+            "artist, album or song — 'some deep house', 'something chill', 'jazz', 'play some music' — pass "
+            "kind 'genre' with the style as the query ('music' if none); Kronk picks from the household's "
+            "taste. For 'not that', 'something else', 'play something different' pass kind 'another'. "
+            "Otherwise pass what they want to hear "
+            "as the query; pass the speaker or room only if the user named one. If the user pasted a YouTube Music link, "
+            "pass the link itself as the query. If they say 'shuffle', pass shuffle true. 'X radio', 'X station', "
             "or 'X on Pandora' means media_type 'radio' with query X. Call play_music at most once — "
             "when it reports music playing, report that back and stop. If the tool reports failure, tell "
             "the user playback failed and why — never claim music is playing after a failed tool call.\n"
@@ -269,6 +287,9 @@ AGENTS: dict[str, AgentConfig] = {
             "Use rate_music for 'thumbs up', 'thumbs down', 'I love this song', 'never play this again' — "
             "it rates the track playing on a Pandora station and thumbs down also skips. It is the ONLY "
             "way to rate; never claim a rating was recorded unless rate_music reported it.\n"
+            "Use remember_music_preference when the user states a lasting taste: 'we love X' (love), "
+            "'never play X' (never), 'forget that we love X' (forget), 'when I say chill I mean deep "
+            "house' (means, value 'chill', meaning 'deep house'). Call it at most once.\n"
             "Use update_magicmirror when the user asks to update or upgrade the magic mirror. "
             "Call it at most once; a full backup happens automatically first.\n"
             "When the user asks about weather without naming a place, call get_weather "
@@ -278,8 +299,8 @@ AGENTS: dict[str, AgentConfig] = {
             "Never restate tool calls, tool arguments, or tool output syntax in your reply — "
             "reply in plain sentences only."
         ),
-        tool_names=["get_weather", "shopping_list_view", "shopping_list_add", "shopping_list_remove", "shopping_list_clear", "query_hottub", "solar_status", "solar_detail", "solar_energy", "play_music", "control_music", "now_playing", "rate_music", "update_magicmirror"],
-        terminal_tools=frozenset({"play_music", "control_music", "now_playing", "rate_music", "update_magicmirror"}),
+        tool_names=["get_weather", "shopping_list_view", "shopping_list_add", "shopping_list_remove", "shopping_list_clear", "query_hottub", "solar_status", "solar_detail", "solar_energy", "play_music", "control_music", "now_playing", "rate_music", "remember_music_preference", "update_magicmirror"],
+        terminal_tools=frozenset({"play_music", "control_music", "now_playing", "rate_music", "remember_music_preference", "update_magicmirror"}),
     ),
     "assistant": AgentConfig(
         name="assistant",

@@ -12,6 +12,13 @@ test files.
 """
 import os
 import sys
+import tempfile
+
+# Household taste store (tool_service/taste.py) — never the container's
+# /data paths from a test run. Read at import, so set before any import.
+_TASTE_TMP = tempfile.mkdtemp(prefix="kronk-taste-")
+os.environ.setdefault("MUSIC_TASTE_DB", os.path.join(_TASTE_TMP, "music_taste.db"))
+os.environ.setdefault("MUSIC_TASTE_FILE", os.path.join(_TASTE_TMP, "music_taste.yaml"))
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 

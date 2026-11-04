@@ -1,0 +1,28 @@
+# Home Assistant rest_command definitions for Kronk.
+#
+# Installed to HA as /config/rest_command.yaml and included from
+# configuration.yaml with `rest_command: !include rest_command.yaml`.
+# Install / update (no HA restart — rest_command supports reload):
+#   docker cp ha/rest_command.yaml homeassistant:/config/rest_command.yaml
+#   curl -X POST -H "Authorization: Bearer $HA_TOKEN" \
+#        http://localhost:8123/api/services/rest_command/reload
+#
+# kronk_music — the music blueprint's handoff to Kronk's resolver and
+# household taste (docs/plans/MUSIC_TASTE_AGENT_PLAN.md, step 7). tool_service
+# listens on 127.0.0.1:8003 only (docker-compose.yml); HA runs with host
+# networking, so loopback reaches it. Always answers 200 with
+# {"ok": bool, "say": "<sentence>"}.
+kronk_music:
+  url: http://127.0.0.1:8003/music/voice
+  method: POST
+  content_type: application/json
+  # Resolver search (~1–1.5 s) + up to two picks × the 8 s verify window.
+  timeout: 30
+  payload: >-
+    {{ {"query": query | default(''),
+        "media_type": media_type | default('') or none,
+        "artist": artist | default('') or none,
+        "player": player | default('') or none,
+        "origin_device": origin_device | default('') or none,
+        "kind": kind | default('') or none,
+        "shuffle": shuffle | default(false) | bool} | to_json }}

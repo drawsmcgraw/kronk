@@ -156,7 +156,10 @@ def music_env():
     # fail: message raised on play_media; fail_if: raise only when it returns
     # True for the service data; plays_anyway: the player starts the new
     # item even though the call raised (MA, 2026-09-04).
-    env = types.SimpleNamespace(calls=[], fail=None, fail_if=None, plays_anyway=False)
+    # station_item: MA's music/item_by_name answer for a radio request
+    # (an Exception is raised instead); ma_calls records the lookups.
+    env = types.SimpleNamespace(calls=[], fail=None, fail_if=None, plays_anyway=False,
+                                station_item=None, ma_calls=[])
 
     async def no_sleep(_):
         return None
@@ -172,9 +175,16 @@ def music_env():
         if service == "shuffle_set":                 # the player takes the setting
             FakeHA.shuffle = service_data["shuffle"]
 
+    async def fake_ma(command, _timeout=20, **args):
+        env.ma_calls.append((command, args))
+        if isinstance(env.station_item, Exception):
+            raise env.station_item
+        return env.station_item
+
     with patch.object(ts.httpx, "AsyncClient", FakeHA), \
          patch.object(ts.asyncio, "sleep", new=no_sleep), \
          patch.object(ts, "ha_call_service", new=fake_call), \
+         patch.object(ts, "ma_command", new=fake_ma), \
          patch.object(ts, "HA_TOKEN", "t"), \
          patch.object(ts, "MUSIC_DEFAULT_PLAYER", "media_player.kitchen_ma"), \
          patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 0):
@@ -273,6 +283,101 @@ def test_music_other_failures_are_not_retried(music_env):
     assert [sv for _, sv, _, _ in music_env.calls] == ["play_media"]
 
 
+def test_music_resolve_miss_fails_without_the_verify_poll(music_env):
+    """'zxqv radio' took 9.8 s to fail: the poll waited out its deadline after
+    HA had already said nothing matched (2026-10-21)."""
+    music_env.fail = "Could not resolve ['zxqv radio'] to playable media item"
+    polls = []
+
+    async def counting_sleep(secs):
+        polls.append(secs)
+
+    with patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 5), \
+         patch.object(ts.asyncio, "sleep", new=counting_sleep):
+        resp = TestClient(ts.app).post("/music", json={"query": "zxqv radio", "media_type": "radio"})
+    assert resp.status_code == 502
+    assert resp.json()["detail"] == "Playback failed: Could not resolve zxqv radio to playable media item"
+    assert polls == []
+
+
+def test_music_other_failure_still_polls(music_env):
+    """Only the resolve miss skips the poll; a 500 can still start playback."""
+    music_env.fail = MA_MSG
+    polls = []
+
+    async def counting_sleep(secs):
+        polls.append(secs)
+
+    with patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 0), \
+         patch.object(ts.asyncio, "sleep", new=counting_sleep):
+        resp = TestClient(ts.app).post("/music", json={"query": "jazz"})
+    assert resp.status_code == 502
+    assert polls
+
+
+# ── Pandora station: named, and whether this play created it (2026-10-21) ──
+
+SEED_ITEM = {"item_id": "seed:AR:70895", "provider": "pandora", "name": "Orbital Radio",
+             "uri": "pandora://radio/seed:AR:70895",
+             "provider_mappings": [{"provider_domain": "pandora", "item_id": "seed:AR:70895"}]}
+LIBRARY_STATION = {"item_id": "251", "provider": "library", "name": "Santana Radio",
+                   "uri": "library://radio/251",
+                   "provider_mappings": [{"provider_domain": "pandora", "item_id": "181450207056112163"}]}
+
+
+def test_music_radio_names_a_new_pandora_station_and_plays_it_by_uri(music_env):
+    music_env.station_item = SEED_ITEM
+    with patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 5):
+        resp = TestClient(ts.app).post("/music", json={"query": "Orbital radio", "media_type": "radio"})
+    assert resp.status_code == 200
+    assert resp.json()["station"] == {"name": "Orbital Radio", "created": True}
+    assert music_env.ma_calls == [("music/item_by_name", {"name": "Orbital radio", "media_type": "radio"})]
+    assert music_env.calls[0][2] == {"media_id": "pandora://radio/seed:AR:70895", "media_type": "radio"}
+
+
+def test_music_radio_names_an_existing_pandora_station(music_env):
+    music_env.station_item = LIBRARY_STATION
+    with patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 5):
+        resp = TestClient(ts.app).post("/music", json={"query": "Santana radio", "media_type": "radio"})
+    assert resp.json()["station"] == {"name": "Santana Radio", "created": False}
+    assert music_env.calls[0][2]["media_id"] == "library://radio/251"
+
+
+def test_music_radio_from_another_provider_has_no_station(music_env):
+    music_env.station_item = {"item_id": "s123", "provider": "tunein", "name": "KEXP",
+                              "uri": "tunein://radio/s123",
+                              "provider_mappings": [{"provider_domain": "tunein"}]}
+    with patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 5):
+        resp = TestClient(ts.app).post("/music", json={"query": "KEXP", "media_type": "radio"})
+    assert "station" not in resp.json()
+    assert music_env.calls[0][2]["media_id"] == "KEXP"
+
+
+def test_music_station_lookup_failure_plays_by_name(music_env):
+    music_env.station_item = ts.MAError("Music Assistant is unreachable (OSError).")
+    with patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 5):
+        resp = TestClient(ts.app).post("/music", json={"query": "Orbital radio", "media_type": "radio"})
+    assert resp.status_code == 200 and "station" not in resp.json()
+    assert music_env.calls[0][2]["media_id"] == "Orbital radio"
+
+
+def test_music_failed_new_station_play_claims_no_station(music_env):
+    """Pandora refused the create ("Station limit reached"): nothing played, nothing claimed."""
+    music_env.station_item = SEED_ITEM
+    music_env.fail = "Playback failed for Orbital Radio - Station limit reached"
+    resp = TestClient(ts.app).post("/music", json={"query": "Orbital radio", "media_type": "radio"})
+    assert resp.status_code == 502
+    assert resp.json()["detail"] == music_env.fail
+
+
+def test_music_non_radio_requests_skip_the_station_lookup(music_env):
+    with patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 5):
+        TestClient(ts.app).post("/music", json={"query": "Orbital", "media_type": "artist"})
+    # No station lookup. (A named request does search since the resolver,
+    # MUSIC_TASTE_AGENT_PLAN step 2 — that is not a station lookup.)
+    assert [c for c, _ in music_env.ma_calls if c == "music/item_by_name"] == []
+
+
 def test_music_unresolved_without_media_type_is_not_retried(music_env):
     music_env.fail = "Could not resolve ['zzz'] to playable media item"
     resp = TestClient(ts.app).post("/music", json={"query": "zzz"})
@@ -290,9 +395,31 @@ def test_music_shuffle_requested_sets_the_player_and_reports_it(music_env):
     assert resp.status_code == 200
     assert resp.json()["shuffle"] is True                    # read back from the player
     services = [(d, sv, data) for d, sv, data, _ in music_env.calls]
-    assert services[0][:2] == ("music_assistant", "play_media")
-    assert services[1] == ("media_player", "shuffle_set", {"shuffle": True})
-    assert music_env.calls[1][3] == {"entity_id": ["media_player.kitchen_ma"]}
+    # before the play: MA shuffles only what comes after the current
+    # track, so set afterwards the playlist opens on its track 1 (2026-10-21)
+    assert services[0] == ("media_player", "shuffle_set", {"shuffle": True})
+    assert services[1][:2] == ("music_assistant", "play_media")
+    assert len(services) == 2
+    assert music_env.calls[0][3] == {"entity_id": ["media_player.kitchen_ma"]}
+
+
+def test_music_shuffle_refused_before_play_is_retried_after(music_env):
+    FakeHA.playing = True
+    refused = []
+
+    async def dynamic_until_played(domain, service, service_data=None, target=None):
+        if service == "shuffle_set" and not refused:          # a radio queue refuses it
+            refused.append(1)
+            music_env.calls.append((domain, service, service_data, target))
+            raise ts.HAServiceError("Invalid or unsupported command")
+        return await fake(domain, service, service_data, target)
+    fake = ts.ha_call_service
+    with patch.object(ts, "ha_call_service", new=dynamic_until_played), \
+         patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 5):
+        resp = TestClient(ts.app).post("/music", json={"query": "Video Games Pretty Songs",
+                                                       "media_type": "playlist", "shuffle": True})
+    assert resp.status_code == 200 and resp.json()["shuffle"] is True
+    assert [sv for _, sv, _, _ in music_env.calls] == ["shuffle_set", "play_media", "shuffle_set"]
 
 
 def test_music_without_shuffle_turns_a_shuffling_player_off(music_env):
@@ -302,8 +429,8 @@ def test_music_without_shuffle_turns_a_shuffling_player_off(music_env):
         resp = TestClient(ts.app).post("/music", json={"query": "Daisies of the Galaxy", "media_type": "album"})
     assert resp.status_code == 200
     assert resp.json()["shuffle"] is False
-    assert [sv for _, sv, _, _ in music_env.calls] == ["play_media", "shuffle_set"]
-    assert music_env.calls[1][2] == {"shuffle": False}
+    assert [sv for _, sv, _, _ in music_env.calls] == ["shuffle_set", "play_media"]
+    assert music_env.calls[0][2] == {"shuffle": False}
 
 
 def test_music_no_shuffle_call_when_the_player_already_matches(music_env):

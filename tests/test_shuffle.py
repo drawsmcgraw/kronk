@@ -15,15 +15,18 @@ import tools
 
 
 class _Client:
-    def __init__(self, shuffle_reported):
+    def __init__(self, shuffle_reported, station=None):
         self.sent = None
         self._shuffle = shuffle_reported
+        self._station = station
 
     async def post(self, url, json=None):
         self.sent = (url, json)
-        return SimpleNamespace(status_code=200, json=lambda: {
-            "player": "the Kitchen speaker", "title": "City Ruins", "artist": "Keiichi Okabe",
-            "shuffle": self._shuffle})
+        body = {"player": "the Kitchen speaker", "title": "City Ruins", "artist": "Keiichi Okabe",
+                "shuffle": self._shuffle}
+        if self._station:
+            body["station"] = self._station
+        return SimpleNamespace(status_code=200, json=lambda: body)
 
 
 @pytest.mark.asyncio
@@ -57,3 +60,23 @@ async def test_spoken_state_comes_from_the_player_not_the_request():
 def test_narration_says_shuffling():
     assert agents._tool_narration("play_music", {"query": "X", "shuffle": True}) == "shuffling X"
     assert agents._tool_narration("play_music", {"query": "X"}) == "putting on X"
+
+
+# ── Pandora station sentence (2026-10-21) ───────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_new_pandora_station_is_announced_by_name():
+    c = _Client(shuffle_reported=True, station={"name": "Orbital Radio", "created": True})
+    out = await tools._tool_play_music(c, {"query": "Orbital radio", "media_type": "radio"})
+    assert agents._terminal_speech(out, tool="play_music") == (
+        "Made a new Pandora station, Orbital Radio. "
+        "Now playing City Ruins by Keiichi Okabe on the Kitchen speaker.")
+
+
+@pytest.mark.asyncio
+async def test_existing_pandora_station_is_named_and_not_called_new():
+    c = _Client(shuffle_reported=True, station={"name": "Santana Radio", "created": False})
+    out = await tools._tool_play_music(c, {"query": "Santana radio", "media_type": "radio"})
+    assert agents._terminal_speech(out, tool="play_music") == (
+        "Playing your Pandora station, Santana Radio. "
+        "Now playing City Ruins by Keiichi Okabe on the Kitchen speaker.")
