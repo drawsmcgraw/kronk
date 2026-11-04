@@ -4,8 +4,8 @@ Status: **planned 2026-10-16, Gate 0 in progress.** Steps 1 (dev re-check)
 and 3 (read-only probe, 2026-10-19) done; step 4 done (`createStation` is
 idempotent); Discussion
 deferred until the PR is ready. Path 1 chosen (Decision 5). Branch
-`pandora-create-station` cut; no code
-yet. Supersedes Feature A's
+`pandora-create-station` cut; provider built and tested (uncommitted);
+image `kronk.8` live 2026-10-21 and live-tested (see Build log). Supersedes Feature A's
 `pandora/create_station` command design in
 `MA_LOCAL_PANDORA_FEATURES_PLAN.md` §2 and drops the YouTube Music fallback
 from ROADMAP item 23 (see Decisions).
@@ -417,6 +417,130 @@ Known gaps:
 - Kronk's "Made a new Pandora station" reply is not built: HA exposes Pandora
   playback as `pandora://track/…`, so the signal has to come from what the
   live test shows HA/MA exposing.
+
+### 2026-10-21 — rebased onto thumbs HEAD; image kronk.8; restart pending
+
+kronk.5 never ran. Meanwhile the thumbs branch moved 3e92d690e → f7acc5c62
+(12 review-fix commits: like/clear lock, stale-thumb handling, session close,
+error catching) and MA was swapped to kronk.7 (thumbs only).
+
+- Re-applied the uncommitted create-station diff (`git diff HEAD` of the
+  worktree) onto `pandora-track-feedback` f7acc5c62 in the scratch
+  `kronk-image` worktree. Conflicts were additive again (`__init__` feature
+  set, constants, imports, init attributes); kept both sides. `_api_request`
+  signature unchanged, still throttled.
+- Rig (`ma-pr-test`, fork copied to `/work-cs` with the merged files
+  overlaid): `pre-commit run --all-files` rc=0 after ruff re-sorted one
+  import; Pandora suite 167 passed; full suite 21,507 passed, 5 failed,
+  11 errors — the same 5 failures (sonic_analysis ×3, sendspin, tags) and 11
+  benchmark errors as the clean baseline.
+- Image `kronk/music-assistant:2.11.0b5-kronk.8`, `docker build`, label
+  `io.kronk.ma.fork_rev = f7acc5c62+uncommitted-create-station`. Smoke import:
+  features `browse, favorite_tracks_edit, library_radios, library_radios_edit,
+  search`; `library_add` and `set_favorite` present.
+- Note: kronk.7's `io.kronk.ma.patch` label claims the station features it
+  does not contain (the Dockerfile label was edited for kronk.5 and kronk.7
+  was built from the thumbs branch alone). kronk.8 makes the label true.
+
+### 2026-10-21 — kronk.8 live; live tests
+
+Named MA restart kronk.7 → kronk.8: all players idle at the check; stopped
+08:19:46, quiesced tarball
+`~/backups/ma/ma-config-2.11.0b5-20261021-081947-quiesced.tgz` (2.34 GB),
+compose line 53 retagged (previous: kronk.7), up 08:22:58. Both options
+switched on with `config/providers/save` (provider reload, 1.4 s).
+
+Live results, office speaker (`media_player.satellite1_d8d1bc`):
+
+| Test | Path | Result |
+|---|---|---|
+| search "Orbital" / "Orbital radio" (before create) | MA `music/search` radio | one radio: `pandora seed:AR:70895 Orbital Radio` |
+| search "Santana" / "Mushroom Jazz" | same | existing library station only, no seed |
+| search "zxqv" | same | no radios |
+| "Orbital radio" first play | tool_service `/music` | 2.66 s to verified `playing`; MA log `Pandora station Orbital Radio (185541489823071853) is serving seed:AR:70895` |
+| "Orbital radio" replay | same | 1.11 s, no second `createStation` |
+| "Santana radio" | same | 2.2 s, existing station |
+| "zxqv radio" | same | 9.8 s, 502 "Could not resolve zxqv radio to playable media item" |
+| "play Orbital radio" | HA `assist_pipeline/run`, kronk pipeline, office device | 0.45 s, blueprint tier ("Orbital playing in the Office"), `pandora://track/…` Orbital |
+| "play Orbital radio on the office speaker" | `/api/chat` shim (Kronk tier) | 4.26 s, playing on the Orbital station |
+| library sync, then `music/library/remove_item` radio 259 | MA API | `removeStation` ran: `getStations` back to the original 8, Orbital gone |
+
+MA's playing a seed radio did not add a `seed:` library item; the real
+station appeared as library item 259 on the next Pandora radio sync.
+
+Findings:
+
+- **MA core caches provider search results for 24 h**
+  (`SEARCH_CACHE_EXPIRATION_STREAMING_PROVIDER`, `controller.py` per-provider
+  cache). After a create, searches keep returning the `seed:` item until the
+  cache expires; after the library sync, bare "Orbital" returned both the
+  library station and the cached seed. Functionally harmless (the seed maps to
+  the same station; `createStation` is idempotent), but a UI duplicate. Fix:
+  after a successful `createStation`/`removeStation`, delete
+  `CACHE_CATEGORY_SEARCH_RESULTS` for the provider instance and
+  `mass.music.domain` (precedent: ytmusic `update_config`). Needs a rebuild
+  and named restart.
+- "zxqv radio" took 9.8 s to fail: MA's cross-provider search, not the
+  Pandora catalogue call (0.33 s in the probe). Not compared against kronk.7.
+- Pre-existing, not this change: Kronk's `shuffle_set` (request default
+  off) is refused on a dynamic radio queue ("Cannot change shuffle while the
+  queue is in dynamic mode"), and the Kronk-tier reply then says "shuffled"
+  because MA reports `shuffle: true` for radio queues.
+
+Not yet done: "Okay Nabu" test by the operator; Kronk's "made a new
+station" reply (no signal reaches HA: the play looks the same either way).
+
+### 2026-10-21 — search-cache fix; kronk.9 live
+
+- `provider.py`: `_forget_cached_searches()` deletes
+  `CACHE_CATEGORY_SEARCH_RESULTS` for the provider instance and
+  `mass.music.domain`; called after `createStation` (the first play of a seed)
+  and after `removeStation`. Test
+  `test_creating_a_station_forgets_cached_searches`; the delete test also
+  asserts it.
+- Rig: standalone branch (`dev` 7e6da608f + worktree) pre-commit rc=0,
+  Pandora 107 passed. Merged tree (thumbs f7acc5c62 + worktree) pre-commit
+  rc=0 after the same ruff import sort, Pandora 168 passed, full suite 21,508
+  passed with the same 5 failures / 11 benchmark errors.
+- Image `kronk.9` (`fork_rev f7acc5c62+uncommitted-create-station-v2`). Named
+  restart: players idle; stopped 08:48:03, tarball
+  `ma-config-2.11.0b5-20261021-084804-quiesced.tgz` (2.34 GB), up 08:51:13.
+  Options survived the restart.
+- Live: before create, "Orbital"/"Orbital radio" → `seed:AR:70895`. Play
+  (2.49 s) → station `185541489823071853`. Immediately after, both searches
+  → `pandora 185541489823071853` (no seed). Sync + remove library item 260 →
+  both searches → the seed again; account back to 8 stations.
+- Pandora handed back the **same station id** it had before the 08:27
+  delete: `removeStation` looks like a soft delete that `createStation`
+  revives.
+
+### 2026-10-21 — Kronk names the station, and whether it is new
+
+- tool_service `_pandora_station`: for `media_type=radio`, asks MA
+  `music/item_by_name` (the resolve HA's `play_media` runs), and when the
+  answer is Pandora plays it by URI. A `seed:` id = new station; a verified
+  play of a seed proves the create succeeded (the play cannot start
+  otherwise). `/music` returns `station: {name, created}`. MA failure → plain
+  play by name, no station sentence.
+- orchestrator: `[Station playing: …]` → spoken as-is:
+  "Made a new Pandora station, Orbital Radio. Now playing X by Y on the
+  Office speaker." / "Playing your Pandora station, Santana Radio. Now playing
+  …". No "shuffled" on radio (radio queues always report shuffle on).
+- Tests: 6 in `test_error_surfacing.py`, 2 in `test_shuffle.py`; suite 645
+  passed. Deployed tool_service + orchestrator, nginx restarted.
+- Live via `/api/chat`, office: Orbital (new) 5.12 s, "Made a new Pandora
+  station, Orbital Radio…"; repeat 2.66 s, "Playing your Pandora station,
+  Orbital Radio…"; Santana 2.95 s; miss 2.26 s. Test station deleted again
+  (account back to 8).
+- Kronk tier only. The blueprint (fast tier) keeps its "X playing in the
+  Office" reply.
+- Known edge: a station created outside MA (Pandora app) within MA's 24 h
+  search cache can still be offered as a seed; `createStation` then returns
+  the existing station and Kronk would call it new.
+
+Also this round (Kronk side): a radio Pandora does not have took ~10 s to
+fail on both voice tiers; fixed in tool_service and the blueprint —
+`docs/incidents/INVESTIGATION_2026-10-21_radio_miss_latency.md`.
 
 ## Gate 0 — before any code
 

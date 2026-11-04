@@ -1,6 +1,12 @@
 # Investigation 2026-10-19 — YouTube Music album requests fail to resolve
 
-**Status:** root-caused; no code changed yet (fix options below, operator call).
+**Status:** **fixed 2026-10-21** — all four fix options (a)–(d) and the voice
+tier, as `docs/plans/MUSIC_TASTE_AGENT_PLAN.md` (feature doc
+`docs/features/music-taste.md`). Replayed live: "Play the album Destiny Waving
+by Ulrich Schnauss from YouTube music" → *Destiny Waiving* (chat shim 8.4 s,
+voice pipeline 8.1 s); the YTM link → plays (9.4 s). Blueprint step-5 shuffle
+error and the `media_name` template warning (secondary observations) are
+still open.
 
 ## Symptom
 

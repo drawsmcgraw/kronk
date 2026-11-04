@@ -19,6 +19,13 @@
 #      "play anime pop radio on pandora" — which upstream's grammar misses;
 #      without it HA's built-in search-and-play intent takes the request
 #      and lands on YouTube Music title matches (MUSIC_ACCURACY_PLAN)
+#   9. (2026-10-21) hand to Kronk what this tier can't do well: loose
+#      phrasings ("play some deep house", "play something chill", "play
+#      some music") and a failed play of a named album/track/artist/
+#      playlist (a misspelling — MUSIC_TASTE_AGENT_PLAN step 7)
+#  10. (2026-10-21) shuffle is set before play_media, not after: MA
+#      shuffles only the tracks after the current one, so a shuffled
+#      playlist always opened on its track 1
 #
 # Resolution: named player → named room (group-preferred) → own device →
 # own device's room (group-preferred) → default.
@@ -212,6 +219,21 @@ blueprint:
           # could not shuffle — 2026-09-16).
           - (shuffle|play|listen to) [my ][the ][(youtube music|youtube|you tube) ]playlist
             {media_name} [(in|on|using) [the ]{area_or_player_name}][ (with|using) {radio_mode}]
+        # KRONK change 9: loose phrasings go to Kronk, which picks from the
+        # household's taste. Without these, HA's built-in search-and-play
+        # intent takes "play some chill music" and plays an album literally
+        # named "Some Chill Music".
+        loose_trigger:
+          name: Loose trigger (handed to Kronk)
+          description: Sentences that name a style or nothing specific. Kronk decides what to play.
+          selector:
+            text:
+              multiline: false
+              multiple: true
+          default:
+          - (play|put on|throw on|listen to) some {media_name} [(in|on) [the ]{area_or_player_name}]
+          - (play|put on) something {media_name} [(in|on) [the ]{area_or_player_name}]
+          - (play|put on) [some ](music|something) [(in|on) [the ]{area_or_player_name}]
         response_input:
           name: Response for Assist
           description: The response which will be given by Assist. `mass_player_where`
@@ -243,10 +265,13 @@ triggers:
 - trigger: conversation
   command: !input playlist_trigger
   id: playlist
+- trigger: conversation
+  command: !input loose_trigger
+  id: loose
 actions:
 - alias: Define variables to be used in the automation
   variables:
-    version: 20250404-kronk7
+    version: 20250404-kronk10
     shuffle: '{{ ''shuffle'' in trigger.sentence | lower }}'
     default_player_entity_id: !input default_player_entity_id_input
     trigger_id: '{{ trigger.id }}'
@@ -298,55 +323,147 @@ actions:
       {%- set room = area_name(mass_player_entity_id[0]) if mass_player_entity_id else none -%}
       {%- if player_entity_id_by_player_name or not room -%}on {{ mass_player_name }}
       {%- else -%}in the {{ room }}{%- endif -%}
-# KRONK change 6: verify playback before answering (2026-10-04). Upstream
-# lets a failed play_media abort the script, and Assist then speaks its
-# default "Done" — a false success ("French Dinner radio" not on the
-# account). Snapshot the first target, let the call fail without aborting,
-# and wait for that player to be playing something new: a different item,
-# or the same item restarted (position went backwards). Same rule as
-# Kronk's /music (tool_service).
-- alias: Snapshot what the target is playing
-  variables:
-    verify_entity: '{{ mass_player_entity_id[0] }}'
-    before_content: '{{ state_attr(mass_player_entity_id[0], ''media_content_id'') }}'
-    before_title: '{{ state_attr(mass_player_entity_id[0], ''media_title'') }}'
-    before_position: '{{ state_attr(mass_player_entity_id[0], ''media_position'') | float(0) }}'
-    before_state: '{{ states(mass_player_entity_id[0]) }}'
-- alias: Send media to selected Music Assistant Player
-  action: music_assistant.play_media
-  continue_on_error: true
-  data: '{{ dict(action_data.items() | selectattr(''1'')) }}'
-  target:
-    entity_id: '{{ mass_player_entity_id }}'
-- alias: Wait for the player to start the new media
-  wait_template: >-
-    {{ is_state(verify_entity, 'playing') and (
-         before_state != 'playing'
-         or state_attr(verify_entity, 'media_content_id') != before_content
-         or state_attr(verify_entity, 'media_title') != before_title
-         or (state_attr(verify_entity, 'media_position') | float(0)) < before_position ) }}
-  timeout: '00:00:10'
-  continue_on_timeout: true
-- if:
+# KRONK change 9: what Kronk gets is the sentence as spoken, plus where the
+# satellite that heard it is when no room or player was named —
+# conversation.process can't carry the device id, so the target rides in
+# the words: the satellite's room, else (a satellite with no area, e.g. the
+# basement) its own MA player by name. Kronk's player resolution matches both.
+- variables:
+    kronk_agent: conversation.ollama_conversation
+    kronk_text: >-
+      {%- set room = area_name(assist_device_id) if assist_device_id else none -%}
+      {%- set own = player_entity_id_by_assist_device | first | default(none) -%}
+      {%- if area_or_player_name -%}{{ trigger.sentence }}
+      {%- elif room -%}{{ trigger.sentence }} in the {{ room }}
+      {%- elif own -%}{{ trigger.sentence }} on the {{ state_attr(own, 'friendly_name') }}
+      {%- else -%}{{ trigger.sentence }}{%- endif -%}
+- alias: Loose phrasing — Kronk picks
+  if:
   - condition: template
-    value_template: '{{ wait.completed }}'
+    value_template: "{{ trigger_id == 'loose' }}"
   then:
-  # KRONK change 7 (2026-10-07): shuffle is best-effort. MA 2.11 refuses
-  # shuffle_set on a dynamic radio station ("Invalid or unsupported
-  # command"); without this the script aborted after the station had
-  # started and Assist spoke its default "Done".
-  - alias: Enable/Disable shuffle on a Music Assistant Media Player
-    action: media_player.shuffle_set
+  - action: conversation.process
     continue_on_error: true
     data:
-      shuffle: '{{ shuffle }}'
-    target:
-      entity_id: '{{ mass_player_entity_id }}'
-  - alias: Send back the response
-    set_conversation_response: !input response_input
+      agent_id: '{{ kronk_agent }}'
+      text: '{{ kronk_text }}'
+    response_variable: kronk
+  - set_conversation_response: >-
+      {{ kronk.response.speech.plain.speech if kronk is defined and kronk.response is defined
+         else "I couldn't reach Kronk." }}
+  # Everything below is the blueprint's own path. Nested under `else`, not
+  # cut off with `stop`: a `stop` discarded the conversation response set
+  # just before it, and Assist said "Done" (live test 2026-10-21).
   else:
-  - alias: Say it failed
-    set_conversation_response: >-
-      I couldn't play {{ trigger.slots.media_name }}{{ ' radio' if action_data.media_type == 'radio'
-      and 'radio' not in trigger.slots.media_name | lower else '' }}.
+    # KRONK change 6: verify playback before answering (2026-10-04). Upstream
+    # lets a failed play_media abort the script, and Assist then speaks its
+    # default "Done" — a false success ("French Dinner radio" not on the
+    # account). Snapshot the first target, let the call fail without aborting,
+    # and wait for that player to be playing something new: a different item,
+    # or the same item restarted (position went backwards). Same rule as
+    # Kronk's /music (tool_service).
+    - alias: Snapshot what the target is playing
+      variables:
+        verify_entity: '{{ mass_player_entity_id[0] }}'
+        before_content: '{{ state_attr(mass_player_entity_id[0], ''media_content_id'') }}'
+        before_title: '{{ state_attr(mass_player_entity_id[0], ''media_title'') }}'
+        before_position: '{{ state_attr(mass_player_entity_id[0], ''media_position'') | float(0) }}'
+        before_state: '{{ states(mass_player_entity_id[0]) }}'
+    # KRONK change 8 (2026-10-21): a failed call skips the wait. HA keeps a
+    # continue_on_error failure to itself, so the call sits in a nested sequence
+    # whose second step only runs when it succeeded. Without this a station
+    # that does not exist ("zxqv radio") waited out the full 10 s before "I
+    # couldn't play" (INVESTIGATION_2026-10-21_radio_miss_latency.md). Cost: a
+    # call that fails and then plays anyway (seen once, MA 2.8.8, 2026-09-04)
+    # is reported as a failure while the music starts.
+    - variables:
+        play_ok: false
+        started: false
+    # KRONK change 10 (2026-10-21): shuffle before the play. MA shuffles only
+    # the items after the current one; set after play_media, "shuffle Old Man
+    # Sings" opened on the playlist's track 1 every time. Set before, MA
+    # shuffles as it enqueues (3/3 random first tracks, live test). Best
+    # effort: a queue in dynamic (radio) mode refuses it (change 7).
+    - alias: Set shuffle before the play
+      if:
+      - condition: template
+        value_template: '{{ state_attr(mass_player_entity_id[0], ''shuffle'') != shuffle }}'
+      then:
+      - action: media_player.shuffle_set
+        continue_on_error: true
+        data:
+          shuffle: '{{ shuffle }}'
+        target:
+          entity_id: '{{ mass_player_entity_id }}'
+    - alias: Send media to selected Music Assistant Player
+      continue_on_error: true
+      sequence:
+      - action: music_assistant.play_media
+        data: '{{ dict(action_data.items() | selectattr(''1'')) }}'
+        target:
+          entity_id: '{{ mass_player_entity_id }}'
+      - variables:
+          play_ok: true
+    - alias: Wait for the player to start the new media
+      if:
+      - condition: template
+        value_template: '{{ play_ok }}'
+      then:
+      - wait_template: >-
+          {{ is_state(verify_entity, 'playing') and (
+               before_state != 'playing'
+               or state_attr(verify_entity, 'media_content_id') != before_content
+               or state_attr(verify_entity, 'media_title') != before_title
+               or (state_attr(verify_entity, 'media_position') | float(0)) < before_position ) }}
+        timeout: '00:00:10'
+        continue_on_timeout: true
+      - variables:
+          started: '{{ wait.completed }}'
+    - if:
+      - condition: template
+        value_template: '{{ started }}'
+      then:
+      # KRONK change 7 (2026-10-07): shuffle is best-effort. MA 2.11 refuses
+      # shuffle_set on a dynamic radio station ("Invalid or unsupported
+      # command"); without this the script aborted after the station had
+      # started and Assist spoke its default "Done". Change 10: only when
+      # the set before the play didn't take.
+      - alias: Enable/Disable shuffle on a Music Assistant Media Player
+        if:
+        - condition: template
+          value_template: '{{ state_attr(mass_player_entity_id[0], ''shuffle'') != shuffle }}'
+        then:
+        - action: media_player.shuffle_set
+          continue_on_error: true
+          data:
+            shuffle: '{{ shuffle }}'
+          target:
+            entity_id: '{{ mass_player_entity_id }}'
+      - alias: Send back the response
+        set_conversation_response: !input response_input
+      else:
+      # KRONK change 9: MA rejected the words themselves (play_ok false — the
+      # call failed, e.g. "Could not resolve ['Destiny Waving by Ulrich
+      # Schnauss']"): Kronk's resolver tolerates misspellings, so hand it the
+      # sentence. Not radio: a radio miss stays a fast failure (change 8), and
+      # not a call that succeeded but never started (that's a provider problem,
+      # not the words).
+      - if:
+        - condition: template
+          value_template: "{{ not play_ok and action_data.media_type != 'radio' }}"
+        then:
+        - action: conversation.process
+          continue_on_error: true
+          data:
+            agent_id: '{{ kronk_agent }}'
+            text: '{{ kronk_text }}'
+          response_variable: kronk
+        - set_conversation_response: >-
+            {{ kronk.response.speech.plain.speech if kronk is defined and kronk.response is defined
+               else "I couldn't play " ~ trigger.slots.media_name ~ "." }}
+        else:
+        - alias: Say it failed
+          set_conversation_response: >-
+            I couldn't play {{ trigger.slots.media_name }}{{ ' radio' if action_data.media_type == 'radio'
+            and 'radio' not in trigger.slots.media_name | lower else '' }}.
 mode: single

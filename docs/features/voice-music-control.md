@@ -73,7 +73,11 @@ intent catches "play X [in/on Y]" phrasings before the blueprint or
 Kronk see them, searches the media player in the requesting device's
 area, and answers a terse "Playing media". It is area-aware on its own.
 Order of precedence for a spoken request: HA built-in intent → Kronk
-blueprint fork → Kronk. "Put on…", "shuffle my…", and other loose
+blueprint fork → Kronk. (Correction: conversation triggers — the blueprint
+— are matched *before* built-in intents; see
+`INVESTIGATION_2026-09-15_album_played_one_track.md`.) Since 2026-10-21 the
+blueprint (change 9) owns "play some …" / "play something …" and hands them,
+and any failed named play, to Kronk — `docs/features/music-taste.md`. "Put on…", "shuffle my…", and other loose
 phrasings are what reach Kronk.
 
 Kronk's tier: shipped; the blueprint fork and Kronk agree on targeting.
