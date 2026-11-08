@@ -956,7 +956,7 @@ async def run(agent: AgentConfig, task: str, context: list[dict]) -> str:
 def roster() -> list[dict]:
     return [
         {"name": "Coordinator", "icon": "🧭", "model": COORDINATOR_MODEL,
-         "desc": "Direct answers and fallback synthesis when agent bypass is skipped",
+         "desc": "Default lane: answers directly or delegates to specialists via ask_* tools",
          "probe": "llm"},
     ] + [
         {

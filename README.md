@@ -1,17 +1,19 @@
 # Kronk — Self-Hosted Home AI Assistant
 
 Kronk is a fully-local, privacy-first home AI assistant. It runs entirely on one
-machine — no cloud APIs, no data leaving the house. A chat UI (voice planned)
-sits in front of a **router → specialist-agent → coordinator** pipeline over
-local llama.cpp models. It handles weather, web search, personal health data
-(Garmin/Withings), financial documents, home device status, coding/devops help,
-and questions about its own architecture.
+machine — no cloud APIs, no data leaving the house. A chat UI and a voice
+pipeline (Home Assistant satellites) sit in front of a **shortcut router →
+coordinator → specialist-agent** pipeline over local llama.cpp models. It
+handles weather, web search, news briefs, personal health data
+(Garmin/Withings), financial documents, solar, music, the hot tub, the
+MagicMirror, coding/devops help, and questions about its own architecture.
 
 **Machine:** Framework desktop — AMD Ryzen AI 375 (hostname `kronk`), Radeon
 8060S integrated GPU (GFX1151), 122 GB RAM.
 
-**Last updated:** 2026-05-14 — unified-streaming agent loop. Older benchmarks and
-the Ollama-era model history live in [`docs/HISTORY.md`](docs/HISTORY.md).
+**Last updated:** 2026-11-04 — inventory, routing and stacks brought in line
+with the running system. Older benchmarks and the Ollama-era model history live
+in [`docs/HISTORY.md`](docs/HISTORY.md).
 
 ---
 
@@ -19,42 +21,54 @@ the Ollama-era model history live in [`docs/HISTORY.md`](docs/HISTORY.md).
 
 ### Request pipeline
 
-Every chat message flows through three phases:
+Every message — chat UI, OpenAI shim, or the Ollama shim that Home Assistant's
+voice pipeline calls — flows through the same pipeline:
 
-1. **Routing** — `gemma-3-4b` classifies the message into one of eight agents
-   (`health`, `research`, `home`, `assistant`, `finance`, `coding`, `devops`,
-   `talkie`) or `direct`.
-2. **Specialist** — the routed agent runs a unified streaming tool-calling loop
-   (see below). Each agent has an allow-listed tool set.
-3. **Coordinator fallback** — if the router returned `direct`, or the specialist
-   errored, `gemma-4-e4b` streams a response from the accumulated context.
+1. **Routing** (`orchestrator/routing.py`) — narrow deterministic shortcuts pin
+   a message to a specialist (a named household entity, an explicit method, or
+   domain vocabulary with context). Everything else goes to the coordinator.
+   The `gemma-3-4b` LLM classifier was removed 2026-08-18; a shortcut miss now
+   costs one coordinator hop, never a wrong lane.
+2. **Coordinator** — `gemma-4-e4b` answers directly or delegates through its
+   `ask_<agent>` tools, and delivers the pre-generated `news_brief` verbatim.
+3. **Specialist** — the chosen agent runs the unified streaming tool-calling
+   loop (below) over an allow-listed tool set. A pinned specialist can hand a
+   multi-domain request back to the coordinator; a failed specialist reaches
+   it explicitly labeled `FAILED`.
 
 Agent → model assignments come from env vars in `docker-compose.yml`
-(`ROUTER_MODEL`, `COORDINATOR_MODEL`, `HEALTH_AGENT_MODEL`, …), so routing
-changes don't need code edits. The `AGENTS` dict in `orchestrator/agents.py` is
+(`COORDINATOR_MODEL`, `HEALTH_AGENT_MODEL`, …), so model swaps don't need code
+edits. Details: [`docs/features/coordinator-default-routing.md`](docs/features/coordinator-default-routing.md). The `AGENTS` dict in `orchestrator/agents.py` is
 the single source of truth for agents, their tools, and the router prompt.
 
 ### Service map
 
-All containers run on the `kronk` bridge network and address each other by
-service name — except `litellm`, which uses host networking (see Design
-Decisions). llama.cpp model servers run on the **host** as systemd units, not
-containers.
+Kronk's containers run on the `kronk` bridge network and address each other
+by service name — except `litellm`, which uses host networking (see Design
+Decisions). llama.cpp model servers and GPU STT run on the **host** as user
+systemd units, not containers. The live view is the `/services` page.
 
 | Service | Port | Role |
 |---|---|---|
-| `nginx` | 80 | Reverse proxy; SSE pass-through (`proxy_buffering off`) |
-| `orchestrator` | 8000 | UI, conversation history, the pipeline, tool dispatch |
+| `nginx` | 80 | Reverse proxy (the only Kronk port on the LAN); SSE pass-through |
+| `orchestrator` | 8000 (internal) | UI pages, conversation history, the pipeline, tool dispatch, shims |
 | `litellm` | 8002 (host net) | OpenAI-compatible proxy in front of the llama.cpp servers |
-| `tool_service` | 8003 | Weather, web search, URL fetch, shopping list, diagrams |
-| `health_service` | 8004 | Garmin/Withings data, SQLite at `/data/health.db`, `/health` dashboard |
-| `finance_service` | 8005 | Financial-document search over uploaded PDFs |
-| `searxng` | 8080 (internal) | Self-hosted meta-search engine, used by `tool_service` |
-| `retire_calc` | 8080 (internal) | Retirement-calculator app (built from `../retirement-calc`), proxied at `/retire/` |
+| `tool_service` | 8003 (localhost) | Weather, search, URL fetch, music (HA/MA), solar, news brief, shopping list, hot tub, MagicMirror ops, diagrams |
+| `health_service` | 8004 (internal) | Garmin/Withings data, SQLite + vector store |
+| `finance_service` | 8005 (internal) | Financial documents and the positions store |
+| `searxng` | 8080 (internal) | Self-hosted meta-search, used by `tool_service` |
+| `retire_calc` | 8080 (internal) | Retirement calculator (built from `../retirement-calc`), at `/retire/` |
+| `wyoming-piper` | 10200 | Piper TTS for the voice pipeline |
+| `wyoming-whisper` (host unit) | 10300 | faster-whisper STT on the GPU |
+| `homeassistant` (`kronk-ha`) | 8123 (host net) | Voice pipeline broker, satellites, automations |
+| `music-assistant-server` (`kronk-ma`) | 8095 (host net) | Players, YouTube Music, Pandora, NAS library |
+| Langfuse (`langfuse`) | 3000 | Telemetry v1 traces |
 
-nginx also proxies `/api/health/` and `/api/finance/` to their services,
-`/probe/*` to per-service health endpoints, and `/devstral/` directly to the
-devstral llama.cpp server (bypassing LiteLLM).
+nginx serves the UI pages (`/`, `/health`, `/finances`, `/solar`,
+`/resources`, `/performance`, `/agents`, `/services`, `/shopping_list`),
+proxies `/api/health/`, `/api/finance/` and `/api/solar/` to their services,
+`/probe/*` to per-service health endpoints (including HA, MA and Langfuse),
+and `/devstral/` straight to a devstral llama.cpp server (bypassing LiteLLM).
 
 ### Agent loop — unified streaming
 
@@ -177,19 +191,18 @@ exporter on a 30 s timer — `scripts/gpu_mem_export.py`, joined by port into
 [`docs/features/resources-live-memory.md`](docs/features/resources-live-memory.md).
 The VRAM column below is the static estimate, kept for orientation only.
 
+Running as of 2026-11-04:
+
 | Model | systemd unit | Port | Quant | Ctx | VRAM | Role |
 |---|---|---|---|---|---|---|
-| `gemma-3-4b` | `llama-gemma3-4b` | 11439 | Q4_K_M | 8k | ~3.0 GB | Router |
-| `gemma-4-e4b` | `llama-gemma4-e4b` | 11438 | Q4_K_M | 32k | ~3.5 GB | Coordinator + health/research/home/assistant/finance agents |
+| `gemma-4-e4b` | `llama-gemma4-e4b` | 11438 | QAT UD-Q4_K_XL + MTP drafter | 32k | ~3.5 GB | Coordinator + health/research/home/assistant/finance agents |
 | `devstral-2512-q4` | `llama-devstral-q4` | 11440 | Q4_K_M | 128k | ~14 GB | coding + devops agents |
-| `mistral-nemo` | `llama-mistral-nemo` | 11435 | Q8_0 | 16k | ~13 GB | Unassigned |
-| `bonsai-8b` | `llama-bonsai` | 11437 | Q1_0 | 32k | ~1.1 GB | Unassigned |
-| `talkie` | `llama-talkie` | 11441 | Q8_0 | 2k | CPU | Talkie agent (vintage-1930 persona) |
+| `gemma-3-4b` | `llama-gemma3-4b` | 11439 | Q4_K_M | 8k | ~3.0 GB | None — the LLM router it served was removed 2026-08-18 |
 
-> **Note:** the LiteLLM catalog also defines `devstral-2512` (Q8) at port `11436`,
-> but no systemd unit currently serves it. The coding and devops agents use the
-> running Q4 variant (`devstral-2512-q4` on `11440`). Start a Q8 unit on `11436`
-> if the higher-fidelity quant is wanted.
+In the LiteLLM catalog but **not running**: `mistral-nemo` (11435), `bonsai-8b`
+(11437, stopped and disabled 2026-11-04), `devstral-2512` Q8 (11436, no unit),
+and `talkie` (11441, CPU). The `talkie` agent still exists in `AGENTS`, so it
+fails until `llama-talkie` is started; `/services` shows it red.
 
 ### Agents
 
@@ -197,28 +210,35 @@ The `AGENTS` dict in `orchestrator/agents.py` is authoritative.
 
 | Agent | Model | Tools | Purpose |
 |---|---|---|---|
+| coordinator | `gemma-4-e4b` | `ask_<agent>`, `news_brief` | Default lane: answers directly or delegates |
 | `health` | `gemma-4-e4b` | `query_health` | Garmin/Withings: sleep, HRV, weight, steps, activities, resting HR, body battery |
 | `research` | `gemma-4-e4b` | `web_search`, `fetch_url` | Live/current info — news, prices, recent releases |
-| `home` | `gemma-4-e4b` | `get_weather`, `shopping_list_*`, `query_hottub`, `set_timer`, `play_music` | Weather, shopping list, hot tub, timers, music |
+| `home` | `gemma-4-e4b` | `get_weather`, `shopping_list_*`, `query_hottub`, `solar_{status,detail,energy}`, `play_music`, `control_music`, `now_playing`, `rate_music`, `remember_music_preference`, `update_magicmirror` | Weather, shopping list, hot tub, solar, music, mirror updates |
 | `assistant` | `gemma-4-e4b` | `get_kronk_context`, `generate_diagram` | Kronk's own architecture; Graphviz diagrams |
-| `finance` | `gemma-4-e4b` | `query_finances` | Search uploaded financial PDFs |
+| `finance` | `gemma-4-e4b` | `query_finances` | The operator's own financial documents |
 | `coding` | `devstral-2512-q4` | `web_search`, `fetch_url` | Writing/debugging code |
-| `devops` | `devstral-2512-q4` | `web_search`, `fetch_url` | Server admin, Docker, systemd, networking |
-| `talkie` | `talkie` | — | Vintage-1930 persona; only invoked when asked for by name |
+| `devops` | `devstral-2512-q4` | `remote_exec`, `web_search`, `fetch_url` | Server admin; read-only audited exec on managed hosts |
+| `talkie` | `talkie` | — | Vintage-1930 persona; only invoked when asked for by name (model not running) |
+
+Timers are no longer Kronk's: HA's local Assist intent runs them on the
+satellite (2026-07-12).
 
 ### Tools
 
-`get_weather` (NWS), `web_search` (SearXNG), `fetch_url`, `query_health`,
-`query_finances`, `query_hottub`, `shopping_list_{view,add,remove,clear}`,
-`set_timer` (HA), `play_music` (HA → Music Assistant; resolves misspellings
-and picks for genre requests — `docs/features/music-taste.md`),
-`remember_music_preference` (household taste file),
-`get_kronk_context`, `generate_diagram`. Definitions live in
+`get_weather` (NWS), `web_search` (SearXNG), `fetch_url`, `news_brief`,
+`query_health`, `query_finances`, `query_hottub`,
+`shopping_list_{view,add,remove,clear}`, `solar_{status,detail,energy}`,
+`play_music` (HA → Music Assistant; resolves misspellings and picks for genre
+requests — `docs/features/music-taste.md`), `control_music`, `now_playing`,
+`rate_music` (Pandora thumbs), `remember_music_preference` (household taste
+file), `update_magicmirror`, `remote_exec`, `get_kronk_context`,
+`generate_diagram`. Definitions live in
 `orchestrator/tools.py`. (`query_bloodwork` and `search_health_data` are defined
 but not yet wired to an agent — see Roadmap.)
 
-`play_music` is a **terminal tool** (`AgentConfig.terminal_tools`): its result
-is spoken verbatim and ends the agent turn. Structural guardrail — small
+The music tools and `update_magicmirror` are **terminal tools**
+(`AgentConfig.terminal_tools`): the result is spoken verbatim and ends the
+agent turn. Structural guardrail — small
 models otherwise re-call the tool or contradict its result. The tool verifies
 the player actually reaches `playing` before reporting success (MA queues
 requests async, so a 200 from HA alone proves nothing).
@@ -244,16 +264,18 @@ Details: [`docs/features/verbose-errors.md`](docs/features/verbose-errors.md).
 
 ## Operations runbook
 
-### Two compose stacks — kronk + ha
+### Four compose stacks
 
-Kronk's services and Home Assistant live in separate compose files with
-separate project names so HA's lifecycle is independent of orchestrator
-rebuilds:
+Each stack has its own compose file and project name, so a Kronk rebuild never
+touches HA or MA. Each file opens with an `# Operations:` block of day-2
+commands — read it before running compose against that stack.
 
 | Stack | File | Project | Reach via |
 |---|---|---|---|
 | Kronk (orchestrator, tools, llm proxy, nginx, …) | `docker-compose.yml` | `kronk` | port 80 |
 | Home Assistant | `docker-compose.ha.yml` | `kronk-ha` | port 8123 |
+| Music Assistant + YT PO-token helper | `docker-compose.ma.yml` | `kronk-ma` | port 8095 |
+| Langfuse telemetry | `docker-compose.langfuse.yml` | `kronk` (no `name:` key — shares the directory default) | port 3000 |
 
 HA mounts the **shared** `kronk_ha-config` volume (declared `external: true`
 in `docker-compose.ha.yml`). The split means `docker compose up -d --build
@@ -288,7 +310,7 @@ Reference copies of every unit live in [`systemd/`](systemd/). Install with:
 ```bash
 cp systemd/llama-*.service ~/.config/systemd/user/
 systemctl --user daemon-reload
-systemctl --user enable --now llama-gemma3-4b llama-gemma4-e4b llama-devstral-q4
+systemctl --user enable --now llama-gemma4-e4b llama-devstral-q4
 systemctl --user list-units 'llama-*'
 ```
 
@@ -348,7 +370,7 @@ wrong module name. The module is `ttm`.)
 
 ### Model storage
 
-GGUFs live under `/opt/models/{google,mistralai,bonsai}/`; `talkie` is staged at
+GGUFs live under `/opt/models/<vendor>/`; `talkie` is staged at
 `/home/drew/model-staging/talkie-lm/`. Download with
 `hf download <repo> --include "<pattern>" --local-dir /opt/models/<vendor>/`.
 
@@ -398,12 +420,13 @@ is prefixed `[TOOL: weather — live NWS data]` or `[TOOL: weather — FAILED]`.
 status lines are the most reliable because they're structural, not
 instructional; no single layer is enough on its own.
 
-**Secrets: none required.** Every external dependency (NWS, Open-Meteo, SearXNG,
-local LLMs) is unauthenticated; health imports are manual; finance works over
-uploaded docs. The old self-hosted Infisical instance was retired. If a future
-integration needs a credential, the plan is a host volume at
-`/data/<service>_tokens.json` bind-mounted into the one service that needs it —
-reintroduce a secrets manager only if that grows past a handful of files.
+**Secrets: a few files, no manager.** `.env` (gitignored) holds `HA_TOKEN`
+and `MA_TOKEN` (an MA long-lived token, 1-year expiry, no auto-renew), both
+scoped to tool_service; `.env.langfuse` holds Langfuse's own keys;
+`searxng/settings.yml` holds the SearXNG secret. NWS, Open-Meteo, SearXNG and
+the local LLMs are unauthenticated. The old self-hosted Infisical instance was
+retired; reintroduce a secrets manager only if this grows past a handful of
+files.
 
 **Dependencies: hash-pinned.** `requirements.txt` is human-maintained;
 `requirements.lock` is machine-generated with SHA-256 hashes for every

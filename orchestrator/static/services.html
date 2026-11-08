@@ -121,215 +121,154 @@
 <main>
 
   <div>
-    <div class="section-label">Interfaces</div>
-    <div class="service-grid">
+    <div class="section-label">Pages</div>
+    <div class="service-grid" id="page-grid"></div>
+  </div>
 
-      <div class="service-card">
-        <div class="service-icon">💬</div>
-        <div class="service-info">
-          <div class="service-name">
-            Kronk
-            <span class="port-badge">:8000</span>
-            <div class="status-dot" id="s-orchestrator"></div>
-          </div>
-          <div class="service-desc">Main chat interface</div>
-        </div>
-        <a class="open-btn" href="http://kronk.local:8000/" target="_blank">Open</a>
-      </div>
-
-      <div class="service-card">
-        <div class="service-icon">🛒</div>
-        <div class="service-info">
-          <div class="service-name">
-            Shopping List
-            <span class="port-badge">:8000</span>
-          </div>
-          <div class="service-desc">Mobile-friendly shopping list viewer</div>
-        </div>
-        <a class="open-btn" href="http://kronk.local:8000/shopping_list" target="_blank">Open</a>
-      </div>
-
-      <div class="service-card">
-        <div class="service-icon">❤️</div>
-        <div class="service-info">
-          <div class="service-name">
-            Health Dashboard
-            <span class="port-badge">:8004</span>
-            <div class="status-dot" id="s-health"></div>
-          </div>
-          <div class="service-desc">Garmin health data — sleep, HRV, body battery, activities</div>
-        </div>
-        <a class="open-btn" href="/health" target="_blank">Open</a>
-      </div>
-
-      <div class="service-card">
-        <div class="service-icon">💰</div>
-        <div class="service-info">
-          <div class="service-name">
-            Finance
-            <span class="port-badge">:8005</span>
-            <div class="status-dot" id="s-finance"></div>
-          </div>
-          <div class="service-desc">Financial document store — upload statements, PDFs, exports</div>
-        </div>
-        <a class="open-btn" href="http://kronk.local:8000/finances" target="_blank">Open</a>
-      </div>
-
-      <div class="service-card">
-        <div class="service-icon">🤝</div>
-        <div class="service-info">
-          <div class="service-name">
-            Agents
-            <span class="port-badge">:8000</span>
-          </div>
-          <div class="service-desc">Active agents and their assigned models</div>
-        </div>
-        <a class="open-btn" href="http://kronk.local:8000/agents" target="_blank">Open</a>
-      </div>
-
-      <div class="service-card">
-        <div class="service-icon">📊</div>
-        <div class="service-info">
-          <div class="service-name">
-            Resources
-            <span class="port-badge">:8000</span>
-          </div>
-          <div class="service-desc">Model memory usage, loaded vs library, system RAM</div>
-        </div>
-        <a class="open-btn" href="/resources" target="_blank">Open</a>
-      </div>
-
-      <div class="service-card">
-        <div class="service-icon">🔍</div>
-        <div class="service-info">
-          <div class="service-name">
-            SearXNG
-            <span class="port-badge">:8080</span>
-            <div class="status-dot" id="s-searxng"></div>
-          </div>
-          <div class="service-desc">Self-hosted meta-search — queries never leave the house</div>
-        </div>
-        <a class="open-btn" href="http://kronk.local:8080/" target="_blank">Open</a>
-      </div>
-
-    </div>
+  <div>
+    <div class="section-label">Companion apps</div>
+    <div class="service-grid" id="app-grid"></div>
   </div>
 
   <div>
     <div class="section-label">Agents</div>
     <div class="service-grid" id="agent-grid">
-      <!-- populated by /api/agents -->
+      <!-- populated by /api/agents + /api/servers -->
     </div>
   </div>
 
   <div>
-    <div class="section-label">Internal Services</div>
-    <div class="service-grid">
-
-      <div class="service-card">
-        <div class="service-icon">🤖</div>
-        <div class="service-info">
-          <div class="service-name">
-            LLM Service
-            <span class="port-badge">:8002</span>
-            <div class="status-dot" id="s-llm"></div>
-          </div>
-          <div class="service-desc">Ollama wrapper — streams tokens to the orchestrator</div>
-        </div>
-        <span class="internal-badge">internal</span>
-      </div>
-
-      <div class="service-card">
-        <div class="service-icon">🛠️</div>
-        <div class="service-info">
-          <div class="service-name">
-            Tool Service
-            <span class="port-badge">:8003</span>
-            <div class="status-dot" id="s-tools"></div>
-          </div>
-          <div class="service-desc">Weather (NWS), web search, URL fetch, shopping list API</div>
-        </div>
-        <span class="internal-badge">internal</span>
-      </div>
-
-      <div class="service-card">
-        <div class="service-icon">🦙</div>
-        <div class="service-info">
-          <div class="service-name">
-            Ollama
-            <span class="port-badge">:11434</span>
-            <div class="status-dot" id="s-ollama"></div>
-          </div>
-          <div class="service-desc">Local LLM runtime — runs on host, GPU-accelerated via ROCm</div>
-        </div>
-        <span class="internal-badge">host service</span>
-      </div>
-
+    <div class="section-label">Model servers</div>
+    <div class="service-grid" id="model-grid">
+      <!-- populated by /api/servers (litellm catalog + live health) -->
     </div>
+  </div>
+
+  <div>
+    <div class="section-label">Internal services</div>
+    <div class="service-grid" id="internal-grid"></div>
   </div>
 
 </main>
 
 <script src="/static/js/kronk.js"></script>
 <script>
-  const staticChecks = [
-    { id: 's-orchestrator', url: '/probe/orchestrator' },
-    { id: 's-health',       url: '/probe/health' },
-    { id: 's-finance',      url: '/probe/finance' },
-    { id: 's-searxng',      url: '/probe/searxng' },
-    { id: 's-llm',          url: '/probe/llm' },
-    { id: 's-tools',        url: '/probe/tools' },
-    { id: 's-ollama',       url: '/probe/ollama' },
+  // Everything below is served through nginx on :80 unless a port is shown.
+  // A probe of null means there is no HTTP health check (Wyoming is raw TCP),
+  // so the card shows no dot rather than a guess.
+  const PAGES = [
+    { icon: '💬', name: 'Chat',             href: '/',              probe: '/probe/orchestrator', desc: 'Main chat interface' },
+    { icon: '🛒', name: 'Shopping List',    href: '/shopping_list', probe: '/probe/tools',        desc: 'Mobile-friendly shopping list' },
+    { icon: '❤️', name: 'Health',           href: '/health',        probe: '/probe/health',       desc: 'Garmin/Withings — sleep, HRV, weight, activities' },
+    { icon: '💰', name: 'Finances',         href: '/finances',      probe: '/probe/finance',      desc: 'Financial documents and positions' },
+    { icon: '☀️', name: 'Solar',            href: '/solar',         probe: '/probe/tools',        desc: 'Production, daily energy, per-panel health' },
+    { icon: '🏖️', name: 'Retirement Calc',  href: '/retire/',       probe: '/probe/retire',       desc: 'FERS + Monte Carlo retirement calculator' },
+    { icon: '🤝', name: 'Agents',           href: '/agents',        probe: null,                  desc: 'Agents, tools, and assigned models' },
+    { icon: '📊', name: 'Resources',        href: '/resources',     probe: null,                  desc: 'Model memory (measured), system RAM, GTT' },
+    { icon: '⏱️', name: 'Performance',      href: '/performance',   probe: null,                  desc: 'Per-turn latency and token metrics' },
   ];
 
-  // probe → URL mapping for agent dots (matches "probe" field from /api/agents)
-  const probeUrls = {
-    llm:     '/probe/llm',
-    health:  '/probe/health',
-    tools:   '/probe/tools',
-    finance: '/probe/finance',
-  };
+  // Separate apps on their own ports; links follow whatever host this page was loaded from.
+  const APPS = [
+    { icon: '🏡', name: 'Home Assistant',   port: 8123, probe: '/probe/ha',       desc: 'Voice pipeline broker, satellites, automations' },
+    { icon: '🎵', name: 'Music Assistant',  port: 8095, probe: '/probe/ma',       desc: 'Players, YouTube Music, Pandora, NAS library' },
+    { icon: '🔭', name: 'Langfuse',         port: 3000, probe: '/probe/langfuse', desc: 'Telemetry traces (v1 prototype)' },
+  ];
 
-  async function populateAgents() {
-    const grid = document.getElementById('agent-grid');
-    try {
-      const r = await fetch('/api/agents');
-      const { agents } = await r.json();
-      grid.innerHTML = agents.map((a, i) => `
-        <div class="service-card">
-          <div class="service-icon">${a.icon}</div>
-          <div class="service-info">
-            <div class="service-name">
-              ${a.name}
-              <span class="model-badge">${a.model}</span>
-              <div class="status-dot" id="s-agent-${i}"></div>
-            </div>
-            <div class="service-desc">${a.desc}</div>
+  const INTERNAL = [
+    { icon: '🔀', name: 'LiteLLM',          port: 8002,  where: 'host net',  probe: '/probe/llm',     desc: 'OpenAI-compatible proxy in front of the llama.cpp servers' },
+    { icon: '🛠️', name: 'Tool Service',     port: 8003,  where: 'internal',  probe: '/probe/tools',   desc: 'Weather, search, music, solar, news, shopping list, mirror ops' },
+    { icon: '❤️', name: 'Health Service',   port: 8004,  where: 'internal',  probe: '/probe/health',  desc: 'Health imports, SQLite, vector store' },
+    { icon: '💰', name: 'Finance Service',  port: 8005,  where: 'internal',  probe: '/probe/finance', desc: 'Financial-document search and positions store' },
+    { icon: '🔍', name: 'SearXNG',          port: 8080,  where: 'internal',  probe: '/probe/searxng', desc: 'Self-hosted meta-search — queries never leave the house' },
+    { icon: '🎙️', name: 'Whisper STT',      port: 10300, where: 'host unit', probe: null,             desc: 'Wyoming faster-whisper on the GPU' },
+    { icon: '🔊', name: 'Piper TTS',        port: 10200, where: 'container', probe: null,             desc: 'Wyoming Piper text-to-speech' },
+  ];
+
+  const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+  function card({ icon, name, badge, badgeClass = 'port-badge', dotId, desc, href, tag }) {
+    return `
+      <div class="service-card">
+        <div class="service-icon">${icon}</div>
+        <div class="service-info">
+          <div class="service-name">
+            ${esc(name)}
+            ${badge ? `<span class="${badgeClass}">${esc(badge)}</span>` : ''}
+            ${dotId ? `<div class="status-dot" id="${dotId}"></div>` : ''}
           </div>
-        </div>`).join('');
+          <div class="service-desc">${esc(desc)}</div>
+        </div>
+        ${href ? `<a class="open-btn" href="${href}" target="_blank">Open</a>`
+               : tag ? `<span class="internal-badge">${esc(tag)}</span>` : ''}
+      </div>`;
+  }
 
-      // Register agent dots for health checks
-      agents.forEach((a, i) => {
-        if (probeUrls[a.probe]) {
-          dynamicChecks.push({ id: `s-agent-${i}`, url: probeUrls[a.probe] });
-        }
-      });
+  const checks = [];
+  function render(gridId, items, toCard) {
+    document.getElementById(gridId).innerHTML = items.map((it, i) => {
+      const dotId = it.probe ? `s-${gridId}-${i}` : null;
+      if (dotId) checks.push({ id: dotId, url: it.probe });
+      return card({ ...toCard(it), dotId });
+    }).join('');
+  }
 
-      checkAll();
+  render('page-grid', PAGES, p => ({ ...p, href: p.href }));
+  render('app-grid', APPS, a => ({
+    ...a, badge: `:${a.port}`,
+    href: `${location.protocol}//${location.hostname}:${a.port}/`,
+  }));
+  render('internal-grid', INTERNAL, s => ({ ...s, badge: `:${s.port}`, tag: s.where }));
+
+  function setDot(id, ok) {
+    const dot = document.getElementById(id);
+    if (!dot) return;
+    dot.classList.toggle('up', ok);
+    dot.classList.toggle('down', !ok);
+  }
+
+  // Agents and model servers: health comes from /api/servers, which asks
+  // LiteLLM about each llama.cpp backend. An agent is up only when its
+  // model's server is healthy.
+  async function loadDynamic() {
+    const agentGrid = document.getElementById('agent-grid');
+    const modelGrid = document.getElementById('model-grid');
+    let servers = [];
+    try {
+      servers = (await (await fetch('/api/servers')).json()).servers;
+      const health = Object.fromEntries(servers.map(s => [s.name, !!s.healthy]));
+      // Assigned and healthy first; unassigned catalog entries last.
+      const ordered = [...servers].sort((a, b) =>
+        (b.agents.length > 0) - (a.agents.length > 0) || (b.healthy - a.healthy));
+      modelGrid.innerHTML = ordered.map((s, i) => card({
+        icon: '🧠', name: s.name, badge: `:${s.port}`, dotId: `s-model-${i}`,
+        desc: [s.params, s.quant, s.ctx_k && `${s.ctx_k}k ctx`,
+               s.measured_gb != null && `${s.measured_gb} GB measured`,
+               s.agents.length ? `→ ${s.agents.join(', ')}` : 'unassigned']
+              .filter(Boolean).join(' · '),
+        tag: s.healthy ? 'running' : 'not running',
+      })).join('');
+      ordered.forEach((s, i) => setDot(`s-model-${i}`, !!s.healthy));
+
+      const { agents } = await (await fetch('/api/agents')).json();
+      agentGrid.innerHTML = agents.map((a, i) => card({
+        icon: a.icon, name: a.name, badge: a.model, badgeClass: 'model-badge',
+        dotId: `s-agent-${i}`, desc: a.desc,
+      })).join('');
+      agents.forEach((a, i) => setDot(`s-agent-${i}`, !!health[a.model]));
     } catch {
-      grid.innerHTML = '<div style="color:var(--text3);font-size:12px;padding:0.5rem">could not load agents</div>';
+      const msg = '<div style="color:var(--text3);font-size:12px;padding:0.5rem">could not load /api/servers or /api/agents</div>';
+      if (!servers.length) modelGrid.innerHTML = msg;
+      agentGrid.innerHTML = msg;
     }
   }
 
-  const dynamicChecks = [];
-
-  async function checkAll() {
-    await KronkUI.checkDots([...staticChecks, ...dynamicChecks]);
+  async function refresh() {
+    await Promise.allSettled([KronkUI.checkDots(checks), loadDynamic()]);
   }
 
-  populateAgents();
-  checkAll();
-  setInterval(checkAll, 30000);
+  refresh();
+  setInterval(refresh, 30000);
 </script>
 </body>
 </html>
