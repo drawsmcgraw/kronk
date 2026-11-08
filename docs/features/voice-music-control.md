@@ -80,6 +80,27 @@ blueprint (change 9) owns "play some …" / "play something …" and hands them,
 and any failed named play, to Kronk — `docs/features/music-taste.md`. "Put on…", "shuffle my…", and other loose
 phrasings are what reach Kronk.
 
+**Radio (change 11, 2026-11-08).** The radio sentences consume the word
+"radio", and MA's library lookup (`get_item_by_name`) is exact-name only,
+so the bare name ("Mushroom Jazz") never hit a Pandora station (named
+"Mushroom Jazz Radio") and fell to a provider search: 0.6–1 s, and for a
+station the account doesn't have, a catalogue seed that may be a song
+(`INVESTIGATION_2026-11-07_ma_pandora_and_ui.md`). The blueprint now asks
+for `"<name> Radio"` (an owned station plays in ~0.9 s end to end), and a
+radio play MA rejects goes to Kronk like the other types, which scores every
+library station (near-miss "90s, 2000s and today's hits" → "90s, 2000s,
+Today's Hits Radio", 7 s). A name MA *can* match in the Pandora catalogue
+still creates a station there; that fix belongs upstream.
+
+**Kronk-side radio (2026-11-08).** MA's Pandora `offer_new_stations` is off,
+so no request creates a station. The orchestrator forwards the user's own
+sentence with every `play_music` call (`origin.said`); when it names a
+station, tool_service treats the request as radio whatever the model passed,
+takes the station name from the sentence, and scores spoken numbers as
+digits too ("ninety's two thousands" → "90s 2000s"). The model's arguments
+are a hint, not the source of truth — a 4B model dropped the radio type in
+4/10 runs and cut the name in 3/10 on one request.
+
 Kronk's tier: shipped; the blueprint fork and Kronk agree on targeting.
 
 ## How it works (tier 2)

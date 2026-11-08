@@ -47,6 +47,73 @@ _URL_RES = [
     (re.compile(r"youtu\.be/([\w-]+)"), "track"),
 ]
 
+# Spoken numbers → digits. STT writes "ninety's two thousands" where the
+# catalogue says "90s, 2000s" (INVESTIGATION_2026-11-07_ma_pandora_and_ui.md:
+# the spelled-out query scored 0.51–0.63 against "90s, 2000s, Today's Hits
+# Radio", the digit form 0.91), and the model passing the query does not
+# reliably convert them. The digit form is scored *alongside* the query as
+# said, never instead of it, so a name that is spelled out for real
+# ("Three Dog Night", "Twenty One Pilots") still matches itself.
+_UNITS = {w: i for i, w in enumerate(
+    "zero one two three four five six seven eight nine ten eleven twelve thirteen "
+    "fourteen fifteen sixteen seventeen eighteen nineteen".split())}
+_TENS = {w: 10 * i for i, w in enumerate(
+    "twenty thirty forty fifty sixty seventy eighty ninety".split(), start=2)}
+_TENS_STEM = {"twent": 20, "thirt": 30, "fort": 40, "fift": 50, "sixt": 60,
+              "sevent": 70, "eight": 80, "ninet": 90}
+_U19 = "|".join(sorted(_UNITS, key=len, reverse=True))
+_U9 = "one|two|three|four|five|six|seven|eight|nine"
+_T = "|".join(_TENS)
+_SEP = r"[\s-]+"
+_NUMERAL_RULES = [
+    # "two thousands", "the two thousand's" → 2000s
+    (re.compile(r"\btwo" + _SEP + r"thousand'?s\b", re.I), lambda m: "2000s"),
+    # "ninety's", "nineties", "ninetys" → 90s
+    (re.compile(r"\b(" + "|".join(_TENS_STEM) + r")(?:ies|y'?s)\b", re.I),
+     lambda m: f"{_TENS_STEM[m.group(1).lower()]}s"),
+    # "nineteen eighty four" → 1984, "nineteen ninety" → 1990
+    (re.compile(r"\bnineteen" + _SEP + r"(" + _T + r")(?:" + _SEP + r"(" + _U9 + r"))?\b", re.I),
+     lambda m: str(1900 + _TENS[m.group(1).lower()] + (_UNITS[m.group(2).lower()] if m.group(2) else 0))),
+    # "two thousand (and) seven" → 2007
+    (re.compile(r"\btwo" + _SEP + r"thousand(?:" + _SEP + r"and)?" + _SEP + r"(" + _U19 + r")\b", re.I),
+     lambda m: str(2000 + _UNITS[m.group(1).lower()])),
+    (re.compile(r"\btwo" + _SEP + r"thousand\b", re.I), lambda m: "2000"),
+    # "twenty one" → 21, then the lone words
+    (re.compile(r"\b(" + _T + r")" + _SEP + r"(" + _U9 + r")\b", re.I),
+     lambda m: str(_TENS[m.group(1).lower()] + _UNITS[m.group(2).lower()])),
+    (re.compile(r"\b(" + _T + r")\b", re.I), lambda m: str(_TENS[m.group(1).lower()])),
+    (re.compile(r"\b(" + _U19 + r")\b", re.I), lambda m: str(_UNITS[m.group(1).lower()])),
+]
+
+
+# A radio request in the user's own words: "play <name> radio [on Pandora]
+# [in the kitchen]" or "play the radio station <name> [in the kitchen]".
+# "radio"/"station" must close the name, or "radio station"/"station" open
+# it, so "play Radio Ga Ga by Queen" is not a station request.
+_VERB = r"^\W*(?:(?:ok(?:ay)?|hey)\s+\w+[,\s]+)?(?:please\s+)?(?:play|put\s+on|listen\s+to|start|turn\s+on)\s+"
+_TAIL = r"(?:\s+(?:on|from|via|in|using)\b.*)?[\s.!?]*$"
+_RADIO_AFTER = re.compile(_VERB + r"(?:the\s+|my\s+|some\s+)?(?P<name>.+?),?\s+(?:radio(?:\s+station)?|station)" + _TAIL, re.I)
+_RADIO_BEFORE = re.compile(_VERB + r"(?:the\s+)?(?:radio\s+station|station)\s+(?P<name>.+?)"
+                           r"(?:\s+(?:in|on)\s+(?:the\s+)?\S.*)?[\s.!?]*$", re.I)
+
+
+def radio_name(said: str | None) -> str | None:
+    """The station name when `said` asks for a radio station, else None."""
+    for rx in (_RADIO_AFTER, _RADIO_BEFORE):
+        m = rx.match(said or "")
+        if m and m.group("name").strip(" ,"):
+            return m.group("name").strip(" ,")
+    return None
+
+
+def numerals(text: str | None) -> str:
+    """Spoken numbers in `text` written as digits; everything else untouched."""
+    out = text or ""
+    for rx, fn in _NUMERAL_RULES:
+        out = rx.sub(fn, out)
+    return out
+
+
 _BY_RE = re.compile(r"^(?P<name>.+)\s+by\s+(?:the\s+)?(?:artist\s+|band\s+)?(?P<artist>.+)$", re.IGNORECASE)
 
 
@@ -58,6 +125,13 @@ class Query:
     uri_type: str | None = None       # its media type
     name: str | None = None           # "X" of "X by Y"
     artist: str | None = None         # "Y" of "X by Y"
+
+    def digits(self) -> "Query | None":
+        """The same query with spoken numbers as digits, or None when it has none."""
+        alt = Query(text=numerals(self.text), provider=self.provider, uri=self.uri,
+                    uri_type=self.uri_type, name=self.name and numerals(self.name),
+                    artist=self.artist and numerals(self.artist))
+        return alt if (alt.text, alt.name, alt.artist) != (self.text, self.name, self.artist) else None
 
 
 def normalize(query: str, artist: str | None = None) -> Query:
@@ -224,11 +298,15 @@ def score(c: Candidate, q: Query) -> float:
     return s
 
 
-def rank(cands: list[Candidate], q: Query, media_type: str | None = None) -> list[Candidate]:
-    """Scored, best first. A typed request only considers that type."""
+def rank(cands: list[Candidate], q: Query, media_type: str | None = None,
+         also: list[Query] | tuple = ()) -> list[Candidate]:
+    """Scored, best first. A typed request only considers that type. Each
+    candidate scores its best against `q`, the extra readings in `also`
+    (the name cut from the user's own sentence), and their digit forms."""
     pool = [c for c in cands if not media_type or c.media_type == media_type]
+    queries = [x for q0 in (q, *also) for x in (q0, q0.digits()) if x is not None]
     for c in pool:
-        c.score = score(c, q)
+        c.score = max(score(c, x) for x in queries)
     return sorted(pool, key=lambda c: c.score, reverse=True)
 
 

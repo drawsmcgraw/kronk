@@ -186,3 +186,25 @@ def test_fork_radio_trigger_has_station_first_sentence():
     assert len(sentences) == 2
     assert "{media_name} (radio|station)" in sentences[1] and "pandora" in sentences[1]
     assert "((radio station)|(radio)|(station)) {media_name}" in sentences[0]   # upstream's kept
+
+
+# ── change 11: radio asks for "<name> Radio"; a radio miss goes to Kronk ────
+
+def _fork():
+    class L(yaml.SafeLoader):
+        pass
+    L.add_constructor("!input", lambda l, n: {"__input__": l.construct_scalar(n)})
+    return yaml.load(open(Path(__file__).resolve().parent.parent / "ha/blueprints/mass_assist_kronk.yaml"), Loader=L)
+
+
+def test_fork_radio_media_id_appends_radio():
+    media_id = _fork()["actions"][0]["variables"]["action_data"]["media_id"]
+    assert "trigger.id == 'radio'" in media_id
+    assert "endswith(' radio')" in media_id      # "X Radio" is not doubled
+    assert "{{ n }} Radio" in media_id
+
+
+def test_fork_failed_radio_play_goes_to_kronk():
+    text = open(Path(__file__).resolve().parent.parent / "ha/blueprints/mass_assist_kronk.yaml").read()
+    assert 'value_template: "{{ not play_ok }}"' in text
+    assert "action_data.media_type != 'radio'" not in text

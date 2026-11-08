@@ -30,14 +30,18 @@ Conventions:
 ## Next — agreed, not started
 
 - **Music selection refinement** — Kronk plays what was meant, not the
-  literal words. First step: every radio request from the HA blueprint goes
-  to Kronk (blueprint change 11, docker cp + `automation.reload`, no HA
-  restart), and tool_service scores library stations before MA's exact
-  `item_by_name`, which can create a station from the wrong seed
-  (`INVESTIGATION_2026-10-21_pandora_station_match.md`,
-  `INVESTIGATION_2026-10-25_pandora_station_name_miss.md`). Cost: radio goes
-  from ~1.3 s to 7–8 s. Awaiting the operator's go.
-  *Why: three radio misfires in four days, one of them a wrong success.*
+  literal words. Done 2026-11-08: the household's stations imported to the
+  Kronk Pandora account; blueprint change 11 asks MA for `"<name> Radio"`
+  (owned station = exact library hit) and hands a rejected radio play to
+  Kronk's station scoring; Kronk reads "radio" and the station name from the
+  user's sentence, not the model's arguments; MA's `offer_new_stations` is
+  off, so nothing creates a station. Next: station creation only on an
+  explicit ask ("make a station from X") — the blueprint plays owned
+  stations from `music_assistant.get_library` and hands everything else to
+  Kronk, Kronk plays a seed only on an explicit create, then
+  `offer_new_stations` back on. No new MA code; the song-title seed ranking
+  goes upstream (`INVESTIGATION_2026-11-07_ma_pandora_and_ui.md`).
+  *Why: four radio misfires in three weeks, two of them wrong successes.*
 - **Backups** — nightly copies of the HA config volume, the MA volume, the
   orchestrator SQLite, tool_service `/data` (`solar.db` is the only copy of
   past production history) and, if wanted, Langfuse, to the NAS or a second

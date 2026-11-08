@@ -401,9 +401,9 @@ TOOL_DEFINITIONS = [
             "description": (
                 "Play music through Music Assistant on a home speaker. Use "
                 "whenever the user asks to play, put on, or listen to music — "
-                "an artist, album, song, playlist, or genre. Pass the "
-                "artist/album/song name as plain text; spelling mistakes are "
-                "corrected for you. For a style instead of a specific record "
+                "an artist, album, song, playlist, radio station, or genre. Pass "
+                "the name as plain text; spelling mistakes are corrected for "
+                "you. For a style instead of a specific record "
                 "('some deep house', 'something chill', 'jazz', 'some music') "
                 "pass kind 'genre' and Kronk picks something the household "
                 "likes. For 'not that' / 'something else' right after Kronk "
@@ -414,12 +414,17 @@ TOOL_DEFINITIONS = [
                 "properties": {
                     "query": {
                         "type": "string",
-                        "description": "What to play — artist, album, song, playlist, or genre (e.g. 'Pink Floyd', 'Wish You Were Here').",
+                        "description": "What to play — artist, album, song, playlist, radio station, or genre "
+                                       "(e.g. 'Pink Floyd', 'Wish You Were Here', 'Hotel Costes'). Pass the "
+                                       "whole name as the user said it; never shorten it or drop words. "
+                                       "Write numbers as digits: 'ninety's' → '90s', 'two thousands' → "
+                                       "'2000s', 'nineteen eighty four' → '1984'.",
                     },
                     "media_type": {
                         "type": "string",
                         "enum": ["artist", "album", "track", "playlist", "radio"],
-                        "description": "What kind of thing the query names, if the user said so (album/song/etc). Omit when unsure.",
+                        "description": "What kind of thing the query names, if the user said so (album/song/etc). "
+                                       "'radio' whenever the user said 'radio' or 'station'. Omit when unsure.",
                     },
                     "kind": {
                         "type": "string",
@@ -950,6 +955,10 @@ async def _tool_play_music(client: httpx.AsyncClient, args: dict) -> str:
             payload["origin_device"] = o.device_id
         if o.area:
             payload["origin_area"] = o.area
+    # The sentence as the user said it: tool_service reads "radio" and the
+    # station name from it rather than trusting the model's arguments.
+    if (said := origin.said.get()):
+        payload["said"] = said
     resp = await client.post(f"{TOOL_SERVICE_URL}/music", json=payload)
     if resp.status_code == 200:
         info = resp.json()

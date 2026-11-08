@@ -333,3 +333,108 @@ def test_play_radio_scores_the_library_stations_when_search_finds_none(search_en
                                                        "media_type": "radio"})
     assert resp.status_code == 200, resp.text
     assert search_env.calls[0][2] == {"media_id": "library://radio/263", "media_type": "radio"}
+
+
+# ── spoken numbers (INVESTIGATION_2026-11-07_ma_pandora_and_ui.md) ──────────
+
+@pytest.mark.parametrize("said, digits", [
+    ("ninety's two thousands and today's hits", "90s 2000s and today's hits"),
+    ("the nineties alternative", "the 90s alternative"),
+    ("eighties", "80s"),
+    ("nineteen eighty four", "1984"),
+    ("two thousand and seven", "2007"),
+    ("Ninety Nine Red Balloons", "99 Red Balloons"),
+    ("Hotel Costes 3", "Hotel Costes 3"),
+    ("weightless", "weightless"),           # "eight" inside a word stays
+])
+def test_numerals(said, digits):
+    assert mr.numerals(said) == digits
+
+
+def test_rank_spoken_numbers_find_the_station():
+    q = mr.normalize("ninety's two thousands and today's hits")
+    ranked = mr.rank(mr.candidates_from_search(HITS_STATION), q, "radio")
+    assert ranked[0].uri == "library://radio/263" and ranked[0].score >= mr.PLAY_MIN_SCORE
+
+
+def test_rank_spelled_out_names_still_match_themselves():
+    res = {"artists": [{"name": "Three Dog Night", "uri": "a3", "media_type": "artist"},
+                       {"name": "3 Doors Down", "uri": "a4", "media_type": "artist"}]}
+    ranked = mr.rank(mr.candidates_from_search(res), mr.normalize("Three Dog Night"))
+    assert ranked[0].uri == "a3" and ranked[0].score >= mr.PLAY_MIN_SCORE
+
+
+def test_query_without_numbers_has_no_digit_variant():
+    assert mr.normalize("Pink Floyd").digits() is None
+
+
+# ── the user's sentence decides "radio" and the station name ────────────────
+
+@pytest.mark.parametrize("said, name", [
+    ("Play ninety's two thousands and today's hits radio on the basement voice pe ma",
+     "ninety's two thousands and today's hits"),
+    ("Play Backyard Barbecue Radio on Pandora.", "Backyard Barbecue"),
+    ("play mushroom jazz radio in the kitchen", "mushroom jazz"),
+    ("Listen to the radio station Hotel Costes in the office", "Hotel Costes"),
+    ("put on 90s, 2000s, today's hits station", "90s, 2000s, today's hits"),
+    ("Play Radio Ga Ga by Queen", None),                 # a song, not a station
+    ("Play the song Video Killed the Radio Star", None),
+    ("play some deep house", None),
+    (None, None),
+])
+def test_radio_name(said, name):
+    assert mr.radio_name(said) == name
+
+
+def _with_library(search_env):
+    inner = ts.ma_command
+
+    async def fake(command, _timeout=20, **args):
+        if command == "music/radios/library_items":
+            search_env.ma_calls.append((command, args))
+            return HITS_STATION["radio"]
+        return await inner(command, _timeout=_timeout, **args)
+    return patch.object(ts, "ma_command", new=fake)
+
+
+def test_play_sentence_says_radio_when_the_model_did_not(search_env):
+    # The model dropped media_type and cut the name (2026-11-08 bench); a
+    # typeless "90s and 2000s" had played a YouTube album.
+    search_env.station_item = None
+    search_env.search = {"90s and 2000s": {"albums": [_album("90s/2000s Girly Pop Icons", ["Various Artists"], "ytmusic://album/G")]}}
+    with _with_library(search_env), patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 5):
+        resp = TestClient(ts.app).post("/music", json={
+            "query": "90s and 2000s", "kind": "named",
+            "said": "Play ninety's two thousands and today's hits radio on the basement voice pe ma"})
+    assert resp.status_code == 200, resp.text
+    assert search_env.calls[0][2] == {"media_id": "library://radio/263", "media_type": "radio"}
+
+
+def test_play_station_lookup_uses_the_name_from_the_sentence(search_env):
+    search_env.station_item = None
+    with _with_library(search_env), patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 5):
+        TestClient(ts.app).post("/music", json={"query": "90s", "media_type": "radio",
+                                               "said": "play 90s, 2000s, today's hits radio"})
+    lookups = [a["name"] for c, a in search_env.ma_calls if c == "music/item_by_name"]
+    assert lookups == ["90s, 2000s, today's hits"]
+
+
+def test_play_song_with_radio_in_its_title_is_not_forced_to_radio(search_env):
+    search_env.station_item = None
+    TestClient(ts.app).post("/music", json={"query": "Radio Ga Ga", "said": "Play Radio Ga Ga by Queen"})
+    assert all(c != "music/item_by_name" for c, _ in search_env.ma_calls)
+    assert all("radio" not in s[1] or len(s[1]) > 1 for s in search_env.searches)
+
+
+def test_play_sentence_naming_a_station_overrides_kind_genre(search_env):
+    search_env.station_item = None
+    with _with_library(search_env), patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 5):
+        resp = TestClient(ts.app).post("/music", json={
+            "query": "90s", "kind": "genre",
+            "said": "Play ninety's two thousands and today's hits radio on the basement voice pe ma"})
+    assert resp.status_code == 200, resp.text
+    assert search_env.calls[0][2] == {"media_id": "library://radio/263", "media_type": "radio"}
+
+
+def test_radio_name_drops_some():
+    assert mr.radio_name("play some jazz radio in the kitchen") == "jazz"

@@ -1041,6 +1041,7 @@ class MusicRequest(BaseModel):
     shuffle: bool = False            # "shuffle X" — set on the player after play, like the blueprint
     origin_area: str | None = None   # area of the satellite that heard the request
     origin_device: str | None = None  # HA device id of that satellite
+    said: str | None = None          # the user's sentence, verbatim (orchestrator)
 
 
 def _players_template(origin_device: str | None) -> str:
@@ -1252,6 +1253,22 @@ async def play_music(req: MusicRequest):
         media_type = nq.uri_type or req.media_type
         kind = (req.kind or "").strip().lower()
 
+        # "Radio" and the station name come from the user's own sentence,
+        # not the model's arguments: on one request repeated ten times the
+        # model dropped media_type 4 times and cut the name 3 times, and a
+        # typeless "90s and 2000s" then played a YouTube album
+        # (INVESTIGATION_2026-11-07_ma_pandora_and_ui.md, 2026-11-08 bench).
+        # A sentence that names a station overrides the model's "genre" too:
+        # it marked "… today's hits radio" genre and played a 90s playlist.
+        said_q = None
+        if not nq.uri and kind != "another":
+            if (said_station := music_resolve.radio_name(req.said)):
+                said_q = music_resolve.normalize(said_station)
+                if (media_type or "").lower() != "radio" or kind == "genre":
+                    logger.info("music: %r names a station; media_type %r kind %r -> radio",
+                                req.said, media_type, kind)
+                    media_type, kind = "radio", "named"
+
         # A genre or "not that" request: Kronk picks (MUSIC_TASTE_AGENT_PLAN
         # step 5). An undeclared request is a genre when the query is one
         # ("jazz", "some deep house") and nothing says it's a specific item.
@@ -1262,7 +1279,8 @@ async def play_music(req: MusicRequest):
             if plan:
                 return await _play_genre(client, headers, entities, label, req, plan)
 
-        station = await _pandora_station(nq.text) if (media_type or "").lower() == "radio" else None
+        station = (await _pandora_station(said_q.text if said_q else nq.text)
+                   if (media_type or "").lower() == "radio" else None)
         # Everything else named resolves through search + scoring first, so
         # a misspelling plays the record that was meant. When search found
         # candidates and rejected them all, stop: a literal play_media runs
@@ -1278,7 +1296,7 @@ async def play_music(req: MusicRequest):
         is_radio = (media_type or "").lower() == "radio"
         resolved, best_guess = None, None
         if not nq.uri and (not is_radio or station is None):
-            resolved, best_guess = await _resolve_named(nq, media_type)
+            resolved, best_guess = await _resolve_named(nq, media_type, also=[said_q] if said_q else [])
             if best_guess and not resolved:
                 raise HTTPException(status_code=502, detail=_not_found_sentence(nq, media_type, best_guess))
             if resolved and is_radio and "pandora" in resolved.providers:
@@ -1743,13 +1761,19 @@ async def _library_radios() -> dict | None:
     return {"radio": [it for it in items if isinstance(it, dict)]}
 
 
-async def _resolve_named(nq: "music_resolve.Query", media_type: str | None
+async def _resolve_named(nq: "music_resolve.Query", media_type: str | None,
+                         also: list["music_resolve.Query"] | None = None,
                          ) -> tuple["music_resolve.Candidate | None", "music_resolve.Candidate | None"]:
     """(winner to play, best guess) — winner is None below PLAY_MIN_SCORE;
     both are None when MA can't be searched or found nothing, the cases the
     caller plays the text literally."""
     types = [media_type] if media_type in RESOLVE_TYPES + ["radio"] else RESOLVE_TYPES
     variants = [nq.text] + ([nq.name] if nq.artist and nq.name and nq.name != nq.text else [])
+    also = also or []
+    variants += [q.text for q in also]
+    # MA's search is literal: "90s" finds what "ninety's" can't
+    variants += [d.text for q in (nq, *also) if (d := q.digits()) is not None]
+    variants = list(dict.fromkeys(variants))
     results = await asyncio.gather(*(_search_each(v, types, RESOLVE_SEARCH_LIMIT) for v in variants))
     if media_type == "radio":
         results.append(await _library_radios())
@@ -1760,14 +1784,14 @@ async def _resolve_named(nq: "music_resolve.Query", media_type: str | None
         for c in music_resolve.candidates_from_search(r):
             cands.setdefault(c.uri, c)
     typed = media_type if media_type in types else None
-    ranked = music_resolve.rank(list(cands.values()), nq, typed)
+    ranked = music_resolve.rank(list(cands.values()), nq, typed, also)
     stage = 1
     if nq.artist and (not ranked or ranked[0].score < music_resolve.PLAY_MIN_SCORE):
         stage = 2
         works = [t for t in types if t in ("album", "track")] or ["album", "track"]
         for c in music_resolve.candidates_from_search(await _search_each(nq.artist, works, RESOLVE_ARTIST_LIMIT)):
             cands.setdefault(c.uri, c)
-        ranked = music_resolve.rank(list(cands.values()), nq, typed)
+        ranked = music_resolve.rank(list(cands.values()), nq, typed, also)
     best = ranked[0] if ranked else None
     winner = best if best and best.score >= music_resolve.PLAY_MIN_SCORE else None
     logger.info("music resolve %r [%s] stage %d, %d candidates -> %s",

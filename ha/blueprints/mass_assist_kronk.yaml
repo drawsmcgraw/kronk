@@ -26,6 +26,11 @@
 #  10. (2026-10-21) shuffle is set before play_media, not after: MA
 #      shuffles only the tracks after the current one, so a shuffled
 #      playlist always opened on its track 1
+#  11. (2026-11-08) radio asks MA for "<name> Radio" — the name Pandora
+#      gives every station — so an owned station is MA's exact library hit
+#      (2 ms) instead of a provider search (0.6–1 s); and a radio play MA
+#      rejects goes to Kronk like the other media types instead of failing
+#      (INVESTIGATION_2026-11-07_ma_pandora_and_ui.md)
 #
 # Resolution: named player → named room (group-preferred) → own device →
 # own device's room (group-preferred) → default.
@@ -271,14 +276,22 @@ triggers:
 actions:
 - alias: Define variables to be used in the automation
   variables:
-    version: 20250404-kronk10
+    version: 20250404-kronk11
     shuffle: '{{ ''shuffle'' in trigger.sentence | lower }}'
     default_player_entity_id: !input default_player_entity_id_input
     trigger_id: '{{ trigger.id }}'
     area_or_player_name: '{{ trigger.slots.area_or_player_name | default }}'
     assist_device_id: '{{ trigger.device_id }}'
     action_data:
-      media_id: '{{ trigger.slots.media_name }}'
+      # KRONK change 11: "<name> Radio" for radio. The trigger sentence eats
+      # the word "radio", and MA's library lookup is exact-name only, so the
+      # bare name always missed the library and fell to a provider search.
+      # A name the user already ended in "radio" is left alone; MA's Pandora
+      # provider ignores a trailing "radio" when it searches the catalogue.
+      media_id: >-
+        {%- set n = trigger.slots.media_name | trim -%}
+        {%- if trigger.id == 'radio' and not (n | lower).endswith(' radio') -%}{{ n }} Radio
+        {%- else -%}{{ n }}{%- endif -%}
       media_type: '{{ ''radio'' if ''radio'' in media_name | lower else trigger_id
         }}'
       artist: '{{ trigger.slots.artist | default }}'
@@ -445,12 +458,12 @@ actions:
       # KRONK change 9: MA rejected the words themselves (play_ok false — the
       # call failed, e.g. "Could not resolve ['Destiny Waving by Ulrich
       # Schnauss']"): Kronk's resolver tolerates misspellings, so hand it the
-      # sentence. Not radio: a radio miss stays a fast failure (change 8), and
-      # not a call that succeeded but never started (that's a provider problem,
-      # not the words).
+      # sentence. Not a call that succeeded but never started (that's a
+      # provider problem, not the words). Change 11: radio included — Kronk
+      # scores every library station, so a near-miss name still plays.
       - if:
         - condition: template
-          value_template: "{{ not play_ok and action_data.media_type != 'radio' }}"
+          value_template: "{{ not play_ok }}"
         then:
         - action: conversation.process
           continue_on_error: true

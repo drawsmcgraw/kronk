@@ -306,6 +306,7 @@ async def _run_pipeline(
         trace = telemetry.start_pipeline(
             pipeline_name, text, rid=rid, tags=[f"transport:{transport}"],
         )
+        said_token = origin.said.set(text)
         try:
             # Extra system context for the coordinator run. The persona
             # itself lives in agents.COORDINATOR; these are the dynamic
@@ -499,6 +500,7 @@ async def _run_pipeline(
             yield {"type": "token", "text": err}
 
         finally:
+            origin.said.reset(said_token)
             telemetry.end_pipeline(
                 trace,
                 output="".join(assistant_reply) or None,
