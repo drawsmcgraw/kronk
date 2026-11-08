@@ -199,6 +199,12 @@ Then, one change per run of the same bench:
    "90s, 2000s, Today's Hits Radio" (scores 0.91–1.03), every run called the
    tool, no station created.
 
+After the bench the operator turned `offer_new_stations` back on (Kronk must
+be able to create stations; an occasional wrong station is the accepted
+cost). Read-only check: `item_by_name("Glass Animals", radio)` →
+`pandora://radio/seed:AR:378942` (a play would create "Glass Animals Radio");
+owned names still resolve to the library station.
+
 The model declining to call the tool ("can't play two stations at once") was
 2/10 in run 3 and 0/10 in run 4; it is model variance, not fixed by any of
 these.

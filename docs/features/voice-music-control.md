@@ -92,8 +92,17 @@ library station (near-miss "90s, 2000s and today's hits" → "90s, 2000s,
 Today's Hits Radio", 7 s). A name MA *can* match in the Pandora catalogue
 still creates a station there; that fix belongs upstream.
 
-**Kronk-side radio (2026-11-08).** MA's Pandora `offer_new_stations` is off,
-so no request creates a station. The orchestrator forwards the user's own
+**Catch-all (change 12, 2026-11-08).** Any "play / put on / listen to …"
+that no music sentence above matches goes to Kronk, never to HA's built-in
+search-and-play (which played the first search hit after a 61 s MA artist
+fetch, `INVESTIGATION_2026-11-08_anime_pop_radio_hang.md`). The specific
+sentences still win; pause/stop/timers never start with those verbs and stay
+local.
+
+**Kronk-side radio (2026-11-08).** MA's Pandora `offer_new_stations` is on
+(briefly off the same day, back on by operator decision): a station name the
+account doesn't have, by either tier, creates a station from the first
+exact-name catalogue item — genre, artist or song. The orchestrator forwards the user's own
 sentence with every `play_music` call (`origin.said`); when it names a
 station, tool_service treats the request as radio whatever the model passed,
 takes the station name from the sentence, and scores spoken numbers as

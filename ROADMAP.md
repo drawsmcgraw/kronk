@@ -34,12 +34,12 @@ Conventions:
   Kronk Pandora account; blueprint change 11 asks MA for `"<name> Radio"`
   (owned station = exact library hit) and hands a rejected radio play to
   Kronk's station scoring; Kronk reads "radio" and the station name from the
-  user's sentence, not the model's arguments; MA's `offer_new_stations` is
-  off, so nothing creates a station. Next: station creation only on an
-  explicit ask ("make a station from X") — the blueprint plays owned
-  stations from `music_assistant.get_library` and hands everything else to
-  Kronk, Kronk plays a seed only on an explicit create, then
-  `offer_new_stations` back on. No new MA code; the song-title seed ranking
+  user's sentence, not the model's arguments. MA's `offer_new_stations` is
+  on (operator, 2026-11-08: Kronk must be able to create stations, wrong
+  ones accepted as the cost). Next: creation only on an explicit ask ("make
+  a station from X") — the blueprint plays owned stations from
+  `music_assistant.get_library` and hands everything else to Kronk, Kronk
+  plays a seed only on an explicit create. No new MA code; the song-title seed ranking
   goes upstream (`INVESTIGATION_2026-11-07_ma_pandora_and_ui.md`).
   *Why: four radio misfires in three weeks, two of them wrong successes.*
 - **Backups** — nightly copies of the HA config volume, the MA volume, the
