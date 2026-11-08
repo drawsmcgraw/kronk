@@ -31,6 +31,12 @@
 #      (2 ms) instead of a provider search (0.6–1 s); and a radio play MA
 #      rejects goes to Kronk like the other media types instead of failing
 #      (INVESTIGATION_2026-11-07_ma_pandora_and_ui.md)
+#  12. (2026-11-08) catch-all: any other "play/put on/listen to …" goes to
+#      Kronk. A sentence that missed every music sentence above (trailing
+#      chatter in the transcript) fell to HA's built-in search-and-play,
+#      which played the first search hit after a 61 s MA artist fetch
+#      (INVESTIGATION_2026-11-08_anime_pop_radio_hang.md). The specific
+#      sentences still win: HA prefers the match with the most literal text.
 #
 # Resolution: named player → named room (group-preferred) → own device →
 # own device's room (group-preferred) → default.
@@ -239,6 +245,17 @@ blueprint:
           - (play|put on|throw on|listen to) some {media_name} [(in|on) [the ]{area_or_player_name}]
           - (play|put on) something {media_name} [(in|on) [the ]{area_or_player_name}]
           - (play|put on) [some ](music|something) [(in|on) [the ]{area_or_player_name}]
+        # KRONK change 12: last resort for any music request the sentences
+        # above miss — Kronk, never HA's built-in search-and-play.
+        catchall_trigger:
+          name: Catch-all trigger (handed to Kronk)
+          description: Any other play request. Kronk decides what it means.
+          selector:
+            text:
+              multiline: false
+              multiple: true
+          default:
+          - (play|put on|listen to) {media_name}
         response_input:
           name: Response for Assist
           description: The response which will be given by Assist. `mass_player_where`
@@ -273,10 +290,13 @@ triggers:
 - trigger: conversation
   command: !input loose_trigger
   id: loose
+- trigger: conversation
+  command: !input catchall_trigger
+  id: catchall
 actions:
 - alias: Define variables to be used in the automation
   variables:
-    version: 20250404-kronk11
+    version: 20250404-kronk12
     shuffle: '{{ ''shuffle'' in trigger.sentence | lower }}'
     default_player_entity_id: !input default_player_entity_id_input
     trigger_id: '{{ trigger.id }}'
@@ -350,10 +370,10 @@ actions:
       {%- elif room -%}{{ trigger.sentence }} in the {{ room }}
       {%- elif own -%}{{ trigger.sentence }} on the {{ state_attr(own, 'friendly_name') }}
       {%- else -%}{{ trigger.sentence }}{%- endif -%}
-- alias: Loose phrasing — Kronk picks
+- alias: Loose phrasing or catch-all — Kronk picks
   if:
   - condition: template
-    value_template: "{{ trigger_id == 'loose' }}"
+    value_template: "{{ trigger_id in ['loose', 'catchall'] }}"
   then:
   - action: conversation.process
     continue_on_error: true

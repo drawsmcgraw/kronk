@@ -208,3 +208,14 @@ def test_fork_failed_radio_play_goes_to_kronk():
     text = open(Path(__file__).resolve().parent.parent / "ha/blueprints/mass_assist_kronk.yaml").read()
     assert 'value_template: "{{ not play_ok }}"' in text
     assert "action_data.media_type != 'radio'" not in text
+
+
+# ── change 12: any other "play …" goes to Kronk, not HA's search-and-play ──
+
+def test_fork_catchall_trigger_hands_to_kronk():
+    fork = _fork()
+    sentences = fork["blueprint"]["input"]["trigger_response_settings"]["input"]["catchall_trigger"]["default"]
+    assert sentences == ["(play|put on|listen to) {media_name}"]
+    assert any(t.get("id") == "catchall" for t in fork["triggers"])
+    handoff = next(a for a in fork["actions"] if a.get("alias", "").startswith("Loose phrasing"))
+    assert "'catchall'" in handoff["if"][0]["value_template"]

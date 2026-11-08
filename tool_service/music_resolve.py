@@ -91,7 +91,11 @@ _NUMERAL_RULES = [
 # "radio"/"station" must close the name, or "radio station"/"station" open
 # it, so "play Radio Ga Ga by Queen" is not a station request.
 _VERB = r"^\W*(?:(?:ok(?:ay)?|hey)\s+\w+[,\s]+)?(?:please\s+)?(?:play|put\s+on|listen\s+to|start|turn\s+on)\s+"
-_TAIL = r"(?:\s+(?:on|from|via|in|using)\b.*)?[\s.!?]*$"
+# After the station word: a place or provider ("on Pandora", "in the
+# kitchen"), or the end of the sentence — anything after a full stop is
+# other speech the transcript caught ("Play Anime Pop Radio. That's probably
+# about it…", INVESTIGATION_2026-11-08_anime_pop_radio_hang.md).
+_TAIL = r"(?:\s+(?:on|from|via|in|using)\b.*|[.!?]\s.*)?[\s.!?]*$"
 _RADIO_AFTER = re.compile(_VERB + r"(?:the\s+|my\s+|some\s+)?(?P<name>.+?),?\s+(?:radio(?:\s+station)?|station)" + _TAIL, re.I)
 _RADIO_BEFORE = re.compile(_VERB + r"(?:the\s+)?(?:radio\s+station|station)\s+(?P<name>.+?)"
                            r"(?:\s+(?:in|on)\s+(?:the\s+)?\S.*)?[\s.!?]*$", re.I)

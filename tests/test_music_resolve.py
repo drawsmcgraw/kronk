@@ -377,6 +377,8 @@ def test_query_without_numbers_has_no_digit_variant():
     ("play mushroom jazz radio in the kitchen", "mushroom jazz"),
     ("Listen to the radio station Hotel Costes in the office", "Hotel Costes"),
     ("put on 90s, 2000s, today's hits station", "90s, 2000s, today's hits"),
+    ("Play Anime Pop Radio. That's probably about it. Everything is pretty wet.",
+     "Anime Pop"),                                     # other speech after the full stop
     ("Play Radio Ga Ga by Queen", None),                 # a song, not a station
     ("Play the song Video Killed the Radio Star", None),
     ("play some deep house", None),
