@@ -1,0 +1,709 @@
+{
+ "last_step": "action/2/else/5/then/1",
+ "run_id": "07cd0ffaec97666a7fce382666fe2a1c",
+ "state": "stopped",
+ "script_execution": "finished",
+ "timestamp": {
+  "start": "2026-11-08T21:25:32.907436+00:00",
+  "finish": "2026-11-08T21:25:32.960733+00:00"
+ },
+ "domain": "automation",
+ "item_id": "kronk_mass_voice_device_first",
+ "trigger": null,
+ "trace": {
+  "trigger/2": [
+   {
+    "path": "trigger/2",
+    "timestamp": "2026-11-08T21:25:32.907473+00:00",
+    "changed_variables": {
+     "this": {
+      "entity_id": "automation.kronk_music_assistant_voice_device_first",
+      "state": "on",
+      "attributes": {
+       "id": "kronk_mass_voice_device_first",
+       "last_triggered": "2026-11-08T21:25:31.699937+00:00",
+       "mode": "single",
+       "current": 0,
+       "friendly_name": "Kronk - Music Assistant voice (device-first)"
+      },
+      "last_changed": "2026-11-08T21:23:03.813938+00:00",
+      "last_reported": "2026-11-08T21:25:32.701345+00:00",
+      "last_updated": "2026-11-08T21:25:32.701345+00:00",
+      "context": {
+       "id": "01M6YGTPXKHFKJ3T3TQDNJGH66",
+       "parent_id": null,
+       "user_id": null
+      }
+     },
+     "trigger": {
+      "id": "artist",
+      "idx": "2",
+      "alias": null,
+      "platform": "conversation",
+      "sentence": "Play the artist Portishead on the basement voice pe ma",
+      "details": {
+       "media_name": {
+        "name": "media_name",
+        "text": "Portishead",
+        "value": "Portishead"
+       },
+       "area_or_player_name": {
+        "name": "area_or_player_name",
+        "text": "basement voice pe ma",
+        "value": "basement voice pe ma"
+       }
+      },
+      "slots": {
+       "media_name": "Portishead",
+       "area_or_player_name": "basement voice pe ma"
+      },
+      "device_id": null,
+      "satellite_id": null,
+      "user_input": {
+       "text": "Play the artist Portishead on the basement voice pe ma",
+       "context": {
+        "id": "01M6YGTR3A73FHH28RTA1NX52K",
+        "parent_id": null,
+        "user_id": "dd10a4fa62fd41d98d3775e11f7d77c1"
+       },
+       "conversation_id": null,
+       "device_id": null,
+       "satellite_id": null,
+       "language": "en",
+       "agent_id": "conversation.home_assistant",
+       "extra_system_prompt": null
+      }
+     }
+    }
+   }
+  ],
+  "action/0": [
+   {
+    "path": "action/0",
+    "timestamp": "2026-11-08T21:25:32.907567+00:00",
+    "changed_variables": {
+     "context": {
+      "id": "01M6YGTR3BHF753EBNBJ7PT38D",
+      "parent_id": null,
+      "user_id": null
+     },
+     "version": "20250404-kronk12",
+     "shuffle": false,
+     "default_player_entity_id": "media_player.home_assistant_voice_0ac919_pe_01",
+     "trigger_id": "artist",
+     "area_or_player_name": "basement voice pe ma",
+     "assist_device_id": null,
+     "action_data": {
+      "media_id": "Portishead",
+      "media_type": "artist",
+      "artist": "",
+      "radio_mode": false
+     },
+     "ma_players": [
+      "media_player.shield_2",
+      "media_player.upper_shield_2",
+      "media_player.living_room_sony_bravia",
+      "media_player.home_assistant_voice_0ac919_pe_01",
+      "media_player.satellite1_d8d1bc",
+      "media_player.home_assistant_voice_0ab117",
+      "media_player.camerons_macbook_pro",
+      "media_player.sonos_move_derp_2"
+     ],
+     "player_entity_id_by_player_name": [
+      "media_player.home_assistant_voice_0ab117"
+     ],
+     "player_entity_id_by_area_name": [],
+     "assist_device_mac": "",
+     "player_entity_id_by_assist_device": [],
+     "player_entity_id_by_assist_area": [],
+     "mass_player_entity_id": [
+      "media_player.home_assistant_voice_0ab117"
+     ],
+     "mass_player_name": "basement voice pe ma",
+     "mass_player_where": "on basement voice pe ma"
+    }
+   }
+  ],
+  "action/1": [
+   {
+    "path": "action/1",
+    "timestamp": "2026-11-08T21:25:32.908308+00:00",
+    "changed_variables": {
+     "kronk_agent": "conversation.ollama_conversation",
+     "kronk_text": "Play the artist Portishead on the basement voice pe ma"
+    }
+   }
+  ],
+  "action/2": [
+   {
+    "path": "action/2",
+    "timestamp": "2026-11-08T21:25:32.908379+00:00",
+    "changed_variables": {
+     "verify_entity": "media_player.home_assistant_voice_0ab117",
+     "before_content": "pandora://track/TR:202927684",
+     "before_title": "Instant Pulse",
+     "before_position": 9.0,
+     "before_state": "playing",
+     "play_ok": true,
+     "started": true,
+     "wait": {
+      "remaining": 10.0,
+      "completed": true
+     }
+    },
+    "result": {
+     "choice": "else"
+    }
+   }
+  ],
+  "action/2/if": [
+   {
+    "path": "action/2/if",
+    "timestamp": "2026-11-08T21:25:32.908408+00:00",
+    "result": {
+     "result": false
+    }
+   }
+  ],
+  "action/2/if/condition/0": [
+   {
+    "path": "action/2/if/condition/0",
+    "timestamp": "2026-11-08T21:25:32.908426+00:00",
+    "result": {
+     "result": false,
+     "entities": []
+    }
+   }
+  ],
+  "action/2/else/0": [
+   {
+    "path": "action/2/else/0",
+    "timestamp": "2026-11-08T21:25:32.908507+00:00",
+    "changed_variables": {
+     "verify_entity": "media_player.home_assistant_voice_0ab117",
+     "before_content": "pandora://track/TR:202927684",
+     "before_title": "Instant Pulse",
+     "before_position": 9.0,
+     "before_state": "playing"
+    }
+   }
+  ],
+  "action/2/else/1": [
+   {
+    "path": "action/2/else/1",
+    "timestamp": "2026-11-08T21:25:32.908666+00:00",
+    "changed_variables": {
+     "play_ok": false,
+     "started": false
+    }
+   }
+  ],
+  "action/2/else/2": [
+   {
+    "path": "action/2/else/2",
+    "timestamp": "2026-11-08T21:25:32.908694+00:00",
+    "result": {
+     "choice": "then"
+    }
+   }
+  ],
+  "action/2/else/2/if": [
+   {
+    "path": "action/2/else/2/if",
+    "timestamp": "2026-11-08T21:25:32.908713+00:00",
+    "result": {
+     "result": true
+    }
+   }
+  ],
+  "action/2/else/2/if/condition/0": [
+   {
+    "path": "action/2/else/2/if/condition/0",
+    "timestamp": "2026-11-08T21:25:32.908732+00:00",
+    "result": {
+     "result": true,
+     "entities": [
+      "media_player.home_assistant_voice_0ab117"
+     ]
+    }
+   }
+  ],
+  "action/2/else/2/then/0": [
+   {
+    "path": "action/2/else/2/then/0",
+    "timestamp": "2026-11-08T21:25:32.908805+00:00",
+    "error": "Invalid or unsupported command.",
+    "result": {
+     "params": {
+      "domain": "media_player",
+      "service": "shuffle_set",
+      "service_data": {
+       "shuffle": false,
+       "entity_id": [
+        "media_player.home_assistant_voice_0ab117"
+       ]
+      },
+      "target": {
+       "entity_id": [
+        "media_player.home_assistant_voice_0ab117"
+       ]
+      }
+     },
+     "running_script": false
+    }
+   }
+  ],
+  "action/2/else/3": [
+   {
+    "path": "action/2/else/3",
+    "timestamp": "2026-11-08T21:25:32.910385+00:00",
+    "changed_variables": {
+     "play_ok": true
+    }
+   }
+  ],
+  "action/2/else/3/sequence/0": [
+   {
+    "path": "action/2/else/3/sequence/0",
+    "timestamp": "2026-11-08T21:25:32.910430+00:00",
+    "result": {
+     "params": {
+      "domain": "music_assistant",
+      "service": "play_media",
+      "service_data": {
+       "media_id": "Portishead",
+       "media_type": "artist",
+       "entity_id": [
+        "media_player.home_assistant_voice_0ab117"
+       ]
+      },
+      "target": {
+       "entity_id": [
+        "media_player.home_assistant_voice_0ab117"
+       ]
+      }
+     },
+     "running_script": false
+    }
+   }
+  ],
+  "action/2/else/3/sequence/1": [
+   {
+    "path": "action/2/else/3/sequence/1",
+    "timestamp": "2026-11-08T21:25:32.959848+00:00",
+    "changed_variables": {
+     "play_ok": true
+    }
+   }
+  ],
+  "action/2/else/4": [
+   {
+    "path": "action/2/else/4",
+    "timestamp": "2026-11-08T21:25:32.959954+00:00",
+    "changed_variables": {
+     "started": true,
+     "wait": {
+      "remaining": 10.0,
+      "completed": true
+     }
+    },
+    "result": {
+     "choice": "then"
+    }
+   }
+  ],
+  "action/2/else/4/if": [
+   {
+    "path": "action/2/else/4/if",
+    "timestamp": "2026-11-08T21:25:32.959986+00:00",
+    "result": {
+     "result": true
+    }
+   }
+  ],
+  "action/2/else/4/if/condition/0": [
+   {
+    "path": "action/2/else/4/if/condition/0",
+    "timestamp": "2026-11-08T21:25:32.960010+00:00",
+    "result": {
+     "result": true,
+     "entities": []
+    }
+   }
+  ],
+  "action/2/else/4/then/0": [
+   {
+    "path": "action/2/else/4/then/0",
+    "timestamp": "2026-11-08T21:25:32.960148+00:00",
+    "changed_variables": {
+     "wait": {
+      "remaining": 10.0,
+      "completed": true
+     }
+    },
+    "result": {
+     "wait": {
+      "remaining": 10.0,
+      "completed": true
+     }
+    }
+   }
+  ],
+  "action/2/else/4/then/1": [
+   {
+    "path": "action/2/else/4/then/1",
+    "timestamp": "2026-11-08T21:25:32.960319+00:00",
+    "changed_variables": {
+     "started": true
+    }
+   }
+  ],
+  "action/2/else/5": [
+   {
+    "path": "action/2/else/5",
+    "timestamp": "2026-11-08T21:25:32.960397+00:00",
+    "result": {
+     "choice": "then"
+    }
+   }
+  ],
+  "action/2/else/5/if": [
+   {
+    "path": "action/2/else/5/if",
+    "timestamp": "2026-11-08T21:25:32.960415+00:00",
+    "result": {
+     "result": true
+    }
+   }
+  ],
+  "action/2/else/5/if/condition/0": [
+   {
+    "path": "action/2/else/5/if/condition/0",
+    "timestamp": "2026-11-08T21:25:32.960433+00:00",
+    "result": {
+     "result": true,
+     "entities": []
+    }
+   }
+  ],
+  "action/2/else/5/then/0": [
+   {
+    "path": "action/2/else/5/then/0",
+    "timestamp": "2026-11-08T21:25:32.960495+00:00"
+   }
+  ],
+  "action/2/else/5/then/0/if": [
+   {
+    "path": "action/2/else/5/then/0/if",
+    "timestamp": "2026-11-08T21:25:32.960512+00:00",
+    "result": {
+     "result": false
+    }
+   }
+  ],
+  "action/2/else/5/then/0/if/condition/0": [
+   {
+    "path": "action/2/else/5/then/0/if/condition/0",
+    "timestamp": "2026-11-08T21:25:32.960535+00:00",
+    "result": {
+     "result": false,
+     "entities": [
+      "media_player.home_assistant_voice_0ab117"
+     ]
+    }
+   }
+  ],
+  "action/2/else/5/then/1": [
+   {
+    "path": "action/2/else/5/then/1",
+    "timestamp": "2026-11-08T21:25:32.960596+00:00",
+    "result": {
+     "conversation_response": "Portishead playing on basement voice pe ma"
+    }
+   }
+  ]
+ },
+ "config": {
+  "triggers": [
+   {
+    "trigger": "conversation",
+    "command": [
+     "(shuffle|play|listen to) [the ](album|ep|record|compilation|single) {media_name} [by [the ](artist|band|group) {artist}] [(in|on|using) [the ]{area_or_player_name}][ (with|using) {radio_mode}]"
+    ],
+    "id": "album"
+   },
+   {
+    "trigger": "conversation",
+    "command": [
+     "(shuffle|play|listen to) [the ](track|song) {media_name} [by [the ](artist|band|group) {artist}] [(in|on|using) [the ]{area_or_player_name}][ (with|using) {radio_mode}]"
+    ],
+    "id": "track"
+   },
+   {
+    "trigger": "conversation",
+    "command": [
+     "(shuffle|play|listen to) [the ](artist|band|group) {media_name} [(in|on|using) [the ]{area_or_player_name}][ (with|using) {radio_mode}]"
+    ],
+    "id": "artist"
+   },
+   {
+    "trigger": "conversation",
+    "command": [
+     "(play|listen to) [the ](book|audio book|audiobook) {media_name} [(in|on|using) [the ]{area_or_player_name}]"
+    ],
+    "id": "audiobook"
+   },
+   {
+    "trigger": "conversation",
+    "command": [
+     "(shuffle|play|listen to) [the ]((radio station)|(radio)|(station)) {media_name} [(in|on|using) [the ]{area_or_player_name}]",
+     "(play|listen to) [the ]{media_name} (radio|station) [(on|from|via) pandora][ (in|on) [the ]{area_or_player_name}]"
+    ],
+    "id": "radio"
+   },
+   {
+    "trigger": "conversation",
+    "command": [
+     "(shuffle|play|listen to) [my ][the ][(youtube music|youtube|you tube) ]playlist {media_name} [(in|on|using) [the ]{area_or_player_name}][ (with|using) {radio_mode}]"
+    ],
+    "id": "playlist"
+   },
+   {
+    "trigger": "conversation",
+    "command": [
+     "(play|put on|throw on|listen to) some {media_name} [(in|on) [the ]{area_or_player_name}]",
+     "(play|put on) something {media_name} [(in|on) [the ]{area_or_player_name}]",
+     "(play|put on) [some ](music|something) [(in|on) [the ]{area_or_player_name}]"
+    ],
+    "id": "loose"
+   },
+   {
+    "trigger": "conversation",
+    "command": [
+     "(play|put on|listen to) {media_name}"
+    ],
+    "id": "catchall"
+   }
+  ],
+  "actions": [
+   {
+    "alias": "Define variables to be used in the automation",
+    "variables": {
+     "version": "20250404-kronk12",
+     "shuffle": "{{ 'shuffle' in trigger.sentence | lower }}",
+     "default_player_entity_id": "media_player.home_assistant_voice_0ac919_pe_01",
+     "trigger_id": "{{ trigger.id }}",
+     "area_or_player_name": "{{ trigger.slots.area_or_player_name | default }}",
+     "assist_device_id": "{{ trigger.device_id }}",
+     "action_data": {
+      "media_id": "{%- set n = trigger.slots.media_name | trim -%} {%- if trigger.id == 'radio' and not (n | lower).endswith(' radio') -%}{{ n }} Radio {%- else -%}{{ n }}{%- endif -%}",
+      "media_type": "{{ 'radio' if 'radio' in media_name | lower else trigger_id }}",
+      "artist": "{{ trigger.slots.artist | default }}",
+      "radio_mode": "{{ 'radio' in trigger.slots.radio_mode | default | lower }}"
+     },
+     "ma_players": "{{  integration_entities('music_assistant') | select('match', 'media_player') | list }}",
+     "player_entity_id_by_player_name": "{{ ma_players | expand \n  | selectattr('name', 'match', area_or_player_name ~ '$', ignorecase=true)\n  | map(attribute='entity_id') | list }}\n",
+     "player_entity_id_by_area_name": "{%- set ps = areas() | map('area_name') | select('match', area_or_player_name ~ '$', ignorecase=true)\n   | map('area_entities') | sum(start=[]) | select('in', ma_players) | list -%}\n{%- set gs = ps | select('is_state_attr', 'mass_player_type', 'group') | list -%} {{ gs or ps }}",
+     "assist_device_mac": "{%- if assist_device_id -%} {{ device_attr(assist_device_id, 'connections') | selectattr(0, 'eq', 'mac') | map(attribute=1) | first | default('') }} {%- endif -%}",
+     "player_entity_id_by_assist_device": "{%- set ns = namespace(hits=[]) -%} {%- if assist_device_mac -%}\n  {%- set key = 'up' ~ (assist_device_mac | replace(':', '')) -%}\n  {%- for e in ma_players -%}\n    {%- set ids = device_attr(device_id(e), 'identifiers') | list -%}\n    {%- if ids | selectattr(1, 'eq', key) | list -%}{%- set ns.hits = ns.hits + [e] -%}{%- endif -%}\n  {%- endfor -%}\n{%- endif -%} {{ ns.hits }}",
+     "player_entity_id_by_assist_area": "{%- set ps = (area_entities(area_id(assist_device_id)) | select('in', ma_players) | list) if assist_device_id else [] -%} {%- set gs = ps | select('is_state_attr', 'mass_player_type', 'group') | list -%} {{ gs or ps }}",
+     "mass_player_entity_id": "{{ player_entity_id_by_player_name or player_entity_id_by_area_name \nor player_entity_id_by_assist_device or player_entity_id_by_assist_area or [default_player_entity_id] }}\n",
+     "mass_player_name": "{{ mass_player_entity_id | map('state_attr', 'friendly_name') | join(', ') }}",
+     "mass_player_where": "{%- set room = area_name(mass_player_entity_id[0]) if mass_player_entity_id else none -%} {%- if player_entity_id_by_player_name or not room -%}on {{ mass_player_name }} {%- else -%}in the {{ room }}{%- endif -%}"
+    }
+   },
+   {
+    "variables": {
+     "kronk_agent": "conversation.ollama_conversation",
+     "kronk_text": "{%- set room = area_name(assist_device_id) if assist_device_id else none -%} {%- set own = player_entity_id_by_assist_device | first | default(none) -%} {%- if area_or_player_name -%}{{ trigger.sentence }} {%- elif room -%}{{ trigger.sentence }} in the {{ room }} {%- elif own -%}{{ trigger.sentence }} on the {{ state_attr(own, 'friendly_name') }} {%- else -%}{{ trigger.sentence }}{%- endif -%}"
+    }
+   },
+   {
+    "alias": "Loose phrasing or catch-all \u2014 Kronk picks",
+    "if": [
+     {
+      "condition": "template",
+      "value_template": "{{ trigger_id in ['loose', 'catchall'] }}"
+     }
+    ],
+    "then": [
+     {
+      "action": "conversation.process",
+      "continue_on_error": true,
+      "data": {
+       "agent_id": "{{ kronk_agent }}",
+       "text": "{{ kronk_text }}"
+      },
+      "response_variable": "kronk"
+     },
+     {
+      "set_conversation_response": "{{ kronk.response.speech.plain.speech if kronk is defined and kronk.response is defined\n   else \"I couldn't reach Kronk.\" }}"
+     }
+    ],
+    "else": [
+     {
+      "alias": "Snapshot what the target is playing",
+      "variables": {
+       "verify_entity": "{{ mass_player_entity_id[0] }}",
+       "before_content": "{{ state_attr(mass_player_entity_id[0], 'media_content_id') }}",
+       "before_title": "{{ state_attr(mass_player_entity_id[0], 'media_title') }}",
+       "before_position": "{{ state_attr(mass_player_entity_id[0], 'media_position') | float(0) }}",
+       "before_state": "{{ states(mass_player_entity_id[0]) }}"
+      }
+     },
+     {
+      "variables": {
+       "play_ok": false,
+       "started": false
+      }
+     },
+     {
+      "alias": "Set shuffle before the play",
+      "if": [
+       {
+        "condition": "template",
+        "value_template": "{{ state_attr(mass_player_entity_id[0], 'shuffle') != shuffle }}"
+       }
+      ],
+      "then": [
+       {
+        "action": "media_player.shuffle_set",
+        "continue_on_error": true,
+        "data": {
+         "shuffle": "{{ shuffle }}"
+        },
+        "target": {
+         "entity_id": "{{ mass_player_entity_id }}"
+        }
+       }
+      ]
+     },
+     {
+      "alias": "Send media to selected Music Assistant Player",
+      "continue_on_error": true,
+      "sequence": [
+       {
+        "action": "music_assistant.play_media",
+        "data": "{{ dict(action_data.items() | selectattr('1')) }}",
+        "target": {
+         "entity_id": "{{ mass_player_entity_id }}"
+        }
+       },
+       {
+        "variables": {
+         "play_ok": true
+        }
+       }
+      ]
+     },
+     {
+      "alias": "Wait for the player to start the new media",
+      "if": [
+       {
+        "condition": "template",
+        "value_template": "{{ play_ok }}"
+       }
+      ],
+      "then": [
+       {
+        "wait_template": "{{ is_state(verify_entity, 'playing') and (\n     before_state != 'playing'\n     or state_attr(verify_entity, 'media_content_id') != before_content\n     or state_attr(verify_entity, 'media_title') != before_title\n     or (state_attr(verify_entity, 'media_position') | float(0)) < before_position ) }}",
+        "timeout": "00:00:10",
+        "continue_on_timeout": true
+       },
+       {
+        "variables": {
+         "started": "{{ wait.completed }}"
+        }
+       }
+      ]
+     },
+     {
+      "if": [
+       {
+        "condition": "template",
+        "value_template": "{{ started }}"
+       }
+      ],
+      "then": [
+       {
+        "alias": "Enable/Disable shuffle on a Music Assistant Media Player",
+        "if": [
+         {
+          "condition": "template",
+          "value_template": "{{ state_attr(mass_player_entity_id[0], 'shuffle') != shuffle }}"
+         }
+        ],
+        "then": [
+         {
+          "action": "media_player.shuffle_set",
+          "continue_on_error": true,
+          "data": {
+           "shuffle": "{{ shuffle }}"
+          },
+          "target": {
+           "entity_id": "{{ mass_player_entity_id }}"
+          }
+         }
+        ]
+       },
+       {
+        "alias": "Send back the response",
+        "set_conversation_response": "{{ 'Shuffling' if 'shuffle' in trigger.sentence | lower  else ''}} {{ trigger.slots.media_name }} {{ '' if 'shuffle' in trigger.sentence | lower else 'playing'}} {{ mass_player_where }}"
+       }
+      ],
+      "else": [
+       {
+        "if": [
+         {
+          "condition": "template",
+          "value_template": "{{ not play_ok }}"
+         }
+        ],
+        "then": [
+         {
+          "action": "conversation.process",
+          "continue_on_error": true,
+          "data": {
+           "agent_id": "{{ kronk_agent }}",
+           "text": "{{ kronk_text }}"
+          },
+          "response_variable": "kronk"
+         },
+         {
+          "set_conversation_response": "{{ kronk.response.speech.plain.speech if kronk is defined and kronk.response is defined\n   else \"I couldn't play \" ~ trigger.slots.media_name ~ \".\" }}"
+         }
+        ],
+        "else": [
+         {
+          "alias": "Say it failed",
+          "set_conversation_response": "I couldn't play {{ trigger.slots.media_name }}{{ ' radio' if action_data.media_type == 'radio' and 'radio' not in trigger.slots.media_name | lower else '' }}."
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   }
+  ],
+  "mode": "single",
+  "id": "kronk_mass_voice_device_first",
+  "alias": "Kronk - Music Assistant voice (device-first)",
+  "description": "Kronk fork of the MA voice blueprint: own device first, room groups preferred. Source: kronk repo ha/blueprints/mass_assist_kronk.yaml; plan docs/plans/VOICE_MUSIC_DEVICE_FIRST_PLAN.md"
+ },
+ "blueprint_inputs": {
+  "id": "kronk_mass_voice_device_first",
+  "alias": "Kronk - Music Assistant voice (device-first)",
+  "description": "Kronk fork of the MA voice blueprint: own device first, room groups preferred. Source: kronk repo ha/blueprints/mass_assist_kronk.yaml; plan docs/plans/VOICE_MUSIC_DEVICE_FIRST_PLAN.md",
+  "use_blueprint": {
+   "path": "kronk/mass_assist_kronk.yaml",
+   "input": {
+    "default_player_entity_id_input": "media_player.home_assistant_voice_0ac919_pe_01"
+   }
+  }
+ },
+ "context": {
+  "id": "01M6YGTR3BHF753EBNBJ7PT38D",
+  "parent_id": null,
+  "user_id": null
+ }
+}

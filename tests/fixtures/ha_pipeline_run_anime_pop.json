@@ -1,0 +1,145 @@
+{
+ "id": 5,
+ "type": "result",
+ "success": true,
+ "result": {
+  "events": [
+   {
+    "type": "run-start",
+    "data": {
+     "pipeline": "01ksc2pw5bkhtk37dh2d6zwcxp",
+     "language": "en",
+     "conversation_id": "01M6YG1W1SEDTY78SCESY5AEMS",
+     "satellite_id": "assist_satellite.home_assistant_voice_0ac919_assist_satellite",
+     "tts_output": {
+      "token": "SfGDE2kmoo_3jbjj9fGRTg.flac",
+      "url": "/api/tts_proxy/SfGDE2kmoo_3jbjj9fGRTg.flac",
+      "mime_type": "audio/flac",
+      "stream_response": true
+     }
+    },
+    "timestamp": "2026-11-08T21:11:57.754393+00:00"
+   },
+   {
+    "type": "stt-start",
+    "data": {
+     "engine": "stt.faster_whisper",
+     "metadata": {
+      "language": "en",
+      "format": "wav",
+      "codec": "pcm",
+      "bit_rate": 16,
+      "sample_rate": 16000,
+      "channel": 1
+     }
+    },
+    "timestamp": "2026-11-08T21:11:57.754653+00:00"
+   },
+   {
+    "type": "stt-vad-start",
+    "data": {
+     "timestamp": 1050
+    },
+    "timestamp": "2026-11-08T21:11:58.786902+00:00"
+   },
+   {
+    "type": "stt-vad-end",
+    "data": {
+     "timestamp": 9800
+    },
+    "timestamp": "2026-11-08T21:12:07.535937+00:00"
+   },
+   {
+    "type": "stt-end",
+    "data": {
+     "stt_output": {
+      "text": " Play Anime Pop Radio.  That's probably about it. Everything is pretty wet.  I just needed to make some space."
+     }
+    },
+    "timestamp": "2026-11-08T21:12:07.998143+00:00"
+   },
+   {
+    "type": "intent-start",
+    "data": {
+     "engine": "conversation.ollama_conversation",
+     "language": "en",
+     "intent_input": " Play Anime Pop Radio.  That's probably about it. Everything is pretty wet.  I just needed to make some space.",
+     "conversation_id": "01M6YG1W1SEDTY78SCESY5AEMS",
+     "device_id": "e0949788663255952ce7778975527882",
+     "satellite_id": "assist_satellite.home_assistant_voice_0ac919_assist_satellite",
+     "prefer_local_intents": true
+    },
+    "timestamp": "2026-11-08T21:12:07.998345+00:00"
+   },
+   {
+    "type": "intent-end",
+    "data": {
+     "processed_locally": true,
+     "intent_output": {
+      "response": {
+       "speech": {
+        "plain": {
+         "speech": "Playing media",
+         "extra_data": null
+        }
+       },
+       "card": {},
+       "language": "en",
+       "response_type": "action_done",
+       "speech_slots": {
+        "media": {
+         "title": "Backstreet Boys",
+         "media_class": "artist",
+         "media_content_type": "music",
+         "media_content_id": "ytmusic--kGmHoQDn://artist/UCQsJi7L4_zXzYRN2X0Fw3Zg",
+         "children_media_class": null,
+         "can_play": true,
+         "can_expand": true,
+         "can_search": false,
+         "thumbnail": "https://yt3.googleusercontent.com/93vnJ_aG5rTlruQDFaVhZHCTTRwGzS34R3SPKKCTBDZ84xutO5KUCiu-scL_ZTaV8g6HhH27diVq4HY=w600-h600-p",
+         "not_shown": 0,
+         "children": []
+        }
+       },
+       "data": {
+        "success": [],
+        "failed": []
+       }
+      },
+      "conversation_id": "01M6YG1W1SEDTY78SCESY5AEMS",
+      "continue_conversation": false
+     }
+    },
+    "timestamp": "2026-11-08T21:13:11.433593+00:00"
+   },
+   {
+    "type": "tts-start",
+    "data": {
+     "engine": "tts.piper",
+     "language": "en_US",
+     "voice": "en_US-hfc_male-medium",
+     "tts_input": "Playing media",
+     "acknowledge_override": false
+    },
+    "timestamp": "2026-11-08T21:13:11.433933+00:00"
+   },
+   {
+    "type": "tts-end",
+    "data": {
+     "tts_output": {
+      "media_id": "media-source://tts/-stream-/SfGDE2kmoo_3jbjj9fGRTg.flac",
+      "token": "SfGDE2kmoo_3jbjj9fGRTg.flac",
+      "url": "/api/tts_proxy/SfGDE2kmoo_3jbjj9fGRTg.flac",
+      "mime_type": "audio/flac"
+     }
+    },
+    "timestamp": "2026-11-08T21:13:11.434235+00:00"
+   },
+   {
+    "type": "run-end",
+    "data": null,
+    "timestamp": "2026-11-08T21:13:11.434409+00:00"
+   }
+  ]
+ }
+}
