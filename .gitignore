@@ -21,3 +21,6 @@ __pycache__/
 # ops host registry (real hosts; example is committed)
 ops/hosts.json
 
+
+# Telemetry stack (Grafana admin login) — example is committed
+.env.telemetry

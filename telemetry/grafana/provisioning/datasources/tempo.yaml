@@ -1,0 +1,26 @@
+# Provisioned Tempo datasource. uid `tempo` is referenced by every dashboard
+# JSON in ../../dashboards/ — keep it stable.
+apiVersion: 1
+datasources:
+  - name: Tempo
+    type: tempo
+    uid: tempo
+    url: http://tempo:3200
+    access: proxy
+    isDefault: true
+    editable: false
+    jsonData:
+      nodeGraph:
+        enabled: true
+      search:
+        hide: false
+      traceQuery:
+        timeShiftEnabled: true
+        spanStartTimeShift: '-5m'
+        spanEndTimeShift: '5m'
+      spanBar:
+        type: 'Tag'
+        tag: 'kronk.rid'
+      streamingEnabled:
+        search: true
+        metrics: true

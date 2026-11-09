@@ -1,0 +1,14 @@
+# Dashboards are files in git (telemetry/grafana/dashboards/*.json), loaded
+# read-only. Edit the JSON and Grafana picks it up within 30 s; UI edits
+# are not saved back (allowUiUpdates: false) — export and commit instead.
+apiVersion: 1
+providers:
+  - name: kronk
+    folder: Kronk
+    type: file
+    disableDeletion: false
+    allowUiUpdates: false
+    updateIntervalSeconds: 30
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: false

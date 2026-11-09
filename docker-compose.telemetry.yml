@@ -1,0 +1,108 @@
+# Telemetry v2 — Grafana Tempo (trace store) + Grafana (dashboards, TraceQL).
+# Replaces the six-container Langfuse stack (docs/plans/TELEMETRY_V2_PLAN.md).
+#
+# Separate compose project (like kronk-ha / kronk-ma): its lifecycle is
+# independent of orchestrator rebuilds and it holds 90 days of traces on a
+# named volume. Tempo joins the Kronk app network (`kronk_kronk`, created by
+# docker-compose.yml) so orchestrator, tool_service and voice_tracer reach it
+# by service name — http://tempo:4318 — with no LAN-exposed port. Bring the
+# Kronk stack up first; `docker compose down` on the Kronk stack reports the
+# network as still in use while Tempo is attached (containers still stop).
+#
+# Services:
+#   tempo    — single binary, OTLP/HTTP receiver on 4318 (docker network only),
+#              query API on 3200 (loopback only — curl from the host for
+#              verification; voice_tracer uses it over the docker network).
+#              Local-disk storage, 90-day block retention.
+#   grafana  — http://kronk:3000 (LAN-open; home LAN is the trust boundary,
+#              same as Music Assistant on 8095). Anonymous viewers can read
+#              every dashboard; editing needs the admin login from
+#              .env.telemetry. Datasource + dashboards are provisioned from
+#              telemetry/grafana/ — edit the JSON in git, not the UI.
+#              Phone-home off: usage stats, update checks, plugin catalog,
+#              gravatar, news feed (tenet 1).
+#
+# Secrets: .env.telemetry (gitignored, mode 600) — Grafana admin login only.
+#          Template: .env.telemetry.example
+#
+# Operations:
+#   up:       docker compose -f docker-compose.telemetry.yml --env-file .env.telemetry up -d
+#   restart:  docker compose -f docker-compose.telemetry.yml --env-file .env.telemetry restart grafana
+#             (tempo.yaml or provisioning edits need a restart of that service)
+#   logs:     docker compose -f docker-compose.telemetry.yml --env-file .env.telemetry logs -f tempo
+#   down:     docker compose -f docker-compose.telemetry.yml --env-file .env.telemetry down
+#             (NEVER `down -v` — tempo-data holds every trace, grafana-data the login + prefs)
+#   verify:   curl -s localhost:3200/ready; curl -s 'localhost:3200/api/search?q=%7B%7D&limit=3'
+#   disk:     docker system df -v | grep kronk-telemetry
+#
+# Image pins (tenet 3, chosen 2026-11-08, each ≥ 2 weeks old):
+#   grafana/tempo:3.1.1    — released 2026-10-21. The 3.x line is the one with
+#                            TraceQL metrics GA and no local-blocks processor
+#                            to configure; 3.1.1 is the newest patch of the
+#                            current minor. (3.0.x would also work; 2.10.x needs
+#                            the removed local-blocks path for metrics.)
+#   grafana/grafana:13.2.4 — released 2026-10-13. Newest 13.2 patch older than
+#                            two weeks at pin time (13.2.5 / 13.3.0 are 2026-10-27).
+# Bump deliberately: update the tag, `pull`, `up -d`, check the logs.
+name: kronk-telemetry
+
+services:
+  tempo:
+    image: grafana/tempo:3.1.1
+    command: ["-target=all", "-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./telemetry/tempo.yaml:/etc/tempo.yaml:ro
+      - tempo-data:/var/tempo
+    ports:
+      - "127.0.0.1:3200:3200"   # query API, host-side verification only
+    networks: [telemetry, kronk]
+    mem_limit: 1g
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:13.2.4
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./telemetry/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./telemetry/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    environment:
+      GF_SERVER_ROOT_URL: http://kronk:3000
+      GF_SECURITY_ADMIN_USER: ${GF_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GF_ADMIN_PASSWORD:?set GF_ADMIN_PASSWORD in .env.telemetry}
+      # Read-only without a login; the admin account edits.
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      # Nothing leaves the box (tenet 1 / plan R6).
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES: "false"
+      GF_ANALYTICS_FEEDBACK_LINKS_ENABLED: "false"
+      GF_SECURITY_DISABLE_GRAVATAR: "true"
+      GF_NEWS_NEWS_FEED_ENABLED: "false"
+      GF_PLUGINS_PLUGIN_ADMIN_ENABLED: "false"
+      GF_PLUGINS_PUBLIC_KEY_RETRIEVAL_DISABLED: "true"
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/overview.json
+    networks: [telemetry]
+    mem_limit: 512m
+    depends_on: [tempo]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:3000/api/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+networks:
+  telemetry:
+    driver: bridge
+  kronk:
+    external: true
+    name: kronk_kronk
+
+volumes:
+  tempo-data:
+  grafana-data:

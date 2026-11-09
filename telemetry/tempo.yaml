@@ -1,0 +1,71 @@
+# Grafana Tempo 3.1.1, monolithic (-target=all). Config reference for the
+# pinned version: https://github.com/grafana/tempo/blob/v3.1.1/docs/sources/tempo/configuration/_index.md
+#
+# Tempo 3 in monolithic mode needs no Kafka and no metrics-generator
+# processor for TraceQL metrics: the live-store serves recent data and the
+# block-builder writes RF1 blocks, which is all metrics queries read.
+# (The 2.x `local-blocks` processor is gone — migrate-to-3.md.)
+
+server:
+  http_listen_port: 3200
+  log_level: warn
+  # TraceQL metrics over long ranges can run past the 30 s defaults.
+  http_server_read_timeout: 2m
+  http_server_write_timeout: 2m
+
+# Grafana streams search/metrics results over HTTP when this is on.
+stream_over_http_enabled: true
+
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        http:
+          endpoint: "0.0.0.0:4318"   # docker network only — no host port published
+
+storage:
+  trace:
+    backend: local
+    wal:
+      path: /var/tempo/wal
+      # Spans more than this far from their ingestion time do not widen a
+      # block's time range, so a ranged search or metrics query misses them
+      # (default 2m). voice_tracer emits HA runs 1–2 minutes after they
+      # happen (it waits for the Kronk join) and backfills up to 10 minutes
+      # at startup; 15m keeps every one of those findable at its real time.
+      ingestion_time_range_slack: 15m
+    local:
+      path: /var/tempo/blocks
+
+# The live-store and block-builder keep their own WALs with the same slack
+# knob (effective config: /status/config). All three are raised together.
+live_store:
+  wal:
+    ingestion_time_range_slack: 15m
+block_builder:
+  wal:
+    ingestion_time_range_slack: 15m
+
+# Retention (plan R3: 90 days). In Tempo 3 the backend scheduler plans
+# retention/compaction jobs and the backend worker runs them; both carry
+# the Compaction block, so both are set.
+backend_scheduler:
+  provider:
+    compaction:
+      compaction:
+        block_retention: 2160h
+backend_worker:
+  compaction:
+    block_retention: 2160h
+
+query_frontend:
+  search:
+    max_duration: 2160h          # default 168h; match retention
+  metrics:
+    max_duration: 2160h          # default 24h; match retention
+    concurrent_jobs: 8           # on-prem guidance: fewer, bigger jobs
+    target_bytes_per_job: 1.25e+09
+
+# Nothing leaves the box (tenet 1).
+usage_report:
+  reporting_enabled: false
