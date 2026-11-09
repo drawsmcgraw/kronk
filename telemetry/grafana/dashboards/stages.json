@@ -1,0 +1,826 @@
+{
+ "uid": "kronk-stages",
+ "title": "Kronk \u2014 Stages",
+ "tags": [
+  "kronk"
+ ],
+ "timezone": "browser",
+ "editable": true,
+ "graphTooltip": 1,
+ "schemaVersion": 39,
+ "version": 1,
+ "refresh": "1m",
+ "time": {
+  "from": "now-24h",
+  "to": "now"
+ },
+ "templating": {
+  "list": []
+ },
+ "panels": [
+  {
+   "id": 1,
+   "type": "text",
+   "title": "",
+   "gridPos": {
+    "x": 0,
+    "y": 0,
+    "w": 24,
+    "h": 3
+   },
+   "options": {
+    "mode": "markdown",
+    "content": "**p50 / p95 per stage over time.** Voice front half (HA), blueprint, Kronk routing, LLM rounds (time to first token and generation separately), tools, and tool internals (Music Assistant commands, HA service calls, the playback-verify wait)."
+   }
+  },
+  {
+   "id": 2,
+   "type": "timeseries",
+   "title": "Voice stages: STT / intent / TTS",
+   "datasource": {
+    "type": "tempo",
+    "uid": "tempo"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 3,
+    "w": 12,
+    "h": 8
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "tempo",
+      "uid": "tempo"
+     },
+     "queryType": "traceql",
+     "query": "{ name =~ \"voice\\\\.(stt|intent|tts)\" } | quantile_over_time(duration, .5, .95) by (name)",
+     "filters": [],
+     "limit": 20,
+     "tableType": "traces",
+     "metricsQueryType": "range",
+     "step": ""
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s",
+     "custom": {
+      "lineWidth": 1,
+      "fillOpacity": 8,
+      "spanNulls": true,
+      "showPoints": "auto",
+      "pointSize": 4
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom",
+     "showLegend": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   },
+   "description": "voice.stt = stream start \u2192 transcript (listen + transcribe); voice.intent = HA intent match, blueprint or Kronk; voice.tts = TTS request (streamed, so near zero)"
+  },
+  {
+   "id": 3,
+   "type": "timeseries",
+   "title": "STT: listening vs transcribing",
+   "datasource": {
+    "type": "tempo",
+    "uid": "tempo"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 3,
+    "w": 12,
+    "h": 8
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "tempo",
+      "uid": "tempo"
+     },
+     "queryType": "traceql",
+     "query": "{ name =~ \"voice\\\\.stt\\\\.(listen|transcribe)\" } | quantile_over_time(duration, .5, .95) by (name)",
+     "filters": [],
+     "limit": 20,
+     "tableType": "traces",
+     "metricsQueryType": "range",
+     "step": ""
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s",
+     "custom": {
+      "lineWidth": 1,
+      "fillOpacity": 8,
+      "spanNulls": true,
+      "showPoints": "auto",
+      "pointSize": 4
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom",
+     "showLegend": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   },
+   "description": "listen = speech + trailing silence until VAD end; transcribe = Whisper"
+  },
+  {
+   "id": 4,
+   "type": "timeseries",
+   "title": "Blueprint fast path by trigger",
+   "datasource": {
+    "type": "tempo",
+    "uid": "tempo"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 11,
+    "w": 12,
+    "h": 8
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "tempo",
+      "uid": "tempo"
+     },
+     "queryType": "traceql",
+     "query": "{ name = \"blueprint.run\" } | quantile_over_time(duration, .5, .95) by (span.bp.trigger_id)",
+     "filters": [],
+     "limit": 20,
+     "tableType": "traces",
+     "metricsQueryType": "range",
+     "step": ""
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s",
+     "custom": {
+      "lineWidth": 1,
+      "fillOpacity": 8,
+      "spanNulls": true,
+      "showPoints": "auto",
+      "pointSize": 4
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom",
+     "showLegend": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   }
+  },
+  {
+   "id": 5,
+   "type": "timeseries",
+   "title": "Kronk routing decision",
+   "datasource": {
+    "type": "tempo",
+    "uid": "tempo"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 11,
+    "w": 12,
+    "h": 8
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "tempo",
+      "uid": "tempo"
+     },
+     "queryType": "traceql",
+     "query": "{ name = \"routing.decide\" } | quantile_over_time(duration, .5, .95)",
+     "filters": [],
+     "limit": 20,
+     "tableType": "traces",
+     "metricsQueryType": "range",
+     "step": ""
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s",
+     "custom": {
+      "lineWidth": 1,
+      "fillOpacity": 8,
+      "spanNulls": true,
+      "showPoints": "auto",
+      "pointSize": 4
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom",
+     "showLegend": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   },
+   "description": "deterministic shortcuts; should stay in the milliseconds"
+  },
+  {
+   "id": 6,
+   "type": "timeseries",
+   "title": "LLM round duration by model and phase",
+   "datasource": {
+    "type": "tempo",
+    "uid": "tempo"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 19,
+    "w": 12,
+    "h": 8
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "tempo",
+      "uid": "tempo"
+     },
+     "queryType": "traceql",
+     "query": "{ name =~ \"llm\\\\..*\" } | quantile_over_time(duration, .5, .95) by (span.gen_ai.request.model, span.kronk.phase)",
+     "filters": [],
+     "limit": 20,
+     "tableType": "traces",
+     "metricsQueryType": "range",
+     "step": ""
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s",
+     "custom": {
+      "lineWidth": 1,
+      "fillOpacity": 8,
+      "spanNulls": true,
+      "showPoints": "auto",
+      "pointSize": 4
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom",
+     "showLegend": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   },
+   "description": "plan_N = deciding/calling tools, synthesis = writing the answer"
+  },
+  {
+   "id": 7,
+   "type": "timeseries",
+   "title": "LLM time to first token by model",
+   "datasource": {
+    "type": "tempo",
+    "uid": "tempo"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 19,
+    "w": 12,
+    "h": 8
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "tempo",
+      "uid": "tempo"
+     },
+     "queryType": "traceql",
+     "query": "{ name =~ \"llm\\\\..*\" } | quantile_over_time(span.kronk.ttft_ms, .5, .95) by (span.gen_ai.request.model)",
+     "filters": [],
+     "limit": 20,
+     "tableType": "traces",
+     "metricsQueryType": "range",
+     "step": ""
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "ms",
+     "custom": {
+      "lineWidth": 1,
+      "fillOpacity": 8,
+      "spanNulls": true,
+      "showPoints": "auto",
+      "pointSize": 4
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom",
+     "showLegend": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   },
+   "description": "prompt processing + queueing (+ hidden reasoning); tool-call-only rounds have no TTFT"
+  },
+  {
+   "id": 8,
+   "type": "timeseries",
+   "title": "LLM generation tokens/s by model",
+   "datasource": {
+    "type": "tempo",
+    "uid": "tempo"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 27,
+    "w": 12,
+    "h": 8
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "tempo",
+      "uid": "tempo"
+     },
+     "queryType": "traceql",
+     "query": "{ name =~ \"llm\\\\..*\" } | avg_over_time(span.kronk.tokens_per_sec) by (span.gen_ai.request.model)",
+     "filters": [],
+     "limit": 20,
+     "tableType": "traces",
+     "metricsQueryType": "range",
+     "step": ""
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "custom": {
+      "lineWidth": 1,
+      "fillOpacity": 8,
+      "spanNulls": true,
+      "showPoints": "auto",
+      "pointSize": 4
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom",
+     "showLegend": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   },
+   "description": "completion tokens / (end \u2212 first token)"
+  },
+  {
+   "id": 9,
+   "type": "timeseries",
+   "title": "Agent loops by agent",
+   "datasource": {
+    "type": "tempo",
+    "uid": "tempo"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 27,
+    "w": 12,
+    "h": 8
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "tempo",
+      "uid": "tempo"
+     },
+     "queryType": "traceql",
+     "query": "{ name =~ \"agent\\\\..*\" } | quantile_over_time(duration, .5, .95) by (name)",
+     "filters": [],
+     "limit": 20,
+     "tableType": "traces",
+     "metricsQueryType": "range",
+     "step": ""
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s",
+     "custom": {
+      "lineWidth": 1,
+      "fillOpacity": 8,
+      "spanNulls": true,
+      "showPoints": "auto",
+      "pointSize": 4
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom",
+     "showLegend": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   }
+  },
+  {
+   "id": 10,
+   "type": "timeseries",
+   "title": "Tools by name",
+   "datasource": {
+    "type": "tempo",
+    "uid": "tempo"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 35,
+    "w": 12,
+    "h": 8
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "tempo",
+      "uid": "tempo"
+     },
+     "queryType": "traceql",
+     "query": "{ name =~ \"tool\\\\..*\" } | quantile_over_time(duration, .5, .95) by (name)",
+     "filters": [],
+     "limit": 20,
+     "tableType": "traces",
+     "metricsQueryType": "range",
+     "step": ""
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s",
+     "custom": {
+      "lineWidth": 1,
+      "fillOpacity": 8,
+      "spanNulls": true,
+      "showPoints": "auto",
+      "pointSize": 4
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom",
+     "showLegend": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   },
+   "description": "orchestrator side: tool call \u2192 result, including ask_* delegations"
+  },
+  {
+   "id": 11,
+   "type": "timeseries",
+   "title": "Tool internals (tool_service)",
+   "datasource": {
+    "type": "tempo",
+    "uid": "tempo"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 35,
+    "w": 12,
+    "h": 8
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "tempo",
+      "uid": "tempo"
+     },
+     "queryType": "traceql",
+     "query": "{ resource.service.name = \"kronk-tool-service\" && name =~ \"(ma|ha|music|ssh)\\\\..*\" } | quantile_over_time(duration, .5, .95) by (name)",
+     "filters": [],
+     "limit": 20,
+     "tableType": "traces",
+     "metricsQueryType": "range",
+     "step": ""
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s",
+     "custom": {
+      "lineWidth": 1,
+      "fillOpacity": 8,
+      "spanNulls": true,
+      "showPoints": "auto",
+      "pointSize": 4
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom",
+     "showLegend": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   }
+  },
+  {
+   "id": 12,
+   "type": "timeseries",
+   "title": "Music Assistant commands",
+   "datasource": {
+    "type": "tempo",
+    "uid": "tempo"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 43,
+    "w": 12,
+    "h": 8
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "tempo",
+      "uid": "tempo"
+     },
+     "queryType": "traceql",
+     "query": "{ name = \"ma.command\" } | quantile_over_time(duration, .5, .95) by (span.ma.command)",
+     "filters": [],
+     "limit": 20,
+     "tableType": "traces",
+     "metricsQueryType": "range",
+     "step": ""
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s",
+     "custom": {
+      "lineWidth": 1,
+      "fillOpacity": 8,
+      "spanNulls": true,
+      "showPoints": "auto",
+      "pointSize": 4
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom",
+     "showLegend": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   }
+  },
+  {
+   "id": 13,
+   "type": "timeseries",
+   "title": "HA service calls (websocket)",
+   "datasource": {
+    "type": "tempo",
+    "uid": "tempo"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 43,
+    "w": 12,
+    "h": 8
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "tempo",
+      "uid": "tempo"
+     },
+     "queryType": "traceql",
+     "query": "{ name = \"ha.call_service\" } | quantile_over_time(duration, .5, .95) by (span.ha.domain, span.ha.service)",
+     "filters": [],
+     "limit": 20,
+     "tableType": "traces",
+     "metricsQueryType": "range",
+     "step": ""
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s",
+     "custom": {
+      "lineWidth": 1,
+      "fillOpacity": 8,
+      "spanNulls": true,
+      "showPoints": "auto",
+      "pointSize": 4
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom",
+     "showLegend": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   },
+   "description": "music_assistant.play_media blocks until MA has resolved and queued the media"
+  },
+  {
+   "id": 14,
+   "type": "timeseries",
+   "title": "Outbound HTTP from tool_service (HA REST, NWS, SearXNG, pages)",
+   "datasource": {
+    "type": "tempo",
+    "uid": "tempo"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 51,
+    "w": 12,
+    "h": 8
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "tempo",
+      "uid": "tempo"
+     },
+     "queryType": "traceql",
+     "query": "{ resource.service.name = \"kronk-tool-service\" && kind = client } | quantile_over_time(duration, .5, .95) by (span.http.status_code)",
+     "filters": [],
+     "limit": 20,
+     "tableType": "traces",
+     "metricsQueryType": "range",
+     "step": ""
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s",
+     "custom": {
+      "lineWidth": 1,
+      "fillOpacity": 8,
+      "spanNulls": true,
+      "showPoints": "auto",
+      "pointSize": 4
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom",
+     "showLegend": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   }
+  },
+  {
+   "id": 15,
+   "type": "timeseries",
+   "title": "tool_service endpoints",
+   "datasource": {
+    "type": "tempo",
+    "uid": "tempo"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 51,
+    "w": 12,
+    "h": 8
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "tempo",
+      "uid": "tempo"
+     },
+     "queryType": "traceql",
+     "query": "{ resource.service.name = \"kronk-tool-service\" && kind = server } | quantile_over_time(duration, .5, .95) by (span.http.route)",
+     "filters": [],
+     "limit": 20,
+     "tableType": "traces",
+     "metricsQueryType": "range",
+     "step": ""
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s",
+     "custom": {
+      "lineWidth": 1,
+      "fillOpacity": 8,
+      "spanNulls": true,
+      "showPoints": "auto",
+      "pointSize": 4
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom",
+     "showLegend": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   }
+  }
+ ],
+ "links": [
+  {
+   "title": "Kronk dashboards",
+   "type": "dashboards",
+   "tags": [
+    "kronk"
+   ],
+   "asDropdown": true,
+   "includeVars": false,
+   "keepTime": true
+  }
+ ]
+}

@@ -1,0 +1,607 @@
+{
+ "uid": "kronk-music",
+ "title": "Kronk \u2014 Music",
+ "tags": [
+  "kronk"
+ ],
+ "timezone": "browser",
+ "editable": true,
+ "graphTooltip": 1,
+ "schemaVersion": 39,
+ "version": 1,
+ "refresh": "1m",
+ "time": {
+  "from": "now-24h",
+  "to": "now"
+ },
+ "templating": {
+  "list": []
+ },
+ "panels": [
+  {
+   "id": 1,
+   "type": "text",
+   "title": "",
+   "gridPos": {
+    "x": 0,
+    "y": 0,
+    "w": 24,
+    "h": 3
+   },
+   "options": {
+    "mode": "markdown",
+    "content": "**`play_music` and the blueprint fast path.** Kronk path: `tool.play_music` \u2192 tool_service `POST /music` \u2192 `music.resolve` (MA search + scoring) / `music.pandora_station` / `music.genre_plan` \u2192 `music.play_verified` (HA `play_media` over websocket, then polling the player until it plays something new). Fast path: `blueprint.run` (HA sentence trigger \u2192 MA directly), joined to its voice run by time window."
+   }
+  },
+  {
+   "id": 2,
+   "type": "timeseries",
+   "title": "Kronk path: play_music breakdown p50 / p95",
+   "datasource": {
+    "type": "tempo",
+    "uid": "tempo"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 3,
+    "w": 12,
+    "h": 8
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "tempo",
+      "uid": "tempo"
+     },
+     "queryType": "traceql",
+     "query": "{ resource.service.name = \"kronk-tool-service\" && name =~ \"music\\\\..*\" } | quantile_over_time(duration, .5, .95) by (name)",
+     "filters": [],
+     "limit": 20,
+     "tableType": "traces",
+     "metricsQueryType": "range",
+     "step": ""
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s",
+     "custom": {
+      "lineWidth": 1,
+      "fillOpacity": 8,
+      "spanNulls": true,
+      "showPoints": "auto",
+      "pointSize": 4
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom",
+     "showLegend": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   }
+  },
+  {
+   "id": 3,
+   "type": "timeseries",
+   "title": "Kronk path vs fast path, p50 / p95",
+   "datasource": {
+    "type": "tempo",
+    "uid": "tempo"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 3,
+    "w": 12,
+    "h": 8
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "tempo",
+      "uid": "tempo"
+     },
+     "queryType": "traceql",
+     "query": "{ name = \"tool.play_music\" } | quantile_over_time(duration, .5, .95)",
+     "filters": [],
+     "limit": 20,
+     "tableType": "traces",
+     "metricsQueryType": "range",
+     "step": ""
+    },
+    {
+     "refId": "B",
+     "datasource": {
+      "type": "tempo",
+      "uid": "tempo"
+     },
+     "queryType": "traceql",
+     "query": "{ name = \"blueprint.run\" && span.bp.outcome = \"played\" } | quantile_over_time(duration, .5, .95)",
+     "filters": [],
+     "limit": 20,
+     "tableType": "traces",
+     "metricsQueryType": "range",
+     "step": ""
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s",
+     "custom": {
+      "lineWidth": 1,
+      "fillOpacity": 8,
+      "spanNulls": true,
+      "showPoints": "auto",
+      "pointSize": 4
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom",
+     "showLegend": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   },
+   "description": "A = tool.play_music (Kronk, from the tool call); B = blueprint.run that played"
+  },
+  {
+   "id": 4,
+   "type": "timeseries",
+   "title": "play_media inside HA/MA (ha.call_service)",
+   "datasource": {
+    "type": "tempo",
+    "uid": "tempo"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 11,
+    "w": 12,
+    "h": 8
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "tempo",
+      "uid": "tempo"
+     },
+     "queryType": "traceql",
+     "query": "{ name = \"ha.call_service\" && span.ha.service = \"play_media\" } | quantile_over_time(duration, .5, .95)",
+     "filters": [],
+     "limit": 20,
+     "tableType": "traces",
+     "metricsQueryType": "range",
+     "step": ""
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s",
+     "custom": {
+      "lineWidth": 1,
+      "fillOpacity": 8,
+      "spanNulls": true,
+      "showPoints": "auto",
+      "pointSize": 4
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom",
+     "showLegend": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   },
+   "description": "HA blocks until MA resolved and queued; the 61 s of the Anime Pop incident lived here"
+  },
+  {
+   "id": 5,
+   "type": "timeseries",
+   "title": "Verify wait outcomes over time",
+   "datasource": {
+    "type": "tempo",
+    "uid": "tempo"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 11,
+    "w": 12,
+    "h": 8
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "tempo",
+      "uid": "tempo"
+     },
+     "queryType": "traceql",
+     "query": "{ name = \"music.play_verified\" } | count_over_time() by (span.music.outcome)",
+     "filters": [],
+     "limit": 20,
+     "tableType": "traces",
+     "metricsQueryType": "range",
+     "step": ""
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "custom": {
+      "lineWidth": 1,
+      "fillOpacity": 8,
+      "spanNulls": true,
+      "showPoints": "auto",
+      "pointSize": 4
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom",
+     "showLegend": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   },
+   "description": "started / started_after_failure / failed / resolve_miss / no_start"
+  },
+  {
+   "id": 6,
+   "type": "timeseries",
+   "title": "Resolver outcomes over time",
+   "datasource": {
+    "type": "tempo",
+    "uid": "tempo"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 19,
+    "w": 12,
+    "h": 8
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "tempo",
+      "uid": "tempo"
+     },
+     "queryType": "traceql",
+     "query": "{ name = \"music.resolve\" } | count_over_time() by (span.music.outcome)",
+     "filters": [],
+     "limit": 20,
+     "tableType": "traces",
+     "metricsQueryType": "range",
+     "step": ""
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "custom": {
+      "lineWidth": 1,
+      "fillOpacity": 8,
+      "spanNulls": true,
+      "showPoints": "auto",
+      "pointSize": 4
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom",
+     "showLegend": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   },
+   "description": "winner / below_threshold / nothing"
+  },
+  {
+   "id": 7,
+   "type": "timeseries",
+   "title": "Resolver: candidates and best score",
+   "datasource": {
+    "type": "tempo",
+    "uid": "tempo"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 19,
+    "w": 12,
+    "h": 8
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "tempo",
+      "uid": "tempo"
+     },
+     "queryType": "traceql",
+     "query": "{ name = \"music.resolve\" } | avg_over_time(span.music.candidates)",
+     "filters": [],
+     "limit": 20,
+     "tableType": "traces",
+     "metricsQueryType": "range",
+     "step": ""
+    },
+    {
+     "refId": "B",
+     "datasource": {
+      "type": "tempo",
+      "uid": "tempo"
+     },
+     "queryType": "traceql",
+     "query": "{ name = \"music.resolve\" } | avg_over_time(span.music.best_score)",
+     "filters": [],
+     "limit": 20,
+     "tableType": "traces",
+     "metricsQueryType": "range",
+     "step": ""
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "custom": {
+      "lineWidth": 1,
+      "fillOpacity": 8,
+      "spanNulls": true,
+      "showPoints": "auto",
+      "pointSize": 4
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom",
+     "showLegend": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   }
+  },
+  {
+   "id": 8,
+   "type": "timeseries",
+   "title": "MA commands p50 / p95",
+   "datasource": {
+    "type": "tempo",
+    "uid": "tempo"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 27,
+    "w": 12,
+    "h": 8
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "tempo",
+      "uid": "tempo"
+     },
+     "queryType": "traceql",
+     "query": "{ name = \"ma.command\" } | quantile_over_time(duration, .5, .95) by (span.ma.command)",
+     "filters": [],
+     "limit": 20,
+     "tableType": "traces",
+     "metricsQueryType": "range",
+     "step": ""
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s",
+     "custom": {
+      "lineWidth": 1,
+      "fillOpacity": 8,
+      "spanNulls": true,
+      "showPoints": "auto",
+      "pointSize": 4
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom",
+     "showLegend": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   }
+  },
+  {
+   "id": 9,
+   "type": "timeseries",
+   "title": "Blueprint runs over time by trigger and outcome",
+   "datasource": {
+    "type": "tempo",
+    "uid": "tempo"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 27,
+    "w": 12,
+    "h": 8
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "tempo",
+      "uid": "tempo"
+     },
+     "queryType": "traceql",
+     "query": "{ name = \"blueprint.run\" } | count_over_time() by (span.bp.trigger_id, span.bp.outcome)",
+     "filters": [],
+     "limit": 20,
+     "tableType": "traces",
+     "metricsQueryType": "range",
+     "step": ""
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "custom": {
+      "lineWidth": 1,
+      "fillOpacity": 8,
+      "spanNulls": true,
+      "showPoints": "auto",
+      "pointSize": 4
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom",
+     "showLegend": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   }
+  },
+  {
+   "id": 10,
+   "type": "table",
+   "title": "Recent Kronk music requests",
+   "datasource": {
+    "type": "tempo",
+    "uid": "tempo"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 35,
+    "w": 12,
+    "h": 10
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "tempo",
+      "uid": "tempo"
+     },
+     "queryType": "traceql",
+     "query": "{ name = \"tool.play_music\" }",
+     "filters": [],
+     "limit": 50,
+     "tableType": "traces",
+     "metricsQueryType": "range",
+     "step": "",
+     "spss": 3
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {
+    "showHeader": true,
+    "sortBy": [
+     {
+      "displayName": "Duration",
+      "desc": true
+     }
+    ]
+   }
+  },
+  {
+   "id": 11,
+   "type": "table",
+   "title": "Recent blueprint runs",
+   "datasource": {
+    "type": "tempo",
+    "uid": "tempo"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 35,
+    "w": 12,
+    "h": 10
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "tempo",
+      "uid": "tempo"
+     },
+     "queryType": "traceql",
+     "query": "{ name = \"blueprint.run\" }",
+     "filters": [],
+     "limit": 50,
+     "tableType": "traces",
+     "metricsQueryType": "range",
+     "step": "",
+     "spss": 3
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {
+    "showHeader": true,
+    "sortBy": [
+     {
+      "displayName": "Duration",
+      "desc": true
+     }
+    ]
+   }
+  }
+ ],
+ "links": [
+  {
+   "title": "Kronk dashboards",
+   "type": "dashboards",
+   "tags": [
+    "kronk"
+   ],
+   "asDropdown": true,
+   "includeVars": false,
+   "keepTime": true
+  }
+ ]
+}

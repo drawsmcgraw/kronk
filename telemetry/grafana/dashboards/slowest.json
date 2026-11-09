@@ -1,0 +1,289 @@
+{
+ "uid": "kronk-slowest",
+ "title": "Kronk \u2014 Slowest requests",
+ "tags": [
+  "kronk"
+ ],
+ "timezone": "browser",
+ "editable": true,
+ "graphTooltip": 1,
+ "schemaVersion": 39,
+ "version": 1,
+ "refresh": "",
+ "time": {
+  "from": "now-24h",
+  "to": "now"
+ },
+ "templating": {
+  "list": [
+   {
+    "name": "min",
+    "label": "Slower than",
+    "type": "textbox",
+    "query": "5s",
+    "current": {
+     "text": "5s",
+     "value": "5s"
+    },
+    "options": [],
+    "hide": 0
+   }
+  ]
+ },
+ "panels": [
+  {
+   "id": 1,
+   "type": "text",
+   "title": "",
+   "gridPos": {
+    "x": 0,
+    "y": 0,
+    "w": 24,
+    "h": 3
+   },
+   "options": {
+    "mode": "markdown",
+    "content": "Traces slower than **$min** in the time range (Tempo returns the first matches, so tighten the range or raise the threshold for a true top-N). Click a trace ID to open the waterfall. `kronk.rid` matches the `rid` in the orchestrator's `kronk.events` log lines, which also carry `trace_id`."
+   }
+  },
+  {
+   "id": 2,
+   "type": "table",
+   "title": "Slow Kronk requests",
+   "datasource": {
+    "type": "tempo",
+    "uid": "tempo"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 3,
+    "w": 24,
+    "h": 10
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "tempo",
+      "uid": "tempo"
+     },
+     "queryType": "traceql",
+     "query": "{ name =~ \"pipeline\\\\..*\" && duration > $min }",
+     "filters": [],
+     "limit": 50,
+     "tableType": "traces",
+     "metricsQueryType": "range",
+     "step": "",
+     "spss": 3
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {
+    "showHeader": true,
+    "sortBy": [
+     {
+      "displayName": "Duration",
+      "desc": true
+     }
+    ]
+   },
+   "description": "pipeline root spans (one per request)"
+  },
+  {
+   "id": 3,
+   "type": "table",
+   "title": "Slow voice runs (HA)",
+   "datasource": {
+    "type": "tempo",
+    "uid": "tempo"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 13,
+    "w": 12,
+    "h": 10
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "tempo",
+      "uid": "tempo"
+     },
+     "queryType": "traceql",
+     "query": "{ name = \"voice.run\" && duration > $min }",
+     "filters": [],
+     "limit": 50,
+     "tableType": "traces",
+     "metricsQueryType": "range",
+     "step": "",
+     "spss": 3
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {
+    "showHeader": true,
+    "sortBy": [
+     {
+      "displayName": "Duration",
+      "desc": true
+     }
+    ]
+   }
+  },
+  {
+   "id": 4,
+   "type": "table",
+   "title": "Slow blueprint runs",
+   "datasource": {
+    "type": "tempo",
+    "uid": "tempo"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 13,
+    "w": 12,
+    "h": 10
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "tempo",
+      "uid": "tempo"
+     },
+     "queryType": "traceql",
+     "query": "{ name = \"blueprint.run\" && duration > $min }",
+     "filters": [],
+     "limit": 50,
+     "tableType": "traces",
+     "metricsQueryType": "range",
+     "step": "",
+     "spss": 3
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {
+    "showHeader": true,
+    "sortBy": [
+     {
+      "displayName": "Duration",
+      "desc": true
+     }
+    ]
+   }
+  },
+  {
+   "id": 5,
+   "type": "table",
+   "title": "Slow spans inside requests (which stage)",
+   "datasource": {
+    "type": "tempo",
+    "uid": "tempo"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 23,
+    "w": 24,
+    "h": 10
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "tempo",
+      "uid": "tempo"
+     },
+     "queryType": "traceql",
+     "query": "{ duration > $min && name !~ \"pipeline\\\\..*|voice\\\\.run|POST .*|GET .*\" } | select(span.kronk.rid, span.kronk.route, span.kronk.transport)",
+     "filters": [],
+     "limit": 50,
+     "tableType": "spans",
+     "metricsQueryType": "range",
+     "step": "",
+     "spss": 3
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {
+    "showHeader": true,
+    "sortBy": [
+     {
+      "displayName": "Duration",
+      "desc": true
+     }
+    ]
+   },
+   "description": "agent, llm, tool, ma, ha, music, voice.* spans over the threshold"
+  },
+  {
+   "id": 6,
+   "type": "table",
+   "title": "Errored requests",
+   "datasource": {
+    "type": "tempo",
+    "uid": "tempo"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 33,
+    "w": 24,
+    "h": 10
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "tempo",
+      "uid": "tempo"
+     },
+     "queryType": "traceql",
+     "query": "{ name =~ \"pipeline\\\\..*\" && status = error }",
+     "filters": [],
+     "limit": 50,
+     "tableType": "traces",
+     "metricsQueryType": "range",
+     "step": "",
+     "spss": 3
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {
+    "showHeader": true,
+    "sortBy": [
+     {
+      "displayName": "Duration",
+      "desc": true
+     }
+    ]
+   }
+  }
+ ],
+ "links": [
+  {
+   "title": "Kronk dashboards",
+   "type": "dashboards",
+   "tags": [
+    "kronk"
+   ],
+   "asDropdown": true,
+   "includeVars": false,
+   "keepTime": true
+  }
+ ]
+}

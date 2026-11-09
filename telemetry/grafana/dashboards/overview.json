@@ -1,0 +1,620 @@
+{
+ "uid": "kronk-overview",
+ "title": "Kronk \u2014 Overview",
+ "tags": [
+  "kronk"
+ ],
+ "timezone": "browser",
+ "editable": true,
+ "graphTooltip": 1,
+ "schemaVersion": 39,
+ "version": 1,
+ "refresh": "1m",
+ "time": {
+  "from": "now-24h",
+  "to": "now"
+ },
+ "templating": {
+  "list": []
+ },
+ "panels": [
+  {
+   "id": 1,
+   "type": "text",
+   "title": "",
+   "gridPos": {
+    "x": 0,
+    "y": 0,
+    "w": 24,
+    "h": 4
+   },
+   "options": {
+    "mode": "markdown",
+    "content": "**Every interaction, end to end.** Chat UI, OpenAI shim, Ollama shim and voice (`pipeline.*` spans from the orchestrator) plus HA voice runs (`voice.run`, from voice_tracer) and the music blueprint's fast path (`blueprint.run`).\n\nVoice is measured from the moment HA received the satellite's stream (wake-word detection runs on the satellite and is not visible to HA) to the TTS request. Traces become searchable about one to two minutes after the request (Tempo cuts a block every 30 s; voice runs wait for their Kronk join). Latency budget (CLAUDE.md tenet 12): ~2 s local tier, 15\u201325 s Kronk tier."
+   }
+  },
+  {
+   "id": 2,
+   "type": "stat",
+   "title": "Requests (range)",
+   "datasource": {
+    "type": "tempo",
+    "uid": "tempo"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 4,
+    "w": 4,
+    "h": 4
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "tempo",
+      "uid": "tempo"
+     },
+     "queryType": "traceql",
+     "query": "{ name =~ \"pipeline\\\\..*\" } | count_over_time()",
+     "filters": [],
+     "limit": 20,
+     "tableType": "traces",
+     "metricsQueryType": "instant",
+     "step": ""
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "none",
+    "graphMode": "none",
+    "textMode": "value_and_name"
+   },
+   "description": "Kronk pipeline runs, all transports"
+  },
+  {
+   "id": 3,
+   "type": "stat",
+   "title": "p50 / p95 end-to-end",
+   "datasource": {
+    "type": "tempo",
+    "uid": "tempo"
+   },
+   "gridPos": {
+    "x": 4,
+    "y": 4,
+    "w": 6,
+    "h": 4
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "tempo",
+      "uid": "tempo"
+     },
+     "queryType": "traceql",
+     "query": "{ name =~ \"pipeline\\\\..*\" } | quantile_over_time(duration, .5, .95)",
+     "filters": [],
+     "limit": 20,
+     "tableType": "traces",
+     "metricsQueryType": "instant",
+     "step": ""
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s"
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "none",
+    "graphMode": "none",
+    "textMode": "value_and_name"
+   }
+  },
+  {
+   "id": 4,
+   "type": "stat",
+   "title": "Errors",
+   "datasource": {
+    "type": "tempo",
+    "uid": "tempo"
+   },
+   "gridPos": {
+    "x": 10,
+    "y": 4,
+    "w": 4,
+    "h": 4
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "tempo",
+      "uid": "tempo"
+     },
+     "queryType": "traceql",
+     "query": "{ name =~ \"pipeline\\\\..*\" && status = error } | count_over_time()",
+     "filters": [],
+     "limit": 20,
+     "tableType": "traces",
+     "metricsQueryType": "instant",
+     "step": ""
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "none",
+    "graphMode": "none",
+    "textMode": "value_and_name"
+   }
+  },
+  {
+   "id": 5,
+   "type": "stat",
+   "title": "Voice runs",
+   "datasource": {
+    "type": "tempo",
+    "uid": "tempo"
+   },
+   "gridPos": {
+    "x": 14,
+    "y": 4,
+    "w": 4,
+    "h": 4
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "tempo",
+      "uid": "tempo"
+     },
+     "queryType": "traceql",
+     "query": "{ name = \"voice.run\" } | count_over_time()",
+     "filters": [],
+     "limit": 20,
+     "tableType": "traces",
+     "metricsQueryType": "instant",
+     "step": ""
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "none",
+    "graphMode": "none",
+    "textMode": "value_and_name"
+   },
+   "description": "HA Assist pipeline runs (voice_tracer)"
+  },
+  {
+   "id": 6,
+   "type": "stat",
+   "title": "Voice p50 / p95",
+   "datasource": {
+    "type": "tempo",
+    "uid": "tempo"
+   },
+   "gridPos": {
+    "x": 18,
+    "y": 4,
+    "w": 6,
+    "h": 4
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "tempo",
+      "uid": "tempo"
+     },
+     "queryType": "traceql",
+     "query": "{ name = \"voice.run\" } | quantile_over_time(duration, .5, .95)",
+     "filters": [],
+     "limit": 20,
+     "tableType": "traces",
+     "metricsQueryType": "instant",
+     "step": ""
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s"
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "none",
+    "graphMode": "none",
+    "textMode": "value_and_name"
+   }
+  },
+  {
+   "id": 7,
+   "type": "timeseries",
+   "title": "Requests over time by transport",
+   "datasource": {
+    "type": "tempo",
+    "uid": "tempo"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 8,
+    "w": 12,
+    "h": 8
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "tempo",
+      "uid": "tempo"
+     },
+     "queryType": "traceql",
+     "query": "{ name =~ \"pipeline\\\\..*\" } | count_over_time() by (span.kronk.transport)",
+     "filters": [],
+     "limit": 20,
+     "tableType": "traces",
+     "metricsQueryType": "range",
+     "step": ""
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "custom": {
+      "lineWidth": 1,
+      "fillOpacity": 8,
+      "spanNulls": true,
+      "showPoints": "auto",
+      "pointSize": 4
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom",
+     "showLegend": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   },
+   "description": "webui = chat page, openai = /v1 shim, ollama = /api/chat, voice = /voice/api/chat (HA)"
+  },
+  {
+   "id": 8,
+   "type": "timeseries",
+   "title": "End-to-end p50 / p95 by transport",
+   "datasource": {
+    "type": "tempo",
+    "uid": "tempo"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 8,
+    "w": 12,
+    "h": 8
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "tempo",
+      "uid": "tempo"
+     },
+     "queryType": "traceql",
+     "query": "{ name =~ \"pipeline\\\\..*\" } | quantile_over_time(duration, .5, .95) by (span.kronk.transport)",
+     "filters": [],
+     "limit": 20,
+     "tableType": "traces",
+     "metricsQueryType": "range",
+     "step": ""
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s",
+     "custom": {
+      "lineWidth": 1,
+      "fillOpacity": 8,
+      "spanNulls": true,
+      "showPoints": "auto",
+      "pointSize": 4
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom",
+     "showLegend": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   },
+   "description": "pipeline root span: request in \u2192 last token"
+  },
+  {
+   "id": 9,
+   "type": "timeseries",
+   "title": "Voice runs over time by who answered",
+   "datasource": {
+    "type": "tempo",
+    "uid": "tempo"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 16,
+    "w": 12,
+    "h": 8
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "tempo",
+      "uid": "tempo"
+     },
+     "queryType": "traceql",
+     "query": "{ name = \"voice.run\" } | count_over_time() by (span.voice.handled_by)",
+     "filters": [],
+     "limit": 20,
+     "tableType": "traces",
+     "metricsQueryType": "range",
+     "step": ""
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "custom": {
+      "lineWidth": 1,
+      "fillOpacity": 8,
+      "spanNulls": true,
+      "showPoints": "auto",
+      "pointSize": 4
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom",
+     "showLegend": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   },
+   "description": "blueprint = MA fast path; ha_local = HA built-in intent; kronk = Kronk; blueprint_then_kronk = catch-all hand-off"
+  },
+  {
+   "id": 10,
+   "type": "timeseries",
+   "title": "Voice end-to-end p50 / p95 by who answered",
+   "datasource": {
+    "type": "tempo",
+    "uid": "tempo"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 16,
+    "w": 12,
+    "h": 8
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "tempo",
+      "uid": "tempo"
+     },
+     "queryType": "traceql",
+     "query": "{ name = \"voice.run\" } | quantile_over_time(duration, .5, .95) by (span.voice.handled_by)",
+     "filters": [],
+     "limit": 20,
+     "tableType": "traces",
+     "metricsQueryType": "range",
+     "step": ""
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s",
+     "custom": {
+      "lineWidth": 1,
+      "fillOpacity": 8,
+      "spanNulls": true,
+      "showPoints": "auto",
+      "pointSize": 4
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom",
+     "showLegend": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   }
+  },
+  {
+   "id": 11,
+   "type": "timeseries",
+   "title": "Errors over time by transport",
+   "datasource": {
+    "type": "tempo",
+    "uid": "tempo"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 24,
+    "w": 12,
+    "h": 8
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "tempo",
+      "uid": "tempo"
+     },
+     "queryType": "traceql",
+     "query": "{ name =~ \"pipeline\\\\..*\" && status = error } | count_over_time() by (span.kronk.transport)",
+     "filters": [],
+     "limit": 20,
+     "tableType": "traces",
+     "metricsQueryType": "range",
+     "step": ""
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "custom": {
+      "lineWidth": 1,
+      "fillOpacity": 8,
+      "spanNulls": true,
+      "showPoints": "auto",
+      "pointSize": 4
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom",
+     "showLegend": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   }
+  },
+  {
+   "id": 12,
+   "type": "timeseries",
+   "title": "Routes over time",
+   "datasource": {
+    "type": "tempo",
+    "uid": "tempo"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 24,
+    "w": 12,
+    "h": 8
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "tempo",
+      "uid": "tempo"
+     },
+     "queryType": "traceql",
+     "query": "{ name =~ \"pipeline\\\\..*\" } | count_over_time() by (span.kronk.route)",
+     "filters": [],
+     "limit": 20,
+     "tableType": "traces",
+     "metricsQueryType": "range",
+     "step": ""
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "custom": {
+      "lineWidth": 1,
+      "fillOpacity": 8,
+      "spanNulls": true,
+      "showPoints": "auto",
+      "pointSize": 4
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom",
+     "showLegend": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   },
+   "description": "direct = coordinator answered or delegated; a name = shortcut-pinned specialist"
+  }
+ ],
+ "links": [
+  {
+   "title": "Kronk dashboards",
+   "type": "dashboards",
+   "tags": [
+    "kronk"
+   ],
+   "asDropdown": true,
+   "includeVars": false,
+   "keepTime": true
+  }
+ ]
+}
