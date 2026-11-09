@@ -1781,22 +1781,33 @@ async def _search_each(text: str, media_types: list[str], limit: int) -> dict | 
 RESOLVE_RADIO_LIBRARY_LIMIT = 500
 
 
-async def _library_radios() -> dict | None:
-    """Every station in the library, shaped like a search result. MA's search
-    matches substrings, so "90s, 2000's and today's hits" finds nothing while
-    "today's hits" finds "90s, 2000s, Today's Hits Radio" (measured
-    2026-10-25). The household owns a few dozen stations at most; scoring
-    all of them is cheaper than guessing which words MA will match."""
+# Media types whose whole library is scored for a request of that type:
+# MA command, and the search-result key the resolver reads.
+_LIBRARY_SCORED = {
+    "radio":    ("music/radios/library_items", "radio"),
+    "playlist": ("music/playlists/library_items", "playlists"),
+}
+
+
+async def _library_items(media_type: str) -> dict | None:
+    """Every library item of `media_type`, shaped like a search result.
+    MA's search matches substrings, so "90s, 2000's and today's hits" finds
+    nothing while "today's hits" finds "90s, 2000s, Today's Hits Radio"
+    (measured 2026-10-25), and a misheard "Hotel Costas" never finds the
+    household's "Hotel Costes" playlist (2026-11-08). The household owns a
+    few dozen stations and playlists; scoring all of them is cheaper than
+    guessing which words MA will match."""
+    command, key = _LIBRARY_SCORED[media_type]
     try:
-        items = await ma_command("music/radios/library_items", limit=RESOLVE_RADIO_LIBRARY_LIMIT)
+        items = await ma_command(command, limit=RESOLVE_RADIO_LIBRARY_LIMIT)
     except MAError as e:
-        logger.warning("library radio listing failed: %s", e)
+        logger.warning("library %s listing failed: %s", media_type, e)
         return None
     if isinstance(items, dict):
         items = items.get("items")
     if not isinstance(items, list):
         return None
-    return {"radio": [it for it in items if isinstance(it, dict)]}
+    return {key: [it for it in items if isinstance(it, dict)]}
 
 
 async def _resolve_named(nq: "music_resolve.Query", media_type: str | None,
@@ -1822,8 +1833,8 @@ async def _resolve_named_inner(nq, media_type, also):
     variants += [d.text for q in (nq, *also) if (d := q.digits()) is not None]
     variants = list(dict.fromkeys(variants))
     results = await asyncio.gather(*(_search_each(v, types, RESOLVE_SEARCH_LIMIT) for v in variants))
-    if media_type == "radio":
-        results.append(await _library_radios())
+    if media_type in _LIBRARY_SCORED:
+        results.append(await _library_items(media_type))
     if all(r is None for r in results):
         return None, None, 1, 0
     cands: dict[str, music_resolve.Candidate] = {}

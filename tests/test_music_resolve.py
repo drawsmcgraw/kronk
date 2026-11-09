@@ -440,3 +440,26 @@ def test_play_sentence_naming_a_station_overrides_kind_genre(search_env):
 
 def test_radio_name_drops_some():
     assert mr.radio_name("play some jazz radio in the kitchen") == "jazz"
+
+
+def test_play_playlist_misheard_name_scores_the_library_playlists(search_env):
+    # "Hotel Costas" (STT) never reaches "Hotel Costes" through MA's
+    # substring search; YouTube's best was 0.74 and nothing played (2026-11-08).
+    search_env.station_item = None
+    search_env.search = {"Hotel Costas": {"playlists": [
+        {"name": "Hôtel Costes - Best 50 [Official Playlist]", "uri": "ytmusic://playlist/B50",
+         "media_type": "playlist", "provider": "ytmusic", "provider_mappings": [{"provider_domain": "ytmusic"}]}]}}
+    library = [{"name": "Hotel Costes", "uri": "library://playlist/49", "media_type": "playlist",
+                "provider": "library", "provider_mappings": [{"provider_domain": "builtin"}]}]
+    inner = ts.ma_command
+
+    async def with_library(command, _timeout=20, **args):
+        if command == "music/playlists/library_items":
+            search_env.ma_calls.append((command, args))
+            return library
+        return await inner(command, _timeout=_timeout, **args)
+
+    with patch.object(ts, "ma_command", new=with_library), patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 5):
+        resp = TestClient(ts.app).post("/music", json={"query": "Hotel Costas", "media_type": "playlist"})
+    assert resp.status_code == 200, resp.text
+    assert search_env.calls[0][2] == {"media_id": "library://playlist/49", "media_type": "playlist"}

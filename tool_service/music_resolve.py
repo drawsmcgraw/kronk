@@ -269,8 +269,10 @@ def word_coverage(q: str | None, c: Candidate) -> float:
 
 # With no artist to confirm it, a near match must cover every word:
 # "Destiny Waving" alone scored 0.92 against "Destiny Wave" by a stranger
-# ("waving"→"wave" 0.80); "Destiny Waiving" covers it at 0.92.
-COVERAGE_MIN = 0.85
+# ("waving"→"wave" 0.60 per word); "Destiny Waiving" covers it at 0.92.
+# 0.80, not 0.85: one misheard vowel in a six-letter word is 0.83
+# ("costas"→"costes", the "Hotel Costas" playlist miss, 2026-11-08).
+COVERAGE_MIN = 0.80
 
 
 def score(c: Candidate, q: Query) -> float:

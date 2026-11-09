@@ -209,6 +209,28 @@ The model declining to call the tool ("can't play two stations at once") was
 2/10 in run 3 and 0/10 in run 4; it is model variance, not fixed by any of
 these.
 
+## Playlist miss: "Hotel Costas" (2026-11-08)
+
+The operator added a "Hotel Costes" playlist to the MA library; a voice
+request for it failed. Whisper heard "Hotel Costas". MA's exact library
+lookup missed, its search found no library playlist for the misspelling
+(substring match), and Kronk's resolver only scored search results for
+playlists (whole-library scoring existed for radio only). Even with the
+library playlist present, the per-word coverage cap (0.85) rejected it:
+"costas"→"costes" is 0.83.
+
+Fix (tool_service only): playlist requests score every library playlist
+the way radio requests score every station (`_library_items`), and
+`COVERAGE_MIN` is 0.80. Live, via `/voice/api/chat` on the basement Voice
+PE: "Play the playlist Hotel Costas …" → `library://playlist/49` "Hotel
+Costes" at 0.96 among 31 candidates.
+
+Open: the blueprint fast path answers playlist requests first. For the
+same sentence MA's `item_by_name` returned the YouTube "Hôtel Costes - Best
+50 [Official Playlist]", the verify step saw new content and called it a
+success, and Kronk was never asked. Candidate fix: blueprint change 13
+(playlists by exact library name only, everything else to Kronk).
+
 ## What would have caught it sooner
 
 - The blueprint's success check proves only that something new is playing,
