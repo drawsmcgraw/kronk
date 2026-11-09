@@ -10,6 +10,10 @@ anyio==4.13.0 \
     # via
     #   httpx
     #   starlette
+asgiref==3.13.0 \
+    --hash=sha256:034cc8cbf72d00553b4be256703ac545120b4e50af13b49dec99da899aeeecb4 \
+    --hash=sha256:f9596a2434512686473d50f96ff6207fbba49ae1a785dfac614df4aeb085674d
+    # via opentelemetry-instrumentation-asgi
 babel==2.18.0 \
     --hash=sha256:b80b99a14bd085fcacfa15c9165f651fbb3406e66cc603abf11c5750937c992d \
     --hash=sha256:e2b422b277c2b9a9630c1d7903c2a00d0830c409c59ac8cae9081c92f1aeba35
@@ -24,6 +28,7 @@ certifi==2026.2.25 \
     # via
     #   httpcore
     #   httpx
+    #   requests
     #   trafilatura
 charset-normalizer==3.4.7 \
     --hash=sha256:007d05ec7321d12a40227aae9e2bc6dca73f3cb21058999a1df9e193555a9dcc \
@@ -157,6 +162,7 @@ charset-normalizer==3.4.7 \
     --hash=sha256:fea24543955a6a729c45a73fe90e08c743f0b3334bbf3201e6c4bc1b0c7fa464
     # via
     #   htmldate
+    #   requests
     #   trafilatura
 click==8.3.2 \
     --hash=sha256:14162b8b3b3550a7d479eafa77dfd3c38d9dc8951f6f69c78913a8f9a7540fd5 \
@@ -174,6 +180,10 @@ fastapi==0.115.0 \
     --hash=sha256:17ea427674467486e997206a5ab25760f6b09e069f099b96f5b55a32fb6f1631 \
     --hash=sha256:f93b4ca3529a8ebc6fc3fcf710e5efa8de3df9b41570958abf1d97d843138004
     # via -r requirements.txt
+googleapis-common-protos==1.76.0 \
+    --hash=sha256:59e13344a9f3651aa201a03e2bee815a3bf43a4baf1f9ff8a9b62a840ce25fac \
+    --hash=sha256:71db0e44a1d4c2dd024ebad44ca67129cc1e2892e4861df466764749d5ef8642
+    # via opentelemetry-exporter-otlp-proto-http
 h11==0.16.0 \
     --hash=sha256:4e35b956cf45792e4caa5885e69fba00bdbc6ffafbfa020300e549b208ee5ff1 \
     --hash=sha256:63cf8bbe7522de3bf65932fda1d9c2772064ffb3dae62d55932da54b31cb6c86
@@ -198,6 +208,7 @@ idna==3.11 \
     # via
     #   anyio
     #   httpx
+    #   requests
 justext==3.0.2 \
     --hash=sha256:13496a450c44c4cd5b5a75a5efcd9996066d2a189794ea99a49949685a0beb05 \
     --hash=sha256:62b1c562b15c3c6265e121cc070874243a443bfd53060e869393f09d6b6cc9a7
@@ -347,6 +358,98 @@ lxml-html-clean==0.4.5 \
     --hash=sha256:c76fcadd1e5bfb9b8bafc2200d51e4e78eb0dad67f56881c21dfb6484c7e7746 \
     --hash=sha256:e2a4c7d5beedd17cd7b484d848a0571e54baa239a4f9df5546e3acba7f990560
     # via lxml
+opentelemetry-api==1.45.1 \
+    --hash=sha256:aa38ed19bcc084ba42782a73255b3582283eced7ad6dddbd6695189e69adfb75 \
+    --hash=sha256:b31553efa588ae44bc306f863c785c5333a9ecc091248c6ee68b4b6c87fdedfb
+    # via
+    #   opentelemetry-exporter-http-transport
+    #   opentelemetry-exporter-otlp-proto-http
+    #   opentelemetry-instrumentation
+    #   opentelemetry-instrumentation-asgi
+    #   opentelemetry-instrumentation-fastapi
+    #   opentelemetry-instrumentation-httpx
+    #   opentelemetry-sdk
+    #   opentelemetry-semantic-conventions
+opentelemetry-exporter-http-transport==0.66b1 \
+    --hash=sha256:2f95404bdee7f9d2d529c7de56c7bd86d014d774d8fbf137810e0167f8a492bf \
+    --hash=sha256:443080203bf52586ce0b2ad901e8951c61833eab1aa539ae6f1f16fe9e8e7952
+    # via opentelemetry-exporter-otlp-proto-http
+opentelemetry-exporter-otlp-common==0.66b1 \
+    --hash=sha256:00ff8592c3a7cb729ff3fdc7ffa12372c243bdf2163e80c180994d0c7bd83ee9 \
+    --hash=sha256:6b1403487a2185ac1feb45fd5546fdf8630ce71c36bcefaadf51e2130e9e23f9
+    # via opentelemetry-exporter-otlp-proto-http
+opentelemetry-exporter-otlp-proto-common==1.45.1 \
+    --hash=sha256:2e4adcc3a67bcf57804fc49514f0ef64974ca7590aa3491da389852b4a0628f6 \
+    --hash=sha256:2f446183ae7047b036226f1d846c41a834b0e8755ad13b51a51dd38952eb466c
+    # via opentelemetry-exporter-otlp-proto-http
+opentelemetry-exporter-otlp-proto-http==1.45.1 \
+    --hash=sha256:24a97cf3753c7fb52fad44a696e452ff371686339e2acf3309e2eda3d0230700 \
+    --hash=sha256:45c218405ce3fd879596924b1874bf9a8f6880206d61065c5a912c8e5c297fb7
+    # via -r requirements.txt
+opentelemetry-instrumentation==0.66b1 \
+    --hash=sha256:4c4aa14dc9a24a02325a9d4c42c4d0208dbb1374c2b1b8fe6c9392d59f3e1008 \
+    --hash=sha256:e79a510f7d87c72d95e964ddb42193a0d9a75668c027d980eab032ea1322a5ce
+    # via
+    #   opentelemetry-instrumentation-asgi
+    #   opentelemetry-instrumentation-fastapi
+    #   opentelemetry-instrumentation-httpx
+opentelemetry-instrumentation-asgi==0.66b1 \
+    --hash=sha256:78b3f9bdf0fa38c65935a2ab46d59e0f9de873a51e0c95b0329f106e2ccb5274 \
+    --hash=sha256:78cdc5e45e897e16a8dac9d282e8d5bdf9af2d58e1313fa0bdd4a134c6f9dafc
+    # via opentelemetry-instrumentation-fastapi
+opentelemetry-instrumentation-fastapi==0.66b1 \
+    --hash=sha256:584cf9d2c4417ff8b2d6ff2bc606bfe13c8b3456018bf94f50f2cf658492505b \
+    --hash=sha256:97f8ac8fd7537517f9e6988bd0aca04bfa5aad564bcd46c245530739e2be72d1
+    # via -r requirements.txt
+opentelemetry-instrumentation-httpx==0.66b1 \
+    --hash=sha256:0342a4002c6dbc6c4bf22cc7e698f50f5c8b77f63325c6f40c94ab87e016bf4d \
+    --hash=sha256:5865a72c68098c85955a271ab8744b480a36e3ee492d35b8cadb93c7c4dbb618
+    # via -r requirements.txt
+opentelemetry-proto==1.45.1 \
+    --hash=sha256:79e0fb95e4616691a469439238aa9224d75779b3e108e895d1aa125ab29ca77c \
+    --hash=sha256:f38e2a8413053c180cd3d2637fbb279673ec2f6a6e09c995aafa2f452c52b46e
+    # via
+    #   opentelemetry-exporter-otlp-proto-common
+    #   opentelemetry-exporter-otlp-proto-http
+opentelemetry-sdk==1.45.1 \
+    --hash=sha256:63d24a6ca645019a631e6a51999c73e93adcac1196ca640b8ae78a7cc4762bf3 \
+    --hash=sha256:c604c11dc429810812348989115fa44bd558772a3d7442afc43d024f2c250ca4
+    # via
+    #   -r requirements.txt
+    #   opentelemetry-exporter-otlp-common
+    #   opentelemetry-exporter-otlp-proto-http
+opentelemetry-semantic-conventions==0.66b1 \
+    --hash=sha256:497ca63bf383723411e8eaf60c8779e9877633c936bb641080adab59d0eb6ec8 \
+    --hash=sha256:d4cddeb4315490b35213f55e2bdc9ac54bb1e4d318927475bed62b35545e581b
+    # via
+    #   opentelemetry-instrumentation
+    #   opentelemetry-instrumentation-asgi
+    #   opentelemetry-instrumentation-fastapi
+    #   opentelemetry-instrumentation-httpx
+    #   opentelemetry-sdk
+opentelemetry-util-http==0.66b1 \
+    --hash=sha256:047dea1a628031f857a5a32261dc0e955bc162d39993ed1cffb8f2cff5ba8a62 \
+    --hash=sha256:8f443d7abcaf29c4a07b373bbd31b5b39132c0ed3c27d015a59dc0323d5b1c58
+    # via
+    #   opentelemetry-instrumentation-asgi
+    #   opentelemetry-instrumentation-fastapi
+    #   opentelemetry-instrumentation-httpx
+packaging==26.3 \
+    --hash=sha256:94edc256424af38762eb31306eed28beb9f0efc50a8837492c9d6fd6004aed79 \
+    --hash=sha256:d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c
+    # via opentelemetry-instrumentation
+protobuf==7.36.2 \
+    --hash=sha256:497d0463ff3316681da6c0b9e8d06cb465d61abce00b613ab42226175644d1bb \
+    --hash=sha256:89f23aa53c24553a2416fd4fd1ec06f74fa42b14b546d8883128813f775bbfd2 \
+    --hash=sha256:912c1221170e16c08d1f086762f563dd61ff83c18b5fa6652952dfaded66f728 \
+    --hash=sha256:a300819d441e078a5608c0d3c709796bb548136058fda017ae51d425b44fd353 \
+    --hash=sha256:bdb3a345d48db958e6ce1f18e508beb0cc981d64f24088427549c866cd039f1e \
+    --hash=sha256:cbc70b17ee27e28894c7fee8bb04be1abead49e936bc70eb60052531eee2079e \
+    --hash=sha256:e11e1f0180583a2af89db6a2ecd9e8dc40aa6d2988ca175bfd0e6d12ea72d74e \
+    --hash=sha256:f4fee11ec330d238b34a05c9b675f693c20415d1c5bd7d5320cc2f8a798eb9cf
+    # via
+    #   googleapis-common-protos
+    #   opentelemetry-proto
 pydantic==2.12.5 \
     --hash=sha256:4d351024c75c0f085a9febbb665ce8c0c6ec5d30e903bdb6394b7ede26aebb49 \
     --hash=sha256:e561593fccf61e8a20fc46dfc2dfe075b8be7d0188df33f221ad1f0139180f9d
@@ -600,6 +703,12 @@ regex==2026.5.9 \
     --hash=sha256:fd190e88a895a8901325fad284a3f74ea52b1da8525b76cc811fa9b1edf0ce2b \
     --hash=sha256:ff8d372ac2acdc048d1c19916f27ee61bc5722728458ba6ca5052f2c72d51763
     # via dateparser
+requests==2.34.2 \
+    --hash=sha256:2a0d60c172f83ac6ab31e4554906c0f3b3588d37b5cb939b1c061f4907e278e0 \
+    --hash=sha256:f288924cae4e29463698d6d60bc6a4da69c89185ad1e0bcc4104f584e960b9ed
+    # via
+    #   opentelemetry-exporter-http-transport
+    #   opentelemetry-exporter-otlp-proto-http
 ruamel-yaml==0.19.1 \
     --hash=sha256:27592957fedf6e0b62f281e96effd28043345e0e66001f97683aa9a40c667c93 \
     --hash=sha256:53eb66cd27849eff968ebf8f0bf61f46cdac2da1d1f3576dd4ccee9b25c31993
@@ -634,6 +743,10 @@ typing-extensions==4.15.0 \
     # via
     #   anyio
     #   fastapi
+    #   opentelemetry-api
+    #   opentelemetry-exporter-otlp-proto-http
+    #   opentelemetry-sdk
+    #   opentelemetry-semantic-conventions
     #   pydantic
     #   pydantic-core
     #   typing-inspection
@@ -651,6 +764,7 @@ urllib3==2.7.0 \
     # via
     #   courlan
     #   htmldate
+    #   requests
     #   trafilatura
 uvicorn==0.30.6 \
     --hash=sha256:4b15decdda1e72be08209e860a1e10e92439ad5b97cf44cc945fcbee66fc5788 \
@@ -719,3 +833,108 @@ websockets==16.0 \
     --hash=sha256:f4a32d1bd841d4bcbffdcb3d2ce50c09c3909fbead375ab28d0181af89fd04da \
     --hash=sha256:fd3cb4adb94a2a6e2b7c0d8d05cb94e6f1c81a0cf9dc2694fb65c7e8d94c42e4
     # via -r requirements.txt
+wrapt==2.5.2 \
+    --hash=sha256:01ace38a377198e0b981b027a46cbdb5502d0123bd39c1a0f60a83a5eab7698e \
+    --hash=sha256:035cd71e2aadfc0ad366ab4785b49e62093370885ea4b527b61b308b7a92ff14 \
+    --hash=sha256:04703a2a4eea122c3a6b3af89e72bbbaa20779e5c7199c3d06e3fcb6601bc7d4 \
+    --hash=sha256:0743950d3dda9940e56f81f5334ba051c4fe2e1421e4e4a4ef8eb8fb86a90894 \
+    --hash=sha256:08d1d7bcb7dd277b7b976fd914455c3c1088f5c101ac7469ae5a5b8c03be0a0a \
+    --hash=sha256:092472b7b1494deef40dac5e9f6295013a9d51b112b5fbc4350f64dc2574e46a \
+    --hash=sha256:0d7639c3287d4efcdc2c8837f1854d1ecf27aae761714ba3d95e61fe8eb48db3 \
+    --hash=sha256:0fa61d2f1033039aa47f8f1b4e076ca3c9d0fc08e448c4b1bd06d8b59da89cbf \
+    --hash=sha256:11655df8e17658a67628cdc97fe95d6b263e023213cf18067f21e5ec0b0285f3 \
+    --hash=sha256:1433ddff7786f2d0d4096646530a7aa04de0e776715014b80bc289e874fd8538 \
+    --hash=sha256:143a3f8b33984e35950ae5d0159be2bac93356b6f79b509af9941a4be64c4368 \
+    --hash=sha256:18819c05409a161999be68da8e451636470c35f77e25c8201825a33a7d88c89c \
+    --hash=sha256:1ad706a42b139ad7f03f32aed57da5e10fe8ed707e29849cfa94f1d49cba1405 \
+    --hash=sha256:1c17ca5ce83c7145eddaa20073398ec2192dad65c8d8ff4d9b78fd2917c46a75 \
+    --hash=sha256:217798fb0cfb31479a264f841b0242bc1bed1ffc70d233e8444a876cec57928c \
+    --hash=sha256:229859aebfc909626ea6b5a3ae9523aba43c63fd828f876f2a813f4a5767726f \
+    --hash=sha256:244d57e361833389278820e5242f4a364305f633572d9500d3a85f40417aefee \
+    --hash=sha256:2594e0be4ee09b2f19828265a39df90e591def44215fe8c5b8d6b83aa4cc18b5 \
+    --hash=sha256:269321b17467a10997cc6e14793bf1816e6ce488f9711c74b72552466d206739 \
+    --hash=sha256:2861d50a4f330fa140ddc2a9ddee33f7e4f9bdb649a23dc9be8ed6310ffa47fc \
+    --hash=sha256:2bf23cde96e0f771a6a2c68973c1ded45c9707f8bd519ede30ecf075f3c720f6 \
+    --hash=sha256:2c17ec4310cc06f864799a4c37c1c716d5dcf05ceead2e63ca992a9466903b73 \
+    --hash=sha256:32c0387872e67b9dfdd2b599bf31fe127e597ed8526c5f192cdaca57a491e9dc \
+    --hash=sha256:36021ef761856bdbc10d5f3da9a95af93ef60d6acf9c72c8f849937ba2b902aa \
+    --hash=sha256:3b6885250b809532a634acd56e360d57c201c1cdc75cbf2b5e106241ece6cbc3 \
+    --hash=sha256:40e03506f09dbf4854fd69848e843dadd9b7fbbdd217837cb27b37fb8f0b5bc3 \
+    --hash=sha256:40f8ae3eb1388763fd2e60b55e1d569f66e80552e02a333f3d2fa9139a509d1e \
+    --hash=sha256:430070776fb30d925a7a1e13d68086e4731b63eedf4c43ee62fc4c8108920cce \
+    --hash=sha256:450cc93f5a2d58d4a74d384d52db4b41d5728065c0057c9bb4666c6115f2a2c9 \
+    --hash=sha256:459bb66cd4bc43e35cba1f1ab2bdfb9b507e0d8dc0ec40c93a060c9cb0c5415e \
+    --hash=sha256:46cee4400437c9f33e755522be9e7ce6ebd097273f464eb6f57bee09787f0c59 \
+    --hash=sha256:48fd5026977adb3e2fda292a6a796967b511935d23f97dc2ae1f127a3a8639d5 \
+    --hash=sha256:4d5faf5c3e435207b3a51294ed5a00e5e17e3842442ccbbd864ee9bc0efc63fb \
+    --hash=sha256:4e86f3543c67d72b4d4c08c3e351523c2d69cd05932df65937d79bc472e9d62f \
+    --hash=sha256:51465dcbab69d9c02e8ca943befa1eabc37ccb07f9335c240d78a78330285a2d \
+    --hash=sha256:53cf804402d49fa2c920a90dfab971a82bca67fb43e54adc7c3b24c054485b4d \
+    --hash=sha256:550a597a9c0510fb8bd79864025225f4fc51717adb617191561295565337f068 \
+    --hash=sha256:551cb49e88b3722faad780303833bc4fa70685fb1773270fb98b40d39d9fddbf \
+    --hash=sha256:5726faa7342ba473041bc1a276486d232b42e3927d35427729b266b1b5ecaa42 \
+    --hash=sha256:594c6d10b9cfb951a09f7338531a41d31194e7eee9dee206c0a8992421682719 \
+    --hash=sha256:59b7e6d1dea7c3f38bab21954f587499c27c16ea537058eee4add6e4da1780ea \
+    --hash=sha256:5ab31d929ca8b2b7bf9320ad2a927edfb1841609951a869a9b98723b285ffbc6 \
+    --hash=sha256:61eb54e9540ea522c2c4752a57549a83d3c67e6704ed708403d28e067aaf90f0 \
+    --hash=sha256:62b339565cfdfcc0ba71c527b4ad13ac9de25504d474fa4ae5db95d1c7e4c6a2 \
+    --hash=sha256:73d432588d1e0a8fcb88d46ef2733e848ff0c3e14111a0420c77199fd2a8cd30 \
+    --hash=sha256:7a7efde469ad904b8e05f98c76d63b437f4756c30ec7b9136bef02bdb5d1b14c \
+    --hash=sha256:7f89423965b23aa62a90bf21c20353056a829ca9a60c01fde9aec9876c99392e \
+    --hash=sha256:7ffa0be31f651da63ee51e5b74701339feac1860b561a985c7b4869d4600e800 \
+    --hash=sha256:80eec154f8ce6d26a553481772f111a064091b7e37700c690e0024921d57c569 \
+    --hash=sha256:81bdf0bd141d9b1706a0751b2ee068c7afe6be4042712d427b32b3072d5c40b9 \
+    --hash=sha256:81e685c7662fab9958a852b9c86f3b5b8eee45d047a2766d6c23b63ad1eee423 \
+    --hash=sha256:84619ca6b6f67a7dd53754ad402cafceb4ddc9d8981f144f62718b783f05786e \
+    --hash=sha256:8581eab7cb0a3bc6e8c8f64f853a1a814664d71f7ca74efb3011b4df2a40314b \
+    --hash=sha256:858511731d6ede4217960c5fecdb5ecbf90e306dfd93b837395658d61374a498 \
+    --hash=sha256:88f982c2bb306732271aa15cded4002ce28b5d9023de9d11e927da4dcf65e441 \
+    --hash=sha256:8b039b3a296762db1908d6108365225393c4fb33c1dbc5f00aa36f8302eaeaa0 \
+    --hash=sha256:8b240a879405591da10e2d20c2d1ad29b978d40ec37e24801296cfee1d4c04f9 \
+    --hash=sha256:90dad90c8a74293d2cb3ed225760a8c8f20009522efe519d6380f5de7f5caece \
+    --hash=sha256:99978d196df45c115273c6119e4d0dacbc67bc267a196506625bf7084b741f0b \
+    --hash=sha256:9c0e0342eba94829491985516e951d1b6a2de402ae4a44d1ea0debbd929cb7a9 \
+    --hash=sha256:9cb33f293e3aa04b36f7d165dc05b42db85e0a88e20a8fd81f60426d1f17d535 \
+    --hash=sha256:9d4e1cdf2efdc7181c8177f6090886e22278e70f7257df12863d2f52a9dcbbd7 \
+    --hash=sha256:a0541e62f7b9c0d42130e3469d6ac3b1767f019314ae795646a2850a75c64412 \
+    --hash=sha256:a60863d874cc6ac917bbf44324e3f195564064dee15c84e83b19e1fbbccd3169 \
+    --hash=sha256:a829b0febab0828f5d47903b11474f9f23711da5ac55e15d0d177e907d3c15e7 \
+    --hash=sha256:a8626135ecbb0b892ca79c388581ab0ef57e087f09dc0e51a2f34185d3682055 \
+    --hash=sha256:ac00ba7d22d55d3c8d085005ce4942ff3bb118d480f889b5984f1d3454052917 \
+    --hash=sha256:ad9daa883bb795b8cbe960570590878280a444173fece51f7bbfb7532a9538e2 \
+    --hash=sha256:ae84013e89ec1874415549a46cfea373e28ddecbb72e1f5456cddfa2b76a28e6 \
+    --hash=sha256:af9cecb68173b0945a53e7aaabc65ef6ef458f6dd201a9ebb23139e804f1f5e7 \
+    --hash=sha256:afd99530994449aaac9a58e1e268eb080bb1ffd758be43ab2f8a249ce8970c9c \
+    --hash=sha256:b3ebc07822649eda442382c1d20983bc6ec5aa2bf79a600da11b29ecb62a0fb2 \
+    --hash=sha256:b528eb5dbf54cf9c3e9b9c5b1680e0f4965eb8750ae738f43dd14d1bc332fa42 \
+    --hash=sha256:b632d90ac0d04e3ba8821b19954d6c36ea8f714b75db53c58015025fefccb1ac \
+    --hash=sha256:b680bef5200899524667f813fa34dcfde9313fef9f9fa432985d4bc7b4195ba3 \
+    --hash=sha256:b9ce67ec8803e6c56e78c9ebf726f61116516212c28dfa3683d0962e15cf9a62 \
+    --hash=sha256:b9f41029f9bc6ba80755b9c07f5e77e9e7aafb71c625b9f67614e4ebfb24302a \
+    --hash=sha256:bbb6e959c1e2c32bbad291f83af6320c8c46bb64e256801e85f55d88a09522d5 \
+    --hash=sha256:bec3b6b1ae2f7ed763fb0ba1776b9b5f11283e6ff40c9cbe3a855ea652c326cf \
+    --hash=sha256:c1ea16d7dfe7d235d29435307b1539495b4925e88b135d532892973a04569245 \
+    --hash=sha256:c60a5cd8b7b510056f2643d94f1c144533a568ade2891a9dd35733f5e0055777 \
+    --hash=sha256:c6b4bd8c662c333518a9aedb35bb9f4f7d1584fbef4bc1507a6c6a47357c628e \
+    --hash=sha256:c954a582cd96faa9a7598b634efdc92c9fa7710538dae93fbd9222c3a1e13beb \
+    --hash=sha256:cfd508866c421687a99bed9ce5b7b4f26fd9b93d3753685d81947ab37d54c496 \
+    --hash=sha256:d108bd98ab2c5ccbf55cf2154e0a73341df930030df2e01ee35d71a44a99d3ad \
+    --hash=sha256:d41c45517912610de55546188695e2bd0fbcd70b585087cd759f85a96f47be7e \
+    --hash=sha256:d5322e78248f6079f6525f0a9476750112750ea0a3f3fca13fd5f18a1c864d3b \
+    --hash=sha256:d8dc92a832446351ce3bf5876aa558e4f6b456ca0613d02969ce0db4762394b2 \
+    --hash=sha256:da51f5ac290f2e024ee842799c6592f68cd880c20f6b3a54305d1b6aeab459a4 \
+    --hash=sha256:ded0118adcb43b080cfcbe2a96dcf27171b8fd73d0b418603d899f4e6309ac50 \
+    --hash=sha256:e1af6136ac5bcfab17190a70b25d8437eb8d8f9ca2b821a0655d39275a8cb7e7 \
+    --hash=sha256:e1fb4af8aac3573770ed3e64efc39d953342b12bcb6e6479512a945eb5557523 \
+    --hash=sha256:e33578755e07edf3a70df3241f4cf376dad507e2cc73e737311bb00b5067f4d7 \
+    --hash=sha256:e4362b3b4e4b050b8f1f518e0c71a09f2e938a9f62ee559ea1743a13b3c9e8f1 \
+    --hash=sha256:e57d79e3338b3cecee1dd80d6ef8f945f8ea7b92f0d8d5591f840ffa0afc14dc \
+    --hash=sha256:eeaa40251c40e18c5c97ef11d5dbbad28a7b7b99fdd7a7469662799100d74dc7 \
+    --hash=sha256:eff91af619ad5d587f8855f6c02164e12d33d205c702eb73d487deb499520265 \
+    --hash=sha256:f00c726586871c22f542df6d5ce57a81e60e9339e4d40bcc7d7d5c6130db3cce \
+    --hash=sha256:f01f56a6ddffd89179bf0424c3b5bbd187690cfa2f972472aa2d563a4e0a7fdb \
+    --hash=sha256:fa642d3781c061579cb138773add4a55b16f99de9ebc41603e89a756cf9e62c6 \
+    --hash=sha256:fabc60720d1e4a36bbe8aaf1c32024f04c6674991313f5acaca5eeadb564c600
+    # via
+    #   opentelemetry-instrumentation
+    #   opentelemetry-instrumentation-httpx

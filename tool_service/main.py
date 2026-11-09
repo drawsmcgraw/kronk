@@ -29,12 +29,14 @@ try:
     from . import ops
     from . import solar
     from . import taste
+    from . import telemetry
 except ImportError:
     import music_resolve
     import news
     import ops
     import solar
     import taste
+    import telemetry
 
 # Without this, INFO logs are silently dropped under uvicorn (only WARNING+
 # escapes via the last-resort handler) — the /music "full error body goes to
@@ -149,6 +151,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Kronk Tool Service", lifespan=lifespan)
+telemetry.instrument_app(app)   # server spans join the orchestrator's trace via traceparent
 
 SEARXNG_URL = os.getenv("SEARXNG_URL", "http://localhost:8080")
 LIST_FILE = Path("/data/shopping_list.json")
@@ -702,6 +705,13 @@ async def ha_call_service(domain: str, service: str, service_data: dict | None =
     too, with a transport-flavoured message."""
     import websockets  # local import: the test suite stubs this function
 
+    with telemetry.span("ha.call_service", **{"ha.domain": domain, "ha.service": service,
+                                              "ha.entity_id": (target or {}).get("entity_id")}):
+        await _ha_call_service(websockets, domain, service, service_data, target)
+
+
+async def _ha_call_service(websockets, domain: str, service: str, service_data: dict | None,
+                           target: dict | None) -> None:
     msg_id = 1
     try:
         async with websockets.connect(_ha_ws_url(), open_timeout=HA_WS_TIMEOUT_S,
@@ -819,6 +829,14 @@ def _parse_kronk_line(raw: str) -> tuple[bool, str, dict]:
 
 async def _run(cmd: list, timeout_s: int) -> tuple[int | None, str]:
     """Run a subprocess, return (returncode, combined output)."""
+    with telemetry.span("ssh.exec", **{"ssh.program": cmd[0] if cmd else None,
+                                      "ssh.target": next((a for a in cmd[1:] if "@" in a), None)}) as sp:
+        rc, out = await _run_inner(cmd, timeout_s)
+        sp.set(**{"ssh.exit_code": rc if rc is not None else -1})
+        return rc, out
+
+
+async def _run_inner(cmd: list, timeout_s: int) -> tuple[int | None, str]:
     try:
         proc = await asyncio.create_subprocess_exec(
             *cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -1454,6 +1472,18 @@ async def _play_verified(client: httpx.AsyncClient, headers: dict, entities: lis
                          service_data: dict) -> tuple[tuple[str, dict] | None, str | None]:
     """play_media, then poll until a target plays something new.
     Returns ((entity, state) or None, HA's failure message or None)."""
+    with telemetry.span("music.play_verified", **{"music.media_type": service_data.get("media_type"),
+                                                  "music.targets": len(entities)}) as sp:
+        started, failure = await _play_verified_inner(client, headers, entities, service_data)
+        sp.set(**{"music.outcome": ("started" if started and not failure else
+                                    "started_after_failure" if started else
+                                    "resolve_miss" if failure and _RESOLVE_MISS_RE.search(failure) else
+                                    "failed" if failure else "no_start"),
+                  "music.failure": (failure or "")[:200] or None})
+        return started, failure
+
+
+async def _play_verified_inner(client, headers, entities, service_data):
     # What each target is doing before the call. Success is the player
     # *changing* to something new, not merely being in `playing`: with
     # music already on, a failed call left the old track playing and the
@@ -1522,6 +1552,14 @@ async def _genre_plan(nq: "music_resolve.Query", forced: bool, area: str | None)
     """The ranked picks for a genre request, or None when the request isn't
     a genre (and wasn't declared one) or nothing fits — the caller then
     treats it as a named request."""
+    with telemetry.span("music.genre_plan", **{"music.forced": forced}) as sp:
+        plan = await _genre_plan_inner(nq, forced, area)
+        sp.set(**{"music.picks": len(plan["picks"]) if plan else 0,
+                  "music.outcome": "picks" if plan else "not_a_genre"})
+        return plan
+
+
+async def _genre_plan_inner(nq, forced, area):
     taste_doc = taste.TASTE.load()
     phrase = taste.genre_phrase(nq.text)
     con = _taste_con()
@@ -1767,6 +1805,15 @@ async def _resolve_named(nq: "music_resolve.Query", media_type: str | None,
     """(winner to play, best guess) — winner is None below PLAY_MIN_SCORE;
     both are None when MA can't be searched or found nothing, the cases the
     caller plays the text literally."""
+    with telemetry.span("music.resolve", **{"music.media_type": media_type}) as sp:
+        winner, best, stage, n = await _resolve_named_inner(nq, media_type, also)
+        sp.set(**{"music.stage": stage, "music.candidates": n,
+                  "music.best_score": round(best.score, 3) if best else None,
+                  "music.outcome": "winner" if winner else ("below_threshold" if best else "nothing")})
+        return winner, best
+
+
+async def _resolve_named_inner(nq, media_type, also):
     types = [media_type] if media_type in RESOLVE_TYPES + ["radio"] else RESOLVE_TYPES
     variants = [nq.text] + ([nq.name] if nq.artist and nq.name and nq.name != nq.text else [])
     also = also or []
@@ -1778,7 +1825,7 @@ async def _resolve_named(nq: "music_resolve.Query", media_type: str | None,
     if media_type == "radio":
         results.append(await _library_radios())
     if all(r is None for r in results):
-        return None, None
+        return None, None, 1, 0
     cands: dict[str, music_resolve.Candidate] = {}
     for r in results:
         for c in music_resolve.candidates_from_search(r):
@@ -1798,7 +1845,7 @@ async def _resolve_named(nq: "music_resolve.Query", media_type: str | None,
                 nq.text, media_type, stage, len(cands),
                 f"{best.media_type} {best.name!r} by {best.artist!r} {best.uri} ({best.score:.2f})"
                 + ("" if winner else " BELOW THRESHOLD") if best else "nothing")
-    return winner, best
+    return winner, best, stage, len(cands)
 
 
 # ── Household taste: the told half (MUSIC_TASTE_AGENT_PLAN step 3) ───────────
@@ -1888,6 +1935,11 @@ async def ma_command(command: str, _timeout: float = 20, **args) -> object:
     """
     if not MA_TOKEN:
         raise MAError("MA_TOKEN not configured")
+    with telemetry.span("ma.command", **{"ma.command": command}):
+        return await _ma_command(command, _timeout, args)
+
+
+async def _ma_command(command: str, _timeout: float, args: dict) -> object:
     url = MA_URL.replace("http://", "ws://", 1).replace("https://", "wss://", 1).rstrip("/") + "/ws"
     try:
         async with websockets.connect(url, open_timeout=5, max_size=None) as ws:
@@ -1927,22 +1979,28 @@ async def _pandora_station(query: str) -> dict | None:
     created station. Any MA failure falls back to the plain play by name,
     without the station sentence. Returns {"name", "uri", "created"}.
     """
-    try:
-        item = await ma_command("music/item_by_name", _timeout=MA_STATION_LOOKUP_TIMEOUT_S,
-                                name=query, media_type="radio")
-    except MAError as e:
-        logger.warning("station lookup for %r failed: %s", query, e)
-        return None
-    if not isinstance(item, dict) or not item.get("uri"):
-        return None
-    domains = {item.get("provider")} | {m.get("provider_domain") for m in item.get("provider_mappings") or []}
-    if "pandora" not in domains:
-        return None
-    return {
-        "name": item.get("name") or query,
-        "uri": item["uri"],
-        "created": str(item.get("item_id", "")).startswith(PANDORA_SEED_PREFIX),
-    }
+    with telemetry.span("music.pandora_station") as sp:
+        try:
+            item = await ma_command("music/item_by_name", _timeout=MA_STATION_LOOKUP_TIMEOUT_S,
+                                    name=query, media_type="radio")
+        except MAError as e:
+            logger.warning("station lookup for %r failed: %s", query, e)
+            sp.set(outcome="ma_error")
+            return None
+        if not isinstance(item, dict) or not item.get("uri"):
+            sp.set(outcome="no_item")
+            return None
+        domains = {item.get("provider")} | {m.get("provider_domain") for m in item.get("provider_mappings") or []}
+        if "pandora" not in domains:
+            sp.set(outcome="not_pandora")
+            return None
+        created = str(item.get("item_id", "")).startswith(PANDORA_SEED_PREFIX)
+        sp.set(outcome="created" if created else "owned")
+        return {
+            "name": item.get("name") or query,
+            "uri": item["uri"],
+            "created": created,
+        }
 
 
 class MusicControlRequest(BaseModel):
