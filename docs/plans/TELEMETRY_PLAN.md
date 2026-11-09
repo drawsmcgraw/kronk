@@ -1,5 +1,9 @@
 # Telemetry — Plan (Langfuse self-hosted)
 
+> **Status: superseded 2026-11-08** by `TELEMETRY_V2_PLAN.md` (OpenTelemetry →
+> Tempo + Grafana). Langfuse is retired; its volumes remain until the operator
+> deletes them. Kept for the record of how v1 was built.
+
 Adding real telemetry for the Kronk orchestrator pipeline so we can find and
 fix latency bottlenecks stage-by-stage, and so the work doubles as exposure
 to a current piece of the LLM-observability ecosystem.

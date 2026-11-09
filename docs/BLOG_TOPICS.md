@@ -52,6 +52,13 @@ wall; this is a complete, costed, self-hosted answer with the SDK-isolation
 pattern (`telemetry.py` — instrumentation that can never break the app).
 **Receipts:** `docs/plans/TELEMETRY_PLAN.md`, `docs/TELEMETRY_GUIDE.md`,
 the dashboards themselves.
+**Sequel (2026-11-08):** Langfuse retired for OpenTelemetry → Tempo +
+Grafana — two containers instead of six, 131 GB of ClickHouse for 1,366
+traces gone, and the part that was impossible before: tracing Home
+Assistant's voice pipeline and the music blueprint without touching HA
+(`voice_tracer` reads HA's own debug APIs and joins to Kronk's trace by
+device id + time window). Receipts: `docs/features/telemetry.md`,
+`docs/plans/TELEMETRY_V2_PLAN.md`, `docs/plans/TELEMETRY_V2_REPORT.md`.
 
 ## ☐ The GPU that wouldn't sleep: a silent-hang detective story
 

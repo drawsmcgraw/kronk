@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Run the Kronk test suite with the right interpreter.
 #
-# The suite needs tests/.venv (fastapi, chromadb, fastembed, langfuse, …);
+# The suite needs tests/.venv (fastapi, chromadb, fastembed, opentelemetry, …);
 # running bare `pytest` with the system python collects import errors and
 # looks like the code is broken. This wrapper kills that footgun.
 #

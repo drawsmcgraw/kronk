@@ -62,12 +62,14 @@ systemd units, not containers. The live view is the `/services` page.
 | `wyoming-whisper` (host unit) | 10300 | faster-whisper STT on the GPU |
 | `homeassistant` (`kronk-ha`) | 8123 (host net) | Voice pipeline broker, satellites, automations |
 | `music-assistant-server` (`kronk-ma`) | 8095 (host net) | Players, YouTube Music, Pandora, NAS library |
-| Langfuse (`langfuse`) | 3000 | Telemetry v1 traces |
+| `voice_tracer` | 8010 (internal) | HA voice runs + blueprint runs → OpenTelemetry traces (Telemetry v2) |
+| Grafana (`kronk-telemetry`) | 3000 | Telemetry v2 dashboards and trace search |
+| Tempo (`kronk-telemetry`) | 3200 (loopback), 4318 (OTLP, docker network) | Trace store, 90-day retention |
 
 nginx serves the UI pages (`/`, `/health`, `/finances`, `/solar`,
 `/resources`, `/performance`, `/agents`, `/services`, `/shopping_list`),
 proxies `/api/health/`, `/api/finance/` and `/api/solar/` to their services,
-`/probe/*` to per-service health endpoints (including HA, MA and Langfuse),
+`/probe/*` to per-service health endpoints (including HA, MA, Grafana and Tempo),
 and `/devstral/` straight to a devstral llama.cpp server (bypassing LiteLLM).
 
 ### Agent loop — unified streaming
@@ -249,7 +251,7 @@ Failures surface loud and specific at every layer (tenet 7 — "an unexpected
 error occurred" is a bug): services return `detail` strings naming the real
 cause, tool handlers preserve them via `tools._fail()`, a failed specialist
 reaches the coordinator explicitly labeled `FAILED` (with an
-invented-answer ban), failed turns mark their Langfuse trace `ERROR`, and a
+invented-answer ban), failed turns mark their trace `ERROR` in Tempo, and a
 last-resort guard in `_run_pipeline` turns unexpected crashes into a spoken
 cause + rid instead of a dead stream.
 
@@ -259,6 +261,19 @@ How much of that detail the *user* sees is a toggle —
 (one clean sentence); `ERROR_STYLE_VOICE` overrides just the shim/voice
 transport. Rendering only — logs and traces always keep full detail.
 Details: [`docs/features/verbose-errors.md`](docs/features/verbose-errors.md).
+
+### Telemetry
+
+Every request is one OpenTelemetry trace: the orchestrator's pipeline, agent
+rounds, LLM calls and tool calls, continued into `tool_service` (Music
+Assistant commands, HA service calls, the playback-verify wait) over W3C
+`traceparent`. Home Assistant's voice runs and the music blueprint's runs are
+read by `voice_tracer` and linked to Kronk's trace by satellite device and
+time window. Storage is Grafana Tempo, UI is Grafana at `http://kronk:3000`
+(four provisioned dashboards: Overview, Stages, Slowest requests, Music).
+`TELEMETRY_ENABLED=false` turns every span into a no-op. See
+[`docs/features/telemetry.md`](docs/features/telemetry.md) and
+[`docs/TELEMETRY_GUIDE.md`](docs/TELEMETRY_GUIDE.md).
 
 ---
 
@@ -275,7 +290,7 @@ commands — read it before running compose against that stack.
 | Kronk (orchestrator, tools, llm proxy, nginx, …) | `docker-compose.yml` | `kronk` | port 80 |
 | Home Assistant | `docker-compose.ha.yml` | `kronk-ha` | port 8123 |
 | Music Assistant + YT PO-token helper | `docker-compose.ma.yml` | `kronk-ma` | port 8095 |
-| Langfuse telemetry | `docker-compose.langfuse.yml` | `kronk` (no `name:` key — shares the directory default) | port 3000 |
+| Telemetry (Tempo + Grafana) | `docker-compose.telemetry.yml` | `kronk-telemetry` | port 3000 (Grafana) |
 
 HA mounts the **shared** `kronk_ha-config` volume (declared `external: true`
 in `docker-compose.ha.yml`). The split means `docker compose up -d --build
@@ -422,7 +437,7 @@ instructional; no single layer is enough on its own.
 
 **Secrets: a few files, no manager.** `.env` (gitignored) holds `HA_TOKEN`
 and `MA_TOKEN` (an MA long-lived token, 1-year expiry, no auto-renew), both
-scoped to tool_service; `.env.langfuse` holds Langfuse's own keys;
+scoped to tool_service; `.env.telemetry` holds the Grafana admin login;
 `searxng/settings.yml` holds the SearXNG secret. NWS, Open-Meteo, SearXNG and
 the local LLMs are unauthenticated. The old self-hosted Infisical instance was
 retired; reintroduce a secrets manager only if this grows past a handful of

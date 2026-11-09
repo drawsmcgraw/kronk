@@ -29,9 +29,9 @@ distilled doc in `docs/features/` — start there, then the build journals):
 - **Music** (Music Assistant, Sonos, players): `docs/features/voice-music-control.md`,
   then `docs/plans/MUSIC_ASSISTANT_PLAN.md` plus the header comment in
   `docker-compose.ma.yml`.
-- **Telemetry / perf**: `docs/features/telemetry.md` (v1 is a prototype —
-  Telemetry v2 is on the roadmap), then `docs/TELEMETRY_GUIDE.md`,
-  `docs/PERF_FINDINGS_2026-06-10.md`, `docker-compose.langfuse.yml`.
+- **Telemetry / perf**: `docs/features/telemetry.md` (v2: OpenTelemetry →
+  Tempo + Grafana, voice_tracer), then `docs/TELEMETRY_GUIDE.md`,
+  `docker-compose.telemetry.yml`, `docs/PERF_FINDINGS_2026-06-10.md`.
 - **Routing / agent loop internals**: `docs/features/agents-as-tools-routing.md`,
   `docs/plans/STREAMING_REFACTOR_PLAN.md`.
 - **History / why-is-it-like-this**: `docs/HISTORY.md`, `docs/incidents/`,
@@ -45,7 +45,7 @@ distilled doc in `docs/features/` — start there, then the build journals):
 | Kronk app (orchestrator, nginx, tools, litellm, searxng, …) | `docker-compose.yml` | `kronk` |
 | Home Assistant | `docker-compose.ha.yml` | `kronk-ha` |
 | Music Assistant + YT PO-token helper | `docker-compose.ma.yml` | `kronk-ma` |
-| Langfuse telemetry | `docker-compose.langfuse.yml` | (langfuse) |
+| Telemetry (Tempo + Grafana) | `docker-compose.telemetry.yml` | `kronk-telemetry` |
 
 LLM servers and GPU STT are **not** containers — they're user systemd units on
 the host (`~/.config/systemd/user/llama-*.service`, `wyoming-whisper.service`).
@@ -203,8 +203,10 @@ verbatim — never summarized away.
   commit at milestones; don't run those commands.
 - **Secrets**: `.env` (gitignored) holds `HA_TOKEN` and, since 2026-10-06,
   `MA_TOKEN` (a Music Assistant long-lived token for tool_service's Pandora
-  thumbs; 1-year expiry, no auto-renew). `searxng/settings.yml` is
-  gitignored; its `.example` is the template. No other secrets exist.
+  thumbs; 1-year expiry, no auto-renew). `.env.telemetry` (gitignored,
+  since 2026-11-08) holds the Grafana admin login; its `.example` is the
+  template. `searxng/settings.yml` is gitignored; its `.example` is the
+  template. No other secrets exist.
 - **New compose files** get an `# Operations:` comment block (up / restart /
   logs / down recipes) like the existing ones.
 - **Docs lifecycle** (defined in `ROADMAP.md`, follow it): sizeable feature →

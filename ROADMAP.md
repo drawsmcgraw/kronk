@@ -44,8 +44,9 @@ Conventions:
   *Why: four radio misfires in three weeks, two of them wrong successes.*
 - **Backups** — nightly copies of the HA config volume, the MA volume, the
   orchestrator SQLite, tool_service `/data` (`solar.db` is the only copy of
-  past production history) and, if wanted, Langfuse, to the NAS or a second
-  disk. Only hand-taken MA tarballs exist today.
+  past production history) to the NAS or a second
+  disk. Only hand-taken MA tarballs exist today. Tempo's `tempo-data`
+  volume (traces, 90 days) is a candidate too.
   *Why: there is no second copy of anything.*
 - **Reclaim storage and memory** — disk: the Ollama blobs
   (`/usr/share/ollama/.ollama/models/blobs/`, 241 GB, unused since the
@@ -64,9 +65,6 @@ Conventions:
   `kronk-searxng-canary.timer` and `docs/runbooks/searxng-bump.md`. Next: once
   the runbook has been run twice by hand, a monthly headless bump (`claude -p`
   limited to compose pull/up for searxng and the canary).
-- **Telemetry v2** — trace every interaction (chat UI, voice, shims) end to
-  end for troubleshooting and usage analysis. Langfuse v1 is a prototype;
-  replacing it is on the table. Requirements pass and plan doc first.
 
 ## Later — wanted
 
@@ -110,6 +108,16 @@ Conventions:
 
 Newest first; feature docs in `docs/features/`.
 
+- **Telemetry v2** *(2026-11-08)* — every interaction is one OpenTelemetry
+  trace: orchestrator pipeline → agent rounds → LLM calls → tool calls,
+  continued into tool_service (MA websocket commands, HA service calls, the
+  playback-verify wait) by `traceparent`; HA's voice runs (STT, intent, TTS)
+  and the music blueprint's runs read by the new `voice_tracer` and linked
+  to Kronk's trace by satellite device + time window. Grafana Tempo (90-day
+  retention) + Grafana with four provisioned dashboards replace Langfuse
+  (six containers, 131 GB of volumes left for the operator to delete).
+  `kronk.events` lines carry `trace_id`. See `docs/features/telemetry.md`,
+  `docs/plans/TELEMETRY_V2_PLAN.md`, `docs/plans/TELEMETRY_V2_REPORT.md`.
 - **Music that knows the household** *(2026-10-21)* — named requests resolve
   through search + scoring (misspellings, STT, provider hints, YouTube Music
   links); genre requests ("some deep house", "something chill") pick from
@@ -302,7 +310,7 @@ Newest first; feature docs in `docs/features/`.
 - **Voice pipeline** (2026-05) — HA Voice PE → Home Assistant broker →
   Wyoming faster-whisper STT (host, GPU) / Piper TTS (container) → Kronk
   via the Ollama shim. Build journal: `docs/VOICE_SETUP.md`.
-- **Langfuse telemetry v1** (2026-06-10) — prototype; see item 6.
+- **Langfuse telemetry v1** (2026-06-10) — prototype; retired 2026-11-08 by Telemetry v2.
 - **Unified-streaming agent loop** — every agent streams token-by-token;
   `llm.stream()` accumulates `tool_calls` from deltas.
 - **Agents-as-tools routing** (2026-06-12) — router misses self-heal via

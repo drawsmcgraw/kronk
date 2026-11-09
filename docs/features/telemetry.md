@@ -1,47 +1,108 @@
-# Feature: Telemetry v1 (Langfuse) — prototype
+# Feature: Telemetry v2 — OpenTelemetry, Tempo, Grafana
 
-**Shipped:** 2026-06-10 (deploy + instrumentation), dashboards + guide 2026-06-12 · **Plan:** `../plans/TELEMETRY_PLAN.md` · **Operator's guide:** `../TELEMETRY_GUIDE.md`
-
-> **Status: prototype.** It works and is in daily use, but ROADMAP item 6
-> (Telemetry v2) puts a requirements-first redesign on the table — up to and
-> including replacing Langfuse. Treat this doc as "what v1 does," not "what
-> telemetry will be."
+**Shipped:** 2026-11-08 · **Plan:** `../plans/TELEMETRY_V2_PLAN.md` ·
+**Report:** `../plans/TELEMETRY_V2_REPORT.md` · **Operator's guide:**
+`../TELEMETRY_GUIDE.md` · Replaces Langfuse v1 (`../plans/TELEMETRY_PLAN.md`,
+superseded).
 
 ## What it does
 
-Every pipeline run — chat UI (`pipeline.message`) or voice/shim
-(`pipeline.shim`) — becomes a Langfuse trace with a span waterfall: route
-decision, each tool call, each llama.cpp inference, response assembly, with
-full prompts/completions/token counts per span. UI at `http://kronk:3000`.
-The "why was that one slow / what did the router actually see" workflow is
-two clicks (Tracing → sort by latency → open the waterfall).
+Every interaction is one trace, end to end:
+
+- **Kronk**: the HTTP request (chat UI, OpenAI shim, Ollama shim, voice
+  mount) → `pipeline.*` root → routing → agent loop → each LLM round (tokens,
+  time to first token, tokens/s) → each tool call → continued into
+  **tool_service** over W3C `traceparent`: the incoming request, Music
+  Assistant websocket commands, HA service calls, the resolver, the Pandora
+  station lookup, the playback-verify wait, SSH to managed hosts, and every
+  outbound HTTP call.
+- **Voice front half**, which Kronk never sees: a new `voice_tracer` reads
+  Home Assistant's Assist pipeline debug runs (wake-reported → STT → intent
+  → TTS) and the music blueprint's automation traces (`play_media`, the
+  verify wait, the hand-off to Kronk) over HA's websocket, read-only, and
+  emits them as traces. A voice run that Kronk answered is linked to Kronk's
+  trace by satellite device id and intent time window; a blueprint run is
+  linked to the voice run it ran inside.
+- **Storage and UI**: Grafana Tempo (single binary, local disk, 90-day
+  retention) and Grafana with four provisioned dashboards — Overview,
+  Stages (p50/p95 per stage over time), Slowest requests, Music.
+- `kronk.events` JSON lines carry `trace_id`, so a log line and its trace
+  join in one step.
 
 ## How it works
 
-- **Server:** self-hosted Langfuse v3 — 6 containers
-  (`docker-compose.langfuse.yml`; web, worker, ClickHouse, Postgres, Redis,
-  MinIO), ~1.7 GB idle. ClickHouse HTTP remapped to :8124 (HA owns :8123).
-  Secrets in `.env.langfuse` (gitignored).
-- **Instrumentation:** all SDK contact isolated in
-  `orchestrator/telemetry.py`; spans are explicit parent→child objects (no
-  ContextVar magic — runs are serialized by `_llm_lock` anyway).
-  `LANGFUSE_ENABLED=false` turns every helper into a no-op; a missing SDK
-  produces one log line and zero pipeline impact.
-- **Dashboards:** seeded programmatically via Langfuse's Postgres
-  (`scripts/`), because there is no public dashboards API.
+- **Instrumentation** (`orchestrator/telemetry.py`, `tool_service/telemetry.py`):
+  the only modules that import the OpenTelemetry SDK; call sites use thin
+  helpers (`start_pipeline` / `root().child_span` / `child_generation` /
+  `.current()` / `span()`). FastAPI and httpx auto-instrumentation give the
+  server and client spans and carry `traceparent` between services.
+  `TELEMETRY_ENABLED=false` makes every helper a no-op; SDK init failure
+  degrades to one log line. Export is a `BatchSpanProcessor` on a background
+  thread (1 s schedule delay). A sampler drops CLIENT-kind root spans so
+  background pollers never start a trace of their own. Measured cost: p50
+  119 µs per request for the hand-written spans (R7 target was < 5 ms).
+- **Attributes**: `kronk.*` (rid, transport, route, origin device/area,
+  phase, round, ttft_ms, tokens_per_sec, tool, outcome), `gen_ai.request.model`
+  and `gen_ai.usage.*_tokens`, `ma.command`, `ha.domain/service/entity_id`,
+  `music.*`, `voice.*`, `bp.*`. No prompt, answer or transcript text unless
+  `TELEMETRY_RECORD_TEXT=true`. The transport label (webui / openai / ollama /
+  voice) is derived from the server span's `http.route`.
+- **voice_tracer** (`voice_tracer/`, kronk stack): subscribes to
+  `state_changed`; when a satellite returns to idle or the blueprint
+  automation finishes it fetches the new runs (`assist_pipeline/pipeline_debug/*`,
+  `trace/list`+`trace/get`), with a 60 s poll as backstop. Pure conversion in
+  `convert.py` (tested against recorded payloads in `tests/fixtures/`); ids
+  derive from HA's run ids, so re-emitting a run is idempotent in Tempo. The
+  Kronk join queries Tempo's search API for a `pipeline.*` span with the same
+  `kronk.origin.device_id` inside the intent window, retrying at 15/30/45/60 s
+  because Tempo makes traces searchable only after the live-store cuts a
+  block; the voice trace is emitted once, when the join resolves or gives up
+  (`kronk.join_matches`, `kronk.join_ambiguous` if more than one).
+- **Stack** (`docker-compose.telemetry.yml`, project `kronk-telemetry`):
+  Tempo 3.1.1 (monolithic — no Kafka, no metrics-generator processor needed
+  for TraceQL metrics in 3.x) joins the Kronk app network so services reach
+  `tempo:4318` by name; its query API is on loopback 3200. Grafana 13.2.4 on
+  LAN port 3000, anonymous Viewer, admin login in `.env.telemetry`, all
+  phone-home settings off; datasource and dashboards provisioned from
+  `telemetry/grafana/`. Dashboards are generated by
+  `telemetry/grafana/build_dashboards.py`.
 
 ## Gotchas
 
-- Dashboards answer "how is the system trending"; **Tracing** answers "what
-  happened on that one run" — operators reach for the wrong one first
-  (that's why the guide exists).
-- Traces were the deciding evidence for the 2026-07-03 voice-path router 400
-  (the duplicated-user-turn bug) — the troubleshooting loop works, but
-  finding *the trace for a spoken error* still takes manual timestamp
-  correlation. That gap is a named requirement for v2 (ROADMAP items 2 + 6).
+- **Search lag.** Trace-by-id is immediate; search and dashboards see a
+  trace 30–90 s after ingest (live-store `max_block_duration` 30 s). Voice
+  traces land ~2 min after the utterance because of the join wait.
+- **Ingestion slack — never emit spans older than it.** A span ingested
+  more than `ingestion_time_range_slack` (set to 15 m on all three WALs in
+  `telemetry/tempo.yaml`; Tempo default 2 m) away from its own timestamp
+  does worse than go missing: in Tempo 3.1.1 it produced blocks whose
+  `startTime` was later than their `endTime`, and every TraceQL metrics
+  query overlapping such a block failed with HTTP 500 `end must be greater
+  than start` (search still worked). Seen 2026-11-08 from the tracer's
+  one-hour startup backfill and two deliberately back-dated test spans; the
+  three blocks were deleted by hand. voice_tracer now backfills only 10
+  minutes at start and polls only the last 10 minutes.
+- **Wake word.** Detection happens on the satellite; HA's first event is the
+  stream start. `voice.wake_detection = "satellite"` states it; nothing is
+  faked.
+- **TTS span is ~0 ms.** HA streams TTS; the pipeline records the request,
+  not the synthesis.
+- **Text runs have no satellite.** `assist_pipeline/run` from a script has
+  no `satellite_id`; pass `device_id` to get an origin and a Kronk join.
+- **`docker compose down` on the Kronk stack** reports the `kronk_kronk`
+  network as in use while Tempo is attached. Containers still stop; bring
+  the telemetry stack down first if the network must go.
+- **Deleting blocks**: never `down -v` on `kronk-telemetry`.
 
 ## Blog hooks
 
-- Instrumenting a home assistant with self-hosted Langfuse (already tracked
-  in `../BLOG_TOPICS.md`) — including the undocumented dashboard-seeding.
-- The SDK-isolation pattern: instrumentation that can never break the app.
+- Tracing a voice assistant you are not allowed to modify: turning Home
+  Assistant's pipeline-debug and automation-trace APIs into OpenTelemetry
+  spans, and joining them to the backend's trace by device id + time window.
+- Tempo 3 in one container: TraceQL metrics without Prometheus, and the two
+  timing traps (block-cut search lag, ingestion slack) that bite anyone
+  emitting spans with timestamps in the past.
+- Retiring Langfuse: six containers and 131 GB of ClickHouse for 1,366
+  traces, replaced by two containers and a few megabytes.
+- The SDK-isolation pattern survives a vendor swap: `telemetry.py` kept its
+  surface, the rest of the orchestrator did not notice.

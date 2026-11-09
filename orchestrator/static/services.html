@@ -172,7 +172,7 @@
   const APPS = [
     { icon: '🏡', name: 'Home Assistant',   port: 8123, probe: '/probe/ha',       desc: 'Voice pipeline broker, satellites, automations' },
     { icon: '🎵', name: 'Music Assistant',  port: 8095, probe: '/probe/ma',       desc: 'Players, YouTube Music, Pandora, NAS library' },
-    { icon: '🔭', name: 'Langfuse',         port: 3000, probe: '/probe/langfuse', desc: 'Telemetry traces (v1 prototype)' },
+    { icon: '📈', name: 'Grafana',          port: 3000, probe: '/probe/grafana',  desc: 'Telemetry v2 — traces and dashboards (Tempo + TraceQL)' },
   ];
 
   const INTERNAL = [
@@ -183,6 +183,8 @@
     { icon: '🔍', name: 'SearXNG',          port: 8080,  where: 'internal',  probe: '/probe/searxng', desc: 'Self-hosted meta-search — queries never leave the house' },
     { icon: '🎙️', name: 'Whisper STT',      port: 10300, where: 'host unit', probe: null,             desc: 'Wyoming faster-whisper on the GPU' },
     { icon: '🔊', name: 'Piper TTS',        port: 10200, where: 'container', probe: null,             desc: 'Wyoming Piper text-to-speech' },
+    { icon: '🧵', name: 'Tempo',            port: 3200,  where: 'telemetry', probe: '/probe/tempo',   desc: 'Grafana Tempo trace store (OTLP in, 90-day retention)' },
+    { icon: '🎧', name: 'Voice tracer',     port: 8010,  where: 'internal',  probe: '/probe/voice_tracer', desc: 'HA voice runs + blueprint runs → traces' },
   ];
 
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
