@@ -5,4 +5,11 @@ python-dotenv==1.0.1
 pypdf==4.3.1
 python-multipart==0.0.9
 pyyaml==6.0.2
-langfuse==4.7.1
+# OpenTelemetry (Telemetry v2, docs/plans/TELEMETRY_V2_PLAN.md). SDK 1.45.1 /
+# instrumentation 0.66b1 released 2026-10-06 — pinned together; the
+# instrumentation beta line tracks the SDK minor. OTLP over HTTP/protobuf:
+# no grpcio build, one exporter.
+opentelemetry-sdk==1.45.1
+opentelemetry-exporter-otlp-proto-http==1.45.1
+opentelemetry-instrumentation-fastapi==0.66b1
+opentelemetry-instrumentation-httpx==0.66b1

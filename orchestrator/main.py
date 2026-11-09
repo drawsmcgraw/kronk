@@ -43,6 +43,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Kronk Orchestrator", lifespan=lifespan)
+telemetry.instrument_app(app)   # server spans + httpx traceparent; no-op when off
 
 COORDINATOR_MODEL = agents.COORDINATOR_MODEL
 STATE_FILE        = Path("/data/kronk_state.md")
@@ -304,7 +305,8 @@ async def _run_pipeline(
 
     async with _llm_lock:
         trace = telemetry.start_pipeline(
-            pipeline_name, text, rid=rid, tags=[f"transport:{transport}"],
+            pipeline_name, text, rid=rid, transport=transport,
+            origin=origin.current.get(),
         )
         said_token = origin.said.set(text)
         try:

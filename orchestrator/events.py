@@ -9,6 +9,11 @@ _request_id: ContextVar[str] = ContextVar("request_id", default="-")
 
 event_logger = logging.getLogger("kronk.events")
 
+try:
+    import telemetry as _telemetry   # trace id on every line (logs ↔ traces join)
+except Exception:  # pragma: no cover
+    _telemetry = None
+
 
 def new_request_id() -> str:
     rid = uuid.uuid4().hex[:8]
@@ -28,4 +33,6 @@ def emit(event: str, **fields) -> None:
         "event": event,
         **fields,
     }
+    if _telemetry is not None and (tid := _telemetry.current_trace_id()):
+        payload["trace_id"] = tid
     event_logger.info(json.dumps(payload, default=str))

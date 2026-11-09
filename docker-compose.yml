@@ -125,6 +125,14 @@ services:
       # Proactive update-completion announcement (HA assist_satellite).
       # Kitchen Voice PE satellite; shared by future timer/proactive alerts.
       - ANNOUNCE_SATELLITE=${ANNOUNCE_SATELLITE:-assist_satellite.home_assistant_voice_0ac919_assist_satellite}
+      # OpenTelemetry → Tempo (docker-compose.telemetry.yml). Incoming calls
+      # carry the orchestrator's traceparent, so a tool call and its MA/HA
+      # internals are one trace. TELEMETRY_ENABLED=false → no-ops.
+      - TELEMETRY_ENABLED=${TELEMETRY_ENABLED:-true}
+      - OTEL_SERVICE_NAME=kronk-tool-service
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4318
+      - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+      - OTEL_BSP_SCHEDULE_DELAY=1000
     extra_hosts:
       - "host.docker.internal:host-gateway"
     mem_limit: 1g
@@ -201,6 +209,38 @@ services:
       start_period: 10s
     restart: unless-stopped
 
+  voice_tracer:
+    # Telemetry v2: turns HA's Assist pipeline runs and the music blueprint's
+    # automation traces into OpenTelemetry traces (voice front half: STT,
+    # intent, TTS; blueprint fast path) and links them to Kronk's own trace
+    # by satellite device id + time window. Read-only HA websocket with the
+    # existing token; no HA change. See voice_tracer/main.py and
+    # docs/features/telemetry.md.
+    build: ./voice_tracer
+    volumes:
+      - ./data:/data          # /data/voice_tracer_state.json — emitted run ids
+    environment:
+      - HA_URL=http://host.docker.internal:8123
+      - HA_TOKEN=${HA_TOKEN}
+      - TEMPO_URL=http://tempo:3200
+      - TELEMETRY_ENABLED=${TELEMETRY_ENABLED:-true}
+      - TELEMETRY_RECORD_TEXT=${TELEMETRY_RECORD_TEXT:-false}
+      - OTEL_SERVICE_NAME=kronk-voice-tracer
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4318
+      - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+      - VOICE_TRACER_AUTOMATIONS=automation.kronk_music_assistant_voice_device_first
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    mem_limit: 256m
+    networks: [kronk]
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8010/health\", timeout=3)' || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
   wyoming-piper:
     image: rhasspy/wyoming-piper:2.2.2
     container_name: wyoming-piper
@@ -239,19 +279,24 @@ services:
       - LOCATION=Laurel, MD
       # User-facing error rendering: debug (full detail: causes, HTTP
       # statuses, rid) | friendly (one clean sentence). Rendering only —
-      # logs and Langfuse always keep full detail. ERROR_STYLE_VOICE
+      # logs and traces always keep full detail. ERROR_STYLE_VOICE
       # overrides for the shim transport (/api/chat + /v1; HA voice).
       # The voice smoke test (ROADMAP item 8) always runs in debug.
       - ERROR_STYLE=${ERROR_STYLE:-debug}
       # - ERROR_STYLE_VOICE=friendly
       # Per-client session store (SQLite at /data/sessions.db).
       - HISTORY_MAX_MESSAGES=40
-      # Langfuse tracing (stack: docker-compose.langfuse.yml; keys in .env).
-      # Set LANGFUSE_ENABLED=false to switch all instrumentation to no-ops.
-      - LANGFUSE_ENABLED=${LANGFUSE_ENABLED:-true}
-      - LANGFUSE_HOST=http://host.docker.internal:3000
-      - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-}
-      - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-}
+      # OpenTelemetry tracing → Tempo (stack: docker-compose.telemetry.yml,
+      # reached by service name over the shared kronk network). Set
+      # TELEMETRY_ENABLED=false to switch all instrumentation to no-ops.
+      # TELEMETRY_RECORD_TEXT=true adds prompt/answer previews to spans
+      # (off: privacy; the kronk.events log keeps its previews either way).
+      - TELEMETRY_ENABLED=${TELEMETRY_ENABLED:-true}
+      - TELEMETRY_RECORD_TEXT=${TELEMETRY_RECORD_TEXT:-false}
+      - OTEL_SERVICE_NAME=kronk-orchestrator
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4318
+      - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+      - OTEL_BSP_SCHEDULE_DELAY=1000
       # SYSTEM_PROMPT env removed 2026-06-12: the coordinator persona lives in
       # orchestrator/agents.py (agents.COORDINATOR) since agents-as-tools.
     mem_limit: 1g

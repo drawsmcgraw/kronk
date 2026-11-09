@@ -9,3 +9,9 @@ chromadb>=0.5
 fastembed>=0.4
 openpyxl==3.1.5
 ruamel.yaml==0.19.1
+# Telemetry v2 (orchestrator + tool_service + voice_tracer pins)
+opentelemetry-sdk==1.45.1
+opentelemetry-exporter-otlp-proto-http==1.45.1
+opentelemetry-exporter-otlp-proto-grpc==1.45.1
+opentelemetry-instrumentation-fastapi==0.66b1
+opentelemetry-instrumentation-httpx==0.66b1

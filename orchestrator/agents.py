@@ -647,8 +647,10 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
     tool_call_counts: dict[str, int] = {}
     last_usage: dict = {}
 
-    agent_span = telemetry.root().child_span(
-        f"agent.{agent.name}", input=task, metadata={"model": agent.model},
+    # Parent: the current span (an ask_* tool span when delegated, the
+    # pipeline root otherwise) so a delegation nests under its ask_* call.
+    agent_span = telemetry.current().child_span(
+        f"agent.{agent.name}", input=task, metadata={"model": agent.model, "agent": agent.name},
     )
     last_round_text = ""
 
@@ -666,18 +668,19 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
             )
 
             try:
-                async for chunk in llm.stream(messages, agent.model, agent_tool_defs):
-                    if "token" in chunk:
-                        gen.first_token()
-                        round_content.append(chunk["token"])
-                        yield {"type": "token", "text": chunk["token"]}
-                    elif "tool_calls" in chunk:
-                        # NOTE: llm.stream yields tool_calls once at end-of-stream,
-                        # so this is NOT a first-token signal — don't mark TTFT here
-                        # or pure-tool rounds report TTFT ≈ full round duration.
-                        round_tool_calls = chunk["tool_calls"]
-                    elif "usage" in chunk:
-                        last_usage = chunk["usage"]
+                with gen.current():   # the LLM HTTP call hangs under this round
+                    async for chunk in llm.stream(messages, agent.model, agent_tool_defs):
+                        if "token" in chunk:
+                            gen.first_token()
+                            round_content.append(chunk["token"])
+                            yield {"type": "token", "text": chunk["token"]}
+                        elif "tool_calls" in chunk:
+                            # NOTE: llm.stream yields tool_calls once at end-of-stream,
+                            # so this is NOT a first-token signal — don't mark TTFT here
+                            # or pure-tool rounds report TTFT ≈ full round duration.
+                            round_tool_calls = chunk["tool_calls"]
+                        elif "usage" in chunk:
+                            last_usage = chunk["usage"]
             except Exception as e:
                 gen.end(level="ERROR", status_message=str(e)[:200])
                 emit("agent_llm_error", agent=agent.name, model=agent.model, error=str(e))
@@ -772,17 +775,18 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
                     tool_span = agent_span.child_span(f"tool.{fn_name}", input=fn_args)
                     delegated_terminal = False
                     try:
-                        if fn_name.startswith("ask_"):
-                            # Agent-as-tool: delegate to a specialist. The
-                            # sub-agent's own span/metrics come from its run.
-                            sub = AGENTS.get(fn_name[4:])
-                            if sub is None:
-                                result = f"[no such specialist: {fn_name[4:]}]"
+                        with tool_span.current():   # tool_service joins via traceparent
+                            if fn_name.startswith("ask_"):
+                                # Agent-as-tool: delegate to a specialist. The
+                                # sub-agent's own span/metrics come from its run.
+                                sub = AGENTS.get(fn_name[4:])
+                                if sub is None:
+                                    result = f"[no such specialist: {fn_name[4:]}]"
+                                else:
+                                    result, delegated_terminal = await run_delegated(
+                                        sub, fn_args.get("query") or task, [])
                             else:
-                                result, delegated_terminal = await run_delegated(
-                                    sub, fn_args.get("query") or task, [])
-                        else:
-                            result = await tools.execute(fn_name, fn_args)
+                                result = await tools.execute(fn_name, fn_args)
                     except Exception as e:
                         tool_span.end(level="ERROR", status_message=str(e)[:200])
                         raise
@@ -813,7 +817,7 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
                     if fn_name in agent.terminal_tools:
                         # Set the span output too — terminal turns otherwise
                         # end the agent span with output=None and the spoken
-                        # answer is invisible in Langfuse (review P2.5).
+                        # answer is invisible in the trace (review P2.5).
                         last_round_text = _terminal_speech(result, error_style,
                                                            tool=fn_name)
                         yield {"type": "token", "text": last_round_text}
@@ -864,12 +868,13 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
             metadata={"round": agent.max_rounds + 1, "phase": "synthesis_forced"},
         )
         try:
-            async for chunk in llm.stream(messages, agent.model, tools=None):
-                if "token" in chunk:
-                    gen.first_token()
-                    final_content.append(chunk["token"])
-                elif "usage" in chunk:
-                    last_usage = chunk["usage"]
+            with gen.current():
+                async for chunk in llm.stream(messages, agent.model, tools=None):
+                    if "token" in chunk:
+                        gen.first_token()
+                        final_content.append(chunk["token"])
+                    elif "usage" in chunk:
+                        last_usage = chunk["usage"]
         except Exception as e:
             gen.end(level="ERROR", status_message=str(e)[:200])
             emit("agent_llm_error", agent=agent.name, model=agent.model, error=str(e))
