@@ -219,3 +219,22 @@ def test_fork_catchall_trigger_hands_to_kronk():
     assert any(t.get("id") == "catchall" for t in fork["triggers"])
     handoff = next(a for a in fork["actions"] if a.get("alias", "").startswith("Loose phrasing"))
     assert "'catchall'" in handoff["if"][0]["value_template"]
+
+
+# ── change 13: a playlist is the household's own by exact name, else Kronk ──
+
+def test_fork_playlist_plays_library_uri_or_hands_to_kronk():
+    actions = _fork()["actions"]
+    lookup = next(a for a in actions if a.get("alias", "").startswith("Playlist"))
+    assert lookup["if"][0]["value_template"] == "{{ trigger_id == 'playlist' }}"
+    call = lookup["then"][0]
+    assert call["action"] == "music_assistant.get_library"
+    assert call["continue_on_error"] is True          # a failed lookup goes to Kronk
+    assert call["data"]["media_type"] == "playlist"
+    uri = lookup["then"][1]["variables"]["playlist_uri"]
+    assert "== want" in uri                           # exact name, not get_library's substring
+    assert "media_id=playlist_uri" in lookup["then"][2]["variables"]["action_data"]
+    handoff = next(a for a in actions if a.get("alias", "").startswith("Loose phrasing"))
+    assert "playlist_miss" in handoff["if"][0]["value_template"]
+    # the default sits before the lookup, so the handoff never reads it undefined
+    assert actions.index(next(a for a in actions if "playlist_miss" in a.get("variables", {}))) < actions.index(lookup)

@@ -225,11 +225,21 @@ the way radio requests score every station (`_library_items`), and
 PE: "Play the playlist Hotel Costas …" → `library://playlist/49` "Hotel
 Costes" at 0.96 among 31 candidates.
 
-Open: the blueprint fast path answers playlist requests first. For the
-same sentence MA's `item_by_name` returned the YouTube "Hôtel Costes - Best
-50 [Official Playlist]", the verify step saw new content and called it a
-success, and Kronk was never asked. Candidate fix: blueprint change 13
-(playlists by exact library name only, everything else to Kronk).
+The blueprint fast path answered playlist requests first: for the same
+sentence MA's `item_by_name` returned the YouTube "Hôtel Costes - Best 50
+[Official Playlist]", the verify step saw new content and called it a
+success, and Kronk was never asked.
+
+Blueprint change 13 (`20250404-kronk13`, 2026-11-09, docker cp +
+`automation.reload`, no HA restart; kronk12 install kept for rollback):
+playlists by exact library name via `music_assistant.get_library`, played by
+URI; anything else to Kronk. Live, basement Voice PE, via
+`conversation/process`:
+
+| Utterance | Result |
+|---|---|
+| Play the playlist Hotel Costes … | 0.3 s, blueprint, `library://playlist/49`, local Hotel Costes track playing |
+| Play the playlist Hotel Costas … | 6.2 s, handed to Kronk, resolved `library://playlist/49` at 0.96 among 31 candidates |
 
 ## What would have caught it sooner
 

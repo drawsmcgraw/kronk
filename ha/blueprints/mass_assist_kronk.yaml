@@ -37,6 +37,13 @@
 #      which played the first search hit after a 61 s MA artist fetch
 #      (INVESTIGATION_2026-11-08_anime_pop_radio_hang.md). The specific
 #      sentences still win: HA prefers the match with the most literal text.
+#  13. (2026-11-09) a playlist plays only the household's own, matched by
+#      exact name in the MA library (music_assistant.get_library, read-only)
+#      and played by URI; any other name goes to Kronk. MA's own name lookup
+#      fell through to a provider search and played its first hit: "Hotel
+#      Costas" played a YouTube "Hôtel Costes - Best 50" playlist, the verify
+#      step called it a success, and Kronk never saw the request
+#      (INVESTIGATION_2026-11-07_ma_pandora_and_ui.md, playlist miss).
 #
 # Resolution: named player → named room (group-preferred) → own device →
 # own device's room (group-preferred) → default.
@@ -296,7 +303,7 @@ triggers:
 actions:
 - alias: Define variables to be used in the automation
   variables:
-    version: 20250404-kronk12
+    version: 20250404-kronk13
     shuffle: '{{ ''shuffle'' in trigger.sentence | lower }}'
     default_player_entity_id: !input default_player_entity_id_input
     trigger_id: '{{ trigger.id }}'
@@ -370,10 +377,41 @@ actions:
       {%- elif room -%}{{ trigger.sentence }} in the {{ room }}
       {%- elif own -%}{{ trigger.sentence }} on the {{ state_attr(own, 'friendly_name') }}
       {%- else -%}{{ trigger.sentence }}{%- endif -%}
-- alias: Loose phrasing or catch-all — Kronk picks
+# KRONK change 13: a playlist is the household's own, by exact name, or it
+# goes to Kronk. get_library's search is a substring match, so the exact
+# name is checked here. A failed lookup also goes to Kronk.
+- variables:
+    playlist_miss: false
+- alias: Playlist — the household's own by exact name, else Kronk
   if:
   - condition: template
-    value_template: "{{ trigger_id in ['loose', 'catchall'] }}"
+    value_template: "{{ trigger_id == 'playlist' }}"
+  then:
+  - action: music_assistant.get_library
+    continue_on_error: true
+    data:
+      config_entry_id: '{{ config_entry_id(mass_player_entity_id[0]) }}'
+      media_type: playlist
+      search: '{{ action_data.media_id }}'
+      limit: 25
+    response_variable: library
+  - variables:
+      playlist_uri: >-
+        {%- set want = action_data.media_id | trim | lower -%}
+        {%- set ns = namespace(uri='') -%}
+        {%- if library is defined and library['items'] is defined -%}
+          {%- for it in library['items'] -%}
+            {%- if not ns.uri and (it.name | default('') | trim | lower) == want -%}{%- set ns.uri = it.uri -%}{%- endif -%}
+          {%- endfor -%}
+        {%- endif -%}
+        {{ ns.uri }}
+  - variables:
+      playlist_miss: '{{ not playlist_uri }}'
+      action_data: '{{ dict(action_data, media_id=playlist_uri) if playlist_uri else action_data }}'
+- alias: Loose phrasing, catch-all or unowned playlist — Kronk picks
+  if:
+  - condition: template
+    value_template: "{{ trigger_id in ['loose', 'catchall'] or playlist_miss }}"
   then:
   - action: conversation.process
     continue_on_error: true

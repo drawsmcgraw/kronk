@@ -99,6 +99,16 @@ fetch, `INVESTIGATION_2026-11-08_anime_pop_radio_hang.md`). The specific
 sentences still win; pause/stop/timers never start with those verbs and stay
 local.
 
+**Playlists are the household's own (change 13, 2026-11-09).** For "play
+the playlist X" the blueprint asks the MA library for X
+(`music_assistant.get_library`, read-only) and plays the item whose name
+matches exactly, by URI (0.3 s). Any other name, or a failed lookup, goes to
+Kronk, which scores every library playlist plus search results ("Hotel
+Costas" → the library "Hotel Costes", 6.2 s). Before this, MA's name lookup
+fell through to a provider search and played its first hit, a YouTube
+"Hôtel Costes - Best 50"; the verify step can't tell a wrong success from a
+right one.
+
 **Kronk-side radio (2026-11-08).** MA's Pandora `offer_new_stations` is on
 (briefly off the same day, back on by operator decision): a station name the
 account doesn't have, by either tier, creates a station from the first
