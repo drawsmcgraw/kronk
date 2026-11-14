@@ -62,7 +62,8 @@ Conventions:
   on fewer command-form errors at no worse p95 latency.
 - **SearXNG stays healthy** — search must not silently degrade (a lapsed pin
   made every search junk for a month). Built 2026-10-05: weekly
-  `kronk-searxng-canary.timer` and `docs/runbooks/searxng-bump.md`. Next: once
+  `kronk-searxng-canary.timer` and `docs/runbooks/searxng-bump.md`. Hand-run
+  once so far (2026-11-09, `INVESTIGATION_2026-11-09_search.md`). Next: once
   the runbook has been run twice by hand, a monthly headless bump (`claude -p`
   limited to compose pull/up for searxng and the canary).
 

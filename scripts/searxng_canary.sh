@@ -19,8 +19,11 @@
 #      lapsed for four months; this fires instead.
 #
 # On failure: one HA mobile-app push (lib/notify.sh), at most once per
-# COOLDOWN_SEC, naming the engines / the newest tag. The bump itself stays
-# a deliberate step: docs/runbooks/searxng-bump.md.
+# COOLDOWN_SEC, naming the engines / the newest tag. The push TITLE names
+# which check failed — a stale pin with search passing reads "pin stale,
+# search OK", not "search canary failed" (2026-11-09: the generic title was
+# read as "the search tool is failing"; nothing was failing but the pin
+# age). The bump itself stays a deliberate step: docs/runbooks/searxng-bump.md.
 #
 # Operations:
 #   run now:  scripts/searxng_canary.sh            (exit 0 pass, 1 fail, 2 error)
@@ -38,6 +41,24 @@ TOOL_CONTAINER="${TOOL_CONTAINER:-kronk-tool_service-1}"
 NOTIFY_LOG_PREFIX="searxng-canary"
 log() { echo "$(date '+%Y-%m-%d %H:%M:%S') searxng-canary: $*"; }
 source "$REPO_DIR/scripts/lib/notify.sh"
+
+# canary_alert_title FAILURE... — the push title, from which check(s) failed.
+# Failure strings are prefixed by their check: "search '<q>': …" or "pin …".
+canary_alert_title() {
+  local f search=0 pin=0 other=0
+  for f in "$@"; do
+    case "$f" in
+      "search "*) search=1 ;;
+      "pin "*|"pin:"*) pin=1 ;;
+      *) other=1 ;;
+    esac
+  done
+  if (( search && pin )); then echo "Kronk search FAILING; SearXNG pin stale"
+  elif (( search )); then echo "Kronk search FAILING (SearXNG canary)"
+  elif (( pin )); then echo "Kronk SearXNG pin stale — search OK"
+  else echo "Kronk search canary: test alert"
+  fi
+}
 
 failures=()
 
@@ -97,12 +118,13 @@ if [ "${#failures[@]}" -eq 0 ] && [ -z "${CANARY_FORCE_ALERT:-}" ]; then
 fi
 [ -n "${CANARY_FORCE_ALERT:-}" ] && failures+=("forced test alert (CANARY_FORCE_ALERT)")
 msg=$(printf '%s\n' "${failures[@]}" "${warnings[@]/#/warning: }")
-log "FAIL:"; printf '  - %s\n' "${failures[@]}"
+title=$(canary_alert_title "${failures[@]}")
+log "FAIL ($title):"; printf '  - %s\n' "${failures[@]}"
 last_alert=$(jq -r '.last_alert // 0' "$STATE_FILE" 2>/dev/null || echo 0)
 if (( now - last_alert < COOLDOWN_SEC )) && [ -z "${CANARY_FORCE_ALERT:-}" ]; then
   log "alert cooldown ($(( COOLDOWN_SEC - (now - last_alert) ))s left) — not pushing"
 else
-  if load_ha_token && ha_notify searxng-canary "Kronk search canary failed" "$msg"; then
+  if load_ha_token && ha_notify searxng-canary "$title" "$msg"; then
     log "alert pushed"; last_alert=$now
   else
     log "alert push FAILED"

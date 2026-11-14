@@ -45,11 +45,11 @@ services:
     restart: unless-stopped
 
   searxng:
-    # Pinned (2026-06-12, bumped 2026-10-05): SearXNG ships engine/bot-detection fixes weekly;
+    # Pinned (2026-06-12, bumped 2026-10-05, 2026-11-09): SearXNG ships engine/bot-detection fixes weekly;
     # a stale build is a CAPTCHA magnet (the 2026.4.1 build ended up with
     # every engine but aol suspended). Bump the pin ~monthly:
     #   check hub.docker.com/r/searxng/searxng/tags, update, `up -d searxng`.
-    image: searxng/searxng:2026.10.4-d48c4b555
+    image: searxng/searxng:2026.11.9-57ff753ad
     volumes:
       - ./searxng:/etc/searxng:rw
     mem_limit: 512m
