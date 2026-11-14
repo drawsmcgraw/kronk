@@ -653,7 +653,7 @@ def test_pipeline_crash_yields_specific_error_and_terminates_stream(client):
     """2026-07-05 review P0.5: an unexpected raise inside the pipeline used to
     kill the stream mid-flight — no error token, no [DONE], and HA spoke a
     generic 'unexpected error'. The last-resort guard must turn it into a
-    specific spoken error (with the rid for Langfuse lookup) and still
+    specific spoken error (with the rid for trace lookup) and still
     terminate the SSE stream properly."""
 
     async def fake_classify(text, history):

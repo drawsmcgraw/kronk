@@ -1,6 +1,6 @@
 """Tests for the ERROR_STYLE toggle (orchestrator/errors.py).
 
-The toggle governs rendering only — capture (logs, Langfuse) always keeps
+The toggle governs rendering only — capture (logs, traces) always keeps
 full detail. Debug renderings are contracts pinned elsewhere in the suite;
 this file pins the style *resolution* and the friendly renderings, and that
 friendliness never reintroduces the invented-answer problem.

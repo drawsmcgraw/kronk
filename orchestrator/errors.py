@@ -1,6 +1,6 @@
 """User-facing error rendering — the ERROR_STYLE toggle.
 
-The toggle governs RENDERING only, never capture: logs and Langfuse always
+The toggle governs RENDERING only, never capture: logs and traces always
 receive full detail (status codes, bodies, rids) regardless of style. What
 changes is the last mile — what gets spoken or displayed.
 

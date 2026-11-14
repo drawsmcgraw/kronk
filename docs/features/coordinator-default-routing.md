@@ -117,7 +117,7 @@ Fix, two parts:
   queries don't escalate (3.1–3.5 s, `escalated: false`); 0 spurious
   escalations across a full bench battery. Watch item: over-escalation is
   behavioral, not structural — the `escalate`/`agent_complete escalated=`
-  events make it measurable in Langfuse.
+  events make it measurable in Grafana (Tempo).
 
 ## Blog hooks
 

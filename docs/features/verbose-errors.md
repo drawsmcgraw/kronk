@@ -5,7 +5,7 @@
 ## What it does
 
 Every user-facing failure carries the most specific cause available at the
-layer that failed, and every failed turn is findable in Langfuse in one step
+layer that failed, and every failed turn is findable in Grafana (Tempo) in one step
 (traces are marked ERROR; unexpected crashes speak their rid). "An
 unexpected error occurred" is now, by tenet 7, a bug.
 
@@ -32,7 +32,7 @@ tool_service → tool result → agent → speech, instead of dying en route.
   (router failure, specialist failure — even when the coordinator recovers —
   coordinator error, unexpected crash) and passes
   `level="ERROR", status_message=…` to `telemetry.end_pipeline`. Filter
-  Langfuse traces by level to see every failure.
+  with TraceQL `{ status = error }` to see every failure.
 - **Last-resort guard**: an unexpected raise mid-pipeline yields
   `Error: the pipeline failed unexpectedly (Type: msg) [rid …]` and still
   terminates the SSE/NDJSON stream properly (P0.5).
@@ -66,7 +66,7 @@ Config: `ERROR_STYLE` (global) and `ERROR_STYLE_VOICE` (overrides for the
 shim transport — HA voice) on the orchestrator in `docker-compose.yml`.
 Read at request time; flipping is an env edit + `up -d orchestrator`.
 
-The toggle governs **rendering only, never capture**: logs and Langfuse
+The toggle governs **rendering only, never capture**: logs and traces
 always get full detail, and traces are marked ERROR in both styles — in
 friendly mode you look in the trace instead of the transcript. Model-facing
 tool results also keep full detail in both styles (the model needs it to
@@ -93,7 +93,7 @@ deliberate-failure assertions expect specific detail.
 - "'An unexpected error occurred' is a bug": auditing every layer an error
   crosses in a voice assistant, and the one helper (`_fail`) that fixed six
   swallowing points.
-- Marking traces ERROR is the difference between "filter Langfuse" and
+- Marking traces ERROR is the difference between "filter traces by status" and
   "correlate timestamps by hand."
 - When the model is part of your error path: FAILED labels, invented-answer
   bans, and never letting a model paraphrase a stack trace.

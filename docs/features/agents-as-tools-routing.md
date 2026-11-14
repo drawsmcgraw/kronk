@@ -36,7 +36,7 @@ direct path the delegation escape hatch.
 
 - Misroutes self-heal via `ask_research`.
 - Spurious delegation on pure-knowledge questions: 1/5.
-- Delegations observable in Langfuse as `agent.*` spans under direct-routed
+- Delegations observable in Grafana (Tempo) as `agent.*` spans under direct-routed
   traces.
 
 ## Known remaining gap

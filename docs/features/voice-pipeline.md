@@ -72,7 +72,7 @@ pipeline from the shell:
   bearer token.
 - **Which tier answered?** A ~2 s response with MA-flavored wording = the
   blueprint; a built-in-intent error ("not aware of any device…") = HA's
-  local agent; a `pipeline.shim` trace appearing in Langfuse = it fell
+  local agent; a `pipeline.shim` trace appearing in Grafana (Tempo) = it fell
   through to Kronk.
 
 ## Blog hooks

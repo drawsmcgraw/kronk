@@ -67,7 +67,7 @@ cases, and the direct path's coordinator now carries `ask_<agent>` tools
 (`agents.COORDINATOR`), so a router miss becomes an ordinary delegation
 instead of a dead end ("I need to search…" incident, trace `bb8bd8b7`).
 Verified: misroutes self-heal via ask_research; spurious-delegation rate on
-pure-knowledge questions 1/5; delegation rate observable in Langfuse
+pure-knowledge questions 1/5; delegation rate observable in Grafana (Tempo)
 (`agent.*` spans under direct-routed traces). Remaining gap: a multi-domain
 query routed to a *specialist* still gets a single-domain answer — peer
 handoffs are the next step if that bites in practice.
