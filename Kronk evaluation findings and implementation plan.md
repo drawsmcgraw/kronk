@@ -898,6 +898,8 @@ Drew's process, stated 2026-11-14. The receiving session is the long-running coo
 - End-of-sprint report for Drew: what reached production, what is built but held and why, and what still needs work.
 - herdr: this document's author does not know herdr's commands. Learn them from its help output on Kronk before relying on them.
 
+**Workspace cleanup, required by Drew 2026-11-15.** Every build, test and fix agent's herdr workspace is shut down and closed when that agent finishes. Order matters: the agent writes its report to disk and reports back first; the coordinator confirms it has the report, then closes the workspace. Do not have an agent close its own workspace before its report is confirmed, or the report can be lost. No workspaces are left open between items, and the end-of-sprint report confirms none remain.
+
 ## Still open
 
 Everything else in this document is decided. Raise each of these with Drew when the move it belongs to comes up.
