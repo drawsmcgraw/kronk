@@ -340,10 +340,14 @@ AGENTS: dict[str, AgentConfig] = {
             "systemctl status, journalctl, ps, df, git log, …); mutating commands are refused. Iterate: "
             "run a command, read the result, run another if you need more. When you have the answer, "
             "state it plainly to the user — do not print raw command syntax or tool output.\n"
-            "Use web_search or fetch_url to look up documentation, man pages, or current best practices when needed.\n"
             "Be direct and concise — no filler, no action text."
         ),
-        tool_names=["remote_exec", "web_search", "fetch_url"],
+        # remote_exec only (sprint M4, decided by Drew 2026-11-09): web text
+        # and command execution never share one loop, so a fetched page
+        # cannot steer the next command. Documentation comes in through the
+        # coordinator (ask_research, then ask_devops with the findings).
+        # tests/test_agent_tool_separation.py fails if they are recombined.
+        tool_names=["remote_exec"],
         model=DEVOPS_AGENT_MODEL,
     ),
 }
@@ -589,6 +593,11 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
         # Top-level pinned specialist runs only (see ESCALATE_TOOL comment) —
         # ask_*-delegated runs and the coordinator never get this tool.
         agent_tool_defs = (agent_tool_defs or []) + [ESCALATE_TOOL]
+    # The tools this run offered the model. A call to anything else is
+    # rejected below without running it: the tool list sent to the LLM is a
+    # request, not a guarantee, and a model can emit any name (sprint M4 —
+    # the devops loop must never run web_search or fetch_url).
+    offered = {d["function"]["name"] for d in agent_tool_defs or []}
 
     system_content = agent.system_prompt + "\n\n" + kronk_facts()
     if error_style == errors.FRIENDLY:
@@ -727,6 +736,22 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
                     agent_span.end(output=f"[escalated] {note}")
                     yield {"type": "escalated", "note": note}
                     return
+
+                if fn_name not in offered:
+                    emit("tool_rejected", agent=agent.name, tool=fn_name)
+                    agent_span.child_span(f"tool.{fn_name}", input=fn_args).end(
+                        level="ERROR",
+                        status_message=f"rejected: not available to the {agent.name} agent")
+                    logger.warning("Agent '%s' called %s, which it does not hold; rejected",
+                                   agent.name, fn_name)
+                    messages.append({
+                        "role":         "tool",
+                        "tool_call_id": call["id"],
+                        "content":      (f"[TOOL: {fn_name} — REJECTED: not available to "
+                                         f"the {agent.name} agent. It was not run. Use only "
+                                         "the tools you were given.]"),
+                    })
+                    continue
 
                 key = _args_key(fn_name, fn_args)
                 if key in seen_calls:
