@@ -56,6 +56,8 @@ The coordinator session ran every "Check first" list against the running box and
 - M3 and M4 are promoted together once both pass.
 - M1 leftovers, done 2026-11-16: the two Garmin and Withings lines removed from `data/kronk_state.md` (copy in `~/backups/kronk/`), `secrets/garmin.json` deleted, four old `assistant-*` health and Garmin images removed, two dead keys removed from `.env.dev`.
 - `data/postgres` is the retired self-hosted Infisical secrets store (PostgreSQL 16, one project `kronk`, one machine identity `health_service`, two secrets named `GARMIN_EMAIL` and `GARMIN_PASSWORD`, all dated 2026-04-04). Read from a throwaway copy; the original is untouched and waits for Drew's word.
+- `data/postgres` and the unused `infisical/infisical` image were deleted on Drew's order, 2026-11-16.
+- Mirror update guard (from the M4 test, observation 2: a fetched-page request ended in `update_magicmirror`). Drew judged a turn-level guard over-engineered for a corner case and decided instead: **`update_magicmirror` runs only for the pinned utterance "update the magic mirror"** (also spelled "magicmirror"), which is the existing `mm_update` routing rule. Any other route to the tool is refused with a sentence telling the user what to say. Built as a small item (M4b) after M4.
 - M3 deny list: it does not need to be strict, since the credentials on the mirror are read-only. `config.js` stays readable and `grep -r` stays allowed. Add `.bash_history`, `.npmrc`, Wi-Fi configuration files and `~/.pm2/dump.pm2` to the list.
 
 ### Per-move results
