@@ -26,6 +26,90 @@ This is a handoff to a Claude Code session running on the `kronk` host. It recor
 - Wanted in the next six months: smart-home control by voice, and spoken general Q&A and search.
 - Also wanted: fuzzy music requests that keep working, a reliable way to hand a request straight to the model, a customizable voice, one place to see and edit prompts, and a display of what Kronk is doing.
 
+## Verified on Kronk, 2026-11-15
+
+The coordinator session ran every "Check first" list against the running box and the working tree at `afb1a27` (two commits past the reviewed `233d7ca`, plus one doc-only commit). Nothing was changed. Where this section and a move's body disagree, this section wins. Unit suite at baseline: `841 passed, 2 skipped`.
+
+### Plan changes that need Drew's review
+
+| # | Move | What was found | Change proposed |
+| --- | --- | --- | --- |
+| C1 | M6 | `code-tunnel serve-web --host=0.0.0.0 --port=3373 --without-connection-token` is running: an unauthenticated VS Code (file access and a terminal as `drew`) for anyone on the LAN. The review did not see it. | Not a sprint item, and it is Drew's own process. Drew decides: stop it, bind it to loopback, or add a token. Recommended before anything else in M6. **Resolved 2026-11-15:** Drew killed the process; nothing listens on :3373 and no `code-tunnel` process remains. |
+| C2 | M17 | Sprint items M3, M5, M10 (dry-run), M11 and M21 change `tool_service`, not only the orchestrator. A dev orchestrator pointed at the production `tool_service` cannot test them. | The dev path is `orchestrator-dev` plus `tool_service-dev` (own port, `MUSIC_DRY_RUN` on by default, own audit log and sessions DB, read-only use of shared data where possible). Both carry their own `OTEL_SERVICE_NAME`, which is also the dev tag for traces. |
+| C3 | M2 | There is no "voice" signal inside the pipeline. `/voice/api/chat`, `/api/chat` and `/v1` all run as `transport="shim"`; the speech profile stops in `_ollama_chat_impl`. `ERROR_STYLE_VOICE=friendly` as written also changes `/api/chat` and `/v1`, which the benches use in debug. | Thread the profile into `_run_pipeline` once (a request-scoped value beside `origin.current`) and key the friendly style on the `/voice` mount. M8, M14 and the M1 voice gate need the same signal, so it is built once, in M2. M2 stops being a two-minute env edit. |
+| C4 | M7 | `routing.classify()` returns a bare route string; `(route, rule)` exists only inside `_classify_inner`, which is an if-chain of 15 outcomes, not a table. | M7 starts with review item O12 (ordered rules table), then adds `direct`. The rule order and all 15 outcomes are pinned by test before the refactor. |
+| C5 | M11 | Tempo holds 8 days and 48 pipeline requests in total; 15 of them were music. A week of shadow mode yields roughly 15 live comparisons. | Keep the shadow week, but treat the M10 corpus replay as the main evidence for cutover. Say so when the data is reviewed. |
+| C6 | M11, M12 | `rest_command` is not loaded in HA (`configuration.yaml` has no include; `ha/rest_command.yaml` exists only in the repo). M12's `debug_recording_dir` also needs a `configuration.yaml` edit. Each needs an HA restart. | One `configuration.yaml` change carrying both, one restart, done at the M17 step since HA is being reconfigured there anyway. Audio capture stays switched off in that file until M12. |
+| C7 | M1 | The chat UI's status dot polls `GET /health` (the health page) every 30 s as a liveness check. The health agent and `query_health` are also the generic fixtures for the agent-loop tests. | Repoint the dot to `/api/status` in the same change; port the loop tests to a surviving agent instead of deleting them. |
+| C8 | M1 | Health data on disk beyond the plan's list: `data/withings_tokens.json`, `data/garmin_jwt_web.txt`, `data/garmin_login_debug.png`. Also `data/postgres` (71 MB, April 2026), owner unknown. | Delete the three health leftovers with the rest (they are credentials). Leave `data/postgres` alone until Drew says what it is. The sibling repo `../retirement-calc` (121 MB) is not touched. |
+| C9 | M20 | The production pipeline's TTS voice is `en_US-hfc_male-medium`, not `en_US-lessac-medium` (lessac is only the container's default). | The Piper baseline in the bench is `hfc_male-medium`. |
+| C10 | M1, measure-first | Tempo data starts 2026-11-08 (Telemetry v2 ship date). The 30- and 90-day queries the plan asks for cannot be run. | Baselines are the 8-day numbers below plus `scripts/pipeline_bench.sh` runs taken before each latency item. |
+
+### Per-move results
+
+**M1.** No `ask_health`, `ask_finance`, `agent.health` or `agent.finance` span in Tempo's 8 days. nginx access log, 2026-08-14 to 2026-11-15 (234k lines): `/finances` 0 hits, `/retire/` 0, `/api/finance/` 0, `/api/health/` 0, `/probe/{health,finance,retire}` 1 each; `/health` 52,802 hits, all browser status-dot polls. Data to delete, with sizes: `data/health.db` 972K, `data/chroma/` 21M, `data/finance/` 236K (two databases, two statement PDFs), `data/retire/` 16K, plus the three files in C8. The stale containers need `--remove-orphans` or an explicit `rm`. nginx will not start if a removed upstream is still named in a location, so compose and nginx change together. Full file:line inventory is held by the coordinator for the build brief.
+
+**M1b.** The unit `kronk-hottub-monitor.service` is live and wrote `data/hottub/status.json` today; it has no copy in `systemd/`. Stop and disable it before deleting `hottub_monitor/` or it crash-loops. Corrections to the move: there is no narration line for `query_hottub`, no `geckolib` in `tool_service` (no lockfile regeneration), and no hot-tub entry in `kronk-context.md` or `services.html`. `data/hottub/` (8K) goes too.
+
+**M2.** `.env` sets neither `ERROR_STYLE` nor `ERROR_STYLE_VOICE`; the container runs debug. See C3. The "voice smoke test" named in `errors.py` and `test_error_style.py` does not exist (dropped 2026-11-04); remove the stale comments.
+
+**M3.** Confirmed: `env` and `printenv` are in `_SAFE`; any `_SAFE` program passes with any arguments; there are no path rules. The audit log has 87 entries, the last on 2026-10-22, and none uses a bypass form from the table. The registry's `"sudo": true` is dead data: `ops_exec` never reads it and the classifier refuses `sudo`. `ops/hosts.json` does not exist; the registry runs from the env fallback. Of the three roadmap quirks, `git -C` and quoted pipes are classifier bugs (the forbidden-substring check is quote-blind as well); `journalctl --user` is not, it is Pi behaviour.
+
+**M4.** Confirmed. `scripts/devops_model_bench.py` carries its own prompt and tools and does not import `agents.py`; the change cannot affect it. `README.md` lists the devops tools and needs the same edit.
+
+**M5.** Confirmed: no address check, `follow_redirects=True`. TLS verification is already on; only the README is wrong.
+
+**M6.** Audit, as found:
+
+| Listener | Bound to | Owner | Real clients |
+| --- | --- | --- | --- |
+| :80 | all | nginx | LAN browsers, HA (`http://localhost/voice`) |
+| :3000 | all | Grafana | LAN browsers |
+| :8002 | all | LiteLLM (host network) | bridge containers via the host gateway |
+| :10300 | all | Whisper (host unit) | HA only, configured as `localhost` |
+| :10200 | all | Piper (compose publish) | HA only, configured as `localhost` |
+| :8123 | all | Home Assistant | LAN, pucks |
+| :8095, :8097, :8927 | all | Music Assistant (host network) | LAN players, HA |
+| :3373 | all | `code-tunnel serve-web`, no token | see C1 |
+| :11434 | all | Ollama (`ollama serve`), unused since the llama.cpp migration | none known |
+| :3389 | all | xrdp | Drew |
+| :18555 | all | go2rtc (started by HA) | HA |
+| :39831 | all | not identified | unknown |
+| :22 | all | sshd | Drew |
+| :11438, :11439, :11440, :8003, :3200, :4416 | loopback | llama.cpp ×3, tool_service, Tempo, PO-token helper | local only |
+
+Both Wyoming entries in HA use `localhost`, so binding Whisper and Piper to loopback is safe. Whether guest Wi-Fi can reach this host is still unknown; Drew to say.
+
+**M7.** Corrections: 15 routing outcomes, in this order: `talkie_explicit`, `direct_override`, `music_url`, `url`, `search_phrase`, `weather`, `playback`, `now_playing`, `rate`, `music_another`, `taste`, `music`, `mm_update`, `mm_ops`, `default`. `playback`, `now_playing` and `rate` are strictly whole-utterance; `music_another` also accepts a trailing "in the <room>". `tools.execute()` never raises: failures come back as a result string, which `_terminal_speech` already renders. `control_music` also has a `stop` action; `rate_music`'s argument is `thumb`. Baseline (8 days, voice): `playback` 3.8 s (n=1), `now_playing` 4.0 s (n=1).
+
+**M8.** No HA upgrade needed. HA `2026.5.4` streams TTS once a reply passes 60 characters (`STREAM_RESPONSE_CHARS`), its Ollama client already sends `stream=True`, and `wyoming-piper` 2.2.2 streams on sentence boundaries by default (`--no-streaming` turns it off). Zero retract events in the orchestrator's 7 days of logs. `tests/test_render.py:115` pins the two-line shape and `tests/test_retract.py:155` pins exact retraction on the buffered path; both change with this move. `system_extra` reaches the coordinator only, which is where step 5 wants it.
+
+**M9.** Each llama.cpp server runs 4 slots, and each slot reports the full context (32,768 on gemma-4-e4b, 131,072 on devstral), so the context is not divided between slots. The lock's own comment ("llama.cpp handles one request at a time") is out of date. Nothing detects a client disconnect; on the voice path the whole pipeline finishes before a response object exists. `sessions._cache` is the one structure documented as relying on the lock. Baseline (8 days): voice default route p50 1.8 s, p95 9.9 s (n=9).
+
+**M10.** No smoke test exists to build on. `/music` has no dry-run field today. `voice_tracer` recorded 37 voice runs and 32 blueprint runs in 8 days.
+
+**M11.** The installed blueprint is byte-identical to the repo file and is at change 13. Two upstream-blueprint automations also exist in HA; both are off. `/music/voice` already exists in `tool_service`. `score()` adds a provider bonus (0.05) only when the sentence names a provider; there is no default provider preference. `_resolve_named` does not retry across types. The literal-play fallback is at `tool_service/main.py:1324` and fires on zero candidates or MA unreachable. The genre list is a hardcoded set of about 55, plus the taste YAML, plus the taste DB. Constrained output passes through LiteLLM: a two-value JSON schema answered correctly in 1.6 s and 2.0 s, after 600 to 800 characters of reasoning. Baseline (8 days, voice, `music` rule through the `home` agent): p50 6.6 s, p95 11.9 s, max 17.4 s (n=13). The basement Voice PE's Music Assistant player has no area in HA; resolution reaches it by the device join only.
+
+**M12.** `TELEMETRY_RECORD_TEXT` is unset, so off. `debug_recording_dir` is supported in `2026.5.4`. See C6.
+
+**M13.** `--initial-prompt` is present in the installed build, with `--beam-size`, `--vad-filter` and three VAD tuning flags. A second Whisper instance for the dev path loads the model a second time on the GPU; measure memory before leaving it up.
+
+**M14.** All three satellites are at `default`; the options are `default`, `relaxed`, `aggressive`.
+
+**M15.** HA has no controllable devices: the only `light` and `switch` entities belong to the pucks. No Matter integration is loaded.
+
+**M16.** HA `.storage/` is 560K; the whole config volume is 51M, mostly the recorder and the TTS cache. Music Assistant's `library.db` is 42M, over the 10 MB limit, so `settings.json` (63K) only. For later: `~/backups/ma` holds 22 GB of hand-taken tarballs, MA's volume holds a 3.2 GB `library.db.backup`, and 129 GB of Langfuse volumes remain.
+
+**M17.** The Satellite1 offers Hey Jarvis (and Okay Nabu; no Hey Mycroft) and has a second assistant slot and a second wake-word slot, the same as the Voice PEs. Today every satellite has slot 2's wake word set to `no_wake_word`. Slot 2's assistant is `kronk` on the kitchen PE and `preferred` on the other two; `preferred` resolves to the `kronk` pipeline. What the button does once slot 2 changes is still to be tested on each device. Firmware: Voice PEs `26.6.0` (`26.9.0` offered), Satellite1 `v0.2.1-beta.0`; no firmware changes. Areas: kitchen PE in Kitchen, Satellite1 in Office, basement PE in Basement Theater. The office speaker for audible tests is `media_player.satellite1_d8d1bc`.
+
+**M18.** The compose file pins `2026.5.4`, but the running container was created from the `:stable` tag and only that tag exists locally. Same version today; the next recreate pulls the pinned tag. `docker-compose.ha.yml` is correct; nothing to change.
+
+**M21.** The surface is wider than the move's table. Sampling, context size and the reasoning budget are flags on the llama systemd units, not orchestrator settings. Model-facing text also lives in tool descriptions (`tools.py`), `_terminal_speech` templates, `errors.py`, and two `tool_service` prompts (news brief, genre tagging). `litellm/config.yaml`'s `ctx_k` display values disagree with the units (128 against 32 and 8). The full inventory is held by the coordinator for the build brief.
+
+**Process.** herdr is available in this session; workspaces, panes and agents can be created, prompted, read and closed from the CLI, and `claude` is a supported agent kind.
+
+**Not in the plan, noted in passing.** `.env` still holds Langfuse keys and also holds UniFi and Pandora credentials, so `CLAUDE.md`'s "no other secrets exist" is out of date. `README.md` says devstral Q8 has no unit; `systemd/llama-devstral.service` exists.
+
 ## Findings summary
 
 The foundation is sound for a music appliance. Three things work against the stated goals: the LLM sits in the path of commands that do not need it, music decisions are split across three systems, and nothing in the design accounts for guests.
@@ -911,7 +995,8 @@ Everything else in this document is decided. Raise each of these with Drew when 
 - [ ] **M13:** whether to add the mishearing table, after Drew reviews the M12 data.
 - [ ] **M15:** what other devices exist (Philips bulbs, smart outlets, a Hue bridge?), and which are never exposed to voice.
 - [ ] **M16:** the NAS folder and credentials for the backup.
-- [ ] **M17:** whether the Satellite1 supports Hey Jarvis and a second wake word; verify on the box.
+- [x] **M17:** whether the Satellite1 supports Hey Jarvis and a second wake word. Verified 2026-11-15: it does. Still to test: what the button does on each device once slot 2 changes.
+- [ ] **Verification pass, 2026-11-15:** Drew's answer on each row of "Plan changes that need Drew's review" (C1 to C10), and what `data/postgres` is.
 - [ ] **M18:** how an upgrade notice reaches Drew when HA itself is the thing that failed.
 - [ ] **M20:** the voice clips to clone, which Drew will supply.
 - [ ] **M21:** the passphrase for editing on `/settings`.
