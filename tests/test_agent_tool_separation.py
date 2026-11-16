@@ -167,8 +167,12 @@ def test_ask_devops_description_covers_the_mirror_and_the_chain():
     """What the coordinator reads when choosing a specialist. Without the
     mirror clause, "check the uptime on the mirror" went to ask_home 5/5 on
     dev (home's description ends "updating the magic mirror"), and home has
-    no way to read uptime. The last sentence is how docs reach devops (M4)."""
+    no way to read uptime. The same sentence names updating and upgrading as
+    home's: without it, "please upgrade the mirror to the latest version"
+    went to ask_devops 9/10 (M4 fix 1). The last sentence is how docs reach
+    devops (M4). Substrings only; the routing evidence is the dev A/B."""
     desc = next(d["function"]["description"] for d in agents.COORDINATOR.tool_defs()
                 if d["function"]["name"] == "ask_devops")
     assert "magic mirror" in desc and "uptime" in desc
+    assert "never updating or upgrading it: that is ask_home" in desc
     assert "no web access" in desc and "ask research first" in desc
