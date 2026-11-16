@@ -1,0 +1,31 @@
+# Home Assistant configuration.yaml for Kronk.
+#
+# Source of truth for the live file /config/configuration.yaml in the
+# kronk_ha-config volume (same pattern as ha/rest_command.yaml).
+# Install (takes an HA restart; check first):
+#   docker cp homeassistant:/config/configuration.yaml ~/backups/ha/configuration.yaml.$(date +%F)
+#   docker cp ha/configuration.yaml homeassistant:/config/configuration.yaml
+#   curl -X POST -H "Authorization: Bearer $HA_TOKEN" http://localhost:8123/api/config/core/check_config
+#   docker compose -f docker-compose.ha.yml restart homeassistant
+
+# Loads default set of integrations. Do not remove.
+default_config:
+
+# Load frontend themes from the themes folder
+frontend:
+  themes: !include_dir_merge_named themes
+
+automation: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml
+
+# Kronk's REST handoffs (sprint M17, plan change C6): ha/rest_command.yaml in
+# the kronk repo, installed as /config/rest_command.yaml. Later edits to that
+# file reload without a restart (rest_command.reload).
+rest_command: !include rest_command.yaml
+
+# Voice audio capture, switched OFF. Sprint item M12 turns it on by
+# uncommenting the two lines below and restarting HA; it may pick another
+# directory. While these stay commented, HA writes no pipeline audio.
+# assist_pipeline:
+#   debug_recording_dir: /config/voice_recordings
