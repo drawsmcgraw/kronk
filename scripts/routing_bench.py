@@ -27,7 +27,7 @@ SPECIALISTS = ("home", "research", "devops", "talkie")
 KNN_K = 3
 
 ROUTE_DESCRIPTIONS = {
-    "home": "home devices and personal data: weather and forecasts, playing or controlling music on the speakers, what song is playing, the shopping list, solar panels and inverters, updating the magic mirror",
+    "home": "home devices and personal data: weather and forecasts, playing or controlling music on the speakers, what song is playing, the shopping list, solar panels and inverters, the hot tub, updating the magic mirror",
     "research": "needs the live web: current news, prices, officeholders, schedules, flight status, recent events, a specific recipe or page, or the user explicitly asks to search or look something up",
     "devops": "investigating or checking the magic mirror machine itself: its uptime, OS, modules, logs, services",
     "direct": "general knowledge, math, definitions, explanations, chit-chat, acknowledgements, meaningless fragments, or a follow-up that only makes sense with earlier conversation; also a question that needs more than one of the other lanes at once",

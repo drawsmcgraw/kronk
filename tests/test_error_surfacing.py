@@ -517,19 +517,19 @@ async def test_non_terminal_delegation_still_synthesizes():
             coord.append(1)
             if len(coord) == 1:
                 yield {"tool_calls": [{"id": "c1", "function": {"name": "ask_home",
-                                                                 "arguments": {"query": "solar output now"}}}]}
+                                                                 "arguments": {"query": "hot tub temp"}}}]}
             else:
-                yield {"token": "The panels are making 4.2 kW."}
+                yield {"token": "The hot tub is at 102 degrees."}
         else:
             home.append(1)
-            yield {"token": "4.2 kW, 24 inverters reporting."}
+            yield {"token": "102°F, heater on."}
         yield {"usage": {"prompt_tokens": 1, "completion_tokens": 1}}
 
     with patch("agents.llm.stream", new=fake_stream):
-        events = [ev async for ev in agents.run_stream(agents.COORDINATOR, "how much is the solar making", [])]
+        events = [ev async for ev in agents.run_stream(agents.COORDINATOR, "how warm is the hot tub", [])]
 
     text = "".join(e["text"] for e in events if e["type"] == "token")
-    assert text == "The panels are making 4.2 kW."
+    assert text == "The hot tub is at 102 degrees."
     assert len(coord) == 2 and len(home) == 1
     assert "terminal" not in [e for e in events if e["type"] == "done"][0]
 

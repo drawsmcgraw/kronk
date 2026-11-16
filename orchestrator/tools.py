@@ -156,6 +156,19 @@ TOOL_DEFINITIONS = [
     {
         "type": "function",
         "function": {
+            "name": "query_hottub",
+            "description": (
+                "Check the current status of the hot tub. Returns whether it is online or offline, "
+                "the current water temperature, the target set temperature, and how long it has been "
+                "offline if applicable. Use when the user asks about the hot tub, spa, or whether the "
+                "hot tub breaker has tripped."
+            ),
+            "parameters": {"type": "object", "properties": {}},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "solar_status",
             "description": (
                 "Quick solar panel system health summary: current total power output "
@@ -451,6 +464,7 @@ TOOL_DEFINITIONS = [
 TOOL_TIMEOUT_DEFAULT = 15
 TOOL_TIMEOUTS = {
     "generate_diagram": 30,  # graphviz render can be slow on big graphs
+    "query_hottub": 5,       # local file read — fail fast
     "play_music": 20,        # tool_service polls up to 8s to confirm playback
     "control_music": 20,     # same verify poll for pause/resume/skip/volume
     "rate_music": 25,        # MA feedback call + the skip verify poll on thumbs down
@@ -663,6 +677,29 @@ async def _tool_solar_energy(client: httpx.AsyncClient, args: dict) -> str:
     return (f"[Solar energy — {period.upper()}] {d.get('kwh')} kWh produced "
             f"from {d.get('from', '?')[:16]} to {d.get('to', '?')[:16]}{note}. "
             f"Give the user the kWh for the period in a sentence.")
+
+
+async def _tool_query_hottub(client: httpx.AsyncClient, args: dict) -> str:
+    resp = await client.get(f"{TOOL_SERVICE_URL}/hottub")
+    if resp.status_code == 200:
+        d = resp.json()
+        if d.get("online") is None:
+            return f"[Hot tub status unknown: {d.get('error', 'no data')}]"
+        if d["online"]:
+            return (
+                f"[Hot tub ONLINE]\n"
+                f"Temperature: {d.get('temperature_f')}°F (set: {d.get('set_temperature_f')}°F)\n"
+                f"Spa: {d.get('spa_name')} ({d.get('spa_ip')})\n"
+                f"Last checked: {d.get('last_check')}"
+            )
+        offline_since = d.get("offline_since", "unknown")
+        return (
+            f"[Hot tub OFFLINE — breaker may have tripped]\n"
+            f"Offline since: {offline_since}\n"
+            f"Last seen: {d.get('last_seen')}\n"
+            f"Last checked: {d.get('last_check')}"
+        )
+    return "[Hot tub status unavailable]"
 
 
 async def _tool_play_music(client: httpx.AsyncClient, args: dict) -> str:
@@ -908,6 +945,7 @@ _HANDLERS = {
     "shopping_list_clear":  _tool_shopping_list_clear,
     "get_kronk_context":    _tool_get_kronk_context,
     "generate_diagram":     _tool_generate_diagram,
+    "query_hottub":         _tool_query_hottub,
     "solar_status":         _tool_solar_status,
     "solar_detail":         _tool_solar_detail,
     "solar_energy":         _tool_solar_energy,

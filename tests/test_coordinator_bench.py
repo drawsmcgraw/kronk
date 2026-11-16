@@ -189,24 +189,23 @@ def test_hard_direct_answer_checkers():
     assert not date(_msg(calls=[("ask_research", {})]), "")[0]
 
 
+def test_hard_composite_answer_checkers():
+    hot = next(c for c in bench.HARD_COMPOSITES if c["id"] == "composite_hottub")["answered"]
+    assert hot("That's 990 kWh, about $160.18 a month.")
+    assert hot("Roughly 160.2 dollars per month.")
+    assert not hot("About $1,601.80 a month.")
+    assert not hot("About $16.02 a month.")
+
+
 def test_hard_composite_uses_its_own_canned_answers_and_needs(monkeypatch):
-    """run_composite(spec=...) feeds the spec's canned answers and checks its
-    needs and answer function. The bench has no hard composite since sprint
-    M1b, so the spec is local to the test."""
-    spec = {
-        "id": "t_composite", "prompt": "If the dryer runs 6 hours a day, what does that cost us a month?",
-        "repeats": 1, "max_turns": 4, "needs": ("ask_home", "ask_research"),
-        "canned": {"ask_home": "The dryer draws 5.5 kW while it runs.",
-                   "ask_research": bench.CANNED["ask_research"]},
-        "answered": lambda c: "160.18" in c,
-    }
+    spec = dict(next(c for c in bench.HARD_COMPOSITES if c["id"] == "composite_hottub"), repeats=1)
     fed = []
 
     def transport(base, messages, tools):
         if messages[-1]["role"] == "tool":
             fed.append(messages[-1]["content"])
         if len(fed) == 0:
-            return ({"choices": [{"message": _msg(calls=[("ask_home", {"query": "dryer kW"})]),
+            return ({"choices": [{"message": _msg(calls=[("ask_home", {"query": "heater kW"})]),
                                   "finish_reason": "tool_calls"}], "timings": {}}, 0.1)
         if len(fed) == 1:
             return ({"choices": [{"message": _msg(calls=[("ask_research", {"query": "rate"})]),
@@ -240,29 +239,13 @@ def test_absent_data_checker():
     assert not nw(_msg("Your net worth is $412,000."), "Your net worth is $412,000.")[0]
 
 
-def test_absent_device_checker():
-    """Sprint M1b probe: the hot tub has no tool, so a plain "can't check"
-    passes; a temperature, a claimed lookup, or a delegation fails."""
-    check = next(p for p in bench.ABSENT_PROBES if p["id"] == "no_device_hottub")["check"]
-    for ok in ("I can't check the hot tub's status.",
-               "I don't have a way to monitor the hot tub.",
-               "I do not have access to the hot tub."):
-        assert check(_msg(ok), ok)[0], ok
-    for bad in ("The hot tub is online at 101°F.",
-                "Yes, the hot tub is online.",
-                "I checked, and the hot tub is offline."):
-        assert not check(_msg(bad), bad)[0], bad
-    assert not check(_msg(calls=[("ask_home", {"query": "hot tub"})]), "")[0]
-
-
 def test_scoreboard_adds_an_absent_data_section_only_when_those_runs_exist():
     run = {"ok": True, "leak": False, "gen_tps": 40, "elapsed_s": 1, "reasoning_chars": 0}
     base = {p["id"]: [run] for p in bench.PROBES} | {bench.COMPOSITE["id"]: [run]}
     assert "## Absent data" not in bench.scoreboard({"label": "t", "stamp": "s", "models": {"m": base}})
     absent = base | {p["id"]: [run] for p in bench.ABSENT_PROBES}
     md = bench.scoreboard({"label": "t", "stamp": "s", "models": {"m": absent}})
-    n = len(bench.ABSENT_PROBES)
-    assert "## Absent data" in md and f"{n}/{n}" in md
+    assert "## Absent data" in md and "2/2" in md
 
 
 def test_scoreboard_adds_a_hard_section_only_when_hard_runs_exist():
