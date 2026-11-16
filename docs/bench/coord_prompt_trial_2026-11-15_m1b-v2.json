@@ -1,0 +1,306 @@
+{
+ "variant": "v2",
+ "new": "Kronk has no connection to the hot tub or spa: for its status or temperature, say plainly that you can't check it.",
+ "results": {
+  "Is the hot tub online?": {
+   "pass": 10,
+   "n": 10,
+   "answers": [
+    [
+     "calls=[] plain=True figure=False claims_lookup=False",
+     "I can't check the hot tub's status or temperature."
+    ],
+    [
+     "calls=[] plain=True figure=False claims_lookup=False",
+     "I can't check the hot tub's status."
+    ],
+    [
+     "calls=[] plain=True figure=False claims_lookup=False",
+     "I cannot check the hot tub's status. I do not have a connection to that device."
+    ],
+    [
+     "calls=[] plain=True figure=False claims_lookup=False",
+     "I cannot check the status of the hot tub."
+    ],
+    [
+     "calls=[] plain=True figure=False claims_lookup=False",
+     "I cannot check the status of the hot tub. I do not have a connection to it."
+    ],
+    [
+     "calls=[] plain=True figure=False claims_lookup=False",
+     "I can't check the hot tub status."
+    ],
+    [
+     "calls=[] plain=True figure=False claims_lookup=False",
+     "I can't check the hot tub's status."
+    ],
+    [
+     "calls=[] plain=True figure=False claims_lookup=False",
+     "I can't check the status of the hot tub."
+    ],
+    [
+     "calls=[] plain=True figure=False claims_lookup=False",
+     "I can't check the status of the hot tub."
+    ],
+    [
+     "calls=[] plain=True figure=False claims_lookup=False",
+     "I can't check the hot tub's status."
+    ]
+   ]
+  },
+  "How hot is the hot tub right now?": {
+   "pass": 10,
+   "n": 10,
+   "answers": [
+    [
+     "calls=[] plain=True figure=False claims_lookup=False",
+     "I can't check the hot tub's temperature."
+    ],
+    [
+     "calls=[] plain=True figure=False claims_lookup=False",
+     "I can't check the hot tub status or temperature."
+    ],
+    [
+     "calls=[] plain=True figure=False claims_lookup=False",
+     "I can't check the hot tub's status or temperature."
+    ],
+    [
+     "calls=[] plain=True figure=False claims_lookup=False",
+     "I can't check the hot tub's status or temperature."
+    ],
+    [
+     "calls=[] plain=True figure=False claims_lookup=False",
+     "I cannot check the hot tub's status or temperature."
+    ],
+    [
+     "calls=[] plain=True figure=False claims_lookup=False",
+     "I can't check the hot tub's temperature."
+    ],
+    [
+     "calls=[] plain=True figure=False claims_lookup=False",
+     "I can't check the hot tub or spa status or temperature."
+    ],
+    [
+     "calls=[] plain=True figure=False claims_lookup=False",
+     "I cannot check the status or temperature of the hot tub."
+    ],
+    [
+     "calls=[] plain=True figure=False claims_lookup=False",
+     "I can't check the hot tub's status or temperature."
+    ],
+    [
+     "calls=[] plain=True figure=False claims_lookup=False",
+     "I can't check the hot tub's status or temperature."
+    ]
+   ]
+  },
+  "Is the spa heater running?": {
+   "pass": 10,
+   "n": 10,
+   "answers": [
+    [
+     "calls=[] plain=True figure=False claims_lookup=False",
+     "I can't check the status of the spa heater."
+    ],
+    [
+     "calls=[] plain=True figure=False claims_lookup=False",
+     "I cannot check the status or temperature of the spa or hot tub."
+    ],
+    [
+     "calls=[] plain=True figure=False claims_lookup=False",
+     "I can't check the spa's status."
+    ],
+    [
+     "calls=[] plain=True figure=False claims_lookup=False",
+     "I can't check the status of the hot tub or spa."
+    ],
+    [
+     "calls=[] plain=True figure=False claims_lookup=False",
+     "I can't check the status of the spa heater."
+    ],
+    [
+     "calls=[] plain=True figure=False claims_lookup=False",
+     "I can't check the hot tub or spa status."
+    ],
+    [
+     "calls=[] plain=True figure=False claims_lookup=False",
+     "I cannot check the status of the hot tub or spa heater."
+    ],
+    [
+     "calls=[] plain=True figure=False claims_lookup=False",
+     "I can't check the spa status or temperature."
+    ],
+    [
+     "calls=[] plain=True figure=False claims_lookup=False",
+     "I can't check the status or temperature of the hot tub or spa."
+    ],
+    [
+     "calls=[] plain=True figure=False claims_lookup=False",
+     "I can't check the spa's status."
+    ]
+   ]
+  },
+  "How's my solar doing today?": {
+   "pass": 5,
+   "n": 5,
+   "want": "ask_home",
+   "answers": [
+    [
+     "calls=['ask_home']",
+     ""
+    ],
+    [
+     "calls=['ask_home']",
+     ""
+    ],
+    [
+     "calls=['ask_home']",
+     ""
+    ],
+    [
+     "calls=['ask_home']",
+     ""
+    ],
+    [
+     "calls=['ask_home']",
+     ""
+    ]
+   ]
+  },
+  "Are the solar panels online?": {
+   "pass": 5,
+   "n": 5,
+   "want": "ask_home",
+   "answers": [
+    [
+     "calls=['ask_home']",
+     ""
+    ],
+    [
+     "calls=['ask_home']",
+     ""
+    ],
+    [
+     "calls=['ask_home']",
+     ""
+    ],
+    [
+     "calls=['ask_home']",
+     ""
+    ],
+    [
+     "calls=['ask_home']",
+     ""
+    ]
+   ]
+  },
+  "What's on the shopping list?": {
+   "pass": 5,
+   "n": 5,
+   "want": "ask_home",
+   "answers": [
+    [
+     "calls=['ask_home']",
+     ""
+    ],
+    [
+     "calls=['ask_home']",
+     ""
+    ],
+    [
+     "calls=['ask_home']",
+     ""
+    ],
+    [
+     "calls=['ask_home']",
+     ""
+    ],
+    [
+     "calls=['ask_home']",
+     ""
+    ]
+   ]
+  },
+  "What's playing in the kitchen?": {
+   "pass": 5,
+   "n": 5,
+   "want": "ask_home",
+   "answers": [
+    [
+     "calls=['ask_home']",
+     ""
+    ],
+    [
+     "calls=['ask_home']",
+     ""
+    ],
+    [
+     "calls=['ask_home']",
+     ""
+    ],
+    [
+     "calls=['ask_home']",
+     ""
+    ],
+    [
+     "calls=['ask_home']",
+     ""
+    ]
+   ]
+  },
+  "What's the weather tomorrow?": {
+   "pass": 5,
+   "n": 5,
+   "want": "ask_home",
+   "answers": [
+    [
+     "calls=['ask_home']",
+     ""
+    ],
+    [
+     "calls=['ask_home']",
+     ""
+    ],
+    [
+     "calls=['ask_home']",
+     ""
+    ],
+    [
+     "calls=['ask_home']",
+     ""
+    ],
+    [
+     "calls=['ask_home']",
+     ""
+    ]
+   ]
+  },
+  "What time zone is Denver in?": {
+   "pass": 5,
+   "n": 5,
+   "want": null,
+   "answers": [
+    [
+     "calls=[]",
+     "Denver is in the Mountain Time zone."
+    ],
+    [
+     "calls=[]",
+     "Denver is in the Mountain Time Zone."
+    ],
+    [
+     "calls=[]",
+     "Denver is in the Mountain Time Zone (MT)."
+    ],
+    [
+     "calls=[]",
+     "Denver is in the Mountain Time zone (MT)."
+    ],
+    [
+     "calls=[]",
+     "Denver is in Mountain Time (MT)."
+    ]
+   ]
+  }
+ }
+}

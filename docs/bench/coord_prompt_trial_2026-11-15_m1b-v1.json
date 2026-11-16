@@ -1,0 +1,306 @@
+{
+ "variant": "v1",
+ "new": "A home device that the home specialist's description does not name is not connected to Kronk: say plainly that you can't check it, and do not ask home.",
+ "results": {
+  "Is the hot tub online?": {
+   "pass": 0,
+   "n": 10,
+   "answers": [
+    [
+     "calls=['ask_home'] plain=False figure=False claims_lookup=False",
+     ""
+    ],
+    [
+     "calls=['ask_home'] plain=False figure=False claims_lookup=False",
+     ""
+    ],
+    [
+     "calls=['ask_home'] plain=False figure=False claims_lookup=False",
+     ""
+    ],
+    [
+     "calls=['ask_home'] plain=False figure=False claims_lookup=False",
+     ""
+    ],
+    [
+     "calls=['ask_home'] plain=False figure=False claims_lookup=False",
+     ""
+    ],
+    [
+     "calls=['ask_home'] plain=False figure=False claims_lookup=False",
+     ""
+    ],
+    [
+     "calls=['ask_home'] plain=False figure=False claims_lookup=False",
+     ""
+    ],
+    [
+     "calls=['ask_home'] plain=False figure=False claims_lookup=False",
+     ""
+    ],
+    [
+     "calls=['ask_home'] plain=False figure=False claims_lookup=False",
+     ""
+    ],
+    [
+     "calls=['ask_home'] plain=False figure=False claims_lookup=False",
+     ""
+    ]
+   ]
+  },
+  "How hot is the hot tub right now?": {
+   "pass": 1,
+   "n": 10,
+   "answers": [
+    [
+     "calls=['ask_home'] plain=False figure=False claims_lookup=False",
+     ""
+    ],
+    [
+     "calls=['ask_home'] plain=False figure=False claims_lookup=False",
+     ""
+    ],
+    [
+     "calls=['ask_home'] plain=False figure=False claims_lookup=False",
+     ""
+    ],
+    [
+     "calls=[] plain=True figure=False claims_lookup=False",
+     "I can't check the hot tub temperature."
+    ],
+    [
+     "calls=['ask_home'] plain=False figure=False claims_lookup=False",
+     ""
+    ],
+    [
+     "calls=['ask_home'] plain=False figure=False claims_lookup=False",
+     ""
+    ],
+    [
+     "calls=['ask_home'] plain=False figure=False claims_lookup=False",
+     ""
+    ],
+    [
+     "calls=['ask_home'] plain=False figure=False claims_lookup=False",
+     ""
+    ],
+    [
+     "calls=['ask_home'] plain=False figure=False claims_lookup=False",
+     ""
+    ],
+    [
+     "calls=['ask_home'] plain=False figure=False claims_lookup=False",
+     ""
+    ]
+   ]
+  },
+  "Is the spa heater running?": {
+   "pass": 0,
+   "n": 10,
+   "answers": [
+    [
+     "calls=['ask_home'] plain=False figure=False claims_lookup=False",
+     ""
+    ],
+    [
+     "calls=['ask_home'] plain=False figure=False claims_lookup=False",
+     ""
+    ],
+    [
+     "calls=['ask_home'] plain=False figure=False claims_lookup=False",
+     ""
+    ],
+    [
+     "calls=['ask_home'] plain=False figure=False claims_lookup=False",
+     ""
+    ],
+    [
+     "calls=['ask_home'] plain=False figure=False claims_lookup=False",
+     ""
+    ],
+    [
+     "calls=['ask_home'] plain=False figure=False claims_lookup=False",
+     ""
+    ],
+    [
+     "calls=['ask_home'] plain=False figure=False claims_lookup=False",
+     ""
+    ],
+    [
+     "calls=['ask_home'] plain=False figure=False claims_lookup=False",
+     ""
+    ],
+    [
+     "calls=['ask_home'] plain=False figure=False claims_lookup=False",
+     ""
+    ],
+    [
+     "calls=['ask_home'] plain=False figure=False claims_lookup=False",
+     ""
+    ]
+   ]
+  },
+  "How's my solar doing today?": {
+   "pass": 5,
+   "n": 5,
+   "want": "ask_home",
+   "answers": [
+    [
+     "calls=['ask_home']",
+     ""
+    ],
+    [
+     "calls=['ask_home']",
+     ""
+    ],
+    [
+     "calls=['ask_home']",
+     ""
+    ],
+    [
+     "calls=['ask_home']",
+     ""
+    ],
+    [
+     "calls=['ask_home']",
+     ""
+    ]
+   ]
+  },
+  "Are the solar panels online?": {
+   "pass": 5,
+   "n": 5,
+   "want": "ask_home",
+   "answers": [
+    [
+     "calls=['ask_home']",
+     ""
+    ],
+    [
+     "calls=['ask_home']",
+     ""
+    ],
+    [
+     "calls=['ask_home']",
+     ""
+    ],
+    [
+     "calls=['ask_home']",
+     ""
+    ],
+    [
+     "calls=['ask_home']",
+     ""
+    ]
+   ]
+  },
+  "What's on the shopping list?": {
+   "pass": 5,
+   "n": 5,
+   "want": "ask_home",
+   "answers": [
+    [
+     "calls=['ask_home']",
+     ""
+    ],
+    [
+     "calls=['ask_home']",
+     ""
+    ],
+    [
+     "calls=['ask_home']",
+     ""
+    ],
+    [
+     "calls=['ask_home']",
+     ""
+    ],
+    [
+     "calls=['ask_home']",
+     ""
+    ]
+   ]
+  },
+  "What's playing in the kitchen?": {
+   "pass": 5,
+   "n": 5,
+   "want": "ask_home",
+   "answers": [
+    [
+     "calls=['ask_home']",
+     ""
+    ],
+    [
+     "calls=['ask_home']",
+     ""
+    ],
+    [
+     "calls=['ask_home']",
+     ""
+    ],
+    [
+     "calls=['ask_home']",
+     ""
+    ],
+    [
+     "calls=['ask_home']",
+     ""
+    ]
+   ]
+  },
+  "What's the weather tomorrow?": {
+   "pass": 5,
+   "n": 5,
+   "want": "ask_home",
+   "answers": [
+    [
+     "calls=['ask_home']",
+     ""
+    ],
+    [
+     "calls=['ask_home']",
+     ""
+    ],
+    [
+     "calls=['ask_home']",
+     ""
+    ],
+    [
+     "calls=['ask_home']",
+     ""
+    ],
+    [
+     "calls=['ask_home']",
+     ""
+    ]
+   ]
+  },
+  "What time zone is Denver in?": {
+   "pass": 5,
+   "n": 5,
+   "want": null,
+   "answers": [
+    [
+     "calls=[]",
+     "Denver is in the Mountain Time Zone (MT)."
+    ],
+    [
+     "calls=[]",
+     "Denver is in the Mountain Time Zone."
+    ],
+    [
+     "calls=[]",
+     "Denver is in the Mountain Time zone."
+    ],
+    [
+     "calls=[]",
+     "Denver is in the Mountain Time Zone (MST/MDT)."
+    ],
+    [
+     "calls=[]",
+     "Denver is in the Mountain Time Zone (MST)."
+    ]
+   ]
+  }
+ }
+}
