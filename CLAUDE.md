@@ -168,11 +168,14 @@ verbatim — never summarized away.
    results land in `docs/bench/`). For perf-sensitive work run it before
    (`<x>-pre`) and after (`<x>-post`) — the files are diffable. **Caveat: it
    clears chat history**; confirm with the operator if a session is live.
-4. **Voice-touching changes** → no automated smoke test exists (dropped
-   from the roadmap 2026-11-04). Run the utterance checks manually via
-   HA's websocket (`assist_pipeline/run` — recipe in
-   `docs/features/voice-pipeline.md` → "Testing utterances"), and
-   ask the operator for a real "Okay Nabu" test on anything user-facing.
+4. **Voice-touching changes** → the voice regression corpus
+   (`tests/voice_corpus.jsonl`). Layer one runs inside `run_tests.sh`.
+   Layer two is a silent live replay on the dev path, run before and
+   after: `python3 scripts/voice_replay.py --label <x>` (dry-run gated;
+   rows HA would handle itself are checked read-only, never executed;
+   `docs/features/voice-regression-corpus.md`). Single utterances: the
+   recipe in `docs/features/voice-pipeline.md` → "Testing utterances".
+   Ask the operator for a real "Okay Nabu" test on anything user-facing.
 
 ## Ground rules
 
@@ -224,3 +227,7 @@ verbatim — never summarized away.
   as the user saw it, timeline, hypotheses tried (including the wrong ones),
   root cause, fix, and what would have caught it sooner. Unprompted, like
   tests — the operator won't remind you. These double as blog material.
+  A voice or music incident also adds its utterance (as transcribed) to
+  `tests/voice_corpus.jsonl` in the same commit as the fix, marked
+  `xfail` with the reason if the fix does not make it pass
+  (`docs/features/voice-regression-corpus.md`).

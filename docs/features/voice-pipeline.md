@@ -54,8 +54,9 @@ Key design decisions (full rationale in the build journal):
 
 ## Testing utterances without speaking (2026-07-03 method)
 
-Until the automated voice smoke test ships (ROADMAP item 8), exercise the
-pipeline from the shell:
+The regression corpus replays every recorded utterance this way, silently:
+`scripts/voice_replay.py` (`docs/features/voice-regression-corpus.md`). For a
+single utterance, from the shell:
 
 - **Full Assist pipeline** (local intents + blueprint + Kronk fallback —
   what the Voice PE actually runs, minus audio): HA's websocket API.
