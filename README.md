@@ -301,6 +301,15 @@ because it runs with `network_mode: host`.
 
 - **Kronk code change:** `docker compose up -d --build <service>` — *not*
   `restart`, which reuses the old image.
+- **Production from a git tag** (sprint M17): `scripts/deploy_tag.sh plan <tag>`
+  previews (changes nothing), `deploy <tag>` builds and starts the kronk
+  project from an exported copy of the tag, and `status` says which tag (or
+  the working tree) each container was created from. Never touches HA or MA.
+  Details and caveats in the script header.
+- **Dev pair** (`orchestrator-dev`, `tool_service-dev`, compose profile
+  `dev`, reached at `/dev/` and by HA's `kronk-dev` pipeline on "Hey
+  Jarvis"): recipes in the comment above those services in
+  `docker-compose.yml`.
 - **HA restart:** `docker compose -f docker-compose.ha.yml restart homeassistant`.
 - **HA upgrade:** `docker compose -f docker-compose.ha.yml pull && docker compose -f docker-compose.ha.yml up -d`.
 - **nginx config change:** `docker compose restart nginx` — the config is
