@@ -12,7 +12,8 @@ It holds no health or financial data (those features were removed
 **Machine:** Framework desktop — AMD Ryzen AI 375 (hostname `kronk`), Radeon
 8060S integrated GPU (GFX1151), 122 GB RAM.
 
-**Last updated:** 2026-11-15 — health, finance and retirement features
+**Last updated:** 2026-11-16 — hot tub monitor kept: its removal (sprint
+M1b) was reversed. 2026-11-15 — health, finance and retirement features
 removed (sprint M1). 2026-11-04 — inventory, routing and stacks brought in
 line with the running system. Older benchmarks and the Ollama-era model history live
 in [`docs/HISTORY.md`](docs/HISTORY.md).
@@ -59,6 +60,7 @@ systemd units, not containers. The live view is the `/services` page.
 | `searxng` | 8080 (internal) | Self-hosted meta-search, used by `tool_service` |
 | `wyoming-piper` | 10200 | Piper TTS for the voice pipeline |
 | `wyoming-whisper` (host unit) | 10300 | faster-whisper STT on the GPU |
+| `kronk-hottub-monitor` (host unit) | — | Polls the spa pack (`geckolib`) every 5 min and writes `data/hottub/status.json`, which `tool_service` serves at `/hottub` |
 | `homeassistant` (`kronk-ha`) | 8123 (host net) | Voice pipeline broker, satellites, automations |
 | `music-assistant-server` (`kronk-ma`) | 8095 (host net) | Players, YouTube Music, Pandora, NAS library |
 | `voice_tracer` | 8010 (internal) | HA voice runs + blueprint runs → OpenTelemetry traces (Telemetry v2) |

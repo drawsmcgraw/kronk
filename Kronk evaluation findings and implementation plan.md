@@ -168,7 +168,7 @@ The status of every move after review with Drew. The order of work is in the spr
 | Move | What | Status |
 | --- | --- | --- |
 | M1 | Remove the health and finance agents, their services, `retire_calc`, and the stored data | Approved; in the sprint |
-| M1b | Remove the hot tub feature | Approved; in the sprint |
+| M1b | Remove the hot tub feature | Reversed by Drew 2026-11-16; the feature stays |
 | M2 | Friendly errors on voice | Approved as a small chore; in the sprint |
 | M3 | Harden the read-only exec classifier | In the sprint |
 | M4 | Take the web tools away from the devops agent | Decided (option A); in the sprint |
@@ -226,6 +226,8 @@ Drew's decision, 2026-11-09: he does not use the health or finance agents, so th
 `devops` and `coding` are still reachable from any puck. After M3 and M4 the risk is low. If Drew wants them off voice, add a request-scoped ContextVar beside `origin.current`, set it in `_ollama_chat_impl` when `profile == "speech"` from an env list, and filter `agent_tool_defs()` with it.
 
 ### M1b. Remove the hot tub feature
+
+**Status: reversed by Drew, 2026-11-16.** The premise below was wrong: the monitor had been connected and reporting since 2026-10-24 (`docs/sprint/M1b-build.md`, "Read this first"). The feature stays; the M1b commits are reverted and the monitor restored (`docs/sprint/M1b-restore-build.md`). The section is kept as written.
 
 Drew's decision, 2026-11-14: the hot tub monitor never worked, so the feature is removed from Kronk. `TECH_DEBT.md` (HOTTUB-01) already records it as non-functional.
 

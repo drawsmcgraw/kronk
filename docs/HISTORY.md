@@ -166,3 +166,19 @@ problems: the `garminconnect` library's breaking auth rewrite, fragile
 (about a 90-minute lockout), and MFA blocking unattended first auth. A weekly
 manual export (CSV or bulk zip, uploaded through the chat UI) captured the same
 data with no maintenance surface.
+
+---
+
+## Hot tub monitor (removed 2026-11-15, restored 2026-11-16)
+
+Sprint item M1b removed the hot tub feature (`query_hottub`, `GET /hottub`,
+`hottub_monitor/`) on the premise, taken from `TECH_DEBT.md` HOTTUB-01
+(2026-06-12), that the monitor never worked. The removal build found in the
+unit's journal that the spa module had answered since 2026-10-24 13:50 and
+the monitor had reported readings ever since; HOTTUB-01 had gone stale. The
+removal shipped to production as code only (tag `sprint-M1b`) while the unit
+file, `data/hottub/` and a tarball of `hottub_monitor/` were held. The
+operator reversed M1b on 2026-11-16: the four M1b commits were reverted, the
+virtualenv restored from the tarball, and the unit re-enabled
+(`docs/sprint/M1b-restore-build.md`). How it happened:
+`docs/incidents/INVESTIGATION_2026-11-16_hottub_removal.md`.

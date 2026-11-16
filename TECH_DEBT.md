@@ -14,16 +14,39 @@ Decisions made deliberately — revisit only if the stated assumption breaks:
 - **`_llm_lock` serialisation** — intentional: one GPU, one llama.cpp slot
   budget. The lock is the scheduler.
 
-### [HOTTUB-01] Hot tub monitor non-functional
-
-**Status:** Parked (operator decision 2026-06-12)
-
-The geckolib monitor can't reach the spa pack (connection retry loop), and
-alerting was never implemented (dead ntfy.sh stubs removed). Revisit when
-the spa-pack connectivity story is sorted; when it is, alert via the shared
-`scripts/lib/notify.sh` HA path like the other watchers.
-
 ## Open Issues
+
+### [HOTTUB-01] Hot tub monitor: no alerting, stale readings served as current
+
+**Status:** Open. Corrected 2026-11-16; the entry as written on 2026-06-12
+("non-functional: can't reach the spa pack") stopped being true on
+2026-10-24 and was never updated (see
+`docs/incidents/INVESTIGATION_2026-11-16_hottub_removal.md`).
+
+The monitor works. `kronk-hottub-monitor.service` (reference copy in
+`systemd/`) runs `hottub_monitor/monitor.py` from its own virtualenv,
+connects to the spa pack, and rewrites `data/hottub/status.json` every
+5 minutes; `query_hottub` reads it through `tool_service`'s `/hottub`.
+The journal shows the spa module unreachable until 2026-10-24 13:50 and
+connected from then on (stopped only for the M1b removal, 2026-11-15 22:31
+to 2026-11-16 07:33).
+
+What remains open:
+
+- **No alerting.** `_on_online` / `_on_offline` only log. When it is built,
+  alert via the shared `scripts/lib/notify.sh` HA path like the other
+  watchers.
+- **Stale data looks current.** `/hottub` returns the file as it is; if the
+  monitor stops, the last reading is served as live. `query_hottub` passes
+  `last_check` to the model but nothing compares it with the clock (seen
+  2026-11-15: with the unit stopped, production's `/hottub` returned the
+  frozen file, `online: true`, 101.0°F, as if current).
+- **The virtualenv is not reproducible from the repo.** `hottub_monitor/.venv`
+  is untracked, holds `geckolib==1.0.15`, and links to the host's
+  `/usr/bin/python3` (3.13.7). No requirements file is tracked; an OS Python
+  upgrade means rebuilding it by hand (`python3 -m venv`, then
+  `pip install geckolib==1.0.15`). A copy is in
+  `~/backups/hottub/hottub_monitor-2026-11-15.tar.gz`.
 
 ### [LITELLM-01] LiteLLM `async_pre_call_hook` not firing in proxy mode — RESOLVED 2026-07-03
 
