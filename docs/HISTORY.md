@@ -166,3 +166,34 @@ problems: the `garminconnect` library's breaking auth rewrite, fragile
 (about a 90-minute lockout), and MFA blocking unattended first auth. A weekly
 manual export (CSV or bulk zip, uploaded through the chat UI) captured the same
 data with no maintenance surface.
+
+---
+
+## Hot tub monitor (removed 2026-11-15)
+
+Removed in sprint item M1b (`docs/sprint/M1b-build.md`) on the operator's
+decision of 2026-11-14 that the feature never worked. The last code is at git
+tag `sprint-M1`.
+
+What existed:
+
+- `hottub_monitor/monitor.py`, run by the host user unit
+  `kronk-hottub-monitor.service` from its own virtualenv
+  (`hottub_monitor/.venv`, `geckolib` 1.0.15). It connected to the Gecko
+  in.touch 2 module on the LAN, read the water and set temperatures every
+  5 minutes, and wrote `data/hottub/status.json`. Alerting was never built.
+  The unit had no reference copy in `systemd/`.
+- `GET /hottub` in `tool_service`, which returned that file.
+- The `query_hottub` tool on the `home` agent.
+- `composite_hottub`, a hard composite in `scripts/coordinator_model_bench.py`
+  (heater kW from `ask_home` times the rate from `ask_research`).
+
+Track record, from the unit's journal (retained from 2026-08-23): until
+2026-10-24 the module did not answer (a connect attempt every 5 minutes,
+about 10,400 failures logged), which is what TECH_DEBT HOTTUB-01 recorded.
+From 2026-10-24 13:50 it connected and reported temperatures, with no
+offline event after that (20 non-fatal geckolib errors: "Cannot get
+reminders" timeouts, and "Network is unreachable" during the 2026-11-04
+boot), until the unit was stopped for removal on 2026-11-15. A tarball of the directory,
+virtualenv included, is at `~/backups/hottub/hottub_monitor-2026-11-15.tar.gz`
+on the host.

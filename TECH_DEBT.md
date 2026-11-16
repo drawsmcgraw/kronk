@@ -14,15 +14,6 @@ Decisions made deliberately — revisit only if the stated assumption breaks:
 - **`_llm_lock` serialisation** — intentional: one GPU, one llama.cpp slot
   budget. The lock is the scheduler.
 
-### [HOTTUB-01] Hot tub monitor non-functional
-
-**Status:** Parked (operator decision 2026-06-12)
-
-The geckolib monitor can't reach the spa pack (connection retry loop), and
-alerting was never implemented (dead ntfy.sh stubs removed). Revisit when
-the spa-pack connectivity story is sorted; when it is, alert via the shared
-`scripts/lib/notify.sh` HA path like the other watchers.
-
 ## Open Issues
 
 ### [LITELLM-01] LiteLLM `async_pre_call_hook` not firing in proxy mode — RESOLVED 2026-07-03
