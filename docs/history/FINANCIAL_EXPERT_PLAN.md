@@ -1,10 +1,15 @@
 # Financial expert — Plan
 
-Status: **phase 1 shipped 2026-07-10** (positions store and zero-question
-ingestion, `finance_service/positions_db.py`, commit `61b7b5b`). Phase 2 (the
-retire_calc math as a library, liquidity-gated withdrawal, chat tools) is on
-ROADMAP "Later", not started. The body below is the plan as written
-2026-07-07.
+Status: **removed 2026-11-15** (sprint item M1, `docs/sprint/M1-build.md`).
+The operator does not use the finance features; the finance agent,
+`query_finances`, `finance_service`, `retire_calc` and the `/finances` and
+`/retire/` pages were deleted, and phase 2 was dropped from the roadmap. The
+last code is at git tag `sprint-M17`. History only: nothing below describes
+the running system.
+
+Earlier status: phase 1 shipped 2026-07-10 (positions store and
+zero-question ingestion, `finance_service/positions_db.py`, commit
+`61b7b5b`). The body below is the plan as written 2026-07-07.
 
 The finance agent grows into an expert on the operator's actual investment
 positions, in service of one goal: **early retirement** (operator retires

@@ -4,15 +4,17 @@ Kronk is a fully-local, privacy-first home AI assistant. It runs entirely on one
 machine — no cloud APIs, no data leaving the house. A chat UI and a voice
 pipeline (Home Assistant satellites) sit in front of a **shortcut router →
 coordinator → specialist-agent** pipeline over local llama.cpp models. It
-handles weather, web search, news briefs, personal health data
-(Garmin/Withings), financial documents, solar, music, the hot tub, the
+handles weather, web search, news briefs, solar, music, the hot tub, the
 MagicMirror, coding/devops help, and questions about its own architecture.
+It holds no health or financial data (those features were removed
+2026-11-15).
 
 **Machine:** Framework desktop — AMD Ryzen AI 375 (hostname `kronk`), Radeon
 8060S integrated GPU (GFX1151), 122 GB RAM.
 
-**Last updated:** 2026-11-04 — inventory, routing and stacks brought in line
-with the running system. Older benchmarks and the Ollama-era model history live
+**Last updated:** 2026-11-15 — health, finance and retirement features
+removed (sprint M1). 2026-11-04 — inventory, routing and stacks brought in
+line with the running system. Older benchmarks and the Ollama-era model history live
 in [`docs/HISTORY.md`](docs/HISTORY.md).
 
 ---
@@ -37,7 +39,7 @@ voice pipeline calls — flows through the same pipeline:
    it explicitly labeled `FAILED`.
 
 Agent → model assignments come from env vars in `docker-compose.yml`
-(`COORDINATOR_MODEL`, `HEALTH_AGENT_MODEL`, …), so model swaps don't need code
+(`COORDINATOR_MODEL`, `RESEARCH_AGENT_MODEL`, …), so model swaps don't need code
 edits. Details: [`docs/features/coordinator-default-routing.md`](docs/features/coordinator-default-routing.md). The `AGENTS` dict in `orchestrator/agents.py` is
 the single source of truth for agents, their tools, and the router prompt.
 
@@ -54,10 +56,7 @@ systemd units, not containers. The live view is the `/services` page.
 | `orchestrator` | 8000 (internal) | UI pages, conversation history, the pipeline, tool dispatch, shims |
 | `litellm` | 8002 (host net) | OpenAI-compatible proxy in front of the llama.cpp servers |
 | `tool_service` | 8003 (localhost) | Weather, search, URL fetch, music (HA/MA), solar, news brief, shopping list, hot tub, MagicMirror ops, diagrams |
-| `health_service` | 8004 (internal) | Garmin/Withings data, SQLite + vector store |
-| `finance_service` | 8005 (internal) | Financial documents and the positions store |
 | `searxng` | 8080 (internal) | Self-hosted meta-search, used by `tool_service` |
-| `retire_calc` | 8080 (internal) | Retirement calculator (built from `../retirement-calc`), at `/retire/` |
 | `wyoming-piper` | 10200 | Piper TTS for the voice pipeline |
 | `wyoming-whisper` (host unit) | 10300 | faster-whisper STT on the GPU |
 | `homeassistant` (`kronk-ha`) | 8123 (host net) | Voice pipeline broker, satellites, automations |
@@ -66,9 +65,9 @@ systemd units, not containers. The live view is the `/services` page.
 | Grafana (`kronk-telemetry`) | 3000 | Telemetry v2 dashboards and trace search |
 | Tempo (`kronk-telemetry`) | 3200 (loopback), 4318 (OTLP, docker network) | Trace store, 90-day retention |
 
-nginx serves the UI pages (`/`, `/health`, `/finances`, `/solar`,
-`/resources`, `/performance`, `/agents`, `/services`, `/shopping_list`),
-proxies `/api/health/`, `/api/finance/` and `/api/solar/` to their services,
+nginx serves the UI pages (`/`, `/solar`, `/resources`, `/performance`,
+`/agents`, `/services`, `/shopping_list`), proxies `/api/solar/` to
+`tool_service`,
 `/probe/*` to per-service health endpoints (including HA, MA, Grafana and Tempo),
 and `/devstral/` straight to a devstral llama.cpp server (bypassing LiteLLM).
 
@@ -115,20 +114,20 @@ run_stream(agent, task, context)
       yield tokens (live stream) → yield {"done"} → RETURN
 ```
 
-**Typical case — a 1-tool agent (finance, health):** two `llm.stream()` calls,
-exits at round 1.
+**Typical case — one tool call, then the answer (e.g. `assistant` reading
+`get_kronk_context`):** two `llm.stream()` calls, exits at round 1.
 
 ```
-round 0:  stream → {"tool_calls":[query_health]}   (no tokens yet)
-          → narration "looking up your sleep data"
-          → execute query_health → append tool result
+round 0:  stream → {"tool_calls":[get_kronk_context]}   (no tokens yet)
+          → narration "reading Kronk's configuration..."
+          → execute get_kronk_context → append tool result
 round 1:  stream → tokens... tokens... tokens...   ← STREAMS live to user
           → no tool_calls → yield {"done"} → RETURN
 ```
 
 Before the unified-streaming refactor, the synthesis round was a blocking
 `llm.complete()` whose content was dumped as one SSE chunk — so agents that
-finished inside the tool-round budget (finance, health, home, assistant) never
+finished inside the tool-round budget (home, assistant) never
 streamed. Now every round streams, so every agent streams. A 5xx from LiteLLM
 raises out of `llm.stream()`, becomes an `error` event, and falls back to the
 coordinator instead of dead-ending.
@@ -149,9 +148,6 @@ servers already running on the host (see the Operations runbook).
 - **llama.cpp model servers** running as host systemd units — LiteLLM proxies to
   them, so the stack is not useful without them. See
   [llama.cpp model servers](#llamacpp-model-servers) in the Operations runbook.
-- **The `retire_calc` service** builds from a sibling repo at
-  `../retirement-calc`. Clone that alongside this repo, or comment the
-  `retire_calc` service out of `docker-compose.yml` if you don't need it.
 
 ### Steps
 
@@ -197,7 +193,7 @@ Running as of 2026-11-04:
 
 | Model | systemd unit | Port | Quant | Ctx | VRAM | Role |
 |---|---|---|---|---|---|---|
-| `gemma-4-e4b` | `llama-gemma4-e4b` | 11438 | QAT UD-Q4_K_XL + MTP drafter | 32k | ~3.5 GB | Coordinator + health/research/home/assistant/finance agents |
+| `gemma-4-e4b` | `llama-gemma4-e4b` | 11438 | QAT UD-Q4_K_XL + MTP drafter | 32k | ~3.5 GB | Coordinator + research/home/assistant agents |
 | `devstral-2512-q4` | `llama-devstral-q4` | 11440 | Q4_K_M | 128k | ~14 GB | coding + devops agents |
 | `gemma-3-4b` | `llama-gemma3-4b` | 11439 | Q4_K_M | 8k | ~3.0 GB | None — the LLM router it served was removed 2026-08-18 |
 
@@ -213,11 +209,9 @@ The `AGENTS` dict in `orchestrator/agents.py` is authoritative.
 | Agent | Model | Tools | Purpose |
 |---|---|---|---|
 | coordinator | `gemma-4-e4b` | `ask_<agent>`, `news_brief` | Default lane: answers directly or delegates |
-| `health` | `gemma-4-e4b` | `query_health` | Garmin/Withings: sleep, HRV, weight, steps, activities, resting HR, body battery |
 | `research` | `gemma-4-e4b` | `web_search`, `fetch_url` | Live/current info — news, prices, recent releases |
 | `home` | `gemma-4-e4b` | `get_weather`, `shopping_list_*`, `query_hottub`, `solar_{status,detail,energy}`, `play_music`, `control_music`, `now_playing`, `rate_music`, `remember_music_preference`, `update_magicmirror` | Weather, shopping list, hot tub, solar, music, mirror updates |
 | `assistant` | `gemma-4-e4b` | `get_kronk_context`, `generate_diagram` | Kronk's own architecture; Graphviz diagrams |
-| `finance` | `gemma-4-e4b` | `query_finances` | The operator's own financial documents |
 | `coding` | `devstral-2512-q4` | `web_search`, `fetch_url` | Writing/debugging code |
 | `devops` | `devstral-2512-q4` | `remote_exec`, `web_search`, `fetch_url` | Server admin; read-only audited exec on managed hosts |
 | `talkie` | `talkie` | — | Vintage-1930 persona; only invoked when asked for by name (model not running) |
@@ -228,15 +222,14 @@ satellite (2026-07-12).
 ### Tools
 
 `get_weather` (NWS), `web_search` (SearXNG), `fetch_url`, `news_brief`,
-`query_health`, `query_finances`, `query_hottub`,
+`query_hottub`,
 `shopping_list_{view,add,remove,clear}`, `solar_{status,detail,energy}`,
 `play_music` (HA → Music Assistant; resolves misspellings and picks for genre
 requests — `docs/features/music-taste.md`), `control_music`, `now_playing`,
 `rate_music` (Pandora thumbs), `remember_music_preference` (household taste
 file), `update_magicmirror`, `remote_exec`, `get_kronk_context`,
 `generate_diagram`. Definitions live in
-`orchestrator/tools.py`. (`query_bloodwork` and `search_health_data` are defined
-but not yet wired to an agent — see Roadmap.)
+`orchestrator/tools.py`.
 
 The music tools and `update_magicmirror` are **terminal tools**
 (`AgentConfig.terminal_tools`): the result is spoken verbatim and ends the
@@ -428,14 +421,6 @@ only; the model can call `fetch_url` for a full page when it needs depth.
 it uses `verify=False` because of an intermediate-CA gap inside the container
 (read-only fetches, acceptable tradeoff, that endpoint only).
 
-**Health data: manual import, not automatic sync.** Garmin Connect auto-sync was
-abandoned after compounding problems — the `garminconnect` library's breaking
-auth rewrite, fragile `curl_cffi` Cloudflare fingerprinting, Cloudflare 429s on
-initial auth (~90 min lockout), and MFA blocking unattended first-auth entirely.
-A weekly manual export (CSV or bulk zip, uploaded through the chat UI) captures
-the same data with zero maintenance surface. If revisited, tokens would live at
-`/data/garmin_tokens.json` and auth would run in a one-shot container.
-
 **Hallucination guardrails — three layers, order matters.** (1) A system-prompt
 standing rule ("never fabricate real-time info"). (2) Directive failure messages
 — when a tool fails, an explicit `MUST NOT answer from training data` system
@@ -459,12 +444,9 @@ lockfile with `uv pip compile requirements.txt --generate-hashes -o
 requirements.lock` from the service directory — never edit it by hand.
 
 **Containers: non-root (2026-07-07).** Every kronk-built service runs as
-UID 1000 (`USER kronk` in each Dockerfile; retire_calc via a compose
-`user:` directive), matching the host operator — so container writes to
-the `./data` bind mounts land drew-owned and no service holds root. The
-health_service Dockerfile creates the user *before* the fastembed model
-warmup so the baked cache is readable at runtime
-(`FASTEMBED_CACHE_PATH=/home/kronk/.cache/fastembed`). Upstream images
+UID 1000 (`USER kronk` in each Dockerfile), matching the host operator — so
+container writes to the `./data` bind mounts land drew-owned and no service
+holds root. Upstream images
 (nginx, searxng, litellm, piper) keep their own user models.
 
 ---

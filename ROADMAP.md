@@ -69,12 +69,6 @@ Conventions:
 
 ## Later — wanted
 
-- **Financial expert, phase 2** — phase 1 (positions store, zero-question
-  ingestion) shipped 2026-07-10. Next: retire_calc's FERS and Monte Carlo
-  math as a tested library in finance_service, liquidity-gated withdrawal,
-  then "am I on track?", what-if and bridge-strategy tools.
-  `docs/plans/FINANCIAL_EXPERT_PLAN.md`. *Why: early retirement is the goal
-  all of this serves.*
 - **Shopping list** — HA owns the list, Kronk speaks and shows it, an
   encrypted read-only copy on Netlify for the family, no inbound traffic.
   Approved 2026-09-17, parked 2026-09-19. Includes one planned HA restart.
@@ -85,9 +79,6 @@ Conventions:
 - **Instant Pot cook times** — "how long for black beans?" answered from a
   curated local table behind a home-agent tool, not model recall or web
   search. Honest "not in my table" fallback.
-- **Health RAG completion** — `query_bloodwork` and `search_health_data`
-  exist in `orchestrator/tools.py` but are wired to no agent; the
-  `health_service` parsing, chunking and vector store are in place.
 - **MagicMirror read-only investigation** — the devops agent answers
   questions about the mirror through the audited read-only `remote_exec`
   path and makes no changes. Open, in order: pick the model (Ministral Q4
@@ -281,10 +272,10 @@ Newest first; feature docs in `docs/features/`.
   on-device; Kronk's timer tool, route, and env were decommissioned.
   Operator leftover: the unused `timer.voice_timer` helper and the
   broken timer-finished announce automation in HA.
-- **Financial expert, phase 1** *(2026-07-10)* — positions store with
-  liquid vs age-gated accounts and zero-question ingestion (CSV, XLSX,
-  statement PDF; LLM extraction behind a reconciliation gate).
-  `docs/plans/FINANCIAL_EXPERT_PLAN.md`.
+- **Financial expert, phase 1** *(2026-07-10; removed 2026-11-15, sprint
+  M1)* — positions store with liquid vs age-gated accounts and
+  zero-question ingestion (CSV, XLSX, statement PDF; LLM extraction behind
+  a reconciliation gate). `docs/history/FINANCIAL_EXPERT_PLAN.md`.
 - **MagicMirror updates by voice** *(2026-07-06; repaired 2026-08-16 and
   2026-10-22)* — backup-then-update over a forced-command SSH key.
   `INVESTIGATION_2026-08-14_mm_banner.md`,
@@ -320,4 +311,5 @@ Newest first; feature docs in `docs/features/`.
   detection.
 - **Migration from Ollama to from-source llama.cpp** behind a LiteLLM
   proxy.
-- **`query_health` tool + `/health` dashboard**; Infisical retired.
+- **`query_health` tool + `/health` dashboard** (removed 2026-11-15,
+  sprint M1); Infisical retired.

@@ -23,12 +23,6 @@ alerting was never implemented (dead ntfy.sh stubs removed). Revisit when
 the spa-pack connectivity story is sorted; when it is, alert via the shared
 `scripts/lib/notify.sh` HA path like the other watchers.
 
-### Garmin / Withings sync stubs
-
-**Status:** Intentional — pending Infisical rebuild. `/api/sync` and the
-Withings flow are no-op stubs in health_service until secrets management
-returns.
-
 ## Open Issues
 
 ### [LITELLM-01] LiteLLM `async_pre_call_hook` not firing in proxy mode — RESOLVED 2026-07-03
@@ -81,4 +75,4 @@ A two-phase design where the coordinator sees the query first and decides whethe
 **To investigate:**  
 - Evaluate whether the coordinator model (gemma-4-e4b) is capable enough to make this tool-use decision reliably
 - Assess latency impact of coordinator-first vs. current router-first approach
-- Consider a hybrid: keep gate routing for clear-cut cases (health, home, finance, coding, devops) and use coordinator-first only for the research/direct ambiguity
+- Consider a hybrid: keep gate routing for clear-cut cases (home, coding, devops) and use coordinator-first only for the research/direct ambiguity

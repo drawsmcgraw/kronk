@@ -133,3 +133,36 @@ All three statistically tied on performance. Winner selected on recency/quality:
 pixtral-12b was 9× faster TTFT and 2× throughput with indistinguishable response
 quality. (The current setup later moved to the smaller gemma-3-4b / gemma-4-e4b
 pair for the router/coordinator roles — see the main README.)
+
+---
+
+## Health, finance and retirement features (removed 2026-11-15)
+
+Removed in sprint item M1 (`docs/sprint/M1-build.md`): the operator did not
+use them, and any voice at any satellite, guests included, could reach the
+health and finance agents. The last code is at git tag `sprint-M17`.
+
+What existed:
+
+- `health` agent (`query_health`) over `health_service` (port 8004): Garmin
+  and Withings data in SQLite (`/data/health.db`) plus a chroma vector store
+  (`/data/chroma/`), a `/health` dashboard, and chat-UI uploads of Garmin CSV
+  and zip exports and LabCorp PDFs forwarded for import. `query_bloodwork` and
+  `search_health_data` were defined but never wired to an agent.
+- `finance` agent (`query_finances`) over `finance_service` (port 8005):
+  uploaded statements and the positions store (`/data/finance/`), and a
+  `/finances` page. Plan: `docs/history/FINANCIAL_EXPERT_PLAN.md`.
+- `retire_calc`, built from the sibling repo `../retirement-calc`, served at
+  `/retire/` (`/data/retire/`). The sibling repo itself was not touched.
+
+On the operator's instruction (2026-11-14) the stored data is deleted, not
+archived, as the last step of promoting M1 to production; the deletion
+manifest is in the build report.
+
+Design decision kept for the record. **Health data: manual import, not
+automatic sync.** Garmin Connect auto-sync was abandoned after compounding
+problems: the `garminconnect` library's breaking auth rewrite, fragile
+`curl_cffi` Cloudflare fingerprinting, Cloudflare 429s on initial auth
+(about a 90-minute lockout), and MFA blocking unattended first auth. A weekly
+manual export (CSV or bulk zip, uploaded through the chat UI) captured the same
+data with no maintenance surface.
