@@ -45,6 +45,8 @@ The coordinator session ran every "Check first" list against the running box and
 | C9 | M20 | The production pipeline's TTS voice is `en_US-hfc_male-medium`, not `en_US-lessac-medium` (lessac is only the container's default). | The Piper baseline in the bench is `hfc_male-medium`. |
 | C10 | M1, measure-first | Tempo data starts 2026-11-08 (Telemetry v2 ship date). The 30- and 90-day queries the plan asks for cannot be run. | Baselines are the 8-day numbers below plus `scripts/pipeline_bench.sh` runs taken before each latency item. |
 
+**Drew's review, 2026-11-15.** C1 resolved (process killed). C2 approved: the dev path is `orchestrator-dev` plus `tool_service-dev`. C3 approved: the voice signal is threaded through once, in M2. C8 approved: the three health leftovers are deleted in M1; `data/postgres` stays untouched until Drew says what it is. C4, C5, C6, C7, C9 and C10 stand as proposed. Guest Wi-Fi can reach this host, so every listener in the M6 table is reachable by guests. Drew also declared the whole sprint an outage window: services on Kronk, HA included, may be restarted or disrupted for sprint work without asking. The one-off rollback copy of HA's `.storage`, YAML files and blueprints is `~/backups/ha/ha-config-pre-refactor-2026-11-15.tar.gz`.
+
 ### Per-move results
 
 **M1.** No `ask_health`, `ask_finance`, `agent.health` or `agent.finance` span in Tempo's 8 days. nginx access log, 2026-08-14 to 2026-11-15 (234k lines): `/finances` 0 hits, `/retire/` 0, `/api/finance/` 0, `/api/health/` 0, `/probe/{health,finance,retire}` 1 each; `/health` 52,802 hits, all browser status-dot polls. Data to delete, with sizes: `data/health.db` 972K, `data/chroma/` 21M, `data/finance/` 236K (two databases, two statement PDFs), `data/retire/` 16K, plus the three files in C8. The stale containers need `--remove-orphans` or an explicit `rm`. nginx will not start if a removed upstream is still named in a location, so compose and nginx change together. Full file:line inventory is held by the coordinator for the build brief.
@@ -996,7 +998,8 @@ Everything else in this document is decided. Raise each of these with Drew when 
 - [ ] **M15:** what other devices exist (Philips bulbs, smart outlets, a Hue bridge?), and which are never exposed to voice.
 - [ ] **M16:** the NAS folder and credentials for the backup.
 - [x] **M17:** whether the Satellite1 supports Hey Jarvis and a second wake word. Verified 2026-11-15: it does. Still to test: what the button does on each device once slot 2 changes.
-- [ ] **Verification pass, 2026-11-15:** Drew's answer on each row of "Plan changes that need Drew's review" (C1 to C10), and what `data/postgres` is.
+- [x] **Verification pass, 2026-11-15:** C1 to C10 reviewed with Drew the same day; see "Drew's review" in the verification section.
+- [ ] **M1:** what `data/postgres` is (71 MB, April 2026). Untouched until Drew says.
 - [ ] **M18:** how an upgrade notice reaches Drew when HA itself is the thing that failed.
 - [ ] **M20:** the voice clips to clone, which Drew will supply.
 - [ ] **M21:** the passphrase for editing on `/settings`.
