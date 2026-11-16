@@ -1,0 +1,14 @@
+[Unit]
+Description=Kronk hot tub monitor (Gecko in-touch via geckolib)
+After=network-online.target
+
+[Service]
+ExecStart=/home/drew/git-repos/drawsmcgraw/kronk/hottub_monitor/.venv/bin/python \
+    /home/drew/git-repos/drawsmcgraw/kronk/hottub_monitor/monitor.py
+Restart=on-failure
+RestartSec=15
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target
