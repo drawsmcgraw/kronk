@@ -15,10 +15,13 @@ Corrections from the verification pass: there is no narration line for
 `query_hottub`, no `geckolib` in `tool_service` (no lockfile change), and no
 hot tub entry in `kronk-context.md` or `services.html`. Check, do not assume.
 
-As with M1: the build removes code and proves it on the dev path. Stopping,
-disabling and deleting the host unit `kronk-hottub-monitor.service`, and
-deleting `data/hottub/`, are the coordinator's steps at promotion. Neither
-agent stops the unit or deletes under `./data`.
+The unit ran from `hottub_monitor/.venv` in this working tree, so the
+coordinator stopped and disabled `kronk-hottub-monitor.service` on 2026-11-15
+before the build (Drew's order, M1b step 1), leaving the unit file in place.
+The build removes code, including the untracked `hottub_monitor/.venv`, and
+proves it on the dev path. Deleting the unit file and `data/hottub/` are the
+coordinator's steps at promotion. Neither agent deletes under `./data` or
+under `~/.config/systemd`.
 
 ## Criteria
 
@@ -61,7 +64,8 @@ agent stops the unit or deletes under `./data`.
     deleted unless inside `hottub_monitor/`), `data/hottub/` with size and
     file count, and post-promotion checks. Order: stop and disable the unit
     before the directory it runs from disappears.
-12. During build and test: the unit was not stopped, nothing under `./data`
+12. During build and test: the unit stayed stopped and disabled and was not
+    re-enabled or deleted, nothing under `./data`
     was deleted, no production container was stopped, removed or
     recreated, and HA and Music Assistant were not restarted.
 
