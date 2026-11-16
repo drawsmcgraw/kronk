@@ -97,11 +97,6 @@ export_release() {
         rm -rf "${dir:?}/$p"
         ln -s "$REPO/$p" "$dir/$p"
     done
-    # retire_calc builds from ../retirement-calc relative to the compose
-    # file; give the release the same sibling (removed with retire_calc in M1).
-    if [ -d "$(dirname "$REPO")/retirement-calc" ] && [ ! -e "$RELEASES/retirement-calc" ]; then
-        ln -s "$(dirname "$REPO")/retirement-calc" "$RELEASES/retirement-calc"
-    fi
 }
 
 compose() { docker compose -p "$PROJECT" --project-directory "$1" -f "$1/docker-compose.yml" "${@:2}"; }
