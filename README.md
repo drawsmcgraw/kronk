@@ -4,19 +4,18 @@ Kronk is a fully-local, privacy-first home AI assistant. It runs entirely on one
 machine — no cloud APIs, no data leaving the house. A chat UI and a voice
 pipeline (Home Assistant satellites) sit in front of a **shortcut router →
 coordinator → specialist-agent** pipeline over local llama.cpp models. It
-handles weather, web search, news briefs, solar, music, the MagicMirror,
-coding/devops help, and questions about its own architecture.
-It holds no health or financial data and does not monitor the hot tub (those
-features were removed 2026-11-15).
+handles weather, web search, news briefs, solar, music, the hot tub, the
+MagicMirror, coding/devops help, and questions about its own architecture.
+It holds no health or financial data (those features were removed
+2026-11-15).
 
 **Machine:** Framework desktop — AMD Ryzen AI 375 (hostname `kronk`), Radeon
 8060S integrated GPU (GFX1151), 122 GB RAM.
 
 **Last updated:** 2026-11-15 — health, finance and retirement features
-removed (sprint M1); hot tub monitor removed (sprint M1b). 2026-11-04 —
-inventory, routing and stacks brought in line with the running system. Older
-benchmarks and the Ollama-era model history live in
-[`docs/HISTORY.md`](docs/HISTORY.md).
+removed (sprint M1). 2026-11-04 — inventory, routing and stacks brought in
+line with the running system. Older benchmarks and the Ollama-era model history live
+in [`docs/HISTORY.md`](docs/HISTORY.md).
 
 ---
 
@@ -56,7 +55,7 @@ systemd units, not containers. The live view is the `/services` page.
 | `nginx` | 80 | Reverse proxy (the only Kronk port on the LAN); SSE pass-through |
 | `orchestrator` | 8000 (internal) | UI pages, conversation history, the pipeline, tool dispatch, shims |
 | `litellm` | 8002 (host net) | OpenAI-compatible proxy in front of the llama.cpp servers |
-| `tool_service` | 8003 (localhost) | Weather, search, URL fetch, music (HA/MA), solar, news brief, shopping list, MagicMirror ops, diagrams |
+| `tool_service` | 8003 (localhost) | Weather, search, URL fetch, music (HA/MA), solar, news brief, shopping list, hot tub, MagicMirror ops, diagrams |
 | `searxng` | 8080 (internal) | Self-hosted meta-search, used by `tool_service` |
 | `wyoming-piper` | 10200 | Piper TTS for the voice pipeline |
 | `wyoming-whisper` (host unit) | 10300 | faster-whisper STT on the GPU |
@@ -211,7 +210,7 @@ The `AGENTS` dict in `orchestrator/agents.py` is authoritative.
 |---|---|---|---|
 | coordinator | `gemma-4-e4b` | `ask_<agent>`, `news_brief` | Default lane: answers directly or delegates |
 | `research` | `gemma-4-e4b` | `web_search`, `fetch_url` | Live/current info — news, prices, recent releases |
-| `home` | `gemma-4-e4b` | `get_weather`, `shopping_list_*`, `solar_{status,detail,energy}`, `play_music`, `control_music`, `now_playing`, `rate_music`, `remember_music_preference`, `update_magicmirror` | Weather, shopping list, solar, music, mirror updates |
+| `home` | `gemma-4-e4b` | `get_weather`, `shopping_list_*`, `query_hottub`, `solar_{status,detail,energy}`, `play_music`, `control_music`, `now_playing`, `rate_music`, `remember_music_preference`, `update_magicmirror` | Weather, shopping list, hot tub, solar, music, mirror updates |
 | `assistant` | `gemma-4-e4b` | `get_kronk_context`, `generate_diagram` | Kronk's own architecture; Graphviz diagrams |
 | `coding` | `devstral-2512-q4` | `web_search`, `fetch_url` | Writing/debugging code |
 | `devops` | `devstral-2512-q4` | `remote_exec` | Server admin; read-only audited exec on managed hosts. No web tools (sprint M4): the coordinator gets documentation from `research` first |
@@ -227,6 +226,7 @@ satellite (2026-07-12).
 ### Tools
 
 `get_weather` (NWS), `web_search` (SearXNG), `fetch_url`, `news_brief`,
+`query_hottub`,
 `shopping_list_{view,add,remove,clear}`, `solar_{status,detail,energy}`,
 `play_music` (HA → Music Assistant; resolves misspellings and picks for genre
 requests — `docs/features/music-taste.md`), `control_music`, `now_playing`,
