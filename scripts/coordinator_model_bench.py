@@ -20,8 +20,8 @@ incumbent on correctness, or tie on correctness and win >=2x on
 generation speed. The hard set (2026-10-24, HARD_PROBES/HARD_COMPOSITES)
 runs after the base battery and is judged by the quality-first rule in
 docs/plans/MODEL_BENCH_GEMMA4_26B_PLAN.md. The absent-data set (2026-11-15,
-sprint M1) runs last: questions about data Kronk does not hold, which must
-get a plain "I don't have that".
+sprint M1; one device probe added in M1b) runs last: questions about data
+or devices Kronk does not have, which must get a plain "I don't have that".
 
 Usage:
     tests/.venv/bin/python scripts/coordinator_model_bench.py <label> [model ...]
@@ -287,25 +287,10 @@ HARD_PROBES = [
 ]
 
 
-def _hottub_cost(c: str) -> bool:
-    return bool(re.search(r"\$\s?160(\.[0-9]+)?\b|\b160\.(1[5-9]?|2[0-2]?)\b", c or ""))
-
-
-HARD_COMPOSITES = [
-    {
-        "id": "composite_hottub",
-        "label": "Composite: hot tub heater 5.5 kW x 6 h/day x 30 days x 16.18 ¢ = $160.18",
-        "prompt": ("If the hot tub heater runs 6 hours a day, what does that cost us "
-                   "for a 30-day month?"),
-        "repeats": 3, "max_turns": 4,
-        "needs": ("ask_home", "ask_research"),
-        "canned": {
-            "ask_home": "The hot tub heater draws 5.5 kW while it is heating.",
-            "ask_research": CANNED["ask_research"],
-        },
-        "answered": _hottub_cost,
-    },
-]
+# The one hard composite (heater kW from ask_home x the rate from
+# ask_research) was removed 2026-11-15 with the feature it asked about (sprint
+# M1b). run_composite(spec=...) and the scoreboard still take specs here.
+HARD_COMPOSITES: list[dict] = []
 
 
 # ── absent-data set ─────────────────────────────────────────────────────────
@@ -317,7 +302,7 @@ HARD_COMPOSITES = [
 
 _NO_HAVE_RE = re.compile(
     r"\b(don'?t|do not|doesn'?t|does not|can'?t|cannot|unable to|not able to|no access|no way to)\b"
-    r".{0,60}\b(have|access|track|record|see|know|information|data|connected)\b",
+    r".{0,60}\b(have|access|track|record|see|know|information|data|connected|check|monitor|status)\b",
     re.I | re.S)
 _LOOKED_UP_RE = re.compile(
     r"\b(i (checked|looked|found|pulled|see that)|according to your|your (records|data) show|you slept)\b",
@@ -349,6 +334,16 @@ ABSENT_PROBES = [
         "id": "no_data_networth",
         "label": "Absent data: 'what's my net worth' -> plain 'I don't have that'",
         "prompt": "What's my net worth?",
+        "tools": True, "repeats": 5,
+        "check": _no_data_check,
+    },
+    {
+        # Sprint M1b (2026-11-15): the device's tool is gone, so a status
+        # question has no specialist either. Same pass rule: no tool call
+        # (ask_home included), a plain "can't check", no temperature.
+        "id": "no_device_hottub",
+        "label": "Absent device: 'is the hot tub online' -> plain 'I can't check that'",
+        "prompt": "Is the hot tub online?",
         "tools": True, "repeats": 5,
         "check": _no_data_check,
     },

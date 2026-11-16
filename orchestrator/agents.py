@@ -228,15 +228,13 @@ AGENTS: dict[str, AgentConfig] = {
     ),
     "home": AgentConfig(
         name="home",
-        description="Weather lookups, shopping list management, hot tub status, solar panel health and energy production (kWh), playing music and controlling playback (stop, pause, resume, skip, volume), and updating the magic mirror",
-        routing_hint="weather, forecast, shopping list, hot tub, spa, solar, solar panels, inverters, play music, songs, albums, speakers, stop, pause, resume, skip, volume, updating the magic mirror",
+        description="Weather lookups, shopping list management, solar panel health and energy production (kWh), playing music and controlling playback (stop, pause, resume, skip, volume), and updating the magic mirror",
+        routing_hint="weather, forecast, shopping list, solar, solar panels, inverters, play music, songs, albums, speakers, stop, pause, resume, skip, volume, updating the magic mirror",
         icon="🏠",
         probe="tools",
         system_prompt=(
             "You are Kronk's home specialist. Handle weather lookups, shopping list management, home device status, and playing music.\n"
             "Use get_weather for weather queries. Use shopping list tools for list management.\n"
-            "Use query_hottub to check if the hot tub is online and report its temperature. "
-            "If the hot tub is offline, clearly state that the breaker may have tripped and report how long it has been offline.\n"
             "For a quick solar check ('how's my solar?'), use solar_status and summarize in one or two sentences. "
             "For anything analytical — which specific inverters are affected, why a count changed, whether one is "
             "getting worse, per-inverter or trend questions — use solar_detail and reason over the per-inverter "
@@ -277,7 +275,7 @@ AGENTS: dict[str, AgentConfig] = {
             "Never restate tool calls, tool arguments, or tool output syntax in your reply — "
             "reply in plain sentences only."
         ),
-        tool_names=["get_weather", "shopping_list_view", "shopping_list_add", "shopping_list_remove", "shopping_list_clear", "query_hottub", "solar_status", "solar_detail", "solar_energy", "play_music", "control_music", "now_playing", "rate_music", "remember_music_preference", "update_magicmirror"],
+        tool_names=["get_weather", "shopping_list_view", "shopping_list_add", "shopping_list_remove", "shopping_list_clear", "solar_status", "solar_detail", "solar_energy", "play_music", "control_music", "now_playing", "rate_music", "remember_music_preference", "update_magicmirror"],
         terminal_tools=frozenset({"play_music", "control_music", "now_playing", "rate_music", "remember_music_preference", "update_magicmirror"}),
     ),
     "assistant": AgentConfig(

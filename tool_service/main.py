@@ -559,9 +559,6 @@ async def generate_diagram(req: DiagramRequest):
     return {"url": f"/static/generated/{filename}"}
 
 
-HOTTUB_STATUS_FILE = Path("/data/hottub/status.json")
-
-
 @app.get("/solar/status")
 async def solar_status():
     """Live snapshot for the solar_status skill. Detection is deterministic;
@@ -638,16 +635,6 @@ async def news_refresh():
         raise HTTPException(status_code=502, detail=str(e))
     return {"status": "ok", "edition": rec["edition"],
             "generated_at_local": rec["generated_at_local"]}
-
-
-@app.get("/hottub")
-async def hottub_status():
-    if not HOTTUB_STATUS_FILE.exists():
-        return {"online": None, "error": "no status file — monitor may not be running"}
-    try:
-        return json.loads(HOTTUB_STATUS_FILE.read_text())
-    except Exception as e:
-        return {"online": None, "error": str(e)}
 
 
 # ── MagicMirror (Raspberry Pi over SSH) ──────────────────────────────────────

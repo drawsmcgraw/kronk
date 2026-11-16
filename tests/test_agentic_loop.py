@@ -133,6 +133,27 @@ def test_health_and_finance_features_are_gone():
     assert "Kronk keeps no health, sleep, fitness or financial records" in prompt
 
 
+def test_hot_tub_feature_is_gone():
+    """Sprint M1b removed the hot tub tool and the home agent's hot tub
+    duties. Negative test: no tool, handler or timeout, and the home agent
+    no longer claims the hot tub in its tools, prompt, description or
+    routing hint."""
+    import re
+    import agents
+    import tools
+    names = {t["function"]["name"] for t in tools.TOOL_DEFINITIONS}
+    assert "query_hottub" not in names
+    assert "query_hottub" not in tools._HANDLERS
+    assert "query_hottub" not in tools.TOOL_TIMEOUTS
+    home = agents.AGENTS["home"]
+    assert "query_hottub" not in home.tool_names
+    pattern = re.compile(r"hot ?tub|hottub|\bspa\b", re.I)
+    for text in (home.system_prompt, home.description, home.routing_hint):
+        assert not pattern.search(text), text
+    for d in tools.TOOL_DEFINITIONS:
+        assert not pattern.search(d["function"]["description"]), d["function"]["name"]
+
+
 # ── Routing tests (routing.py) ────────────────────────────────────────────────
 
 @pytest.mark.asyncio
@@ -776,6 +797,21 @@ async def test_execute_tool_removed_health_tool_is_unknown():
         for name in ("query_health", "query_finances"):
             result = await orch._execute_tool(name, {})
             assert result == f"[Unknown tool: {name}]"
+
+
+@pytest.mark.asyncio
+async def test_execute_tool_removed_hottub_tool_is_unknown():
+    """A model that still emits query_hottub (removed in sprint M1b) gets the
+    unknown-tool result and no HTTP call to tool_service."""
+    import orchestrator.main as orch
+
+    class NoClient:
+        async def __aenter__(self): raise AssertionError("no HTTP call expected")
+        async def __aexit__(self, *a): pass
+
+    with patch("orchestrator.main.httpx.AsyncClient", return_value=NoClient()):
+        result = await orch._execute_tool("query_hottub", {})
+    assert result == "[Unknown tool: query_hottub]"
 
 
 @pytest.mark.asyncio
