@@ -22,6 +22,20 @@ subcommand-first parsing), and a secrets path deny list
 the classifier refuses `sudo` regardless. Rule set as built:
 `docs/sprint/M3-build.md`.
 
+**Update 2026-11-16 (sprint item M4):** the devops agent holds only
+`remote_exec`; `web_search` and `fetch_url` were removed from it (Drew,
+2026-11-09, option A), so fetched web text and command execution never share
+one loop. When a devops task needs documentation, the coordinator calls
+`ask_research` and passes the findings to `ask_devops`. `run_stream` rejects
+any tool call the agent was not offered, and
+`tests/test_agent_tool_separation.py` fails if any agent holds a web tool and
+`remote_exec` together. Keep this separation when phase B adds remediation.
+**Residual risk, carried into phase B:** command output is untrusted text too
+(a log line or a file on the host can carry instructions), and the devops
+loop still reads it before choosing its next command. M4 does not address
+that. The destructive-command confirmation gate below stays a requirement for
+phase B regardless. Build report: `docs/sprint/M4-build.md`.
+
 ## General ops agent — spec (remote_exec + host registry + routing) — 2026-07-11
 
 Motivating trace: today "what's the uptime of the magic mirror?" dead-ends.

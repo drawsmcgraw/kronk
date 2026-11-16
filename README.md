@@ -214,8 +214,12 @@ The `AGENTS` dict in `orchestrator/agents.py` is authoritative.
 | `home` | `gemma-4-e4b` | `get_weather`, `shopping_list_*`, `solar_{status,detail,energy}`, `play_music`, `control_music`, `now_playing`, `rate_music`, `remember_music_preference`, `update_magicmirror` | Weather, shopping list, solar, music, mirror updates |
 | `assistant` | `gemma-4-e4b` | `get_kronk_context`, `generate_diagram` | Kronk's own architecture; Graphviz diagrams |
 | `coding` | `devstral-2512-q4` | `web_search`, `fetch_url` | Writing/debugging code |
-| `devops` | `devstral-2512-q4` | `remote_exec`, `web_search`, `fetch_url` | Server admin; read-only audited exec on managed hosts |
+| `devops` | `devstral-2512-q4` | `remote_exec` | Server admin; read-only audited exec on managed hosts. No web tools (sprint M4): the coordinator gets documentation from `research` first |
 | `talkie` | `talkie` | — | Vintage-1930 persona; only invoked when asked for by name (model not running) |
+
+No agent holds both a web tool and `remote_exec`, so fetched text and command
+execution never share a loop; `run_stream` rejects any tool call the agent
+was not offered (`tests/test_agent_tool_separation.py`).
 
 Timers are no longer Kronk's: HA's local Assist intent runs them on the
 satellite (2026-07-12).

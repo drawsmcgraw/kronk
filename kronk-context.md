@@ -105,7 +105,7 @@ Defined in `orchestrator/agents.py` (`AGENTS` dict — single source of truth). 
 | home | `get_weather`, `shopping_list_*` | gemma-4-e4b |
 | assistant | `get_kronk_context`, `generate_diagram` | gemma-4-e4b |
 | coding | `web_search`, `fetch_url` | devstral-2512 |
-| devops | `web_search`, `fetch_url` | devstral-2512 |
+| devops | `remote_exec` (read-only, audited; no web tools — research looks things up first) | devstral-2512 |
 
 Each specialist runs a tool-calling loop (up to 3 plan rounds) then streams a final synthesis. The old regex-based intent detection has been fully replaced by this agentic loop.
 

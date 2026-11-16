@@ -328,7 +328,11 @@ AGENTS: dict[str, AgentConfig] = {
     ),
     "devops": AgentConfig(
         name="devops",
-        description="SSH commands, server administration, Linux troubleshooting, infrastructure, Docker, systemd, networking, host automation",
+        # The coordinator reads this as ask_devops's description. The mirror
+        # clause is why "check the uptime on the mirror" reaches devops rather
+        # than home (whose description ends "updating the magic mirror"); the
+        # last sentence is how documentation reaches a devops task (M4).
+        description="SSH commands, server administration, Linux troubleshooting, infrastructure, Docker, systemd, networking, host automation, and read-only checks on the magic mirror (uptime, status, logs). It has no web access: when a task also needs documentation, ask research first and put its findings in the query.",
         routing_hint="servers, SSH, Docker, Linux, nginx, web servers, systemd, networking, infrastructure, the magic mirror (status/logs/uptime/diagnostics — anything other than updating it)",
         icon="🛠️",
         probe="llm",
