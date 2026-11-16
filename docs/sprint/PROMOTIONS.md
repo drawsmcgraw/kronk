@@ -1,0 +1,9 @@
+# Sprint promotions log
+
+Kept by the sprint coordinator. One entry per item promoted to production.
+
+| Item | Tag | Promoted | What changed in production | Held or left over |
+| --- | --- | --- | --- | --- |
+| M17 | `sprint-M17` | 2026-11-15 | All ten production containers redeployed from the tag with `scripts/deploy_tag.sh`; nginx gained `/dev/`; `voice_tracer` dev-run fix. HA: `kronk-dev` pipeline, slot 2 on three satellites, `rest_command` loaded (done during the build). | Drew's spoken wake-word and button tests. `stop_grace_period` for HA still to add. |
+| M10 | `sprint-M10` | 2026-11-15 | Nothing: tests, a script and docs only. Production stayed on `sprint-M17`. | Replay comparison needs answer checks before M11 cutover evidence. |
+| M1 | `sprint-M1` | 2026-11-15 | Production redeployed from the tag. Containers `kronk-health_service-1`, `kronk-finance_service-1`, `kronk-retire_calc-1` and their three `kronk-*` images removed. Deleted, on Drew's order: `data/health.db`, `data/chroma/`, `data/finance/`, `data/retire/`, `data/withings_tokens.json`, `data/garmin_jwt_web.txt`, `data/garmin_login_debug.png` (15 files, about 24 MB). Removed the `kronk-releases/retirement-calc` symlink. Verified after: removed routes 404, six agents, both shims answer "no access" to sleep and net-worth questions. | Waiting on Drew: `secrets/garmin.json` (plaintext Garmin login); lines 5-6 of `data/kronk_state.md` (still tell the web UI coordinator that Garmin and Withings data exist: the tester measured 5/10 and 3/10 clean answers with that text, 10/10 without); dead keys in `.env.dev`; old images `assistant-health_service`, `assistant-finance_service`, `assistant-garmin_setup`, `assistant-garmin_setup_playwright` (about 4.8 GB). `data/postgres` and `../retirement-calc` untouched. Open chat tabs show the status dot offline until reloaded. |
