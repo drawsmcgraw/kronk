@@ -351,3 +351,16 @@ async def test_ma_command_timeout_is_ours_not_an_ma_argument():
         await ts.ma_command("music/favorites/set_item", _timeout=5, item="pandora://track/TR:1", favorite=True)
     sent = [json.loads(m) for m in connect.ws.sent]
     assert sent[1]["args"] == {"item": "pandora://track/TR:1", "favorite": True}
+
+
+# ── MUSIC_DRY_RUN (sprint M17): ratings are suppressed and say so ──────────
+
+@pytest.mark.parametrize("thumb", ["up", "down"])
+def test_dry_run_sends_no_rating_skip_or_feedback(env, thumb):
+    with patch.object(ts, "MUSIC_DRY_RUN", True), \
+         patch.object(ts, "_taste_feedback", side_effect=AssertionError("feedback recorded")):
+        resp = _rate({"thumb": thumb})
+    assert resp.status_code == 200, resp.text
+    assert env.ma_calls == [] and env.ha_calls == [] and env.spawned == []
+    assert resp.json()["dry_run"] is True
+    assert resp.json()["detail"] == f"Dry run: would rate Halcyon by Orbital thumbs {thumb}. Nothing was sent."

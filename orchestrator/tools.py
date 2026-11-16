@@ -962,6 +962,10 @@ async def _tool_play_music(client: httpx.AsyncClient, args: dict) -> str:
     resp = await client.post(f"{TOOL_SERVICE_URL}/music", json=payload)
     if resp.status_code == 200:
         info = resp.json()
+        if info.get("dry_run"):
+            # tool_service's MUSIC_DRY_RUN (the dev path): nothing played.
+            # Its sentence says so; never render this as "Music playing".
+            return f"[Music dry run: {info.get('detail') or 'Dry run: nothing was sent to the speaker.'}]"
         what = " by ".join(p for p in (info.get("title"), info.get("artist")) if p) or query
         res = info.get("resolved") or {}
         if res.get("media_type") in ("album", "playlist", "artist"):

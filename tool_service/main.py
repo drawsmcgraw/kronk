@@ -122,11 +122,16 @@ async def lifespan(app: FastAPI):
             _weather_cache = json.loads(WEATHER_CACHE_FILE.read_text())
     except (OSError, json.JSONDecodeError) as e:
         logger.warning("weather cache: could not load persisted copy: %s", e)
+    if MUSIC_DRY_RUN:
+        logger.warning("MUSIC_DRY_RUN is on: music requests resolve but nothing is sent to a player or MA")
     task = asyncio.create_task(_weather_refresh_loop())
     # Solar monitoring is optional — only wire it up when a serial is
     # configured (keeps it out of the way in tests / unconfigured installs).
+    # SOLAR_POLL_ENABLED=0 keeps the live endpoints (they read the PVS and the
+    # DB) but runs no poller: the dev tool_service reads production's
+    # solar.db read-only and must not write it or raise a second HA alert.
     solar_task = None
-    if solar.SOLAR_SERIAL:
+    if solar.SOLAR_SERIAL and os.getenv("SOLAR_POLL_ENABLED", "1") == "1":
         solar.init_db()
         solar_task = asyncio.create_task(_solar_poll_loop())
     # News editions (docs/plans/NEWS_BRIEF_PLAN.md) — gated the same way
@@ -1023,6 +1028,26 @@ HA_TOKEN = os.getenv("HA_TOKEN", "")
 MUSIC_DEFAULT_PLAYER = os.getenv("MUSIC_DEFAULT_PLAYER", "")
 
 MUSIC_VERIFY_TIMEOUT_S = 8   # how long to wait for a player to reach `playing`
+
+# Music dry run (sprint M17, M10 step 5). On: every music request is
+# resolved exactly as usual (players, search, scoring, genre picks, station
+# lookup are all reads) and answered with what WOULD have happened; nothing
+# that changes a player or MA's library is sent — no play_media, shuffle_set,
+# transport command, favorite, or skip — and no taste feedback or pick is
+# recorded. Results carry "dry_run": true and a "detail" sentence that says
+# so, and a `music.dry_run` span marks the trace. Default off; the dev
+# tool_service turns it on (.env.dev). Read at import, like the other knobs.
+MUSIC_DRY_RUN = os.getenv("MUSIC_DRY_RUN", "").strip().lower() in ("1", "true", "yes", "on")
+
+
+def _dry_run_result(action: str, label: str, entities: list[str], detail: str, **extra) -> dict:
+    """The answer for a request MUSIC_DRY_RUN suppressed, with its trace mark."""
+    with telemetry.span("music.dry_run", **{"music.dry_run": True, "music.action": action,
+                                            "music.targets": entities,
+                                            "music.media_id": (extra.get("would_play") or {}).get("media_id")}):
+        logger.info("music dry run: %s on %s: %s", action, entities, detail)
+    return {"status": "dry_run", "dry_run": True, "action": action, "player": label,
+            "targets": entities, "detail": detail, **extra}
 # HA's music_assistant integration found nothing by that name; raised before
 # it calls MA, so no playback can follow (media_player.py, async_play_media).
 _RESOLVE_MISS_RE = re.compile(r"Could not resolve .* to playable media item")
@@ -1328,6 +1353,8 @@ async def play_music(req: MusicRequest):
         if nq.provider or nq.uri:
             logger.info("music query normalized %r -> %r (provider=%s)", req.query,
                         service_data["media_id"], nq.provider)
+        if MUSIC_DRY_RUN:
+            return _dry_run_play(label, entities, service_data, bool(req.shuffle), resolved, station)
         # No blind retry without media_type: MA's untyped search always
         # returns *something* — "zzqx florbent nonexistent" played Akon
         # (2026-09-30, live test). The resolver above is the checked retry.
@@ -1371,6 +1398,28 @@ async def play_music(req: MusicRequest):
     raise HTTPException(status_code=502, detail=_no_start_sentence(label))
 
 
+def _dry_run_play(label: str, entities: list[str], service_data: dict, shuffle: bool,
+                  resolved: "music_resolve.Candidate | None", station: dict | None) -> dict:
+    """A named play under MUSIC_DRY_RUN: everything up to play_media, then stop."""
+    extra: dict = {"would_play": service_data, "shuffle": shuffle}
+    if resolved:
+        what = " by ".join(x for x in (resolved.name, resolved.artist) if x)
+        what = f"the {resolved.media_type} {what}" if resolved.media_type else what
+        extra["resolved"] = {"name": resolved.name, "artist": resolved.artist,
+                             "media_type": resolved.media_type}
+    elif station:
+        what = f"the Pandora station {station['name']}" + (", made new" if station["created"] else "")
+    else:
+        mt = service_data.get("media_type")
+        what = f"the {mt} {service_data['media_id']}" if mt else f"Music Assistant's top hit for {service_data['media_id']}"
+    if station:
+        extra["station"] = {"name": station["name"], "created": station["created"]}
+    shuffled = ", shuffled" if shuffle else ""
+    return _dry_run_result("play", label, entities,
+                           f"Dry run: would play {what} on {label}{shuffled}. Nothing was sent to the speaker.",
+                           **extra)
+
+
 def _not_found_sentence(nq: "music_resolve.Query", media_type: str | None,
                         best_guess: "music_resolve.Candidate | None") -> str:
     mt = (media_type or "").lower()
@@ -1396,6 +1445,8 @@ _VOICE_ANOTHER = {"else", "different", "something else", "something different", 
 
 
 def voice_sentence(info: dict) -> str:
+    if info.get("dry_run"):
+        return info["detail"]
     player = info.get("player") or "the speaker"
     if pick := info.get("pick"):
         for_what = f", for {pick['phrase']}," if pick.get("phrase") else ""
@@ -1615,6 +1666,16 @@ def _another_plan(entities: list[str]) -> dict:
 
 async def _play_genre(client: httpx.AsyncClient, headers: dict, entities: list[str], label: str,
                       req: MusicRequest, plan: dict) -> dict:
+    if MUSIC_DRY_RUN:
+        # The pick that would play first; nothing recorded, so "not that"
+        # has no list to advance under a dry run.
+        pick = plan["picks"][plan["start"]]
+        for_what = f", for {plan['phrase']}," if plan.get("phrase") else ""
+        return _dry_run_result(
+            "play", label, entities,
+            f"Dry run: would play {pick.label}{for_what} on {label}. Nothing was sent to the speaker.",
+            would_play=pick.play_data(),
+            pick={"label": pick.label, "phrase": plan["phrase"], "kind": pick.kind})
     failures = []
     for i in range(plan["start"], min(len(plan["picks"]), plan["start"] + GENRE_TRIES)):
         pick = plan["picks"][i]
@@ -2057,6 +2118,9 @@ async def control_music(req: MusicControlRequest):
         # media_play resumes that queue. The verify poll below is the guard —
         # if nothing resumes, the answer is an honest failure, not a claim.
         entities = [t["entity_id"] for t in (active or live)]
+        if MUSIC_DRY_RUN:
+            return _dry_run_result(action, label, entities,
+                                   f"Dry run: would {action.replace('_', ' ')} on {label}. Nothing was sent.")
 
         async def _state(entity: str) -> dict:
             return (await client.get(f"{HA_URL}/api/states/{entity}", headers=headers)).json()
@@ -2214,6 +2278,10 @@ async def rate_music(req: MusicRateRequest):
         song = attrs.get("media_title") or "that track"
         artist = attrs.get("media_artist")
         what = f"{song} by {artist}" if artist else song
+        if MUSIC_DRY_RUN:
+            return _dry_run_result(f"thumb_{thumb}", label, [entity],
+                                   f"Dry run: would rate {what} thumbs {thumb}. Nothing was sent.",
+                                   song=song, artist=artist)
         _taste_feedback(artist, FEEDBACK_THUMB if thumb == "up" else -FEEDBACK_THUMB, f"thumb_{thumb}")
         if thumb == "up":
             _spawn(like_in_background(content, what))
@@ -2306,4 +2374,4 @@ async def now_playing(req: NowPlayingRequest):
 
 @app.get("/health")
 async def health():
-    return {"status": "ok"}
+    return {"status": "ok", "music_dry_run": MUSIC_DRY_RUN}

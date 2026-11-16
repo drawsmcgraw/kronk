@@ -111,6 +111,8 @@ def _terminal_speech(result: str, style: str = errors.DEBUG,
     line = result.split("\n", 1)[0].strip().strip("[]")
     if line.startswith("Music playing: "):
         return f"Now playing {line[len('Music playing: '):]}."
+    if line.startswith("Music dry run: "):
+        return line[len("Music dry run: "):]      # tool_service's sentence, as-is
     if line.startswith("Station playing: "):
         return line[len("Station playing: "):]    # tools.py's sentence, as-is
     if line.startswith("Could not play music: "):

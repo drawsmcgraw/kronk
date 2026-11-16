@@ -292,3 +292,25 @@ async def test_stop_through_coordinator_is_relayed_verbatim():
     text = "".join(e["text"] for e in events if e["type"] == "token")
     assert text == "Paused on the Basement Theater speaker."     # ends with a period → mic closes
     assert len(coord) == 1 and len(home) == 1                    # no synthesis round anywhere
+
+
+# ── MUSIC_DRY_RUN (sprint M17): transport commands are suppressed and say so ─
+
+@pytest.mark.parametrize("action", ["pause", "stop", "resume", "next", "volume_up", "volume_down"])
+def test_dry_run_sends_no_transport_command(env, action):
+    with patch.object(ts, "MUSIC_DRY_RUN", True):
+        r = _ctl(action=action, origin_device=OFFICE_DEV, origin_area="Office")
+    assert r.status_code == 200, r.text
+    assert env.calls == []
+    body = r.json()
+    assert body["dry_run"] is True and body["action"] == action
+    assert body["targets"] == [OFFICE["entity_id"]]
+    assert body["detail"] == f"Dry run: would {action.replace('_', ' ')} on the Office speaker. Nothing was sent."
+    assert FakeHA.states[OFFICE["entity_id"]] == "playing"     # untouched
+
+
+def test_dry_run_keeps_the_read_based_answers(env):
+    """Preconditions are reads, so they still answer for real under dry run."""
+    with patch.object(ts, "MUSIC_DRY_RUN", True):
+        r = _ctl(action="next", player="kitchen")               # kitchen is idle
+    assert r.status_code == 409 and r.json()["detail"] == "Nothing is playing on the Kitchen speaker."
