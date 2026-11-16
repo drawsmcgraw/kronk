@@ -1,6 +1,6 @@
 # Incident 2026-11-15: HA restart is a SIGKILL; select changes made just before it were lost
 
-**Status:** worked around during sprint item M17; root-cause fix proposed, not applied.
+**Status:** worked around and verified during sprint item M17; root-cause fix proposed, not applied.
 **Found by:** the M17 build agent (`docs/sprint/M17-build.md`).
 
 ## Symptom
@@ -24,7 +24,12 @@ changed: satellites available, Music Assistant loaded, `rest_command` loaded.
 
 Evidence: `docker events --since 2026-11-16T00:28:00Z --until 2026-11-16T00:28:30Z --filter container=homeassistant`
 shows `kill 15` at 1794788891 and `kill 9` at 1794788901. The previous run's log
-(`/config/home-assistant.log.1`) ends at 19:17 local with no shutdown lines.
+(`/config/home-assistant.log.1`) ends at 19:17 local with no shutdown lines. The
+new run's log opens with the recorder's own verdict:
+`The system could not validate that the sqlite3 database at //config/home-assistant_v2.db was shutdown cleanly`
+and `Ended unfinished session (id=18 from 2026-11-04 13:45:25.024419)` — the
+recorder session opened at the 2026-11-04 start, never closed because this
+shutdown was killed.
 
 ## Root cause
 
@@ -50,9 +55,9 @@ applies to any other restore-state entity and to the recorder's last writes.
 
 ## Fix
 
-Workaround applied: the selects were set again and left for HA's periodic
-restore-state dump; the build report records the check that they are in
-`core.restore_state`.
+Workaround applied: the selects were set again at 00:30 and left for HA's
+periodic restore-state dump. `core.restore_state` was written at 00:43:24 with
+all six at their new values (`kronk-dev` / `Hey Jarvis`).
 
 Proposed root-cause fix (not applied; it needs the HA container recreated,
 which is its own restart and outside M17): add `stop_grace_period: 2m` to the
