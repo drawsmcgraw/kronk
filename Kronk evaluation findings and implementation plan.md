@@ -1006,7 +1006,7 @@ Drew's process, stated 2026-11-14. The receiving session is the long-running coo
 Everything else in this document is decided. Raise each of these with Drew when the move it belongs to comes up.
 
 - [ ] **M3:** how wide the path deny list for file-reading commands should be.
-- [ ] **M5:** whether `http_check` gets a host allow-list.
+- [x] **M5:** whether `http_check` gets a host allow-list. Drew, 2026-11-16: no ("drop the list"). The coordinator had built a restrictive allow-list as the default while the question was open; it is removed in M5 change 1. Accepted with it: a sentence or a fetched page can lead the coordinator to hand devops a URL, and `http_check` will GET any address the host can reach (one GET, no body returned, every call in the ops audit log).
 - [ ] **M6:** after the audit, which listeners to change (LiteLLM, the Wyoming ports), and whether guest Wi-Fi is isolated from Kronk's network.
 - [ ] **M11:** when to cut over from shadow mode, after Drew reviews about a week of data; and whether the NAS-first lag is acceptable.
 - [ ] **M13:** whether to add the mishearing table, after Drew reviews the M12 data.
