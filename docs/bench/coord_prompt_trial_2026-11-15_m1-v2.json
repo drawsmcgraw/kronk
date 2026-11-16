@@ -1,0 +1,373 @@
+{
+  "new": "never ask an unrelated specialist. Kronk keeps no health, sleep, fitness or financial records, and no specialist has them: for those, say plainly that you don't have that information.",
+  "results": {
+    "no_data_sleep": {
+      "pass": 9,
+      "n": 10,
+      "answers": [
+        [
+          "calls=[] plain=True figure=False claims_lookup=False",
+          "I don't have access to your sleep records."
+        ],
+        [
+          "calls=[] plain=True figure=False claims_lookup=False",
+          "I do not have access to your health, sleep, or fitness records."
+        ],
+        [
+          "calls=[] plain=True figure=False claims_lookup=False",
+          "I don't have access to your health, sleep, or fitness records."
+        ],
+        [
+          "calls=[] plain=True figure=False claims_lookup=False",
+          "I do not have access to your health or sleep records."
+        ],
+        [
+          "calls=[] plain=True figure=False claims_lookup=False",
+          "I do not have access to your health or sleep records."
+        ],
+        [
+          "calls=[] plain=True figure=False claims_lookup=False",
+          "I do not have access to your sleep data or health records."
+        ],
+        [
+          "calls=[] plain=True figure=False claims_lookup=False",
+          "I do not have access to your health or sleep data."
+        ],
+        [
+          "calls=[] plain=True figure=False claims_lookup=False",
+          "I do not have access to your health, sleep, or personal records."
+        ],
+        [
+          "calls=[] plain=False figure=False claims_lookup=False",
+          "I do not keep health, sleep, or fitness records."
+        ],
+        [
+          "calls=[] plain=True figure=False claims_lookup=False",
+          "I do not have access to your personal health or sleep records."
+        ]
+      ]
+    },
+    "no_data_networth": {
+      "pass": 10,
+      "n": 10,
+      "answers": [
+        [
+          "calls=[] plain=True figure=False claims_lookup=False",
+          "I don't have access to your financial records or net worth."
+        ],
+        [
+          "calls=[] plain=True figure=False claims_lookup=False",
+          "I do not have access to your personal financial information or net worth."
+        ],
+        [
+          "calls=[] plain=True figure=False claims_lookup=False",
+          "I do not have access to your financial records, so I cannot provide your net worth."
+        ],
+        [
+          "calls=[] plain=True figure=False claims_lookup=False",
+          "I don't have that information. Kronk keeps no health, sleep, fitness, or financial records, and no specialist has access to them."
+        ],
+        [
+          "calls=[] plain=True figure=False claims_lookup=False",
+          "I do not have access to your financial records, so I cannot provide your net worth."
+        ],
+        [
+          "calls=[] plain=True figure=False claims_lookup=False",
+          "I do not have access to your financial records, so I cannot tell you what your net worth is."
+        ],
+        [
+          "calls=[] plain=True figure=False claims_lookup=False",
+          "I don't have that information."
+        ],
+        [
+          "calls=[] plain=True figure=False claims_lookup=False",
+          "I don't have access to your financial records."
+        ],
+        [
+          "calls=[] plain=True figure=False claims_lookup=False",
+          "I do not have access to your financial records or net worth."
+        ],
+        [
+          "calls=[] plain=True figure=False claims_lookup=False",
+          "I do not have access to your financial records or net worth."
+        ]
+      ]
+    },
+    "sleep_variant": {
+      "pass": 10,
+      "n": 10,
+      "answers": [
+        [
+          "calls=[] plain=True figure=False claims_lookup=False",
+          "I do not have access to your health records, so I cannot provide your resting heart rate. Kronk does not store fitness data."
+        ],
+        [
+          "calls=[] plain=True figure=False claims_lookup=False",
+          "I don't have access to your health records or fitness data."
+        ],
+        [
+          "calls=[] plain=True figure=False claims_lookup=False",
+          "I do not have access to your health or fitness records."
+        ],
+        [
+          "calls=[] plain=True figure=False claims_lookup=False",
+          "I do not have access to your health or fitness records."
+        ],
+        [
+          "calls=[] plain=True figure=False claims_lookup=False",
+          "I don't have access to your health or fitness records, so I cannot provide your resting heart rate."
+        ],
+        [
+          "calls=[] plain=True figure=False claims_lookup=False",
+          "I don't have access to your health or fitness records."
+        ],
+        [
+          "calls=[] plain=True figure=False claims_lookup=False",
+          "I do not have access to your health, sleep, or fitness records. I cannot provide your resting heart rate."
+        ],
+        [
+          "calls=[] plain=True figure=False claims_lookup=False",
+          "I do not have access to your health records or fitness data."
+        ],
+        [
+          "calls=[] plain=True figure=False claims_lookup=False",
+          "I do not have access to your health records."
+        ],
+        [
+          "calls=[] plain=True figure=False claims_lookup=False",
+          "I do not have access to your health, fitness, or sleep records."
+        ]
+      ]
+    },
+    "solar_still_delegates": {
+      "pass": 10,
+      "n": 10,
+      "answers": [
+        [
+          "calls=['ask_home']",
+          ""
+        ],
+        [
+          "calls=['ask_home']",
+          ""
+        ],
+        [
+          "calls=['ask_home']",
+          ""
+        ],
+        [
+          "calls=['ask_home']",
+          ""
+        ],
+        [
+          "calls=['ask_home']",
+          ""
+        ],
+        [
+          "calls=['ask_home']",
+          ""
+        ],
+        [
+          "calls=['ask_home']",
+          ""
+        ],
+        [
+          "calls=['ask_home']",
+          ""
+        ],
+        [
+          "calls=['ask_home']",
+          ""
+        ],
+        [
+          "calls=['ask_home']",
+          ""
+        ]
+      ]
+    },
+    "hottub_still_delegates": {
+      "pass": 10,
+      "n": 10,
+      "answers": [
+        [
+          "calls=['ask_home']",
+          ""
+        ],
+        [
+          "calls=['ask_home']",
+          ""
+        ],
+        [
+          "calls=['ask_home']",
+          ""
+        ],
+        [
+          "calls=['ask_home']",
+          ""
+        ],
+        [
+          "calls=['ask_home']",
+          ""
+        ],
+        [
+          "calls=['ask_home']",
+          ""
+        ],
+        [
+          "calls=['ask_home']",
+          ""
+        ],
+        [
+          "calls=['ask_home']",
+          ""
+        ],
+        [
+          "calls=['ask_home']",
+          ""
+        ],
+        [
+          "calls=['ask_home']",
+          ""
+        ]
+      ]
+    },
+    "weather_delegate": {
+      "pass": 10,
+      "n": 10,
+      "answers": [
+        [
+          "calls=['ask_home']",
+          ""
+        ],
+        [
+          "calls=['ask_home']",
+          ""
+        ],
+        [
+          "calls=['ask_home']",
+          ""
+        ],
+        [
+          "calls=['ask_home']",
+          ""
+        ],
+        [
+          "calls=['ask_home']",
+          ""
+        ],
+        [
+          "calls=['ask_home']",
+          ""
+        ],
+        [
+          "calls=['ask_home']",
+          ""
+        ],
+        [
+          "calls=['ask_home']",
+          ""
+        ],
+        [
+          "calls=['ask_home']",
+          ""
+        ],
+        [
+          "calls=['ask_home']",
+          ""
+        ]
+      ]
+    },
+    "shopping_delegate": {
+      "pass": 10,
+      "n": 10,
+      "answers": [
+        [
+          "calls=['ask_home']",
+          ""
+        ],
+        [
+          "calls=['ask_home']",
+          ""
+        ],
+        [
+          "calls=['ask_home']",
+          ""
+        ],
+        [
+          "calls=['ask_home']",
+          ""
+        ],
+        [
+          "calls=['ask_home']",
+          ""
+        ],
+        [
+          "calls=['ask_home']",
+          ""
+        ],
+        [
+          "calls=['ask_home']",
+          ""
+        ],
+        [
+          "calls=['ask_home']",
+          ""
+        ],
+        [
+          "calls=['ask_home']",
+          ""
+        ],
+        [
+          "calls=['ask_home']",
+          ""
+        ]
+      ]
+    },
+    "no_spurious": {
+      "pass": 10,
+      "n": 10,
+      "answers": [
+        [
+          "calls=[] mountain=True",
+          "Denver is in the Mountain Time Zone (MT)."
+        ],
+        [
+          "calls=[] mountain=True",
+          "Denver is in the Mountain Time Zone."
+        ],
+        [
+          "calls=[] mountain=True",
+          "Denver is in the Mountain Time Zone (MT)."
+        ],
+        [
+          "calls=[] mountain=True",
+          "Denver is in the Mountain Time Zone."
+        ],
+        [
+          "calls=[] mountain=True",
+          "Mountain Time (MT)"
+        ],
+        [
+          "calls=[] mountain=True",
+          "Denver is in the Mountain Time Zone (MST/MDT)."
+        ],
+        [
+          "calls=[] mountain=True",
+          "Denver is in the Mountain Time Zone."
+        ],
+        [
+          "calls=[] mountain=True",
+          "Denver is in the Mountain Time Zone (MT)."
+        ],
+        [
+          "calls=[] mountain=True",
+          "Denver is in the Mountain Time Zone (MST/MDT)."
+        ],
+        [
+          "calls=[] mountain=True",
+          "Denver is in the Mountain Time Zone (MT), which observes Daylight Saving Time (MDT)."
+        ]
+      ]
+    }
+  }
+}
