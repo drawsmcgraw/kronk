@@ -175,4 +175,7 @@ def test_ask_devops_description_covers_the_mirror_and_the_chain():
                 if d["function"]["name"] == "ask_devops")
     assert "magic mirror" in desc and "uptime" in desc
     assert "never updating or upgrading it: that is ask_home" in desc
+    home = next(d["function"]["description"] for d in agents.COORDINATOR.tool_defs()
+                if d["function"]["name"] == "ask_home")
+    assert "updating or upgrading the magic mirror" in home
     assert "no web access" in desc and "ask research first" in desc
