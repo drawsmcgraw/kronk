@@ -272,6 +272,8 @@ services:
   # metrics.db, ops_audit.log, weather cache, shopping list. Production's
   # ./data is mounted read-only at /shared for the household data dev reads
   # (taste file and DB, solar.db, news brief); writes to it fail loudly.
+  # ./data/hottub is also mounted read-only at /data/hottub (tool_service-dev
+  # only), because tool_service reads the hot tub status at that fixed path.
   # Knobs that change per experiment (models, MUSIC_DRY_RUN, default player,
   # error style) live in .env.dev; wiring lives here. Secrets come from .env
   # by interpolation, as for production, so they are never duplicated.
@@ -288,6 +290,11 @@ services:
     volumes:
       - ./data/dev:/data
       - ./data:/shared:ro
+      # The hot tub monitor (host unit kronk-hottub-monitor) writes
+      # ./data/hottub/status.json. tool_service reads it at the fixed path
+      # /data/hottub/status.json (no env override), so dev gets the
+      # directory read-only at that path instead of under /shared.
+      - ./data/hottub:/data/hottub:ro
       - ./ops:/ops:ro
     environment:
       - SEARXNG_URL=http://searxng:8080
