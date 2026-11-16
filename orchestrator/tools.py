@@ -436,8 +436,8 @@ TOOL_DEFINITIONS = [
                 "taken, any redirects, and the server / content-type / "
                 "content-length / location headers, or the cause of failure "
                 "(DNS failure, connection refused, timeout, TLS error). Never "
-                "returns the page body. Only hosts on the operator's "
-                "allow-list can be checked; others are refused."
+                "returns the page body. Works on any http or https address the "
+                "Kronk host can reach, on the LAN or public."
             ),
             "parameters": {
                 "type": "object",
@@ -909,8 +909,8 @@ async def _tool_remote_exec(client: httpx.AsyncClient, args: dict) -> str:
 
 
 async def _tool_http_check(client: httpx.AsyncClient, args: dict) -> str:
-    """Reachability probe (sprint M5). tool_service enforces the allow-list
-    and never returns a body; this only formats the result."""
+    """Reachability probe (sprint M5). tool_service makes the request and
+    never returns a body; this only formats the result."""
     url = (args.get("url") or "").strip()
     if not url:
         return "[http_check error: url is required]"

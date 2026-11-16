@@ -3,7 +3,10 @@
 Plan section "M5. Block private addresses in fetch_url"; pass criteria in
 docs/sprint/M5-criteria.md (A1-A8). No test touches the network: the HTTP
 client is a fake that fails the test on any request it was not told about,
-and the resolver is stubbed.
+the resolver is stubbed, and the no_network fixture (tests/conftest.py)
+fails any real lookup or connection. The private literals the criteria name
+(192.168.1.1, 10.0.0.1, ...) are refusal cases and are never requested;
+hostnames that stand for private hosts use the reserved .test domain.
 """
 import asyncio
 import ipaddress
@@ -17,6 +20,8 @@ from fastapi.testclient import TestClient
 
 import tool_service.main as ts
 import tool_service.netguard as ng
+
+pytestmark = pytest.mark.usefixtures("no_network")
 
 
 # ── fakes ─────────────────────────────────────────────────────────────────────
@@ -72,10 +77,10 @@ PUBLIC = {
     "docs.example.net": ["198.51.100.20"],  # TEST-NET-2, see stub note below
 }
 PRIVATE = {
-    "router.example.net": ["192.168.1.1"],
-    "mixed.example.net": ["93.184.215.14", "10.0.0.5"],
-    "rebind6.example.net": ["fd00::5"],
-    "meta.example.net": ["169.254.169.254"],
+    "router.home.test": ["192.168.1.1"],
+    "mixed.home.test": ["93.184.215.14", "10.0.0.5"],
+    "rebind6.home.test": ["fd00::5"],
+    "meta.home.test": ["169.254.169.254"],
 }
 
 
@@ -166,10 +171,10 @@ REFUSED = [
     ("http://10.1/", "RFC 1918"),
     ("http://167772161/", "RFC 1918"),
     # Hostnames that resolve to private addresses (resolver stubbed)
-    ("http://router.example.net/admin", "resolves to 192.168.1.1"),
-    ("http://mixed.example.net/", "resolves to 10.0.0.5"),
-    ("http://rebind6.example.net/", "unique local"),
-    ("https://meta.example.net/", "link-local"),
+    ("http://router.home.test/admin", "resolves to 192.168.1.1"),
+    ("http://mixed.home.test/", "resolves to 10.0.0.5"),
+    ("http://rebind6.home.test/", "unique local"),
+    ("https://meta.home.test/", "link-local"),
 ]
 
 
@@ -244,7 +249,7 @@ def test_redirect_to_a_docker_name_at_hop_two_is_refused():
 
 def test_redirect_to_a_name_resolving_private_is_refused():
     out, _ = _fetch("https://example.com/a", {
-        "https://example.com/a": _redirect("https://router.example.net/"),
+        "https://example.com/a": _redirect("https://router.home.test/"),
     })
     assert out["ok"] is False and "resolves to 192.168.1.1" in out["error"]
 

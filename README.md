@@ -215,7 +215,7 @@ The `AGENTS` dict in `orchestrator/agents.py` is authoritative.
 | `home` | `gemma-4-e4b` | `get_weather`, `shopping_list_*`, `query_hottub`, `solar_{status,detail,energy}`, `play_music`, `control_music`, `now_playing`, `rate_music`, `remember_music_preference`, `update_magicmirror` | Weather, shopping list, hot tub, solar, music, mirror updates |
 | `assistant` | `gemma-4-e4b` | `get_kronk_context`, `generate_diagram` | Kronk's own architecture; Graphviz diagrams |
 | `coding` | `devstral-2512-q4` | `web_search`, `fetch_url` | Writing/debugging code |
-| `devops` | `devstral-2512-q4` | `remote_exec`, `http_check` | Server admin; read-only audited exec on managed hosts; reachability checks on allow-listed hosts. No web tools (sprint M4): the coordinator gets documentation from `research` first |
+| `devops` | `devstral-2512-q4` | `remote_exec`, `http_check` | Server admin; read-only audited exec on managed hosts; reachability checks (`http_check`: one GET to any address the host can reach). No web tools (sprint M4): the coordinator gets documentation from `research` first |
 | `talkie` | `talkie` | — | Vintage-1930 persona; only invoked when asked for by name (model not running) |
 
 No agent holds both a web tool and `remote_exec` or `http_check`, so fetched
@@ -429,7 +429,11 @@ addresses only: loopback, RFC 1918, link-local, CGNAT and other non-global
 addresses, Docker service names and non-http(s) URLs are refused, and
 redirects are followed by hand with the same check on every hop
 (`docs/features/fetch-address-block.md`). LAN reachability is the devops
-agent's `http_check`, limited to hosts in `ops/http_check_hosts.json`.
+agent's `http_check`: one GET (no body returned) to any http/https address
+the host can reach, LAN or public. It has no host allow-list; that was the
+operator's decision (2026-11-16). Some LAN devices change state on a plain
+GET (a relay toggled by URL), and `http_check` can touch any address on the
+LAN.
 
 **Hallucination guardrails — three layers, order matters.** (1) A system-prompt
 standing rule ("never fabricate real-time info"). (2) Directive failure messages

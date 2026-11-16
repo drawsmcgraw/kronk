@@ -9,9 +9,9 @@ Two consumers:
   (Docker service names) and anything that is not plain http(s). The caller
   turns redirects off and runs this check again on every hop.
 - `/http_check` (the devops agent's reachability probe) is exempt from that
-  block, because reaching LAN hosts is its purpose. It is limited instead
-  by an allow-list file beside the ops host registry
-  (`load_http_check_allowlist`). Absent or empty file: every target refused.
+  block, because reaching LAN hosts is its purpose. It uses `parse_url`
+  only (http/https, no credentials) and may GET any address the host can
+  reach. No host allow-list: Drew's decision, 2026-11-16 (M5 change 1).
 
 Accepted limit: DNS rebinding. The hostname is resolved here, then httpx
 resolves it again when it connects. A name that answers public for the
@@ -20,15 +20,10 @@ not a hostile multi-tenant host; the window is accepted (plan, M5 "Limit").
 """
 import asyncio
 import ipaddress
-import json
-import os
 import socket
-from pathlib import Path
 
 import httpx
 
-HTTP_CHECK_HOSTS_FILE = Path(os.getenv("OPS_HTTP_CHECK_HOSTS",
-                                       "/ops/http_check_hosts.json"))
 DNS_TIMEOUT_S = 5.0
 MAX_REDIRECTS = 5
 REDIRECT_STATUSES = frozenset({301, 302, 303, 307, 308})
@@ -172,31 +167,3 @@ def redirect_target(resp: httpx.Response, current: httpx.URL) -> httpx.URL | Non
         return None
     return current.join(loc)
 
-
-# ── http_check allow-list ─────────────────────────────────────────────────────
-
-def load_http_check_allowlist() -> tuple[set[str], str | None]:
-    """(hosts, problem). problem is None when the file has at least one host;
-    otherwise it says why nothing is allowed, naming the file."""
-    path = HTTP_CHECK_HOSTS_FILE
-    try:
-        raw = path.read_text()
-    except FileNotFoundError:
-        return set(), f"the allow-list {path} does not exist"
-    except OSError as e:
-        return set(), f"the allow-list {path} could not be read ({e.strerror or e})"
-    try:
-        data = json.loads(raw) if raw.strip() else {}
-    except ValueError as e:
-        return set(), f"the allow-list {path} is not valid JSON ({e})"
-    hosts = data.get("hosts") if isinstance(data, dict) else None
-    if not isinstance(hosts, list):
-        hosts = []
-    clean = {normalize_host(h) for h in hosts if isinstance(h, str) and h.strip()}
-    if not clean:
-        return set(), f"the allow-list {path} names no hosts"
-    return clean, None
-
-
-def normalize_host(host: str) -> str:
-    return host.strip().strip("[]").rstrip(".").lower()

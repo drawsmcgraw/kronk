@@ -1,14 +1,20 @@
 """GET /http_check and the devops agent's http_check tool (sprint M5).
 
-Criteria B10-B15 in docs/sprint/M5-criteria.md. The endpoint is exempt from
-the /fetch address block and limited instead by an allow-list file; with the
-file absent or empty it refuses everything. No test touches the network.
+Criteria B10-B15 in docs/sprint/M5-criteria.md, as changed by Drew's
+decision of 2026-11-16 (docs/sprint/M5-change1.md): no host allow-list;
+http_check may GET any http/https address the host can reach.
+
+No test can touch the network: every request goes to the FakeClient, and
+the no_network fixture (tests/conftest.py) makes any real lookup or
+connection fail the test. Placeholder hosts are .test names (RFC 6761),
+documentation addresses (RFC 5737, RFC 3849) or loopback.
 """
 import asyncio
 import json
 import os
 import socket
 import ssl
+import time
 
 import httpx
 import pytest
@@ -18,7 +24,14 @@ from unittest.mock import patch
 import tool_service.main as ts
 import tool_service.netguard as ng
 import tool_service.ops as ops
+from tests.conftest import NetworkBlocked
 from tests.test_fetch_address_block import FakeClient, _key
+
+pytestmark = pytest.mark.usefixtures("no_network")
+
+NAS = "nas.test"
+DEV = "192.0.2.10"           # TEST-NET-1
+DEV6 = "2001:db8::10"        # IPv6 documentation prefix
 
 
 class TrackedBody(httpx.AsyncByteStream):
@@ -38,18 +51,11 @@ def _resp(status=200, headers=None, body=None):
 
 @pytest.fixture
 def env(tmp_path, monkeypatch):
-    """Allow-list path and audit log in tmp; returns helpers."""
-    allow_file = tmp_path / "http_check_hosts.json"
+    """Audit log in tmp; returns a reader for it."""
     audit_file = tmp_path / "ops_audit.log"
-    monkeypatch.setattr(ng, "HTTP_CHECK_HOSTS_FILE", allow_file)
     monkeypatch.setattr(ops, "OPS_AUDIT_LOG", audit_file)
 
     class Env:
-        path = allow_file
-
-        def allow(self, *hosts, raw=None):
-            allow_file.write_text(raw if raw is not None else json.dumps({"hosts": list(hosts)}))
-
         def audit(self):
             if not audit_file.exists():
                 return []
@@ -76,98 +82,64 @@ def _chained(outer, *inner):
     return outer
 
 
-# ── B12: the allow-list ──────────────────────────────────────────────────────
+# ── any host, no allow-list (M5 change 1) ───────────────────────────────────
 
-def test_absent_file_refuses_everything_and_names_the_file(env):
-    out, client = _check("http://192.168.1.10/")
-    assert out["ok"] is False and out["cause"] == "not_allowed"
-    assert str(env.path) in out["error"] and "does not exist" in out["error"]
-    assert client.calls == []
-
-
-@pytest.mark.parametrize("raw", ["", "  \n", "{}", '{"hosts": []}', '{"hosts": ["", "  "]}',
-                                 '["192.168.1.10"]'])
-def test_empty_file_refuses_everything(env, raw):
-    env.allow(raw=raw)
-    out, client = _check("http://192.168.1.10/")
-    assert out["ok"] is False and out["cause"] == "not_allowed"
-    assert str(env.path) in out["error"]
-    assert client.calls == []
-
-
-def test_unreadable_json_refuses_and_says_so(env):
-    env.allow(raw="{not json")
-    out, client = _check("http://192.168.1.10/")
-    assert out["cause"] == "not_allowed" and "not valid JSON" in out["error"]
-    assert client.calls == []
-
-
-def test_unlisted_host_is_refused_before_any_connection(env):
-    env.allow("192.168.1.10")
-    out, client = _check("http://192.168.1.11/")
-    assert out["ok"] is False and out["cause"] == "not_allowed"
-    assert "192.168.1.11 is not in the allow-list" in out["error"]
-    assert str(env.path) in out["error"]
-    assert client.calls == []
-
-
-def test_listed_private_host_is_reached(env):
-    """Exempt from the /fetch block: a private address on the list is fine."""
-    env.allow("192.168.1.10")
-    out, client = _check("http://192.168.1.10:5000/status",
-                         {"http://192.168.1.10:5000/status": _resp(200)})
-    assert out["ok"] is True and out["status"] == 200
-    assert client.calls == [_key("http://192.168.1.10:5000/status")]
-
-
-@pytest.mark.parametrize("listed,url", [
-    ("NAS.local", "http://nas.local/"),
-    ("nas.local.", "http://NAS.LOCAL/"),
-    ("[fd00::10]", "http://[fd00::10]:8080/"),
-    ("localhost", "http://localhost:8103/health"),
+@pytest.mark.parametrize("url", [
+    f"http://{DEV}/",
+    f"http://{DEV}:5000/status",
+    f"https://{NAS}/ui",
+    f"http://[{DEV6}]:8080/",
+    "https://example.com/",
+    # Not public: the /fetch address block does not apply to http_check.
+    "http://127.0.0.1:9/",
+    "http://[::1]:9/",
+    "http://localhost:9/health",
 ])
-def test_allow_list_matching_is_exact_host_case_insensitive(env, listed, url):
-    env.allow(listed)
+def test_any_http_or_https_host_is_checked(env, url):
     out, client = _check(url, {url: _resp(204)})
     assert out["ok"] is True and out["status"] == 204
+    assert client.calls == [_key(url)]
+    assert env.audit()[-1]["allowed"] is True
 
 
-def test_list_is_read_on_every_call(env):
-    _, client = _check("http://192.168.1.10/")
-    assert client.calls == []
-    env.allow("192.168.1.10")
-    out, _ = _check("http://192.168.1.10/", {"http://192.168.1.10/": _resp()})
+def test_no_allow_list_is_consulted(env, monkeypatch, tmp_path):
+    """The M5 allow-list is gone, not dormant: no file or variable changes
+    what http_check reaches."""
+    assert not hasattr(ng, "load_http_check_allowlist")
+    assert not hasattr(ng, "HTTP_CHECK_HOSTS_FILE")
+    empty = tmp_path / "http_check_hosts.json"
+    empty.write_text('{"hosts": []}')
+    monkeypatch.setenv("OPS_HTTP_CHECK_HOSTS", str(empty))
+    out, _ = _check(f"http://{DEV}/", {f"http://{DEV}/": _resp(200)})
     assert out["ok"] is True
-    env.path.unlink()
-    out, _ = _check("http://192.168.1.10/")
-    assert out["cause"] == "not_allowed"
 
 
 @pytest.mark.parametrize("url,why", [
     ("file:///etc/passwd", "only http and https"),
-    ("ftp://192.168.1.10/", "only http and https"),
-    ("http://admin:secret@192.168.1.10/", "credentials"),
+    (f"ftp://{DEV}/", "only http and https"),
+    (f"http://admin:secret@{DEV}/", "credentials"),
+    (f"http://admin@{NAS}/", "credentials"),
+    ("not a url", "only http and https"),
 ])
-def test_schemes_and_credentials_are_refused_even_when_listed(env, url, why):
-    env.allow("192.168.1.10")
+def test_schemes_and_credentials_are_refused_before_any_connection(env, url, why):
     out, client = _check(url)
     assert out["ok"] is False and out["cause"] == "refused" and why in out["error"]
     assert client.calls == []
+    assert env.audit()[-1]["allowed"] is False
 
 
 # ── B10: one GET, filtered headers, never the body ──────────────────────────
 
 def test_success_returns_only_the_four_headers_and_never_the_body(env):
-    env.allow("nas.local")
     body = TrackedBody(b"SECRET-BODY-TEXT")
-    out, client = _check("http://nas.local/", {"http://nas.local/": _resp(200, {
+    out, client = _check(f"http://{NAS}/", {f"http://{NAS}/": _resp(200, {
         "Server": "nginx/1.25", "Content-Type": "text/html", "Content-Length": "16",
         "Set-Cookie": "session=abc", "X-Api-Key": "k", "WWW-Authenticate": "Basic",
     }, body)})
     assert out["headers"] == {"server": "nginx/1.25", "content-type": "text/html",
                               "content-length": "16"}
     assert set(out) == {"url", "ok", "elapsed_ms", "status", "redirects", "final_url", "headers"}
-    assert out["redirects"] == [] and out["final_url"] == "http://nas.local/"
+    assert out["redirects"] == [] and out["final_url"] == f"http://{NAS}/"
     assert isinstance(out["elapsed_ms"], int)
     assert body.read is False
     assert "SECRET-BODY" not in json.dumps(out)
@@ -175,8 +147,7 @@ def test_success_returns_only_the_four_headers_and_never_the_body(env):
 
 
 def test_one_plain_get_with_a_five_second_budget(env):
-    env.allow("nas.local")
-    _, client = _check("http://nas.local/", {"http://nas.local/": _resp()})
+    _, client = _check(f"http://{NAS}/", {f"http://{NAS}/": _resp()})
     assert client.methods == ["GET"]
     assert client.init_kwargs == {"follow_redirects": False, "verify": True}
     # Only the timeout is passed: no headers, params, body, cookies or auth.
@@ -184,37 +155,102 @@ def test_one_plain_get_with_a_five_second_budget(env):
     assert 0 < client.request_kwargs[0]["timeout"] <= 5.0
 
 
-def test_redirect_to_a_listed_host_is_followed_and_reported(env):
-    env.allow("nas.local", "192.168.1.10")
-    out, client = _check("http://nas.local/", {
-        "http://nas.local/": _resp(301, {"Location": "https://192.168.1.10/ui"}),
-        "https://192.168.1.10/ui": _resp(200, {"Server": "lighttpd"}),
+# ── redirects ───────────────────────────────────────────────────────────────
+
+def test_redirect_to_another_host_is_followed_and_reported(env):
+    out, client = _check(f"http://{NAS}/", {
+        f"http://{NAS}/": _resp(301, {"Location": f"https://{DEV}/ui"}),
+        f"https://{DEV}/ui": _resp(200, {"Server": "lighttpd"}),
     })
     assert out["ok"] is True and out["status"] == 200
-    assert out["redirects"] == [{"url": "http://nas.local/", "status": 301,
-                                 "location": "https://192.168.1.10/ui"}]
-    assert out["final_url"] == "https://192.168.1.10/ui"
+    assert out["redirects"] == [{"url": f"http://{NAS}/", "status": 301,
+                                 "location": f"https://{DEV}/ui"}]
+    assert out["final_url"] == f"https://{DEV}/ui"
     assert client.methods == ["GET", "GET"]
+    assert "note" not in out
 
 
-def test_redirect_to_an_unlisted_host_is_reported_not_followed(env):
-    env.allow("nas.local")
-    out, client = _check("http://nas.local/", {
-        "http://nas.local/": _resp(302, {"Location": "http://192.168.1.1/login"}),
+@pytest.mark.parametrize("start,target", [
+    ("https://example.com/", "http://127.0.0.1:9/admin"),   # public to loopback
+    (f"http://{DEV}/", "https://example.com/"),             # private-style to public
+    (f"http://{DEV}/", f"http://[{DEV6}]/x"),
+])
+def test_redirects_are_followed_to_any_http_host(env, start, target):
+    out, client = _check(start, {start: _resp(302, {"Location": target}),
+                                 target: _resp(200)})
+    assert out["ok"] is True and out["status"] == 200
+    assert out["final_url"] == _key(target)
+    assert client.calls == [_key(start), _key(target)]
+
+
+@pytest.mark.parametrize("target,why", [
+    # observation 6: a redirect target carrying credentials
+    (f"http://user:pw@{NAS}/in", "URLs with credentials (user:password@) are not allowed"),
+    (f"http://user@{DEV}/in", "URLs with credentials (user:password@) are not allowed"),
+    # observation 4 (a): the cause is the scheme, not the host
+    (f"ftp://{NAS}/file", "only http and https URLs are allowed, not 'ftp'"),
+    ("file:///etc/passwd", "only http and https URLs are allowed, not 'file'"),
+])
+def test_unfollowable_redirect_names_its_own_cause(env, target, why):
+    out, client = _check(f"http://{NAS}/", {
+        f"http://{NAS}/": _resp(302, {"Location": target}),
     })
     assert out["ok"] is True and out["status"] == 302
-    assert out["redirects"][0]["location"] == "http://192.168.1.1/login"
-    assert "not followed" in out["note"] and "192.168.1.1" in out["note"]
-    assert out["final_url"] == "http://nas.local/"
-    assert client.calls == [_key("http://nas.local/")]
+    assert out["redirects"] == [{"url": f"http://{NAS}/", "status": 302, "location": target}]
+    assert out["note"].endswith(f"not followed: {why}")
+    assert "allow-list" not in out["note"]
+    assert out["final_url"] == f"http://{NAS}/"
+    assert client.calls == [_key(f"http://{NAS}/")]
+    line = env.audit()[-1]
+    assert line["exit_code"] == 302 and line["note"] == out["note"]
 
 
-def test_redirect_loop_stops_after_five(env):
-    env.allow("nas.local")
-    routes = {f"http://nas.local/{i}": _resp(302, {"Location": f"/{i + 1}"}) for i in range(7)}
-    out, client = _check("http://nas.local/0", routes)
+def test_redirect_with_an_unparseable_location_is_reported_not_followed(env):
+    out, client = _check(f"http://{NAS}/", {
+        f"http://{NAS}/": _resp(302, {"Location": "http://[::1"}),
+    })
+    assert out["ok"] is True and out["status"] == 302
+    assert "not followed: invalid URL" in out["note"]
+    assert out["redirects"][0]["location"] == "http://[::1"
+    assert client.calls == [_key(f"http://{NAS}/")]
+
+
+def test_five_redirects_are_followed(env):
+    routes = {f"http://{NAS}/{i}": _resp(302, {"Location": f"/{i + 1}"}) for i in range(5)}
+    routes[f"http://{NAS}/5"] = _resp(200)
+    out, client = _check(f"http://{NAS}/0", routes)
+    assert out["ok"] is True and out["status"] == 200
+    assert len(client.calls) == 6 and len(out["redirects"]) == 5
+    assert out["final_url"] == f"http://{NAS}/5"
+
+
+def test_redirect_loop_stops_after_five_and_reports_the_last_url_requested(env):
+    """Observation 4 (b): final_url is a URL that was requested."""
+    routes = {f"http://{NAS}/{i}": _resp(302, {"Location": f"/{i + 1}"}) for i in range(7)}
+    out, client = _check(f"http://{NAS}/0", routes)
     assert out["ok"] is False and out["cause"] == "too_many_redirects"
     assert len(client.calls) == 6 and len(out["redirects"]) == 6
+    assert client.calls[-1] == _key(f"http://{NAS}/5")
+    assert out["final_url"] == f"http://{NAS}/5"
+    assert out["final_url"] in client.calls
+
+
+def test_budget_spent_between_hops_reports_the_last_url_requested(env, monkeypatch):
+    monkeypatch.setattr(ts, "HTTP_CHECK_TIMEOUT_S", 0.05)
+
+    class Slow(FakeClient):
+        def _respond(self, url, kw):
+            r = super()._respond(url, kw)
+            time.sleep(0.1)       # spends the whole budget on hop 0
+            return r
+
+    client = Slow({f"http://{NAS}/a": _resp(302, {"Location": "/b"})})
+    with patch.object(ts.httpx, "AsyncClient", client):
+        out = TestClient(ts.app).get("/http_check", params={"url": f"http://{NAS}/a"}).json()
+    assert out["ok"] is False and out["cause"] == "timeout"
+    assert client.calls == [_key(f"http://{NAS}/a")]
+    assert out["final_url"] == f"http://{NAS}/a"
+    assert f"http://{NAS}/b not requested" in out["error"]
 
 
 # ── B11: failure causes ──────────────────────────────────────────────────────
@@ -244,12 +280,11 @@ FAILURES = [
 
 @pytest.mark.parametrize("cause,exc,words", FAILURES)
 def test_failure_names_the_cause(env, cause, exc, words):
-    env.allow("nas.local")
-    out, _ = _check("http://nas.local/", {"http://nas.local/": exc})
+    out, _ = _check(f"http://{NAS}/", {f"http://{NAS}/": exc})
     assert out["ok"] is False
     assert out["cause"] == cause
     assert words in out["error"]
-    assert out["final_url"] == "http://nas.local/"
+    assert out["final_url"] == f"http://{NAS}/"
     line = env.audit()[-1]
     assert line["allowed"] is True and line["note"].startswith(cause)
 
@@ -257,22 +292,22 @@ def test_failure_names_the_cause(env, cause, exc, words):
 # ── B14: the audit log ──────────────────────────────────────────────────────
 
 def test_every_call_writes_one_audit_line_in_the_ops_exec_form(env):
-    _check("http://192.168.1.10/")                                   # no list
-    env.allow("nas.local")
-    _check("http://192.168.1.11/")                                   # unlisted
-    _check("file:///etc/passwd")                                     # scheme
-    _check("http://nas.local/", {"http://nas.local/": _resp(200)})   # allowed
-    _check("http://nas.local/x", {"http://nas.local/x": httpx.ConnectTimeout("t")})
+    _check("file:///etc/passwd")                                           # scheme
+    _check(f"http://u:p@{DEV}/")                                           # credentials
+    _check(f"http://{NAS}/", {f"http://{NAS}/": _resp(200)})               # success
+    _check(f"http://{DEV}/x", {f"http://{DEV}/x": httpx.ConnectTimeout("t")})
+    _check(f"http://{NAS}/r", {f"http://{NAS}/r": _resp(302, {"Location": f"ftp://{NAS}/"})})
     lines = env.audit()
     assert len(lines) == 5
     for l in lines:
         # The same keys ops.audit_exec writes for /ops/exec.
         assert set(l) == {"ts", "host", "command", "allowed", "exit_code", "out_len", "note"}
         assert l["command"].startswith("http_check GET ") and l["out_len"] == 0
-    assert [l["allowed"] for l in lines] == [False, False, False, True, True]
-    assert [l["host"] for l in lines] == ["192.168.1.10", "192.168.1.11", "?", "nas.local", "nas.local"]
-    assert lines[3]["exit_code"] == 200 and lines[3]["note"] == "HTTP 200"
-    assert lines[4]["exit_code"] is None and lines[4]["note"].startswith("timeout")
+    assert [l["allowed"] for l in lines] == [False, False, True, True, True]
+    assert [l["host"] for l in lines] == ["?", "?", NAS, DEV, NAS]
+    assert lines[2]["exit_code"] == 200 and lines[2]["note"] == "HTTP 200"
+    assert lines[3]["exit_code"] is None and lines[3]["note"].startswith("timeout")
+    assert lines[4]["exit_code"] == 302 and "not followed: only http and https" in lines[4]["note"]
 
 
 # ── the orchestrator tool ───────────────────────────────────────────────────
@@ -292,24 +327,34 @@ def _tool(result: dict):
             return httpx.Response(200, json=result, request=httpx.Request("GET", url))
 
     c = C()
-    return asyncio.run(tools._tool_http_check(c, {"url": "http://nas.local/"})), c
+    return asyncio.run(tools._tool_http_check(c, {"url": f"http://{NAS}/"})), c
 
 
 def test_tool_formats_success_with_redirects_and_headers():
-    text, c = _tool({"url": "http://nas.local/", "ok": True, "status": 200, "elapsed_ms": 12,
-                     "redirects": [{"url": "http://nas.local/", "status": 301,
-                                    "location": "https://nas.local/"}],
-                     "final_url": "https://nas.local/", "headers": {"server": "nginx"}})
+    text, c = _tool({"url": f"http://{NAS}/", "ok": True, "status": 200, "elapsed_ms": 12,
+                     "redirects": [{"url": f"http://{NAS}/", "status": 301,
+                                    "location": f"https://{NAS}/"}],
+                     "final_url": f"https://{NAS}/", "headers": {"server": "nginx"}})
     assert c.calls[0][0].endswith("/http_check")
-    assert c.calls[0][1] == {"url": "http://nas.local/"}
-    assert text.startswith("[http_check http://nas.local/: HTTP 200 in 12 ms; final URL https://nas.local/; headers: server: nginx]")
-    assert "redirect: http://nas.local/ -> HTTP 301 -> https://nas.local/" in text
+    assert c.calls[0][1] == {"url": f"http://{NAS}/"}
+    assert text.startswith(f"[http_check http://{NAS}/: HTTP 200 in 12 ms; final URL https://{NAS}/; headers: server: nginx]")
+    assert f"redirect: http://{NAS}/ -> HTTP 301 -> https://{NAS}/" in text
 
 
 def test_tool_formats_failure_with_its_cause():
-    text, _ = _tool({"url": "http://nas.local/", "ok": False, "cause": "not_allowed",
-                     "elapsed_ms": 0, "error": "refused: the allow-list /ops/http_check_hosts.json does not exist, so http_check may reach no host"})
-    assert "FAILED (not_allowed)" in text and "/ops/http_check_hosts.json" in text
+    text, _ = _tool({"url": f"http://{NAS}/", "ok": False, "cause": "connection_refused",
+                     "elapsed_ms": 3, "error": "connection refused",
+                     "redirects": [], "final_url": f"http://{NAS}/"})
+    assert text == f"[http_check http://{NAS}/: FAILED (connection_refused) after 3 ms: connection refused]"
+
+
+def test_tool_shows_a_redirect_that_was_not_followed():
+    text, _ = _tool({"url": f"http://{NAS}/", "ok": True, "status": 302, "elapsed_ms": 4,
+                     "redirects": [{"url": f"http://{NAS}/", "status": 302,
+                                    "location": f"ftp://{NAS}/"}],
+                     "final_url": f"http://{NAS}/", "headers": {"location": f"ftp://{NAS}/"},
+                     "note": f"redirect to ftp://{NAS}/ not followed: only http and https URLs are allowed, not 'ftp'"})
+    assert text.endswith(f"note: redirect to ftp://{NAS}/ not followed: only http and https URLs are allowed, not 'ftp'")
 
 
 def test_tool_requires_a_url():
@@ -330,7 +375,7 @@ async def test_other_agents_loops_reject_http_check(agent_name):
         seen.append(list(messages))
         if len(seen) == 1:
             yield {"tool_calls": [{"id": "c1", "function": {
-                "name": "http_check", "arguments": {"url": "http://192.168.1.1/"}}}]}
+                "name": "http_check", "arguments": {"url": f"http://{DEV}/"}}}]}
         else:
             yield {"token": "ok"}
         yield {"usage": {}}
@@ -346,3 +391,24 @@ async def test_other_agents_loops_reject_http_check(agent_name):
         [ev async for ev in agents.run_stream(agents.AGENTS[agent_name], "x", [])]
     assert executed == []
     assert "REJECTED" in [m for m in seen[1] if m["role"] == "tool"][0]["content"]
+
+
+# ── the offline guard itself ────────────────────────────────────────────────
+
+def test_the_network_guard_is_on_for_this_module():
+    """If this fails, the guard is off and no other test here may run."""
+    assert socket.getaddrinfo.__name__ == "refuse"
+    assert socket.socket.connect.__name__ == "connect" and \
+        socket.socket.connect is not socket.socket.__mro__[1].connect
+    # Order matters: the identity checks above pass before anything is sent.
+    with pytest.raises(NetworkBlocked):
+        socket.getaddrinfo(NAS, 80)
+    with pytest.raises(NetworkBlocked):
+        socket.create_connection((DEV, 80), timeout=0.01)
+    with pytest.raises(NetworkBlocked):
+        socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect((DEV, 80))
+    # A real client built behind the fake's back (the M5 e2e mutants) fails too.
+    with pytest.raises(NetworkBlocked):
+        httpx.get(f"http://{DEV}/")
+    with pytest.raises(NetworkBlocked):
+        asyncio.run(httpx.AsyncClient().get(f"http://{NAS}/"))

@@ -22,8 +22,6 @@ __pycache__/
 
 # ops host registry (real hosts; example is committed)
 ops/hosts.json
-# http_check allow-list (real hosts; example is committed)
-ops/http_check_hosts.json
 
 
 # Telemetry stack (Grafana admin login) — example is committed

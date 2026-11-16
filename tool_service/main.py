@@ -521,12 +521,14 @@ async def fetch(url: str = Query(..., description="URL to fetch and extract text
 
 # ── http_check: is this reachable from Kronk? (sprint M5) ───────────────────
 # The devops agent's reachability probe. Exempt from the /fetch address
-# block (reaching LAN hosts is the point) and limited instead by the
-# allow-list file beside the ops registry (netguard.HTTP_CHECK_HOSTS_FILE):
-# absent or empty file, every target refused. One GET per hop, no custom
-# headers, methods, bodies or credentials; the body is never read, returned
-# or logged. Redirects are followed only to hosts on the list, and within
-# the same five-second budget. Every call goes to the ops audit log.
+# block: it may GET any http/https address the host can reach, LAN or
+# public. No host allow-list (Drew, 2026-11-16, M5 change 1). Some LAN
+# devices change state on a plain GET; that risk is accepted with the
+# decision. One GET per hop, no custom headers, methods, bodies or
+# credentials; the body is never read, returned or logged. Redirects are
+# followed to any http/https URL without credentials, at most
+# netguard.MAX_REDIRECTS, inside the same five-second budget. Every call
+# goes to the ops audit log.
 
 HTTP_CHECK_TIMEOUT_S = 5.0
 HTTP_CHECK_HEADERS = ("server", "content-type", "content-length", "location")
@@ -583,26 +585,24 @@ async def http_check(url: str = Query(..., description="URL to probe with one GE
     except netguard.Blocked as e:
         _http_check_audit("", url, None, False, f"refused: {e}")
         return out(False, cause="refused", error=str(e))
-    host = netguard.normalize_host(u.host)
-    allowed, problem = netguard.load_http_check_allowlist()
-    if problem or host not in allowed:
-        why = (f"refused: {problem}, so http_check may reach no host" if problem else
-               f"refused: {host} is not in the allow-list {netguard.HTTP_CHECK_HOSTS_FILE}")
-        _http_check_audit(host, url, None, False, why)
-        return out(False, cause="not_allowed", error=why)
+    host = u.host
 
     redirects: list[dict] = []
     current = u
+    # final_url is always the last URL actually requested.
+    last: httpx.URL | None = None
     # One budget for the whole check, redirects included.
     deadline = started + HTTP_CHECK_TIMEOUT_S
     async with httpx.AsyncClient(follow_redirects=False, verify=True) as client:
         for hop in range(netguard.MAX_REDIRECTS + 1):
             remaining = deadline - time.monotonic()
             if remaining <= 0:
-                note = f"timeout: {HTTP_CHECK_TIMEOUT_S:g}s budget spent after {len(redirects)} redirect(s)"
+                note = (f"timeout: {HTTP_CHECK_TIMEOUT_S:g}s budget spent after "
+                        f"{len(redirects)} redirect(s); {current} not requested")
                 _http_check_audit(host, url, None, True, note)
                 return out(False, cause="timeout", error=note, redirects=redirects,
-                           final_url=str(current))
+                           final_url=str(last or current))
+            last = current
             try:
                 async with client.stream("GET", current, timeout=remaining) as resp:
                     status = resp.status_code
@@ -614,23 +614,32 @@ async def http_check(url: str = Query(..., description="URL to probe with one GE
                 _http_check_audit(host, url, None, True, f"{cause}: {msg}")
                 return out(False, cause=cause, error=msg, redirects=redirects,
                            final_url=str(current))
-            nxt = netguard.redirect_target(resp, current)
-            if nxt is None:
+            location = headers.get("location", "")
+            try:
+                nxt = netguard.redirect_target(resp, current)
+            except (httpx.InvalidURL, ValueError) as e:
+                nxt, why = None, f"invalid URL: {e}"
+            else:
+                why = None
+                if nxt is not None:
+                    try:
+                        netguard.parse_url(str(nxt))
+                    except netguard.Blocked as e:
+                        why = str(e)
+            if nxt is None and why is None:
                 break
-            redirects.append({"url": str(current), "status": status,
-                              "location": headers.get("location", "")})
-            nxt_host = netguard.normalize_host(nxt.host or "")
-            if nxt.scheme not in ("http", "https") or nxt.userinfo or nxt_host not in allowed:
-                note = f"redirect to {nxt} not followed: host {nxt_host or '?'} is not in the allow-list"
+            redirects.append({"url": str(current), "status": status, "location": location})
+            if hop == netguard.MAX_REDIRECTS:
+                note = f"too many redirects (more than {netguard.MAX_REDIRECTS})"
+                _http_check_audit(host, url, None, True, note)
+                return out(False, cause="too_many_redirects", error=note,
+                           redirects=redirects, final_url=str(current))
+            if why is not None:
+                note = f"redirect to {nxt or location} not followed: {why}"
                 _http_check_audit(host, url, status, True, note)
                 return out(True, status=status, redirects=redirects, final_url=str(current),
                            headers=headers, note=note)
             current = nxt
-        else:
-            note = f"too many redirects (more than {netguard.MAX_REDIRECTS})"
-            _http_check_audit(host, url, None, True, note)
-            return out(False, cause="too_many_redirects", error=note, redirects=redirects,
-                       final_url=str(current))
 
     _http_check_audit(host, url, status, True, f"HTTP {status}")
     return out(True, status=status, redirects=redirects, final_url=str(current),
