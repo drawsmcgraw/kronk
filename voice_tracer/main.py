@@ -37,6 +37,11 @@ Env:
   VOICE_TRACER_POLL_S          backstop poll interval (default 60)
   VOICE_TRACER_STATE           state file (default /data/voice_tracer_state.json)
   VOICE_TRACER_HEALTH_PORT     /health listener (default 8010)
+  VOICE_TRACER_DEV_PIPELINES   comma-separated HA pipeline names that are the dev
+                               path (default kronk-dev; sprint item M17). Their runs
+                               join to kronk-orchestrator-dev traces and are emitted
+                               as service kronk-voice-tracer-dev, so a filter on
+                               service name excludes them like the rest of dev.
 """
 from __future__ import annotations
 
@@ -78,6 +83,15 @@ BACKFILL_S = 600         # at start, emit runs from the last 10 min not yet seen
                          # older ones would land outside Tempo's ingestion slack
                          # (telemetry/tempo.yaml) and be invisible to ranged search
 SEEN_KEEP = 2000
+KRONK_SERVICE = "kronk-orchestrator"
+DEV_PIPELINES = {p.strip() for p in os.getenv("VOICE_TRACER_DEV_PIPELINES", "kronk-dev").split(",") if p.strip()}
+KRONK_DEV_SERVICE = "kronk-orchestrator-dev"
+DEV_SERVICE_NAME = "kronk-voice-tracer-dev"
+
+
+def is_dev_run(specs: list) -> bool:
+    """A voice run on a dev pipeline (blueprint runs carry no pipeline name)."""
+    return bool(specs) and specs[0].attrs.get("ha.pipeline_name") in DEV_PIPELINES
 
 HEALTH = {"connected": False, "last_event": None, "emitted": 0, "joined": 0,
           "ambiguous": 0, "errors": 0, "started": time.time()}
@@ -86,7 +100,7 @@ HEALTH = {"connected": False, "last_event": None, "emitted": 0, "joined": 0,
 # ── Emitter: SpanSpec trees → OTel spans with explicit timestamps ───────────
 
 class Emitter:
-    def __init__(self, exporter=None, batch: bool = True):
+    def __init__(self, exporter=None, batch: bool = True, service_name: str | None = None):
         from opentelemetry import trace
         from opentelemetry.sdk.resources import Resource
         from opentelemetry.sdk.trace import TracerProvider
@@ -110,7 +124,8 @@ class Emitter:
             exporter = OTLPSpanExporter()
         self._ids = _Seeded()
         self._provider = TracerProvider(
-            resource=Resource.create({"service.name": os.getenv("OTEL_SERVICE_NAME", "kronk-voice-tracer")}),
+            resource=Resource.create({"service.name": service_name
+                                      or os.getenv("OTEL_SERVICE_NAME", "kronk-voice-tracer")}),
             id_generator=self._ids,
         )
         self._provider.add_span_processor(
@@ -168,10 +183,11 @@ def _otel_attrs(attrs: dict) -> dict:
 # ── Tempo join ──────────────────────────────────────────────────────────────
 
 async def find_kronk_traces(client: httpx.AsyncClient, device_id: str, start_s: float, end_s: float,
-                            slack_s: float = 5.0) -> list[str]:
+                            slack_s: float = 5.0, service: str = KRONK_SERVICE) -> list[str]:
     """Trace ids of Kronk pipeline roots for this satellite device that
-    started inside the intent window (± slack)."""
-    q = ('{ resource.service.name = "kronk-orchestrator" && name =~ "pipeline\\\\..*" '
+    started inside the intent window (± slack). `service` is the
+    orchestrator that answered: production, or the dev one for a dev run."""
+    q = (f'{{ resource.service.name = "{service}" && name =~ "pipeline\\\\..*" '
          f'&& span.kronk.origin.device_id = "{device_id}" }}')
     params = {"q": q, "start": int(start_s - slack_s), "end": int(end_s + slack_s) + 1, "limit": 10}
     r = await client.get(f"{TEMPO_URL}/api/search", params=params, timeout=20)
@@ -243,8 +259,9 @@ class HAClient:
 # ── The tracer ──────────────────────────────────────────────────────────────
 
 class VoiceTracer:
-    def __init__(self, emitter: Emitter | None):
+    def __init__(self, emitter: Emitter | None, dev_emitter: Emitter | None = None):
         self.emitter = emitter
+        self.dev_emitter = dev_emitter or emitter
         self.seen: set[str] = set()
         self.seen_order: list[str] = []
         self.pipelines: dict[str, str] = {}      # id → name
@@ -399,7 +416,8 @@ class VoiceTracer:
                 continue
             dev, s, e = win
             try:
-                ids = await find_kronk_traces(http, dev, s, e)
+                ids = await find_kronk_traces(http, dev, s, e, service=(
+                    KRONK_DEV_SERVICE if is_dev_run(specs) else KRONK_SERVICE))
             except Exception as ex:
                 logger.warning("tempo search failed (attempt %d): %s", p["attempt"], ex)
                 ids = []
@@ -428,9 +446,10 @@ class VoiceTracer:
                     specs[0].attrs.get("voice.handled_by"), kronk_ids or "-", specs[0].trace_id)
 
     def _emit(self, specs: list[convert.SpanSpec], key: str) -> None:
-        if self.emitter is not None:
+        emitter = self.dev_emitter if is_dev_run(specs) else self.emitter
+        if emitter is not None:
             try:
-                self.emitter.emit(specs)
+                emitter.emit(specs)
             except Exception as e:
                 HEALTH["errors"] += 1
                 logger.error("emit failed for %s: %s", key, e)
@@ -535,16 +554,17 @@ async def main() -> None:
         logger.error("HA_TOKEN not set — nothing to read; exiting")
         return
     threading.Thread(target=_serve_health, daemon=True).start()
-    emitter = None
+    emitter = dev_emitter = None
     if ENABLED:
         try:
             emitter = Emitter()
+            dev_emitter = Emitter(service_name=DEV_SERVICE_NAME)
             logger.info("exporting to %s", os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "(default)"))
         except Exception as e:
             logger.error("OpenTelemetry init failed — running without export: %s", e)
     else:
         logger.info("TELEMETRY_ENABLED=false — reading HA, exporting nothing")
-    tracer = VoiceTracer(emitter)
+    tracer = VoiceTracer(emitter, dev_emitter)
     backoff = 2
     while True:
         try:

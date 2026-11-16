@@ -294,3 +294,67 @@ def test_catchall_handoff_still_looks_up_the_kronk_trace(run, automation, tmp_pa
     assert voice[0].attrs["kronk.join_matches"] == 1
     assert bp[0].attrs["ha.pipeline_run_id"] == RUN_ID
     assert json.load(open(tmp_path / "state.json"))["seen"] == [f"pipeline:{RUN_ID}"]
+
+
+# ── Dev pipeline runs (sprint M17): own join target, own service name ───────
+
+def _pending(tracer, run, pipeline_name):
+    voice = convert.assign_ids("pipeline", RUN_ID, convert.pipeline_run_spans(run, RUN_ID, pipeline_name))
+    voice[0].attrs["voice.handled_by"] = "kronk"
+    tracer.pending_voice[RUN_ID] = {"specs": voice, "ends_at": 0, "attempt": 0, "key": f"pipeline:{RUN_ID}"}
+    return voice
+
+
+@pytest.mark.parametrize("pipeline_name, service", [
+    ("kronk", "kronk-orchestrator"),
+    ("kronk-dev", "kronk-orchestrator-dev"),
+])
+def test_join_searches_the_orchestrator_that_answered(run, tmp_path, monkeypatch, pipeline_name, service):
+    """Live 2026-11-15: a kronk-dev run from the office was linked to the
+    production trace of a kronk run from the same device two seconds later,
+    because the join only ever searched kronk-orchestrator."""
+    import asyncio
+    import httpx
+
+    monkeypatch.setattr(vt, "STATE_FILE", str(tmp_path / "state.json"))
+    monkeypatch.setattr(vt, "JOIN_DELAYS_S", [0])
+    tracer = vt.VoiceTracer(emitter=None)
+    voice = _pending(tracer, run, pipeline_name)
+    _, s, _e = convert.intent_window(voice)
+    queries = []
+
+    def handler(request):
+        queries.append(request.url.params["q"])
+        return httpx.Response(200, json={"traces": [{"traceID": "abc", "startTimeUnixNano": str(int((s + 0.5) * 1e9))}]})
+
+    async def go():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as c:
+            await tracer.resolve_joins(c)
+
+    asyncio.run(go())
+    assert len(queries) == 1 and f'resource.service.name = "{service}"' in queries[0]
+    assert voice[0].attrs["kronk.trace_id"] == "abc".zfill(32)
+
+
+def test_dev_runs_are_emitted_under_the_dev_service_name(run, tmp_path, monkeypatch):
+    monkeypatch.setattr(vt, "STATE_FILE", str(tmp_path / "state.json"))
+    prod_exp, dev_exp = InMemorySpanExporter(), InMemorySpanExporter()
+    tracer = vt.VoiceTracer(emitter=vt.Emitter(exporter=prod_exp, batch=False),
+                            dev_emitter=vt.Emitter(exporter=dev_exp, batch=False, service_name=vt.DEV_SERVICE_NAME))
+    for rid, name in (("01DEVRUN", "kronk-dev"), ("01PRODRUN", "kronk")):
+        specs = convert.assign_ids("pipeline", rid, convert.pipeline_run_spans(run, rid, name))
+        tracer._emit(specs, f"pipeline:{rid}")
+    dev = {s.resource.attributes["service.name"] for s in dev_exp.get_finished_spans()}
+    prod = {s.resource.attributes["service.name"] for s in prod_exp.get_finished_spans()}
+    assert dev == {"kronk-voice-tracer-dev"} and prod == {"kronk-voice-tracer"}
+    assert {s.attributes.get("ha.pipeline_name") for s in dev_exp.get_finished_spans() if s.name == "voice.run"} == {"kronk-dev"}
+    assert {s.attributes.get("ha.pipeline_name") for s in prod_exp.get_finished_spans() if s.name == "voice.run"} == {"kronk"}
+
+
+def test_without_a_dev_emitter_dev_runs_use_the_main_one(run, tmp_path, monkeypatch):
+    monkeypatch.setattr(vt, "STATE_FILE", str(tmp_path / "state.json"))
+    exp = InMemorySpanExporter()
+    tracer = vt.VoiceTracer(emitter=vt.Emitter(exporter=exp, batch=False))
+    specs = convert.assign_ids("pipeline", "01DEVRUN", convert.pipeline_run_spans(run, "01DEVRUN", "kronk-dev"))
+    tracer._emit(specs, "pipeline:01DEVRUN")
+    assert any(s.name == "voice.run" for s in exp.get_finished_spans())
