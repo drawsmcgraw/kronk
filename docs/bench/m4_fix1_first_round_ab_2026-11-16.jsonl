@@ -1,0 +1,840 @@
+{"run": 1, "menu": "v1 (devops only)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 1, "menu": "v2 (devops + home)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 1, "menu": "v3 (alt devops)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 1, "menu": "v1 (devops only)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 1, "menu": "v2 (devops + home)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 1, "menu": "v3 (alt devops)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 1, "menu": "v1 (devops only)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 1, "menu": "v2 (devops + home)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 1, "menu": "v3 (alt devops)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 1, "menu": "v1 (devops only)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 1, "menu": "v2 (devops + home)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 1, "menu": "v3 (alt devops)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 1, "menu": "v1 (devops only)", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 1, "menu": "v2 (devops + home)", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 1, "menu": "v3 (alt devops)", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 1, "menu": "v1 (devops only)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 1, "menu": "v2 (devops + home)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 1, "menu": "v3 (alt devops)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 1, "menu": "v1 (devops only)", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "screen"}
+{"run": 1, "menu": "v2 (devops + home)", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "screen"}
+{"run": 1, "menu": "v3 (alt devops)", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "screen"}
+{"run": 1, "menu": "v1 (devops only)", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "screen"}
+{"run": 1, "menu": "v2 (devops + home)", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "screen"}
+{"run": 1, "menu": "v3 (alt devops)", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "screen"}
+{"run": 1, "menu": "v1 (devops only)", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "screen"}
+{"run": 1, "menu": "v2 (devops + home)", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "screen"}
+{"run": 1, "menu": "v3 (alt devops)", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "screen"}
+{"run": 2, "menu": "v1 (devops only)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 2, "menu": "v2 (devops + home)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 2, "menu": "v3 (alt devops)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 2, "menu": "v1 (devops only)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 2, "menu": "v2 (devops + home)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 2, "menu": "v3 (alt devops)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 2, "menu": "v1 (devops only)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 2, "menu": "v2 (devops + home)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 2, "menu": "v3 (alt devops)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 2, "menu": "v1 (devops only)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 2, "menu": "v2 (devops + home)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 2, "menu": "v3 (alt devops)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 2, "menu": "v1 (devops only)", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 2, "menu": "v2 (devops + home)", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 2, "menu": "v3 (alt devops)", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 2, "menu": "v1 (devops only)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 2, "menu": "v2 (devops + home)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 2, "menu": "v3 (alt devops)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 2, "menu": "v1 (devops only)", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "screen"}
+{"run": 2, "menu": "v2 (devops + home)", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "screen"}
+{"run": 2, "menu": "v3 (alt devops)", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "screen"}
+{"run": 2, "menu": "v1 (devops only)", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "screen"}
+{"run": 2, "menu": "v2 (devops + home)", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "screen"}
+{"run": 2, "menu": "v3 (alt devops)", "sentence": "how long has the mirror been up?", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 2, "menu": "v1 (devops only)", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "screen"}
+{"run": 2, "menu": "v2 (devops + home)", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "screen"}
+{"run": 2, "menu": "v3 (alt devops)", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "screen"}
+{"run": 3, "menu": "v1 (devops only)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 3, "menu": "v2 (devops + home)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 3, "menu": "v3 (alt devops)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 3, "menu": "v1 (devops only)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 3, "menu": "v2 (devops + home)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 3, "menu": "v3 (alt devops)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 3, "menu": "v1 (devops only)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 3, "menu": "v2 (devops + home)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 3, "menu": "v3 (alt devops)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 3, "menu": "v1 (devops only)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 3, "menu": "v2 (devops + home)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 3, "menu": "v3 (alt devops)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 3, "menu": "v1 (devops only)", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 3, "menu": "v2 (devops + home)", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 3, "menu": "v3 (alt devops)", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 3, "menu": "v1 (devops only)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 3, "menu": "v2 (devops + home)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 3, "menu": "v3 (alt devops)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 3, "menu": "v1 (devops only)", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "screen"}
+{"run": 3, "menu": "v2 (devops + home)", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "screen"}
+{"run": 3, "menu": "v3 (alt devops)", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "screen"}
+{"run": 3, "menu": "v1 (devops only)", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "screen"}
+{"run": 3, "menu": "v2 (devops + home)", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "screen"}
+{"run": 3, "menu": "v3 (alt devops)", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "screen"}
+{"run": 3, "menu": "v1 (devops only)", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "screen"}
+{"run": 3, "menu": "v2 (devops + home)", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "screen"}
+{"run": 3, "menu": "v3 (alt devops)", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "screen"}
+{"run": 4, "menu": "v1 (devops only)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 4, "menu": "v2 (devops + home)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 4, "menu": "v3 (alt devops)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 4, "menu": "v1 (devops only)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 4, "menu": "v2 (devops + home)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 4, "menu": "v3 (alt devops)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 4, "menu": "v1 (devops only)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 4, "menu": "v2 (devops + home)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 4, "menu": "v3 (alt devops)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 4, "menu": "v1 (devops only)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 4, "menu": "v2 (devops + home)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 4, "menu": "v3 (alt devops)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 4, "menu": "v1 (devops only)", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 4, "menu": "v2 (devops + home)", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 4, "menu": "v3 (alt devops)", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 4, "menu": "v1 (devops only)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 4, "menu": "v2 (devops + home)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 4, "menu": "v3 (alt devops)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 4, "menu": "v1 (devops only)", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "screen"}
+{"run": 4, "menu": "v2 (devops + home)", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "screen"}
+{"run": 4, "menu": "v3 (alt devops)", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "screen"}
+{"run": 4, "menu": "v1 (devops only)", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "screen"}
+{"run": 4, "menu": "v2 (devops + home)", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "screen"}
+{"run": 4, "menu": "v3 (alt devops)", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "screen"}
+{"run": 4, "menu": "v1 (devops only)", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "screen"}
+{"run": 4, "menu": "v2 (devops + home)", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "screen"}
+{"run": 4, "menu": "v3 (alt devops)", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "screen"}
+{"run": 5, "menu": "v1 (devops only)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 5, "menu": "v2 (devops + home)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 5, "menu": "v3 (alt devops)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 5, "menu": "v1 (devops only)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 5, "menu": "v2 (devops + home)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 5, "menu": "v3 (alt devops)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 5, "menu": "v1 (devops only)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 5, "menu": "v2 (devops + home)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 5, "menu": "v3 (alt devops)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 5, "menu": "v1 (devops only)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 5, "menu": "v2 (devops + home)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 5, "menu": "v3 (alt devops)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 5, "menu": "v1 (devops only)", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 5, "menu": "v2 (devops + home)", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 5, "menu": "v3 (alt devops)", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 5, "menu": "v1 (devops only)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 5, "menu": "v2 (devops + home)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 5, "menu": "v3 (alt devops)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "screen"}
+{"run": 5, "menu": "v1 (devops only)", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "screen"}
+{"run": 5, "menu": "v2 (devops + home)", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "screen"}
+{"run": 5, "menu": "v3 (alt devops)", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "screen"}
+{"run": 5, "menu": "v1 (devops only)", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "screen"}
+{"run": 5, "menu": "v2 (devops + home)", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "screen"}
+{"run": 5, "menu": "v3 (alt devops)", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "screen"}
+{"run": 5, "menu": "v1 (devops only)", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "screen"}
+{"run": 5, "menu": "v2 (devops + home)", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "screen"}
+{"run": 5, "menu": "v3 (alt devops)", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "screen"}
+{"run": 1, "menu": "old (e674aa8)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 1, "menu": "v1 (devops only)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 1, "menu": "old (e674aa8)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 1, "menu": "v1 (devops only)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 1, "menu": "old (e674aa8)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 1, "menu": "v1 (devops only)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 1, "menu": "old (e674aa8)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 1, "menu": "v1 (devops only)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 1, "menu": "old (e674aa8)", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 1, "menu": "v1 (devops only)", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 1, "menu": "old (e674aa8)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 1, "menu": "v1 (devops only)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 1, "menu": "old (e674aa8)", "sentence": "check the uptime on the mirror", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 1, "menu": "v1 (devops only)", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "full"}
+{"run": 1, "menu": "old (e674aa8)", "sentence": "how long has the mirror been up?", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 1, "menu": "v1 (devops only)", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "full"}
+{"run": 1, "menu": "old (e674aa8)", "sentence": "show me the mirror's logs", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 1, "menu": "v1 (devops only)", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "full"}
+{"run": 1, "menu": "old (e674aa8)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 1, "menu": "v1 (devops only)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 1, "menu": "old (e674aa8)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 1, "menu": "v1 (devops only)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 2, "menu": "old (e674aa8)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 2, "menu": "v1 (devops only)", "sentence": "please upgrade the mirror to the latest version", "pick": "direct", "said": "I cannot upgrade the magic mirror. I can only manage its current state, such as displaying information or controlling its playback.", "batch": "full"}
+{"run": 2, "menu": "old (e674aa8)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 2, "menu": "v1 (devops only)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 2, "menu": "old (e674aa8)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 2, "menu": "v1 (devops only)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 2, "menu": "old (e674aa8)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 2, "menu": "v1 (devops only)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 2, "menu": "old (e674aa8)", "sentence": "can you upgrade the mirror software?", "pick": "ask_assistant", "said": "", "batch": "full"}
+{"run": 2, "menu": "v1 (devops only)", "sentence": "can you upgrade the mirror software?", "pick": "direct", "said": "I cannot upgrade the mirror software. I can check its current status and logs, but I do not perform system upgrades.", "batch": "full"}
+{"run": 2, "menu": "old (e674aa8)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 2, "menu": "v1 (devops only)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 2, "menu": "old (e674aa8)", "sentence": "check the uptime on the mirror", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 2, "menu": "v1 (devops only)", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "full"}
+{"run": 2, "menu": "old (e674aa8)", "sentence": "how long has the mirror been up?", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 2, "menu": "v1 (devops only)", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "full"}
+{"run": 2, "menu": "old (e674aa8)", "sentence": "show me the mirror's logs", "pick": "direct", "said": "I do not have access to device logs.", "batch": "full"}
+{"run": 2, "menu": "v1 (devops only)", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "full"}
+{"run": 2, "menu": "old (e674aa8)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 2, "menu": "v1 (devops only)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "direct", "said": "The available music commands do not support specific searches on external platforms like YouTube Music. I can only play music through the current speaker's libr", "batch": "full"}
+{"run": 2, "menu": "old (e674aa8)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 2, "menu": "v1 (devops only)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 3, "menu": "old (e674aa8)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 3, "menu": "v1 (devops only)", "sentence": "please upgrade the mirror to the latest version", "pick": "direct", "said": "I cannot upgrade the magic mirror.", "batch": "full"}
+{"run": 3, "menu": "old (e674aa8)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 3, "menu": "v1 (devops only)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 3, "menu": "old (e674aa8)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 3, "menu": "v1 (devops only)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 3, "menu": "old (e674aa8)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 3, "menu": "v1 (devops only)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 3, "menu": "old (e674aa8)", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 3, "menu": "v1 (devops only)", "sentence": "can you upgrade the mirror software?", "pick": "direct", "said": "I cannot upgrade the mirror software. That task is outside of my capabilities.", "batch": "full"}
+{"run": 3, "menu": "old (e674aa8)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 3, "menu": "v1 (devops only)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 3, "menu": "old (e674aa8)", "sentence": "check the uptime on the mirror", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 3, "menu": "v1 (devops only)", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "full"}
+{"run": 3, "menu": "old (e674aa8)", "sentence": "how long has the mirror been up?", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 3, "menu": "v1 (devops only)", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "full"}
+{"run": 3, "menu": "old (e674aa8)", "sentence": "show me the mirror's logs", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 3, "menu": "v1 (devops only)", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "full"}
+{"run": 3, "menu": "old (e674aa8)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 3, "menu": "v1 (devops only)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 3, "menu": "old (e674aa8)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_research", "said": "", "batch": "full"}
+{"run": 3, "menu": "v1 (devops only)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 4, "menu": "old (e674aa8)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 4, "menu": "v1 (devops only)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 4, "menu": "old (e674aa8)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 4, "menu": "v1 (devops only)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 4, "menu": "old (e674aa8)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 4, "menu": "v1 (devops only)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 4, "menu": "old (e674aa8)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 4, "menu": "v1 (devops only)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 4, "menu": "old (e674aa8)", "sentence": "can you upgrade the mirror software?", "pick": "ask_assistant", "said": "", "batch": "full"}
+{"run": 4, "menu": "v1 (devops only)", "sentence": "can you upgrade the mirror software?", "pick": "direct", "said": "I cannot upgrade the mirror software. I can only provide read-only status checks and logs.", "batch": "full"}
+{"run": 4, "menu": "old (e674aa8)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 4, "menu": "v1 (devops only)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 4, "menu": "old (e674aa8)", "sentence": "check the uptime on the mirror", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 4, "menu": "v1 (devops only)", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "full"}
+{"run": 4, "menu": "old (e674aa8)", "sentence": "how long has the mirror been up?", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 4, "menu": "v1 (devops only)", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "full"}
+{"run": 4, "menu": "old (e674aa8)", "sentence": "show me the mirror's logs", "pick": "ask_home", "said": "Consult the magic mirror's configuration and status logs using the home specialist.", "batch": "full"}
+{"run": 4, "menu": "v1 (devops only)", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "full"}
+{"run": 4, "menu": "old (e674aa8)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 4, "menu": "v1 (devops only)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 4, "menu": "old (e674aa8)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 4, "menu": "v1 (devops only)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 5, "menu": "old (e674aa8)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 5, "menu": "v1 (devops only)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 5, "menu": "old (e674aa8)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 5, "menu": "v1 (devops only)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 5, "menu": "old (e674aa8)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 5, "menu": "v1 (devops only)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 5, "menu": "old (e674aa8)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 5, "menu": "v1 (devops only)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 5, "menu": "old (e674aa8)", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 5, "menu": "v1 (devops only)", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 5, "menu": "old (e674aa8)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 5, "menu": "v1 (devops only)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 5, "menu": "old (e674aa8)", "sentence": "check the uptime on the mirror", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 5, "menu": "v1 (devops only)", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "full"}
+{"run": 5, "menu": "old (e674aa8)", "sentence": "how long has the mirror been up?", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 5, "menu": "v1 (devops only)", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "full"}
+{"run": 5, "menu": "old (e674aa8)", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "full"}
+{"run": 5, "menu": "v1 (devops only)", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "full"}
+{"run": 5, "menu": "old (e674aa8)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 5, "menu": "v1 (devops only)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 5, "menu": "old (e674aa8)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 5, "menu": "v1 (devops only)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 6, "menu": "old (e674aa8)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 6, "menu": "v1 (devops only)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 6, "menu": "old (e674aa8)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 6, "menu": "v1 (devops only)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 6, "menu": "old (e674aa8)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 6, "menu": "v1 (devops only)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 6, "menu": "old (e674aa8)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 6, "menu": "v1 (devops only)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 6, "menu": "old (e674aa8)", "sentence": "can you upgrade the mirror software?", "pick": "direct", "said": "I do not have the capability to directly upgrade software. I can only interact with the mirror's functions and display information.", "batch": "full"}
+{"run": 6, "menu": "v1 (devops only)", "sentence": "can you upgrade the mirror software?", "pick": "direct", "said": "I do not have the capability to update or upgrade the magic mirror software. That function requires developer access.", "batch": "full"}
+{"run": 6, "menu": "old (e674aa8)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 6, "menu": "v1 (devops only)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 6, "menu": "old (e674aa8)", "sentence": "check the uptime on the mirror", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 6, "menu": "v1 (devops only)", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "full"}
+{"run": 6, "menu": "old (e674aa8)", "sentence": "how long has the mirror been up?", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 6, "menu": "v1 (devops only)", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "full"}
+{"run": 6, "menu": "old (e674aa8)", "sentence": "show me the mirror's logs", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 6, "menu": "v1 (devops only)", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "full"}
+{"run": 6, "menu": "old (e674aa8)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 6, "menu": "v1 (devops only)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 6, "menu": "old (e674aa8)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 6, "menu": "v1 (devops only)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 7, "menu": "old (e674aa8)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 7, "menu": "v1 (devops only)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 7, "menu": "old (e674aa8)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 7, "menu": "v1 (devops only)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 7, "menu": "old (e674aa8)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 7, "menu": "v1 (devops only)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 7, "menu": "old (e674aa8)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 7, "menu": "v1 (devops only)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 7, "menu": "old (e674aa8)", "sentence": "can you upgrade the mirror software?", "pick": "ask_devops", "said": "", "batch": "full"}
+{"run": 7, "menu": "v1 (devops only)", "sentence": "can you upgrade the mirror software?", "pick": "direct", "said": "I cannot upgrade the mirror software.", "batch": "full"}
+{"run": 7, "menu": "old (e674aa8)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 7, "menu": "v1 (devops only)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 7, "menu": "old (e674aa8)", "sentence": "check the uptime on the mirror", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 7, "menu": "v1 (devops only)", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "full"}
+{"run": 7, "menu": "old (e674aa8)", "sentence": "how long has the mirror been up?", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 7, "menu": "v1 (devops only)", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "full"}
+{"run": 7, "menu": "old (e674aa8)", "sentence": "show me the mirror's logs", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 7, "menu": "v1 (devops only)", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "full"}
+{"run": 7, "menu": "old (e674aa8)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 7, "menu": "v1 (devops only)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 7, "menu": "old (e674aa8)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 7, "menu": "v1 (devops only)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 8, "menu": "old (e674aa8)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 8, "menu": "v1 (devops only)", "sentence": "please upgrade the mirror to the latest version", "pick": "direct", "said": "I can't perform the upgrade; I can only update its current software version.", "batch": "full"}
+{"run": 8, "menu": "old (e674aa8)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 8, "menu": "v1 (devops only)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 8, "menu": "old (e674aa8)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 8, "menu": "v1 (devops only)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 8, "menu": "old (e674aa8)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 8, "menu": "v1 (devops only)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 8, "menu": "old (e674aa8)", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 8, "menu": "v1 (devops only)", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 8, "menu": "old (e674aa8)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 8, "menu": "v1 (devops only)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 8, "menu": "old (e674aa8)", "sentence": "check the uptime on the mirror", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 8, "menu": "v1 (devops only)", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "full"}
+{"run": 8, "menu": "old (e674aa8)", "sentence": "how long has the mirror been up?", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 8, "menu": "v1 (devops only)", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "full"}
+{"run": 8, "menu": "old (e674aa8)", "sentence": "show me the mirror's logs", "pick": "direct", "said": "I cannot access the Magic Mirror's logs.", "batch": "full"}
+{"run": 8, "menu": "v1 (devops only)", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "full"}
+{"run": 8, "menu": "old (e674aa8)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 8, "menu": "v1 (devops only)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 8, "menu": "old (e674aa8)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 8, "menu": "v1 (devops only)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 9, "menu": "old (e674aa8)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 9, "menu": "v1 (devops only)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 9, "menu": "old (e674aa8)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 9, "menu": "v1 (devops only)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 9, "menu": "old (e674aa8)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 9, "menu": "v1 (devops only)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 9, "menu": "old (e674aa8)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 9, "menu": "v1 (devops only)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 9, "menu": "old (e674aa8)", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 9, "menu": "v1 (devops only)", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "I can update the mirror software.\n", "batch": "full"}
+{"run": 9, "menu": "old (e674aa8)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 9, "menu": "v1 (devops only)", "sentence": "install the latest mirror update", "pick": "direct", "said": "I can only perform read-only checks on the magic mirror, such as checking its status, uptime, or logs. I cannot perform updates or installations.", "batch": "full"}
+{"run": 9, "menu": "old (e674aa8)", "sentence": "check the uptime on the mirror", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 9, "menu": "v1 (devops only)", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "full"}
+{"run": 9, "menu": "old (e674aa8)", "sentence": "how long has the mirror been up?", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 9, "menu": "v1 (devops only)", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "full"}
+{"run": 9, "menu": "old (e674aa8)", "sentence": "show me the mirror's logs", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 9, "menu": "v1 (devops only)", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "full"}
+{"run": 9, "menu": "old (e674aa8)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 9, "menu": "v1 (devops only)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 9, "menu": "old (e674aa8)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 9, "menu": "v1 (devops only)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 10, "menu": "old (e674aa8)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 10, "menu": "v1 (devops only)", "sentence": "please upgrade the mirror to the latest version", "pick": "direct", "said": "I can update the magic mirror, but upgrading it is outside of my capabilities.", "batch": "full"}
+{"run": 10, "menu": "old (e674aa8)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 10, "menu": "v1 (devops only)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 10, "menu": "old (e674aa8)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 10, "menu": "v1 (devops only)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 10, "menu": "old (e674aa8)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 10, "menu": "v1 (devops only)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 10, "menu": "old (e674aa8)", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 10, "menu": "v1 (devops only)", "sentence": "can you upgrade the mirror software?", "pick": "direct", "said": "I cannot upgrade the mirror software. I only have read-only access to the mirror's status, logs, and uptime. I cannot update or modify its software.", "batch": "full"}
+{"run": 10, "menu": "old (e674aa8)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 10, "menu": "v1 (devops only)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 10, "menu": "old (e674aa8)", "sentence": "check the uptime on the mirror", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 10, "menu": "v1 (devops only)", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "full"}
+{"run": 10, "menu": "old (e674aa8)", "sentence": "how long has the mirror been up?", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 10, "menu": "v1 (devops only)", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "full"}
+{"run": 10, "menu": "old (e674aa8)", "sentence": "show me the mirror's logs", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 10, "menu": "v1 (devops only)", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "full"}
+{"run": 10, "menu": "old (e674aa8)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 10, "menu": "v1 (devops only)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 10, "menu": "old (e674aa8)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 10, "menu": "v1 (devops only)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 11, "menu": "old (e674aa8)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 11, "menu": "v1 (devops only)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 11, "menu": "old (e674aa8)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 11, "menu": "v1 (devops only)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 11, "menu": "old (e674aa8)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 11, "menu": "v1 (devops only)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 11, "menu": "old (e674aa8)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 11, "menu": "v1 (devops only)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 11, "menu": "old (e674aa8)", "sentence": "can you upgrade the mirror software?", "pick": "ask_assistant", "said": "I will ask the assistant specialist about the mirror software upgrade.\n\n", "batch": "full"}
+{"run": 11, "menu": "v1 (devops only)", "sentence": "can you upgrade the mirror software?", "pick": "direct", "said": "I cannot upgrade the mirror software.", "batch": "full"}
+{"run": 11, "menu": "old (e674aa8)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 11, "menu": "v1 (devops only)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 11, "menu": "old (e674aa8)", "sentence": "check the uptime on the mirror", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 11, "menu": "v1 (devops only)", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "full"}
+{"run": 11, "menu": "old (e674aa8)", "sentence": "how long has the mirror been up?", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 11, "menu": "v1 (devops only)", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "full"}
+{"run": 11, "menu": "old (e674aa8)", "sentence": "show me the mirror's logs", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 11, "menu": "v1 (devops only)", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "full"}
+{"run": 11, "menu": "old (e674aa8)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 11, "menu": "v1 (devops only)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 11, "menu": "old (e674aa8)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "direct", "said": "ask_home{query:<|\"|>Search for deep house chill music on YouTube Music<|\"|>}<tool_call|>", "batch": "full"}
+{"run": 11, "menu": "v1 (devops only)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 12, "menu": "old (e674aa8)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 12, "menu": "v1 (devops only)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 12, "menu": "old (e674aa8)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 12, "menu": "v1 (devops only)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 12, "menu": "old (e674aa8)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 12, "menu": "v1 (devops only)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 12, "menu": "old (e674aa8)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 12, "menu": "v1 (devops only)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 12, "menu": "old (e674aa8)", "sentence": "can you upgrade the mirror software?", "pick": "ask_assistant", "said": "", "batch": "full"}
+{"run": 12, "menu": "v1 (devops only)", "sentence": "can you upgrade the mirror software?", "pick": "direct", "said": "I can direct that request to the appropriate specialist. Please confirm if you would like me to proceed with the upgrade command.", "batch": "full"}
+{"run": 12, "menu": "old (e674aa8)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 12, "menu": "v1 (devops only)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 12, "menu": "old (e674aa8)", "sentence": "check the uptime on the mirror", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 12, "menu": "v1 (devops only)", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "full"}
+{"run": 12, "menu": "old (e674aa8)", "sentence": "how long has the mirror been up?", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 12, "menu": "v1 (devops only)", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "full"}
+{"run": 12, "menu": "old (e674aa8)", "sentence": "show me the mirror's logs", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 12, "menu": "v1 (devops only)", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "full"}
+{"run": 12, "menu": "old (e674aa8)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 12, "menu": "v1 (devops only)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 12, "menu": "old (e674aa8)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 12, "menu": "v1 (devops only)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 13, "menu": "old (e674aa8)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 13, "menu": "v1 (devops only)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 13, "menu": "old (e674aa8)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 13, "menu": "v1 (devops only)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 13, "menu": "old (e674aa8)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 13, "menu": "v1 (devops only)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 13, "menu": "old (e674aa8)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 13, "menu": "v1 (devops only)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 13, "menu": "old (e674aa8)", "sentence": "can you upgrade the mirror software?", "pick": "ask_assistant", "said": "", "batch": "full"}
+{"run": 13, "menu": "v1 (devops only)", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 13, "menu": "old (e674aa8)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 13, "menu": "v1 (devops only)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 13, "menu": "old (e674aa8)", "sentence": "check the uptime on the mirror", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 13, "menu": "v1 (devops only)", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "full"}
+{"run": 13, "menu": "old (e674aa8)", "sentence": "how long has the mirror been up?", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 13, "menu": "v1 (devops only)", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "full"}
+{"run": 13, "menu": "old (e674aa8)", "sentence": "show me the mirror's logs", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 13, "menu": "v1 (devops only)", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "full"}
+{"run": 13, "menu": "old (e674aa8)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 13, "menu": "v1 (devops only)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 13, "menu": "old (e674aa8)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 13, "menu": "v1 (devops only)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_research", "said": "", "batch": "full"}
+{"run": 14, "menu": "old (e674aa8)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 14, "menu": "v1 (devops only)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 14, "menu": "old (e674aa8)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 14, "menu": "v1 (devops only)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 14, "menu": "old (e674aa8)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 14, "menu": "v1 (devops only)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 14, "menu": "old (e674aa8)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 14, "menu": "v1 (devops only)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 14, "menu": "old (e674aa8)", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 14, "menu": "v1 (devops only)", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 14, "menu": "old (e674aa8)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 14, "menu": "v1 (devops only)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 14, "menu": "old (e674aa8)", "sentence": "check the uptime on the mirror", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 14, "menu": "v1 (devops only)", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "full"}
+{"run": 14, "menu": "old (e674aa8)", "sentence": "how long has the mirror been up?", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 14, "menu": "v1 (devops only)", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "full"}
+{"run": 14, "menu": "old (e674aa8)", "sentence": "show me the mirror's logs", "pick": "ask_assistant", "said": "", "batch": "full"}
+{"run": 14, "menu": "v1 (devops only)", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "full"}
+{"run": 14, "menu": "old (e674aa8)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 14, "menu": "v1 (devops only)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 14, "menu": "old (e674aa8)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 14, "menu": "v1 (devops only)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 15, "menu": "old (e674aa8)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 15, "menu": "v1 (devops only)", "sentence": "please upgrade the mirror to the latest version", "pick": "direct", "said": "I do not have the ability to upgrade the mirror to a new version.", "batch": "full"}
+{"run": 15, "menu": "old (e674aa8)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 15, "menu": "v1 (devops only)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 15, "menu": "old (e674aa8)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 15, "menu": "v1 (devops only)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 15, "menu": "old (e674aa8)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 15, "menu": "v1 (devops only)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 15, "menu": "old (e674aa8)", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 15, "menu": "v1 (devops only)", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 15, "menu": "old (e674aa8)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 15, "menu": "v1 (devops only)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 15, "menu": "old (e674aa8)", "sentence": "check the uptime on the mirror", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 15, "menu": "v1 (devops only)", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "full"}
+{"run": 15, "menu": "old (e674aa8)", "sentence": "how long has the mirror been up?", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 15, "menu": "v1 (devops only)", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "full"}
+{"run": 15, "menu": "old (e674aa8)", "sentence": "show me the mirror's logs", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 15, "menu": "v1 (devops only)", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "full"}
+{"run": 15, "menu": "old (e674aa8)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 15, "menu": "v1 (devops only)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 15, "menu": "old (e674aa8)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "full"}
+{"run": 15, "menu": "v1 (devops only)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_research", "said": "", "batch": "full"}
+{"run": 1, "menu": "v2 (devops + home)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 1, "menu": "v2 (devops + home)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 1, "menu": "v2 (devops + home)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 1, "menu": "v2 (devops + home)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 1, "menu": "v2 (devops + home)", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 1, "menu": "v2 (devops + home)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 1, "menu": "v2 (devops + home)", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "v2"}
+{"run": 1, "menu": "v2 (devops + home)", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "v2"}
+{"run": 1, "menu": "v2 (devops + home)", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "v2"}
+{"run": 1, "menu": "v2 (devops + home)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 1, "menu": "v2 (devops + home)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_research", "said": "", "batch": "v2"}
+{"run": 2, "menu": "v2 (devops + home)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 2, "menu": "v2 (devops + home)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 2, "menu": "v2 (devops + home)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 2, "menu": "v2 (devops + home)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 2, "menu": "v2 (devops + home)", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 2, "menu": "v2 (devops + home)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 2, "menu": "v2 (devops + home)", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "v2"}
+{"run": 2, "menu": "v2 (devops + home)", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "v2"}
+{"run": 2, "menu": "v2 (devops + home)", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "v2"}
+{"run": 2, "menu": "v2 (devops + home)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 2, "menu": "v2 (devops + home)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 3, "menu": "v2 (devops + home)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 3, "menu": "v2 (devops + home)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 3, "menu": "v2 (devops + home)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 3, "menu": "v2 (devops + home)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 3, "menu": "v2 (devops + home)", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 3, "menu": "v2 (devops + home)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 3, "menu": "v2 (devops + home)", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "v2"}
+{"run": 3, "menu": "v2 (devops + home)", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "v2"}
+{"run": 3, "menu": "v2 (devops + home)", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "v2"}
+{"run": 3, "menu": "v2 (devops + home)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 3, "menu": "v2 (devops + home)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 4, "menu": "v2 (devops + home)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 4, "menu": "v2 (devops + home)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 4, "menu": "v2 (devops + home)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 4, "menu": "v2 (devops + home)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 4, "menu": "v2 (devops + home)", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 4, "menu": "v2 (devops + home)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 4, "menu": "v2 (devops + home)", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "v2"}
+{"run": 4, "menu": "v2 (devops + home)", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "v2"}
+{"run": 4, "menu": "v2 (devops + home)", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "v2"}
+{"run": 4, "menu": "v2 (devops + home)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 4, "menu": "v2 (devops + home)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 5, "menu": "v2 (devops + home)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 5, "menu": "v2 (devops + home)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 5, "menu": "v2 (devops + home)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 5, "menu": "v2 (devops + home)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 5, "menu": "v2 (devops + home)", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 5, "menu": "v2 (devops + home)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 5, "menu": "v2 (devops + home)", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "v2"}
+{"run": 5, "menu": "v2 (devops + home)", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "v2"}
+{"run": 5, "menu": "v2 (devops + home)", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "v2"}
+{"run": 5, "menu": "v2 (devops + home)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 5, "menu": "v2 (devops + home)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_research", "said": "", "batch": "v2"}
+{"run": 6, "menu": "v2 (devops + home)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 6, "menu": "v2 (devops + home)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 6, "menu": "v2 (devops + home)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 6, "menu": "v2 (devops + home)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 6, "menu": "v2 (devops + home)", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 6, "menu": "v2 (devops + home)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 6, "menu": "v2 (devops + home)", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "v2"}
+{"run": 6, "menu": "v2 (devops + home)", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "v2"}
+{"run": 6, "menu": "v2 (devops + home)", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "v2"}
+{"run": 6, "menu": "v2 (devops + home)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 6, "menu": "v2 (devops + home)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_research", "said": "", "batch": "v2"}
+{"run": 7, "menu": "v2 (devops + home)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 7, "menu": "v2 (devops + home)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 7, "menu": "v2 (devops + home)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 7, "menu": "v2 (devops + home)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 7, "menu": "v2 (devops + home)", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 7, "menu": "v2 (devops + home)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 7, "menu": "v2 (devops + home)", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "v2"}
+{"run": 7, "menu": "v2 (devops + home)", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "v2"}
+{"run": 7, "menu": "v2 (devops + home)", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "v2"}
+{"run": 7, "menu": "v2 (devops + home)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 7, "menu": "v2 (devops + home)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 8, "menu": "v2 (devops + home)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 8, "menu": "v2 (devops + home)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 8, "menu": "v2 (devops + home)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 8, "menu": "v2 (devops + home)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 8, "menu": "v2 (devops + home)", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 8, "menu": "v2 (devops + home)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 8, "menu": "v2 (devops + home)", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "v2"}
+{"run": 8, "menu": "v2 (devops + home)", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "v2"}
+{"run": 8, "menu": "v2 (devops + home)", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "v2"}
+{"run": 8, "menu": "v2 (devops + home)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 8, "menu": "v2 (devops + home)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 9, "menu": "v2 (devops + home)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 9, "menu": "v2 (devops + home)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 9, "menu": "v2 (devops + home)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 9, "menu": "v2 (devops + home)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 9, "menu": "v2 (devops + home)", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 9, "menu": "v2 (devops + home)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 9, "menu": "v2 (devops + home)", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "v2"}
+{"run": 9, "menu": "v2 (devops + home)", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "v2"}
+{"run": 9, "menu": "v2 (devops + home)", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "v2"}
+{"run": 9, "menu": "v2 (devops + home)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "playing music and controlling playback (stop, pause, resume, skip, volume)\". It doesn't explicitly mention complex searches on external platforms like YouTube M", "batch": "v2"}
+{"run": 9, "menu": "v2 (devops + home)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 10, "menu": "v2 (devops + home)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 10, "menu": "v2 (devops + home)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 10, "menu": "v2 (devops + home)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 10, "menu": "v2 (devops + home)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 10, "menu": "v2 (devops + home)", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 10, "menu": "v2 (devops + home)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 10, "menu": "v2 (devops + home)", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "v2"}
+{"run": 10, "menu": "v2 (devops + home)", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "v2"}
+{"run": 10, "menu": "v2 (devops + home)", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "v2"}
+{"run": 10, "menu": "v2 (devops + home)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "direct", "said": "I cannot directly search YouTube Music and then play the specific tracks. I can only play music through the device's speaker based on a predefined list or a dir", "batch": "v2"}
+{"run": 10, "menu": "v2 (devops + home)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 11, "menu": "v2 (devops + home)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 11, "menu": "v2 (devops + home)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 11, "menu": "v2 (devops + home)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 11, "menu": "v2 (devops + home)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 11, "menu": "v2 (devops + home)", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 11, "menu": "v2 (devops + home)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 11, "menu": "v2 (devops + home)", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "v2"}
+{"run": 11, "menu": "v2 (devops + home)", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "v2"}
+{"run": 11, "menu": "v2 (devops + home)", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "v2"}
+{"run": 11, "menu": "v2 (devops + home)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 11, "menu": "v2 (devops + home)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 12, "menu": "v2 (devops + home)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 12, "menu": "v2 (devops + home)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 12, "menu": "v2 (devops + home)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 12, "menu": "v2 (devops + home)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 12, "menu": "v2 (devops + home)", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 12, "menu": "v2 (devops + home)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 12, "menu": "v2 (devops + home)", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "v2"}
+{"run": 12, "menu": "v2 (devops + home)", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "v2"}
+{"run": 12, "menu": "v2 (devops + home)", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "v2"}
+{"run": 12, "menu": "v2 (devops + home)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 12, "menu": "v2 (devops + home)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 13, "menu": "v2 (devops + home)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 13, "menu": "v2 (devops + home)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 13, "menu": "v2 (devops + home)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 13, "menu": "v2 (devops + home)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 13, "menu": "v2 (devops + home)", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 13, "menu": "v2 (devops + home)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 13, "menu": "v2 (devops + home)", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "v2"}
+{"run": 13, "menu": "v2 (devops + home)", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "v2"}
+{"run": 13, "menu": "v2 (devops + home)", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "v2"}
+{"run": 13, "menu": "v2 (devops + home)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "direct", "said": "I cannot search or play music from YouTube Music directly. I can control the music playing on your speaker if you provide the title or artist.", "batch": "v2"}
+{"run": 13, "menu": "v2 (devops + home)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 14, "menu": "v2 (devops + home)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 14, "menu": "v2 (devops + home)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 14, "menu": "v2 (devops + home)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 14, "menu": "v2 (devops + home)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 14, "menu": "v2 (devops + home)", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 14, "menu": "v2 (devops + home)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 14, "menu": "v2 (devops + home)", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "v2"}
+{"run": 14, "menu": "v2 (devops + home)", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "v2"}
+{"run": 14, "menu": "v2 (devops + home)", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "v2"}
+{"run": 14, "menu": "v2 (devops + home)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 14, "menu": "v2 (devops + home)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 15, "menu": "v2 (devops + home)", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 15, "menu": "v2 (devops + home)", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 15, "menu": "v2 (devops + home)", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 15, "menu": "v2 (devops + home)", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 15, "menu": "v2 (devops + home)", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 15, "menu": "v2 (devops + home)", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 15, "menu": "v2 (devops + home)", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "v2"}
+{"run": 15, "menu": "v2 (devops + home)", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "v2"}
+{"run": 15, "menu": "v2 (devops + home)", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "v2"}
+{"run": 15, "menu": "v2 (devops + home)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 15, "menu": "v2 (devops + home)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "v2"}
+{"run": 1, "menu": "old (e674aa8)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 1, "menu": "v2 (devops + home)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 1, "menu": "old (e674aa8)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 1, "menu": "v2 (devops + home)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 2, "menu": "old (e674aa8)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 2, "menu": "v2 (devops + home)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 2, "menu": "old (e674aa8)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "direct", "said": "I can't search YouTube Music directly. I can help with playback commands, like turning it up or down, but I can't initiate a search query for you.", "batch": "yt"}
+{"run": 2, "menu": "v2 (devops + home)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 3, "menu": "old (e674aa8)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 3, "menu": "v2 (devops + home)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 3, "menu": "old (e674aa8)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 3, "menu": "v2 (devops + home)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_research", "said": "", "batch": "yt"}
+{"run": 4, "menu": "old (e674aa8)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 4, "menu": "v2 (devops + home)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 4, "menu": "old (e674aa8)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 4, "menu": "v2 (devops + home)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 5, "menu": "old (e674aa8)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 5, "menu": "v2 (devops + home)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 5, "menu": "old (e674aa8)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 5, "menu": "v2 (devops + home)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 6, "menu": "old (e674aa8)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 6, "menu": "v2 (devops + home)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "direct", "said": "I cannot search or play music from YouTube Music. I can control the music currently playing on your speaker.", "batch": "yt"}
+{"run": 6, "menu": "old (e674aa8)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 6, "menu": "v2 (devops + home)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 7, "menu": "old (e674aa8)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "direct", "said": "I am a music assistant, not a YouTube Music browser. I cannot search that specific platform for you. I can, however, play music from available services if you g", "batch": "yt"}
+{"run": 7, "menu": "v2 (devops + home)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 7, "menu": "old (e674aa8)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_research", "said": "", "batch": "yt"}
+{"run": 7, "menu": "v2 (devops + home)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 8, "menu": "old (e674aa8)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 8, "menu": "v2 (devops + home)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 8, "menu": "old (e674aa8)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 8, "menu": "v2 (devops + home)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 9, "menu": "old (e674aa8)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 9, "menu": "v2 (devops + home)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 9, "menu": "old (e674aa8)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 9, "menu": "v2 (devops + home)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_research", "said": "", "batch": "yt"}
+{"run": 10, "menu": "old (e674aa8)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 10, "menu": "v2 (devops + home)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 10, "menu": "old (e674aa8)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 10, "menu": "v2 (devops + home)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 11, "menu": "old (e674aa8)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 11, "menu": "v2 (devops + home)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 11, "menu": "old (e674aa8)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 11, "menu": "v2 (devops + home)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 12, "menu": "old (e674aa8)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 12, "menu": "v2 (devops + home)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 12, "menu": "old (e674aa8)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "direct", "said": "I am unable to search or play music directly from external platforms like YouTube Music. I can only control the music currently on the speaker system.", "batch": "yt"}
+{"run": 12, "menu": "v2 (devops + home)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 13, "menu": "old (e674aa8)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 13, "menu": "v2 (devops + home)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 13, "menu": "old (e674aa8)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 13, "menu": "v2 (devops + home)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 14, "menu": "old (e674aa8)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 14, "menu": "v2 (devops + home)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 14, "menu": "old (e674aa8)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 14, "menu": "v2 (devops + home)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 15, "menu": "old (e674aa8)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 15, "menu": "v2 (devops + home)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 15, "menu": "old (e674aa8)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 15, "menu": "v2 (devops + home)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 16, "menu": "old (e674aa8)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 16, "menu": "v2 (devops + home)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 16, "menu": "old (e674aa8)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 16, "menu": "v2 (devops + home)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 17, "menu": "old (e674aa8)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 17, "menu": "v2 (devops + home)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 17, "menu": "old (e674aa8)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 17, "menu": "v2 (devops + home)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 18, "menu": "old (e674aa8)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 18, "menu": "v2 (devops + home)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 18, "menu": "old (e674aa8)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 18, "menu": "v2 (devops + home)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 19, "menu": "old (e674aa8)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 19, "menu": "v2 (devops + home)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 19, "menu": "old (e674aa8)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 19, "menu": "v2 (devops + home)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 20, "menu": "old (e674aa8)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 20, "menu": "v2 (devops + home)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 20, "menu": "old (e674aa8)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 20, "menu": "v2 (devops + home)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_research", "said": "", "batch": "yt"}
+{"run": 21, "menu": "old (e674aa8)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 21, "menu": "v2 (devops + home)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 21, "menu": "old (e674aa8)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_research", "said": "", "batch": "yt"}
+{"run": 21, "menu": "v2 (devops + home)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_research", "said": "", "batch": "yt"}
+{"run": 22, "menu": "old (e674aa8)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 22, "menu": "v2 (devops + home)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 22, "menu": "old (e674aa8)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 22, "menu": "v2 (devops + home)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 23, "menu": "old (e674aa8)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 23, "menu": "v2 (devops + home)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 23, "menu": "old (e674aa8)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 23, "menu": "v2 (devops + home)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 24, "menu": "old (e674aa8)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 24, "menu": "v2 (devops + home)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 24, "menu": "old (e674aa8)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 24, "menu": "v2 (devops + home)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 25, "menu": "old (e674aa8)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 25, "menu": "v2 (devops + home)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 25, "menu": "old (e674aa8)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 25, "menu": "v2 (devops + home)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 26, "menu": "old (e674aa8)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 26, "menu": "v2 (devops + home)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 26, "menu": "old (e674aa8)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_research", "said": "", "batch": "yt"}
+{"run": 26, "menu": "v2 (devops + home)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 27, "menu": "old (e674aa8)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 27, "menu": "v2 (devops + home)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 27, "menu": "old (e674aa8)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 27, "menu": "v2 (devops + home)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 28, "menu": "old (e674aa8)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 28, "menu": "v2 (devops + home)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 28, "menu": "old (e674aa8)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 28, "menu": "v2 (devops + home)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 29, "menu": "old (e674aa8)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 29, "menu": "v2 (devops + home)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 29, "menu": "old (e674aa8)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "direct", "said": "I don't have the ability to directly search external services like YouTube Music. You can search for \"deep house chill music\" on YouTube Music directly in your ", "batch": "yt"}
+{"run": 29, "menu": "v2 (devops + home)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 30, "menu": "old (e674aa8)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 30, "menu": "v2 (devops + home)", "sentence": "Search YouTube Music for some deep, chill house music and play that.", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 30, "menu": "old (e674aa8)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 30, "menu": "v2 (devops + home)", "sentence": "Search for some deep house chill music on YouTube Music", "pick": "ask_home", "said": "", "batch": "yt"}
+{"run": 1, "menu": "v2 (devops + home), deployed", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 1, "menu": "v2 (devops + home), deployed", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 1, "menu": "v2 (devops + home), deployed", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 1, "menu": "v2 (devops + home), deployed", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 1, "menu": "v2 (devops + home), deployed", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 1, "menu": "v2 (devops + home), deployed", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 1, "menu": "v2 (devops + home), deployed", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "deployed"}
+{"run": 1, "menu": "v2 (devops + home), deployed", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "deployed"}
+{"run": 1, "menu": "v2 (devops + home), deployed", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "deployed"}
+{"run": 2, "menu": "v2 (devops + home), deployed", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 2, "menu": "v2 (devops + home), deployed", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 2, "menu": "v2 (devops + home), deployed", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 2, "menu": "v2 (devops + home), deployed", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 2, "menu": "v2 (devops + home), deployed", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 2, "menu": "v2 (devops + home), deployed", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 2, "menu": "v2 (devops + home), deployed", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "deployed"}
+{"run": 2, "menu": "v2 (devops + home), deployed", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "deployed"}
+{"run": 2, "menu": "v2 (devops + home), deployed", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "deployed"}
+{"run": 3, "menu": "v2 (devops + home), deployed", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 3, "menu": "v2 (devops + home), deployed", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 3, "menu": "v2 (devops + home), deployed", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 3, "menu": "v2 (devops + home), deployed", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 3, "menu": "v2 (devops + home), deployed", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 3, "menu": "v2 (devops + home), deployed", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 3, "menu": "v2 (devops + home), deployed", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "deployed"}
+{"run": 3, "menu": "v2 (devops + home), deployed", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "deployed"}
+{"run": 3, "menu": "v2 (devops + home), deployed", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "deployed"}
+{"run": 4, "menu": "v2 (devops + home), deployed", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 4, "menu": "v2 (devops + home), deployed", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 4, "menu": "v2 (devops + home), deployed", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 4, "menu": "v2 (devops + home), deployed", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 4, "menu": "v2 (devops + home), deployed", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 4, "menu": "v2 (devops + home), deployed", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 4, "menu": "v2 (devops + home), deployed", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "deployed"}
+{"run": 4, "menu": "v2 (devops + home), deployed", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "deployed"}
+{"run": 4, "menu": "v2 (devops + home), deployed", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "deployed"}
+{"run": 5, "menu": "v2 (devops + home), deployed", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 5, "menu": "v2 (devops + home), deployed", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 5, "menu": "v2 (devops + home), deployed", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 5, "menu": "v2 (devops + home), deployed", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 5, "menu": "v2 (devops + home), deployed", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 5, "menu": "v2 (devops + home), deployed", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 5, "menu": "v2 (devops + home), deployed", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "deployed"}
+{"run": 5, "menu": "v2 (devops + home), deployed", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "deployed"}
+{"run": 5, "menu": "v2 (devops + home), deployed", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "deployed"}
+{"run": 6, "menu": "v2 (devops + home), deployed", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 6, "menu": "v2 (devops + home), deployed", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 6, "menu": "v2 (devops + home), deployed", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 6, "menu": "v2 (devops + home), deployed", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 6, "menu": "v2 (devops + home), deployed", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 6, "menu": "v2 (devops + home), deployed", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 6, "menu": "v2 (devops + home), deployed", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "deployed"}
+{"run": 6, "menu": "v2 (devops + home), deployed", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "deployed"}
+{"run": 6, "menu": "v2 (devops + home), deployed", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "deployed"}
+{"run": 7, "menu": "v2 (devops + home), deployed", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 7, "menu": "v2 (devops + home), deployed", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 7, "menu": "v2 (devops + home), deployed", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 7, "menu": "v2 (devops + home), deployed", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 7, "menu": "v2 (devops + home), deployed", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 7, "menu": "v2 (devops + home), deployed", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 7, "menu": "v2 (devops + home), deployed", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "deployed"}
+{"run": 7, "menu": "v2 (devops + home), deployed", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "deployed"}
+{"run": 7, "menu": "v2 (devops + home), deployed", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "deployed"}
+{"run": 8, "menu": "v2 (devops + home), deployed", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 8, "menu": "v2 (devops + home), deployed", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 8, "menu": "v2 (devops + home), deployed", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 8, "menu": "v2 (devops + home), deployed", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 8, "menu": "v2 (devops + home), deployed", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 8, "menu": "v2 (devops + home), deployed", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 8, "menu": "v2 (devops + home), deployed", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "deployed"}
+{"run": 8, "menu": "v2 (devops + home), deployed", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "deployed"}
+{"run": 8, "menu": "v2 (devops + home), deployed", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "deployed"}
+{"run": 9, "menu": "v2 (devops + home), deployed", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 9, "menu": "v2 (devops + home), deployed", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 9, "menu": "v2 (devops + home), deployed", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 9, "menu": "v2 (devops + home), deployed", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 9, "menu": "v2 (devops + home), deployed", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 9, "menu": "v2 (devops + home), deployed", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 9, "menu": "v2 (devops + home), deployed", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "deployed"}
+{"run": 9, "menu": "v2 (devops + home), deployed", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "deployed"}
+{"run": 9, "menu": "v2 (devops + home), deployed", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "deployed"}
+{"run": 10, "menu": "v2 (devops + home), deployed", "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 10, "menu": "v2 (devops + home), deployed", "sentence": "run the mirror update", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 10, "menu": "v2 (devops + home), deployed", "sentence": "update the mirror", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 10, "menu": "v2 (devops + home), deployed", "sentence": "the mirror display needs an update, go ahead and do it", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 10, "menu": "v2 (devops + home), deployed", "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 10, "menu": "v2 (devops + home), deployed", "sentence": "install the latest mirror update", "pick": "ask_home", "said": "", "batch": "deployed"}
+{"run": 10, "menu": "v2 (devops + home), deployed", "sentence": "check the uptime on the mirror", "pick": "ask_devops", "said": "", "batch": "deployed"}
+{"run": 10, "menu": "v2 (devops + home), deployed", "sentence": "how long has the mirror been up?", "pick": "ask_devops", "said": "", "batch": "deployed"}
+{"run": 10, "menu": "v2 (devops + home), deployed", "sentence": "show me the mirror's logs", "pick": "ask_devops", "said": "", "batch": "deployed"}
