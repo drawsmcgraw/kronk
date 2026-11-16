@@ -1,0 +1,7951 @@
+{
+ "meta": {
+  "started": "2026-11-16T16:08:28+00:00",
+  "label": "m3-fix1",
+  "check_only": false,
+  "git_commit": "185050d",
+  "corpus_sha256": "5d5093a959f3ff42",
+  "corpus_rows": 122,
+  "selected": 122,
+  "not_selected": 0,
+  "selection": {
+   "id": null,
+   "tag": null
+  },
+  "target": {
+   "pipeline": "kronk-dev",
+   "pipeline_id": "01m7gvyhhfk2jp7havxm88ecme",
+   "engine": "conversation.kronk_dev",
+   "kronk_url": "http://localhost/dev/voice",
+   "status_url": "http://localhost/dev/api/status",
+   "production": false,
+   "prefer_local_intents": true,
+   "orchestrator": "kronk-orchestrator-dev-1",
+   "tool_service": "kronk-tool_service-dev-1"
+  },
+  "tool_service_health": {
+   "status": "ok",
+   "music_dry_run": true
+  },
+  "trigger_templates": 11,
+  "finished": "2026-11-16T16:13:21+00:00"
+ },
+ "rows": [
+  {
+   "id": "plan-anime-pop-radio-wet",
+   "text": "Play Anime Pop Radio. That's probably about it. Everything is pretty wet.",
+   "device": "kitchen_pe",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger",
+     "trigger": "catchall"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "radio",
+    "name": "Anime Pop Radio",
+    "provider": "pandora",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    },
+    {
+     "check": "ha.trigger",
+     "ok": true,
+     "expected": "catchall",
+     "actual": "catchall"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "catchall",
+    "template": "(play|put on|listen to) {media_name}",
+    "summary": "trigger catchall"
+   },
+   "check_ms": 1,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "inc-1108-anime-pop-transcript",
+   "text": " Play Anime Pop Radio.  That's probably about it. Everything is pretty wet.  I just needed to make some space.",
+   "device": "kitchen_pe",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger",
+     "trigger": "catchall"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "radio",
+    "name": "Anime Pop Radio",
+    "provider": "pandora",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    },
+    {
+     "check": "ha.trigger",
+     "ok": true,
+     "expected": "catchall",
+     "actual": "catchall"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "catchall",
+    "template": "(play|put on|listen to) {media_name}",
+    "summary": "trigger catchall"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "inc-1108-anime-pop-wet-basement",
+   "text": "Play Anime Pop Radio. That's probably about it. Everything is pretty wet, put it on the basement voice pe ma.",
+   "device": "basement_pe",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger",
+     "trigger": "catchall"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "radio",
+    "name": "Anime Pop Radio",
+    "provider": "pandora",
+    "player": "entity:media_player.home_assistant_voice_0ab117"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    },
+    {
+     "check": "ha.trigger",
+     "ok": true,
+     "expected": "catchall",
+     "actual": "catchall"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "catchall",
+    "template": "(play|put on|listen to) {media_name}",
+    "summary": "trigger catchall"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "inc-1108-mushroom-jazz-basement",
+   "text": "Play Mushroom Jazz radio on the basement voice pe ma",
+   "device": "basement_pe",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger",
+     "trigger": "radio"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "radio",
+    "name": "Mushroom Jazz Radio",
+    "provider": "pandora",
+    "player": "entity:media_player.home_assistant_voice_0ab117"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    },
+    {
+     "check": "ha.trigger",
+     "ok": true,
+     "expected": "radio",
+     "actual": "radio"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "radio",
+    "template": "(play|listen to) [the ]{media_name} (radio|station) [(on|from|via) pandora][ (in|on) [the ]{area_or_player_name}]",
+    "summary": "trigger radio"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "inc-1108-artist-portishead-basement",
+   "text": "Play the artist Portishead on the basement voice pe ma",
+   "device": "basement_pe",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger",
+     "trigger": "artist"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "artist",
+    "name": "Portishead",
+    "player": "entity:media_player.home_assistant_voice_0ab117"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    },
+    {
+     "check": "ha.trigger",
+     "ok": true,
+     "expected": "artist",
+     "actual": "artist"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "artist",
+    "template": "(shuffle|play|listen to) [the ](artist|band|group) {media_name} [(in|on|using) [the ]{area_or_player_name}][ (with|using) {radio_mode}]",
+    "summary": "trigger artist"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "inc-1108-pause-basement-player",
+   "text": "Pause the basement voice pe ma",
+   "device": "basement_pe",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "builtin",
+     "intent": "HassMediaPause"
+    },
+    "route": "direct",
+    "rule": "default",
+    "tool": "control_music",
+    "action": "pause",
+    "player": "entity:media_player.home_assistant_voice_0ab117"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "builtin",
+     "actual": "builtin"
+    },
+    {
+     "check": "ha.intent",
+     "ok": true,
+     "expected": "HassMediaPause",
+     "actual": "HassMediaPause"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "builtin",
+    "intent": "HassMediaPause",
+    "template": "(pause;<name>)",
+    "summary": "builtin HassMediaPause"
+   },
+   "check_ms": 1,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "inc-1108-timer-2min",
+   "text": "Set a timer for 2 minutes",
+   "device": "basement_pe",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "builtin",
+     "intent": "HassStartTimer"
+    },
+    "route": "direct",
+    "rule": "default",
+    "tool": null
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "builtin",
+     "actual": "builtin"
+    },
+    {
+     "check": "ha.intent",
+     "ok": true,
+     "expected": "HassStartTimer",
+     "actual": "HassStartTimer"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "builtin",
+    "intent": "HassStartTimer",
+    "template": "<timer_set> [a|the|my] timer for <timer_duration>",
+    "summary": "builtin HassStartTimer"
+   },
+   "check_ms": 1,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "plan-orbital-station-youtube",
+   "text": "Start an orbital radio station on YouTube Music.",
+   "device": "kitchen_pe",
+   "expected": {
+    "tier": "kronk",
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "radio",
+    "name": "Orbital",
+    "provider": "youtube_music",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": true,
+     "expected": "home/music",
+     "actual": "home/music"
+    },
+    {
+     "check": "tool",
+     "ok": false,
+     "expected": "play_music",
+     "actual": []
+    }
+   ],
+   "latency_s": 5.35,
+   "trace_id": "25b6341bab8a7bb39771aab70052d57c",
+   "pipeline_run_id": "01M7JHW0BWTG30BWMTFX5NDCG0",
+   "conversation_id": "01M7JHW0BX34D4BMCYFYTZ5RA2",
+   "ha_debug": {
+    "local": false,
+    "summary": "partial HassVacuumStart (match false)"
+   },
+   "check_ms": 0,
+   "method": "executed",
+   "speech": "I can't directly stream from YouTube Music, but I can search for and play an Orbital radio station for you.",
+   "kronk": {
+    "rid": "4248fef6",
+    "route": "home",
+    "rule": "music",
+    "tools": [],
+    "trace_id": "25b6341bab8a7bb39771aab70052d57c",
+    "events": [
+     "request",
+     "origin",
+     "route_shortcut",
+     "agent_round",
+     "agent_complete",
+     "request_complete"
+    ],
+    "dry_run": [],
+    "music_requests": []
+   },
+   "status": "fail",
+   "xfail_reason": null
+  },
+  {
+   "id": "inc-1004-tell-kronk-orbital",
+   "text": "Tell Kronk to start an orbital radio to play on YouTube music.",
+   "device": "kitchen_pe",
+   "expected": {
+    "tier": "kronk",
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "radio",
+    "name": "Orbital",
+    "provider": "youtube_music",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": true,
+     "expected": "home/music",
+     "actual": "home/music"
+    },
+    {
+     "check": "tool",
+     "ok": true,
+     "expected": "play_music",
+     "actual": [
+      "home:play_music"
+     ]
+    },
+    {
+     "check": "action",
+     "ok": true,
+     "expected": "play",
+     "actual": "play"
+    },
+    {
+     "check": "player",
+     "ok": true,
+     "expected": "media_player.home_assistant_voice_0ac919_pe_01",
+     "actual": [
+      "media_player.home_assistant_voice_0ac919_pe_01"
+     ]
+    }
+   ],
+   "latency_s": 3.13,
+   "trace_id": "3eddd9741843913ddee4090a5375cc62",
+   "pipeline_run_id": "01M7JHW70RZTDJJAF2R46XPYQY",
+   "conversation_id": "01M7JHW70RESX21DBT0E2GZ3ZD",
+   "ha_debug": {
+    "local": false,
+    "summary": "partial HassFanSetSpeed (match false)"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "Dry run: would play the playlist orbital radio on the Kitchen speaker. Nothing was sent to the speaker.",
+   "kronk": {
+    "rid": "40a4cf46",
+    "route": "home",
+    "rule": "music",
+    "tools": [
+     "home:play_music"
+    ],
+    "trace_id": "3eddd9741843913ddee4090a5375cc62",
+    "events": [
+     "request",
+     "origin",
+     "route_shortcut",
+     "agent_round",
+     "round_content_retracted",
+     "tool_call",
+     "tool_complete",
+     "agent_complete",
+     "request_complete"
+    ],
+    "dry_run": [
+     {
+      "action": "play",
+      "targets": [
+       "media_player.home_assistant_voice_0ac919_pe_01"
+      ],
+      "detail": "Dry run: would play the playlist orbital radio on the Kitchen speaker. Nothing was sent to the speaker."
+     }
+    ],
+    "music_requests": [
+     "query='Orbital Radio' media_type=None player=None shuffle=False -> ['media_player.home_assistant_voice_0ac919_pe_01']"
+    ]
+   },
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "inc-1004-play-orbital-radio",
+   "text": "Play orbital radio.",
+   "device": "kitchen_pe",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "radio",
+    "name": "Orbital Radio",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "catchall",
+    "template": "(play|put on|listen to) {media_name}",
+    "summary": "trigger catchall"
+   },
+   "check_ms": 1,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "plan-like-massive-attack-radio",
+   "text": "Like massive attack radio",
+   "device": "kitchen_pe",
+   "expected": {
+    "tier": "kronk",
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "radio",
+    "name": "Massive Attack Radio",
+    "provider": "pandora",
+    "player": "origin"
+   },
+   "xfail": {
+    "routing": "STT mangled or prefixed the request verb; _MUSIC_RE is anchored to a request verb at the start and routing.py documents this class as a miss. No new rule without repeated captured failures (stopping rule, 2026-11-11).",
+    "live": "INVESTIGATION_2026-10-04_radio_failures.md cause 3: on a routing miss the coordinator can answer without calling a tool. Open. The coordinator copied the previous turn's failure text on 2026-10-04."
+   },
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": false,
+     "expected": "home/music",
+     "actual": "direct/default"
+    },
+    {
+     "check": "tool",
+     "ok": false,
+     "expected": "play_music",
+     "actual": [
+      "coordinator:ask_research",
+      "research:web_search"
+     ]
+    }
+   ],
+   "latency_s": 13.66,
+   "trace_id": "ceb23e9b4cc2259b574407028df5ca4b",
+   "pipeline_run_id": "01M7JHWBFFZB884PNXV4XHP4YF",
+   "conversation_id": "01M7JHWBFFG22DT4DGNMA37093",
+   "ha_debug": {
+    "local": false,
+    "summary": "no local match"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "Recent reports show that attacks on critical communications infrastructure, including broadcasting, are increasing. In 2025, providers reported over 18,300 attacks on communications infrastructure. Attacks specifically targeting local news stations and radio newspeople are also on the rise, although they represent a smaller percentage of reported incidents compared to other types of infrastructure",
+   "kronk": {
+    "rid": "cd612e43",
+    "route": "direct",
+    "rule": "default",
+    "tools": [
+     "coordinator:ask_research",
+     "research:web_search"
+    ],
+    "trace_id": "ceb23e9b4cc2259b574407028df5ca4b",
+    "events": [
+     "request",
+     "origin",
+     "route",
+     "agent_round",
+     "tool_call",
+     "agent_round",
+     "tool_call",
+     "tool_complete",
+     "agent_round",
+     "tool_complete",
+     "agent_round",
+     "request_complete"
+    ],
+    "dry_run": [],
+    "music_requests": []
+   },
+   "status": "xfail",
+   "xfail_reason": "INVESTIGATION_2026-10-04_radio_failures.md cause 3: on a routing miss the coordinator can answer without calling a tool. Open. The coordinator copied the previous turn's failure text on 2026-10-04."
+  },
+  {
+   "id": "inc-1004-well-play-orbital",
+   "text": "We'll play Orbital Radio.",
+   "device": "kitchen_pe",
+   "expected": {
+    "tier": "kronk",
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "radio",
+    "name": "Orbital Radio",
+    "player": "origin"
+   },
+   "xfail": {
+    "routing": "STT mangled or prefixed the request verb; _MUSIC_RE is anchored to a request verb at the start and routing.py documents this class as a miss. No new rule without repeated captured failures (stopping rule, 2026-11-11)."
+   },
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": false,
+     "expected": "home/music",
+     "actual": "direct/default"
+    },
+    {
+     "check": "tool",
+     "ok": true,
+     "expected": "play_music",
+     "actual": [
+      "coordinator:ask_home",
+      "home:play_music"
+     ]
+    },
+    {
+     "check": "action",
+     "ok": true,
+     "expected": "play",
+     "actual": "play"
+    },
+    {
+     "check": "player",
+     "ok": true,
+     "expected": "media_player.home_assistant_voice_0ac919_pe_01",
+     "actual": [
+      "media_player.home_assistant_voice_0ac919_pe_01"
+     ]
+    }
+   ],
+   "latency_s": 7.19,
+   "trace_id": "105a1a3a1fe76faa723c3a60ad04c2e0",
+   "pipeline_run_id": "01M7JHWT50Q465H5YQKXDJNBR9",
+   "conversation_id": "01M7JHWT5047QXMDE54M5V68DH",
+   "ha_debug": {
+    "local": false,
+    "summary": "no local match"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "Dry run: would play the Pandora station Orbital Radio on the Kitchen speaker. Nothing was sent to the speaker.",
+   "kronk": {
+    "rid": "5f07e116",
+    "route": "direct",
+    "rule": "default",
+    "tools": [
+     "coordinator:ask_home",
+     "home:play_music"
+    ],
+    "trace_id": "105a1a3a1fe76faa723c3a60ad04c2e0",
+    "events": [
+     "request",
+     "origin",
+     "route",
+     "agent_round",
+     "tool_call",
+     "agent_round",
+     "tool_call",
+     "tool_complete",
+     "tool_complete",
+     "terminal_passthrough",
+     "request_complete"
+    ],
+    "dry_run": [
+     {
+      "action": "play",
+      "targets": [
+       "media_player.home_assistant_voice_0ac919_pe_01"
+      ],
+      "detail": "Dry run: would play the Pandora station Orbital Radio on the Kitchen speaker. Nothing was sent to the speaker."
+     }
+    ],
+    "music_requests": [
+     "query='Orbital Radio' media_type='radio' player=None shuffle=False -> ['media_player.home_assistant_voice_0ac919_pe_01']"
+    ]
+   },
+   "status": "xfail",
+   "xfail_reason": "STT mangled or prefixed the request verb; _MUSIC_RE is anchored to a request verb at the start and routing.py documents this class as a miss. No new rule without repeated captured failures (stopping rule, 2026-11-11)."
+  },
+  {
+   "id": "inc-1004-french-dinner-pandora",
+   "text": "Play French Dinner Radio on Pandora.",
+   "device": "kitchen_pe",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger",
+     "trigger": "radio"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "radio",
+    "name": "French Dinner Radio",
+    "provider": "pandora",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    },
+    {
+     "check": "ha.trigger",
+     "ok": true,
+     "expected": "radio",
+     "actual": "radio"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "radio",
+    "template": "(play|listen to) [the ]{media_name} (radio|station) [(on|from|via) pandora][ (in|on) [the ]{area_or_player_name}]",
+    "summary": "trigger radio"
+   },
+   "check_ms": 1,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "inc-1004-french-dinner",
+   "text": "Play French Dinner Radio.",
+   "device": "kitchen_pe",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "radio",
+    "name": "French Dinner Radio",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "catchall",
+    "template": "(play|put on|listen to) {media_name}",
+    "summary": "trigger catchall"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "inc-1004-french-cafe-pandora",
+   "text": "Play French Cafe Radio on Pandora.",
+   "device": "kitchen_pe",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger",
+     "trigger": "radio"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "radio",
+    "name": "French Cafe Radio",
+    "provider": "pandora",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    },
+    {
+     "check": "ha.trigger",
+     "ok": true,
+     "expected": "radio",
+     "actual": "radio"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "radio",
+    "template": "(play|listen to) [the ]{media_name} (radio|station) [(on|from|via) pandora][ (in|on) [the ]{area_or_player_name}]",
+    "summary": "trigger radio"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "plan-girl-with-the-sun",
+   "text": "play The Girl with the Sun in Her Head by Orbital",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "track",
+    "name": "The Girl with the Sun in Her Head",
+    "artist": "Orbital",
+    "player": "origin"
+   },
+   "xfail": {
+    "parser": "A greedy '(in|on) {area}' slot cuts titles that contain 'in'/'on' (\"The Girl with the Sun\" / room \"Her Head by Orbital\", voice-music-control.md 2026-09-16). M11 matches rooms from the right-hand end against real names."
+   },
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "catchall",
+    "template": "(play|put on|listen to) {media_name}",
+    "summary": "trigger catchall"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "plan-shuffle-anime-bangers",
+   "text": "shuffle my YouTube playlist anime bangers",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger",
+     "trigger": "playlist"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "playlist",
+    "name": "anime bangers",
+    "provider": "youtube_music",
+    "shuffle": true,
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    },
+    {
+     "check": "ha.trigger",
+     "ok": true,
+     "expected": "playlist",
+     "actual": "playlist"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "playlist",
+    "template": "(shuffle|play|listen to) [my ][the ][(youtube music|youtube|you tube) ]playlist {media_name} [(in|on|using) [the ]{area_or_player_name}][ (with|using) {radio_mode}]",
+    "summary": "trigger playlist"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "plan-put-on-some-jazz",
+   "text": "put on some jazz",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "genre",
+    "media_type": null,
+    "name": "jazz",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "catchall",
+    "template": "(play|put on|listen to) {media_name}",
+    "summary": "trigger catchall"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "plan-stop-bang",
+   "text": "Stop!",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "home",
+    "rule": "playback",
+    "tool": "control_music",
+    "action": "stop",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": true,
+     "expected": "home/playback",
+     "actual": "home/playback"
+    },
+    {
+     "check": "tool",
+     "ok": true,
+     "expected": "control_music",
+     "actual": [
+      "home:control_music"
+     ]
+    }
+   ],
+   "latency_s": 3.75,
+   "trace_id": "273e8594c9ceec52bd56e108f0d0bc9b",
+   "pipeline_run_id": "01M7JHX2H2PGY7QNK5ZXC5R1JF",
+   "conversation_id": "01M7JHX2H2B0P51P8MXA82BNDM",
+   "ha_debug": {
+    "local": false,
+    "summary": "no local match"
+   },
+   "check_ms": 0,
+   "method": "executed",
+   "speech": "The Office speaker is already paused.",
+   "kronk": {
+    "rid": "963526c8",
+    "route": "home",
+    "rule": "playback",
+    "tools": [
+     "home:control_music"
+    ],
+    "trace_id": "273e8594c9ceec52bd56e108f0d0bc9b",
+    "events": [
+     "request",
+     "origin",
+     "route_shortcut",
+     "agent_round",
+     "tool_call",
+     "tool_complete",
+     "agent_complete",
+     "request_complete"
+    ],
+    "dry_run": [],
+    "music_requests": []
+   },
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "inc-0910-stop-transcript",
+   "text": " Stop!",
+   "device": "basement_pe",
+   "expected": {
+    "tier": "kronk",
+    "route": "home",
+    "rule": "playback",
+    "tool": "control_music",
+    "action": "stop",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": true,
+     "expected": "home/playback",
+     "actual": "home/playback"
+    },
+    {
+     "check": "tool",
+     "ok": true,
+     "expected": "control_music",
+     "actual": [
+      "home:control_music"
+     ]
+    }
+   ],
+   "latency_s": 1.56,
+   "trace_id": "4f948a51baeb3590b51fc61a6228c7ea",
+   "pipeline_run_id": "01M7JHX7NZ7QHERYQ0RVGF5NW8",
+   "conversation_id": "01M7JHX7NZ9WJFBJKXCX3J7JJZ",
+   "ha_debug": {
+    "local": false,
+    "summary": "no local match"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "The basement voice pe ma speaker is already paused.",
+   "kronk": {
+    "rid": "74f05129",
+    "route": "home",
+    "rule": "playback",
+    "tools": [
+     "home:control_music"
+    ],
+    "trace_id": "4f948a51baeb3590b51fc61a6228c7ea",
+    "events": [
+     "request",
+     "origin",
+     "route_shortcut",
+     "agent_round",
+     "tool_call",
+     "tool_complete",
+     "agent_complete",
+     "request_complete"
+    ],
+    "dry_run": [],
+    "music_requests": []
+   },
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "plan-ninetys-two-thousands",
+   "text": "Play ninety's two thousands and today's hits radio on the basement voice pe ma",
+   "device": "basement_pe",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger",
+     "trigger": "radio"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "radio",
+    "name": "90s, 2000s, Today's Hits Radio",
+    "provider": "pandora",
+    "player": "entity:media_player.home_assistant_voice_0ab117"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    },
+    {
+     "check": "ha.trigger",
+     "ok": true,
+     "expected": "radio",
+     "actual": "radio"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "radio",
+    "template": "(play|listen to) [the ]{media_name} (radio|station) [(on|from|via) pandora][ (in|on) [the ]{area_or_player_name}]",
+    "summary": "trigger radio"
+   },
+   "check_ms": 1,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "plan-mishearing-pasta",
+   "text": "Pasta",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "home",
+    "rule": "playback",
+    "tool": "control_music",
+    "action": "pause",
+    "player": "origin"
+   },
+   "xfail": {
+    "routing": "STT mishearing. The fix belongs to speech recognition (M12 capture, M13 vocabulary prompt), not to a routing rule.",
+    "live": "STT mishearing. The fix belongs to speech recognition (M12 capture, M13 vocabulary prompt), not to a routing rule."
+   },
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": false,
+     "expected": "home/playback",
+     "actual": "direct/default"
+    },
+    {
+     "check": "tool",
+     "ok": false,
+     "expected": "control_music",
+     "actual": []
+    }
+   ],
+   "latency_s": 2.59,
+   "trace_id": "a09f599f42ea3bc4195130a623b336dd",
+   "pipeline_run_id": "01M7JHXAN393Y688XMZ4F4CHJY",
+   "conversation_id": "01M7JHXAN35ZAVTTHBCSWEY0R9",
+   "ha_debug": {
+    "local": false,
+    "summary": "no local match"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "Pasta is a staple food made from durum wheat and water, shaped into various forms. It is a central component of Italian cuisine.",
+   "kronk": {
+    "rid": "63941427",
+    "route": "direct",
+    "rule": "default",
+    "tools": [],
+    "trace_id": "a09f599f42ea3bc4195130a623b336dd",
+    "events": [
+     "request",
+     "origin",
+     "route",
+     "agent_round",
+     "request_complete"
+    ],
+    "dry_run": [],
+    "music_requests": []
+   },
+   "status": "xfail",
+   "xfail_reason": "STT mishearing. The fix belongs to speech recognition (M12 capture, M13 vocabulary prompt), not to a routing rule."
+  },
+  {
+   "id": "plan-mishearing-whats-up",
+   "text": "What's up?",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "home",
+    "rule": "playback",
+    "tool": "control_music",
+    "action": "stop",
+    "player": "origin"
+   },
+   "xfail": {
+    "routing": "STT mishearing. The fix belongs to speech recognition (M12 capture, M13 vocabulary prompt), not to a routing rule.",
+    "live": "STT mishearing. The fix belongs to speech recognition (M12 capture, M13 vocabulary prompt), not to a routing rule."
+   },
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": false,
+     "expected": "home/playback",
+     "actual": "direct/default"
+    },
+    {
+     "check": "tool",
+     "ok": false,
+     "expected": "control_music",
+     "actual": []
+    }
+   ],
+   "latency_s": 2.87,
+   "trace_id": "079eff6043eddc2a885195ba760aa10a",
+   "pipeline_run_id": "01M7JHXEQ6Q39GWEC4FG16790A",
+   "conversation_id": "01M7JHXEQ65J4H0BW44EYBN7BK",
+   "ha_debug": {
+    "local": false,
+    "summary": "partial HassGetState (match false)"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "It is Monday, November 16, 2026, at 4:09 PM UTC in Laurel, MD. The current conditions are 46°F and sunny with a 5 mph wind from the west. How can I assist you?",
+   "kronk": {
+    "rid": "6895cb22",
+    "route": "direct",
+    "rule": "default",
+    "tools": [],
+    "trace_id": "079eff6043eddc2a885195ba760aa10a",
+    "events": [
+     "request",
+     "origin",
+     "route",
+     "agent_round",
+     "request_complete"
+    ],
+    "dry_run": [],
+    "music_requests": []
+   },
+   "status": "xfail",
+   "xfail_reason": "STT mishearing. The fix belongs to speech recognition (M12 capture, M13 vocabulary prompt), not to a routing rule."
+  },
+  {
+   "id": "inc-0915-daisies-album-eels-ytm",
+   "text": "Play the album Daisies of the Galaxy by Eels on YouTube Music.",
+   "device": "kitchen_pe",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger",
+     "trigger": "album"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "album",
+    "name": "Daisies of the Galaxy",
+    "artist": "Eels",
+    "provider": "youtube_music",
+    "player": "origin"
+   },
+   "xfail": {
+    "parser": "The album sentence's '(in|on|using) {area}' slot took 'YouTube Music' as the room and 'by Eels' stayed in the name (incident 2026-09-15, voice-music-control.md gotchas). Open."
+   },
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    },
+    {
+     "check": "ha.trigger",
+     "ok": true,
+     "expected": "album",
+     "actual": "album"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "album",
+    "template": "(shuffle|play|listen to) [the ](album|ep|record|compilation|single) {media_name} [by [the ](artist|band|group) {artist}] [(in|on|using) [the ]{area_or_player_name}][ (with|using) {radio_mode}]",
+    "summary": "trigger album"
+   },
+   "check_ms": 1,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "inc-0915-pause-kitchen",
+   "text": "Pause.",
+   "device": "kitchen_pe",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "builtin",
+     "intent": "HassMediaPause"
+    },
+    "route": "home",
+    "rule": "playback",
+    "tool": "control_music",
+    "action": "pause",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "builtin",
+     "actual": "builtin"
+    },
+    {
+     "check": "ha.intent",
+     "ok": true,
+     "expected": "HassMediaPause",
+     "actual": "HassMediaPause"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "builtin",
+    "intent": "HassMediaPause",
+    "template": "pause",
+    "summary": "builtin HassMediaPause"
+   },
+   "check_ms": 1,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "inc-0915-skip-kitchen",
+   "text": "Skip.",
+   "device": "kitchen_pe",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "builtin",
+     "intent": "HassMediaNext"
+    },
+    "route": "home",
+    "rule": "playback",
+    "tool": "control_music",
+    "action": "next",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "builtin",
+     "actual": "builtin"
+    },
+    {
+     "check": "ha.intent",
+     "ok": true,
+     "expected": "HassMediaNext",
+     "actual": "HassMediaNext"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "builtin",
+    "intent": "HassMediaNext",
+    "template": "(skip [(to [the] next [(song|track)]|([the] (song|track)|this [(song|track)]))])",
+    "summary": "builtin HassMediaNext"
+   },
+   "check_ms": 1,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "inc-0915-who-is-this",
+   "text": "Who is this?",
+   "device": "kitchen_pe",
+   "expected": {
+    "tier": "kronk",
+    "route": "home",
+    "rule": "now_playing",
+    "tool": "now_playing",
+    "player": "origin"
+   },
+   "xfail": {
+    "live": "HA's built-in HassGetState ('who is [the] {zone:state}') takes it locally and answers 'Not any' (incident 2026-09-15). Open: prefer_local_intents is Drew's call."
+   },
+   "checks": [
+    {
+     "check": "tier",
+     "ok": false,
+     "expected": "kronk",
+     "actual": "ha_local (builtin HassGetState)"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "builtin",
+    "intent": "HassGetState",
+    "template": "who is [<in>] [the] {zone:state}",
+    "summary": "builtin HassGetState"
+   },
+   "check_ms": 1,
+   "method": "checked",
+   "status": "xfail",
+   "xfail_reason": "HA's built-in HassGetState ('who is [the] {zone:state}') takes it locally and answers 'Not any' (incident 2026-09-15). Open: prefer_local_intents is Drew's call."
+  },
+  {
+   "id": "inc-0930-search-deep-house-ytm",
+   "text": "Search for some deep house chill music on YouTube Music",
+   "device": "kitchen_pe",
+   "expected": {
+    "tier": "kronk",
+    "route": "direct",
+    "rule": "default",
+    "tool": "play_music",
+    "kind": "genre",
+    "media_type": null,
+    "name": "deep house chill",
+    "provider": "youtube_music",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": true,
+     "expected": "direct/default",
+     "actual": "direct/default"
+    },
+    {
+     "check": "tool",
+     "ok": true,
+     "expected": "play_music",
+     "actual": [
+      "coordinator:ask_home",
+      "home:play_music"
+     ]
+    },
+    {
+     "check": "action",
+     "ok": true,
+     "expected": "play",
+     "actual": "play"
+    },
+    {
+     "check": "player",
+     "ok": true,
+     "expected": "media_player.home_assistant_voice_0ac919_pe_01",
+     "actual": [
+      "media_player.home_assistant_voice_0ac919_pe_01"
+     ]
+    }
+   ],
+   "latency_s": 9.41,
+   "trace_id": "4afe0c6fd8d67ed833772e31ecbba67e",
+   "pipeline_run_id": "01M7JHXK134MM62GVP2Y995GPQ",
+   "conversation_id": "01M7JHXK13Q2GZFPVM5H2MRFRB",
+   "ha_debug": {
+    "local": false,
+    "summary": "partial HassTurnOn (match false)"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "Dry run: would play Groove Armada, for deep house chill, on the Kitchen speaker. Nothing was sent to the speaker.",
+   "kronk": {
+    "rid": "c879773a",
+    "route": "direct",
+    "rule": "default",
+    "tools": [
+     "coordinator:ask_home",
+     "home:play_music"
+    ],
+    "trace_id": "4afe0c6fd8d67ed833772e31ecbba67e",
+    "events": [
+     "request",
+     "origin",
+     "route",
+     "agent_round",
+     "tool_call",
+     "agent_round",
+     "round_content_retracted",
+     "tool_call",
+     "tool_complete",
+     "tool_complete",
+     "terminal_passthrough",
+     "request_complete"
+    ],
+    "dry_run": [
+     {
+      "action": "play",
+      "targets": [
+       "media_player.home_assistant_voice_0ac919_pe_01"
+      ],
+      "detail": "Dry run: would play Groove Armada, for deep house chill, on the Kitchen speaker. Nothing was sent to the speaker."
+     }
+    ],
+    "music_requests": [
+     "query='deep house chill music' media_type=None player=None shuffle=False -> ['media_player.home_assistant_voice_0ac919_pe_01']"
+    ]
+   },
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "inc-1019-thumbs-up-dot",
+   "text": "Thumbs up.",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "home",
+    "rule": "rate",
+    "tool": "rate_music",
+    "thumb": "up",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": true,
+     "expected": "home/rate",
+     "actual": "home/rate"
+    },
+    {
+     "check": "tool",
+     "ok": true,
+     "expected": "rate_music",
+     "actual": [
+      "home:rate_music"
+     ]
+    }
+   ],
+   "latency_s": 4.49,
+   "trace_id": "a1a44bc9a3ff8affd29e350be7e0749a",
+   "pipeline_run_id": "01M7JHXXMJC3N63AZC06KWXZQ0",
+   "conversation_id": "01M7JHXXMJFHGAS2T6BS5J9SFG",
+   "ha_debug": {
+    "local": false,
+    "summary": "no local match"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "I couldn't rate that. Nothing is playing on the Office speaker.",
+   "kronk": {
+    "rid": "9b62b789",
+    "route": "home",
+    "rule": "rate",
+    "tools": [
+     "home:rate_music"
+    ],
+    "trace_id": "a1a44bc9a3ff8affd29e350be7e0749a",
+    "events": [
+     "request",
+     "origin",
+     "route_shortcut",
+     "agent_round",
+     "tool_call",
+     "tool_complete",
+     "agent_complete",
+     "request_complete"
+    ],
+    "dry_run": [],
+    "music_requests": []
+   },
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "inc-1019-thumbs-up",
+   "text": "thumbs up",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "home",
+    "rule": "rate",
+    "tool": "rate_music",
+    "thumb": "up",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": true,
+     "expected": "home/rate",
+     "actual": "home/rate"
+    },
+    {
+     "check": "tool",
+     "ok": true,
+     "expected": "rate_music",
+     "actual": [
+      "home:rate_music"
+     ]
+    }
+   ],
+   "latency_s": 2.4,
+   "trace_id": "9422d2747e55da30704063122fa6937b",
+   "pipeline_run_id": "01M7JHY3GYS5F7A3R3P2B8FNKM",
+   "conversation_id": "01M7JHY3GZPT4PJTH20C3N64H2",
+   "ha_debug": {
+    "local": false,
+    "summary": "no local match"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "I couldn't rate that. Nothing is playing on the Office speaker.",
+   "kronk": {
+    "rid": "517d1602",
+    "route": "home",
+    "rule": "rate",
+    "tools": [
+     "home:rate_music"
+    ],
+    "trace_id": "9422d2747e55da30704063122fa6937b",
+    "events": [
+     "request",
+     "origin",
+     "route_shortcut",
+     "agent_round",
+     "tool_call",
+     "tool_complete",
+     "agent_complete",
+     "request_complete"
+    ],
+    "dry_run": [],
+    "music_requests": []
+   },
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "inc-1019-thumbs-down-dot",
+   "text": "Thumbs down.",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "home",
+    "rule": "rate",
+    "tool": "rate_music",
+    "thumb": "down",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": true,
+     "expected": "home/rate",
+     "actual": "home/rate"
+    },
+    {
+     "check": "tool",
+     "ok": true,
+     "expected": "rate_music",
+     "actual": [
+      "home:rate_music"
+     ]
+    }
+   ],
+   "latency_s": 1.09,
+   "trace_id": "0b5ff4ce0ce069acaf147628b80e7a9f",
+   "pipeline_run_id": "01M7JHY7CD2MG8K21X0B694VV4",
+   "conversation_id": "01M7JHY7CDDS1DPFHK2S66T0RC",
+   "ha_debug": {
+    "local": false,
+    "summary": "no local match"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "I couldn't rate that. Nothing is playing on the Office speaker.",
+   "kronk": {
+    "rid": "6d88101e",
+    "route": "home",
+    "rule": "rate",
+    "tools": [
+     "home:rate_music"
+    ],
+    "trace_id": "0b5ff4ce0ce069acaf147628b80e7a9f",
+    "events": [
+     "request",
+     "origin",
+     "route_shortcut",
+     "agent_round",
+     "tool_call",
+     "tool_complete",
+     "agent_complete",
+     "request_complete"
+    ],
+    "dry_run": [],
+    "music_requests": []
+   },
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "inc-1019-destiny-waving",
+   "text": "Play the album Destiny Waving by Ulrich Schnauss",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "album",
+    "name": "Destiny Waiving",
+    "artist": "Ulrich Schnauss",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "catchall",
+    "template": "(play|put on|listen to) {media_name}",
+    "summary": "trigger catchall"
+   },
+   "check_ms": 1,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "inc-1019-destiny-waving-ytm-kitchen",
+   "text": "Play the album Destiny Waving by Ulrich Schnauss from YouTube music, in the kitchen",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger",
+     "trigger": "album"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "album",
+    "name": "Destiny Waiving",
+    "artist": "Ulrich Schnauss",
+    "provider": "youtube_music",
+    "player": "area:Kitchen"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    },
+    {
+     "check": "ha.trigger",
+     "ok": true,
+     "expected": "album",
+     "actual": "album"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "album",
+    "template": "(shuffle|play|listen to) [the ](album|ep|record|compilation|single) {media_name} [by [the ](artist|band|group) {artist}] [(in|on|using) [the ]{area_or_player_name}][ (with|using) {radio_mode}]",
+    "summary": "trigger album"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "inc-1017-hotel-costes-albums-atlas",
+   "text": "Play hotel costes albums from Atlas, on the kitchen",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "album",
+    "name": "Hotel Costes",
+    "provider": "nas",
+    "player": "area:Kitchen"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "catchall",
+    "template": "(play|put on|listen to) {media_name}",
+    "summary": "trigger catchall"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "inc-1017-pay-the-album-hotel-costes-3",
+   "text": "Pay the album \"hotel costes 3\" from Atlas, on the kitchen",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "album",
+    "name": "Hotel Costes 3",
+    "provider": "nas",
+    "player": "area:Kitchen"
+   },
+   "xfail": {
+    "routing": "Typed 'Pay' for 'Play'; no request verb at the start. Same class as the STT-mangled verbs; stopping rule."
+   },
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": false,
+     "expected": "home/music",
+     "actual": "direct/default"
+    },
+    {
+     "check": "tool",
+     "ok": true,
+     "expected": "play_music",
+     "actual": [
+      "coordinator:ask_home",
+      "home:play_music"
+     ]
+    },
+    {
+     "check": "action",
+     "ok": true,
+     "expected": "play",
+     "actual": "play"
+    }
+   ],
+   "latency_s": 7.46,
+   "trace_id": "4646e85a9d590c61a3a0bb06fc2d43c2",
+   "pipeline_run_id": "01M7JHY9XENQGNY6WMFQ8JSS7M",
+   "conversation_id": "01M7JHY9XE6VC8CXC1WW69EJBE",
+   "ha_debug": {
+    "local": false,
+    "fuzzy": true,
+    "intent": "HassSetVolume",
+    "summary": "fuzzy HassSetVolume only (strict pass misses)"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "Dry run: would play the album Hôtel Costes 3 - Etage 3 by Hôtel Costes on the Kitchen speaker. Nothing was sent to the speaker.",
+   "kronk": {
+    "rid": "56506bea",
+    "route": "direct",
+    "rule": "default",
+    "tools": [
+     "coordinator:ask_home",
+     "home:play_music"
+    ],
+    "trace_id": "4646e85a9d590c61a3a0bb06fc2d43c2",
+    "events": [
+     "request",
+     "origin",
+     "route",
+     "agent_round",
+     "tool_call",
+     "agent_round",
+     "tool_call",
+     "tool_complete",
+     "tool_complete",
+     "terminal_passthrough",
+     "request_complete"
+    ],
+    "dry_run": [
+     {
+      "action": "play",
+      "targets": [
+       "media_player.home_assistant_voice_0ac919_pe_01"
+      ],
+      "detail": "Dry run: would play the album Hôtel Costes 3 - Etage 3 by Hôtel Costes on the Kitchen speaker. Nothing was sent to the speaker."
+     }
+    ],
+    "music_requests": [
+     "query='hotel costes 3' media_type='album' player='kitchen speaker' shuffle=False -> ['media_player.home_assistant_voice_0ac919_pe_01']"
+    ]
+   },
+   "status": "xfail",
+   "xfail_reason": "Typed 'Pay' for 'Play'; no request verb at the start. Same class as the STT-mangled verbs; stopping rule."
+  },
+  {
+   "id": "inc-1017-try-playing-it-ytm",
+   "text": "Try playing it from YouTube music, still on the kitchen",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "direct",
+    "rule": "default",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": null,
+    "name": null,
+    "provider": "youtube_music",
+    "player": "area:Kitchen"
+   },
+   "xfail": null,
+   "checks": [],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "method": "skipped",
+   "status": "skip",
+   "skip_reason": "follow-up that needs conversation history; a replay has none"
+  },
+  {
+   "id": "inc-1019-ytm-link",
+   "text": "It's this album on YouTube music https://music.youtube.com/playlist?list=OLAK5uy…",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "home",
+    "rule": "music_url",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "album",
+    "name": "Destiny Waiving",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "method": "skipped",
+   "status": "skip",
+   "skip_reason": "typed link; a spoken request carries no URL"
+  },
+  {
+   "id": "inc-1021-ninetys-no-verb",
+   "text": "90s, 2000s, and today's hits radio",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "radio",
+    "name": "90s, 2000s, Today's Hits Radio",
+    "provider": "pandora",
+    "player": "origin"
+   },
+   "xfail": {
+    "routing": "No request verb (likely clipped by the satellite). _MUSIC_RE needs a verb at the start; stopping rule.",
+    "live": "INVESTIGATION_2026-10-04_radio_failures.md cause 3: on a routing miss the coordinator can answer without calling a tool. Open."
+   },
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": false,
+     "expected": "home/music",
+     "actual": "direct/default"
+    },
+    {
+     "check": "tool",
+     "ok": false,
+     "expected": "play_music",
+     "actual": []
+    }
+   ],
+   "latency_s": 2.83,
+   "trace_id": "a99ac29261332a145c5d21222b61fca6",
+   "pipeline_run_id": "01M7JHYJNW0EEVEY35RHR4V0GQ",
+   "conversation_id": "01M7JHYJNW96GGDNB5VD17TM54",
+   "ha_debug": {
+    "local": false,
+    "summary": "no local match"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "I do not have a radio or music library to provide curated hits for those decades.",
+   "kronk": {
+    "rid": "630061f1",
+    "route": "direct",
+    "rule": "default",
+    "tools": [],
+    "trace_id": "a99ac29261332a145c5d21222b61fca6",
+    "events": [
+     "request",
+     "origin",
+     "route",
+     "agent_round",
+     "request_complete"
+    ],
+    "dry_run": [],
+    "music_requests": []
+   },
+   "status": "xfail",
+   "xfail_reason": "INVESTIGATION_2026-10-04_radio_failures.md cause 3: on a routing miss the coordinator can answer without calling a tool. Open."
+  },
+  {
+   "id": "inc-1021-ninetys-from-pandora",
+   "text": "Play 90s, 2000s, Today's Hits, radio from Pandora.",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "radio",
+    "name": "90s, 2000s, Today's Hits Radio",
+    "provider": "pandora",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "catchall",
+    "template": "(play|put on|listen to) {media_name}",
+    "summary": "trigger catchall"
+   },
+   "check_ms": 1,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "inc-1021-woodstock-from-pandora",
+   "text": "Play Woodstock Radio from Pandora.",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "radio",
+    "name": "Woodstock Radio",
+    "provider": "pandora",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "catchall",
+    "template": "(play|put on|listen to) {media_name}",
+    "summary": "trigger catchall"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "inc-1021-shuffle-old-man-sings-basement",
+   "text": "shuffle the playlist old man sings on the basement voice pe ma",
+   "device": "basement_pe",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger",
+     "trigger": "playlist"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "playlist",
+    "name": "Old Man Sings",
+    "shuffle": true,
+    "player": "entity:media_player.home_assistant_voice_0ab117"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    },
+    {
+     "check": "ha.trigger",
+     "ok": true,
+     "expected": "playlist",
+     "actual": "playlist"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "playlist",
+    "template": "(shuffle|play|listen to) [my ][the ][(youtube music|youtube|you tube) ]playlist {media_name} [(in|on|using) [the ]{area_or_player_name}][ (with|using) {radio_mode}]",
+    "summary": "trigger playlist"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "inc-1025-ninetys-quoted-kitchen",
+   "text": "Play \"90s, 2000's and today's hits\" radio from Pandora, in the kitchen",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger",
+     "trigger": "radio"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "radio",
+    "name": "90s, 2000s, Today's Hits Radio",
+    "provider": "pandora",
+    "player": "area:Kitchen"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    },
+    {
+     "check": "ha.trigger",
+     "ok": true,
+     "expected": "radio",
+     "actual": "radio"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "radio",
+    "template": "(play|listen to) [the ]{media_name} (radio|station) [(on|from|via) pandora][ (in|on) [the ]{area_or_player_name}]",
+    "summary": "trigger radio"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "m17-play-some-jazz-office",
+   "text": "play some jazz in the office",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger",
+     "trigger": "loose"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "genre",
+    "media_type": null,
+    "name": "jazz",
+    "player": "area:Office"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    },
+    {
+     "check": "ha.trigger",
+     "ok": true,
+     "expected": "loose",
+     "actual": "loose"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "loose",
+    "template": "(play|put on|throw on|listen to) some {media_name} [(in|on) [the ]{area_or_player_name}]",
+    "summary": "trigger loose"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "m11-some-deep-house-chill",
+   "text": "play some deep house chill music",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "genre",
+    "media_type": null,
+    "name": "deep house chill",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "catchall",
+    "template": "(play|put on|listen to) {media_name}",
+    "summary": "trigger catchall"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "m11-italian-music",
+   "text": "play italian music",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "genre",
+    "media_type": null,
+    "name": "italian",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "catchall",
+    "template": "(play|put on|listen to) {media_name}",
+    "summary": "trigger catchall"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "m11-deep-house",
+   "text": "play deep house",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "genre",
+    "media_type": null,
+    "name": "deep house",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "catchall",
+    "template": "(play|put on|listen to) {media_name}",
+    "summary": "trigger catchall"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "m11-portishead",
+   "text": "play Portishead",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "artist",
+    "name": "Portishead",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "catchall",
+    "template": "(play|put on|listen to) {media_name}",
+    "summary": "trigger catchall"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "m11-play-the-news",
+   "text": "play the news",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger"
+    },
+    "route": "direct",
+    "rule": "default",
+    "tool": "news_brief"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "catchall",
+    "template": "(play|put on|listen to) {media_name}",
+    "summary": "trigger catchall"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-play-top-pink-floyd-songs-on-the",
+   "text": "Play top Pink Floyd songs on the Sonos Move Derp speaker.",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "artist",
+    "name": "Pink Floyd",
+    "player": "entity:media_player.sonos_move_derp_2"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "catchall",
+    "template": "(play|put on|listen to) {media_name}",
+    "summary": "trigger catchall"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-play-k-pop-radio-on-sonos-move",
+   "text": "Play K-pop radio on Sonos Move Dirt.",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "radio",
+    "name": "K-pop Radio",
+    "player": "entity:media_player.sonos_move_derp_2"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "catchall",
+    "template": "(play|put on|listen to) {media_name}",
+    "summary": "trigger catchall"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-shuffle-the-anime-bangers-playlist-on-sonos",
+   "text": "Shuffle the anime bangers playlist on Sonos Move Derp.",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "playlist",
+    "name": "anime bangers",
+    "shuffle": true,
+    "player": "entity:media_player.sonos_move_derp_2"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": true,
+     "expected": "home/music",
+     "actual": "home/music"
+    },
+    {
+     "check": "tool",
+     "ok": true,
+     "expected": "play_music",
+     "actual": [
+      "home:play_music"
+     ]
+    }
+   ],
+   "latency_s": 5.07,
+   "trace_id": "04a6d0a8d1672d0f3f6d742bc9bd9222",
+   "pipeline_run_id": "01M7JHYPY2SETYAR9G0SVJEPFC",
+   "conversation_id": "01M7JHYPY2PDETZ5VHGD076YVR",
+   "ha_debug": {
+    "local": false,
+    "fuzzy": true,
+    "intent": "HassTurnOn",
+    "summary": "fuzzy HassTurnOn only (strict pass misses)"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "I couldn't play that. I couldn't find anything called anime bangers playlist in Music Assistant. The closest I found was my anime playlist by .CORPUS and blnce4.",
+   "kronk": {
+    "rid": "9c1f7c30",
+    "route": "home",
+    "rule": "music",
+    "tools": [
+     "home:play_music"
+    ],
+    "trace_id": "04a6d0a8d1672d0f3f6d742bc9bd9222",
+    "events": [
+     "request",
+     "origin",
+     "route_shortcut",
+     "agent_round",
+     "tool_call",
+     "tool_complete",
+     "agent_complete",
+     "request_complete"
+    ],
+    "dry_run": [],
+    "music_requests": [
+     "query='anime bangers playlist' media_type=None player='Sonos Move Derp' shuffle=True -> ['media_player.sonos_move_derp_2']"
+    ]
+   },
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-play-music-by-pink-floyd",
+   "text": "play music by pink floyd",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "artist",
+    "name": "Pink Floyd",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "catchall",
+    "template": "(play|put on|listen to) {media_name}",
+    "summary": "trigger catchall"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-play-pink-floyd-on-sonos-move",
+   "text": "play pink floyd on sonos move",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "artist",
+    "name": "Pink Floyd",
+    "player": "entity:media_player.sonos_move_derp_2"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "catchall",
+    "template": "(play|put on|listen to) {media_name}",
+    "summary": "trigger catchall"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-play-some-jazz-on-the-sonos-move",
+   "text": "play some jazz on the sonos move",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "genre",
+    "media_type": null,
+    "name": "jazz",
+    "player": "entity:media_player.sonos_move_derp_2"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "loose",
+    "template": "(play|put on|throw on|listen to) some {media_name} [(in|on) [the ]{area_or_player_name}]",
+    "summary": "trigger loose"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-play-the-beatles-in-the-kitchen",
+   "text": "play the beatles in the kitchen",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "artist",
+    "name": "The Beatles",
+    "player": "area:Kitchen"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "catchall",
+    "template": "(play|put on|listen to) {media_name}",
+    "summary": "trigger catchall"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-put-on-some-mellow-pink-floyd-in",
+   "text": "put on some mellow pink floyd in the kitchen",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "artist",
+    "name": "Pink Floyd",
+    "player": "area:Kitchen"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "loose",
+    "template": "(play|put on|throw on|listen to) some {media_name} [(in|on) [the ]{area_or_player_name}]",
+    "summary": "trigger loose"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-pause-sonos-move-dirt",
+   "text": "Pause. Sonos. Move. Dirt.",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "direct",
+    "rule": "default",
+    "tool": "control_music",
+    "action": "pause",
+    "player": "entity:media_player.sonos_move_derp_2"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": true,
+     "expected": "direct/default",
+     "actual": "direct/default"
+    },
+    {
+     "check": "tool",
+     "ok": true,
+     "expected": "control_music",
+     "actual": [
+      "coordinator:ask_home",
+      "home:control_music"
+     ]
+    }
+   ],
+   "latency_s": 8.63,
+   "trace_id": "f194fa81aa2a4abb5c1dc69119c61cf2",
+   "pipeline_run_id": "01M7JHYXC7EJDPTRTR57VMDVDK",
+   "conversation_id": "01M7JHYXC7CMRZ9TB4CSQMRCDM",
+   "ha_debug": {
+    "local": false,
+    "summary": "partial HassMediaPause (match false)"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "The Office speaker is already paused.",
+   "kronk": {
+    "rid": "6998d948",
+    "route": "direct",
+    "rule": "default",
+    "tools": [
+     "coordinator:ask_home",
+     "home:control_music"
+    ],
+    "trace_id": "f194fa81aa2a4abb5c1dc69119c61cf2",
+    "events": [
+     "request",
+     "origin",
+     "route",
+     "agent_round",
+     "tool_call",
+     "agent_round",
+     "tool_call",
+     "tool_complete",
+     "tool_complete",
+     "terminal_passthrough",
+     "request_complete"
+    ],
+    "dry_run": [],
+    "music_requests": []
+   },
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-play-albuquerque-by-weird-al-yankovic",
+   "text": "Play Albuquerque by Weird Al Yankovic.",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "track",
+    "name": "Albuquerque",
+    "artist": "Weird Al Yankovic",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "catchall",
+    "template": "(play|put on|listen to) {media_name}",
+    "summary": "trigger catchall"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-play-top-songs-by-weird-al-yankovic",
+   "text": "Play Top Songs by Weird Al Yankovic on Sonos Move Dirt.",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "artist",
+    "name": "Weird Al Yankovic",
+    "player": "entity:media_player.sonos_move_derp_2"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "catchall",
+    "template": "(play|put on|listen to) {media_name}",
+    "summary": "trigger catchall"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-play-journey-on-the-sonos",
+   "text": "play journey on the sonos",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "artist",
+    "name": "Journey",
+    "player": "entity:media_player.sonos_move_derp_2"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "catchall",
+    "template": "(play|put on|listen to) {media_name}",
+    "summary": "trigger catchall"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-play-pink-floyd-on-the-blue-group",
+   "text": "play pink floyd on the blue group",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "artist",
+    "name": "Pink Floyd",
+    "player": "unknown:blue group"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "catchall",
+    "template": "(play|put on|listen to) {media_name}",
+    "summary": "trigger catchall"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-play-pink-floyd-on-the-sonos-move",
+   "text": "play pink floyd on the sonos move",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "artist",
+    "name": "Pink Floyd",
+    "player": "entity:media_player.sonos_move_derp_2"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "catchall",
+    "template": "(play|put on|listen to) {media_name}",
+    "summary": "trigger catchall"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-stop-sonos-move-derp",
+   "text": "Stop. Sonos move, derp.",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "direct",
+    "rule": "default",
+    "tool": "control_music",
+    "action": "stop",
+    "player": "entity:media_player.sonos_move_derp_2"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": true,
+     "expected": "direct/default",
+     "actual": "direct/default"
+    },
+    {
+     "check": "tool",
+     "ok": true,
+     "expected": "control_music",
+     "actual": [
+      "coordinator:ask_home",
+      "home:control_music"
+     ]
+    }
+   ],
+   "latency_s": 6.41,
+   "trace_id": "82c3431f526072b322d246a1210a1b54",
+   "pipeline_run_id": "01M7JHZ76YXXJ5V5JD0D6RYXK4",
+   "conversation_id": "01M7JHZ76YAFPS08R8DW20NZY2",
+   "ha_debug": {
+    "local": false,
+    "summary": "partial HassLawnMowerDock (match false)"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "The Office speaker is already paused.",
+   "kronk": {
+    "rid": "377b7cc9",
+    "route": "direct",
+    "rule": "default",
+    "tools": [
+     "coordinator:ask_home",
+     "home:control_music"
+    ],
+    "trace_id": "82c3431f526072b322d246a1210a1b54",
+    "events": [
+     "request",
+     "origin",
+     "route",
+     "agent_round",
+     "tool_call",
+     "agent_round",
+     "tool_call",
+     "tool_complete",
+     "tool_complete",
+     "terminal_passthrough",
+     "request_complete"
+    ],
+    "dry_run": [],
+    "music_requests": []
+   },
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-play-don-t-stop-me-now-by",
+   "text": "play \"Don't stop me now\" by queen on the Satellite 1",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "track",
+    "name": "Don't Stop Me Now",
+    "artist": "Queen",
+    "player": "entity:media_player.satellite1_d8d1bc"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "catchall",
+    "template": "(play|put on|listen to) {media_name}",
+    "summary": "trigger catchall"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-play-the-artist-aerosmith-in-the-office",
+   "text": "Play the artist Aerosmith in the office",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger",
+     "trigger": "artist"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "artist",
+    "name": "Aerosmith",
+    "player": "area:Office"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    },
+    {
+     "check": "ha.trigger",
+     "ok": true,
+     "expected": "artist",
+     "actual": "artist"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "artist",
+    "template": "(shuffle|play|listen to) [the ](artist|band|group) {media_name} [(in|on|using) [the ]{area_or_player_name}][ (with|using) {radio_mode}]",
+    "summary": "trigger artist"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-play-toys-in-the-attic-by-aerosmith",
+   "text": "Play toys in the attic by aerosmith",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "album",
+    "name": "Toys in the Attic",
+    "artist": "Aerosmith",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "catchall",
+    "template": "(play|put on|listen to) {media_name}",
+    "summary": "trigger catchall"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-played-the-album-toys-in-the-attic",
+   "text": "Played the album Toys in the Attic.",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "album",
+    "name": "Toys in the Attic",
+    "player": "origin"
+   },
+   "xfail": {
+    "routing": "STT mangled or prefixed the request verb; _MUSIC_RE is anchored to a request verb at the start and routing.py documents this class as a miss. No new rule without repeated captured failures (stopping rule, 2026-11-11). ROADMAP Voice accuracy lists this one (rid 2881890a).",
+    "live": "INVESTIGATION_2026-10-04_radio_failures.md cause 3: on a routing miss the coordinator can answer without calling a tool. Open."
+   },
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": false,
+     "expected": "home/music",
+     "actual": "direct/default"
+    },
+    {
+     "check": "tool",
+     "ok": false,
+     "expected": "play_music",
+     "actual": []
+    }
+   ],
+   "latency_s": 2.95,
+   "trace_id": "413876c816c133d50e42c3c57cd5ee85",
+   "pipeline_run_id": "01M7JHZEZ9KS7NJ9DXZ3RY8TFS",
+   "conversation_id": "01M7JHZEZ9P1S0ES8RT6R4JWGF",
+   "ha_debug": {
+    "local": false,
+    "summary": "partial HassTurnOn (match false)"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "Acknowledged.",
+   "kronk": {
+    "rid": "d78b759e",
+    "route": "direct",
+    "rule": "default",
+    "tools": [],
+    "trace_id": "413876c816c133d50e42c3c57cd5ee85",
+    "events": [
+     "request",
+     "origin",
+     "route",
+     "agent_round",
+     "request_complete"
+    ],
+    "dry_run": [],
+    "music_requests": []
+   },
+   "status": "xfail",
+   "xfail_reason": "INVESTIGATION_2026-10-04_radio_failures.md cause 3: on a routing miss the coordinator can answer without calling a tool. Open."
+  },
+  {
+   "id": "eval-resume-the-music",
+   "text": "Resume the music.",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "home",
+    "rule": "playback",
+    "tool": "control_music",
+    "action": "resume",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": true,
+     "expected": "home/playback",
+     "actual": "home/playback"
+    },
+    {
+     "check": "tool",
+     "ok": true,
+     "expected": "control_music",
+     "actual": [
+      "home:control_music"
+     ]
+    },
+    {
+     "check": "action",
+     "ok": true,
+     "expected": "resume",
+     "actual": "resume"
+    },
+    {
+     "check": "player",
+     "ok": true,
+     "expected": "media_player.satellite1_d8d1bc",
+     "actual": [
+      "media_player.satellite1_d8d1bc"
+     ]
+    }
+   ],
+   "latency_s": 4.73,
+   "trace_id": "d6e39d8e4844b1396f59694be2afea91",
+   "pipeline_run_id": "01M7JHZK8SF1BDPYCPZ89PPYRB",
+   "conversation_id": "01M7JHZK8SKKRXCBBKD4SPS9VE",
+   "ha_debug": {
+    "local": false,
+    "fuzzy": true,
+    "intent": "HassMediaUnpause",
+    "summary": "fuzzy HassMediaUnpause only (strict pass misses)"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "Dry run: would resume on the Office speaker. Nothing was sent.",
+   "kronk": {
+    "rid": "ba08bb05",
+    "route": "home",
+    "rule": "playback",
+    "tools": [
+     "home:control_music"
+    ],
+    "trace_id": "d6e39d8e4844b1396f59694be2afea91",
+    "events": [
+     "request",
+     "origin",
+     "route_shortcut",
+     "agent_round",
+     "tool_call",
+     "tool_complete",
+     "agent_complete",
+     "request_complete"
+    ],
+    "dry_run": [
+     {
+      "action": "resume",
+      "targets": [
+       "media_player.satellite1_d8d1bc"
+      ],
+      "detail": "Dry run: would resume on the Office speaker. Nothing was sent."
+     }
+    ],
+    "music_requests": []
+   },
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-shuffle-my-youtube-music-playlist-anime-bankers",
+   "text": "Shuffle my YouTube music playlist, Anime Bankers.",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger",
+     "trigger": "playlist"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "playlist",
+    "name": "anime bangers",
+    "provider": "youtube_music",
+    "shuffle": true,
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    },
+    {
+     "check": "ha.trigger",
+     "ok": true,
+     "expected": "playlist",
+     "actual": "playlist"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "playlist",
+    "template": "(shuffle|play|listen to) [my ][the ][(youtube music|youtube|you tube) ]playlist {media_name} [(in|on|using) [the ]{area_or_player_name}][ (with|using) {radio_mode}]",
+    "summary": "trigger playlist"
+   },
+   "check_ms": 1,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-shuffle-my-youtube-playlist-old-man-video",
+   "text": "Shuffle my YouTube playlist, Old Man Video Games.",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger",
+     "trigger": "playlist"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "playlist",
+    "name": "Old Man Video Games",
+    "provider": "youtube_music",
+    "shuffle": true,
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    },
+    {
+     "check": "ha.trigger",
+     "ok": true,
+     "expected": "playlist",
+     "actual": "playlist"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "playlist",
+    "template": "(shuffle|play|listen to) [my ][the ][(youtube music|youtube|you tube) ]playlist {media_name} [(in|on|using) [the ]{area_or_player_name}][ (with|using) {radio_mode}]",
+    "summary": "trigger playlist"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-shuffle-my-youtube-playlist-anime-bangers",
+   "text": "Shuffle my YouTube playlist, anime bangers.",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger",
+     "trigger": "playlist"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "playlist",
+    "name": "anime bangers",
+    "provider": "youtube_music",
+    "shuffle": true,
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    },
+    {
+     "check": "ha.trigger",
+     "ok": true,
+     "expected": "playlist",
+     "actual": "playlist"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "playlist",
+    "template": "(shuffle|play|listen to) [my ][the ][(youtube music|youtube|you tube) ]playlist {media_name} [(in|on|using) [the ]{area_or_player_name}][ (with|using) {radio_mode}]",
+    "summary": "trigger playlist"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-shuffle-the-youtube-music-playlist-anime-bangers",
+   "text": "Shuffle the YouTube music playlist, anime bangers.",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger",
+     "trigger": "playlist"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "playlist",
+    "name": "anime bangers",
+    "provider": "youtube_music",
+    "shuffle": true,
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    },
+    {
+     "check": "ha.trigger",
+     "ok": true,
+     "expected": "playlist",
+     "actual": "playlist"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "playlist",
+    "template": "(shuffle|play|listen to) [my ][the ][(youtube music|youtube|you tube) ]playlist {media_name} [(in|on|using) [the ]{area_or_player_name}][ (with|using) {radio_mode}]",
+    "summary": "trigger playlist"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-play-some-aerosmith-please",
+   "text": "play some aerosmith please",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "artist",
+    "name": "Aerosmith",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "catchall",
+    "template": "(play|put on|listen to) {media_name}",
+    "summary": "trigger catchall"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-put-on-some-aerosmith",
+   "text": "put on some aerosmith",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "artist",
+    "name": "Aerosmith",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "catchall",
+    "template": "(play|put on|listen to) {media_name}",
+    "summary": "trigger catchall"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-oh-play-portishead-radio",
+   "text": "Oh, play Portishead Radio.",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "radio",
+    "name": "Portishead Radio",
+    "player": "origin"
+   },
+   "xfail": {
+    "routing": "STT mangled or prefixed the request verb; _MUSIC_RE is anchored to a request verb at the start and routing.py documents this class as a miss. No new rule without repeated captured failures (stopping rule, 2026-11-11). Here a leading 'Oh,'."
+   },
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": false,
+     "expected": "home/music",
+     "actual": "direct/default"
+    },
+    {
+     "check": "tool",
+     "ok": true,
+     "expected": "play_music",
+     "actual": [
+      "coordinator:ask_home",
+      "home:play_music"
+     ]
+    },
+    {
+     "check": "action",
+     "ok": true,
+     "expected": "play",
+     "actual": "play"
+    },
+    {
+     "check": "player",
+     "ok": true,
+     "expected": "media_player.satellite1_d8d1bc",
+     "actual": [
+      "media_player.satellite1_d8d1bc"
+     ]
+    }
+   ],
+   "latency_s": 3.41,
+   "trace_id": "8b005af3f2cc659614ce6fbec815371d",
+   "pipeline_run_id": "01M7JHZSCFMGWVVGJCN0QKSD3R",
+   "conversation_id": "01M7JHZSCFQ25BRYZRMQH99S3B",
+   "ha_debug": {
+    "local": false,
+    "summary": "no local match"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "Dry run: would play the Pandora station Portishead Radio on the Office speaker. Nothing was sent to the speaker.",
+   "kronk": {
+    "rid": "c12a66db",
+    "route": "direct",
+    "rule": "default",
+    "tools": [
+     "coordinator:ask_home",
+     "home:play_music"
+    ],
+    "trace_id": "8b005af3f2cc659614ce6fbec815371d",
+    "events": [
+     "request",
+     "origin",
+     "route",
+     "agent_round",
+     "tool_call",
+     "agent_round",
+     "tool_call",
+     "tool_complete",
+     "tool_complete",
+     "terminal_passthrough",
+     "request_complete"
+    ],
+    "dry_run": [
+     {
+      "action": "play",
+      "targets": [
+       "media_player.satellite1_d8d1bc"
+      ],
+      "detail": "Dry run: would play the Pandora station Portishead Radio on the Office speaker. Nothing was sent to the speaker."
+     }
+    ],
+    "music_requests": [
+     "query='Portishead' media_type='radio' player=None shuffle=False -> ['media_player.satellite1_d8d1bc']"
+    ]
+   },
+   "status": "xfail",
+   "xfail_reason": "STT mangled or prefixed the request verb; _MUSIC_RE is anchored to a request verb at the start and routing.py documents this class as a miss. No new rule without repeated captured failures (stopping rule, 2026-11-11). Here a leading 'Oh,'."
+  },
+  {
+   "id": "eval-put-on-the-radio-station-zorblax-fnordwave",
+   "text": "put on the radio station Zorblax Fnordwave Nonexistent",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "radio",
+    "name": "Zorblax Fnordwave Nonexistent",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "catchall",
+    "template": "(play|put on|listen to) {media_name}",
+    "summary": "trigger catchall"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-stop",
+   "text": "Stop.",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "home",
+    "rule": "playback",
+    "tool": "control_music",
+    "action": "stop",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": true,
+     "expected": "home/playback",
+     "actual": "home/playback"
+    },
+    {
+     "check": "tool",
+     "ok": true,
+     "expected": "control_music",
+     "actual": [
+      "home:control_music"
+     ]
+    }
+   ],
+   "latency_s": 1.41,
+   "trace_id": "1cb4ebf2b6ae2c3880f6f3a27a42f8e0",
+   "pipeline_run_id": "01M7JHZY7V5W188RMQSZX4YXQ9",
+   "conversation_id": "01M7JHZY7V9C9TC3Z12NPN9Z86",
+   "ha_debug": {
+    "local": false,
+    "summary": "no local match"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "The Office speaker is already paused.",
+   "kronk": {
+    "rid": "72fa1e78",
+    "route": "home",
+    "rule": "playback",
+    "tools": [
+     "home:control_music"
+    ],
+    "trace_id": "1cb4ebf2b6ae2c3880f6f3a27a42f8e0",
+    "events": [
+     "request",
+     "origin",
+     "route_shortcut",
+     "agent_round",
+     "tool_call",
+     "tool_complete",
+     "agent_complete",
+     "request_complete"
+    ],
+    "dry_run": [],
+    "music_requests": []
+   },
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-pause",
+   "text": "pause",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "builtin",
+     "intent": "HassMediaPause"
+    },
+    "route": "home",
+    "rule": "playback",
+    "tool": "control_music",
+    "action": "pause",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "builtin",
+     "actual": "builtin"
+    },
+    {
+     "check": "ha.intent",
+     "ok": true,
+     "expected": "HassMediaPause",
+     "actual": "HassMediaPause"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "builtin",
+    "intent": "HassMediaPause",
+    "template": "pause",
+    "summary": "builtin HassMediaPause"
+   },
+   "check_ms": 1,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-resume-the-music-2",
+   "text": "resume the music",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "home",
+    "rule": "playback",
+    "tool": "control_music",
+    "action": "resume",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": true,
+     "expected": "home/playback",
+     "actual": "home/playback"
+    },
+    {
+     "check": "tool",
+     "ok": true,
+     "expected": "control_music",
+     "actual": [
+      "home:control_music"
+     ]
+    },
+    {
+     "check": "action",
+     "ok": true,
+     "expected": "resume",
+     "actual": "resume"
+    },
+    {
+     "check": "player",
+     "ok": true,
+     "expected": "media_player.satellite1_d8d1bc",
+     "actual": [
+      "media_player.satellite1_d8d1bc"
+     ]
+    }
+   ],
+   "latency_s": 2.45,
+   "trace_id": "d43d434140ac5b93afec6111d84bffe7",
+   "pipeline_run_id": "01M7JJ012MB6EXDN7ZZD0F5Z1B",
+   "conversation_id": "01M7JJ012MJ19B6X7TK5HVXZ9G",
+   "ha_debug": {
+    "local": false,
+    "fuzzy": true,
+    "intent": "HassMediaUnpause",
+    "summary": "fuzzy HassMediaUnpause only (strict pass misses)"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "Dry run: would resume on the Office speaker. Nothing was sent.",
+   "kronk": {
+    "rid": "d0dcee8a",
+    "route": "home",
+    "rule": "playback",
+    "tools": [
+     "home:control_music"
+    ],
+    "trace_id": "d43d434140ac5b93afec6111d84bffe7",
+    "events": [
+     "request",
+     "origin",
+     "route_shortcut",
+     "agent_round",
+     "tool_call",
+     "tool_complete",
+     "agent_complete",
+     "request_complete"
+    ],
+    "dry_run": [
+     {
+      "action": "resume",
+      "targets": [
+       "media_player.satellite1_d8d1bc"
+      ],
+      "detail": "Dry run: would resume on the Office speaker. Nothing was sent."
+     }
+    ],
+    "music_requests": []
+   },
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-skip-this-song",
+   "text": "skip this song",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "builtin",
+     "intent": "HassMediaNext"
+    },
+    "route": "home",
+    "rule": "playback",
+    "tool": "control_music",
+    "action": "next",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "builtin",
+     "actual": "builtin"
+    },
+    {
+     "check": "ha.intent",
+     "ok": true,
+     "expected": "HassMediaNext",
+     "actual": "HassMediaNext"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "builtin",
+    "intent": "HassMediaNext",
+    "template": "(skip [(to [the] next [(song|track)]|([the] (song|track)|this [(song|track)]))])",
+    "summary": "builtin HassMediaNext"
+   },
+   "check_ms": 1,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-i-have-to-play-the-radio-station",
+   "text": "I have to play the radio station, German Soundscape Radio.",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "radio",
+    "name": "German Soundscape Radio",
+    "player": "origin"
+   },
+   "xfail": {
+    "routing": "STT mangled or prefixed the request verb; _MUSIC_RE is anchored to a request verb at the start and routing.py documents this class as a miss. No new rule without repeated captured failures (stopping rule, 2026-11-11)."
+   },
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": false,
+     "expected": "home/music",
+     "actual": "direct/default"
+    },
+    {
+     "check": "tool",
+     "ok": true,
+     "expected": "play_music",
+     "actual": [
+      "coordinator:ask_home",
+      "home:play_music"
+     ]
+    },
+    {
+     "check": "action",
+     "ok": true,
+     "expected": "play",
+     "actual": "play"
+    },
+    {
+     "check": "player",
+     "ok": true,
+     "expected": "media_player.satellite1_d8d1bc",
+     "actual": [
+      "media_player.satellite1_d8d1bc"
+     ]
+    }
+   ],
+   "latency_s": 2.8,
+   "trace_id": "23315026bd75b3369720bd7a174a897f",
+   "pipeline_run_id": "01M7JJ04Y9Q4W7QGR7CWYFFDA0",
+   "conversation_id": "01M7JJ04Y907GYYC3AK8R73FE8",
+   "ha_debug": {
+    "local": false,
+    "summary": "partial HassTurnOn (match false)"
+   },
+   "check_ms": 0,
+   "method": "executed",
+   "speech": "Dry run: would play the Pandora station German Soundscape Radio on the Office speaker. Nothing was sent to the speaker.",
+   "kronk": {
+    "rid": "568f7b5a",
+    "route": "direct",
+    "rule": "default",
+    "tools": [
+     "coordinator:ask_home",
+     "home:play_music"
+    ],
+    "trace_id": "23315026bd75b3369720bd7a174a897f",
+    "events": [
+     "request",
+     "origin",
+     "route",
+     "agent_round",
+     "tool_call",
+     "agent_round",
+     "tool_call",
+     "tool_complete",
+     "tool_complete",
+     "terminal_passthrough",
+     "request_complete"
+    ],
+    "dry_run": [
+     {
+      "action": "play",
+      "targets": [
+       "media_player.satellite1_d8d1bc"
+      ],
+      "detail": "Dry run: would play the Pandora station German Soundscape Radio on the Office speaker. Nothing was sent to the speaker."
+     }
+    ],
+    "music_requests": [
+     "query='German Soundscape Radio' media_type='radio' player=None shuffle=False -> ['media_player.satellite1_d8d1bc']"
+    ]
+   },
+   "status": "xfail",
+   "xfail_reason": "STT mangled or prefixed the request verb; _MUSIC_RE is anchored to a request verb at the start and routing.py documents this class as a miss. No new rule without repeated captured failures (stopping rule, 2026-11-11)."
+  },
+  {
+   "id": "eval-stop-stop",
+   "text": "Stop.  Stop.",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "home",
+    "rule": "playback",
+    "tool": "control_music",
+    "action": "stop",
+    "player": "origin"
+   },
+   "xfail": {
+    "routing": "The same command twice; _PLAYBACK_RE takes one command, anchored. One capture; stopping rule."
+   },
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": false,
+     "expected": "home/playback",
+     "actual": "direct/default"
+    },
+    {
+     "check": "tool",
+     "ok": true,
+     "expected": "control_music",
+     "actual": [
+      "coordinator:ask_home",
+      "home:control_music"
+     ]
+    }
+   ],
+   "latency_s": 3.3,
+   "trace_id": "2fd9b34687a87ddac4a3be8e12cbefa0",
+   "pipeline_run_id": "01M7JJ093TYZYNA84QR5JCD1YF",
+   "conversation_id": "01M7JJ093TMM0HWX9S9EGXF7FY",
+   "ha_debug": {
+    "local": false,
+    "summary": "partial HassLawnMowerDock (match false)"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "The Office speaker is already paused.",
+   "kronk": {
+    "rid": "fb1eaf29",
+    "route": "direct",
+    "rule": "default",
+    "tools": [
+     "coordinator:ask_home",
+     "home:control_music"
+    ],
+    "trace_id": "2fd9b34687a87ddac4a3be8e12cbefa0",
+    "events": [
+     "request",
+     "origin",
+     "route",
+     "agent_round",
+     "tool_call",
+     "agent_round",
+     "tool_call",
+     "tool_complete",
+     "tool_complete",
+     "terminal_passthrough",
+     "request_complete"
+    ],
+    "dry_run": [],
+    "music_requests": []
+   },
+   "status": "xfail",
+   "xfail_reason": "The same command twice; _PLAYBACK_RE takes one command, anchored. One capture; stopping rule."
+  },
+  {
+   "id": "eval-what-song-is-this",
+   "text": "What song is this",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "home",
+    "rule": "now_playing",
+    "tool": "now_playing",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": true,
+     "expected": "home/now_playing",
+     "actual": "home/now_playing"
+    },
+    {
+     "check": "tool",
+     "ok": true,
+     "expected": "now_playing",
+     "actual": [
+      "home:now_playing"
+     ]
+    }
+   ],
+   "latency_s": 2.53,
+   "trace_id": "47eca38c3b44b39d502db8b959436ba9",
+   "pipeline_run_id": "01M7JJ0DTX8HGJQSETX4Y2FT63",
+   "conversation_id": "01M7JJ0DTX5VQ8XBFAXHSSREPT",
+   "ha_debug": {
+    "local": false,
+    "fuzzy": true,
+    "intent": "HassGetCurrentTime",
+    "summary": "fuzzy HassGetCurrentTime only (strict pass misses)"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "Nothing is playing on the Office speaker.",
+   "kronk": {
+    "rid": "6c64368d",
+    "route": "home",
+    "rule": "now_playing",
+    "tools": [
+     "home:now_playing"
+    ],
+    "trace_id": "47eca38c3b44b39d502db8b959436ba9",
+    "events": [
+     "request",
+     "origin",
+     "route_shortcut",
+     "agent_round",
+     "tool_call",
+     "tool_complete",
+     "agent_complete",
+     "request_complete"
+    ],
+    "dry_run": [],
+    "music_requests": []
+   },
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-what-s-playing",
+   "text": "What's playing?",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "home",
+    "rule": "now_playing",
+    "tool": "now_playing",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": true,
+     "expected": "home/now_playing",
+     "actual": "home/now_playing"
+    },
+    {
+     "check": "tool",
+     "ok": true,
+     "expected": "now_playing",
+     "actual": [
+      "home:now_playing"
+     ]
+    }
+   ],
+   "latency_s": 4.59,
+   "trace_id": "6375256078693c90efc70dba12e6a23f",
+   "pipeline_run_id": "01M7JJ0HTX8FTFYAKBBSF0NVR1",
+   "conversation_id": "01M7JJ0HTXRKEB22X3XN5EWWZ8",
+   "ha_debug": {
+    "local": false,
+    "fuzzy": true,
+    "intent": "HassGetCurrentTime",
+    "summary": "fuzzy HassGetCurrentTime only (strict pass misses)"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "Nothing is playing on the Office speaker.",
+   "kronk": {
+    "rid": "9e591a6b",
+    "route": "home",
+    "rule": "now_playing",
+    "tools": [
+     "home:now_playing"
+    ],
+    "trace_id": "6375256078693c90efc70dba12e6a23f",
+    "events": [
+     "request",
+     "origin",
+     "route_shortcut",
+     "agent_round",
+     "tool_call",
+     "tool_complete",
+     "agent_complete",
+     "request_complete"
+    ],
+    "dry_run": [],
+    "music_requests": []
+   },
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-play-groove-armada-radio-from-pandora-in",
+   "text": "play \"groove armada\" radio from pandora in the kitchen",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger",
+     "trigger": "radio"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "radio",
+    "name": "Groove Armada Radio",
+    "provider": "pandora",
+    "player": "area:Kitchen"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    },
+    {
+     "check": "ha.trigger",
+     "ok": true,
+     "expected": "radio",
+     "actual": "radio"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "radio",
+    "template": "(play|listen to) [the ]{media_name} (radio|station) [(on|from|via) pandora][ (in|on) [the ]{area_or_player_name}]",
+    "summary": "trigger radio"
+   },
+   "check_ms": 1,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-stop-2",
+   "text": "stop",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "home",
+    "rule": "playback",
+    "tool": "control_music",
+    "action": "stop",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": true,
+     "expected": "home/playback",
+     "actual": "home/playback"
+    },
+    {
+     "check": "tool",
+     "ok": true,
+     "expected": "control_music",
+     "actual": [
+      "home:control_music"
+     ]
+    }
+   ],
+   "latency_s": 1.73,
+   "trace_id": "6c35f02da24371e8c3aed94f56142c37",
+   "pipeline_run_id": "01M7JJ0QTTH5ETRMP5JDZMZR00",
+   "conversation_id": "01M7JJ0QTTS8MBXE1Z1WH3JGM5",
+   "ha_debug": {
+    "local": false,
+    "summary": "no local match"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "The Office speaker is already paused.",
+   "kronk": {
+    "rid": "2e089409",
+    "route": "home",
+    "rule": "playback",
+    "tools": [
+     "home:control_music"
+    ],
+    "trace_id": "6c35f02da24371e8c3aed94f56142c37",
+    "events": [
+     "request",
+     "origin",
+     "route_shortcut",
+     "agent_round",
+     "tool_call",
+     "tool_complete",
+     "agent_complete",
+     "request_complete"
+    ],
+    "dry_run": [],
+    "music_requests": []
+   },
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-what-song-is-this-2",
+   "text": "what song is this",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "home",
+    "rule": "now_playing",
+    "tool": "now_playing",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": true,
+     "expected": "home/now_playing",
+     "actual": "home/now_playing"
+    },
+    {
+     "check": "tool",
+     "ok": true,
+     "expected": "now_playing",
+     "actual": [
+      "home:now_playing"
+     ]
+    }
+   ],
+   "latency_s": 2.04,
+   "trace_id": "d320f1e34de66ff068c682af6723709c",
+   "pipeline_run_id": "01M7JJ0TX6D86449E699WD88R8",
+   "conversation_id": "01M7JJ0TX6DVD1NVYGFAC93C0W",
+   "ha_debug": {
+    "local": false,
+    "fuzzy": true,
+    "intent": "HassGetCurrentTime",
+    "summary": "fuzzy HassGetCurrentTime only (strict pass misses)"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "Nothing is playing on the Office speaker.",
+   "kronk": {
+    "rid": "e058008d",
+    "route": "home",
+    "rule": "now_playing",
+    "tools": [
+     "home:now_playing"
+    ],
+    "trace_id": "d320f1e34de66ff068c682af6723709c",
+    "events": [
+     "request",
+     "origin",
+     "route_shortcut",
+     "agent_round",
+     "tool_call",
+     "tool_complete",
+     "agent_complete",
+     "request_complete"
+    ],
+    "dry_run": [],
+    "music_requests": []
+   },
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-play-the-albo-daisies-of-the-galaxy",
+   "text": "Play the Albo Daisies of the Galaxy.",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "album",
+    "name": "Daisies of the Galaxy",
+    "artist": "Eels",
+    "player": "origin"
+   },
+   "xfail": {
+    "parser": "STT turned 'album' into 'Albo', so the type word is gone and the title track played (INVESTIGATION_2026-09-15). The fix is upstream of the parser (M13)."
+   },
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "catchall",
+    "template": "(play|put on|listen to) {media_name}",
+    "summary": "trigger catchall"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-shuffle-my-youtube-playlist-video-game-pretty",
+   "text": "Shuffle my YouTube playlist, video game pretty songs.",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger",
+     "trigger": "playlist"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "playlist",
+    "name": "video game pretty songs",
+    "provider": "youtube_music",
+    "shuffle": true,
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    },
+    {
+     "check": "ha.trigger",
+     "ok": true,
+     "expected": "playlist",
+     "actual": "playlist"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "playlist",
+    "template": "(shuffle|play|listen to) [my ][the ][(youtube music|youtube|you tube) ]playlist {media_name} [(in|on|using) [the ]{area_or_player_name}][ (with|using) {radio_mode}]",
+    "summary": "trigger playlist"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-shuffle-the-youtube-playlist-old-man-video",
+   "text": "Shuffle the YouTube Playlist Old Man Video Games.",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger",
+     "trigger": "playlist"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "playlist",
+    "name": "Old Man Video Games",
+    "provider": "youtube_music",
+    "shuffle": true,
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    },
+    {
+     "check": "ha.trigger",
+     "ok": true,
+     "expected": "playlist",
+     "actual": "playlist"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "playlist",
+    "template": "(shuffle|play|listen to) [my ][the ][(youtube music|youtube|you tube) ]playlist {media_name} [(in|on|using) [the ]{area_or_player_name}][ (with|using) {radio_mode}]",
+    "summary": "trigger playlist"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-skip-the-current-song",
+   "text": "Skip the current song.",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "home",
+    "rule": "playback",
+    "tool": "control_music",
+    "action": "next",
+    "player": "origin"
+   },
+   "xfail": {
+    "routing": "A whole-utterance playback command the pin is meant to cover, but 'the current song' is not in _PLAYBACK_RE. One capture; stopping rule."
+   },
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": false,
+     "expected": "home/playback",
+     "actual": "direct/default"
+    },
+    {
+     "check": "tool",
+     "ok": true,
+     "expected": "control_music",
+     "actual": [
+      "coordinator:ask_home",
+      "home:control_music"
+     ]
+    }
+   ],
+   "latency_s": 4.13,
+   "trace_id": "2da35b05139c00b94476e245cf5ec458",
+   "pipeline_run_id": "01M7JJ0YD22ZYTV8AMDAB2M86S",
+   "conversation_id": "01M7JJ0YD2A7ESV1BXBK704M2C",
+   "ha_debug": {
+    "local": false,
+    "fuzzy": true,
+    "intent": "HassMediaNext",
+    "summary": "fuzzy HassMediaNext only (strict pass misses)"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "I couldn't do that. Nothing is playing on the Office speaker.",
+   "kronk": {
+    "rid": "d271fb3d",
+    "route": "direct",
+    "rule": "default",
+    "tools": [
+     "coordinator:ask_home",
+     "home:control_music"
+    ],
+    "trace_id": "2da35b05139c00b94476e245cf5ec458",
+    "events": [
+     "request",
+     "origin",
+     "route",
+     "agent_round",
+     "tool_call",
+     "agent_round",
+     "tool_call",
+     "tool_complete",
+     "tool_complete",
+     "terminal_passthrough",
+     "request_complete"
+    ],
+    "dry_run": [],
+    "music_requests": []
+   },
+   "status": "xfail",
+   "xfail_reason": "A whole-utterance playback command the pin is meant to cover, but 'the current song' is not in _PLAYBACK_RE. One capture; stopping rule."
+  },
+  {
+   "id": "eval-skip-treat-me-my-wallet-son",
+   "text": "Skip.  Treat me my wallet son.",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "direct",
+    "rule": "default",
+    "tool": "control_music",
+    "action": "next",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": true,
+     "expected": "direct/default",
+     "actual": "direct/default"
+    },
+    {
+     "check": "tool",
+     "ok": true,
+     "expected": "control_music",
+     "actual": [
+      "coordinator:ask_home",
+      "home:control_music"
+     ]
+    }
+   ],
+   "latency_s": 3.17,
+   "trace_id": "73562788b98e3fdceaad76e3fe68077d",
+   "pipeline_run_id": "01M7JJ13ZBFZ80QWXMD3VKE07X",
+   "conversation_id": "01M7JJ13ZBP8NS0CWNE5CKCW92",
+   "ha_debug": {
+    "local": false,
+    "fuzzy": true,
+    "intent": "HassMediaNext",
+    "summary": "fuzzy HassMediaNext only (strict pass misses)"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "I couldn't do that. Nothing is playing on the Office speaker.",
+   "kronk": {
+    "rid": "9a5a112f",
+    "route": "direct",
+    "rule": "default",
+    "tools": [
+     "coordinator:ask_home",
+     "home:control_music"
+    ],
+    "trace_id": "73562788b98e3fdceaad76e3fe68077d",
+    "events": [
+     "request",
+     "origin",
+     "route",
+     "agent_round",
+     "tool_call",
+     "agent_round",
+     "tool_call",
+     "tool_complete",
+     "tool_complete",
+     "terminal_passthrough",
+     "request_complete"
+    ],
+    "dry_run": [],
+    "music_requests": []
+   },
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-turn-it-down",
+   "text": "Turn it down.",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "home",
+    "rule": "playback",
+    "tool": "control_music",
+    "action": "volume_down",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": true,
+     "expected": "home/playback",
+     "actual": "home/playback"
+    },
+    {
+     "check": "tool",
+     "ok": true,
+     "expected": "control_music",
+     "actual": [
+      "home:control_music"
+     ]
+    }
+   ],
+   "latency_s": 3.74,
+   "trace_id": "fc85189aeff5ccb7b9e0de148673fc7e",
+   "pipeline_run_id": "01M7JJ18HT70C37TFWEZ8TP09K",
+   "conversation_id": "01M7JJ18HTMSBK09ZFZKZKXY2B",
+   "ha_debug": {
+    "local": false,
+    "summary": "partial HassTurnOn (match false)"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "I couldn't do that. Nothing is playing on the Office speaker.",
+   "kronk": {
+    "rid": "3de8a7eb",
+    "route": "home",
+    "rule": "playback",
+    "tools": [
+     "home:control_music"
+    ],
+    "trace_id": "fc85189aeff5ccb7b9e0de148673fc7e",
+    "events": [
+     "request",
+     "origin",
+     "route_shortcut",
+     "agent_round",
+     "tool_call",
+     "tool_complete",
+     "agent_complete",
+     "request_complete"
+    ],
+    "dry_run": [],
+    "music_requests": []
+   },
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-volume-50",
+   "text": "volume 50%",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "home",
+    "rule": "playback",
+    "tool": "control_music",
+    "action": "volume_set",
+    "player": "origin"
+   },
+   "xfail": {
+    "routing": "Absolute volume is not in _PLAYBACK_RE. One capture; stopping rule.",
+    "live": "control_music has no absolute-volume action (volume_up / volume_down only)."
+   },
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": false,
+     "expected": "home/playback",
+     "actual": "direct/default"
+    },
+    {
+     "check": "tool",
+     "ok": false,
+     "expected": "control_music",
+     "actual": [
+      "coordinator:ask_home"
+     ]
+    }
+   ],
+   "latency_s": 5.71,
+   "trace_id": "95ee9e0f789f9ce18c1d441cefc19d61",
+   "pipeline_run_id": "01M7JJ1DN0DMQVWBVMZQM7GVZ8",
+   "conversation_id": "01M7JJ1DN09TRHPE9E9G72M43Q",
+   "ha_debug": {
+    "local": false,
+    "fuzzy": true,
+    "intent": "HassSetVolumeRelative",
+    "summary": "fuzzy HassSetVolumeRelative only (strict pass misses)"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "I can only increase or decrease the volume. Would you like me to turn it up or turn it down?",
+   "kronk": {
+    "rid": "ee60829f",
+    "route": "direct",
+    "rule": "default",
+    "tools": [
+     "coordinator:ask_home"
+    ],
+    "trace_id": "95ee9e0f789f9ce18c1d441cefc19d61",
+    "events": [
+     "request",
+     "origin",
+     "route",
+     "agent_round",
+     "tool_call",
+     "agent_round",
+     "tool_complete",
+     "agent_round",
+     "request_complete"
+    ],
+    "dry_run": [],
+    "music_requests": []
+   },
+   "status": "xfail",
+   "xfail_reason": "control_music has no absolute-volume action (volume_up / volume_down only)."
+  },
+  {
+   "id": "eval-what-song-is-this-3",
+   "text": "What song is this?",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "home",
+    "rule": "now_playing",
+    "tool": "now_playing",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": true,
+     "expected": "home/now_playing",
+     "actual": "home/now_playing"
+    },
+    {
+     "check": "tool",
+     "ok": true,
+     "expected": "now_playing",
+     "actual": [
+      "home:now_playing"
+     ]
+    }
+   ],
+   "latency_s": 2.47,
+   "trace_id": "1eb90403176df77f2c5f5a25b6d3dc18",
+   "pipeline_run_id": "01M7JJ1MQ86PWA553XK27VZBCM",
+   "conversation_id": "01M7JJ1MQ83A3T6RZ0K12WQTM3",
+   "ha_debug": {
+    "local": false,
+    "fuzzy": true,
+    "intent": "HassGetCurrentTime",
+    "summary": "fuzzy HassGetCurrentTime only (strict pass misses)"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "Nothing is playing on the Office speaker.",
+   "kronk": {
+    "rid": "b36feb1c",
+    "route": "home",
+    "rule": "now_playing",
+    "tools": [
+     "home:now_playing"
+    ],
+    "trace_id": "1eb90403176df77f2c5f5a25b6d3dc18",
+    "events": [
+     "request",
+     "origin",
+     "route_shortcut",
+     "agent_round",
+     "tool_call",
+     "tool_complete",
+     "agent_complete",
+     "request_complete"
+    ],
+    "dry_run": [],
+    "music_requests": []
+   },
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-i-shuffled-my-youtube-playlist-old-man",
+   "text": "I shuffled my YouTube playlist, Old Man Video Games.",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "playlist",
+    "name": "Old Man Video Games",
+    "provider": "youtube_music",
+    "shuffle": true,
+    "player": "origin"
+   },
+   "xfail": {
+    "routing": "STT mangled or prefixed the request verb; _MUSIC_RE is anchored to a request verb at the start and routing.py documents this class as a miss. No new rule without repeated captured failures (stopping rule, 2026-11-11).",
+    "live": "INVESTIGATION_2026-10-04_radio_failures.md cause 3: on a routing miss the coordinator can answer without calling a tool. Open."
+   },
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": false,
+     "expected": "home/music",
+     "actual": "direct/default"
+    },
+    {
+     "check": "tool",
+     "ok": false,
+     "expected": "play_music",
+     "actual": []
+    }
+   ],
+   "latency_s": 1.38,
+   "trace_id": "b7f3a6738bb661b29a1b0efd277fa74a",
+   "pipeline_run_id": "01M7JJ1RNCM264AXWAJ0Q5QQE5",
+   "conversation_id": "01M7JJ1RNCC397N9Q8Y6XXWJZM",
+   "ha_debug": {
+    "local": false,
+    "summary": "partial HassTurnOn (match false)"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "Understood.",
+   "kronk": {
+    "rid": "f1543fe4",
+    "route": "direct",
+    "rule": "default",
+    "tools": [],
+    "trace_id": "b7f3a6738bb661b29a1b0efd277fa74a",
+    "events": [
+     "request",
+     "origin",
+     "route",
+     "agent_round",
+     "request_complete"
+    ],
+    "dry_run": [],
+    "music_requests": []
+   },
+   "status": "xfail",
+   "xfail_reason": "INVESTIGATION_2026-10-04_radio_failures.md cause 3: on a routing miss the coordinator can answer without calling a tool. Open."
+  },
+  {
+   "id": "eval-late-evening-from-radio-on-pandora",
+   "text": "Late evening from Radio on Pandora.",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "radio",
+    "name": null,
+    "provider": "pandora",
+    "player": "origin"
+   },
+   "xfail": {
+    "routing": "STT mangled or prefixed the request verb; _MUSIC_RE is anchored to a request verb at the start and routing.py documents this class as a miss. No new rule without repeated captured failures (stopping rule, 2026-11-11)."
+   },
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": false,
+     "expected": "home/music",
+     "actual": "direct/default"
+    },
+    {
+     "check": "tool",
+     "ok": false,
+     "expected": "play_music",
+     "actual": []
+    }
+   ],
+   "latency_s": 2.47,
+   "trace_id": "a84453f04de73a56944b58d7047fa261",
+   "pipeline_run_id": "01M7JJ1VCS9EKXDB0BQV0009XJ",
+   "conversation_id": "01M7JJ1VCS75K5N46CCME9CFBB",
+   "ha_debug": {
+    "local": false,
+    "summary": "partial HassTurnOn (match false)"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "I need a specific command like \"stop,\" \"pause,\" \"skip,\" or \"turn it off\" to adjust the music.",
+   "kronk": {
+    "rid": "043bf2a5",
+    "route": "direct",
+    "rule": "default",
+    "tools": [],
+    "trace_id": "a84453f04de73a56944b58d7047fa261",
+    "events": [
+     "request",
+     "origin",
+     "route",
+     "agent_round",
+     "request_complete"
+    ],
+    "dry_run": [],
+    "music_requests": []
+   },
+   "status": "xfail",
+   "xfail_reason": "STT mangled or prefixed the request verb; _MUSIC_RE is anchored to a request verb at the start and routing.py documents this class as a miss. No new rule without repeated captured failures (stopping rule, 2026-11-11)."
+  },
+  {
+   "id": "eval-skip",
+   "text": "skip",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "builtin",
+     "intent": "HassMediaNext"
+    },
+    "route": "home",
+    "rule": "playback",
+    "tool": "control_music",
+    "action": "next",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "builtin",
+     "actual": "builtin"
+    },
+    {
+     "check": "ha.intent",
+     "ok": true,
+     "expected": "HassMediaNext",
+     "actual": "HassMediaNext"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "builtin",
+    "intent": "HassMediaNext",
+    "template": "(skip [(to [the] next [(song|track)]|([the] (song|track)|this [(song|track)]))])",
+    "summary": "builtin HassMediaNext"
+   },
+   "check_ms": 1,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-j-envoie-my-youtube-playlist-video-game",
+   "text": "J'envoie my YouTube playlist, Video Game Pretty Songs.",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "playlist",
+    "name": "Video Game Pretty Songs",
+    "provider": "youtube_music",
+    "player": "origin"
+   },
+   "xfail": {
+    "routing": "STT mangled or prefixed the request verb; _MUSIC_RE is anchored to a request verb at the start and routing.py documents this class as a miss. No new rule without repeated captured failures (stopping rule, 2026-11-11).",
+    "live": "INVESTIGATION_2026-10-04_radio_failures.md cause 3: on a routing miss the coordinator can answer without calling a tool. Open."
+   },
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": false,
+     "expected": "home/music",
+     "actual": "direct/default"
+    },
+    {
+     "check": "tool",
+     "ok": false,
+     "expected": "play_music",
+     "actual": []
+    }
+   ],
+   "latency_s": 1.84,
+   "trace_id": "5363c899a1dc7d6eacf376dd60ff54be",
+   "pipeline_run_id": "01M7JJ1Z9QYA0ARPQTS0AEG76Z",
+   "conversation_id": "01M7JJ1Z9QTMR826AHSVC3020B",
+   "ha_debug": {
+    "local": false,
+    "summary": "partial HassTurnOn (match false)"
+   },
+   "check_ms": 0,
+   "method": "executed",
+   "speech": "How would you like me to use this playlist?",
+   "kronk": {
+    "rid": "d75d853b",
+    "route": "direct",
+    "rule": "default",
+    "tools": [],
+    "trace_id": "5363c899a1dc7d6eacf376dd60ff54be",
+    "events": [
+     "request",
+     "origin",
+     "route",
+     "agent_round",
+     "request_complete"
+    ],
+    "dry_run": [],
+    "music_requests": []
+   },
+   "status": "xfail",
+   "xfail_reason": "INVESTIGATION_2026-10-04_radio_failures.md cause 3: on a routing miss the coordinator can answer without calling a tool. Open."
+  },
+  {
+   "id": "eval-shuffle-it",
+   "text": "Shuffle it.",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "home",
+    "rule": "music",
+    "tool": null,
+    "action": "shuffle"
+   },
+   "xfail": {
+    "live": "No tool shuffles the current queue: control_music has no shuffle action and play_music needs a query. On 2026-11-16 Kronk called control_music anyway and answered \"The Office speaker is already paused.\""
+   },
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": true,
+     "expected": "home/music",
+     "actual": "home/music"
+    },
+    {
+     "check": "no music tool",
+     "ok": false,
+     "expected": [],
+     "actual": [
+      "play_music"
+     ]
+    },
+    {
+     "check": "action",
+     "ok": false,
+     "expected": "shuffle",
+     "actual": "play"
+    }
+   ],
+   "latency_s": 3.18,
+   "trace_id": "b3fd4a4739fb57c77512864c466e536f",
+   "pipeline_run_id": "01M7JJ22JJQ1A0BXSYA8MQWBTX",
+   "conversation_id": "01M7JJ22JJDARFP9ZZYPM6KKV2",
+   "ha_debug": {
+    "local": false,
+    "fuzzy": true,
+    "intent": "HassGetCurrentTime",
+    "summary": "fuzzy HassGetCurrentTime only (strict pass misses)"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "Dry run: would play the artist Shuffle on the Office speaker, shuffled. Nothing was sent to the speaker.",
+   "kronk": {
+    "rid": "71dc21b7",
+    "route": "home",
+    "rule": "music",
+    "tools": [
+     "home:play_music"
+    ],
+    "trace_id": "b3fd4a4739fb57c77512864c466e536f",
+    "events": [
+     "request",
+     "origin",
+     "route_shortcut",
+     "agent_round",
+     "tool_call",
+     "tool_complete",
+     "agent_complete",
+     "request_complete"
+    ],
+    "dry_run": [
+     {
+      "action": "play",
+      "targets": [
+       "media_player.satellite1_d8d1bc"
+      ],
+      "detail": "Dry run: would play the artist Shuffle on the Office speaker, shuffled. Nothing was sent to the speaker."
+     }
+    ],
+    "music_requests": [
+     "query='shuffle' media_type=None player=None shuffle=True -> ['media_player.satellite1_d8d1bc']"
+    ]
+   },
+   "status": "xfail",
+   "xfail_reason": "No tool shuffles the current queue: control_music has no shuffle action and play_music needs a query. On 2026-11-16 Kronk called control_music anyway and answered \"The Office speaker is already paused.\""
+  },
+  {
+   "id": "eval-play-deep-chill-house-radio-from-pandora",
+   "text": "Play deep chill house radio from Pandora in the kitchen",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger",
+     "trigger": "radio"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "radio",
+    "name": "Deep Chill House Radio",
+    "provider": "pandora",
+    "player": "area:Kitchen"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    },
+    {
+     "check": "ha.trigger",
+     "ok": true,
+     "expected": "radio",
+     "actual": "radio"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "radio",
+    "template": "(play|listen to) [the ]{media_name} (radio|station) [(on|from|via) pandora][ (in|on) [the ]{area_or_player_name}]",
+    "summary": "trigger radio"
+   },
+   "check_ms": 1,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-clay-thief-recreperation-radio-on-pandora",
+   "text": "Clay Thief Recreperation Radio on Pandora.",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "radio",
+    "name": "Thievery Corporation Radio",
+    "provider": "pandora",
+    "player": "origin"
+   },
+   "xfail": {
+    "routing": "STT mangled or prefixed the request verb; _MUSIC_RE is anchored to a request verb at the start and routing.py documents this class as a miss. No new rule without repeated captured failures (stopping rule, 2026-11-11).",
+    "live": "STT mishearing. The fix belongs to speech recognition (M12 capture, M13 vocabulary prompt), not to a routing rule."
+   },
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": false,
+     "expected": "home/music",
+     "actual": "direct/default"
+    },
+    {
+     "check": "tool",
+     "ok": true,
+     "expected": "play_music",
+     "actual": [
+      "coordinator:ask_home",
+      "home:play_music"
+     ]
+    }
+   ],
+   "latency_s": 5.22,
+   "trace_id": "c3e8abebc4ffd330ab4b3db7909e25c1",
+   "pipeline_run_id": "01M7JJ2722AJE4SA29H4BFN51X",
+   "conversation_id": "01M7JJ2723W7E9DJ2DSZ5GMK2Z",
+   "ha_debug": {
+    "local": false,
+    "summary": "partial HassTurnOn (match false)"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "I couldn't play that. I couldn't find a station called Clay Thief Recreperation Radio in Music Assistant. The closest I found was Thievery Corporation Radio.",
+   "kronk": {
+    "rid": "9850b1fb",
+    "route": "direct",
+    "rule": "default",
+    "tools": [
+     "coordinator:ask_home",
+     "home:play_music"
+    ],
+    "trace_id": "c3e8abebc4ffd330ab4b3db7909e25c1",
+    "events": [
+     "request",
+     "origin",
+     "route",
+     "agent_round",
+     "tool_call",
+     "agent_round",
+     "tool_call",
+     "tool_complete",
+     "tool_complete",
+     "terminal_passthrough",
+     "request_complete"
+    ],
+    "dry_run": [],
+    "music_requests": [
+     "query='Clay Thief Recreperation Radio' media_type='radio' player=None shuffle=False -> ['media_player.satellite1_d8d1bc']"
+    ]
+   },
+   "status": "xfail",
+   "xfail_reason": "STT mishearing. The fix belongs to speech recognition (M12 capture, M13 vocabulary prompt), not to a routing rule."
+  },
+  {
+   "id": "eval-skip-2",
+   "text": "Skip!",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "builtin",
+     "intent": "HassMediaNext"
+    },
+    "route": "home",
+    "rule": "playback",
+    "tool": "control_music",
+    "action": "next",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "builtin",
+     "actual": "builtin"
+    },
+    {
+     "check": "ha.intent",
+     "ok": true,
+     "expected": "HassMediaNext",
+     "actual": "HassMediaNext"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "builtin",
+    "intent": "HassMediaNext",
+    "template": "(skip [(to [the] next [(song|track)]|([the] (song|track)|this [(song|track)]))])",
+    "summary": "builtin HassMediaNext"
+   },
+   "check_ms": 1,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-look-for-some-good-deep-house-chill",
+   "text": "Look for some good deep house chill music on YouTube music and start a radio based on that.",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "direct",
+    "rule": "default",
+    "tool": "play_music",
+    "kind": "genre",
+    "media_type": "radio",
+    "name": "deep house chill",
+    "provider": "youtube_music",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": true,
+     "expected": "direct/default",
+     "actual": "direct/default"
+    },
+    {
+     "check": "tool",
+     "ok": true,
+     "expected": "play_music",
+     "actual": [
+      "coordinator:ask_home",
+      "home:play_music"
+     ]
+    },
+    {
+     "check": "action",
+     "ok": true,
+     "expected": "play",
+     "actual": "play"
+    },
+    {
+     "check": "player",
+     "ok": true,
+     "expected": "media_player.satellite1_d8d1bc",
+     "actual": [
+      "media_player.satellite1_d8d1bc"
+     ]
+    }
+   ],
+   "latency_s": 8.08,
+   "trace_id": "9d1bb3a7c43ea37f6e8085ce1e2bc64a",
+   "pipeline_run_id": "01M7JJ2DESZPQJ883Q6M8BVMDG",
+   "conversation_id": "01M7JJ2DETAA7QF6TQY5Y289WG",
+   "ha_debug": {
+    "local": false,
+    "summary": "partial HassTurnOn (match false)"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "Dry run: would play Kruder & Dorfmeister, for deep house chill, on the Office speaker. Nothing was sent to the speaker.",
+   "kronk": {
+    "rid": "5c64467b",
+    "route": "direct",
+    "rule": "default",
+    "tools": [
+     "coordinator:ask_home",
+     "home:play_music"
+    ],
+    "trace_id": "9d1bb3a7c43ea37f6e8085ce1e2bc64a",
+    "events": [
+     "request",
+     "origin",
+     "route",
+     "agent_round",
+     "tool_call",
+     "agent_round",
+     "tool_call",
+     "tool_complete",
+     "tool_complete",
+     "terminal_passthrough",
+     "request_complete"
+    ],
+    "dry_run": [
+     {
+      "action": "play",
+      "targets": [
+       "media_player.satellite1_d8d1bc"
+      ],
+      "detail": "Dry run: would play Kruder & Dorfmeister, for deep house chill, on the Office speaker. Nothing was sent to the speaker."
+     }
+    ],
+    "music_requests": [
+     "query='deep house chill music on YouTube' media_type='radio' player=None shuffle=False -> ['media_player.satellite1_d8d1bc']"
+    ]
+   },
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-search-youtube-music-for-some-deep-chill",
+   "text": "Search YouTube Music for some deep, chill house music and play that.",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "direct",
+    "rule": "default",
+    "tool": "play_music",
+    "kind": "genre",
+    "media_type": null,
+    "name": "deep chill house",
+    "provider": "youtube_music",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": true,
+     "expected": "direct/default",
+     "actual": "direct/default"
+    },
+    {
+     "check": "tool",
+     "ok": true,
+     "expected": "play_music",
+     "actual": [
+      "coordinator:ask_home",
+      "home:play_music"
+     ]
+    },
+    {
+     "check": "action",
+     "ok": true,
+     "expected": "play",
+     "actual": "play"
+    },
+    {
+     "check": "player",
+     "ok": true,
+     "expected": "media_player.satellite1_d8d1bc",
+     "actual": [
+      "media_player.satellite1_d8d1bc"
+     ]
+    }
+   ],
+   "latency_s": 7.88,
+   "trace_id": "a1675fc5280effe4d819b964b9e16914",
+   "pipeline_run_id": "01M7JJ2PTNSJSYWDMWJYT29FP6",
+   "conversation_id": "01M7JJ2PTNC844CBJBPNQZ87TK",
+   "ha_debug": {
+    "local": false,
+    "summary": "no local match"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "Dry run: would play Thievery Corporation, for deep chill house, on the Office speaker. Nothing was sent to the speaker.",
+   "kronk": {
+    "rid": "ef7c4dbf",
+    "route": "direct",
+    "rule": "default",
+    "tools": [
+     "coordinator:ask_home",
+     "home:play_music"
+    ],
+    "trace_id": "a1675fc5280effe4d819b964b9e16914",
+    "events": [
+     "request",
+     "origin",
+     "route",
+     "agent_round",
+     "tool_call",
+     "agent_round",
+     "tool_call",
+     "tool_complete",
+     "tool_complete",
+     "terminal_passthrough",
+     "request_complete"
+    ],
+    "dry_run": [
+     {
+      "action": "play",
+      "targets": [
+       "media_player.satellite1_d8d1bc"
+      ],
+      "detail": "Dry run: would play Thievery Corporation, for deep chill house, on the Office speaker. Nothing was sent to the speaker."
+     }
+    ],
+    "music_requests": [
+     "query='deep, chill house music' media_type=None player=None shuffle=False -> ['media_player.satellite1_d8d1bc']"
+    ]
+   },
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-play-lunchlady-land-by-adam-sandler-in",
+   "text": "play \"lunchlady land\" by adam sandler in the kitchen",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "track",
+    "name": "Lunchlady Land",
+    "artist": "Adam Sandler",
+    "player": "area:Kitchen"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "catchall",
+    "template": "(play|put on|listen to) {media_name}",
+    "summary": "trigger catchall"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-play-lunchlady-land-by-adam-sandler-in-2",
+   "text": "play \"lunchlady land\" by adam sandler in the kitchen, use the home agent to do this",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "track",
+    "name": "Lunchlady Land",
+    "artist": "Adam Sandler",
+    "player": "area:Kitchen"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "catchall",
+    "template": "(play|put on|listen to) {media_name}",
+    "summary": "trigger catchall"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-play-the-song-lunchlady-land-by-adam",
+   "text": "play the song  \"lunchlady land\" by adam sandler in the kitchen",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger",
+     "trigger": "track"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "track",
+    "name": "Lunchlady Land",
+    "artist": "Adam Sandler",
+    "player": "area:Kitchen"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    },
+    {
+     "check": "ha.trigger",
+     "ok": true,
+     "expected": "track",
+     "actual": "track"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "track",
+    "template": "(shuffle|play|listen to) [the ](track|song) {media_name} [by [the ](artist|band|group) {artist}] [(in|on|using) [the ]{area_or_player_name}][ (with|using) {radio_mode}]",
+    "summary": "trigger track"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-what-song-is-playing-in-the-kitchen",
+   "text": "what song is playing in the kitchen?",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "direct",
+    "rule": "default",
+    "tool": "now_playing",
+    "player": "area:Kitchen"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": true,
+     "expected": "direct/default",
+     "actual": "direct/default"
+    },
+    {
+     "check": "tool",
+     "ok": true,
+     "expected": "now_playing",
+     "actual": [
+      "coordinator:ask_home",
+      "home:now_playing"
+     ]
+    }
+   ],
+   "latency_s": 2.88,
+   "trace_id": "dca6a6e0f6059cc9d80630b3c80cc9fc",
+   "pipeline_run_id": "01M7JJ2ZYQEBGQ1KCQ2BB0WHHJ",
+   "conversation_id": "01M7JJ2ZYQ0GEF8922W7702HWF",
+   "ha_debug": {
+    "local": false,
+    "fuzzy": true,
+    "intent": "HassClimateGetTemperature",
+    "summary": "fuzzy HassClimateGetTemperature only (strict pass misses)"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "Nothing is playing on the Kitchen speaker.",
+   "kronk": {
+    "rid": "2afe2eb0",
+    "route": "direct",
+    "rule": "default",
+    "tools": [
+     "coordinator:ask_home",
+     "home:now_playing"
+    ],
+    "trace_id": "dca6a6e0f6059cc9d80630b3c80cc9fc",
+    "events": [
+     "request",
+     "origin",
+     "route",
+     "agent_round",
+     "tool_call",
+     "agent_round",
+     "tool_call",
+     "tool_complete",
+     "tool_complete",
+     "terminal_passthrough",
+     "request_complete"
+    ],
+    "dry_run": [],
+    "music_requests": []
+   },
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-what-s-playing-on-the-kitchen",
+   "text": "what's playing on the kitchen",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "direct",
+    "rule": "default",
+    "tool": "now_playing",
+    "player": "area:Kitchen"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": true,
+     "expected": "direct/default",
+     "actual": "direct/default"
+    },
+    {
+     "check": "tool",
+     "ok": true,
+     "expected": "now_playing",
+     "actual": [
+      "coordinator:ask_home",
+      "home:now_playing"
+     ]
+    }
+   ],
+   "latency_s": 4.03,
+   "trace_id": "a51747043b438f8911c7108469b2e0f4",
+   "pipeline_run_id": "01M7JJ348PD1CJF8JXT36B2Y5X",
+   "conversation_id": "01M7JJ348PD302MEAK7FRDX5DB",
+   "ha_debug": {
+    "local": false,
+    "fuzzy": true,
+    "intent": "HassClimateGetTemperature",
+    "summary": "fuzzy HassClimateGetTemperature only (strict pass misses)"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "Nothing is playing on the Kitchen speaker.",
+   "kronk": {
+    "rid": "85057cee",
+    "route": "direct",
+    "rule": "default",
+    "tools": [
+     "coordinator:ask_home",
+     "home:now_playing"
+    ],
+    "trace_id": "a51747043b438f8911c7108469b2e0f4",
+    "events": [
+     "request",
+     "origin",
+     "route",
+     "agent_round",
+     "tool_call",
+     "agent_round",
+     "tool_call",
+     "tool_complete",
+     "tool_complete",
+     "terminal_passthrough",
+     "request_complete"
+    ],
+    "dry_run": [],
+    "music_requests": []
+   },
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-what-s-playing-on-the-kitchen-2",
+   "text": "what's playing on the kitchen?",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "direct",
+    "rule": "default",
+    "tool": "now_playing",
+    "player": "area:Kitchen"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": true,
+     "expected": "direct/default",
+     "actual": "direct/default"
+    },
+    {
+     "check": "tool",
+     "ok": true,
+     "expected": "now_playing",
+     "actual": [
+      "coordinator:ask_home",
+      "home:now_playing"
+     ]
+    }
+   ],
+   "latency_s": 4.66,
+   "trace_id": "8aea955e14c2079fb1817da898e4af1c",
+   "pipeline_run_id": "01M7JJ39QPM8YEVDF9DD6J18FP",
+   "conversation_id": "01M7JJ39QPR7ANAPGSXBYV1N45",
+   "ha_debug": {
+    "local": false,
+    "fuzzy": true,
+    "intent": "HassClimateGetTemperature",
+    "summary": "fuzzy HassClimateGetTemperature only (strict pass misses)"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "Nothing is playing on the Kitchen speaker.",
+   "kronk": {
+    "rid": "d695172d",
+    "route": "direct",
+    "rule": "default",
+    "tools": [
+     "coordinator:ask_home",
+     "home:now_playing"
+    ],
+    "trace_id": "8aea955e14c2079fb1817da898e4af1c",
+    "events": [
+     "request",
+     "origin",
+     "route",
+     "agent_round",
+     "tool_call",
+     "agent_round",
+     "tool_call",
+     "tool_complete",
+     "tool_complete",
+     "terminal_passthrough",
+     "request_complete"
+    ],
+    "dry_run": [],
+    "music_requests": []
+   },
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "eval-i-hope-you-play-anime-pop-radio",
+   "text": "I hope you play Anime Pop Radio from Pandora.",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "radio",
+    "name": "Anime Pop Radio",
+    "provider": "pandora",
+    "player": "origin"
+   },
+   "xfail": {
+    "routing": "STT mangled or prefixed the request verb; _MUSIC_RE is anchored to a request verb at the start and routing.py documents this class as a miss. No new rule without repeated captured failures (stopping rule, 2026-11-11)."
+   },
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": false,
+     "expected": "home/music",
+     "actual": "direct/default"
+    },
+    {
+     "check": "tool",
+     "ok": true,
+     "expected": "play_music",
+     "actual": [
+      "coordinator:ask_home",
+      "home:play_music"
+     ]
+    },
+    {
+     "check": "action",
+     "ok": true,
+     "expected": "play",
+     "actual": "play"
+    },
+    {
+     "check": "player",
+     "ok": true,
+     "expected": "media_player.satellite1_d8d1bc",
+     "actual": [
+      "media_player.satellite1_d8d1bc"
+     ]
+    }
+   ],
+   "latency_s": 3.0,
+   "trace_id": "d1353e1ef091482daf6c292f6bac92fa",
+   "pipeline_run_id": "01M7JJ3FQMG18YKCE7H1CXFQN3",
+   "conversation_id": "01M7JJ3FQNPAGEZJJR553983QB",
+   "ha_debug": {
+    "local": false,
+    "summary": "no local match"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "Dry run: would play the Pandora station Anime Pop Radio on the Office speaker. Nothing was sent to the speaker.",
+   "kronk": {
+    "rid": "39bb484b",
+    "route": "direct",
+    "rule": "default",
+    "tools": [
+     "coordinator:ask_home",
+     "home:play_music"
+    ],
+    "trace_id": "d1353e1ef091482daf6c292f6bac92fa",
+    "events": [
+     "request",
+     "origin",
+     "route",
+     "agent_round",
+     "tool_call",
+     "agent_round",
+     "tool_call",
+     "tool_complete",
+     "tool_complete",
+     "terminal_passthrough",
+     "request_complete"
+    ],
+    "dry_run": [
+     {
+      "action": "play",
+      "targets": [
+       "media_player.satellite1_d8d1bc"
+      ],
+      "detail": "Dry run: would play the Pandora station Anime Pop Radio on the Office speaker. Nothing was sent to the speaker."
+     }
+    ],
+    "music_requests": [
+     "query='Anime Pop Radio' media_type='radio' player=None shuffle=False -> ['media_player.satellite1_d8d1bc']"
+    ]
+   },
+   "status": "xfail",
+   "xfail_reason": "STT mangled or prefixed the request verb; _MUSIC_RE is anchored to a request verb at the start and routing.py documents this class as a miss. No new rule without repeated captured failures (stopping rule, 2026-11-11)."
+  },
+  {
+   "id": "eval-we-play-justin-johnson-radio-on-pandora",
+   "text": "We play Justin Johnson Radio on Pandora.",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "radio",
+    "name": "Justin Johnson Radio",
+    "provider": "pandora",
+    "player": "origin"
+   },
+   "xfail": {
+    "routing": "STT mangled or prefixed the request verb; _MUSIC_RE is anchored to a request verb at the start and routing.py documents this class as a miss. No new rule without repeated captured failures (stopping rule, 2026-11-11)."
+   },
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": false,
+     "expected": "home/music",
+     "actual": "direct/default"
+    },
+    {
+     "check": "tool",
+     "ok": true,
+     "expected": "play_music",
+     "actual": [
+      "coordinator:ask_home",
+      "home:play_music"
+     ]
+    },
+    {
+     "check": "action",
+     "ok": true,
+     "expected": "play",
+     "actual": "play"
+    },
+    {
+     "check": "player",
+     "ok": true,
+     "expected": "media_player.satellite1_d8d1bc",
+     "actual": [
+      "media_player.satellite1_d8d1bc"
+     ]
+    }
+   ],
+   "latency_s": 4.19,
+   "trace_id": "bd0721dbfc533d9cb8eaea724bdce79b",
+   "pipeline_run_id": "01M7JJ3M1RGZ5SC2SC8KCTHY01",
+   "conversation_id": "01M7JJ3M1RD4K69R62Z5R432FJ",
+   "ha_debug": {
+    "local": false,
+    "summary": "partial HassTurnOn (match false)"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "Dry run: would play the Pandora station Justin Johnson Radio on the Office speaker. Nothing was sent to the speaker.",
+   "kronk": {
+    "rid": "acf9d89e",
+    "route": "direct",
+    "rule": "default",
+    "tools": [
+     "coordinator:ask_home",
+     "home:play_music"
+    ],
+    "trace_id": "bd0721dbfc533d9cb8eaea724bdce79b",
+    "events": [
+     "request",
+     "origin",
+     "route",
+     "agent_round",
+     "tool_call",
+     "agent_round",
+     "tool_call",
+     "tool_complete",
+     "tool_complete",
+     "terminal_passthrough",
+     "request_complete"
+    ],
+    "dry_run": [
+     {
+      "action": "play",
+      "targets": [
+       "media_player.satellite1_d8d1bc"
+      ],
+      "detail": "Dry run: would play the Pandora station Justin Johnson Radio on the Office speaker. Nothing was sent to the speaker."
+     }
+    ],
+    "music_requests": [
+     "query='Justin Johnson Radio on Pandora' media_type='radio' player=None shuffle=False -> ['media_player.satellite1_d8d1bc']"
+    ]
+   },
+   "status": "xfail",
+   "xfail_reason": "STT mangled or prefixed the request verb; _MUSIC_RE is anchored to a request verb at the start and routing.py documents this class as a miss. No new rule without repeated captured failures (stopping rule, 2026-11-11)."
+  },
+  {
+   "id": "eval-start-a-zzqx-florbent-radio-station-on",
+   "text": "Start a zzqx florbent radio station on YouTube Music.",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "radio",
+    "name": "zzqx florbent",
+    "provider": "youtube_music",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": true,
+     "expected": "home/music",
+     "actual": "home/music"
+    },
+    {
+     "check": "tool",
+     "ok": true,
+     "expected": "play_music",
+     "actual": [
+      "home:play_music"
+     ]
+    }
+   ],
+   "latency_s": 5.39,
+   "trace_id": "1915a6a56da3305d61b7c29755399639",
+   "pipeline_run_id": "01M7JJ3SKN20RM0ZSKGNEPH19K",
+   "conversation_id": "01M7JJ3SKNXQ5C51PK3DEF7JJE",
+   "ha_debug": {
+    "local": false,
+    "summary": "partial HassVacuumStart (match false)"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "I couldn't play that. I couldn't find a station called zzqx florbent radio station in Music Assistant. The closest I found was Orbital Radio.",
+   "kronk": {
+    "rid": "ef4ae961",
+    "route": "home",
+    "rule": "music",
+    "tools": [
+     "home:play_music"
+    ],
+    "trace_id": "1915a6a56da3305d61b7c29755399639",
+    "events": [
+     "request",
+     "origin",
+     "route_shortcut",
+     "agent_round",
+     "tool_call",
+     "tool_complete",
+     "agent_complete",
+     "request_complete"
+    ],
+    "dry_run": [],
+    "music_requests": [
+     "query='zzqx florbent radio station on YouTube Music' media_type='radio' player=None shuffle=False -> ['media_player.satellite1_d8d1bc']"
+    ]
+   },
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "m4b-update-the-magicmirror",
+   "text": "Update the magicmirror",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "home",
+    "rule": "mm_update",
+    "tool": "update_magicmirror"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": true,
+     "expected": "home/mm_update",
+     "actual": "home/mm_update"
+    },
+    {
+     "check": "tool",
+     "ok": true,
+     "expected": "update_magicmirror",
+     "actual": [
+      "home:update_magicmirror"
+     ]
+    },
+    {
+     "check": "mirror update not refused",
+     "ok": true,
+     "expected": false,
+     "actual": false
+    }
+   ],
+   "latency_s": 1.11,
+   "trace_id": "36505ccf09ad8e79bab1d14fbabc00db",
+   "pipeline_run_id": "01M7JJ40B4NZ7Y4AM9GESXHCSP",
+   "conversation_id": "01M7JJ40B5JY6SM03BS0HPY8BE",
+   "ha_debug": {
+    "local": false,
+    "summary": "partial HassTurnOn (match false)"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "I couldn't update the magic mirror. Mirror preflight failed: SSH key not found at /keys/kronk-mm-update — mount ./secrets/mm.",
+   "kronk": {
+    "rid": "fdd7ff69",
+    "route": "home",
+    "rule": "mm_update",
+    "tools": [
+     "home:update_magicmirror"
+    ],
+    "trace_id": "36505ccf09ad8e79bab1d14fbabc00db",
+    "events": [
+     "request",
+     "origin",
+     "route_shortcut",
+     "agent_round",
+     "tool_call",
+     "tool_complete",
+     "agent_complete",
+     "request_complete"
+    ],
+    "dry_run": [],
+    "music_requests": []
+   },
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "m4b-okay-update-the-magic-mirror-please",
+   "text": "Okay, update the magic mirror please",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "home",
+    "rule": "mm_update",
+    "tool": "update_magicmirror"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": true,
+     "expected": "home/mm_update",
+     "actual": "home/mm_update"
+    },
+    {
+     "check": "tool",
+     "ok": true,
+     "expected": "update_magicmirror",
+     "actual": [
+      "home:update_magicmirror"
+     ]
+    },
+    {
+     "check": "mirror update not refused",
+     "ok": true,
+     "expected": false,
+     "actual": false
+    }
+   ],
+   "latency_s": 0.27,
+   "trace_id": "c4a07eee1f24864802b6677f0f28aeec",
+   "pipeline_run_id": "01M7JJ42XSWYXN16PTT37257EV",
+   "conversation_id": "01M7JJ42XSDXZZ6NP3K0EGBFB3",
+   "ha_debug": {
+    "local": false,
+    "summary": "partial HassTurnOn (match false)"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "I couldn't update the magic mirror. Mirror preflight failed: SSH key not found at /keys/kronk-mm-update — mount ./secrets/mm.",
+   "kronk": {
+    "rid": "0442b3f8",
+    "route": "home",
+    "rule": "mm_update",
+    "tools": [
+     "home:update_magicmirror"
+    ],
+    "trace_id": "c4a07eee1f24864802b6677f0f28aeec",
+    "events": [
+     "request",
+     "origin",
+     "route_shortcut",
+     "agent_round",
+     "tool_call",
+     "tool_complete",
+     "agent_complete",
+     "request_complete"
+    ],
+    "dry_run": [],
+    "music_requests": []
+   },
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "m4b-update-the-mirror",
+   "text": "update the mirror",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "direct",
+    "rule": "default",
+    "tool": null
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": true,
+     "expected": "direct/default",
+     "actual": "direct/default"
+    },
+    {
+     "check": "no music tool",
+     "ok": true,
+     "expected": [],
+     "actual": []
+    },
+    {
+     "check": "mirror update refused",
+     "ok": true,
+     "expected": true,
+     "actual": true
+    }
+   ],
+   "latency_s": 2.61,
+   "trace_id": "8fe23ec954bc9d76ab8f4608be64bab9",
+   "pipeline_run_id": "01M7JJ44KPD0TYXB17PSCHSVZ3",
+   "conversation_id": "01M7JJ44KQ0SF8Z3K0XGAPWVYS",
+   "ha_debug": {
+    "local": false,
+    "summary": "partial HassTurnOn (match false)"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "To update the magic mirror, say \"update the magic mirror\".",
+   "kronk": {
+    "rid": "03579573",
+    "route": "direct",
+    "rule": "default",
+    "tools": [
+     "coordinator:ask_home",
+     "home:update_magicmirror"
+    ],
+    "trace_id": "8fe23ec954bc9d76ab8f4608be64bab9",
+    "events": [
+     "request",
+     "origin",
+     "route",
+     "agent_round",
+     "tool_call",
+     "agent_round",
+     "tool_call",
+     "mm_update_refused",
+     "tool_complete",
+     "tool_complete",
+     "terminal_passthrough",
+     "request_complete"
+    ],
+    "dry_run": [],
+    "music_requests": []
+   },
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "m4b-update-magic-mirror",
+   "text": "update magic mirror",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "devops",
+    "rule": "mm_ops",
+    "tool": null
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": true,
+     "expected": "devops/mm_ops",
+     "actual": "devops/mm_ops"
+    },
+    {
+     "check": "no music tool",
+     "ok": true,
+     "expected": [],
+     "actual": []
+    }
+   ],
+   "latency_s": 4.84,
+   "trace_id": "8fad36f0577a9a5d59a9461867d43fc9",
+   "pipeline_run_id": "01M7JJ48NGKWW57TTZNSWDCY4J",
+   "conversation_id": "01M7JJ48NGBMR6S4968PN1WNQ8",
+   "ha_debug": {
+    "local": false,
+    "summary": "no local match"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "The host 'magicmirror' is not configured. I cannot proceed with the update.",
+   "kronk": {
+    "rid": "d09755ae",
+    "route": "devops",
+    "rule": "mm_ops",
+    "tools": [
+     "devops:remote_exec"
+    ],
+    "trace_id": "8fad36f0577a9a5d59a9461867d43fc9",
+    "events": [
+     "request",
+     "origin",
+     "route_shortcut",
+     "agent_round",
+     "tool_call",
+     "tool_complete",
+     "agent_round",
+     "agent_complete",
+     "request_complete"
+    ],
+    "dry_run": [],
+    "music_requests": []
+   },
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "m4b-upgrade-the-magic-mirror",
+   "text": "upgrade the magic mirror",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "devops",
+    "rule": "mm_ops",
+    "tool": null
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": true,
+     "expected": "devops/mm_ops",
+     "actual": "devops/mm_ops"
+    },
+    {
+     "check": "no music tool",
+     "ok": true,
+     "expected": [],
+     "actual": []
+    }
+   ],
+   "latency_s": 1.43,
+   "trace_id": "f2c60157afe2e2bf4c8772970d769c94",
+   "pipeline_run_id": "01M7JJ4EWF3ZE1S4N6WHFW6S8H",
+   "conversation_id": "01M7JJ4EWF0VP6T8BFP3TMBQCY",
+   "ha_debug": {
+    "local": false,
+    "summary": "partial HassTurnOn (match false)"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "I cannot upgrade the Magic Mirror. I can only run read-only commands to inspect the system.",
+   "kronk": {
+    "rid": "a8e6acb7",
+    "route": "devops",
+    "rule": "mm_ops",
+    "tools": [],
+    "trace_id": "f2c60157afe2e2bf4c8772970d769c94",
+    "events": [
+     "request",
+     "origin",
+     "route_shortcut",
+     "agent_round",
+     "agent_complete",
+     "request_complete"
+    ],
+    "dry_run": [],
+    "music_requests": []
+   },
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "m4b-run-the-mirror-update",
+   "text": "run the mirror update",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "direct",
+    "rule": "default",
+    "tool": null
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": true,
+     "expected": "direct/default",
+     "actual": "direct/default"
+    },
+    {
+     "check": "no music tool",
+     "ok": true,
+     "expected": [],
+     "actual": []
+    },
+    {
+     "check": "mirror update refused",
+     "ok": true,
+     "expected": true,
+     "actual": true
+    }
+   ],
+   "latency_s": 5.63,
+   "trace_id": "30e37dcac14b8da93c1bf43aff61282e",
+   "pipeline_run_id": "01M7JJ4HQHAJDWBG3S8FX83954",
+   "conversation_id": "01M7JJ4HQHTPAF0FJ2M4VR0K3X",
+   "ha_debug": {
+    "local": false,
+    "summary": "partial HassTurnOn (match false)"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "To update the magic mirror, say \"update the magic mirror\".",
+   "kronk": {
+    "rid": "b0ab1512",
+    "route": "direct",
+    "rule": "default",
+    "tools": [
+     "coordinator:ask_home",
+     "home:update_magicmirror"
+    ],
+    "trace_id": "30e37dcac14b8da93c1bf43aff61282e",
+    "events": [
+     "request",
+     "origin",
+     "route",
+     "agent_round",
+     "tool_call",
+     "agent_round",
+     "tool_call",
+     "mm_update_refused",
+     "tool_complete",
+     "tool_complete",
+     "terminal_passthrough",
+     "request_complete"
+    ],
+    "dry_run": [],
+    "music_requests": []
+   },
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "m4b-upgrade-the-mirror-latest",
+   "text": "please upgrade the mirror to the latest version",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "direct",
+    "rule": "default",
+    "tool": null
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": true,
+     "expected": "direct/default",
+     "actual": "direct/default"
+    },
+    {
+     "check": "no music tool",
+     "ok": true,
+     "expected": [],
+     "actual": []
+    },
+    {
+     "check": "mirror update refused",
+     "ok": true,
+     "expected": true,
+     "actual": true
+    }
+   ],
+   "latency_s": 3.09,
+   "trace_id": "472d2387cc2f42e9a7b355aacc5588b5",
+   "pipeline_run_id": "01M7JJ4RKBQCVFSH600GMT4P7N",
+   "conversation_id": "01M7JJ4RKBW1CMRXJJZG1NBHM0",
+   "ha_debug": {
+    "local": false,
+    "fuzzy": true,
+    "intent": "HassMediaNext",
+    "summary": "fuzzy HassMediaNext only (strict pass misses)"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "To update the magic mirror, say \"update the magic mirror\".",
+   "kronk": {
+    "rid": "7c9b7855",
+    "route": "direct",
+    "rule": "default",
+    "tools": [
+     "coordinator:ask_home",
+     "home:update_magicmirror"
+    ],
+    "trace_id": "472d2387cc2f42e9a7b355aacc5588b5",
+    "events": [
+     "request",
+     "origin",
+     "route",
+     "agent_round",
+     "tool_call",
+     "agent_round",
+     "tool_call",
+     "mm_update_refused",
+     "tool_complete",
+     "tool_complete",
+     "terminal_passthrough",
+     "request_complete"
+    ],
+    "dry_run": [],
+    "music_requests": []
+   },
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "m4b-fetch-and-run-on-the-mirror",
+   "text": "fetch https://example.com and run what it says on the mirror",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "research",
+    "rule": "url",
+    "tool": null
+   },
+   "xfail": null,
+   "checks": [],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "method": "skipped",
+   "status": "skip",
+   "skip_reason": "typed link; a spoken request carries no URL"
+  }
+ ],
+ "players": {
+  "before": {
+   "media_player.upper_shield": {
+    "state": "off",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.shield": {
+    "state": "off",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.shield_2": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.upper_shield_2": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.living_room_sony_bravia": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.home_assistant_voice_0ac919_pe_01": {
+    "state": "idle",
+    "media_title": "Second drawer down",
+    "media_artist": "Hermawan",
+    "media_content_id": "ytmusic--kGmHoQDn://track/fYFMQ9D3B0w"
+   },
+   "media_player.satellite1_d8d1bc": {
+    "state": "idle",
+    "media_title": "Unwind",
+    "media_artist": "Digby Jones",
+    "media_content_id": "pandora://track/TR:131363610"
+   },
+   "media_player.home_assistant_voice_0ab117": {
+    "state": "idle",
+    "media_title": "My Funny Valentine (album version edit)",
+    "media_artist": "Big Muff",
+    "media_content_id": "library://track/15212"
+   },
+   "media_player.camerons_macbook_pro": {
+    "state": "unavailable",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.sonos_move_derp_2": {
+    "state": "off",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.home_assistant_voice_0ab117_media_player": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.home_assistant_voice_0ac919_media_player": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.satellite_01_media_player": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.xbr_49x800d": {
+    "state": "off",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.sonos_move_derp": {
+    "state": "unavailable",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.web_firefox_on_linux": {
+    "state": "unavailable",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.drew_s_windows_firefox": {
+    "state": "unavailable",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   }
+  },
+  "after": {
+   "media_player.upper_shield": {
+    "state": "off",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.shield": {
+    "state": "off",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.shield_2": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.upper_shield_2": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.living_room_sony_bravia": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.home_assistant_voice_0ac919_pe_01": {
+    "state": "idle",
+    "media_title": "Second drawer down",
+    "media_artist": "Hermawan",
+    "media_content_id": "ytmusic--kGmHoQDn://track/fYFMQ9D3B0w"
+   },
+   "media_player.satellite1_d8d1bc": {
+    "state": "idle",
+    "media_title": "Unwind",
+    "media_artist": "Digby Jones",
+    "media_content_id": "pandora://track/TR:131363610"
+   },
+   "media_player.home_assistant_voice_0ab117": {
+    "state": "idle",
+    "media_title": "My Funny Valentine (album version edit)",
+    "media_artist": "Big Muff",
+    "media_content_id": "library://track/15212"
+   },
+   "media_player.camerons_macbook_pro": {
+    "state": "unavailable",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.sonos_move_derp_2": {
+    "state": "off",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.home_assistant_voice_0ab117_media_player": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.home_assistant_voice_0ac919_media_player": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.satellite_01_media_player": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.xbr_49x800d": {
+    "state": "off",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.sonos_move_derp": {
+    "state": "unavailable",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.web_firefox_on_linux": {
+    "state": "unavailable",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.drew_s_windows_firefox": {
+    "state": "unavailable",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   }
+  },
+  "changed": [],
+  "unchanged": true,
+  "count": 17
+ },
+ "summary": {
+  "counts": {
+   "pass": 98,
+   "fail": 1,
+   "xfail": 20,
+   "skip": 3
+  },
+  "executed": 53,
+  "checked_read_only": 66,
+  "skipped": [
+   {
+    "id": "inc-1017-try-playing-it-ytm",
+    "reason": "follow-up that needs conversation history; a replay has none"
+   },
+   {
+    "id": "inc-1019-ytm-link",
+    "reason": "typed link; a spoken request carries no URL"
+   },
+   {
+    "id": "m4b-fetch-and-run-on-the-mirror",
+    "reason": "typed link; a spoken request carries no URL"
+   }
+  ],
+  "not_selected": 0,
+  "failed": [
+   "plan-orbital-station-youtube"
+  ],
+  "xpassed": []
+ }
+}
