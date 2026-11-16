@@ -5,6 +5,8 @@ Agentic_Design_Patterns.pdf
 # Secrets — never commit these
 secrets/
 .env
+# Dev pair knobs (docker-compose.yml profile `dev`) — example is committed
+.env.dev
 
 # SearXNG real config carries a secret_key — track settings.yml.example instead
 searxng/settings.yml

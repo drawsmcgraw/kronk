@@ -316,6 +316,122 @@ services:
       finance_service: { condition: service_healthy }
     restart: unless-stopped
 
+  # ── Dev pair (compose profile `dev`) ──────────────────────────────────────
+  # Sprint item M17: a second orchestrator + tool_service for testing changes
+  # without touching the household's path. HA's `kronk-dev` pipeline (the
+  # "Hey Jarvis" wake word on every satellite) reaches orchestrator-dev
+  # through nginx at /dev/voice; the chat shims answer at /dev/api/chat and
+  # /dev/v1/chat/completions. Report: docs/sprint/M17-build.md.
+  #
+  # Operations (always name the dev services — a bare `--profile dev up`
+  # also brings up, and may recreate, every production service):
+  #   first time:  cp .env.dev.example .env.dev && mkdir -p data/dev
+  #   up/rebuild:  docker compose --profile dev up -d --build tool_service-dev orchestrator-dev
+  #   logs:        docker compose --profile dev logs -f orchestrator-dev tool_service-dev
+  #   stop:        docker compose --profile dev stop orchestrator-dev tool_service-dev
+  #   remove:      docker compose --profile dev rm -sf orchestrator-dev tool_service-dev
+  #   dry run off for one test: set MUSIC_DRY_RUN=0 in .env.dev, rerun the
+  #     up line for tool_service-dev (env_file changes recreate it), then
+  #     set it back to 1 and rerun.
+  # A plain `docker compose up -d` (no profile) neither starts nor stops
+  # these. nginx needs no restart when they come and go (/dev/ answers 502
+  # while they are down).
+  #
+  # State: both mount ./data/dev as /data — their own sessions.db,
+  # metrics.db, ops_audit.log, weather cache, shopping list. Production's
+  # ./data is mounted read-only at /shared for the household data dev reads
+  # (taste file and DB, solar.db, news brief); writes to it fail loudly.
+  # Knobs that change per experiment (models, MUSIC_DRY_RUN, default player,
+  # error style) live in .env.dev; wiring lives here. Secrets come from .env
+  # by interpolation, as for production, so they are never duplicated.
+  # Deliberately absent: the MagicMirror SSH key and scripts mounts and the
+  # MM_SSH_* env, so the dev path cannot reach the Pi (remote_exec and
+  # update_magicmirror fail with an error instead).
+  tool_service-dev:
+    profiles: [dev]
+    build: ./tool_service
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8103"]
+    ports:
+      - "127.0.0.1:8103:8103"
+    env_file: [.env.dev]
+    volumes:
+      - ./data/dev:/data
+      - ./data:/shared:ro
+      - ./ops:/ops:ro
+    environment:
+      - SEARXNG_URL=http://searxng:8080
+      - HOME_LOCATION=Laurel, MD
+      - WEATHER_REFRESH_SEC=3600
+      - HA_URL=http://host.docker.internal:8123
+      - HA_TOKEN=${HA_TOKEN}
+      - MA_URL=${MA_URL:-http://host.docker.internal:8095}
+      - MA_TOKEN=${MA_TOKEN}
+      - SOLAR_HOST=http://sunpower-bridge.home.hippiehouse.net
+      - SOLAR_SERIAL=${SOLAR_SERIAL}
+      # Household data, read-only from production's ./data.
+      - SOLAR_DB=/shared/solar.db
+      - SOLAR_POLL_ENABLED=0
+      - MUSIC_TASTE_FILE=/shared/music_taste.yaml
+      - MUSIC_TASTE_DB=/shared/music_taste.db
+      - MUSIC_TASTE_ENABLED=0
+      - NEWS_FILE=/shared/news_brief.json
+      - NEWS_ENABLED=0
+      - HA_NOTIFY_SERVICE=notify/mobile_app_drew_pixel_11_pro
+      - OPS_HOSTS=/ops/hosts.json
+      - ANNOUNCE_SATELLITE=assist_satellite.satellite1_d8d1bc_assist_satellite
+      - TELEMETRY_ENABLED=${TELEMETRY_ENABLED:-true}
+      - OTEL_SERVICE_NAME=kronk-tool-service-dev
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4318
+      - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+      - OTEL_BSP_SCHEDULE_DELAY=1000
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    mem_limit: 1g
+    networks: [kronk]
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8103/health\", timeout=3)' || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  orchestrator-dev:
+    profiles: [dev]
+    build: ./orchestrator
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8100"]
+    env_file: [.env.dev]
+    volumes:
+      - ./data/dev:/data
+      - ./kronk-context.md:/kronk-context.md:ro
+      - ./litellm/config.yaml:/litellm-config.yaml:ro
+    environment:
+      - LLM_SERVICE_URL=http://host.docker.internal:8002
+      - TOOL_SERVICE_URL=http://tool_service-dev:8103
+      # Production's health and finance services (read-only queries; both
+      # are removed in M1). Not a depends_on: starting dev must not start
+      # or recreate production containers.
+      - HEALTH_SERVICE_URL=http://health_service:8004
+      - FINANCE_SERVICE_URL=http://finance_service:8005
+      - TELEMETRY_ENABLED=${TELEMETRY_ENABLED:-true}
+      - OTEL_SERVICE_NAME=kronk-orchestrator-dev
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4318
+      - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+      - OTEL_BSP_SCHEDULE_DELAY=1000
+    mem_limit: 1g
+    networks: [kronk]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8100/api/agents\", timeout=3)' || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    depends_on:
+      tool_service-dev: { condition: service_healthy }
+    restart: unless-stopped
+
 volumes:
   piper-models:
   # ha-config moved to docker-compose.ha.yml (declared external there).
