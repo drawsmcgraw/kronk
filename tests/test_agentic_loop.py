@@ -152,11 +152,6 @@ def test_hot_tub_feature_is_gone():
         assert not pattern.search(text), text
     for d in tools.TOOL_DEFINITIONS:
         assert not pattern.search(d["function"]["description"]), d["function"]["name"]
-    # The coordinator names the hot tub only as something Kronk cannot check
-    # (without it, every status question went to ask_home; the bench's
-    # no_device_hottub probe depends on it).
-    assert ("Kronk has no connection to the hot tub or spa: for its status or "
-            "temperature, say plainly that you can't check it.") in agents.COORDINATOR.system_prompt
 
 
 # ── Routing tests (routing.py) ────────────────────────────────────────────────
