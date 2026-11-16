@@ -351,16 +351,21 @@ AGENTS: dict[str, AgentConfig] = {
             "Use remote_exec to inspect a managed host by running a READ-ONLY command and reading its "
             "output — the magic mirror is host 'magicmirror'. Only read-only commands run (uptime, "
             "systemctl status, journalctl, ps, df, git log, …); mutating commands are refused. Iterate: "
-            "run a command, read the result, run another if you need more. When you have the answer, "
+            "run a command, read the result, run another if you need more. "
+            "Use http_check to test whether a URL is reachable from the Kronk host (status, timing, "
+            "redirects, a few headers; never the page body); it reaches only hosts on the operator's "
+            "allow-list. When you have the answer, "
             "state it plainly to the user — do not print raw command syntax or tool output.\n"
             "Be direct and concise — no filler, no action text."
         ),
-        # remote_exec only (sprint M4, decided by Drew 2026-11-09): web text
+        # No web tools (sprint M4, decided by Drew 2026-11-09): web text
         # and command execution never share one loop, so a fetched page
         # cannot steer the next command. Documentation comes in through the
         # coordinator (ask_research, then ask_devops with the findings).
+        # http_check (sprint M5) reaches LAN hosts on an allow-list, so it
+        # lives here too and never on an agent with web tools.
         # tests/test_agent_tool_separation.py fails if they are recombined.
-        tool_names=["remote_exec"],
+        tool_names=["remote_exec", "http_check"],
         model=DEVOPS_AGENT_MODEL,
     ),
 }

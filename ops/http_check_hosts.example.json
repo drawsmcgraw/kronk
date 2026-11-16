@@ -1,0 +1,7 @@
+{
+  "_comment": "Allow-list for the devops agent's http_check tool (sprint M5). Copy to http_check_hosts.json (gitignored) and edit. http_check sends one plain GET (no custom headers, body or credentials) only to a host named here, matched exactly and case-insensitively against the URL's host (a name or an IP literal; any port). Absent or empty file: every target is refused. Some LAN devices change state on a plain GET (a relay toggled by URL): list only hosts where a GET is harmless. Redirects are followed only to hosts on this list. Read on every call, so edits take effect without a restart.",
+  "hosts": [
+    "nas.local",
+    "192.168.1.10"
+  ]
+}

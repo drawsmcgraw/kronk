@@ -26,7 +26,10 @@ os.environ.setdefault("COORDINATOR_MODEL", "gemma-4-e4b")
 import agents  # noqa: E402
 
 WEB_TOOLS = {"web_search", "fetch_url"}
-EXEC_TOOLS = {"remote_exec"}
+# Tools that reach managed hosts or the LAN. http_check joined in sprint M5:
+# it is exempt from the /fetch address block, so a web-reading loop must
+# never hold it either.
+EXEC_TOOLS = {"remote_exec", "http_check"}
 
 
 def _all_agents():
@@ -35,10 +38,19 @@ def _all_agents():
 
 # ── configuration ────────────────────────────────────────────────────────────
 
-def test_devops_holds_only_remote_exec():
+def test_devops_holds_remote_exec_and_http_check_only():
+    # M4 left devops with remote_exec alone; M5 added http_check.
     devops = agents.AGENTS["devops"]
-    assert devops.tool_names == ["remote_exec"]
-    assert [d["function"]["name"] for d in devops.tool_defs()] == ["remote_exec"]
+    assert devops.tool_names == ["remote_exec", "http_check"]
+    assert [d["function"]["name"] for d in devops.tool_defs()] == ["remote_exec", "http_check"]
+
+
+def test_only_devops_holds_http_check():
+    """Sprint M5, criterion 13: no other agent, and no agent with web tools."""
+    holders = [a.name for a in _all_agents()
+               if "http_check" in a.tool_names
+               or "http_check" in {d["function"]["name"] for d in a.tool_defs()}]
+    assert holders == ["devops"]
 
 
 def test_devops_prompt_does_not_offer_web_lookups():

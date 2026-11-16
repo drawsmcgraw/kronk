@@ -429,6 +429,29 @@ TOOL_DEFINITIONS = [
     {
         "type": "function",
         "function": {
+            "name": "http_check",
+            "description": (
+                "Check whether a URL is reachable from the Kronk host: one "
+                "plain GET, five-second limit. Returns the HTTP status, time "
+                "taken, any redirects, and the server / content-type / "
+                "content-length / location headers, or the cause of failure "
+                "(DNS failure, connection refused, timeout, TLS error). Never "
+                "returns the page body. Only hosts on the operator's "
+                "allow-list can be checked; others are refused."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "url": {"type": "string",
+                            "description": "Full http:// or https:// URL to check."},
+                },
+                "required": ["url"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "news_brief",
             "description": (
                 "Deliver the pre-generated news brief (world, tech & AI, "
@@ -472,6 +495,7 @@ TOOL_TIMEOUTS = {
     "rate_music": 25,        # MA feedback call + the skip verify poll on thumbs down
     "now_playing": 15,
     "remote_exec": 35,         # tool_service caps the exec at 30s + SSH setup
+    "http_check": 10,          # tool_service caps the whole check at 5s
     "update_magicmirror": 30,  # SSH preflight to the Pi (~5-20s); the update
                                # itself runs as a tool_service background task
     "news_brief": 90,          # cache read is <2s; refresh=true regenerates
@@ -884,6 +908,27 @@ async def _tool_remote_exec(client: httpx.AsyncClient, args: dict) -> str:
     return detail
 
 
+async def _tool_http_check(client: httpx.AsyncClient, args: dict) -> str:
+    """Reachability probe (sprint M5). tool_service enforces the allow-list
+    and never returns a body; this only formats the result."""
+    url = (args.get("url") or "").strip()
+    if not url:
+        return "[http_check error: url is required]"
+    resp = await client.get(f"{TOOL_SERVICE_URL}/http_check", params={"url": url})
+    if resp.status_code != 200:
+        return _fail(f"http_check {url}", resp)
+    r = resp.json()
+    hops = "".join(f"\n  redirect: {h['url']} -> HTTP {h['status']} -> {h['location']}"
+                   for h in r.get("redirects") or [])
+    if not r.get("ok"):
+        return (f"[http_check {url}: FAILED ({r.get('cause', 'error')}) after "
+                f"{r.get('elapsed_ms')} ms: {r.get('error', 'unknown error')}]{hops}")
+    hdrs = ", ".join(f"{k}: {v}" for k, v in (r.get("headers") or {}).items()) or "none"
+    note = f"\n  note: {r['note']}" if r.get("note") else ""
+    return (f"[http_check {url}: HTTP {r.get('status')} in {r.get('elapsed_ms')} ms; "
+            f"final URL {r.get('final_url')}; headers: {hdrs}]{hops}{note}")
+
+
 # Spoken when update_magicmirror is called on a turn whose user sentence is
 # not the pinned one (sprint M4b). Fixed text: it tells the user exactly
 # what to say, and nothing a model wrote can change it.
@@ -976,6 +1021,7 @@ _HANDLERS = {
     "now_playing":          _tool_now_playing,
     "update_magicmirror":   _tool_update_magicmirror,
     "remote_exec":          _tool_remote_exec,
+    "http_check":           _tool_http_check,
     "news_brief":           _tool_news_brief,
 }
 

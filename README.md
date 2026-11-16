@@ -215,12 +215,12 @@ The `AGENTS` dict in `orchestrator/agents.py` is authoritative.
 | `home` | `gemma-4-e4b` | `get_weather`, `shopping_list_*`, `query_hottub`, `solar_{status,detail,energy}`, `play_music`, `control_music`, `now_playing`, `rate_music`, `remember_music_preference`, `update_magicmirror` | Weather, shopping list, hot tub, solar, music, mirror updates |
 | `assistant` | `gemma-4-e4b` | `get_kronk_context`, `generate_diagram` | Kronk's own architecture; Graphviz diagrams |
 | `coding` | `devstral-2512-q4` | `web_search`, `fetch_url` | Writing/debugging code |
-| `devops` | `devstral-2512-q4` | `remote_exec` | Server admin; read-only audited exec on managed hosts. No web tools (sprint M4): the coordinator gets documentation from `research` first |
+| `devops` | `devstral-2512-q4` | `remote_exec`, `http_check` | Server admin; read-only audited exec on managed hosts; reachability checks on allow-listed hosts. No web tools (sprint M4): the coordinator gets documentation from `research` first |
 | `talkie` | `talkie` | — | Vintage-1930 persona; only invoked when asked for by name (model not running) |
 
-No agent holds both a web tool and `remote_exec`, so fetched text and command
-execution never share a loop; `run_stream` rejects any tool call the agent
-was not offered (`tests/test_agent_tool_separation.py`).
+No agent holds both a web tool and `remote_exec` or `http_check`, so fetched
+text and LAN access never share a loop; `run_stream` rejects any tool call the
+agent was not offered (`tests/test_agent_tool_separation.py`).
 
 Timers are no longer Kronk's: HA's local Assist intent runs them on the
 satellite (2026-07-12).
@@ -233,7 +233,7 @@ satellite (2026-07-12).
 `play_music` (HA → Music Assistant; resolves misspellings and picks for genre
 requests — `docs/features/music-taste.md`), `control_music`, `now_playing`,
 `rate_music` (Pandora thumbs), `remember_music_preference` (household taste
-file), `update_magicmirror`, `remote_exec`, `get_kronk_context`,
+file), `update_magicmirror`, `remote_exec`, `http_check`, `get_kronk_context`,
 `generate_diagram`. Definitions live in
 `orchestrator/tools.py`.
 
@@ -423,9 +423,13 @@ is still used for geocoding (NWS has no geocoder).
 **Web search: self-hosted SearXNG.** Privacy — queries never leave the house. No
 API key, no rate limits, no cost. Results are injected as title + URL + snippet
 only; the model can call `fetch_url` for a full page when it needs depth.
-`fetch_url` strips boilerplate with BeautifulSoup and truncates to ~1,500 tokens;
-it uses `verify=False` because of an intermediate-CA gap inside the container
-(read-only fetches, acceptable tradeoff, that endpoint only).
+`fetch_url` strips boilerplate (trafilatura, BeautifulSoup fallback) and
+truncates to ~1,500 tokens. TLS verification is on. It reaches public
+addresses only: loopback, RFC 1918, link-local, CGNAT and other non-global
+addresses, Docker service names and non-http(s) URLs are refused, and
+redirects are followed by hand with the same check on every hop
+(`docs/features/fetch-address-block.md`). LAN reachability is the devops
+agent's `http_check`, limited to hosts in `ops/http_check_hosts.json`.
 
 **Hallucination guardrails — three layers, order matters.** (1) A system-prompt
 standing rule ("never fabricate real-time info"). (2) Directive failure messages
