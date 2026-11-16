@@ -37,7 +37,8 @@ RULES = {
 TIERS = {"ha_local", "kronk"}
 HA_SOURCES = {"trigger", "builtin"}
 TRIGGERS = {"album", "track", "artist", "audiobook", "radio", "playlist", "loose", "catchall"}
-TOOLS = {None, "play_music", "control_music", "now_playing", "rate_music", "news_brief"}
+TOOLS = {None, "play_music", "control_music", "now_playing", "rate_music", "news_brief",
+         "update_magicmirror"}
 KINDS = {"named", "genre", "another"}
 MEDIA_TYPES = {None, "artist", "album", "track", "playlist", "radio"}
 PROVIDERS = {"pandora", "youtube_music", "nas"}

@@ -50,17 +50,17 @@ rule needs the same failure captured several times (Drew's stopping rule,
 
 | Field | Meaning |
 |---|---|
-| `id` | Stable slug, lowercase and dashes. Never renamed or reused; new rows get new ids. Prefixes: `plan-`, `inc-`, `eval-`, `m11-`, `m17-` by source. |
+| `id` | Stable slug, lowercase and dashes. Never renamed or reused; new rows get new ids. Prefixes: `plan-`, `inc-`, `eval-`, `m4b-`, `m11-`, `m17-` by source. |
 | `text` | As transcribed: case, punctuation and STT spacing kept (`" Stop!"` with its leading space is its own row). |
 | `origin.area` / `origin.device` | The satellite that heard it: `kitchen_pe` (Kitchen), `office_sat1` (Office), `basement_pe` (Basement Theater). `area: null` when not recorded; the replay then uses the office Satellite1. |
 | `expect.tier` | `ha_local` (HA answers before Kronk is asked) or `kronk`. With `ha_local`, `expect.ha` says how: `{"source": "trigger", "trigger": "radio"}` (the Kronk music blueprint; `trigger` is the blueprint trigger id, given only where it matters) or `{"source": "builtin", "intent": "HassMediaPause"}`. |
 | `expect.route`, `expect.rule` | Where `routing._classify_inner` should send the text if it reaches Kronk (spoken or typed). One of the 15 rules; the rule must belong to the route. |
-| `expect.tool` | The Kronk tool that should end up running: `play_music`, `control_music`, `now_playing`, `rate_music`, `news_brief`, or `null` when no existing tool can do it (then the live replay checks that no music tool claims it). |
+| `expect.tool` | The Kronk tool that should end up running: `play_music`, `control_music`, `now_playing`, `rate_music`, `news_brief`, `update_magicmirror`, or `null` when no existing tool can do it (then the live replay checks that no music tool claims it). |
 | `expect.action`, `expect.thumb` | `control_music` action (`stop`, `pause`, `next`, …) and `rate_music` thumb. |
 | `expect.kind`, `media_type`, `name`, `artist`, `provider`, `shuffle` | What `play_music` should be asked for: `kind` `named`/`genre`; `media_type` one of the tool's types or `null` for a style; `provider` `pandora` / `youtube_music` / `nas` only when the sentence implies one. These are what M11's parser asserts. |
 | `expect.player` | `origin` (the speaker that heard it), `area:<Area>`, `entity:media_player.<id>`, or `unknown:<words>` for a name no player has. |
 | `source` | The incident doc, bench file or plan section the row came from. Paths are checked to exist. |
-| `tags` | Free-form; `--tag` selects on them. Two tags change the replay: `needs-context` and `url` rows are skipped live. |
+| `tags` | Free-form; `--tag` selects on them. Three tags change the replay: `needs-context` and `url` rows are skipped live, and `mirror` rows are skipped against production. |
 | `xfail` | Per layer: `routing`, `live`, `parser`. Each value is the reason. |
 | `note`, `ref` | Free text; the original trace id, first-seen date and count where known. |
 
@@ -112,6 +112,14 @@ the spoken answer, and the dry-run line tool_service logged. Exit 0 when no
 row that should pass failed, 1 when one did, 2 when a safety check refused
 to start, 3 when the run was stopped mid-way. The committed baseline is
 `docs/bench/voice_replay_2026-11-16_012824_m10-baseline.json`.
+
+**Mirror rows (sprint M4b).** `update_magicmirror` runs only for the pinned
+sentence "update the magic mirror" (`docs/plans/MAGICMIRROR_PLAN.md`). A row
+expecting it passes only if the call was not refused; any other row that
+reaches it passes only if the orchestrator logged `mm_update_refused`. On
+dev the pinned rows stop at the missing SSH key (502). Rows tagged `mirror`
+are skipped against production, where `MUSIC_DRY_RUN` does not cover the
+mirror and the pinned row would start a real update.
 
 A row is executed only when it would reach Kronk. Then the replay checks
 tier, rule, tool, and (from tool_service's `music dry run:` line) the action

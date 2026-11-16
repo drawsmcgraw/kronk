@@ -7,6 +7,8 @@ import httpx
 
 from events import emit
 import origin
+import routing
+import telemetry
 
 logger = logging.getLogger(__name__)
 
@@ -882,7 +884,25 @@ async def _tool_remote_exec(client: httpx.AsyncClient, args: dict) -> str:
     return detail
 
 
+# Spoken when update_magicmirror is called on a turn whose user sentence is
+# not the pinned one (sprint M4b). Fixed text: it tells the user exactly
+# what to say, and nothing a model wrote can change it.
+MM_UPDATE_REFUSAL = 'To update the magic mirror, say "update the magic mirror".'
+
+
 async def _tool_update_magicmirror(client: httpx.AsyncClient, args: dict) -> str:
+    # The update runs only when the user's own words for this turn contain
+    # the pinned sentence (routing.asks_for_mirror_update). origin.said is
+    # set once per request by main._run_pipeline from the transport's user
+    # text; tool arguments, tool output, fetched pages and history never
+    # reach it. A model reaching this tool any other way (the coordinator
+    # via ask_home, an escalation, text on a fetched page) is refused here,
+    # before any request leaves the orchestrator.
+    said = origin.said.get()
+    if not routing.asks_for_mirror_update(said):
+        emit("mm_update_refused", said=(said or "")[:80])
+        telemetry.current().set(**{"kronk.mm_update.refused": True})
+        return f"[Magic mirror update refused: {MM_UPDATE_REFUSAL}]"
     resp = await client.post(f"{TOOL_SERVICE_URL}/magicmirror/update")
     if resp.status_code == 200:
         info = resp.json()

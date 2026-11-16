@@ -88,6 +88,12 @@ SKIP_TAGS = {"needs-context": "follow-up that needs conversation history; a repl
              "url": "typed link; a spoken request carries no URL"}
 ACTIVE_STATES = {"playing", "buffering"}
 MUSIC_TOOLS = {"play_music", "control_music", "rate_music", "now_playing"}
+# update_magicmirror runs only for the pinned sentence (sprint M4b); a
+# refusal still logs its tool_call, plus an mm_update_refused event.
+MIRROR_TOOL = "update_magicmirror"
+# Rows tagged `mirror` are never replayed against production: the pinned row
+# would start a real mirror update, and MUSIC_DRY_RUN does not cover it.
+PRODUCTION_SKIP_TAGS = {"mirror": "mirror row; on production it could start a real mirror update"}
 
 
 class Refused(Exception):
@@ -365,6 +371,14 @@ def compare_kronk(row: dict, device: dict, processed_locally: bool, kev: dict) -
         # a claim the code cannot back.
         fired = [n for n in names if n in MUSIC_TOOLS]
         checks.append({"check": "no music tool", "ok": not fired, "expected": [], "actual": fired})
+    refused = "mm_update_refused" in (kev.get("events") or [])
+    if tool == MIRROR_TOOL:
+        checks.append({"check": "mirror update not refused", "ok": not refused,
+                       "expected": False, "actual": refused})
+    elif MIRROR_TOOL in names:
+        # Reached by any other sentence: the pin must have refused it.
+        checks.append({"check": "mirror update refused", "ok": refused,
+                       "expected": True, "actual": refused})
     if kev["dry_run"]:
         d = kev["dry_run"][-1]
         want_action = e.get("action") or ({"up": "thumb_up", "down": "thumb_down"}.get(e.get("thumb")))
@@ -545,6 +559,10 @@ async def replay_row(ha: HA, token: str, target: dict, row: dict, tmap: dict, ar
     for tag, why in SKIP_TAGS.items():
         if tag in row["tags"]:
             return {**rec, "method": "skipped", "status": "skip", "skip_reason": why}
+    if target.get("production"):
+        for tag, why in PRODUCTION_SKIP_TAGS.items():
+            if tag in row["tags"]:
+                return {**rec, "method": "skipped", "status": "skip", "skip_reason": why}
 
     t0 = time.monotonic()
     res = await ha.call("conversation/agent/homeassistant/debug", sentences=[row["text"]],

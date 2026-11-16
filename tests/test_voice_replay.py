@@ -290,6 +290,34 @@ def test_null_tool_means_no_music_tool_may_fire():
     assert checks["no music tool"] is False
 
 
+def _mirror_kev(rule, tools, events):
+    return {"rid": "a", "route": "home", "rule": rule, "tools": tools, "dry_run": [], "events": events}
+
+
+def test_mirror_row_passes_only_when_the_update_was_not_refused():
+    row = _row(rule="mm_update", tool="update_magicmirror")
+    for events, ok in (([], True), (["mm_update_refused"], False)):
+        kev = _mirror_kev("mm_update", ["home:update_magicmirror"], events)
+        checks = {c["check"]: c["ok"] for c in vr.compare_kronk(row, vr.DEVICES["office_sat1"], False, kev)}
+        assert checks["tool"] and checks["mirror update not refused"] is ok
+
+
+def test_any_other_row_reaching_the_mirror_tool_must_be_refused():
+    row = _row(route="direct", rule="default", tool=None)
+    for events, ok in (([], False), (["mm_update_refused"], True)):
+        kev = {**_mirror_kev("default", ["coordinator:ask_home", "home:update_magicmirror"], events),
+               "route": "direct"}
+        checks = {c["check"]: c["ok"] for c in vr.compare_kronk(row, vr.DEVICES["office_sat1"], False, kev)}
+        assert checks["mirror update refused"] is ok
+
+
+def test_mirror_rows_are_never_replayed_on_production(gates):
+    ha = RowHA(None)
+    row = {**_row(rule="mm_update", tool="update_magicmirror"), "tags": ["mirror"]}
+    rec = asyncio.run(vr.replay_row(ha, "tok", {"production": True}, row, TMAP, ARGS, dict(IDLE)))
+    assert rec["status"] == "skip" and ha.runs == 0
+
+
 def test_log_lines_drop_lines_before_the_row(monkeypatch):
     # docker logs --since is second-granular; the previous row's line at
     # .400 must not count for a row sent at .900 (the 2026-11-16 baseline bug).

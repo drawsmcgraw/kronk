@@ -267,7 +267,11 @@ async def test_ssh_mm_missing_script_is_actionable(monkeypatch, tmp_path):
 
 @pytest.mark.asyncio
 async def test_tool_update_magicmirror_success_and_failure():
+    import origin
     import tools
+    # The pinned sentence (sprint M4b); without it the tool refuses before
+    # any request (tests/test_mm_update_pin.py).
+    said_token = origin.said.set("update the magic mirror")
 
     class OkResp:
         status_code = 200
@@ -288,16 +292,19 @@ async def test_tool_update_magicmirror_success_and_failure():
         async def __aexit__(self, *a): pass
         async def post(self, *a, **kw): return self._resp
 
-    with patch("tools.httpx.AsyncClient", return_value=Client(OkResp())):
-        result = await tools.execute("update_magicmirror", {})
-    assert result.startswith("[Magic mirror update started: ")
-    assert "backup" in result
+    try:
+        with patch("tools.httpx.AsyncClient", return_value=Client(OkResp())):
+            result = await tools.execute("update_magicmirror", {})
+        assert result.startswith("[Magic mirror update started: ")
+        assert "backup" in result
 
-    with patch("tools.httpx.AsyncClient", return_value=Client(FailResp())):
-        result = await tools.execute("update_magicmirror", {})
-    assert "Could not update the magic mirror" in result
-    assert "could not reach the mirror" in result
-    assert "Do NOT claim the mirror is updating" in result
+        with patch("tools.httpx.AsyncClient", return_value=Client(FailResp())):
+            result = await tools.execute("update_magicmirror", {})
+        assert "Could not update the magic mirror" in result
+        assert "could not reach the mirror" in result
+        assert "Do NOT claim the mirror is updating" in result
+    finally:
+        origin.said.reset(said_token)
 
 
 def test_terminal_speech_mappings_for_magicmirror():

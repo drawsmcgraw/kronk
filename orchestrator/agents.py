@@ -133,6 +133,8 @@ def _terminal_speech(result: str, style: str = errors.DEBUG,
         return f"I couldn't tell. {line[len('Could not read the player: '):]}"
     if line.startswith("Magic mirror update started: "):
         return f"The magic mirror is {line[len('Magic mirror update started: '):]}."
+    if line.startswith("Magic mirror update refused: "):
+        return line[len("Magic mirror update refused: "):]   # tools.MM_UPDATE_REFUSAL
     if line.startswith("Could not update the magic mirror: "):
         return ("I couldn't update the magic mirror. "
                 f"{line[len('Could not update the magic mirror: '):]}")

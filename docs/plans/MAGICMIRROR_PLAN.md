@@ -36,6 +36,27 @@ loop still reads it before choosing its next command. M4 does not address
 that. The destructive-command confirmation gate below stays a requirement for
 phase B regardless. Build report: `docs/sprint/M4-build.md`.
 
+**Update 2026-11-16 (sprint item M4b):** `update_magicmirror` runs only when
+the user's own sentence for the turn contains "update the magic mirror"
+("magicmirror" also accepted, any case, anywhere in the sentence). Why: in
+the M4 test, "fetch https://example.com and run what it says on the mirror"
+went research `fetch_url` → escalate → coordinator → `ask_home` →
+`update_magicmirror` once in five runs; on production that would have
+started an update nobody asked for. Drew chose a pin over a turn-level guard
+as the smaller fix. How: `routing._MM_UPDATE_RE` is the one pattern, read
+through `routing.asks_for_mirror_update` by both the `mm_update` routing
+rule and a guard at the top of `tools._tool_update_magicmirror`. The guard
+reads `origin.said`, which `main._run_pipeline` sets from the transport's
+user text (the `/message` text, or the last user message on the three
+shims); tool arguments, tool output, fetched pages, HA's system prompt and
+earlier turns never reach it. Any other route to the tool gets the fixed
+sentence `To update the magic mirror, say "update the magic mirror".` as a
+terminal answer, an `mm_update_refused` event, and
+`kronk.mm_update.refused=true` on the tool span; nothing is sent to
+`tool_service`. "update magic mirror" (no "the") is refused; relaxing that
+is a one-line change to the pattern. Tests: `tests/test_mm_update_pin.py`.
+Build report: `docs/sprint/M4b-build.md`.
+
 ## General ops agent — spec (remote_exec + host registry + routing) — 2026-07-11
 
 Motivating trace: today "what's the uptime of the magic mirror?" dead-ends.

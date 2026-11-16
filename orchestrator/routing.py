@@ -110,8 +110,20 @@ _WEATHER_RE = re.compile(
 # — questions *about* updates ("did the magic mirror update break
 # anything?") must not reach a mutation tool (2026-08-18 audit). Everything
 # else mirror → devops.
+#
+# _MM_UPDATE_RE is also the only sentence that may run update_magicmirror
+# (Drew, 2026-11-16, sprint M4b): tools._tool_update_magicmirror refuses
+# unless the user's own words for the turn (origin.said) match it, so no
+# other route — the coordinator, an escalation, fetched page text — can
+# start an update. "magicmirror" is accepted so speech-to-text spacing
+# cannot trip it. Defined here once; both users call asks_for_mirror_update.
 _MM_RE        = re.compile(r'\bmagic\s*mirror\b', re.IGNORECASE)
 _MM_UPDATE_RE = re.compile(r'\bupdate\s+the\s+magic\s*mirror\b', re.IGNORECASE)
+
+
+def asks_for_mirror_update(text: str | None) -> bool:
+    """True when `text` contains the pinned mirror-update sentence."""
+    return bool(text) and _MM_UPDATE_RE.search(text) is not None
 
 # Bare playback commands ("Stop!", "pause the music", "skip this song",
 # "louder") pin to the home agent, which owns control_music. A METHOD pin
@@ -280,7 +292,7 @@ async def _classify_inner(text: str) -> tuple[str, str]:
         emit("route_shortcut", rule="music", route="home")
         return "home", "music"
     if _MM_RE.search(text):
-        if _MM_UPDATE_RE.search(text):
+        if asks_for_mirror_update(text):
             emit("route_shortcut", rule="mm_update", route="home")
             return "home", "mm_update"       # fast terminal tool
         emit("route_shortcut", rule="mm_ops", route="devops")
