@@ -46,10 +46,15 @@ started an update nobody asked for. Drew chose a pin over a turn-level guard
 as the smaller fix. How: `routing._MM_UPDATE_RE` is the one pattern, read
 through `routing.asks_for_mirror_update` by both the `mm_update` routing
 rule and a guard at the top of `tools._tool_update_magicmirror`. The guard
-reads `origin.said`, which `main._run_pipeline` sets from the transport's
-user text (the `/message` text, or the last user message on the three
-shims); tool arguments, tool output, fetched pages, HA's system prompt and
-earlier turns never reach it. Any other route to the tool gets the fixed
+reads `origin.said`, which `main._run_pipeline` sets to the user's words for
+this turn: the `/message` text, or on the three shims the request's last
+message, and only when that message has role `user` and non-empty content
+(`main._turn_said`). A shim request that ends any other way (an empty or
+null user message, a tool or assistant message, another role) gets `None`
+and is refused, even though routing still reads the last non-empty user
+message (M4b fix 1, `docs/sprint/M4b-fix1.md`). Tool arguments, tool
+output, fetched pages, HA's system prompt and earlier turns never reach
+`origin.said`. Any other route to the tool gets the fixed
 sentence `To update the magic mirror, say "update the magic mirror".` as a
 terminal answer, an `mm_update_refused` event, and
 `kronk.mm_update.refused=true` on the tool span; nothing is sent to

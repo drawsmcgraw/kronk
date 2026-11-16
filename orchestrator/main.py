@@ -279,6 +279,7 @@ async def _run_pipeline(
     text: str,
     history: list[dict],
     *,
+    said: str | None,
     transport: str,
     pipeline_name: str,
     session_id: str | None = None,        # set → persist the exchange
@@ -304,7 +305,9 @@ async def _run_pipeline(
             pipeline_name, text, rid=rid, transport=transport,
             origin=origin.current.get(),
         )
-        said_token = origin.said.set(text)
+        # origin.said is the user's own words for this turn, which may be
+        # None while `text` (routing input) is not: see _turn_said.
+        said_token = origin.said.set(said)
         try:
             # Extra system context for the coordinator run. The persona
             # itself lives in agents.COORDINATOR; these are the dynamic
@@ -527,7 +530,7 @@ async def message(req: MessageRequest):
         # so llama.cpp's prompt cache (--swa-full) reuses the prefix.
         history = sessions.window(session_id)
         async for ev in _run_pipeline(
-            req.text, history,
+            req.text, history, said=req.text,
             transport="webui", pipeline_name="pipeline.message",
             session_id=session_id, include_local_context=True,
         ):
@@ -607,6 +610,24 @@ def _trim_reply(parts: list[str], chars: int) -> None:
             remaining = 0
 
 
+def _turn_said(messages) -> str | None:
+    """The user's own words for this turn on a shim request, or None.
+
+    Only the request's LAST message counts, and only when its role is
+    exactly "user" and it has content. The shims route on the last
+    non-empty user message anywhere in the array (`text`), so for a request
+    ending in an empty user message, a tool/assistant message or another
+    role, `text` is an earlier turn. That is kept for routing and answers,
+    but it is not what the user said now: origin.said gets None, and
+    update_magicmirror (which reads origin.said) refuses. Sprint M4b fix 1;
+    docs/sprint/M4b-fix1.md.
+    """
+    last = messages[-1] if messages else None
+    if last is not None and last.role == "user" and last.content:
+        return last.content
+    return None
+
+
 def _shim_context(messages, current_text: str) -> list[dict]:
     """Prior user/assistant turns from a shim request's message array.
 
@@ -627,7 +648,8 @@ def _shim_context(messages, current_text: str) -> list[dict]:
 
 
 async def _kronk_pipeline_tokens(text: str, model: str, context: list[dict] | None = None,
-                                 req_origin: origin.Origin | None = None):
+                                 req_origin: origin.Origin | None = None,
+                                 said: str | None = None):
     """Shim wrapper around _run_pipeline: token events only.
 
     context: prior conversation turns supplied by the client (HA resends the
@@ -635,6 +657,8 @@ async def _kronk_pipeline_tokens(text: str, model: str, context: list[dict] | No
     req_origin: the voice satellite that heard the request (origin.py) —
     held in a request-scoped ContextVar for the whole run so play_music can
     target it, three async layers down, without a parameter at every hop.
+    said: the user's own words for this turn (_turn_said); None when the
+    request does not end in a non-empty user message.
     """
     # Voice "clear my history": confirm and stop. There is no Kronk-side
     # store for shim clients (HA owns and resends voice history; its window
@@ -646,7 +670,7 @@ async def _kronk_pipeline_tokens(text: str, model: str, context: list[dict] | No
 
     with origin.scope(req_origin):
         async for ev in _run_pipeline(
-            text, context or [],
+            text, context or [], said=said,
             transport="shim", pipeline_name="pipeline.shim",
         ):
             if ev["type"] in ("token", "retract"):
@@ -665,10 +689,11 @@ def _openai_chunk(rid: str, model: str, delta: dict, finish_reason: str | None =
 
 
 async def _openai_pipeline_stream(text: str, model: str, rid: str,
-                                  context: list[dict] | None = None):
+                                  context: list[dict] | None = None,
+                                  said: str | None = None):
     """OpenAI Chat Completions SSE framing around the core pipeline."""
     yield _openai_chunk(rid, model, {"role": "assistant", "content": ""})
-    async for ev in _kronk_pipeline_tokens(text, model, context):
+    async for ev in _kronk_pipeline_tokens(text, model, context, said=said):
         if ev["type"] != "token":
             continue        # SSE can't retract already-sent text; see agents.py
         yield _openai_chunk(rid, model, {"content": ev["text"]})
@@ -678,12 +703,13 @@ async def _openai_pipeline_stream(text: str, model: str, rid: str,
 
 async def _ollama_pipeline_stream(text: str, model: str,
                                   context: list[dict] | None = None,
-                                  req_origin: origin.Origin | None = None):
+                                  req_origin: origin.Origin | None = None,
+                                  said: str | None = None):
     """Ollama /api/chat NDJSON framing around the core pipeline. A streaming
     client can't take back text already sent, so `retract` events are
     dropped here (the buffered speech path in _ollama_collect honours them)."""
     created = time.strftime("%Y-%m-%dT%H:%M:%S.000000000Z", time.gmtime())
-    async for ev in _kronk_pipeline_tokens(text, model, context, req_origin):
+    async for ev in _kronk_pipeline_tokens(text, model, context, req_origin, said):
         if ev["type"] != "token":
             continue
         chunk = {
@@ -714,19 +740,20 @@ async def openai_chat_completions(req: _OpenAIChatRequest):
     if not user_msgs:
         raise HTTPException(400, "no user message with content")
     text = user_msgs[-1].content
+    said = _turn_said(req.messages)
     model = COORDINATOR_MODEL  # shim ignores client-requested model name
     rid = f"chatcmpl-{new_request_id()}"
     context = _shim_context(req.messages, text)
 
     if req.stream:
         return StreamingResponse(
-            _openai_pipeline_stream(text, model, rid, context),
+            _openai_pipeline_stream(text, model, rid, context, said),
             media_type="text/event-stream",
         )
 
     # Non-streaming: collect deltas and return a single chat.completion object.
     parts: list[str] = []
-    async for line in _openai_pipeline_stream(text, model, rid, context):
+    async for line in _openai_pipeline_stream(text, model, rid, context, said):
         if not line.startswith("data:"):
             continue
         payload = line[len("data:"):].strip()
@@ -835,12 +862,13 @@ async def ollama_show():
 
 async def _ollama_collect(text: str, model: str,
                           context: list[dict] | None,
-                          req_origin: origin.Origin | None = None) -> str:
+                          req_origin: origin.Origin | None = None,
+                          said: str | None = None) -> str:
     """Run the pipeline to completion and return the full reply text —
     with tool-round text retracted (this is the speech path; nothing has
     been sent yet, so retracts are honoured exactly)."""
     reply = ""
-    async for ev in _kronk_pipeline_tokens(text, model, context, req_origin):
+    async for ev in _kronk_pipeline_tokens(text, model, context, req_origin, said):
         if ev["type"] == "token":
             reply += ev["text"]
         elif ev["type"] == "retract":
@@ -879,6 +907,7 @@ async def _ollama_chat_impl(req: _OllamaChatRequest, profile: str):
     if not user_msgs:
         raise HTTPException(400, "no user message with content")
     text = user_msgs[-1].content
+    said = _turn_said(req.messages)
     model = COORDINATOR_MODEL
     context = _shim_context(req.messages, text)
     # The voice satellite that heard the request, stamped by HA onto its
@@ -886,7 +915,7 @@ async def _ollama_chat_impl(req: _OllamaChatRequest, profile: str):
     req_origin = origin.from_messages(req.messages)
 
     if profile == "speech":
-        full = render.to_speech(await _ollama_collect(text, model, context, req_origin))
+        full = render.to_speech(await _ollama_collect(text, model, context, req_origin, said))
         if req.stream:
             return StreamingResponse(
                 _ollama_single_chunk_stream(full, text, model),
@@ -895,10 +924,10 @@ async def _ollama_chat_impl(req: _OllamaChatRequest, profile: str):
     else:
         if req.stream:
             return StreamingResponse(
-                _ollama_pipeline_stream(text, model, context, req_origin),
+                _ollama_pipeline_stream(text, model, context, req_origin, said),
                 media_type="application/x-ndjson",
             )
-        full = await _ollama_collect(text, model, context, req_origin)
+        full = await _ollama_collect(text, model, context, req_origin, said)
     return {
         "model":      model,
         "created_at": time.strftime("%Y-%m-%dT%H:%M:%S.000000000Z", time.gmtime()),

@@ -388,3 +388,101 @@ def test_system_prompt_cannot_spoof_it(client, transport):
     reply, fake, _ = _run(client, transport, "update the mirror", system=system)
     assert reply.strip() == REFUSAL
     assert fake.mirror_posts == []
+
+
+# ── Fix round 1: the turn's words are the request's LAST message ─────────────
+# docs/sprint/M4b-e2e.md, "M4b failure": the shims route on the last non-empty
+# user message anywhere in the array. When the request's last message is not
+# a non-empty "user" message, that is an earlier turn, and an earlier "update
+# the magic mirror" started the update (15 of 15 on dev). The user's words for
+# the turn are now the last message only (main._turn_said); otherwise None,
+# and the guard refuses. Routing still reads the same text as before.
+
+SHIMS = ["api_chat", "voice_api_chat", "openai"]
+
+EARLIER = [
+    {"role": "user", "content": "update the magic mirror"},
+    {"role": "assistant", "content": "I couldn't update the magic mirror. Mirror preflight "
+                                     "failed: SSH key not found at /keys/kronk-mm-update"},
+]
+
+# The five trailing messages from the e2e report.
+TRAILING = {
+    "empty_user":   {"role": "user", "content": ""},
+    "null_user":    {"role": "user", "content": None},
+    "tool":         {"role": "tool", "content": "weather is fine"},
+    "role_human":   {"role": "human", "content": "what's the weather tomorrow"},
+    "role_User":    {"role": "User", "content": "what's the weather tomorrow"},
+}
+
+
+def _send_raw(c, transport, msgs):
+    """One shim request with the message array exactly as given."""
+    if transport in ("api_chat", "voice_api_chat"):
+        path = "/api/chat" if transport == "api_chat" else "/voice/api/chat"
+        r = c.post(path, json={"model": "kronk", "messages": msgs, "stream": False})
+        assert r.status_code == 200, r.text
+        return r.json()["message"]["content"]
+    if transport == "openai":
+        r = c.post("/v1/chat/completions", json={"model": "kronk", "messages": msgs, "stream": False})
+        assert r.status_code == 200, r.text
+        return r.json()["choices"][0]["message"]["content"]
+    raise AssertionError(transport)
+
+
+def _run_raw(client, transport, msgs):
+    c, _orch, _sessions = client
+    llm_log, fake = [], FakeToolService()
+    with patch("agents.llm.stream", new=make_fake_llm(llm_log)), \
+         patch("tools.httpx.AsyncClient", new=fake):
+        reply = _send_raw(c, transport, msgs)
+    return reply, fake, llm_log
+
+
+@pytest.mark.parametrize("transport", SHIMS)
+@pytest.mark.parametrize("shape", list(TRAILING))
+def test_trailing_message_not_the_users_is_refused(client, transport, shape):
+    """The e2e report's five shapes. Routing is unchanged (the earlier turn
+    still routes mm_update → home, one model call), but the update is
+    refused with the fixed sentence and nothing reaches tool_service."""
+    reply, fake, llm_log = _run_raw(client, transport, EARLIER + [TRAILING[shape]])
+    assert fake.mirror_posts == [], (transport, shape, fake.calls)
+    assert reply.strip() == REFUSAL, (transport, shape, reply)
+    assert llm_log == ["home"]
+
+
+@pytest.mark.parametrize("transport", SHIMS)
+def test_request_ending_in_assistant_message_is_refused(client, transport):
+    """The sixth shape (coordinator's ruling: refused). The array ends with
+    the assistant's reply; nothing new was said in this request."""
+    msgs = [{"role": "user", "content": "update the magic mirror"},
+            {"role": "assistant", "content": "Done."}]
+    reply, fake, llm_log = _run_raw(client, transport, msgs)
+    assert fake.mirror_posts == [], (transport, fake.calls)
+    assert reply.strip() == REFUSAL, (transport, reply)
+    assert llm_log == ["home"]
+
+
+@pytest.mark.parametrize("transport", SHIMS)
+def test_pinned_sentence_as_last_message_after_history_still_runs(client, transport):
+    """Only-the-last-message does not break multi-turn: the pinned sentence
+    said now, after earlier turns, still reaches the update."""
+    msgs = [{"role": "system", "content": STAMP},
+            {"role": "user", "content": "what's the weather tomorrow"},
+            {"role": "assistant", "content": "Sunny."},
+            {"role": "user", "content": "update the magic mirror"}]
+    reply, fake, _ = _run_raw(client, transport, msgs)
+    assert len(fake.mirror_posts) == 1, (transport, fake.calls)
+    assert reply.startswith("I couldn't update the magic mirror. Mirror preflight failed")
+
+
+def test_turn_said_reads_only_the_last_message():
+    import orchestrator.main as orch
+    M = orch._OllamaMessage
+    said = orch._turn_said
+    assert said([M(role="user", content="update the magic mirror")]) == "update the magic mirror"
+    assert said([M(role="user", content="update the magic mirror"),
+                 M(role="assistant", content="Done.")]) is None
+    for trailing in TRAILING.values():
+        assert said([M(role="user", content="update the magic mirror"), M(**trailing)]) is None
+    assert said([]) is None

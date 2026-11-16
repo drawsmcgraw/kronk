@@ -124,6 +124,18 @@ def test_corpus_holds_the_plan_named_utterances():
     assert any("ninety's two thousands" in t for t in texts)
 
 
+def test_mirror_rows_carry_the_mirror_tag():
+    """scripts/voice_replay.py skips rows tagged `mirror` against production
+    (MUSIC_DRY_RUN does not cover the mirror; a pinned row would start a real
+    update). The skip is by tag, so every row that mentions the magic mirror
+    or expects update_magicmirror must carry it (M4b e2e observation 10)."""
+    untagged = [r["id"] for r in ROWS
+                if (routing._MM_RE.search(r["text"])
+                    or r["expect"].get("tool") == "update_magicmirror")
+                and "mirror" not in r["tags"]]
+    assert not untagged, f"rows missing the 'mirror' tag: {untagged}"
+
+
 # ── Layer one: routing ───────────────────────────────────────────────────────
 
 def _routing_params():
