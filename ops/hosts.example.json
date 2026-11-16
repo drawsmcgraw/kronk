@@ -1,5 +1,5 @@
 {
-  "_comment": "Host registry for the devops agent's remote_exec tool. Copy to hosts.json (gitignored) and edit. A host is unreachable unless listed here (opt-in boundary). NEVER list the kronk box itself — the ops agent must not be able to target its own host. Keys live in secrets/, referenced by container path. The 'magicmirror' host is auto-synthesized from MM_SSH_* env if this file is absent, so you only need this file to add MORE hosts.",
+  "_comment": "Host registry for the devops agent's remote_exec tool. Copy to hosts.json (gitignored) and edit. A host is unreachable unless listed here (opt-in boundary). NEVER list the kronk box itself — the ops agent must not be able to target its own host. Keys live in secrets/, referenced by container path. The 'magicmirror' host is auto-synthesized from MM_SSH_* env if this file is absent, so you only need this file to add MORE hosts. A managed host needs bash and GNU coreutils 'timeout': every command is sent as timeout -k 2 25 bash -c '<command>'.",
   "magicmirror": {
     "ssh_target": "pi@magicmirror-01.home.hippiehouse.net",
     "key": "/keys/kronk-mm-update",

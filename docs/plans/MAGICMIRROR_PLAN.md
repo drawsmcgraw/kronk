@@ -22,6 +22,20 @@ subcommand-first parsing), and a secrets path deny list
 the classifier refuses `sudo` regardless. Rule set as built:
 `docs/sprint/M3-build.md`.
 
+**Update 2026-11-16 (sprint item M3, fix 1):** the end-to-end test found six
+ways past that classifier (`docs/sprint/M3-e2e.md`). Fixed as classes: the
+command must be printable ASCII and is classified and sent unstripped; every
+program has a closed table of the options it may be given; path rules (the
+deny list, no `..`, no device files, the recursive-read floor) apply to every
+argument; and `ops_exec` sends the command inside
+`timeout -k 2 25 bash -c '<command>'` (`ops.remote_command()`), so a command
+that never returns is stopped on the host and the line is parsed by bash
+whatever the login shell is. **Managed hosts therefore need `bash` and GNU
+coreutils `timeout`** (Raspberry Pi OS has both). The deny list follows
+Drew's ruling of 2026-11-16: not strict; `config.js` and `grep -r` are
+allowed; shell history, `.npmrc`, Wi-Fi configuration and `~/.pm2/dump.pm2`
+were added. Rule set as it now stands: `docs/sprint/M3-fix1.md`.
+
 **Update 2026-11-16 (sprint item M4):** the devops agent holds only
 `remote_exec`; `web_search` and `fetch_url` were removed from it (Drew,
 2026-11-09, option A), so fetched web text and command execution never share

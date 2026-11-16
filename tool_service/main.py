@@ -921,7 +921,8 @@ async def _run_mm_update() -> None:
 # the safety core — deterministic, server-side. Mutations are refused until
 # phase B adds the confirmation gate. docs/plans/MAGICMIRROR_PLAN.md.
 
-OPS_EXEC_TIMEOUT_S = 30
+OPS_EXEC_TIMEOUT_S = 30     # local wait; the host stops the command sooner
+                            # (ops.REMOTE_TIMEOUT_S), so nothing is left running
 
 
 class OpsExecRequest(BaseModel):
@@ -945,15 +946,26 @@ async def ops_exec(req: OpsExecRequest):
         raise HTTPException(status_code=500,
                             detail=f"SSH key not found at {entry['key']}")
 
-    cmd = ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=5",
+    # The string classified is the string run: req.command goes to the host
+    # whole, inside ops.remote_command()'s wrapper (bash under `timeout`).
+    # -n gives the remote command an empty stdin whatever ours is.
+    cmd = ["ssh", "-n", "-o", "BatchMode=yes", "-o", "ConnectTimeout=5",
            "-o", "StrictHostKeyChecking=accept-new",
            "-o", "UserKnownHostsFile=/data/mm_known_hosts",
-           "-i", entry["key"], entry["ssh_target"], req.command]
+           "-i", entry["key"], entry["ssh_target"],
+           ops.remote_command(req.command)]
     rc, text = await _run(cmd, OPS_EXEC_TIMEOUT_S)
     ops.audit_exec(req.host, req.command, rc, len(text), allowed=True)
     if rc is None:
         raise HTTPException(status_code=504,
                             detail=f"command timed out after {OPS_EXEC_TIMEOUT_S}s on {req.host}")
+    if rc in ops.REMOTE_TIMEOUT_EXIT_CODES:
+        # 124: `timeout` on the host stopped it with TERM. 137: it took KILL
+        # (TERM ignored), or something else on the host killed it.
+        how = ("ran past {0}s on {1} and was stopped there" if rc == 124 else
+               "was killed on {1} (it ran past {0}s and ignored the stop "
+               "signal, or the host killed it)").format(ops.REMOTE_TIMEOUT_S, req.host)
+        raise HTTPException(status_code=504, detail=f"command {how} (exit {rc})")
     if rc == 255:
         logger.error("ops exec transport failure on %s: %s", req.host, text[:300])
         last = text.strip().splitlines()[-1] if text.strip() else "connection failed"

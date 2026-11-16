@@ -85,7 +85,8 @@ Conventions:
   next; `docs/bench/devops_bench_2026-09-14_*`), voice-shaped answers,
   a test battery, satellite routing. The classifier quirks are closed:
   `git -C` and quoted pipes were classifier bugs, fixed in sprint item M3
-  (`docs/sprint/M3-build.md`); `journalctl --user` is Pi behaviour, not a
+  (`docs/sprint/M3-build.md`); `2>/dev/null` and `2>&1` are accepted since
+  M3 fix 1 (`docs/sprint/M3-fix1.md`); `journalctl --user` is Pi behaviour, not a
   classifier bug (user-unit logs land in the system journal there, so read
   them with `journalctl -u <unit>`).
 - **Wi-Fi visibility for the satellites** — a ping-history probe for the
