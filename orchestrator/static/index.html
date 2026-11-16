@@ -465,7 +465,7 @@
   </button>
   <button class="send-btn attach-btn" title="Attach file">
     <svg viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-    <input type="file" id="file-input" accept=".pdf,.txt,.md,.py,.js,.ts,.json,.yaml,.yml,.csv,.zip" multiple onchange="handleFileUpload(event)">
+    <input type="file" id="file-input" accept=".pdf,.txt,.md,.py,.js,.ts,.json,.yaml,.yml,.csv" multiple onchange="handleFileUpload(event)">
   </button>
 </footer>
 
@@ -551,9 +551,11 @@
     userScrolled = el.scrollHeight - el.scrollTop > el.clientHeight + 80;
   });
 
+  // Liveness: /api/status answers 200 when the orchestrator, LiteLLM and
+  // tool_service all respond (503 otherwise).
   async function checkHealth() {
     try {
-      const r = await fetch('/health');
+      const r = await fetch('/api/status');
       document.getElementById('status-dot').classList.toggle('offline', !r.ok);
     } catch {
       document.getElementById('status-dot').classList.add('offline');
@@ -820,25 +822,7 @@
           continue;
         }
         const result = await resp.json();
-        if (result.routed_to === 'health_service') {
-          // Garmin file was persisted to SQLite — show a transient confirmation instead of a chip
-          const chips = document.getElementById('file-chips');
-          const note = document.createElement('div');
-          note.className = 'file-chip';
-          note.style.color = 'var(--green)';
-          if (result.files_processed !== undefined) {
-            // Zip export
-            note.textContent = `✓ ${file.name} → ${result.files_processed} files, ${result.total_inserted} rows imported`;
-          } else {
-            // Single CSV
-            const label = result.type ? `${result.type} · ` : '';
-            note.textContent = `✓ ${file.name} → ${label}${result.inserted} rows saved`;
-          }
-          chips.appendChild(note);
-          setTimeout(() => note.remove(), 8000);
-        } else {
-          renderFileChips(result.warning);
-        }
+        renderFileChips(result.warning);
       } catch {
         alert(`Failed to upload ${file.name}`);
       }

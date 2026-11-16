@@ -128,32 +128,10 @@
         <span class="tool-chip">web_search</span>
         <span class="tool-chip">fetch_url</span>
         <span class="tool-chip">shopping_list_*</span>
-        <span class="tool-chip">query_health</span>
-        <span class="tool-chip">query_finances</span>
       </div>
     </div>
     <div class="model-status">
       <span class="vram-label" id="loaded-coordinator">checking…</span>
-    </div>
-  </div>
-
-  <div class="agent-card">
-    <div class="agent-icon">❤️</div>
-    <div class="agent-body">
-      <div class="agent-name">
-        Health Agent
-        <span class="model-badge">qwen3:14b</span>
-        <div class="status-dot" id="s-health"></div>
-      </div>
-      <div class="agent-role">Answers questions about sleep, HRV, body battery, steps, and activities using your Garmin data. Data is queried from local SQLite.</div>
-      <div class="tool-list">
-        <span class="tool-chip">query_health</span>
-        <span class="tool-chip">garmin_sync</span>
-        <span class="tool-chip">import_csv</span>
-      </div>
-    </div>
-    <div class="model-status">
-      <span class="vram-label" id="loaded-health">checking…</span>
     </div>
   </div>
 
@@ -176,26 +154,6 @@
     </div>
   </div>
 
-  <div class="agent-card">
-    <div class="agent-icon">💰</div>
-    <div class="agent-body">
-      <div class="agent-name">
-        Finance Agent
-        <span class="model-badge">mistral-small3.2:24b</span>
-        <div class="status-dot" id="s-finance"></div>
-      </div>
-      <div class="agent-role">Answers questions about uploaded financial documents — bank statements, investment summaries, tax returns, and other PDFs. Documents stored locally.</div>
-      <div class="tool-list">
-        <span class="tool-chip">query_finances</span>
-        <span class="tool-chip">ingest_document</span>
-        <span class="tool-chip">list_documents</span>
-      </div>
-    </div>
-    <div class="model-status">
-      <span class="vram-label" id="loaded-finance">checking…</span>
-    </div>
-  </div>
-
   <div class="section-label" style="margin-top:0.5rem">Preloaded Models</div>
 
   <div id="model-grid" style="display:flex;flex-direction:column;gap:6px">
@@ -209,9 +167,7 @@
 async function checkServices() {
   const endpoints = [
     { id: 's-coordinator', url: '/probe/llm' },
-    { id: 's-health',      url: '/probe/health' },
     { id: 's-research',    url: '/probe/tools' },
-    { id: 's-finance',     url: '/probe/finance' },
   ];
   await KronkUI.checkDots(endpoints);
 }
@@ -246,9 +202,7 @@ async function loadModels() {
     const loadedNames = loaded.map(m => m.name);
     const agentModels = {
       'loaded-coordinator': 'qwen3:14b',
-      'loaded-health':      'qwen3:14b',
       'loaded-research':    'qwen3:14b',
-      'loaded-finance':     'mistral-small3.2:24b',
     };
     for (const [elId, model] of Object.entries(agentModels)) {
       const el = document.getElementById(elId);

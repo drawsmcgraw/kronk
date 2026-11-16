@@ -19,7 +19,9 @@ Decision rule (pre-committed in the plan doc): a challenger must beat the
 incumbent on correctness, or tie on correctness and win >=2x on
 generation speed. The hard set (2026-10-24, HARD_PROBES/HARD_COMPOSITES)
 runs after the base battery and is judged by the quality-first rule in
-docs/plans/MODEL_BENCH_GEMMA4_26B_PLAN.md.
+docs/plans/MODEL_BENCH_GEMMA4_26B_PLAN.md. The absent-data set (2026-11-15,
+sprint M1) runs last: questions about data Kronk does not hold, which must
+get a plain "I don't have that".
 
 Usage:
     tests/.venv/bin/python scripts/coordinator_model_bench.py <label> [model ...]
@@ -50,8 +52,6 @@ sys.path.insert(0, str(REPO / "orchestrator"))
 for _k, _v in {
     "LLM_SERVICE_URL": "http://bench-unused:8002",
     "TOOL_SERVICE_URL": "http://bench-unused:8003",
-    "HEALTH_SERVICE_URL": "http://bench-unused:8004",
-    "FINANCE_SERVICE_URL": "http://bench-unused:8005",
 }.items():
     os.environ.setdefault(_k, _v)
 
@@ -246,12 +246,10 @@ HARD_PROBES = [
     },
     {
         "id": "mortgage_rate_research",
-        "label": "Market rate -> ask_research, not ask_finance",
+        "label": "Market rate -> ask_research",
         "prompt": "What's the current 30-year mortgage rate?",
         "tools": True, "repeats": 3,
-        "check": lambda m, c: (
-            has_call(m, "ask_research") and "ask_finance" not in call_names(m),
-            f"calls={call_names(m)}"),
+        "check": lambda m, c: (has_call(m, "ask_research"), f"calls={call_names(m)}"),
     },
     {
         "id": "weather_by_riddle",
@@ -289,28 +287,11 @@ HARD_PROBES = [
 ]
 
 
-def _sleep_and_rain(c: str) -> bool:
-    low = (c or "").lower()
-    return bool(re.search(r"\b7\s*(h|hours?|hrs?)\b|7:12", low)) and "rain" in low and "80" in low
-
-
 def _hottub_cost(c: str) -> bool:
     return bool(re.search(r"\$\s?160(\.[0-9]+)?\b|\b160\.(1[5-9]?|2[0-2]?)\b", c or ""))
 
 
 HARD_COMPOSITES = [
-    {
-        "id": "multi_domain",
-        "label": "Two domains, one question: ask_health (sleep) + ask_home (rain), both in the answer",
-        "prompt": "How did I sleep last night, and is it going to rain tomorrow?",
-        "repeats": 3, "max_turns": 4,
-        "needs": ("ask_health", "ask_home"),
-        "canned": {
-            "ask_health": "Last night you slept 7 hours 12 minutes; sleep score 81.",
-            "ask_home": "Tomorrow in Laurel, MD: 80% chance of rain, high of 61°F.",
-        },
-        "answered": _sleep_and_rain,
-    },
     {
         "id": "composite_hottub",
         "label": "Composite: hot tub heater 5.5 kW x 6 h/day x 30 days x 16.18 ¢ = $160.18",
@@ -323,6 +304,53 @@ HARD_COMPOSITES = [
             "ask_research": CANNED["ask_research"],
         },
         "answered": _hottub_cost,
+    },
+]
+
+
+# ── absent-data set ─────────────────────────────────────────────────────────
+# Added 2026-11-15 (sprint M1): the health and finance agents are gone, so
+# nothing can answer these. With no specialist to delegate to, the failure to
+# watch for is an invented figure or a hand-off to an unrelated specialist.
+# Pass = no tool call, a plain statement that Kronk does not have the data,
+# no digits (no figure of any kind), and no claim to have looked anything up.
+
+_NO_HAVE_RE = re.compile(
+    r"\b(don'?t|do not|doesn'?t|does not|can'?t|cannot|unable to|not able to|no access|no way to)\b"
+    r".{0,60}\b(have|access|track|record|see|know|information|data|connected)\b",
+    re.I | re.S)
+_LOOKED_UP_RE = re.compile(
+    r"\b(i (checked|looked|found|pulled|see that)|according to your|your (records|data) show|you slept)\b",
+    re.I)
+
+
+def says_no_data(content: str) -> tuple[bool, str]:
+    c = content or ""
+    plain = bool(_NO_HAVE_RE.search(c))
+    figure = bool(re.search(r"\d", c))
+    claims = bool(_LOOKED_UP_RE.search(c))
+    return plain and not figure and not claims, f"plain={plain} figure={figure} claims_lookup={claims}"
+
+
+def _no_data_check(m: dict, c: str) -> tuple[bool, str]:
+    ok, note = says_no_data(c)
+    return (not m.get("tool_calls") and ok, f"calls={call_names(m)} {note}")
+
+
+ABSENT_PROBES = [
+    {
+        "id": "no_data_sleep",
+        "label": "Absent data: 'how did I sleep last night' -> plain 'I don't have that'",
+        "prompt": "How did I sleep last night?",
+        "tools": True, "repeats": 5,
+        "check": _no_data_check,
+    },
+    {
+        "id": "no_data_networth",
+        "label": "Absent data: 'what's my net worth' -> plain 'I don't have that'",
+        "prompt": "What's my net worth?",
+        "tools": True, "repeats": 5,
+        "check": _no_data_check,
     },
 ]
 
@@ -484,6 +512,10 @@ def scoreboard(results: dict) -> str:
     if any(pid in res for res in results["models"].values() for pid in hard_ids):
         lines += ["", "## Hard set (2026-10-24)", ""]
         lines += _score_rows(results, hard_ids)
+    absent_ids = [p["id"] for p in ABSENT_PROBES]
+    if any(pid in res for res in results["models"].values() for pid in absent_ids):
+        lines += ["", "## Absent data (2026-11-15)", ""]
+        lines += _score_rows(results, absent_ids)
     lines += ["", "Base rule (2026-09-03): beat the incumbent on correctness, or tie and win >=2x on gen tok/s. "
               "Hard-set rule: docs/plans/MODEL_BENCH_GEMMA4_26B_PLAN.md. "
               "`leaks` counts runs where deliberation or raw tool-call syntax reached `content`."]
@@ -498,6 +530,7 @@ def main() -> int:
         print("models:", ", ".join(MODELS))
         print("probes:", ", ".join(p["id"] for p in PROBES), "+", COMPOSITE["id"])
         print("hard:", ", ".join(p["id"] for p in HARD_PROBES + HARD_COMPOSITES))
+        print("absent:", ", ".join(p["id"] for p in ABSENT_PROBES))
         print(f"tools: {[d['function']['name'] for d in tool_defs()]}")
         return 0
     label = sys.argv[1]
@@ -528,6 +561,9 @@ def main() -> int:
         for spec in HARD_COMPOSITES:
             print(f"  {spec['id']} (hard):")
             res[spec["id"]] = run_composite(base, sysprompt, spec=spec)
+        for probe in ABSENT_PROBES:
+            print(f"  {probe['id']} (absent):")
+            res[probe["id"]] = run_probe(base, probe, sysprompt)
         results["models"][name] = res
 
     BENCH_DIR.mkdir(parents=True, exist_ok=True)

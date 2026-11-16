@@ -11,7 +11,7 @@ Covers:
   and tool-then-synthesis paths.
 - /message streaming of direct (coordinator) answers.
 - `_execute_tool()` helper against tool_service.
-- Garmin CSV upload routing.
+- /files upload paths (text and PDF to context; archives refused).
 
 Live integration tests are gated on KRONK_LIVE=1 (hit the real orchestrator).
 """
@@ -26,8 +26,6 @@ from fastapi.testclient import TestClient
 
 os.environ.setdefault("LLM_SERVICE_URL",     "http://fake-llm:8002")
 os.environ.setdefault("TOOL_SERVICE_URL",    "http://fake-tools:8003")
-os.environ.setdefault("HEALTH_SERVICE_URL",  "http://fake-health:8004")
-os.environ.setdefault("FINANCE_SERVICE_URL", "http://fake-finance:8005")
 os.environ.setdefault("COORDINATOR_MODEL",   "gemma-4-e4b")
 
 import unittest.mock as mock_module
@@ -41,6 +39,26 @@ def _fake_open(path, *a, **kw):
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
+
+def _loop_agent():
+    """Neutral single-tool specialist for agent-loop tests.
+
+    The loop tests used AGENTS["health"] as a generic fixture until the health
+    agent was removed (sprint M1). This mirrors its shape — default round
+    budget, one non-terminal tool — without depending on any real agent's
+    prompt or tool list. llm.stream and tools.execute are mocked in every
+    test that uses it, so the tool is never called for real."""
+    import agents
+    return agents.AgentConfig(
+        name="fixture",
+        description="Neutral test specialist",
+        routing_hint="(tests only)",
+        icon="🧪",
+        probe="llm",
+        system_prompt="You are a test specialist.",
+        tool_names=["get_kronk_context"],
+    )
+
 
 @pytest.fixture(autouse=True)
 def reset_history():
@@ -85,9 +103,34 @@ def test_tool_definitions_registered():
     expected = {
         "get_weather", "web_search", "fetch_url",
         "shopping_list_view", "shopping_list_add", "shopping_list_remove", "shopping_list_clear",
-        "query_health", "query_finances",
     }
     assert expected.issubset(names), f"Missing tools: {expected - names}"
+
+
+def test_health_and_finance_features_are_gone():
+    """Sprint M1 removed the health and finance agents, their tools and the
+    services behind them. Negative test: none of it may come back by a
+    stale merge."""
+    import agents
+    import tools
+    removed_tools = {"query_health", "query_finances", "query_bloodwork",
+                     "search_health_data"}
+    names = {t["function"]["name"] for t in tools.TOOL_DEFINITIONS}
+    assert not removed_tools & names
+    assert not removed_tools & set(tools._HANDLERS)
+    assert not removed_tools & set(tools.TOOL_TIMEOUTS)
+    assert "health" not in agents.AGENTS and "finance" not in agents.AGENTS
+    menu = {d["function"]["name"] for d in agents.COORDINATOR.tool_defs()}
+    assert "ask_health" not in menu and "ask_finance" not in menu
+    assert not hasattr(agents, "HEALTH_AGENT_MODEL")
+    assert not hasattr(agents, "FINANCE_AGENT_MODEL")
+    assert not hasattr(tools, "HEALTH_SERVICE_URL")
+    assert not hasattr(tools, "FINANCE_SERVICE_URL")
+    # The coordinator prompt names those records only as data Kronk does
+    # not hold (the "I don't have that" bench probes depend on it).
+    prompt = agents.COORDINATOR.system_prompt
+    assert "ask_health" not in prompt and "ask_finance" not in prompt
+    assert "Kronk keeps no health, sleep, fitness or financial records" in prompt
 
 
 # ── Routing tests (routing.py) ────────────────────────────────────────────────
@@ -157,7 +200,7 @@ async def test_run_stream_direct_answer_yields_tokens_and_done():
         yield {"token": "42"}
         yield {"usage": {"prompt_tokens": 5, "completion_tokens": 1}}
 
-    agent = agents.AGENTS["health"]
+    agent = _loop_agent()
     with patch("agents.llm.stream", new=fake_stream):
         events = [ev async for ev in agents.run_stream(agent, "what is the answer?", [])]
 
@@ -179,25 +222,25 @@ async def test_run_stream_tool_then_synthesis_streams_tokens():
         if call_count["n"] == 1:
             # Round 1: the model asks for a tool (no content tokens).
             yield {"tool_calls": [
-                {"id": "call_1", "function": {"name": "query_health", "arguments": {"metric": "sleep"}}}
+                {"id": "call_1", "function": {"name": "get_kronk_context", "arguments": {}}}
             ]}
             yield {"usage": {"prompt_tokens": 5, "completion_tokens": 3}}
         else:
             # Round 2: synthesis streams the answer.
-            for t in ["You ", "slept ", "well."]:
+            for t in ["Kronk ", "runs ", "locally."]:
                 yield {"token": t}
             yield {"usage": {"prompt_tokens": 9, "completion_tokens": 3}}
 
     async def fake_execute(name, args):
-        return "sleep: 7.8h"
+        return "Kronk runs on one machine."
 
-    agent = agents.AGENTS["health"]
+    agent = _loop_agent()
     with patch("agents.llm.stream", new=fake_stream), \
          patch("agents.tools.execute", new=fake_execute):
-        events = [ev async for ev in agents.run_stream(agent, "how did I sleep?", [])]
+        events = [ev async for ev in agents.run_stream(agent, "where does Kronk run?", [])]
 
     tokens = [e["text"] for e in events if e["type"] == "token"]
-    assert "".join(tokens) == "You slept well."
+    assert "".join(tokens) == "Kronk runs locally."
     assert any(e["type"] == "done" and e["ok"] for e in events)
     assert call_count["n"] == 2
 
@@ -246,8 +289,8 @@ def test_stage_and_timing_labels_authored_at_emitter():
     assert orch._stage("fetching_delegate_home")["label"] == "home agent working..."
     assert orch._stage("fetching_delegate_newagent")["label"] == \
         "newagent agent working..."            # future agents label themselves
-    t = orch._timing_stage("delegate_health", s=1.2, ok=True)
-    assert t["label"] == "health agent" and t["service"] == "orchestrator"
+    t = orch._timing_stage("delegate_research", s=1.2, ok=True)
+    assert t["label"] == "research agent" and t["service"] == "orchestrator"
     assert orch._timing_stage("routing", s=0.1)["label"] == "routing"
 
 
@@ -441,13 +484,13 @@ async def test_run_stream_llm_error_is_surfaced():
         raise RuntimeError("connection refused")
         yield  # pragma: no cover — makes this an async generator
 
-    agent = agents.AGENTS["health"]
+    agent = _loop_agent()
     with patch("agents.llm.stream", new=fake_stream):
         events = [ev async for ev in agents.run_stream(agent, "hi", [])]
 
     error_events = [e for e in events if e["type"] == "error"]
     assert error_events
-    assert "health agent error" in error_events[0]["message"]
+    assert "fixture agent error" in error_events[0]["message"]
 
 
 @pytest.mark.asyncio
@@ -460,7 +503,7 @@ async def test_run_accumulates_run_stream_tokens():
         yield {"token": "world"}
         yield {"usage": {}}
 
-    agent = agents.AGENTS["health"]
+    agent = _loop_agent()
     with patch("agents.llm.stream", new=fake_stream):
         text = await agents.run(agent, "hi", [])
     assert text == "hello world"
@@ -507,20 +550,20 @@ def test_agent_route_streams_tokens_as_they_arrive(client):
     import orchestrator.main as orch
 
     async def fake_classify(text, history):
-        return "health"
+        return "assistant"
 
     async def fake_run_stream(agent, task, context, **kwargs):
-        for t in ["You ", "slept ", "7.8 hours."]:
+        for t in ["Kronk ", "runs ", "on one machine."]:
             yield {"type": "token", "text": t}
         yield {"type": "done", "model": "gemma-4-e4b", "ok": True}
 
     with patch("orchestrator.main.routing.classify", new=fake_classify), \
          patch("orchestrator.main.agents.run_stream", new=fake_run_stream):
-        resp = client.post("/message", json={"text": "how did I sleep?"})
+        resp = client.post("/message", json={"text": "where does Kronk run?"})
 
     events = _collect_sse_events(resp.text)
     tokens = [e["token"] for e in events if "token" in e]
-    assert "".join(tokens) == "You slept 7.8 hours."
+    assert "".join(tokens) == "Kronk runs on one machine."
     # Timing metadata is emitted before [DONE].
     assert any("timing" in e for e in events)
 
@@ -535,24 +578,24 @@ def test_specialist_failure_reaches_coordinator_labeled_as_failure(client):
     captured = {}
 
     async def fake_classify(text, history):
-        return "health"
+        return "assistant"
 
     def fake_run_stream(agent, task, context, system_extra=None,
                         history_messages=None, **kwargs):
         async def gen():
-            if agent.name == "health":
+            if agent.name == "assistant":
                 yield {"type": "error",
-                       "message": "[Health query failed (HTTP 503): database is locked]"}
+                       "message": "[Kronk context read failed: database is locked]"}
             else:  # coordinator
                 captured["system_extra"] = system_extra
-                yield {"type": "token", "text": "The health service failed: database is locked."}
+                yield {"type": "token", "text": "The assistant failed: database is locked."}
         return gen()
 
     fake_end = MagicMock()
     with patch("orchestrator.main.routing.classify", new=fake_classify), \
          patch("orchestrator.main.agents.run_stream", new=fake_run_stream), \
          patch("orchestrator.main.telemetry.end_pipeline", new=fake_end):
-        resp = client.post("/message", json={"text": "how did I sleep?"})
+        resp = client.post("/message", json={"text": "where does Kronk run?"})
 
     tokens = "".join(e["token"] for e in _collect_sse_events(resp.text) if "token" in e)
     assert "database is locked" in tokens  # detail survived to the user
@@ -562,7 +605,7 @@ def test_specialist_failure_reaches_coordinator_labeled_as_failure(client):
     assert "use this to answer" not in extra  # the old lie is gone
     _, kwargs = fake_end.call_args
     assert kwargs.get("level") == "ERROR"
-    assert "health specialist" in (kwargs.get("status_message") or "")
+    assert "assistant specialist" in (kwargs.get("status_message") or "")
 
 
 def test_escalation_reaches_coordinator_with_note(client):
@@ -699,39 +742,40 @@ async def test_execute_tool_weather():
 
 
 @pytest.mark.asyncio
-async def test_execute_tool_query_health_no_data():
+async def test_execute_tool_shopping_list_empty():
+    """An empty result is reported as empty, not as a failure."""
     import orchestrator.main as orch
 
     class FakeResp:
         status_code = 200
-        def json(self): return {"status": "no_data"}
+        def json(self): return {"items": []}
 
     class FakeClient:
         async def __aenter__(self): return self
         async def __aexit__(self, *a): pass
-        async def get(self, url, **kw): return FakeResp()
+        async def get(self, url, **kw):
+            assert url.endswith("/shopping_list")
+            return FakeResp()
 
     with patch("orchestrator.main.httpx.AsyncClient", return_value=FakeClient()):
-        result = await orch._execute_tool("query_health", {})
-    assert "no data" in result.lower()
+        result = await orch._execute_tool("shopping_list_view", {})
+    assert result == "[Shopping list is empty]"
 
 
 @pytest.mark.asyncio
-async def test_execute_tool_query_finances_no_documents():
+async def test_execute_tool_removed_health_tool_is_unknown():
+    """A model that still emits a removed tool name (query_health, sprint M1)
+    gets the unknown-tool result, not a call to a service that is gone."""
     import orchestrator.main as orch
 
-    class FakeResp:
-        status_code = 200
-        def json(self): return {"status": "no_documents", "results": []}
-
-    class FakeClient:
-        async def __aenter__(self): return self
+    class NoClient:
+        async def __aenter__(self): raise AssertionError("no HTTP call expected")
         async def __aexit__(self, *a): pass
-        async def get(self, url, **kw): return FakeResp()
 
-    with patch("orchestrator.main.httpx.AsyncClient", return_value=FakeClient()):
-        result = await orch._execute_tool("query_finances", {"query": "income"})
-    assert "none uploaded" in result.lower() or "no_documents" in result.lower()
+    with patch("orchestrator.main.httpx.AsyncClient", return_value=NoClient()):
+        for name in ("query_health", "query_finances"):
+            result = await orch._execute_tool(name, {})
+            assert result == f"[Unknown tool: {name}]"
 
 
 @pytest.mark.asyncio
@@ -822,7 +866,7 @@ def test_terminal_speech_never_speaks_raw_tool_internals():
         "Now playing X on the kitchen speaker."
 
 
-# ── Garmin CSV auto-routing (unchanged) ───────────────────────────────────────
+# ── /files upload paths ───────────────────────────────────────────────────────
 
 GARMIN_CSV_HEADERS = (
     "Activity ID,Activity Type,Date,Title,Distance,Calories,Time,Avg HR,Max HR\r\n"
@@ -831,44 +875,68 @@ GARMIN_CSV_HEADERS = (
 NON_GARMIN_CSV = "name,value\nfoo,bar\n"
 
 
-def test_is_garmin_csv_detects_garmin_export():
-    import orchestrator.main as orch
-    assert orch._is_garmin_csv(GARMIN_CSV_HEADERS.encode(), "activities.csv") is True
-
-
-def test_is_garmin_csv_rejects_generic_csv():
-    import orchestrator.main as orch
-    assert orch._is_garmin_csv(NON_GARMIN_CSV.encode(), "data.csv") is False
-
-
-def test_is_garmin_csv_rejects_non_csv_extension():
-    import orchestrator.main as orch
-    assert orch._is_garmin_csv(GARMIN_CSV_HEADERS.encode(), "activities.txt") is False
-
-
-def test_upload_garmin_csv_routes_to_health_service(client):
+def test_upload_garmin_shaped_csv_is_ordinary_context(client):
+    """Garmin CSVs used to be forwarded to a health import service (removed
+    in sprint M1). Now one is an ordinary text upload: no forwarding, no
+    HTTP call, attached to the conversation like any CSV."""
     import orchestrator.main as orch
 
-    class FakeHealthResp:
-        status_code = 200
-        text = ""
-        def json(self): return {"inserted": 1, "skipped": 0}
-
-    class FakeClient:
-        async def __aenter__(self): return self
+    class NoClient:
+        async def __aenter__(self): raise AssertionError("no forwarding expected")
         async def __aexit__(self, *a): pass
-        async def post(self, url, **kw):
-            assert "import/csv" in url
-            return FakeHealthResp()
 
-    with patch("orchestrator.main.httpx.AsyncClient", return_value=FakeClient()):
+    with patch("orchestrator.main.httpx.AsyncClient", return_value=NoClient()):
         resp = client.post(
             "/files",
             files={"file": ("activities.csv", GARMIN_CSV_HEADERS.encode(), "text/csv")},
         )
     assert resp.status_code == 200
-    assert resp.json()["routed_to"] == "health_service"
-    assert len(orch.file_contexts) == 0
+    assert "routed_to" not in resp.json()
+    assert any(fc["name"] == "activities.csv" for fc in orch.file_contexts)
+
+
+def test_upload_zip_is_refused_with_a_clear_reason(client):
+    """Zip exports used to be forwarded for import. Now a zip is refused
+    with a 422 that names the reason — never a 500, never junk in context.
+    A tiny stored zip decodes as UTF-8, so the check is by magic bytes too."""
+    import io
+    import zipfile
+    import orchestrator.main as orch
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_STORED) as z:
+        z.writestr("a.txt", "hello")
+    for fname in ("export.zip", "renamed.txt"):
+        resp = client.post("/files", files={"file": (fname, buf.getvalue(), "application/zip")})
+        assert resp.status_code == 422
+        assert "Zip archives aren't supported" in resp.json()["detail"]
+    assert orch.file_contexts == []
+
+
+def test_upload_pdf_goes_to_file_contexts(client):
+    """LabCorp PDFs used to be forwarded for structured import. Every PDF now
+    takes the normal path: text extracted into the conversation's context."""
+    import orchestrator.main as orch
+
+    class FakePage:
+        def extract_text(self): return "LabCorp Patient Report  LDL 96 mg/dL"
+
+    class FakeReader:
+        def __init__(self, stream): self.pages = [FakePage()]
+
+    with patch("orchestrator.main.PdfReader", FakeReader):
+        resp = client.post("/files", files={"file": ("labs.pdf", b"%PDF-1.4", "application/pdf")})
+    assert resp.status_code == 200
+    assert "routed_to" not in resp.json()
+    assert any(fc["name"] == "labs.pdf" and "LDL" in fc["content"]
+               for fc in orch.file_contexts)
+
+
+def test_removed_pages_return_404(client):
+    """/health and /finances were HTML pages for the removed features; they
+    are gone, and the chat UI's liveness dot polls /api/status instead."""
+    for path in ("/health", "/finances"):
+        assert client.get(path).status_code == 404
 
 
 def test_upload_non_garmin_csv_goes_to_file_contexts(client):
@@ -919,8 +987,8 @@ async def test_forced_synthesis_scrubs_leaked_tool_syntax():
         if tools is not None:
             # Every budgeted round burns the budget with a tool call.
             yield {"tool_calls": [
-                {"id": f"c{calls['n']}", "function": {"name": "query_health",
-                 "arguments": {"metric": f"m{calls['n']}"}}}
+                {"id": f"c{calls['n']}", "function": {"name": "get_kronk_context",
+                 "arguments": {"section": f"s{calls['n']}"}}}
             ]}
             yield {"usage": {}}
         else:
@@ -931,7 +999,7 @@ async def test_forced_synthesis_scrubs_leaked_tool_syntax():
     async def fake_execute(name, args):
         return "partial data"
 
-    agent = agents.AGENTS["health"]
+    agent = _loop_agent()
     with patch("agents.llm.stream", new=fake_stream), \
          patch("agents.tools.execute", new=fake_execute):
         events = [ev async for ev in agents.run_stream(agent, "multi-step question", [])]

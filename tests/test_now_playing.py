@@ -13,8 +13,6 @@ from fastapi.testclient import TestClient
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "orchestrator"))
 os.environ.setdefault("LLM_SERVICE_URL",     "http://fake-llm:8002")
 os.environ.setdefault("TOOL_SERVICE_URL",    "http://fake-tools:8003")
-os.environ.setdefault("HEALTH_SERVICE_URL",  "http://fake-health:8004")
-os.environ.setdefault("FINANCE_SERVICE_URL", "http://fake-finance:8005")
 
 import tool_service.main as ts  # noqa: E402
 import agents  # noqa: E402

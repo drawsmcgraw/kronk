@@ -1,14 +1,11 @@
 """Shared fixtures for Kronk tests.
 
 Import policy (2026-06-12): services are imported as PACKAGES
-(`health_service.main`, `finance_service.db`, …) — both packages carry
-dual-compat imports internally so the flat container layout keeps working.
-Only `orchestrator/` goes on sys.path directly: its modules import each
-other by bare name (`import agents`) and have no cross-service collisions.
-
-The old `use_health_service` sys.path-juggling fixture (needed when tests
-imported the bare `db` module) is gone — it poisoned sys.modules across
-test files.
+(`tool_service.main`, `voice_tracer.main`, …) so the flat container layout
+keeps working. Only `orchestrator/` goes on sys.path directly: its modules
+import each other by bare name (`import agents`) and have no cross-service
+collisions. (A per-service sys.path-juggling fixture once poisoned
+sys.modules across test files; don't bring one back.)
 """
 import os
 import sys

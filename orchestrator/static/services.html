@@ -159,10 +159,7 @@
   const PAGES = [
     { icon: '💬', name: 'Chat',             href: '/',              probe: '/probe/orchestrator', desc: 'Main chat interface' },
     { icon: '🛒', name: 'Shopping List',    href: '/shopping_list', probe: '/probe/tools',        desc: 'Mobile-friendly shopping list' },
-    { icon: '❤️', name: 'Health',           href: '/health',        probe: '/probe/health',       desc: 'Garmin/Withings — sleep, HRV, weight, activities' },
-    { icon: '💰', name: 'Finances',         href: '/finances',      probe: '/probe/finance',      desc: 'Financial documents and positions' },
     { icon: '☀️', name: 'Solar',            href: '/solar',         probe: '/probe/tools',        desc: 'Production, daily energy, per-panel health' },
-    { icon: '🏖️', name: 'Retirement Calc',  href: '/retire/',       probe: '/probe/retire',       desc: 'FERS + Monte Carlo retirement calculator' },
     { icon: '🤝', name: 'Agents',           href: '/agents',        probe: null,                  desc: 'Agents, tools, and assigned models' },
     { icon: '📊', name: 'Resources',        href: '/resources',     probe: null,                  desc: 'Model memory (measured), system RAM, GTT' },
     { icon: '⏱️', name: 'Performance',      href: '/performance',   probe: null,                  desc: 'Per-turn latency and token metrics' },
@@ -178,8 +175,6 @@
   const INTERNAL = [
     { icon: '🔀', name: 'LiteLLM',          port: 8002,  where: 'host net',  probe: '/probe/llm',     desc: 'OpenAI-compatible proxy in front of the llama.cpp servers' },
     { icon: '🛠️', name: 'Tool Service',     port: 8003,  where: 'internal',  probe: '/probe/tools',   desc: 'Weather, search, music, solar, news, shopping list, mirror ops' },
-    { icon: '❤️', name: 'Health Service',   port: 8004,  where: 'internal',  probe: '/probe/health',  desc: 'Health imports, SQLite, vector store' },
-    { icon: '💰', name: 'Finance Service',  port: 8005,  where: 'internal',  probe: '/probe/finance', desc: 'Financial-document search and positions store' },
     { icon: '🔍', name: 'SearXNG',          port: 8080,  where: 'internal',  probe: '/probe/searxng', desc: 'Self-hosted meta-search — queries never leave the house' },
     { icon: '🎙️', name: 'Whisper STT',      port: 10300, where: 'host unit', probe: null,             desc: 'Wyoming faster-whisper on the GPU' },
     { icon: '🔊', name: 'Piper TTS',        port: 10200, where: 'container', probe: null,             desc: 'Wyoming Piper text-to-speech' },

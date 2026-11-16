@@ -94,8 +94,8 @@ def test_pipeline_span_tree_and_attributes(exporter):
 
 def test_error_marks_span_status(exporter):
     root = telemetry.start_pipeline("pipeline.message", "hi", rid="r2", transport="message")
-    telemetry.end_pipeline(root, output="failed", route="health", level="ERROR",
-                           status_message="health specialist: database is locked")
+    telemetry.end_pipeline(root, output="failed", route="research", level="ERROR",
+                           status_message="research specialist: database is locked")
     (p,) = exporter.get_finished_spans()
     from opentelemetry.trace import StatusCode
     assert p.status.status_code is StatusCode.ERROR

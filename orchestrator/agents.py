@@ -64,12 +64,6 @@ def _tool_narration(name: str, args: dict) -> str:
     if name == "get_weather":
         loc = args.get("location", "")
         return f"checking the weather for {loc}" if loc else "checking the weather..."
-    if name == "query_health":
-        metric = args.get("metric", "")
-        return f"looking up your {metric} data" if metric else "checking your health data..."
-    if name == "query_finances":
-        q = args.get("query", "")
-        return f"searching your financial documents for {q}" if q else "searching financial documents..."
     if name.startswith("shopping_list"):
         return "checking your shopping list..."
     if name == "get_kronk_context":
@@ -157,9 +151,7 @@ def _terminal_speech(result: str, style: str = errors.DEBUG,
 
 TALKIE_MODEL         = os.getenv("TALKIE_MODEL",         "talkie")
 COORDINATOR_MODEL    = os.getenv("COORDINATOR_MODEL",    "mistral-nemo:12b")
-HEALTH_AGENT_MODEL   = os.getenv("HEALTH_AGENT_MODEL",   COORDINATOR_MODEL)
 RESEARCH_AGENT_MODEL = os.getenv("RESEARCH_AGENT_MODEL", COORDINATOR_MODEL)
-FINANCE_AGENT_MODEL  = os.getenv("FINANCE_AGENT_MODEL",  COORDINATOR_MODEL)
 CODING_AGENT_MODEL   = os.getenv("CODING_AGENT_MODEL",   "devstral-2512")
 DEVOPS_AGENT_MODEL   = os.getenv("DEVOPS_AGENT_MODEL",   "devstral-2512")
 
@@ -206,22 +198,6 @@ class AgentConfig:
 
 
 AGENTS: dict[str, AgentConfig] = {
-    "health": AgentConfig(
-        name="health",
-        description="Garmin/Withings health data: sleep, HRV, weight, body composition, steps, activities, calories, stress, resting HR, body battery",
-        routing_hint="personal health data, sleep, HRV, fitness, Garmin, Withings",
-        icon="❤️",
-        probe="health",
-        system_prompt=(
-            "You are Kronk's health specialist. Retrieve and interpret the user's personal health data using query_health.\n"
-            "Always call query_health with the right metric and time window — never guess or fabricate numbers.\n"
-            "Be specific: cite actual values, dates, and trends. Keep responses concise.\n"
-            "Available metrics: sleep, hrv, activities, steps, calories, stress, resting_hr, "
-            "body_battery, distance, weight, body_composition, all."
-        ),
-        tool_names=["query_health"],
-        model=HEALTH_AGENT_MODEL,
-    ),
     "research": AgentConfig(
         name="research",
         description="Web search, current events, news, online information, URL lookups, and current prices or rates (utility, market, retail) — anything needing live external data",
@@ -316,19 +292,6 @@ AGENTS: dict[str, AgentConfig] = {
             "After reading context, use generate_diagram with Graphviz DOT syntax — never write code blocks."
         ),
         tool_names=["get_kronk_context", "generate_diagram"],
-    ),
-    "finance": AgentConfig(
-        name="finance",
-        description="The operator's OWN financial documents: bank statements, spending, income, tax returns, uploads. NOT market prices, utility rates, or anything needing a live lookup — that's the research specialist",
-        routing_hint="bank statements, spending, taxes, investments",
-        icon="💰",
-        probe="finance",
-        system_prompt=(
-            "You are Kronk's finance specialist. Search uploaded financial documents using query_finances.\n"
-            "Be precise about amounts, dates, and document sources."
-        ),
-        tool_names=["query_finances"],
-        model=FINANCE_AGENT_MODEL,
     ),
     "coding": AgentConfig(
         name="coding",
@@ -487,9 +450,14 @@ COORDINATOR = AgentConfig(
         "Time zones, capitals, definitions, science, history, math, how-things-work: answer "
         "directly, never delegate ('What time zone is Denver in?' needs NO specialist).\n"
         "Call an ask_* specialist ONLY when the answer requires live data (news, current "
-        "officeholders, prices, schedules, recent events), the user's personal data (health, "
-        "finances, shopping list, home devices, weather), or web verification of specific facts.\n"
-        "Never invent live or personal data: if you cannot answer without it, delegate.\n"
+        "officeholders, prices, schedules, recent events), the household's own data (shopping "
+        "list, home devices, music, solar, weather), or web verification of specific facts.\n"
+        "Never invent live or personal data: if you cannot answer without it, delegate to the "
+        "specialist that holds it. If no specialist holds it, say plainly that you don't have "
+        "that information — never guess a figure, and never ask an unrelated specialist. "
+        "Kronk keeps no health, sleep, fitness or financial records, and no specialist has "
+        "them (home is devices, not people): for those, say plainly that you don't have that "
+        "information.\n"
         "MULTI-PART questions whose parts each need live or personal data take one ask_* "
         "call per part: e.g. 'how much money did my panels make today' = energy produced "
         "(ask_home, in kWh) AND the electricity rate (ask_research) — gather every needed "

@@ -102,7 +102,7 @@ async def test_friendly_style_adds_phrasing_rule_to_system_prompt():
 
     with patch("agents.llm.stream", new=fake_stream), \
          patch("agents.weather_context", new=AsyncMock(return_value=None)):
-        agent = agents.AGENTS["health"]
+        agent = agents.AGENTS["assistant"]
         [ev async for ev in agents.run_stream(
             agent, "hi", [], error_style=errors.FRIENDLY)]
         friendly_system = captured["system"]

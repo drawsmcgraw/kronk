@@ -4,10 +4,7 @@ httpx==0.27.2
 fastapi==0.115.12
 pypdf==5.4.0
 python-multipart==0.0.20
-apscheduler==3.10.4
-chromadb>=0.5
 fastembed>=0.4
-openpyxl==3.1.5
 ruamel.yaml==0.19.1
 # Telemetry v2 (orchestrator + tool_service + voice_tracer pins)
 opentelemetry-sdk==1.45.1

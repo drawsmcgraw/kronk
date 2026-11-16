@@ -11,8 +11,6 @@ import origin
 logger = logging.getLogger(__name__)
 
 TOOL_SERVICE_URL    = os.getenv("TOOL_SERVICE_URL",    "http://localhost:8003")
-HEALTH_SERVICE_URL  = os.getenv("HEALTH_SERVICE_URL",  "http://localhost:8004")
-FINANCE_SERVICE_URL = os.getenv("FINANCE_SERVICE_URL", "http://localhost:8005")
 DEFAULT_LOCATION    = os.getenv("LOCATION", "Laurel, MD")
 
 # ── Tool schema catalog ──────────────────────────────────────────────────────
@@ -117,148 +115,6 @@ TOOL_DEFINITIONS = [
             "name": "shopping_list_clear",
             "description": "Clear all items from the shopping list.",
             "parameters": {"type": "object", "properties": {}},
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "search_health_data",
-            "description": (
-                "Semantically search personal health data using natural language. "
-                "Use for qualitative or exploratory questions that span multiple metrics or time periods: "
-                "'how was my recovery during high-stress weeks', "
-                "'days with low body battery', "
-                "'sleep quality after hard workouts'. "
-                "Returns the most relevant daily snapshots as readable text. "
-                "For precise aggregation (averages, trends, extremes over time), use query_health instead."
-            ),
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "query": {
-                        "type": "string",
-                        "description": "Natural language description of what to find",
-                    },
-                    "n_results": {
-                        "type": "integer",
-                        "description": "Number of results to return (default 6, max 20)",
-                        "default": 6,
-                    },
-                    "start_date": {
-                        "type": "string",
-                        "description": "ISO date (YYYY-MM-DD) to filter results from (inclusive)",
-                    },
-                    "end_date": {
-                        "type": "string",
-                        "description": "ISO date (YYYY-MM-DD) to filter results until (inclusive)",
-                    },
-                },
-                "required": ["query"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "query_health",
-            "description": (
-                "Query personal health and fitness data from Garmin and Withings. "
-                "Choose the metric that matches the question, the time window, and the resolution. "
-                "Available metrics: "
-                "sleep (duration, stages, score), "
-                "hrv (last-night HRV, weekly avg, baseline), "
-                "activities (workouts: type, duration, distance, HR), "
-                "steps (daily step count), "
-                "calories (total and active calories), "
-                "stress (avg and max stress score), "
-                "resting_hr (resting heart rate), "
-                "body_battery (daily high and low), "
-                "distance (daily distance in meters), "
-                "weight (Withings scale — daily weight in kg), "
-                "body_composition (Withings — weight, fat %, muscle mass, bone mass), "
-                "all (compact snapshot of everything — use for general health questions). "
-                "Resolution guide — choose based on the question: "
-                "raw = every daily record, best for short windows (≤30 days); "
-                "weekly = 7-day averages, good for 1–6 month trends; "
-                "monthly = calendar-month averages, good for 6+ month trends; "
-                "summary = single aggregate (min/max/avg with dates), best for extremum questions "
-                "('what was my lowest HRV?', 'when did I sleep most?') over any window. "
-                "Examples: "
-                "'how did I sleep last week' → metric=sleep days=7 resolution=raw; "
-                "'HRV trend this year' → metric=hrv days=365 resolution=monthly; "
-                "'when was my lowest HRV this year' → metric=hrv days=365 resolution=summary; "
-                "'my weight this month' → metric=weight days=30 resolution=raw; "
-                "'step count trend over 6 months' → metric=steps days=180 resolution=weekly."
-            ),
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "metric": {
-                        "type": "string",
-                        "enum": [
-                            "sleep", "hrv", "activities",
-                            "steps", "calories", "stress",
-                            "resting_hr", "body_battery", "distance",
-                            "weight", "body_composition",
-                            "all",
-                        ],
-                        "description": "Which health metric to retrieve.",
-                    },
-                    "days": {
-                        "type": "integer",
-                        "description": (
-                            "How many days back from today (or end_date) to include. "
-                            "Default 30. Max 3650."
-                        ),
-                    },
-                    "end_date": {
-                        "type": "string",
-                        "description": (
-                            "ISO date (YYYY-MM-DD) to use as the end of the window instead of today. "
-                            "Use when asking about a specific past period."
-                        ),
-                    },
-                    "resolution": {
-                        "type": "string",
-                        "enum": ["raw", "weekly", "monthly", "summary"],
-                        "description": (
-                            "How to aggregate the data. "
-                            "raw = every daily record (default, use for ≤30 days); "
-                            "weekly = 7-day averages (use for 1–6 months); "
-                            "monthly = calendar-month averages (use for 6+ months); "
-                            "summary = single row with min/max/avg and dates (use for extremum questions over any window)."
-                        ),
-                    },
-                },
-                "required": ["metric"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "query_bloodwork",
-            "description": (
-                "Query structured bloodwork / lab results from LabCorp reports. "
-                "Use for questions about specific lab markers over time: cholesterol, LDL, HDL, "
-                "glucose, HbA1c, creatinine, TSH, vitamin D, CBC components, etc. "
-                "Omit marker to retrieve all results from a recent draw. "
-                "For open-ended questions ('anything concerning in my labs?') use search_health_data instead."
-            ),
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "marker": {
-                        "type": "string",
-                        "description": "Lab marker to filter by (partial match, e.g. 'LDL', 'Glucose', 'TSH'). Omit for all markers.",
-                    },
-                    "days": {
-                        "type": "integer",
-                        "description": "How many days back to include (default 730 = 2 years).",
-                    },
-                },
-                "required": [],
-            },
         },
     },
     {
@@ -370,27 +226,6 @@ TOOL_DEFINITIONS = [
                         ),
                     },
                 },
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "query_finances",
-            "description": (
-                "Search personal financial documents: bank statements, investment summaries, "
-                "tax returns, budgets. Use for questions about spending, income, accounts, "
-                "investments, or any financial data the user has uploaded."
-            ),
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "query": {
-                        "type": "string",
-                        "description": "What to look for in the financial documents",
-                    }
-                },
-                "required": ["query"],
             },
         },
     },
@@ -630,7 +465,6 @@ TOOL_TIMEOUT_DEFAULT = 15
 TOOL_TIMEOUTS = {
     "generate_diagram": 30,  # graphviz render can be slow on big graphs
     "query_hottub": 5,       # local file read — fail fast
-    "query_finances": 10,
     "play_music": 20,        # tool_service polls up to 8s to confirm playback
     "control_music": 20,     # same verify poll for pause/resume/skip/volume
     "rate_music": 25,        # MA feedback call + the skip verify poll on thumbs down
@@ -738,70 +572,6 @@ async def _tool_shopping_list_clear(client: httpx.AsyncClient, args: dict) -> st
     if resp.status_code == 200:
         return "[Shopping list cleared]"
     return _fail("Shopping list clear", resp)
-
-
-async def _tool_search_health_data(client: httpx.AsyncClient, args: dict) -> str:
-    params: dict = {"q": args.get("query", "")}
-    if "n_results" in args:
-        params["n"] = int(args["n_results"])
-    if "start_date" in args:
-        params["start_date"] = args["start_date"]
-    if "end_date" in args:
-        params["end_date"] = args["end_date"]
-    resp = await client.get(f"{HEALTH_SERVICE_URL}/api/search", params=params)
-    if resp.status_code == 200:
-        data = resp.json()
-        results = data.get("results", [])
-        if not results:
-            return f"[Health search: no indexed data found for '{params['q']}'. Data may not have been ingested yet.]"
-        chunks = "\n\n".join(
-            f"[{r['metadata'].get('date','?')} | {r['metadata'].get('type','?')} | score={r['score']}] {r['text']}"
-            for r in results
-        )
-        return f"[Health search results for '{params['q']}']\n\n{chunks}"
-    return _fail("Health search", resp)
-
-
-async def _tool_query_health(client: httpx.AsyncClient, args: dict) -> str:
-    days = int(args.get("days", 30))
-    resolution = args.get("resolution", "raw")
-    # Enforce sane resolution for longer windows to prevent context bloat
-    if days > 365 and resolution in ("raw", "weekly"):
-        resolution = "monthly"
-    elif days > 90 and resolution == "raw":
-        resolution = "weekly"
-    params: dict = {"metric": args.get("metric", "all"), "resolution": resolution, "days": days}
-    if "end_date" in args:
-        params["end_date"] = args["end_date"]
-    resp = await client.get(f"{HEALTH_SERVICE_URL}/api/query", params=params)
-    if resp.status_code == 200:
-        data = resp.json()
-        if data.get("status") == "no_data":
-            return f"[Health data: {data.get('note', 'no data available')}]"
-        return f"[Health data — metric={params['metric']} days={days}]\n{json.dumps(data, indent=2)}"
-    return _fail("Health query", resp)
-
-
-async def _tool_query_bloodwork(client: httpx.AsyncClient, args: dict) -> str:
-    params: dict = {}
-    if "marker" in args:
-        params["marker"] = args["marker"]
-    if "days" in args:
-        params["days"] = int(args["days"])
-    resp = await client.get(f"{HEALTH_SERVICE_URL}/api/bloodwork", params=params)
-    if resp.status_code == 200:
-        data = resp.json()
-        if not data.get("results"):
-            return "[Bloodwork: no lab results found. Upload a LabCorp PDF at /api/health/import/bloodwork.]"
-        dates = data.get("dates", [])
-        rows = data["results"]
-        lines = [f"Lab draws on file: {', '.join(dates)}"]
-        for r in rows:
-            flag = f" [{r['flag']}]" if r.get("flag") else ""
-            ref = f" (ref {r['raw_ref']})" if r.get("raw_ref") else ""
-            lines.append(f"{r['date']} | {r['panel']} | {r['marker']}: {r['value']} {r.get('unit','')}{flag}{ref}")
-        return "[Bloodwork results]\n" + "\n".join(lines)
-    return _fail("Bloodwork query", resp)
 
 
 async def _tool_get_kronk_context(client: httpx.AsyncClient, args: dict) -> str:
@@ -1165,24 +935,6 @@ async def _tool_news_brief(client: httpx.AsyncClient, args: dict) -> str:
             f"generated {d['generated_at_local']}:\n\n{d['brief']}")
 
 
-async def _tool_query_finances(client: httpx.AsyncClient, args: dict) -> str:
-    query = args.get("query", "")
-    resp = await client.get(f"{FINANCE_SERVICE_URL}/api/query", params={"q": query})
-    if resp.status_code == 200:
-        data = resp.json()
-        if data.get("status") == "no_documents":
-            return "[Financial documents: none uploaded yet. User can upload via /finances.]"
-        results = data.get("results", [])
-        if not results:
-            return f"[No financial documents matched '{query}']"
-        excerpts = "\n\n".join(
-            f"[{r['doc_name']}, page {r['page']}]\n{r['excerpt']}"
-            for r in results
-        )
-        return f"[Financial document results for '{query}']\n\n{excerpts}"
-    return _fail("Finance query", resp)
-
-
 _HANDLERS = {
     "get_weather":          _tool_get_weather,
     "web_search":           _tool_web_search,
@@ -1191,9 +943,6 @@ _HANDLERS = {
     "shopping_list_add":    _tool_shopping_list_add,
     "shopping_list_remove": _tool_shopping_list_remove,
     "shopping_list_clear":  _tool_shopping_list_clear,
-    "search_health_data":   _tool_search_health_data,
-    "query_health":         _tool_query_health,
-    "query_bloodwork":      _tool_query_bloodwork,
     "get_kronk_context":    _tool_get_kronk_context,
     "generate_diagram":     _tool_generate_diagram,
     "query_hottub":         _tool_query_hottub,
@@ -1207,7 +956,6 @@ _HANDLERS = {
     "now_playing":          _tool_now_playing,
     "update_magicmirror":   _tool_update_magicmirror,
     "remote_exec":          _tool_remote_exec,
-    "query_finances":       _tool_query_finances,
     "news_brief":           _tool_news_brief,
 }
 

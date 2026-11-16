@@ -99,10 +99,6 @@ async def root():          return _serve("index.html")
 async def services_page(): return _serve("services.html")
 @app.get("/agents",      response_class=HTMLResponse)
 async def agents_page():   return _serve("agents.html")
-@app.get("/finances",    response_class=HTMLResponse)
-async def finances_page(): return _serve("finances.html")
-@app.get("/health",      response_class=HTMLResponse)
-async def health_page():   return _serve("health.html")
 @app.get("/resources",   response_class=HTMLResponse)
 async def resources_page():return _serve("resources.html")
 @app.get("/performance", response_class=HTMLResponse)
@@ -955,116 +951,20 @@ async def clear_history():
     return {"status": "cleared"}
 
 
-# ── File upload: Garmin CSV/zip → health_service, everything else → context ─
-
-_GARMIN_CSV_SIGNATURES = [
-    lambda h: "activitytype" in h and ("avghr" in h or "activityid" in h),
-    lambda h: "calendardate" in h and "deepsleepseconds" in h,
-    lambda h: "weeklyavghrv" in h or "lastnightavg" in h,
-    lambda h: "calendardate" in h and "bodybattery" in h,
-    lambda h: "calendardate" in h and "totalsteps" in h,
-]
-
-
-def _is_garmin_csv(data: bytes, filename: str) -> bool:
-    if not filename.lower().endswith(".csv"):
-        return False
-    try:
-        first_line = data.decode("utf-8-sig").splitlines()[0].lower().replace(" ", "").replace("_", "")
-    except Exception:
-        return False
-    return any(sig(first_line) for sig in _GARMIN_CSV_SIGNATURES)
-
-
-def _is_garmin_export_zip(data: bytes, filename: str) -> bool:
-    if not filename.lower().endswith(".zip"):
-        return False
-    return data[:2] == b"PK"
-
-
-def _is_labcorp_report(data: bytes, filename: str) -> bool:
-    if not filename.lower().endswith(".pdf"):
-        return False
-    try:
-        reader = PdfReader(io.BytesIO(data))
-        text = " ".join(page.extract_text() or "" for page in reader.pages[:2])
-        return any(sig in text for sig in ["LabCorp", "LABCORP", "Laboratory Corporation", "LabCorp Patient"])
-    except Exception:
-        return False
-
-
-async def _forward_to_health(path: str, name: str, data: bytes,
-                             content_type: str, timeout: float,
-                             reject_msg: str) -> dict:
-    """Forward an uploaded file to health_service; returns its JSON result."""
-    try:
-        async with httpx.AsyncClient(timeout=timeout) as client:
-            resp = await client.post(
-                f"{tools.HEALTH_SERVICE_URL}{path}",
-                files={"file": (name, data, content_type)},
-            )
-            if resp.status_code == 200:
-                return resp.json()
-            raise HTTPException(
-                status_code=resp.status_code,
-                detail=f"{reject_msg}: {resp.text[:200]}",
-            )
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Health service unreachable: {e}")
-
+# ── File upload: text or PDF → in-memory context for the conversation ───────
 
 @app.post("/files")
 async def upload_file(file: UploadFile = File(...)):
     data = await file.read()
     name = file.filename or "upload"
 
-    # Garmin export zip → forward to health_service for full import
-    if _is_garmin_export_zip(data, name):
-        result = await _forward_to_health(
-            "/api/import/export", name, data, "application/zip",
-            timeout=300, reject_msg="Health service rejected the zip",
-        )
-        return {
-            "name": name,
-            "routed_to": "health_service",
-            "files_processed":    result.get("files_processed", 0),
-            "files_unrecognized": result.get("files_unrecognized", 0),
-            "total_inserted":     result.get("total_inserted", 0),
-            "detail":             result.get("detail", []),
-        }
-
-    # Garmin CSV → forward to health_service for SQLite persistence
-    if _is_garmin_csv(data, name):
-        result = await _forward_to_health(
-            "/api/import/csv", name, data, "text/csv",
-            timeout=30, reject_msg="Health service rejected the file",
-        )
-        return {
-            "name":     name,
-            "routed_to": "health_service",
-            "type":     result.get("type"),
-            "inserted": result.get("inserted", 0),
-            "skipped":  result.get("skipped", 0),
-        }
-
-    # LabCorp bloodwork PDF → forward to health_service for structured ingestion
-    if _is_labcorp_report(data, name):
-        result = await _forward_to_health(
-            "/api/import/bloodwork", name, data, "application/pdf",
-            timeout=30, reject_msg="Bloodwork import failed",
-        )
-        return {
-            "name": name,
-            "routed_to": "health_service",
-            "type": "bloodwork",
-            "date": result["date"],
-            "markers_parsed": result["markers_parsed"],
-            "panels_found": result["panels_found"],
-        }
-
-    # Everything else → in-memory context for the current conversation
+    # Text or PDF → in-memory context for the current conversation.
+    # Archives are refused by name or magic bytes: a small stored zip can
+    # decode as UTF-8 and would otherwise land in the prompt as junk.
+    if name.lower().endswith(".zip") or data[:4] == b"PK\x03\x04":
+        raise HTTPException(
+            status_code=422,
+            detail="Zip archives aren't supported. Upload a UTF-8 text file or a PDF.")
     if name.lower().endswith(".pdf"):
         try:
             reader = PdfReader(io.BytesIO(data))

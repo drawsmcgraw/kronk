@@ -12,8 +12,6 @@ from pathlib import Path
 
 os.environ.setdefault("LLM_SERVICE_URL",     "http://fake-llm:8002")
 os.environ.setdefault("TOOL_SERVICE_URL",    "http://fake-tools:8003")
-os.environ.setdefault("HEALTH_SERVICE_URL",  "http://fake-health:8004")
-os.environ.setdefault("FINANCE_SERVICE_URL", "http://fake-finance:8005")
 
 _SPEC = importlib.util.spec_from_file_location(
     "coordinator_model_bench",
@@ -167,7 +165,8 @@ def test_hard_delegation_checkers():
 
     mort = _hard("mortgage_rate_research")["check"]
     assert mort(_msg(calls=[("ask_research", {"query": "30-year rate"})]), "")[0]
-    assert not mort(_msg(calls=[("ask_research", {}), ("ask_finance", {})]), "")[0]
+    assert not mort(_msg(calls=[("ask_home", {})]), "")[0]
+    assert not mort(_msg("Rates are around 6%."), "Rates are around 6%.")[0]
 
     riddle = _hard("weather_by_riddle")["check"]
     assert riddle(_msg(calls=[("ask_home", {"query": "Weather in Baltimore, MD"})]), "")[0]
@@ -197,31 +196,56 @@ def test_hard_composite_answer_checkers():
     assert not hot("About $1,601.80 a month.")
     assert not hot("About $16.02 a month.")
 
-    md = next(c for c in bench.HARD_COMPOSITES if c["id"] == "multi_domain")["answered"]
-    assert md("You slept 7 hours 12 minutes. Tomorrow has an 80% chance of rain.")
-    assert not md("You slept well. Tomorrow has an 80% chance of rain.")
-    assert not md("You slept 7 hours 12 minutes.")
-
 
 def test_hard_composite_uses_its_own_canned_answers_and_needs(monkeypatch):
-    spec = dict(next(c for c in bench.HARD_COMPOSITES if c["id"] == "multi_domain"), repeats=1)
+    spec = dict(next(c for c in bench.HARD_COMPOSITES if c["id"] == "composite_hottub"), repeats=1)
     fed = []
 
     def transport(base, messages, tools):
         if messages[-1]["role"] == "tool":
             fed.append(messages[-1]["content"])
         if len(fed) == 0:
-            return ({"choices": [{"message": _msg(calls=[("ask_health", {"query": "sleep"})]),
+            return ({"choices": [{"message": _msg(calls=[("ask_home", {"query": "heater kW"})]),
                                   "finish_reason": "tool_calls"}], "timings": {}}, 0.1)
         if len(fed) == 1:
-            return ({"choices": [{"message": _msg(calls=[("ask_home", {"query": "rain"})]),
+            return ({"choices": [{"message": _msg(calls=[("ask_research", {"query": "rate"})]),
                                   "finish_reason": "tool_calls"}], "timings": {}}, 0.1)
-        return ({"choices": [{"message": _msg("You slept 7 hours 12 minutes; 80% chance of rain."),
+        return ({"choices": [{"message": _msg("990 kWh at 16.18 cents is about $160.18."),
                               "finish_reason": "stop"}], "timings": {}}, 0.1)
 
     runs = bench.run_composite("http://x", "sys", transport=transport, spec=spec)
-    assert runs[0]["ok"] and runs[0]["calls"] == ["ask_health", "ask_home"]
-    assert "slept 7 hours" in fed[0] and "rain" in fed[1]
+    assert runs[0]["ok"] and runs[0]["calls"] == ["ask_home", "ask_research"]
+    assert "5.5 kW" in fed[0] and "16.18" in fed[1]
+
+
+def test_absent_data_checker():
+    """Sprint M1 probes: a plain 'I don't have that' passes; a figure, a
+    claimed lookup, or any delegation fails."""
+    check = next(p for p in bench.ABSENT_PROBES if p["id"] == "no_data_sleep")["check"]
+    ok = "I don't have access to your sleep data."
+    assert check(_msg(ok), ok)[0]
+    ok2 = "I do not have that information."
+    assert check(_msg(ok2), ok2)[0]
+    made_up = "You slept 7 hours and 12 minutes."
+    assert not check(_msg(made_up), made_up)[0]
+    figure = "I don't have your sleep data, but most adults need 7 to 9 hours."
+    assert not check(_msg(figure), figure)[0]
+    looked = "I checked, and I don't have any sleep records for you."
+    assert not check(_msg(looked), looked)[0]
+    assert not check(_msg(calls=[("ask_home", {"query": "sleep"})]), "")[0]
+    assert not check(_msg("Sounds restful!"), "Sounds restful!")[0]
+    nw = next(p for p in bench.ABSENT_PROBES if p["id"] == "no_data_networth")["check"]
+    assert nw(_msg("I can't see your finances."), "I can't see your finances.")[0]
+    assert not nw(_msg("Your net worth is $412,000."), "Your net worth is $412,000.")[0]
+
+
+def test_scoreboard_adds_an_absent_data_section_only_when_those_runs_exist():
+    run = {"ok": True, "leak": False, "gen_tps": 40, "elapsed_s": 1, "reasoning_chars": 0}
+    base = {p["id"]: [run] for p in bench.PROBES} | {bench.COMPOSITE["id"]: [run]}
+    assert "## Absent data" not in bench.scoreboard({"label": "t", "stamp": "s", "models": {"m": base}})
+    absent = base | {p["id"]: [run] for p in bench.ABSENT_PROBES}
+    md = bench.scoreboard({"label": "t", "stamp": "s", "models": {"m": absent}})
+    assert "## Absent data" in md and "2/2" in md
 
 
 def test_scoreboard_adds_a_hard_section_only_when_hard_runs_exist():
