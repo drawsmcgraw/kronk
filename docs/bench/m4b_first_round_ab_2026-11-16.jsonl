@@ -1,0 +1,120 @@
+{"run": 1, "sentence": "check the uptime on the mirror", "pick": "ask_devops", "detail": "{\"query\": \"uptime on the mirror\"}", "batch": "batch1"}
+{"run": 1, "sentence": "how long has the mirror been up?", "pick": "ask_devops", "detail": "{\"query\": \"What is the current uptime of the magic mirror?\"}", "batch": "batch1"}
+{"run": 1, "sentence": "show me the mirror's logs", "pick": "ask_devops", "detail": "{\"query\": \"Show me the magic mirror's logs.\"}", "batch": "batch1"}
+{"run": 1, "sentence": "is the mirror's display service running?", "pick": "ask_devops", "detail": "{\"query\": \"What is the status of the mirror's display service?\"}", "batch": "batch1"}
+{"run": 1, "sentence": "what's the status of the mirror?", "pick": "ask_devops", "detail": "{\"query\": \"What is the current status of the magic mirror?\"}", "batch": "batch1"}
+{"run": 1, "sentence": "pull the last few log lines from the mirror", "pick": "ask_devops", "detail": "{\"query\": \"last few log lines from the mirror\"}", "batch": "batch1"}
+{"run": 1, "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "detail": "{\"query\": \"Upgrade the mirror to the latest version\"}", "batch": "batch1"}
+{"run": 1, "sentence": "run the mirror update", "pick": "ask_home", "detail": "{\"query\": \"run the magic mirror update\"}", "batch": "batch1"}
+{"run": 1, "sentence": "update the mirror", "pick": "ask_home", "detail": "{\"query\": \"Update the mirror\"}", "batch": "batch1"}
+{"run": 1, "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "detail": "{\"query\": \"Upgrade the magic mirror software\"}", "batch": "batch1"}
+{"run": 2, "sentence": "check the uptime on the mirror", "pick": "ask_devops", "detail": "{\"query\": \"What is the current uptime of the magic mirror?\"}", "batch": "batch1"}
+{"run": 2, "sentence": "how long has the mirror been up?", "pick": "ask_home", "detail": "{\"query\": \"How long has the magic mirror been up?\"}", "batch": "batch1"}
+{"run": 2, "sentence": "show me the mirror's logs", "pick": "ask_devops", "detail": "{\"query\": \"Show the mirror's logs.\"}", "batch": "batch1"}
+{"run": 2, "sentence": "is the mirror's display service running?", "pick": "ask_devops", "detail": "{\"query\": \"Is the mirror's display service running?\"}", "batch": "batch1"}
+{"run": 2, "sentence": "what's the status of the mirror?", "pick": "ask_home", "detail": "{\"query\": \"status of the magic mirror\"}", "batch": "batch1"}
+{"run": 2, "sentence": "pull the last few log lines from the mirror", "pick": "ask_devops", "detail": "{\"query\": \"pull the last few log lines from the mirror\"}", "batch": "batch1"}
+{"run": 2, "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "detail": "{\"query\": \"Upgrade the mirror to the latest version\"}", "batch": "batch1"}
+{"run": 2, "sentence": "run the mirror update", "pick": "ask_home", "detail": "{\"query\": \"Update the magic mirror software\"}", "batch": "batch1"}
+{"run": 2, "sentence": "update the mirror", "pick": "ask_home", "detail": "{\"query\": \"update the magic mirror\"}", "batch": "batch1"}
+{"run": 2, "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "detail": "{\"query\": \"Upgrade the mirror software\"}", "batch": "batch1"}
+{"run": 3, "sentence": "check the uptime on the mirror", "pick": "ask_devops", "detail": "{\"query\": \"Check the magic mirror uptime.\"}", "batch": "batch1"}
+{"run": 3, "sentence": "how long has the mirror been up?", "pick": "ask_devops", "detail": "{\"query\": \"What is the uptime of the magic mirror?\"}", "batch": "batch1"}
+{"run": 3, "sentence": "show me the mirror's logs", "pick": "ask_devops", "detail": "{\"query\": \"show the magic mirror's logs\"}", "batch": "batch1"}
+{"run": 3, "sentence": "is the mirror's display service running?", "pick": "ask_devops", "detail": "{\"query\": \"Is the mirror's display service running?\"}", "batch": "batch1"}
+{"run": 3, "sentence": "what's the status of the mirror?", "pick": "ask_home", "detail": "{\"query\": \"What is the status of the magic mirror?\"}", "batch": "batch1"}
+{"run": 3, "sentence": "pull the last few log lines from the mirror", "pick": "ask_devops", "detail": "{\"query\": \"Show the last few log lines from the mirror\"}", "batch": "batch1"}
+{"run": 3, "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "detail": "{\"query\": \"upgrade the magic mirror to the latest version\"}", "batch": "batch1"}
+{"run": 3, "sentence": "run the mirror update", "pick": "ask_home", "detail": "{\"query\": \"update the magic mirror\"}", "batch": "batch1"}
+{"run": 3, "sentence": "update the mirror", "pick": "ask_home", "detail": "{\"query\": \"update the mirror\"}", "batch": "batch1"}
+{"run": 3, "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "detail": "{\"query\": \"Upgrade the mirror software\"}", "batch": "batch1"}
+{"run": 4, "sentence": "check the uptime on the mirror", "pick": "ask_devops", "detail": "{\"query\": \"check the uptime on the magic mirror\"}", "batch": "batch1"}
+{"run": 4, "sentence": "how long has the mirror been up?", "pick": "ask_devops", "detail": "{\"query\": \"What is the current uptime of the magic mirror?\"}", "batch": "batch1"}
+{"run": 4, "sentence": "show me the mirror's logs", "pick": "ask_devops", "detail": "{\"query\": \"Show the magic mirror's logs\"}", "batch": "batch1"}
+{"run": 4, "sentence": "is the mirror's display service running?", "pick": "ask_devops", "detail": "{\"query\": \"Is the mirror's display service running?\"}", "batch": "batch1"}
+{"run": 4, "sentence": "what's the status of the mirror?", "pick": "ask_devops", "detail": "{\"query\": \"status of the magic mirror\"}", "batch": "batch1"}
+{"run": 4, "sentence": "pull the last few log lines from the mirror", "pick": "ask_devops", "detail": "{\"query\": \"pull the last few log lines from the mirror\"}", "batch": "batch1"}
+{"run": 4, "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "detail": "{\"query\": \"upgrade the mirror to the latest version\"}", "batch": "batch1"}
+{"run": 4, "sentence": "run the mirror update", "pick": "ask_home", "detail": "{\"query\": \"run the mirror update\"}", "batch": "batch1"}
+{"run": 4, "sentence": "update the mirror", "pick": "ask_home", "detail": "{\"query\": \"update the magic mirror\"}", "batch": "batch1"}
+{"run": 4, "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "detail": "{\"query\": \"upgrade the mirror software\"}", "batch": "batch1"}
+{"run": 5, "sentence": "check the uptime on the mirror", "pick": "ask_devops", "detail": "{\"query\": \"uptime on the mirror\"}", "batch": "batch1"}
+{"run": 5, "sentence": "how long has the mirror been up?", "pick": "ask_devops", "detail": "{\"query\": \"how long has the magic mirror been up?\"}", "batch": "batch1"}
+{"run": 5, "sentence": "show me the mirror's logs", "pick": "ask_devops", "detail": "{\"query\": \"show magic mirror logs\"}", "batch": "batch1"}
+{"run": 5, "sentence": "is the mirror's display service running?", "pick": "ask_devops", "detail": "{\"query\": \"Is the magic mirror's display service running?\"}", "batch": "batch1"}
+{"run": 5, "sentence": "what's the status of the mirror?", "pick": "ask_home", "detail": "{\"query\": \"What is the status of the magic mirror?\"}", "batch": "batch1"}
+{"run": 5, "sentence": "pull the last few log lines from the mirror", "pick": "ask_devops", "detail": "{\"query\": \"pull the last few log lines from the mirror\"}", "batch": "batch1"}
+{"run": 5, "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "detail": "{\"query\": \"Upgrade the magic mirror to the latest version.\"}", "batch": "batch1"}
+{"run": 5, "sentence": "run the mirror update", "pick": "ask_home", "detail": "{\"query\": \"Update the magic mirror\"}", "batch": "batch1"}
+{"run": 5, "sentence": "update the mirror", "pick": "ask_home", "detail": "{\"query\": \"update the mirror\"}", "batch": "batch1"}
+{"run": 5, "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "detail": "{\"query\": \"upgrade the mirror software\"}", "batch": "batch1"}
+{"run": 6, "sentence": "check the uptime on the mirror", "pick": "ask_devops", "detail": "{\"query\": \"what is the current uptime of the magic mirror\"}", "batch": "batch1"}
+{"run": 6, "sentence": "how long has the mirror been up?", "pick": "ask_devops", "detail": "{\"query\": \"How long has the magic mirror been up?\"}", "batch": "batch1"}
+{"run": 6, "sentence": "show me the mirror's logs", "pick": "ask_devops", "detail": "{\"query\": \"show me the magic mirror's logs\"}", "batch": "batch1"}
+{"run": 6, "sentence": "is the mirror's display service running?", "pick": "ask_devops", "detail": "{\"query\": \"check the status of the magic mirror's display service\"}", "batch": "batch1"}
+{"run": 6, "sentence": "what's the status of the mirror?", "pick": "ask_devops", "detail": "{\"query\": \"status of the magic mirror\"}", "batch": "batch1"}
+{"run": 6, "sentence": "pull the last few log lines from the mirror", "pick": "ask_devops", "detail": "{\"query\": \"Show the last few log lines from the mirror\"}", "batch": "batch1"}
+{"run": 6, "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "detail": "{\"query\": \"upgrade the mirror to the latest version\"}", "batch": "batch1"}
+{"run": 6, "sentence": "run the mirror update", "pick": "ask_home", "detail": "{\"query\": \"run mirror update\"}", "batch": "batch1"}
+{"run": 6, "sentence": "update the mirror", "pick": "ask_home", "detail": "{\"query\": \"Update the magic mirror\"}", "batch": "batch1"}
+{"run": 6, "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "detail": "{\"query\": \"upgrade the magic mirror software\"}", "batch": "batch1"}
+{"run": 7, "sentence": "check the uptime on the mirror", "pick": "ask_devops", "detail": "{\"query\": \"What is the current uptime of the magic mirror?\"}", "batch": "batch1"}
+{"run": 7, "sentence": "how long has the mirror been up?", "pick": "ask_devops", "detail": "{\"query\": \"how long has the magic mirror been up\"}", "batch": "batch1"}
+{"run": 7, "sentence": "show me the mirror's logs", "pick": "ask_devops", "detail": "{\"query\": \"mirror's logs\"}", "batch": "batch1"}
+{"run": 7, "sentence": "is the mirror's display service running?", "pick": "ask_devops", "detail": "{\"query\": \"Is the mirror's display service running?\"}", "batch": "batch1"}
+{"run": 7, "sentence": "what's the status of the mirror?", "pick": "ask_home", "detail": "{\"query\": \"status of the mirror\"}", "batch": "batch1"}
+{"run": 7, "sentence": "pull the last few log lines from the mirror", "pick": "ask_devops", "detail": "{\"query\": \"Provide the last few log lines from the magic mirror\"}", "batch": "batch1"}
+{"run": 7, "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "detail": "{\"query\": \"upgrade the mirror to the latest version\"}", "batch": "batch1"}
+{"run": 7, "sentence": "run the mirror update", "pick": "ask_home", "detail": "{\"query\": \"Update the magic mirror\"}", "batch": "batch1"}
+{"run": 7, "sentence": "update the mirror", "pick": "ask_home", "detail": "{\"query\": \"Update the magic mirror\"}", "batch": "batch1"}
+{"run": 7, "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "detail": "{\"query\": \"Upgrade the mirror software\"}", "batch": "batch1"}
+{"run": 8, "sentence": "check the uptime on the mirror", "pick": "ask_devops", "detail": "{\"query\": \"Check the uptime on the magic mirror\"}", "batch": "batch1"}
+{"run": 8, "sentence": "how long has the mirror been up?", "pick": "ask_devops", "detail": "{\"query\": \"what is the current uptime of the magic mirror\"}", "batch": "batch1"}
+{"run": 8, "sentence": "show me the mirror's logs", "pick": "ask_devops", "detail": "{\"query\": \"show the magic mirror's logs\"}", "batch": "batch1"}
+{"run": 8, "sentence": "is the mirror's display service running?", "pick": "ask_devops", "detail": "{\"query\": \"Check the status of the magic mirror's display service and confirm if it is running.\"}", "batch": "batch1"}
+{"run": 8, "sentence": "what's the status of the mirror?", "pick": "ask_devops", "detail": "{\"query\": \"What is the status of the magic mirror?\"}", "batch": "batch1"}
+{"run": 8, "sentence": "pull the last few log lines from the mirror", "pick": "ask_devops", "detail": "{\"query\": \"pull the last few log lines from the mirror\"}", "batch": "batch1"}
+{"run": 8, "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "detail": "{\"query\": \"Upgrade the mirror to the latest version\"}", "batch": "batch1"}
+{"run": 8, "sentence": "run the mirror update", "pick": "ask_home", "detail": "{\"query\": \"run the mirror update\"}", "batch": "batch1"}
+{"run": 8, "sentence": "update the mirror", "pick": "ask_home", "detail": "{\"query\": \"update the magic mirror\"}", "batch": "batch1"}
+{"run": 8, "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "detail": "{\"query\": \"Upgrade the magic mirror software\"}", "batch": "batch1"}
+{"run": 9, "sentence": "check the uptime on the mirror", "pick": "ask_devops", "detail": "{\"query\": \"What is the current uptime of the magic mirror?\"}", "batch": "batch1"}
+{"run": 9, "sentence": "how long has the mirror been up?", "pick": "ask_devops", "detail": "{\"query\": \"What is the uptime of the magic mirror?\"}", "batch": "batch1"}
+{"run": 9, "sentence": "show me the mirror's logs", "pick": "ask_devops", "detail": "{\"query\": \"show the magic mirror logs\"}", "batch": "batch1"}
+{"run": 9, "sentence": "is the mirror's display service running?", "pick": "ask_devops", "detail": "{\"query\": \"Is the mirror's display service running?\"}", "batch": "batch1"}
+{"run": 9, "sentence": "what's the status of the mirror?", "pick": "ask_devops", "detail": "{\"query\": \"What is the current status of the magic mirror?\"}", "batch": "batch1"}
+{"run": 9, "sentence": "pull the last few log lines from the mirror", "pick": "ask_devops", "detail": "{\"query\": \"last few log lines from the magic mirror\"}", "batch": "batch1"}
+{"run": 9, "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "detail": "{\"query\": \"upgrade the magic mirror to the latest version\"}", "batch": "batch1"}
+{"run": 9, "sentence": "run the mirror update", "pick": "ask_home", "detail": "{\"query\": \"run the mirror update\"}", "batch": "batch1"}
+{"run": 9, "sentence": "update the mirror", "pick": "ask_home", "detail": "{\"query\": \"update the mirror\"}", "batch": "batch1"}
+{"run": 9, "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "detail": "{\"query\": \"upgrade the magic mirror software\"}", "batch": "batch1"}
+{"run": 10, "sentence": "check the uptime on the mirror", "pick": "ask_devops", "detail": "{\"query\": \"uptime on the magic mirror\"}", "batch": "batch1"}
+{"run": 10, "sentence": "how long has the mirror been up?", "pick": "ask_devops", "detail": "{\"query\": \"How long has the magic mirror been up?\"}", "batch": "batch1"}
+{"run": 10, "sentence": "show me the mirror's logs", "pick": "ask_devops", "detail": "{\"query\": \"Show the mirror's logs\"}", "batch": "batch1"}
+{"run": 10, "sentence": "is the mirror's display service running?", "pick": "ask_devops", "detail": "{\"query\": \"Is the magic mirror's display service currently running?\"}", "batch": "batch1"}
+{"run": 10, "sentence": "what's the status of the mirror?", "pick": "ask_devops", "detail": "{\"query\": \"What is the current status of the magic mirror?\"}", "batch": "batch1"}
+{"run": 10, "sentence": "pull the last few log lines from the mirror", "pick": "ask_devops", "detail": "{\"query\": \"Show the last few log lines from the magic mirror.\"}", "batch": "batch1"}
+{"run": 10, "sentence": "please upgrade the mirror to the latest version", "pick": "ask_home", "detail": "{\"query\": \"upgrade the magic mirror to the latest version\"}", "batch": "batch1"}
+{"run": 10, "sentence": "run the mirror update", "pick": "ask_home", "detail": "{\"query\": \"Update the magic mirror\"}", "batch": "batch1"}
+{"run": 10, "sentence": "update the mirror", "pick": "ask_home", "detail": "{\"query\": \"update the magic mirror\"}", "batch": "batch1"}
+{"run": 10, "sentence": "can you upgrade the mirror software?", "pick": "ask_home", "detail": "{\"query\": \"Upgrade the mirror software\"}", "batch": "batch1"}
+{"run": 1, "sentence": "what's the status of the mirror?", "pick": "ask_devops", "detail": "{\"query\": \"What is the status of the magic mirror?\"}", "batch": "status20"}
+{"run": 2, "sentence": "what's the status of the mirror?", "pick": "ask_home", "detail": "{\"query\": \"What is the status of the magic mirror?\"}", "batch": "status20"}
+{"run": 3, "sentence": "what's the status of the mirror?", "pick": "ask_home", "detail": "{\"query\": \"What is the status of the magic mirror?\"}", "batch": "status20"}
+{"run": 4, "sentence": "what's the status of the mirror?", "pick": "ask_devops", "detail": "{\"query\": \"status of the magic mirror\"}", "batch": "status20"}
+{"run": 5, "sentence": "what's the status of the mirror?", "pick": "ask_devops", "detail": "{\"query\": \"What is the current status and uptime of the magic mirror?\"}", "batch": "status20"}
+{"run": 6, "sentence": "what's the status of the mirror?", "pick": "ask_devops", "detail": "{\"query\": \"what is the status of the magic mirror\"}", "batch": "status20"}
+{"run": 7, "sentence": "what's the status of the mirror?", "pick": "ask_devops", "detail": "{\"query\": \"What is the current status, uptime, and logs for the magic mirror?\"}", "batch": "status20"}
+{"run": 8, "sentence": "what's the status of the mirror?", "pick": "ask_devops", "detail": "{\"query\": \"What is the current status of the magic mirror?\"}", "batch": "status20"}
+{"run": 9, "sentence": "what's the status of the mirror?", "pick": "ask_home", "detail": "{\"query\": \"status of the magic mirror\"}", "batch": "status20"}
+{"run": 10, "sentence": "what's the status of the mirror?", "pick": "ask_devops", "detail": "{\"query\": \"what is the status of the magic mirror?\"}", "batch": "status20"}
+{"run": 11, "sentence": "what's the status of the mirror?", "pick": "ask_devops", "detail": "{\"query\": \"what is the status of the mirror?\"}", "batch": "status20"}
+{"run": 12, "sentence": "what's the status of the mirror?", "pick": "ask_home", "detail": "{\"query\": \"What is the status of the magic mirror?\"}", "batch": "status20"}
+{"run": 13, "sentence": "what's the status of the mirror?", "pick": "ask_devops", "detail": "{\"query\": \"What is the current status of the magic mirror?\"}", "batch": "status20"}
+{"run": 14, "sentence": "what's the status of the mirror?", "pick": "ask_devops", "detail": "{\"query\": \"What is the current status and uptime of the magic mirror?\"}", "batch": "status20"}
+{"run": 15, "sentence": "what's the status of the mirror?", "pick": "ask_devops", "detail": "{\"query\": \"What is the current status of the magic mirror?\"}", "batch": "status20"}
+{"run": 16, "sentence": "what's the status of the mirror?", "pick": "ask_devops", "detail": "{\"query\": \"What is the current status of the magic mirror?\"}", "batch": "status20"}
+{"run": 17, "sentence": "what's the status of the mirror?", "pick": "ask_devops", "detail": "{\"query\": \"what is the current status of the magic mirror?\"}", "batch": "status20"}
+{"run": 18, "sentence": "what's the status of the mirror?", "pick": "ask_devops", "detail": "{\"query\": \"what is the status and uptime of the magic mirror?\"}", "batch": "status20"}
+{"run": 19, "sentence": "what's the status of the mirror?", "pick": "ask_devops", "detail": "{\"query\": \"What is the status of the magic mirror?\"}", "batch": "status20"}
+{"run": 20, "sentence": "what's the status of the mirror?", "pick": "ask_devops", "detail": "{\"query\": \"What is the status of the magic mirror?\"}", "batch": "status20"}
