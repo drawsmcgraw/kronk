@@ -82,9 +82,12 @@ Conventions:
 - **MagicMirror read-only investigation** — the devops agent answers
   questions about the mirror through the audited read-only `remote_exec`
   path and makes no changes. Open, in order: pick the model (Ministral Q4
-  next; `docs/bench/devops_bench_2026-09-14_*`), fix the ops classifier
-  quirks (`git -C`, quoted pipes, `journalctl --user`), voice-shaped answers,
-  a test battery, satellite routing.
+  next; `docs/bench/devops_bench_2026-09-14_*`), voice-shaped answers,
+  a test battery, satellite routing. The classifier quirks are closed:
+  `git -C` and quoted pipes were classifier bugs, fixed in sprint item M3
+  (`docs/sprint/M3-build.md`); `journalctl --user` is Pi behaviour, not a
+  classifier bug (user-unit logs land in the system journal there, so read
+  them with `journalctl -u <unit>`).
 - **Wi-Fi visibility for the satellites** — a ping-history probe for the
   named satellites, plus HA's UniFi Network integration on the read-only
   account in `.env`. *Why: the 2026-09-30 stutter took a console login and

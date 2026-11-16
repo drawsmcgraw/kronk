@@ -13,6 +13,15 @@ mirror has been up for 11 hours and 41 minutes."* `sudo reboot` refused with
 Phase B (mutations + confirmation gate) is the next increment; the spec
 below stands.
 
+**Update 2026-11-15 (sprint item M3):** the phase-A classifier was rewritten:
+quote-aware lexing, per-program rules (forbidden flags, operand limits,
+subcommand-first parsing), and a secrets path deny list
+(`DENIED_PATH_PATTERNS` in `tool_service/ops.py`). `env`, `printenv` and
+`docker` left the allowed set. The registry's `sudo` field was never read by
+`ops_exec` and was removed from the example registry and the env fallback;
+the classifier refuses `sudo` regardless. Rule set as built:
+`docs/sprint/M3-build.md`.
+
 ## General ops agent — spec (remote_exec + host registry + routing) — 2026-07-11
 
 Motivating trace: today "what's the uptime of the magic mirror?" dead-ends.
@@ -36,7 +45,8 @@ magicmirror:
 ```
 
 The registry IS the opt-in boundary: a host is unreachable unless listed;
-`sudo` is per-host. **The kronk box itself is never in the registry** — the
+`sudo` is per-host (never implemented: the field was dead data and was
+removed in M3, 2026-11-15). **The kronk box itself is never in the registry** — the
 agent cannot target its own host (that's where an injection could reach the
 finance DB). The existing `MM_SSH_TARGET`/`MM_SSH_KEY` fold into the
 `magicmirror` entry; the update flow migrates to a registry lookup.
