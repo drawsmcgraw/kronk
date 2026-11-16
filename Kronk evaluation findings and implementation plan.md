@@ -49,6 +49,15 @@ The coordinator session ran every "Check first" list against the running box and
 
 **Checkpoint after M17 and M10, 2026-11-15.** Both items passed their end-to-end tests and are tagged (`sprint-M17`, deployed to production from the tag; `sprint-M10`, no production code). Decided by Drew at the checkpoint: local intents stay on for the `kronk-dev` pipeline, and spoken music on the Hey Jarvis wake word is treated as live. The music blueprint is hard-coded to the production conversation agent, so a blueprint-matched "Hey Jarvis, play ..." is a production play that bypasses dev and `MUSIC_DRY_RUN`. Drew gave the go for M1. Coordinator follow-ups: add answer checks to the replay comparison before it is used as M11 cutover evidence (`docs/sprint/M10-e2e.md`, O1); add `stop_grace_period: 2m` to `docker-compose.ha.yml` before M12's restart (`docs/incidents/INCIDENT_2026-11-15_ha_restart_sigkill.md`).
 
+**Decisions by Drew, 2026-11-16.**
+
+- M3 fix agent: Fable 5.2. The Opus 5.5 fix agent was stopped by its model safeguards on the tester's bypass list; the coordinator declined the offered switch to Opus 4.8.
+- M1b is reversed: **the hot tub feature stays.** The monitor had been working since 2026-10-24. Revert the M1b commits, restore `hottub_monitor/` from `~/backups/hottub/hottub_monitor-2026-11-15.tar.gz`, re-enable the unit, correct HOTTUB-01.
+- M3 and M4 are promoted together once both pass.
+- M1 leftovers, done 2026-11-16: the two Garmin and Withings lines removed from `data/kronk_state.md` (copy in `~/backups/kronk/`), `secrets/garmin.json` deleted, four old `assistant-*` health and Garmin images removed, two dead keys removed from `.env.dev`.
+- `data/postgres` is the retired self-hosted Infisical secrets store (PostgreSQL 16, one project `kronk`, one machine identity `health_service`, two secrets named `GARMIN_EMAIL` and `GARMIN_PASSWORD`, all dated 2026-04-04). Read from a throwaway copy; the original is untouched and waits for Drew's word.
+- M3 deny list: it does not need to be strict, since the credentials on the mirror are read-only. `config.js` stays readable and `grep -r` stays allowed. Add `.bash_history`, `.npmrc`, Wi-Fi configuration files and `~/.pm2/dump.pm2` to the list.
+
 ### Per-move results
 
 **M1.** No `ask_health`, `ask_finance`, `agent.health` or `agent.finance` span in Tempo's 8 days. nginx access log, 2026-08-14 to 2026-11-15 (234k lines): `/finances` 0 hits, `/retire/` 0, `/api/finance/` 0, `/api/health/` 0, `/probe/{health,finance,retire}` 1 each; `/health` 52,802 hits, all browser status-dot polls. Data to delete, with sizes: `data/health.db` 972K, `data/chroma/` 21M, `data/finance/` 236K (two databases, two statement PDFs), `data/retire/` 16K, plus the three files in C8. The stale containers need `--remove-orphans` or an explicit `rm`. nginx will not start if a removed upstream is still named in a location, so compose and nginx change together. Full file:line inventory is held by the coordinator for the build brief.
