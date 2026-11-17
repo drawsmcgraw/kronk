@@ -113,3 +113,21 @@ every prompt and value in effect after it is the one in effect before it.
 Build: `docs/sprint/M21-step1-build.md`. End to end:
 `docs/sprint/M21-step1-e2e.md`, one line per criterion with pass, fail or
 not testable, and the evidence.
+
+## Coordinator rulings (2026-11-17)
+
+- First-test finding 4 (a reload during a running request can mix old and
+  new values within that request) is a requirement for step 2, not a
+  failure of step 1. So is atomic writing of config files by step 2's
+  editor.
+- An unknown `prompts/*.md` is an error, not a warning: accepted.
+- The pre-existing name lookups in the test suite are recorded, not M21's
+  to fix.
+- **Materiality, from the second retest on.** The files in `config/` are
+  written by the operator and, after step 2, by an editor behind a
+  passphrase. Criteria 7 to 10 fail only on an input that takes a service
+  down, keeps it from starting, puts a wrong value into effect, or hides
+  the error from both `/services` and the logs. An input that does none of
+  those (for example a wrong line number, an unhelpful message, a
+  difference between the two YAML libraries that the schema then rejects)
+  is an observation.
