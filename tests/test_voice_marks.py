@@ -381,8 +381,8 @@ def test_text_off_ha_local_stop_is_not_guessed(tracer_env, monkeypatch):
     a0, a1 = _start_end(run_a)
     ha = FakeHA({rid_a: ("kronk", run_a), rid_b: ("kronk", run_b)})
     tempo = _tempo({"a" * 32: {"start": a0 + 0.8, "rule": "music"}})
-    monkeypatch.setattr(vt.time, "time", lambda: a1 + 1000)
-    _drive(tracer, ha, tempo, now=a1 + 1000)
+    monkeypatch.setattr(vt.time, "time", lambda: a1 + 300)
+    _drive(tracer, ha, tempo, now=a1 + 300)
     roots = _roots(exp)
     assert "voice.corrected_by" not in roots[rid_a].attributes
     assert "voice.transcript" not in roots[rid_a].attributes
@@ -400,8 +400,8 @@ def test_text_off_kronk_not_that_marks_from_the_rule(tracer_env, monkeypatch):
     ha = FakeHA({rid_a: ("kronk", run_a), rid_b: ("kronk", run_b)})
     tempo = _tempo({"a" * 32: {"start": a0 + 0.8, "rule": "music"},
                     "b" * 32: {"start": a0 + 30.8, "rule": "music_another", "tools": ["play_music"]}})
-    monkeypatch.setattr(vt.time, "time", lambda: a1 + 1000)
-    _drive(tracer, ha, tempo, now=a1 + 1000)
+    monkeypatch.setattr(vt.time, "time", lambda: a1 + 300)
+    _drive(tracer, ha, tempo, now=a1 + 300)
     a = _roots(exp)[rid_a].attributes
     assert a["voice.corrected_by"] == "not_that"
     assert a["voice.corrected_after_s"] == pytest.approx(30 - (a1 - a0), abs=0.2)
@@ -414,8 +414,8 @@ def test_dev_runs_never_mark_production(tracer_env, monkeypatch):
     a0, a1 = _start_end(run_a)
     ha = FakeHA({rid_a: ("kronk", run_a), rid_b: ("kronk-dev", run_b)})
     tempo = _tempo({"a" * 32: {"start": a0 + 0.8, "rule": "music"}})
-    monkeypatch.setattr(vt.time, "time", lambda: a1 + 1000)
-    _drive(tracer, ha, tempo, now=a1 + 1000)
+    monkeypatch.setattr(vt.time, "time", lambda: a1 + 300)
+    _drive(tracer, ha, tempo, now=a1 + 300)
     assert "voice.corrected_by" not in _roots(exp)[rid_a].attributes
     assert "voice.correction_kind" not in _roots(dev_exp)[rid_b].attributes
 

@@ -33,10 +33,28 @@ run that started at the edge) has closed, so a correction from the same
 satellite ("not that", a thumbs down, a stop, the same request again) is set
 as attributes on the earlier run's voice.run span before it leaves. Expect
 satellite voice traces in Grafana about three to four minutes after the
-utterance. The held run ids are in the state file too: after a restart they
-are fetched again from HA (up to HELD_RECOVERY_S old) and their marks are
-recomputed; any that HA no longer lists are logged and counted
-(/health held_lost), never dropped silently.
+utterance.
+
+A held run is never left waiting on something that may not come back
+(sprint M12 fix 1): when the process is told to stop (SIGTERM, `docker
+stop`) or HA's websocket drops, every held run is exported at once with
+whatever mark it has, carries `voice.window_cut_short` = "shutdown" or
+"ha_disconnected", and is recorded as emitted, so a restart never fetches
+it again. Its facts (no transcript) stay in the state file for the rest of
+the window, so a correction that arrives after it is logged and counted
+(/health marks_late) like any late correction. Runs still waiting for the
+Kronk join keep joining while HA is away (Tempo is all the join needs) and
+are exported the moment it resolves; at a stop they get one last join
+attempt. The only way left to lose a held run is a hard kill (SIGKILL, OOM)
+or a host crash inside the window: the held ids are then in the state file,
+fetched again from HA (up to HELD_RECOVERY_S old) and their marks
+recomputed, and any HA no longer lists are logged and counted (/health
+held_lost).
+
+No span older than EXPORT_AGE_MAX_S (14 min, under Tempo's 15 min ingestion
+slack) is ever exported: a run first seen, or still unexported, past that
+age is recorded as seen, logged with its id and age, and counted (/health
+too_old), not sent (docs/features/telemetry.md, the 2026-11-08 failure).
 
 Env:
   HA_URL, HA_TOKEN             Home Assistant (host networking → host.docker.internal)
@@ -57,9 +75,12 @@ Env:
 from __future__ import annotations
 
 import asyncio
+import contextlib
+import dataclasses
 import json
 import logging
 import os
+import signal
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -97,6 +118,11 @@ BACKFILL_S = 600         # at start, emit runs from the last 10 min not yet seen
 HELD_RECOVERY_S = 660   # after a restart, runs that were held (not yet emitted) are fetched
                         # again up to this age (11 min); marks.AGE_LIMIT_S (12 min) still
                         # leaves them a minute to be classified, inside Tempo's 15 m slack
+EXPORT_AGE_MAX_S = 840  # never export a run whose first span is older than this (14 min):
+                        # Tempo's ingestion slack is 15 min, the batch export waits up to
+                        # 5 s and the exporter's deadline is 10 s
+SHUTDOWN_JOIN_S = 2.0   # at a stop, the last Kronk join attempt gets this long (docker
+                        # stop allows 10 s in all)
 SEEN_KEEP = 2000
 KRONK_SERVICE = "kronk-orchestrator"
 DEV_PIPELINES = {p.strip() for p in os.getenv("VOICE_TRACER_DEV_PIPELINES", "kronk-dev").split(",") if p.strip()}
@@ -113,7 +139,10 @@ HEALTH = {"connected": False, "last_event": None, "emitted": 0, "joined": 0,
           # wrong-action signal (M12): runs held for their window, marks set,
           # corrections that arrived after the earlier run was already
           # exported, held runs lost across a restart
-          "held": 0, "marked": 0, "marks_late": 0, "held_lost": 0}
+          "held": 0, "marked": 0, "marks_late": 0, "held_lost": 0,
+          # M12 fix 1: held runs exported with the window cut short (a stop or
+          # an HA disconnect), runs not exported because they were too old
+          "cut_short": 0, "too_old": 0}
 
 
 # ── Emitter: SpanSpec trees → OTel spans with explicit timestamps ───────────
@@ -292,6 +321,7 @@ class VoiceTracer:
         self.facts: dict[str, marks.RunFacts] = {}   # run_id → facts, every recent fetched run
         self.emitted_runs: set[str] = set()       # run ids exported this process (late-mark check)
         self.prev_held: set[str] = set()          # held at the last save, from the state file
+        self.cut: set[str] = set()                # exported with the window cut short; facts kept
         self._load_state()
 
     # state
@@ -302,8 +332,17 @@ class VoiceTracer:
             ids = state.get("seen") or []
             self.seen, self.seen_order = set(ids), list(ids)
             self.prev_held = set(state.get("held") or [])
-            logger.info("state: %d run ids loaded from %s (%d held for the wrong-action window)",
-                        len(ids), STATE_FILE, len(self.prev_held))
+            for d in state.get("cut") or []:
+                try:
+                    f = marks.RunFacts(**d)
+                except TypeError:
+                    continue
+                self.facts[f.run_id] = f
+                self.cut.add(f.run_id)
+                self.emitted_runs.add(f.run_id)
+            logger.info("state: %d run ids loaded from %s (%d held for the wrong-action window, "
+                        "%d cut short and still inside it)", len(ids), STATE_FILE, len(self.prev_held),
+                        len(self.cut))
         except FileNotFoundError:
             pass
         except Exception as e:
@@ -326,11 +365,22 @@ class VoiceTracer:
         out = [rid for rid, p in self.pending_voice.items() if p.get("holdable")]
         return out + [rid for rid in self.held if rid not in self.pending_voice]
 
+    def _cut_facts(self) -> list[dict]:
+        """Facts of runs exported with the window cut short, while a
+        correction can still arrive for them. Never the transcript."""
+        out = []
+        for rid in sorted(self.cut):
+            f = self.facts.get(rid)
+            if f is not None:
+                out.append({**dataclasses.asdict(f), "transcript": None})
+        return out
+
     def _save_state(self) -> None:
         try:
             tmp = STATE_FILE + ".tmp"
             with open(tmp, "w") as f:
-                json.dump({"seen": self.seen_order, "held": sorted(self._unemitted_held_ids())}, f)
+                json.dump({"seen": self.seen_order, "held": sorted(self._unemitted_held_ids()),
+                           "cut": self._cut_facts()}, f)
             os.replace(tmp, STATE_FILE)
         except Exception as e:
             logger.debug("state: could not save: %s", e)
@@ -428,9 +478,10 @@ class VoiceTracer:
             for k in list(d)[:-50]:
                 d.pop(k, None)
 
-    async def resolve_joins(self, http: httpx.AsyncClient) -> None:
+    async def resolve_joins(self, http: httpx.AsyncClient, final: bool = False) -> None:
         """Try the Kronk join for pending voice runs whose delay has elapsed;
-        emit when resolved or out of attempts."""
+        emit when resolved or out of attempts. final=True (a stop): one
+        attempt now for every pending run, whatever its delay, then finish."""
         now = time.time()
         for rid, p in list(self.pending_voice.items()):
             specs = p["specs"]
@@ -449,7 +500,7 @@ class VoiceTracer:
             if attempt >= len(JOIN_DELAYS_S):
                 self._finish_voice(rid, p, [])
                 continue
-            if now - p["ends_at"] < JOIN_DELAYS_S[attempt]:
+            if not final and now - p["ends_at"] < JOIN_DELAYS_S[attempt]:
                 continue
             p["attempt"] = attempt + 1
             win = convert.intent_window(specs)
@@ -465,8 +516,11 @@ class VoiceTracer:
                 logger.warning("tempo search failed (attempt %d): %s", p["attempt"], ex)
                 ids = []
             if ids:
+                p["kronk_ids"] = ids
                 p["routing"] = await self.kronk_routing(http, ids[0])
                 self._finish_voice(rid, p, ids)
+            elif final:
+                self._finish_voice(rid, p, [])
         self.flush_held()
 
     async def kronk_routing(self, http: httpx.AsyncClient, trace_id: str) -> dict:
@@ -502,6 +556,9 @@ class VoiceTracer:
         facts = self.facts.get(rid)
         if facts is not None and facts.satellite is not None:
             specs[0].attrs["voice.mark_basis"] = "rule_and_text" if RECORD_TEXT else "rule_only"
+            if p.get("cut"):          # HA went away or a stop came while it was joining
+                self._emit_cut(rid, specs, p["key"], p["cut"])
+                return
             self.held[rid] = {"specs": specs, "key": p["key"]}
             HEALTH["held"] = len(self.held)
             self._save_state()
@@ -562,6 +619,7 @@ class VoiceTracer:
             if rid not in self.pending_voice and rid not in self.held \
                     and now - f.end_s > marks.AGE_LIMIT_S + marks.WINDOW_S:
                 self.facts.pop(rid, None)
+                self.cut.discard(rid)
 
     def account_for_prev_held(self) -> None:
         """After the first fetch following a start: runs held before the
@@ -572,12 +630,69 @@ class VoiceTracer:
         lost = sorted(r for r in self.prev_held if r not in back and f"pipeline:{r}" not in self.seen)
         if lost:
             HEALTH["held_lost"] += len(lost)
-            logger.warning("%d voice run(s) held for the wrong-action window before the restart are no longer "
-                           "available from HA (older than %ds); not emitted: %s", len(lost), HELD_RECOVERY_S, lost)
+            logger.warning("%d voice run(s) held for the wrong-action window when the process last died "
+                           "(a hard kill or crash: a stop exports them) are no longer available from HA "
+                           "(HA restarted, it keeps the last 10 runs per pipeline, or older than %ds); "
+                           "not emitted: %s", len(lost), HELD_RECOVERY_S, lost)
         else:
             logger.info("all %d held voice run(s) fetched again after the restart", len(self.prev_held))
         self.prev_held = set()
         self._save_state()
+
+    def cut_short(self, reason: str) -> int:
+        """Export every held run now, with whatever mark it has (a stop, or
+        HA's websocket dropped: nothing more can be learned from HA in the
+        meantime, and waiting would export it late or not at all). Runs
+        still joining are flagged and exported the moment they finish."""
+        for p in self.pending_voice.values():
+            if p.get("holdable"):
+                p.setdefault("cut", reason)
+        n = 0
+        for rid in list(self.held):
+            h = self.held.pop(rid)
+            self._emit_cut(rid, h["specs"], h["key"], reason)
+            n += 1
+        HEALTH["held"] = len(self.held)
+        if n:
+            logger.warning("%d held voice run(s) exported before their correction window closed (%s)", n, reason)
+        return n
+
+    def _emit_cut(self, rid: str, specs: list[convert.SpanSpec], key: str, reason: str) -> None:
+        specs[0].attrs["voice.window_cut_short"] = reason
+        HEALTH["cut_short"] += 1
+        if rid in self.facts:
+            self.cut.add(rid)
+        self._emit_run(rid, specs, key)
+
+    async def idle(self, http: httpx.AsyncClient, seconds: float, stop: asyncio.Event) -> None:
+        """While HA is away (the reconnect wait): keep the Kronk join going
+        for runs that need it. The join reads Tempo only."""
+        end = time.time() + seconds
+        while not stop.is_set() and time.time() < end:
+            if self.pending_voice:
+                await self.resolve_joins(http)
+            await _pause(1.0)
+
+    async def shutdown(self, http: httpx.AsyncClient | None) -> None:
+        """A stop: one last join attempt for runs still joining, then every
+        held run out, then the export queues flushed."""
+        for p in self.pending_voice.values():
+            if p.get("holdable"):
+                p.setdefault("cut", "shutdown")
+        if self.pending_voice and http is not None:
+            try:
+                await asyncio.wait_for(self.resolve_joins(http, final=True), SHUTDOWN_JOIN_S)
+            except Exception as e:      # timeout, Tempo down: finish without the join
+                logger.warning("last Kronk join at stop did not finish (%s)", type(e).__name__)
+        for rid, p in list(self.pending_voice.items()):
+            self._finish_voice(rid, p, p.get("kronk_ids") or [])
+        self.cut_short("shutdown")
+        self._save_state()
+        for em in {id(e): e for e in (self.emitter, self.dev_emitter) if e is not None}.values():
+            try:
+                em.flush()
+            except Exception as e:
+                logger.warning("export flush at stop failed: %s", e)
 
     def _emit_run(self, rid: str, specs: list[convert.SpanSpec], key: str) -> None:
         self.emitted_runs.add(rid)
@@ -589,6 +704,16 @@ class VoiceTracer:
                     specs[0].trace_id)
 
     def _emit(self, specs: list[convert.SpanSpec], key: str) -> None:
+        age = time.time() - min(s.start_ns for s in specs) / 1e9 if specs else 0.0
+        if age > EXPORT_AGE_MAX_S:
+            # Past Tempo's ingestion slack a span breaks TraceQL metrics
+            # (docs/features/telemetry.md). Recorded as seen so nothing tries
+            # again; counted so the loss is visible.
+            HEALTH["too_old"] += 1
+            logger.warning("%s not exported: its first span is %.0fs old, past the %ds export limit "
+                           "(Tempo's ingestion slack is 15 min)", key, age, EXPORT_AGE_MAX_S)
+            self._mark_seen(key)
+            return
         emitter = self.dev_emitter if is_dev_run(specs) else self.emitter
         if emitter is not None:
             try:
@@ -614,7 +739,9 @@ class VoiceTracer:
             logger.warning("automation(s) not found in HA: %s", missing)
 
     # main loop
-    async def run_once(self) -> None:
+    async def run_once(self, http: httpx.AsyncClient | None = None) -> None:
+        """One HA connection: backfill, then events and polls until it
+        drops (always by raising). `http` is the Tempo client."""
         ha = HAClient(HA_URL, HA_TOKEN)
         await ha.connect()
         HEALTH["connected"] = True
@@ -632,7 +759,9 @@ class VoiceTracer:
             fetch_voice_at: float | None = None
             fetch_bp_at: float | None = None
             last_poll = time.time()
-            async with httpx.AsyncClient() as http:
+            async with contextlib.AsyncExitStack() as stack:
+                if http is None:
+                    http = await stack.enter_async_context(httpx.AsyncClient())
                 while True:
                     try:
                         ev = await asyncio.wait_for(ha.events.get(), timeout=1.0)
@@ -711,16 +840,53 @@ async def main() -> None:
     else:
         logger.info("TELEMETRY_ENABLED=false — reading HA, exporting nothing")
     tracer = VoiceTracer(emitter, dev_emitter)
+    stop = asyncio.Event()
+    loop = asyncio.get_running_loop()
+    for sig in (signal.SIGTERM, signal.SIGINT):
+        loop.add_signal_handler(sig, stop.set)   # PID 1 ignores SIGTERM unless handled
+    await serve(tracer, stop)
+    logger.info("stopped: %d held run(s) exported at the stop", HEALTH["cut_short"])
+
+
+async def _pause(seconds: float) -> None:
+    """The reconnect loop's wait (a seam for the tests' clock)."""
+    await asyncio.sleep(seconds)
+
+
+async def serve(tracer: VoiceTracer, stop: asyncio.Event, http: httpx.AsyncClient | None = None) -> None:
+    """Connect to HA, and reconnect with backoff, until `stop` is set. When
+    the connection drops, held runs are exported at once (cut_short) and
+    the Kronk join goes on during the wait. Returns after shutdown()."""
+    own_http = http is None
+    if own_http:
+        http = httpx.AsyncClient()
     backoff = 2
-    while True:
-        try:
-            await tracer.run_once()
-            backoff = 2
-        except Exception as e:
+    try:
+        while not stop.is_set():
+            conn = asyncio.create_task(tracer.run_once(http))
+            stopped = asyncio.create_task(stop.wait())
+            try:
+                done, _ = await asyncio.wait({conn, stopped}, return_when=asyncio.FIRST_COMPLETED)
+            except asyncio.CancelledError:
+                conn.cancel()
+                stopped.cancel()
+                raise
+            if conn not in done:
+                conn.cancel()
+                with contextlib.suppress(asyncio.CancelledError, Exception):
+                    await conn
+                break
+            stopped.cancel()
+            e = conn.exception()
             HEALTH["errors"] += 1
             logger.warning("HA connection lost (%s: %s); retrying in %ds", type(e).__name__, e, backoff)
-            await asyncio.sleep(backoff)
+            tracer.cut_short("ha_disconnected")
+            await tracer.idle(http, backoff, stop)
             backoff = min(backoff * 2, 60)
+        await tracer.shutdown(http)
+    finally:
+        if own_http:
+            await http.aclose()
 
 
 if __name__ == "__main__":

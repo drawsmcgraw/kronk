@@ -338,6 +338,7 @@ def test_join_searches_the_orchestrator_that_answered(run, tmp_path, monkeypatch
 
 def test_dev_runs_are_emitted_under_the_dev_service_name(run, tmp_path, monkeypatch):
     monkeypatch.setattr(vt, "STATE_FILE", str(tmp_path / "state.json"))
+    monkeypatch.setattr(vt, "EXPORT_AGE_MAX_S", float("inf"))   # the recorded run is days old
     prod_exp, dev_exp = InMemorySpanExporter(), InMemorySpanExporter()
     tracer = vt.VoiceTracer(emitter=vt.Emitter(exporter=prod_exp, batch=False),
                             dev_emitter=vt.Emitter(exporter=dev_exp, batch=False, service_name=vt.DEV_SERVICE_NAME))
@@ -353,6 +354,7 @@ def test_dev_runs_are_emitted_under_the_dev_service_name(run, tmp_path, monkeypa
 
 def test_without_a_dev_emitter_dev_runs_use_the_main_one(run, tmp_path, monkeypatch):
     monkeypatch.setattr(vt, "STATE_FILE", str(tmp_path / "state.json"))
+    monkeypatch.setattr(vt, "EXPORT_AGE_MAX_S", float("inf"))   # the recorded run is days old
     exp = InMemorySpanExporter()
     tracer = vt.VoiceTracer(emitter=vt.Emitter(exporter=exp, batch=False))
     specs = convert.assign_ids("pipeline", "01DEVRUN", convert.pipeline_run_spans(run, "01DEVRUN", "kronk-dev"))
