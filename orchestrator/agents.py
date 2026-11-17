@@ -285,11 +285,7 @@ AGENTS: dict[str, AgentConfig] = {
         routing_hint="Kronk's own architecture or configuration",
         icon="🤖",
         probe="llm",
-        system_prompt=(
-            "You are Kronk's systems specialist. You know Kronk's architecture and can generate diagrams.\n"
-            "Always call get_kronk_context before answering architecture questions or generating diagrams.\n"
-            "After reading context, use generate_diagram with Graphviz DOT syntax — never write code blocks."
-        ),
+        # system prompt: config/prompts/assistant.md
         tool_names=["get_kronk_context", "generate_diagram"],
     ),
     "coding": AgentConfig(
