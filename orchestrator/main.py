@@ -4,7 +4,7 @@ import json
 import logging
 import os
 import time
-from contextlib import asynccontextmanager, nullcontext
+from contextlib import AsyncExitStack, asynccontextmanager
 from pathlib import Path
 
 import httpx
@@ -20,6 +20,7 @@ import config_loader
 import errors
 import render
 import metrics
+import model_lock
 import origin
 import routing
 import servers
@@ -81,7 +82,10 @@ WEBUI_SESSION = "webui"
 # Uploaded file contexts — injected as system messages on every request
 file_contexts: list[dict] = []
 
-# Serialise all LLM calls — llama.cpp handles one request at a time.
+# One request's model phases at a time (sprint M9 step 1). Routing, the
+# weather and local context, and direct dispatch run before it is taken;
+# see _run_pipeline. Each llama.cpp server runs 4 slots with the full
+# context each, so this is a choice, not a server limit.
 _llm_lock = asyncio.Lock()
 
 TOKEN_WARNING_THRESHOLD = 2000
@@ -331,9 +335,8 @@ async def _run_pipeline(
 
     # Direct dispatch (sprint M7): when the routing rule's match fixes the
     # whole tool call, that tool runs with no model call, so the request
-    # does not wait for the model lock. Every other request takes the lock
-    # exactly as before (narrowing it in general is M9). routing.decide is
-    # pure (regex only); routing.classify below records the same decision.
+    # never waits for the model lock. routing.decide is pure (regex only);
+    # routing.classify below records the same decision.
     try:
         decision = routing.decide(text)
         direct, request = decision.direct, decision.request
@@ -353,7 +356,9 @@ async def _run_pipeline(
     if request is not None and said == text:
         said = request
 
-    async with (nullcontext() if direct else _llm_lock):
+    # The model lock is taken below, after routing (sprint M9 step 1); the
+    # exit stack releases it after the finally block, as before.
+    async with AsyncExitStack() as held:
         trace = telemetry.start_pipeline(
             pipeline_name, text, rid=rid, transport=transport,
             origin=origin.current.get(), voice=voice,
@@ -416,6 +421,13 @@ async def _run_pipeline(
                         assistant_reply.append(ev["text"])
                     yield ev
                 return
+
+            # ── The model lock (sprint M9 step 1) ─────────────────────────
+            # Everything above needs no model: routing, the weather and
+            # local context, direct dispatch. Only the model phases below
+            # wait for another request's. The wait is a `lock.wait` span
+            # and a `model_lock` event (model_lock.held).
+            await held.enter_async_context(model_lock.held(_llm_lock, "pipeline"))
 
             # ── Phase 2: specialist agent (if routed to one) ──────────────
             if agent_name in agents.AGENTS:
