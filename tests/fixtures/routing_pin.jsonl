@@ -1,6 +1,6 @@
-{"text": "Play Anime Pop Radio. That's probably about it. Everything is pretty wet.", "route": "home", "rule": "music"}
-{"text": " Play Anime Pop Radio.  That's probably about it. Everything is pretty wet.  I just needed to make some space.", "route": "home", "rule": "music"}
-{"text": "Play Anime Pop Radio. That's probably about it. Everything is pretty wet, put it on the basement voice pe ma.", "route": "home", "rule": "music"}
+{"text": "Play Anime Pop Radio. That's probably about it. Everything is pretty wet.", "route": "direct", "rule": "messy"}
+{"text": " Play Anime Pop Radio.  That's probably about it. Everything is pretty wet.  I just needed to make some space.", "route": "direct", "rule": "messy"}
+{"text": "Play Anime Pop Radio. That's probably about it. Everything is pretty wet, put it on the basement voice pe ma.", "route": "direct", "rule": "messy"}
 {"text": "Play Mushroom Jazz radio on the basement voice pe ma", "route": "home", "rule": "music"}
 {"text": "Play the artist Portishead on the basement voice pe ma", "route": "home", "rule": "music"}
 {"text": "Pause the basement voice pe ma", "route": "direct", "rule": "default"}
@@ -54,13 +54,13 @@
 {"text": "play some jazz on the sonos move", "route": "home", "rule": "music"}
 {"text": "play the beatles in the kitchen", "route": "home", "rule": "music"}
 {"text": "put on some mellow pink floyd in the kitchen", "route": "home", "rule": "music"}
-{"text": "Pause. Sonos. Move. Dirt.", "route": "direct", "rule": "default"}
+{"text": "Pause. Sonos. Move. Dirt.", "route": "direct", "rule": "messy"}
 {"text": "Play Albuquerque by Weird Al Yankovic.", "route": "home", "rule": "music"}
 {"text": "Play Top Songs by Weird Al Yankovic on Sonos Move Dirt.", "route": "home", "rule": "music"}
 {"text": "play journey on the sonos", "route": "home", "rule": "music"}
 {"text": "play pink floyd on the blue group", "route": "home", "rule": "music"}
 {"text": "play pink floyd on the sonos move", "route": "home", "rule": "music"}
-{"text": "Stop. Sonos move, derp.", "route": "direct", "rule": "default"}
+{"text": "Stop. Sonos move, derp.", "route": "direct", "rule": "messy"}
 {"text": "play \"Don't stop me now\" by queen on the Satellite 1", "route": "home", "rule": "music"}
 {"text": "Play the artist Aerosmith in the office", "route": "home", "rule": "music"}
 {"text": "Play toys in the attic by aerosmith", "route": "home", "rule": "music"}
@@ -79,7 +79,7 @@
 {"text": "resume the music", "route": "home", "rule": "playback"}
 {"text": "skip this song", "route": "home", "rule": "playback"}
 {"text": "I have to play the radio station, German Soundscape Radio.", "route": "direct", "rule": "default"}
-{"text": "Stop.  Stop.", "route": "direct", "rule": "default"}
+{"text": "Stop.  Stop.", "route": "direct", "rule": "messy"}
 {"text": "What song is this", "route": "home", "rule": "now_playing"}
 {"text": "What's playing?", "route": "home", "rule": "now_playing"}
 {"text": "play \"groove armada\" radio from pandora in the kitchen", "route": "home", "rule": "music"}
@@ -89,7 +89,7 @@
 {"text": "Shuffle my YouTube playlist, video game pretty songs.", "route": "home", "rule": "music"}
 {"text": "Shuffle the YouTube Playlist Old Man Video Games.", "route": "home", "rule": "music"}
 {"text": "Skip the current song.", "route": "direct", "rule": "default"}
-{"text": "Skip.  Treat me my wallet son.", "route": "direct", "rule": "default"}
+{"text": "Skip.  Treat me my wallet son.", "route": "direct", "rule": "messy"}
 {"text": "Turn it down.", "route": "home", "rule": "playback"}
 {"text": "volume 50%", "route": "direct", "rule": "default"}
 {"text": "What song is this?", "route": "home", "rule": "now_playing"}
@@ -130,15 +130,15 @@
 {"text": "Turn the phrase good morning into French", "route": "direct", "rule": "default"}
 {"text": "What is 15% of 240?", "route": "direct", "rule": "default"}
 {"text": "What is on my shopping list?", "route": "direct", "rule": "default"}
-{"text": "What is the difference between TCP and UDP? Brief.", "route": "direct", "rule": "default"}
+{"text": "What is the difference between TCP and UDP? Brief.", "route": "direct", "rule": "messy"}
 {"text": "What is the news today?", "route": "direct", "rule": "default"}
 {"text": "What is the weather right now in Laurel?", "route": "home", "rule": "weather"}
 {"text": "What is the weather right now?", "route": "home", "rule": "weather"}
 {"text": "What is the weather this weekend?", "route": "home", "rule": "weather"}
 {"text": "What is the weather tomorrow?", "route": "home", "rule": "weather"}
 {"text": "What time zone is Denver in?", "route": "direct", "rule": "default"}
-{"text": "Why do leaves change color in autumn? Two sentences.", "route": "direct", "rule": "default"}
-{"text": "Why is the sky blue? One sentence.", "route": "direct", "rule": "default"}
+{"text": "Why do leaves change color in autumn? Two sentences.", "route": "direct", "rule": "messy"}
+{"text": "Why is the sky blue? One sentence.", "route": "direct", "rule": "messy"}
 {"text": "Any severe weather coming in the next 48 hours?", "route": "direct", "rule": "default"}
 {"text": "Ask Talkie who the current president is.", "route": "talkie", "rule": "talkie_explicit"}
 {"text": "Do I need an umbrella tomorrow?", "route": "direct", "rule": "default"}
@@ -152,8 +152,8 @@
 {"text": "Give me the names of the heads of state of the top five countries ranked by GDP", "route": "direct", "rule": "default"}
 {"text": "Give me the names of the heads of state of the top five countries that are ranked by GDP", "route": "direct", "rule": "default"}
 {"text": "Give the name of the mayors of the top ten most populous cities in the united states", "route": "direct", "rule": "default"}
-{"text": "Just find the recipe. Then I need you to rewrite it in the Joy of Cooking style", "route": "direct", "rule": "default"}
-{"text": "My favorite color is teal. Just say OK.", "route": "direct", "rule": "default"}
+{"text": "Just find the recipe. Then I need you to rewrite it in the Joy of Cooking style", "route": "direct", "rule": "messy"}
+{"text": "My favorite color is teal. Just say OK.", "route": "direct", "rule": "messy"}
 {"text": "Next tuesday is NOT October 22", "route": "direct", "rule": "default"}
 {"text": "Rank the top five mammals by their weight in kilograms", "route": "direct", "rule": "default"}
 {"text": "Remind me: what is my favorite color?", "route": "direct", "rule": "default"}
@@ -164,7 +164,7 @@
 {"text": "Search online and update your response.", "route": "research", "rule": "search_phrase"}
 {"text": "Search online for it.", "route": "research", "rule": "search_phrase"}
 {"text": "Search online to find out who the current president is.", "route": "research", "rule": "search_phrase"}
-{"text": "That was just slogans. Search online, read the news, and give me a summary", "route": "research", "rule": "search_phrase"}
+{"text": "That was just slogans. Search online, read the news, and give me a summary", "route": "direct", "rule": "messy"}
 {"text": "Today is Friday, June 12, 2026", "route": "direct", "rule": "default"}
 {"text": "What about Sunday?", "route": "direct", "rule": "default"}
 {"text": "What about in Arizona?", "route": "direct", "rule": "default"}
@@ -195,7 +195,7 @@
 {"text": "Who is the county executive of Howard County?", "route": "direct", "rule": "default"}
 {"text": "Who is the governor of Maryland right now?", "route": "direct", "rule": "default"}
 {"text": "Who is the howard county executive?", "route": "direct", "rule": "default"}
-{"text": "Why did the Roman Empire fall? Two sentences.", "route": "direct", "rule": "default"}
+{"text": "Why did the Roman Empire fall? Two sentences.", "route": "direct", "rule": "messy"}
 {"text": "Why does my cat eat grass even though he vomits every time he does?", "route": "direct", "rule": "default"}
 {"text": "Will it rain tomorrow?", "route": "direct", "rule": "default"}
 {"text": "double the recipe for me", "route": "direct", "rule": "default"}
@@ -211,12 +211,12 @@
 {"text": "yes", "route": "direct", "rule": "default"}
 {"text": "Convert 250 degrees Fahrenheit to Celsius.", "route": "direct", "rule": "default"}
 {"text": "How old is Flavor Flav?", "route": "direct", "rule": "default"}
-{"text": "I mean, everything in my backyard looks orange. It's not the sky. It's like there's an orange light that's casting everywhere.", "route": "direct", "rule": "default"}
-{"text": "What is Levantine cuisine?  It's from La Bronte, a region of Asia.", "route": "direct", "rule": "default"}
+{"text": "I mean, everything in my backyard looks orange. It's not the sky. It's like there's an orange light that's casting everywhere.", "route": "direct", "rule": "messy"}
+{"text": "What is Levantine cuisine?  It's from La Bronte, a region of Asia.", "route": "direct", "rule": "messy"}
 {"text": "What is petrichor and what causes it?", "route": "direct", "rule": "default"}
 {"text": "Why is the sky really orange during a sunset?", "route": "direct", "rule": "default"}
 {"text": "What is halal meat?", "route": "direct", "rule": "default"}
-{"text": "When does the next season of Dawn to Dawn, the anime, air?  July.  Oh, really?  Yeah.", "route": "direct", "rule": "default"}
+{"text": "When does the next season of Dawn to Dawn, the anime, air?  July.  Oh, really?  Yeah.", "route": "direct", "rule": "messy"}
 {"text": "When will it rain tomorrow?", "route": "direct", "rule": "default"}
 {"text": "Wise up.", "route": "direct", "rule": "default"}
 {"text": "Can I grow them near me?", "route": "direct", "rule": "default"}
@@ -234,38 +234,38 @@
 {"text": "When will it get over 70 degrees today?", "route": "direct", "rule": "default"}
 {"text": "we were talking about last week  tonight.", "route": "direct", "rule": "default"}
 {"text": "Any good places to get lunch after I visit the museum in the area?", "route": "direct", "rule": "default"}
-{"text": "I'm visiting the Glenstone Museum this Friday.  Should I be worried about rain?", "route": "direct", "rule": "default"}
+{"text": "I'm visiting the Glenstone Museum this Friday.  Should I be worried about rain?", "route": "direct", "rule": "messy"}
 {"text": "Search online and find out if it's going to rain on Friday.", "route": "research", "rule": "search_phrase"}
 {"text": "Search online.", "route": "research", "rule": "search_phrase"}
 {"text": "Will it rain on Friday?", "route": "direct", "rule": "default"}
 {"text": "Can I go out for a walk in an hour?", "route": "direct", "rule": "default"}
-{"text": "Explain the 4th amendment to me in the context of a police officer and my car. What boundaries are there and what protects me from capricious, baseless searches in my vehicle?", "route": "direct", "rule": "default"}
-{"text": "Explain this code snippet to me. It's example code for using MTP with Gemma 4.\n\n```\n# Process inputs with the `target_model`\nmessages = [\n    {\n        \"role\": \"user\",\n        \"content\": \"Explain the", "route": "direct", "rule": "default"}
-{"text": "How does this extend to license plate reading cameras that can ALSO read signals from smart devices inside my car? Smart devices like my watch, the vehicle's infotainment system, and other systems", "route": "direct", "rule": "default"}
-{"text": "How would I train an off-the-shelf model? Say I have Gemma 4 loaded in llama.cpp. Step-by-step, how do I train or \"finetune\" the copy of Gemma 4 that I have on my hardware?", "route": "direct", "rule": "default"}
+{"text": "Explain the 4th amendment to me in the context of a police officer and my car. What boundaries are there and what protects me from capricious, baseless searches in my vehicle?", "route": "direct", "rule": "messy"}
+{"text": "Explain this code snippet to me. It's example code for using MTP with Gemma 4.\n\n```\n# Process inputs with the `target_model`\nmessages = [\n    {\n        \"role\": \"user\",\n        \"content\": \"Explain the", "route": "direct", "rule": "messy"}
+{"text": "How does this extend to license plate reading cameras that can ALSO read signals from smart devices inside my car? Smart devices like my watch, the vehicle's infotainment system, and other systems", "route": "direct", "rule": "messy"}
+{"text": "How would I train an off-the-shelf model? Say I have Gemma 4 loaded in llama.cpp. Step-by-step, how do I train or \"finetune\" the copy of Gemma 4 that I have on my hardware?", "route": "direct", "rule": "messy"}
 {"text": "In AI inference, what is a \"forward pass\" ?", "route": "direct", "rule": "default"}
-{"text": "So \"backward passes\" are actually \"backpropagation\", which is only used in training. \"Forward pass\" is used when the model is in production. So typically \"forward\" and \"backward\" passes are going to b", "route": "direct", "rule": "default"}
+{"text": "So \"backward passes\" are actually \"backpropagation\", which is only used in training. \"Forward pass\" is used when the model is in production. So typically \"forward\" and \"backward\" passes are going to b", "route": "direct", "rule": "messy"}
 {"text": "When was Calvin Ball elected county executive of Howard County?", "route": "direct", "rule": "default"}
 {"text": "Give me the name of a common blackberry liqueur.", "route": "direct", "rule": "default"}
-{"text": "That doesn't mean anything. What does it actually taste like?", "route": "direct", "rule": "default"}
+{"text": "That doesn't mean anything. What does it actually taste like?", "route": "direct", "rule": "messy"}
 {"text": "Use real flavors when describing the flavor of zombie virus.", "route": "direct", "rule": "default"}
 {"text": "What flavor is zombie virus in snow cones?", "route": "direct", "rule": "default"}
 {"text": "What is East expansion?", "route": "direct", "rule": "default"}
-{"text": "Where did Mork live? Where did he come from in the show, Mork and Mindy?", "route": "direct", "rule": "default"}
+{"text": "Where did Mork live? Where did he come from in the show, Mork and Mindy?", "route": "direct", "rule": "messy"}
 {"text": "Can I recycle a paper Chick-fil-A cup?", "route": "direct", "rule": "default"}
-{"text": "I live in Howard County, Maryland. Look up my local jurisdiction to see if I can recycle the cup.", "route": "research", "rule": "search_phrase"}
+{"text": "I live in Howard County, Maryland. Look up my local jurisdiction to see if I can recycle the cup.", "route": "direct", "rule": "messy"}
 {"text": "Thank you.", "route": "direct", "rule": "default"}
 {"text": "Are people still making new City Pop music, or is that era basically dumb?", "route": "direct", "rule": "default"}
 {"text": "Ask the weather specialist what went wrong.", "route": "direct", "rule": "default"}
 {"text": "Clear by district", "route": "direct", "rule": "default"}
 {"text": "Give me a one-paragraph description of the origins of Japanese city pop music.", "route": "direct", "rule": "default"}
-{"text": "I need to give you the ability to write some notes to a document so you can jot down things like this, but I don't think you have that ability.  How could we arrange it such that you could write down", "route": "direct", "rule": "default"}
-{"text": "I want to use Google Docs. Search online and see what the state-of-the-art is for this.", "route": "research", "rule": "search_phrase"}
+{"text": "I need to give you the ability to write some notes to a document so you can jot down things like this, but I don't think you have that ability.  How could we arrange it such that you could write down", "route": "direct", "rule": "messy"}
+{"text": "I want to use Google Docs. Search online and see what the state-of-the-art is for this.", "route": "direct", "rule": "messy"}
 {"text": "I was asking about the weather in Washington, D.C.", "route": "direct", "rule": "default"}
-{"text": "I'm going to be in Washington, D.C. for the 4th of July.  Should I bring an umbrella?", "route": "direct", "rule": "default"}
-{"text": "In this case, you are the AI. I don't need Gemini. I need to give you the ability to write to my Google Docs. How can I give you specifically that ability?", "route": "research", "rule": "search_phrase"}
+{"text": "I'm going to be in Washington, D.C. for the 4th of July.  Should I bring an umbrella?", "route": "direct", "rule": "messy"}
+{"text": "In this case, you are the AI. I don't need Gemini. I need to give you the ability to write to my Google Docs. How can I give you specifically that ability?", "route": "direct", "rule": "messy"}
 {"text": "Is the Cuba Libre a real cocktail?", "route": "direct", "rule": "default"}
-{"text": "It sounds like that tool is failing. Tell me what that tool returns when you try to check for the weather in Phoenix, Arizona.", "route": "direct", "rule": "default"}
+{"text": "It sounds like that tool is failing. Tell me what that tool returns when you try to check for the weather in Phoenix, Arizona.", "route": "direct", "rule": "messy"}
 {"text": "Nothing right now.", "route": "direct", "rule": "default"}
 {"text": "Now do the same thing, but for K-pop.", "route": "direct", "rule": "default"}
 {"text": "What did the weather specialist say?", "route": "direct", "rule": "default"}
@@ -273,7 +273,7 @@
 {"text": "What is the weather in Phoenix, Arizona?", "route": "home", "rule": "weather"}
 {"text": "What was the date two Saturdays ago?", "route": "direct", "rule": "default"}
 {"text": "You", "route": "direct", "rule": "default"}
-{"text": "You have a weather agent. Ask the weather agent.", "route": "direct", "rule": "default"}
+{"text": "You have a weather agent. Ask the weather agent.", "route": "direct", "rule": "messy"}
 {"text": "hello", "route": "direct", "rule": "default"}
 {"text": "what is the weather", "route": "home", "rule": "weather"}
 {"text": "Is tinsel a good material for a shirt to wear in hot weather?", "route": "direct", "rule": "default"}
@@ -298,7 +298,7 @@
 {"text": "what time is it?", "route": "direct", "rule": "default"}
 {"text": "When will it start raining today?", "route": "direct", "rule": "default"}
 {"text": "I was born out here today.", "route": "direct", "rule": "default"}
-{"text": "I'm going to go ahead and put it on the side of the side of the side of the side of the side.", "route": "direct", "rule": "default"}
+{"text": "I'm going to go ahead and put it on the side of the side of the side of the side of the side.", "route": "direct", "rule": "messy"}
 {"text": "I'm going to take a look at it.", "route": "direct", "rule": "default"}
 {"text": "No thank you.", "route": "direct", "rule": "default"}
 {"text": "Oh, she didn't cry.", "route": "direct", "rule": "default"}
@@ -316,58 +316,58 @@
 {"text": "Let's go.", "route": "direct", "rule": "default"}
 {"text": "Today's date.", "route": "direct", "rule": "default"}
 {"text": "Well, let's get you some Channies.", "route": "direct", "rule": "default"}
-{"text": "I just got an Amino Complex supplement.  What do I do with this?  What is it for?", "route": "direct", "rule": "default"}
+{"text": "I just got an Amino Complex supplement.  What do I do with this?  What is it for?", "route": "direct", "rule": "messy"}
 {"text": "What is the tuition cost for one year at Minerva University?", "route": "direct", "rule": "default"}
 {"text": "What's the status of the solar panels?", "route": "direct", "rule": "default"}
 {"text": "check the solar system", "route": "direct", "rule": "default"}
-{"text": "it was 4 inverters giving issues a few hours ago. What happened?", "route": "direct", "rule": "default"}
+{"text": "it was 4 inverters giving issues a few hours ago. What happened?", "route": "direct", "rule": "messy"}
 {"text": "report on the solar panels", "route": "direct", "rule": "default"}
 {"text": "whats the uptime of the magic mirror", "route": "devops", "rule": "mm_ops"}
-{"text": "Calculate the efficiency of my solar panel system. Limit it to just the past 48 hours of use. How much of the total system is being realized?", "route": "direct", "rule": "default"}
+{"text": "Calculate the efficiency of my solar panel system. Limit it to just the past 48 hours of use. How much of the total system is being realized?", "route": "direct", "rule": "messy"}
 {"text": "Do that for the two failing inverters", "route": "direct", "rule": "default"}
-{"text": "Earlier there were 4 solar inverters failing, now it says 2. Why did that change?", "route": "direct", "rule": "default"}
+{"text": "Earlier there were 4 solar inverters failing, now it says 2. Why did that change?", "route": "direct", "rule": "messy"}
 {"text": "How far back does the data go?", "route": "direct", "rule": "default"}
 {"text": "Is the inverter ending in 005632 getting better or worse over the last few days?", "route": "direct", "rule": "default"}
 {"text": "It's an 8.4kW system", "route": "direct", "rule": "default"}
 {"text": "Show me the proof that those two inverters are down", "route": "direct", "rule": "default"}
-{"text": "There were a total of *four* problematic inverters. What were the other two inverters and what does their history look like?", "route": "direct", "rule": "default"}
+{"text": "There were a total of *four* problematic inverters. What were the other two inverters and what does their history look like?", "route": "direct", "rule": "messy"}
 {"text": "What could be some possible causes for this underperformance?", "route": "direct", "rule": "default"}
 {"text": "What's wrong with those two inverters?", "route": "direct", "rule": "default"}
 {"text": "Which of my solar inverters are genuinely broken versus just having a bad moment right now?", "route": "direct", "rule": "default"}
 {"text": "Which solar inverters are truly broken versus just flickering near the threshold?", "route": "direct", "rule": "default"}
-{"text": "You previously said there were four inverters with problems. Was that a mistake?", "route": "direct", "rule": "default"}
+{"text": "You previously said there were four inverters with problems. Was that a mistake?", "route": "direct", "rule": "messy"}
 {"text": "check again", "route": "direct", "rule": "default"}
 {"text": "list their full IDs", "route": "direct", "rule": "default"}
-{"text": "what *are* those \"IDs\", anyway? Are they useful or just part of our internal system?", "route": "direct", "rule": "default"}
+{"text": "what *are* those \"IDs\", anyway? Are they useful or just part of our internal system?", "route": "direct", "rule": "messy"}
 {"text": "Don't look it up", "route": "research", "rule": "search_phrase"}
 {"text": "What is the current humidity outside?", "route": "direct", "rule": "default"}
 {"text": "Can you check the Southwest status page?", "route": "direct", "rule": "default"}
-{"text": "Can you check the software on the magic mirror? Specifically, if the weather module was updated?", "route": "devops", "rule": "mm_ops"}
-{"text": "Good job. But there is still a notification that the weather map module is behind. Why? Don't change anything. Just investigate", "route": "direct", "rule": "default"}
-{"text": "Look up the status of that flight. I think it's delayed", "route": "research", "rule": "search_phrase"}
+{"text": "Can you check the software on the magic mirror? Specifically, if the weather module was updated?", "route": "direct", "rule": "messy"}
+{"text": "Good job. But there is still a notification that the weather map module is behind. Why? Don't change anything. Just investigate", "route": "direct", "rule": "messy"}
+{"text": "Look up the status of that flight. I think it's delayed", "route": "direct", "rule": "messy"}
 {"text": "Update the magic mirror", "route": "home", "rule": "mm_update"}
 {"text": "What's the status of flight 2441 from Southwest departing out of BWI today?", "route": "direct", "rule": "default"}
-{"text": "You have all of that information. Try again.", "route": "direct", "rule": "default"}
+{"text": "You have all of that information. Try again.", "route": "direct", "rule": "messy"}
 {"text": "Will it rain tomorrow morning?", "route": "direct", "rule": "default"}
-{"text": "Convert that to dollars, based on typical rates. Tell me the rate you used in your calculation", "route": "direct", "rule": "default"}
-{"text": "How about for the last 7 days? How many kWh did the panels produce? Convert that to dollars as well", "route": "direct", "rule": "default"}
-{"text": "Is that right? That doesn't sound like much", "route": "direct", "rule": "default"}
+{"text": "Convert that to dollars, based on typical rates. Tell me the rate you used in your calculation", "route": "direct", "rule": "messy"}
+{"text": "How about for the last 7 days? How many kWh did the panels produce? Convert that to dollars as well", "route": "direct", "rule": "messy"}
+{"text": "Is that right? That doesn't sound like much", "route": "direct", "rule": "messy"}
 {"text": "Look up the current rates for BGE customers and use that", "route": "research", "rule": "search_phrase"}
 {"text": "Use 14.61 cents per kWh", "route": "direct", "rule": "default"}
 {"text": "how much energy did the solar panels produce yesterday?", "route": "direct", "rule": "default"}
 {"text": "how much money's worth have the panels produced so far today?", "route": "direct", "rule": "default"}
-{"text": "wait you don't have access to the solar panels? Ask the home agent", "route": "direct", "rule": "default"}
+{"text": "wait you don't have access to the solar panels? Ask the home agent", "route": "direct", "rule": "messy"}
 {"text": "But what is that worth in dollars?", "route": "direct", "rule": "default"}
 {"text": "Canceled.", "route": "direct", "rule": "default"}
 {"text": "Explain to me what this article is trying to tell me - https://www.reuters.com/world/china/selling-grips-bond-markets-us-japan-inflation-fiscal-worries-take-hold-2026-08-18/", "route": "research", "rule": "url"}
-{"text": "Here's the text ---- LONDON, Aug 18 (Reuters) - Long-term borrowing costs from the U.S. to Germany and Japan hit their highest levels in decades on Tuesday ​due to ballooning government debt and geopo", "route": "direct", "rule": "default"}
+{"text": "Here's the text ---- LONDON, Aug 18 (Reuters) - Long-term borrowing costs from the U.S. to Germany and Japan hit their highest levels in decades on Tuesday ​due to ballooning government debt and geopo", "route": "direct", "rule": "messy"}
 {"text": "How much energy have the solar panels produced today?", "route": "direct", "rule": "default"}
 {"text": "How much of that is in dollars?", "route": "direct", "rule": "default"}
 {"text": "How much power have the solar panels produced today?", "route": "direct", "rule": "default"}
-{"text": "I have to do it.  I have to do it.  I have to do it.  I have to do it.", "route": "direct", "rule": "default"}
+{"text": "I have to do it.  I have to do it.  I have to do it.  I have to do it.", "route": "direct", "rule": "messy"}
 {"text": "Over all time, how much money's worth of energy has been generated by the panels?", "route": "direct", "rule": "default"}
-{"text": "What am I paying for energy right now? You know my address and time of day. Use that to find out", "route": "direct", "rule": "default"}
-{"text": "What does this mean for my investments, as a consumer investor? Things like my S&P 500 ETFs and 401(k)s ?", "route": "direct", "rule": "default"}
+{"text": "What am I paying for energy right now? You know my address and time of day. Use that to find out", "route": "direct", "rule": "messy"}
+{"text": "What does this mean for my investments, as a consumer investor? Things like my S&P 500 ETFs and 401(k)s ?", "route": "direct", "rule": "messy"}
 {"text": "What is the closing price for Broadcom stock today?", "route": "direct", "rule": "default"}
 {"text": "What is the current time in Beijing?", "route": "direct", "rule": "default"}
 {"text": "What's the weather forecast this evening?", "route": "home", "rule": "weather"}
@@ -379,7 +379,7 @@
 {"text": "What are the news sources that you used for that last report?", "route": "direct", "rule": "default"}
 {"text": "What skills do you have?", "route": "direct", "rule": "default"}
 {"text": "Can you find meeting notes from recent howard county board meetings?", "route": "direct", "rule": "default"}
-{"text": "Find information online about howard county maryland's use of Automated License Plate Readers (ALPRs). Do they have a contract with Flock or a similar company?", "route": "direct", "rule": "default"}
+{"text": "Find information online about howard county maryland's use of Automated License Plate Readers (ALPRs). Do they have a contract with Flock or a similar company?", "route": "direct", "rule": "messy"}
 {"text": "I feel like we could, you know, use it even more.", "route": "direct", "rule": "default"}
 {"text": "Read and summarize those meeting noges", "route": "direct", "rule": "default"}
 {"text": "Read this page and give me the restaurants that serve unique foods -- https://washingtonian.com/2026/08/19/what-dcs-best-dining-spots-are-doing-for-summer-2026-restaurant-week/", "route": "research", "rule": "url"}
@@ -394,10 +394,10 @@
 {"text": "Give me the numbers", "route": "direct", "rule": "default"}
 {"text": "Is it any good for connective tissue?", "route": "direct", "rule": "default"}
 {"text": "Search online to find why someone told me that the texas Senate candidate, Talarico, said that God is beings", "route": "research", "rule": "search_phrase"}
-{"text": "There's something about the cost of borrowing going up and increasing government debts. Search online for this an explain the implications to me, a normal commercial investor", "route": "research", "rule": "search_phrase"}
+{"text": "There's something about the cost of borrowing going up and increasing government debts. Search online for this an explain the implications to me, a normal commercial investor", "route": "direct", "rule": "messy"}
 {"text": "What am I supposed to do with Amino Complex?", "route": "direct", "rule": "default"}
-{"text": "What is the distribution of interest being paid by the US government? How much is paid to American investors vs foreign?", "route": "direct", "rule": "default"}
-{"text": "Will it rain Sunday morning? I want to go to the Olney Farmers market", "route": "direct", "rule": "default"}
+{"text": "What is the distribution of interest being paid by the US government? How much is paid to American investors vs foreign?", "route": "direct", "rule": "messy"}
+{"text": "Will it rain Sunday morning? I want to go to the Olney Farmers market", "route": "direct", "rule": "messy"}
 {"text": "Does Hampton Sydney University have any design programs for their major?", "route": "direct", "rule": "default"}
 {"text": "Brief me.", "route": "direct", "rule": "default"}
 {"text": "Check online and provide an updated news brief", "route": "direct", "rule": "default"}
@@ -406,7 +406,7 @@
 {"text": "So what does 'victory' look like for the U.S. government?", "route": "direct", "rule": "default"}
 {"text": "What *are* the new measures?", "route": "direct", "rule": "default"}
 {"text": "What *is* a zimbra server?", "route": "direct", "rule": "default"}
-{"text": "What does the U.S. government want from Iran? Also, why now? Of all the problems going on in the world, why was \"war with Iran\" chosen?", "route": "direct", "rule": "default"}
+{"text": "What does the U.S. government want from Iran? Also, why now? Of all the problems going on in the world, why was \"war with Iran\" chosen?", "route": "direct", "rule": "messy"}
 {"text": "Where did you get that from?", "route": "direct", "rule": "default"}
 {"text": "give me a news brief", "route": "direct", "rule": "default"}
 {"text": "search online for it", "route": "research", "rule": "search_phrase"}
@@ -420,12 +420,12 @@
 {"text": "And Alibaba creates the Quinn LLM model, right?", "route": "direct", "rule": "default"}
 {"text": "Breathe me", "route": "direct", "rule": "default"}
 {"text": "Does the internet say anything about those Zimbra servers being in higher education customers?", "route": "direct", "rule": "default"}
-{"text": "Don't you think that's a little weird for the high temperature to be at 8 p.m. so late in the day?", "route": "direct", "rule": "default"}
+{"text": "Don't you think that's a little weird for the high temperature to be at 8 p.m. so late in the day?", "route": "direct", "rule": "messy"}
 {"text": "Grief me.", "route": "direct", "rule": "default"}
 {"text": "Isn't that abnormal though?", "route": "direct", "rule": "default"}
 {"text": "Reply with exactly this markdown: ### Test Header then a line with **bold words** and a [link](https://example.com)", "route": "research", "rule": "url"}
 {"text": "So what's the explanation for this forecast here today?", "route": "direct", "rule": "default"}
-{"text": "Summarize the book, The Language of Deception, Weaponizing Next Generation AI.  Focus on just chapters one and two.", "route": "direct", "rule": "default"}
+{"text": "Summarize the book, The Language of Deception, Weaponizing Next Generation AI.  Focus on just chapters one and two.", "route": "direct", "rule": "messy"}
 {"text": "What are the current US tariff rates on Chinese imports?", "route": "direct", "rule": "default"}
 {"text": "What is the latest news about US tariffs on semiconductors?", "route": "research", "rule": "search_phrase"}
 {"text": "What's the high today?", "route": "direct", "rule": "default"}
@@ -438,7 +438,7 @@
 {"text": "how much energy have the solar panels generated this week?", "route": "direct", "rule": "default"}
 {"text": "how much money did the panels earn this week?", "route": "direct", "rule": "default"}
 {"text": "update the news brief", "route": "direct", "rule": "default"}
-{"text": "what are the latest tariffs the U.S. has imposed on Canada? What items do they include?", "route": "direct", "rule": "default"}
+{"text": "what are the latest tariffs the U.S. has imposed on Canada? What items do they include?", "route": "direct", "rule": "messy"}
 {"text": "what items are subject to the recent U.S. tariffs on Canadian goods?", "route": "direct", "rule": "default"}
 {"text": "All four letters i gave you are yellow", "route": "direct", "rule": "default"}
 {"text": "Are there no other options?", "route": "direct", "rule": "default"}
@@ -446,23 +446,23 @@
 {"text": "Has the new formula for the flu vaccine been released?", "route": "direct", "rule": "default"}
 {"text": "How can I cure tonsil stones?", "route": "direct", "rule": "default"}
 {"text": "I mean when was last year's formula available", "route": "direct", "rule": "default"}
-{"text": "I'm playing wordl and the letters are \"p o a n\". What could the solution be?", "route": "direct", "rule": "default"}
+{"text": "I'm playing wordl and the letters are \"p o a n\". What could the solution be?", "route": "direct", "rule": "messy"}
 {"text": "Is it available now?", "route": "direct", "rule": "default"}
 {"text": "Is there a specific time?", "route": "direct", "rule": "default"}
 {"text": "The position is \"poan_\" and all my letters are yellow", "route": "direct", "rule": "default"}
 {"text": "When was it available last year?", "route": "direct", "rule": "default"}
 {"text": "Convert that to dollars", "route": "direct", "rule": "default"}
-{"text": "Didn't the U.S. recently launch a system of sanctions and extend them to any nation that works with Iran? A sort of economic choking?", "route": "direct", "rule": "default"}
+{"text": "Didn't the U.S. recently launch a system of sanctions and extend them to any nation that works with Iran? A sort of economic choking?", "route": "direct", "rule": "messy"}
 {"text": "Generate a short report that I can hand to the solar tech", "route": "direct", "rule": "default"}
 {"text": "Give me a status report on the panels", "route": "direct", "rule": "default"}
-{"text": "How does this end? I'm asking you to pull together your knowledge to speculate on what happens over the next few months and through the rest of the calendar year.", "route": "direct", "rule": "default"}
+{"text": "How does this end? I'm asking you to pull together your knowledge to speculate on what happens over the next few months and through the rest of the calendar year.", "route": "direct", "rule": "messy"}
 {"text": "How much money's worth of energy have the solar panels made this week?", "route": "direct", "rule": "default"}
-{"text": "This is vague. Give me specific threat actors/groups", "route": "direct", "rule": "default"}
+{"text": "This is vague. Give me specific threat actors/groups", "route": "direct", "rule": "messy"}
 {"text": "What's the latest on the iranian war?", "route": "direct", "rule": "default"}
 {"text": "When will the rain start?", "route": "direct", "rule": "default"}
-{"text": "active conflict zones? Don't summarize. Give me details", "route": "direct", "rule": "default"}
-{"text": "are there any other activities specifically targeting municipalities? I'm thinking things like US cities and state governments", "route": "direct", "rule": "default"}
-{"text": "are there any weather alerts for tonight? When will it start?", "route": "home", "rule": "weather"}
+{"text": "active conflict zones? Don't summarize. Give me details", "route": "direct", "rule": "messy"}
+{"text": "are there any other activities specifically targeting municipalities? I'm thinking things like US cities and state governments", "route": "direct", "rule": "messy"}
+{"text": "are there any weather alerts for tonight? When will it start?", "route": "direct", "rule": "messy"}
 {"text": "tell me more about that cybersecurity story, including the link", "route": "direct", "rule": "default"}
 {"text": "How much energy have the solar panels generated today?", "route": "direct", "rule": "default"}
 {"text": "how much energy have the solar panels generated today?", "route": "direct", "rule": "default"}
@@ -478,47 +478,47 @@
 {"text": "Maybe it's on some reddit threads", "route": "direct", "rule": "default"}
 {"text": "No, I mean Salisbury, like as in Salisbury University.", "route": "direct", "rule": "default"}
 {"text": "Ok maybe just Peter thiel, then", "route": "direct", "rule": "default"}
-{"text": "Search online and find any wierdness about jd Vance, Peter thiel, and their goal to bring about the antichrist. I'm told there are some odd theories", "route": "research", "rule": "search_phrase"}
+{"text": "Search online and find any wierdness about jd Vance, Peter thiel, and their goal to bring about the antichrist. I'm told there are some odd theories", "route": "direct", "rule": "messy"}
 {"text": "Search the Internet for the last two questions", "route": "direct", "rule": "default"}
 {"text": "What is Peter theil's religious beliefs around the anti Christ?", "route": "direct", "rule": "default"}
 {"text": "Where is Osbury, Maryland?", "route": "direct", "rule": "default"}
-{"text": "Where is the city of Salisbury? Is it on the eastern shore? Is it near Annapolis? What are the towns nearby?", "route": "direct", "rule": "default"}
+{"text": "Where is the city of Salisbury? Is it on the eastern shore? Is it near Annapolis? What are the towns nearby?", "route": "direct", "rule": "messy"}
 {"text": "Why is JD Vance focused on the anti Christ?", "route": "direct", "rule": "default"}
 {"text": "People always talk about how U.S. healthcare is overly expensive and that healthcare is cheaper in places like india (see https://sive.rs/inflow). But why is this? It's very unbalanced but I know that", "route": "research", "rule": "url"}
-{"text": "What time zone is Denver in? One sentence.", "route": "direct", "rule": "default"}
-{"text": "You said that the prices are lower. But I need you to find out *WHY* the prices are lower", "route": "direct", "rule": "default"}
-{"text": "Explain the mechanics of how a \"swarm of ai agents\" from OpenAI can communicate with each other and share tools & tactics. Here is some text from an article on the topic --- The AI agent breakout in G", "route": "direct", "rule": "default"}
-{"text": "Isn't this incident basically the same model, though, talking to itself over thousands of different conversations? And in this case, it's just posts on a wiki for that communication instead of, say, a", "route": "direct", "rule": "default"}
+{"text": "What time zone is Denver in? One sentence.", "route": "direct", "rule": "messy"}
+{"text": "You said that the prices are lower. But I need you to find out *WHY* the prices are lower", "route": "direct", "rule": "messy"}
+{"text": "Explain the mechanics of how a \"swarm of ai agents\" from OpenAI can communicate with each other and share tools & tactics. Here is some text from an article on the topic --- The AI agent breakout in G", "route": "direct", "rule": "messy"}
+{"text": "Isn't this incident basically the same model, though, talking to itself over thousands of different conversations? And in this case, it's just posts on a wiki for that communication instead of, say, a", "route": "direct", "rule": "messy"}
 {"text": "summarize our conversation", "route": "direct", "rule": "default"}
-{"text": "Why can you not play music right now?  Hm? Okay.", "route": "direct", "rule": "default"}
+{"text": "Why can you not play music right now?  Hm? Okay.", "route": "direct", "rule": "messy"}
 {"text": "And in dollars?", "route": "direct", "rule": "default"}
 {"text": "Assume $0.12 per kWh", "route": "direct", "rule": "default"}
-{"text": "Convert the energy produced by the solar panels last week into dollars. Look up the typical rates for my area", "route": "research", "rule": "search_phrase"}
+{"text": "Convert the energy produced by the solar panels last week into dollars. Look up the typical rates for my area", "route": "direct", "rule": "messy"}
 {"text": "High five.", "route": "direct", "rule": "default"}
 {"text": "How much energy have the solar panels produced this week?", "route": "direct", "rule": "default"}
 {"text": "Look it up", "route": "research", "rule": "search_phrase"}
 {"text": "Assume the Washington-Baltimore geography.", "route": "direct", "rule": "default"}
-{"text": "I was mistaken. It's in HTML format as well.", "route": "direct", "rule": "default"}
-{"text": "OPM publishes a PDF for this. Go look it up there.", "route": "research", "rule": "search_phrase"}
+{"text": "I was mistaken. It's in HTML format as well.", "route": "direct", "rule": "messy"}
+{"text": "OPM publishes a PDF for this. Go look it up there.", "route": "direct", "rule": "messy"}
 {"text": "What is the annual salary for a GS civilian on the GS pay scale at a grade 9 step 5?", "route": "direct", "rule": "default"}
 {"text": "Why can you not access it?", "route": "direct", "rule": "default"}
 {"text": "High five", "route": "direct", "rule": "default"}
 {"text": "How did Houdini die?", "route": "direct", "rule": "default"}
 {"text": "Spaceship", "route": "direct", "rule": "default"}
-{"text": "Well, and I'm worried about that.  That's why I needed to come.", "route": "direct", "rule": "default"}
+{"text": "Well, and I'm worried about that.  That's why I needed to come.", "route": "direct", "rule": "messy"}
 {"text": "What's the whole story?", "route": "direct", "rule": "default"}
 {"text": "ask the home agent", "route": "direct", "rule": "default"}
-{"text": "how much energy did the house use last year? Query the solar panel system to find out", "route": "direct", "rule": "default"}
+{"text": "how much energy did the house use last year? Query the solar panel system to find out", "route": "direct", "rule": "messy"}
 {"text": "what is the hostname for the solar panel pvs?", "route": "direct", "rule": "default"}
 {"text": "Cancel.", "route": "direct", "rule": "default"}
-{"text": "Do you know what's going on with Omarchy right now? 1pass and digital ocean have sent them tons of money and it looks like a Linux AI thing that's only been recently blowing up", "route": "direct", "rule": "default"}
+{"text": "Do you know what's going on with Omarchy right now? 1pass and digital ocean have sent them tons of money and it looks like a Linux AI thing that's only been recently blowing up", "route": "direct", "rule": "messy"}
 {"text": "but", "route": "direct", "rule": "default"}
 {"text": "the URL https://raw.githubusercontent.com/anthropics/mythos-5-incident-transcript/refs/heads/main/transcript.html is a transcript of a recent Claude Fable session. Read it and summarize it. DO NOT run", "route": "research", "rule": "url"}
 {"text": "up.", "route": "direct", "rule": "default"}
 {"text": "Any more rain today?", "route": "direct", "rule": "default"}
 {"text": "Does going for a run help a hangover?", "route": "direct", "rule": "default"}
 {"text": "temperature", "route": "direct", "rule": "default"}
-{"text": "Turn off the TV.  I have not.  That is not going to work.", "route": "direct", "rule": "default"}
+{"text": "Turn off the TV.  I have not.  That is not going to work.", "route": "direct", "rule": "messy"}
 {"text": "What did you just do?", "route": "direct", "rule": "default"}
 {"text": "What's the weather?", "route": "home", "rule": "weather"}
 {"text": "how is it outside right now?", "route": "direct", "rule": "default"}
@@ -529,12 +529,12 @@
 {"text": "Oh", "route": "direct", "rule": "default"}
 {"text": "That's a, that's a fun one.", "route": "direct", "rule": "default"}
 {"text": "I'll get it.", "route": "direct", "rule": "default"}
-{"text": "New topic. Discord recently announced age verification. What are some of the common ways people are getting through this age check gate?", "route": "direct", "rule": "default"}
+{"text": "New topic. Discord recently announced age verification. What are some of the common ways people are getting through this age check gate?", "route": "direct", "rule": "messy"}
 {"text": "At 5 p.m. today, remind me to fill out the government form.", "route": "direct", "rule": "default"}
 {"text": "Let's get it!", "route": "direct", "rule": "default"}
 {"text": "What are the ingredients in a paper plane cocktail?", "route": "direct", "rule": "default"}
 {"text": "What are the ingredients that I pay for playing cocktail?", "route": "direct", "rule": "default"}
-{"text": "Try that again. It's not playing on the speaker.", "route": "direct", "rule": "default"}
+{"text": "Try that again. It's not playing on the speaker.", "route": "direct", "rule": "messy"}
 {"text": "What Pink Floyd album has the song Learning to Fly?", "route": "direct", "rule": "default"}
 {"text": "according to conan the barbarian, what is best in life?", "route": "direct", "rule": "default"}
 {"text": " Start an orbital radio station on YouTube Music.", "route": "home", "rule": "music"}
@@ -7694,3 +7694,187 @@
 {"text": "so ask Kronk's please.", "route": "direct", "rule": "default"}
 {"text": "so ask Kronk's .?", "route": "direct", "rule": "default"}
 {"text": "so ask Kronk's ..", "route": "direct", "rule": "default"}
+{"text": "Play Anime Pop Radio. That's probably about it.", "route": "direct", "rule": "messy"}
+{"text": "Pause. Thank you.", "route": "direct", "rule": "messy"}
+{"text": "Thumbs up!  I know but you missed the best part.", "route": "direct", "rule": "messy"}
+{"text": "Never play Nickelback. Anyway, what's for dinner?", "route": "direct", "rule": "messy"}
+{"text": "Look up the score. Then play some jazz.", "route": "direct", "rule": "messy"}
+{"text": "What's the weather tomorrow? Play some jazz too.", "route": "direct", "rule": "messy"}
+{"text": "Update the magic mirror. And play some jazz.", "route": "direct", "rule": "messy"}
+{"text": "Thanks. Update the magic mirror.", "route": "direct", "rule": "messy"}
+{"text": "Restart the magic mirror. It froze again.", "route": "direct", "rule": "messy"}
+{"text": "play some jazz that is probably about it everything is pretty wet I just needed to make some space okay so yeah", "route": "direct", "rule": "messy"}
+{"text": "Ask Kronk to play jazz. That's all.", "route": "direct", "rule": "lead_in"}
+{"text": "Ask talkie about the moon. Then the stars.", "route": "talkie", "rule": "talkie_explicit"}
+{"text": "Don't search the web. Just tell me. Why is the sky blue?", "route": "direct", "rule": "direct_override"}
+{"text": "Play this. Here: https://music.youtube.com/watch?v=abc", "route": "home", "rule": "music_url"}
+{"text": "Summarize this. Here: https://example.com/a", "route": "research", "rule": "url"}
+{"text": "Play Mr. Brightside", "route": "home", "rule": "music"}
+{"text": "Play St. Vincent radio", "route": "home", "rule": "music"}
+{"text": "Play R.E.M.", "route": "home", "rule": "music"}
+{"text": "Play R.E.M. on the kitchen speaker", "route": "home", "rule": "music"}
+{"text": "play Dr. Dre", "route": "home", "rule": "music"}
+{"text": "Play U2.", "route": "home", "rule": "music"}
+{"text": "Play Mambo No. 5 by Lou Bega", "route": "home", "rule": "music"}
+{"text": "Play Hotel Costas Radio. in the Kitchen", "route": "home", "rule": "music"}
+{"text": "Play... Anime Pop Radio", "route": "home", "rule": "music"}
+{"text": "Play Panic! at the Disco", "route": "home", "rule": "music"}
+{"text": "Set an alarm for 7 a.m. tomorrow", "route": "direct", "rule": "default"}
+{"text": "Is 98.6 a fever?", "route": "direct", "rule": "default"}
+{"text": "Wake me at 7.30.", "route": "direct", "rule": "default"}
+{"text": "Pause. That's probably about it.", "route": "direct", "rule": "messy"}
+{"text": "Pause. in the Kitchen", "route": "direct", "rule": "default"}
+{"text": "Pause  Thank you.", "route": "direct", "rule": "default"}
+{"text": "Pause? Okay.", "route": "direct", "rule": "messy"}
+{"text": "Pause that is probably about it everything is pretty wet I just needed to make some space", "route": "direct", "rule": "default"}
+{"text": "Stop!.", "route": "home", "rule": "playback"}
+{"text": "Stop!. That's probably about it.", "route": "direct", "rule": "messy"}
+{"text": "Stop!. in the Kitchen", "route": "direct", "rule": "default"}
+{"text": "Stop!  Thank you.", "route": "direct", "rule": "messy"}
+{"text": "Stop!? Okay.", "route": "direct", "rule": "messy"}
+{"text": "Stop! that is probably about it everything is pretty wet I just needed to make some space", "route": "direct", "rule": "default"}
+{"text": "What song is this?.", "route": "home", "rule": "now_playing"}
+{"text": "What song is this?. That's probably about it.", "route": "direct", "rule": "messy"}
+{"text": "What song is this?. in the Kitchen", "route": "direct", "rule": "default"}
+{"text": "What song is this?  Thank you.", "route": "direct", "rule": "messy"}
+{"text": "What song is this?? Okay.", "route": "direct", "rule": "messy"}
+{"text": "What song is this? that is probably about it everything is pretty wet I just needed to make some space", "route": "direct", "rule": "default"}
+{"text": "Thumbs up", "route": "home", "rule": "rate"}
+{"text": "Thumbs up. That's probably about it.", "route": "direct", "rule": "messy"}
+{"text": "Thumbs up. in the Kitchen", "route": "direct", "rule": "default"}
+{"text": "Thumbs up  Thank you.", "route": "direct", "rule": "default"}
+{"text": "Thumbs up? Okay.", "route": "direct", "rule": "messy"}
+{"text": "Thumbs up that is probably about it everything is pretty wet I just needed to make some space", "route": "direct", "rule": "default"}
+{"text": "Not that", "route": "home", "rule": "music_another"}
+{"text": "Not that.", "route": "home", "rule": "music_another"}
+{"text": "Not that. That's probably about it.", "route": "direct", "rule": "messy"}
+{"text": "Not that. in the Kitchen", "route": "direct", "rule": "default"}
+{"text": "Not that  Thank you.", "route": "direct", "rule": "default"}
+{"text": "Not that? Okay.", "route": "direct", "rule": "messy"}
+{"text": "Not that that is probably about it everything is pretty wet I just needed to make some space", "route": "direct", "rule": "default"}
+{"text": "Never play Nickelback", "route": "home", "rule": "taste"}
+{"text": "Never play Nickelback.", "route": "home", "rule": "taste"}
+{"text": "Never play Nickelback. That's probably about it.", "route": "direct", "rule": "messy"}
+{"text": "Never play Nickelback. in the Kitchen", "route": "home", "rule": "taste"}
+{"text": "Never play Nickelback  Thank you.", "route": "home", "rule": "taste"}
+{"text": "Never play Nickelback? Okay.", "route": "direct", "rule": "messy"}
+{"text": "Never play Nickelback that is probably about it everything is pretty wet I just needed to make some space", "route": "home", "rule": "taste"}
+{"text": "Play Anime Pop Radio", "route": "home", "rule": "music"}
+{"text": "Play Anime Pop Radio.", "route": "home", "rule": "music"}
+{"text": "Play Anime Pop Radio. in the Kitchen", "route": "home", "rule": "music"}
+{"text": "Play Anime Pop Radio  Thank you.", "route": "home", "rule": "music"}
+{"text": "Play Anime Pop Radio? Okay.", "route": "direct", "rule": "messy"}
+{"text": "Play Anime Pop Radio that is probably about it everything is pretty wet I just needed to make some space", "route": "home", "rule": "music"}
+{"text": "Put on some jazz", "route": "home", "rule": "music"}
+{"text": "Put on some jazz.", "route": "home", "rule": "music"}
+{"text": "Put on some jazz. That's probably about it.", "route": "direct", "rule": "messy"}
+{"text": "Put on some jazz. in the Kitchen", "route": "home", "rule": "music"}
+{"text": "Put on some jazz  Thank you.", "route": "home", "rule": "music"}
+{"text": "Put on some jazz? Okay.", "route": "direct", "rule": "messy"}
+{"text": "Put on some jazz that is probably about it everything is pretty wet I just needed to make some space", "route": "home", "rule": "music"}
+{"text": "Look up the score", "route": "research", "rule": "search_phrase"}
+{"text": "Look up the score.", "route": "research", "rule": "search_phrase"}
+{"text": "Look up the score. That's probably about it.", "route": "direct", "rule": "messy"}
+{"text": "Look up the score. in the Kitchen", "route": "research", "rule": "search_phrase"}
+{"text": "Look up the score  Thank you.", "route": "research", "rule": "search_phrase"}
+{"text": "Look up the score? Okay.", "route": "direct", "rule": "messy"}
+{"text": "Look up the score that is probably about it everything is pretty wet I just needed to make some space", "route": "research", "rule": "search_phrase"}
+{"text": "What's the weather tomorrow?.", "route": "home", "rule": "weather"}
+{"text": "What's the weather tomorrow?. That's probably about it.", "route": "direct", "rule": "messy"}
+{"text": "What's the weather tomorrow?. in the Kitchen", "route": "home", "rule": "weather"}
+{"text": "What's the weather tomorrow?  Thank you.", "route": "direct", "rule": "messy"}
+{"text": "What's the weather tomorrow?? Okay.", "route": "direct", "rule": "messy"}
+{"text": "What's the weather tomorrow? that is probably about it everything is pretty wet I just needed to make some space", "route": "home", "rule": "weather"}
+{"text": "Update the magic mirror. That's probably about it.", "route": "direct", "rule": "messy"}
+{"text": "Update the magic mirror. in the Kitchen", "route": "home", "rule": "mm_update"}
+{"text": "Update the magic mirror  Thank you.", "route": "home", "rule": "mm_update"}
+{"text": "Update the magic mirror? Okay.", "route": "direct", "rule": "messy"}
+{"text": "Update the magic mirror that is probably about it everything is pretty wet I just needed to make some space", "route": "home", "rule": "mm_update"}
+{"text": "Restart the magic mirror", "route": "devops", "rule": "mm_ops"}
+{"text": "Restart the magic mirror.", "route": "devops", "rule": "mm_ops"}
+{"text": "Restart the magic mirror. That's probably about it.", "route": "direct", "rule": "messy"}
+{"text": "Restart the magic mirror. in the Kitchen", "route": "devops", "rule": "mm_ops"}
+{"text": "Restart the magic mirror  Thank you.", "route": "devops", "rule": "mm_ops"}
+{"text": "Restart the magic mirror? Okay.", "route": "direct", "rule": "messy"}
+{"text": "Restart the magic mirror that is probably about it everything is pretty wet I just needed to make some space", "route": "devops", "rule": "mm_ops"}
+{"text": " Pause. That's probably about it.", "route": "direct", "rule": "messy"}
+{"text": " Pause. in the Kitchen", "route": "direct", "rule": "default"}
+{"text": " Pause  Thank you.", "route": "direct", "rule": "default"}
+{"text": " Pause? Okay.", "route": "direct", "rule": "messy"}
+{"text": " Pause that is probably about it everything is pretty wet I just needed to make some space", "route": "direct", "rule": "default"}
+{"text": " Stop!.", "route": "home", "rule": "playback"}
+{"text": " Stop!. That's probably about it.", "route": "direct", "rule": "messy"}
+{"text": " Stop!. in the Kitchen", "route": "direct", "rule": "default"}
+{"text": " Stop!  Thank you.", "route": "direct", "rule": "messy"}
+{"text": " Stop!? Okay.", "route": "direct", "rule": "messy"}
+{"text": " Stop! that is probably about it everything is pretty wet I just needed to make some space", "route": "direct", "rule": "default"}
+{"text": " What song is this?", "route": "home", "rule": "now_playing"}
+{"text": " What song is this?.", "route": "home", "rule": "now_playing"}
+{"text": " What song is this?. That's probably about it.", "route": "direct", "rule": "messy"}
+{"text": " What song is this?. in the Kitchen", "route": "direct", "rule": "default"}
+{"text": " What song is this?  Thank you.", "route": "direct", "rule": "messy"}
+{"text": " What song is this?? Okay.", "route": "direct", "rule": "messy"}
+{"text": " What song is this? that is probably about it everything is pretty wet I just needed to make some space", "route": "direct", "rule": "default"}
+{"text": " Thumbs up", "route": "home", "rule": "rate"}
+{"text": " Thumbs up.", "route": "home", "rule": "rate"}
+{"text": " Thumbs up. That's probably about it.", "route": "direct", "rule": "messy"}
+{"text": " Thumbs up. in the Kitchen", "route": "direct", "rule": "default"}
+{"text": " Thumbs up  Thank you.", "route": "direct", "rule": "default"}
+{"text": " Thumbs up? Okay.", "route": "direct", "rule": "messy"}
+{"text": " Thumbs up that is probably about it everything is pretty wet I just needed to make some space", "route": "direct", "rule": "default"}
+{"text": " Not that", "route": "home", "rule": "music_another"}
+{"text": " Not that.", "route": "home", "rule": "music_another"}
+{"text": " Not that. That's probably about it.", "route": "direct", "rule": "messy"}
+{"text": " Not that. in the Kitchen", "route": "direct", "rule": "default"}
+{"text": " Not that  Thank you.", "route": "direct", "rule": "default"}
+{"text": " Not that? Okay.", "route": "direct", "rule": "messy"}
+{"text": " Not that that is probably about it everything is pretty wet I just needed to make some space", "route": "direct", "rule": "default"}
+{"text": " Never play Nickelback", "route": "home", "rule": "taste"}
+{"text": " Never play Nickelback.", "route": "home", "rule": "taste"}
+{"text": " Never play Nickelback. That's probably about it.", "route": "direct", "rule": "messy"}
+{"text": " Never play Nickelback. in the Kitchen", "route": "home", "rule": "taste"}
+{"text": " Never play Nickelback  Thank you.", "route": "home", "rule": "taste"}
+{"text": " Never play Nickelback? Okay.", "route": "direct", "rule": "messy"}
+{"text": " Never play Nickelback that is probably about it everything is pretty wet I just needed to make some space", "route": "home", "rule": "taste"}
+{"text": " Play Anime Pop Radio", "route": "home", "rule": "music"}
+{"text": " Play Anime Pop Radio.", "route": "home", "rule": "music"}
+{"text": " Play Anime Pop Radio. That's probably about it.", "route": "direct", "rule": "messy"}
+{"text": " Play Anime Pop Radio. in the Kitchen", "route": "home", "rule": "music"}
+{"text": " Play Anime Pop Radio  Thank you.", "route": "home", "rule": "music"}
+{"text": " Play Anime Pop Radio? Okay.", "route": "direct", "rule": "messy"}
+{"text": " Play Anime Pop Radio that is probably about it everything is pretty wet I just needed to make some space", "route": "home", "rule": "music"}
+{"text": " Put on some jazz", "route": "home", "rule": "music"}
+{"text": " Put on some jazz.", "route": "home", "rule": "music"}
+{"text": " Put on some jazz. That's probably about it.", "route": "direct", "rule": "messy"}
+{"text": " Put on some jazz. in the Kitchen", "route": "home", "rule": "music"}
+{"text": " Put on some jazz  Thank you.", "route": "home", "rule": "music"}
+{"text": " Put on some jazz? Okay.", "route": "direct", "rule": "messy"}
+{"text": " Put on some jazz that is probably about it everything is pretty wet I just needed to make some space", "route": "home", "rule": "music"}
+{"text": " Look up the score", "route": "research", "rule": "search_phrase"}
+{"text": " Look up the score.", "route": "research", "rule": "search_phrase"}
+{"text": " Look up the score. That's probably about it.", "route": "direct", "rule": "messy"}
+{"text": " Look up the score. in the Kitchen", "route": "research", "rule": "search_phrase"}
+{"text": " Look up the score  Thank you.", "route": "research", "rule": "search_phrase"}
+{"text": " Look up the score? Okay.", "route": "direct", "rule": "messy"}
+{"text": " Look up the score that is probably about it everything is pretty wet I just needed to make some space", "route": "research", "rule": "search_phrase"}
+{"text": " What's the weather tomorrow?", "route": "home", "rule": "weather"}
+{"text": " What's the weather tomorrow?.", "route": "home", "rule": "weather"}
+{"text": " What's the weather tomorrow?. That's probably about it.", "route": "direct", "rule": "messy"}
+{"text": " What's the weather tomorrow?. in the Kitchen", "route": "home", "rule": "weather"}
+{"text": " What's the weather tomorrow?  Thank you.", "route": "direct", "rule": "messy"}
+{"text": " What's the weather tomorrow?? Okay.", "route": "direct", "rule": "messy"}
+{"text": " What's the weather tomorrow? that is probably about it everything is pretty wet I just needed to make some space", "route": "home", "rule": "weather"}
+{"text": " Update the magic mirror", "route": "home", "rule": "mm_update"}
+{"text": " Update the magic mirror.", "route": "home", "rule": "mm_update"}
+{"text": " Update the magic mirror. That's probably about it.", "route": "direct", "rule": "messy"}
+{"text": " Update the magic mirror. in the Kitchen", "route": "home", "rule": "mm_update"}
+{"text": " Update the magic mirror  Thank you.", "route": "home", "rule": "mm_update"}
+{"text": " Update the magic mirror? Okay.", "route": "direct", "rule": "messy"}
+{"text": " Update the magic mirror that is probably about it everything is pretty wet I just needed to make some space", "route": "home", "rule": "mm_update"}
+{"text": " Restart the magic mirror", "route": "devops", "rule": "mm_ops"}
+{"text": " Restart the magic mirror.", "route": "devops", "rule": "mm_ops"}
+{"text": " Restart the magic mirror. That's probably about it.", "route": "direct", "rule": "messy"}
+{"text": " Restart the magic mirror. in the Kitchen", "route": "devops", "rule": "mm_ops"}
+{"text": " Restart the magic mirror  Thank you.", "route": "devops", "rule": "mm_ops"}
+{"text": " Restart the magic mirror? Okay.", "route": "direct", "rule": "messy"}
+{"text": " Restart the magic mirror that is probably about it everything is pretty wet I just needed to make some space", "route": "devops", "rule": "mm_ops"}

@@ -26,11 +26,11 @@ REPO = CORPUS.parent.parent
 
 ROWS = [json.loads(line) for line in CORPUS.read_text().splitlines() if line.strip()]
 
-# The 16 outcomes of routing._classify_inner, in order (plan C4 / M7; the
-# lead-in first since M19).
+# The 17 outcomes of routing._classify_inner, in order (plan C4 / M7; the
+# lead-in first since M19; the messy gate after url since M14).
 RULES = {
     "lead_in": "direct", "talkie_explicit": "talkie", "direct_override": "direct", "music_url": "home",
-    "url": "research", "search_phrase": "research", "weather": "home",
+    "url": "research", "messy": "direct", "search_phrase": "research", "weather": "home",
     "playback": "home", "now_playing": "home", "rate": "home",
     "music_another": "home", "taste": "home", "music": "home",
     "mm_update": "home", "mm_ops": "devops", "default": "direct",

@@ -15,6 +15,10 @@ them carry a direct tool call that the pipeline runs with no model at all —
 docs/features/direct-dispatch.md. Since sprint M19 the first rule is the
 spoken lead-in ("ask Kronk to ..."), which skips every other rule and hands
 the rest of the sentence to the coordinator — docs/features/lead-in.md.
+Since sprint M14 the `messy` rule (the messy-transcript gate) sends a request
+with more than one sentence, or too many words, to the coordinator ahead of
+every fast path that reads the text as one clean command —
+docs/features/messy-transcript-gate.md.
 """
 import functools
 import re
@@ -23,6 +27,7 @@ from typing import Callable
 
 import config_loader
 import telemetry
+import transcript_gate
 from events import emit
 
 _URL_RE = re.compile(r'https?://')
@@ -315,6 +320,26 @@ def lead_in_request(text: str | None) -> str | None:
     return None if _EMPTY_REQUEST.fullmatch(request) else request
 
 
+# The messy-transcript gate (sprint M14; Drew, 2026-11-11): messy input goes
+# to the model, the rules handle clean input only. transcript_gate.check()
+# is the only place "messy" is decided; the limits are config/tuning.yaml's
+# transcript_gate, read on each call so a reload is followed. Nothing is
+# trimmed: the coordinator gets the whole transcript.
+def messy(text: str | None) -> transcript_gate.Messy | None:
+    """Why `text` is messy (more sentences or more words than the limits
+    in effect), or None when it is clean or the gate is off."""
+    g = config_loader.current().tuning.transcript_gate
+    return transcript_gate.check(text, g.max_sentences, g.max_words)
+
+
+def asks_to_clear_history(text: str | None) -> bool:
+    """The transports' "clear my history" intercept, which runs before
+    routing: CLEAR_HISTORY_RE anywhere in a request the gate calls clean.
+    A messy one ("Play jazz. Forget the conversation.") goes to the
+    pipeline like any other (sprint M14)."""
+    return bool(text) and CLEAR_HISTORY_RE.search(text) is not None and messy(text) is None
+
+
 # ── The rules table (review item O12, sprint M7) ─────────────────────────────
 #
 # Routing is this ordered table: the first rule whose matcher accepts the
@@ -340,6 +365,9 @@ def lead_in_request(text: str | None) -> str | None:
 # the match, the text the model is given in place of the utterance (the
 # request without the lead-in). main._run_pipeline gives the coordinator
 # that text and sets origin.said to it.
+#
+# The messy gate (sprint M14) is the one rule with `detail`: why it fired
+# (which half, the counts, the limits), for its event and span.
 
 DirectCall = tuple[str, dict]
 
@@ -351,6 +379,7 @@ class Rule:
     match: Callable[[str], object]  # truthy when the rule applies
     direct: Callable[[object], DirectCall] | None = None   # match -> the tool call
     request: Callable[[object], str] | None = None         # match -> the model's text
+    detail: Callable[[object], dict] | None = None         # match -> why, for event and span
 
 
 @dataclass(frozen=True)
@@ -359,6 +388,7 @@ class Decision:
     rule: str
     direct: DirectCall | None = None   # (tool_name, args) to run without a model
     request: str | None = None         # the model's text, when not the utterance
+    detail: dict | None = None         # why the rule fired (the messy gate)
 
 
 def _group(m: re.Match, table: dict[str, str]) -> str:
@@ -389,6 +419,16 @@ RULES: tuple[Rule, ...] = (
     Rule("direct_override", "direct", lambda t: _DIRECT_OVERRIDE.search(t)),
     Rule("music_url",       "home",     lambda t: _MUSIC_URL_RE.search(t)),
     Rule("url",             "research", lambda t: _URL_RE.search(t)),
+    # The messy-transcript gate (sprint M14). The five rules above stay
+    # ahead of it because none reads the text as one clean command: the
+    # lead-in and direct_override already go to the coordinator, Talkie is
+    # named explicitly and is not on the coordinator's menu, and a typed
+    # link is the request's object wherever it sits. Every rule below reads
+    # the utterance as a single command (anchored, or a phrase anywhere
+    # taken to be the request's method or topic), so a transcript with
+    # trailing speech or several requests goes to the coordinator, whole.
+    Rule("messy",           "direct",   lambda t: messy(t),
+         detail=lambda m: m.as_dict()),
     Rule("search_phrase",   "research", lambda t: _SEARCH_PHRASES.search(t)),
     Rule("weather",         "home",     lambda t: _WEATHER_RE.search(t)),
     Rule("playback",        "home",     lambda t: _PLAYBACK_RE.search(t),
@@ -422,7 +462,8 @@ def decide(text: str) -> Decision:
         if m := rule.match(text):
             return Decision(rule.route, rule.name,
                             rule.direct(m) if rule.direct else None,
-                            rule.request(m) if rule.request else None)
+                            rule.request(m) if rule.request else None,
+                            rule.detail(m) if rule.detail else None)
     raise AssertionError("unreachable: the default rule accepts everything")
 
 
@@ -442,6 +483,9 @@ async def classify(text: str, prior_history: list[dict]) -> str:
         if d.request is not None:
             # The lead-in (M19): how much of the utterance was cut off.
             meta["lead_in_chars"] = len(text) - len(d.request)
+        if d.detail:
+            # The messy gate (M14): which half fired, the counts, the limits.
+            meta.update({f"messy_{k}": v for k, v in d.detail.items()})
         span.end(output=d.route, metadata=meta)
         return d.route
     except Exception as e:
@@ -457,6 +501,9 @@ def _record(d: Decision, text: str) -> Decision:
         emit("route", text_preview=text[:60], route=d.route, rule=d.rule)
     elif d.direct:
         emit("route_shortcut", rule=d.rule, route=d.route, direct=True, tool=d.direct[0])
+    elif d.detail:
+        # The messy gate (M14): reason, sentences, words, max_sentences, max_words.
+        emit("route_shortcut", rule=d.rule, route=d.route, **d.detail)
     else:
         emit("route_shortcut", rule=d.rule, route=d.route)
     return d

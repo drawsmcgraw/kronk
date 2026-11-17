@@ -630,8 +630,9 @@ async def message(req: MessageRequest):
     session_id = req.session_id or WEBUI_SESSION
 
     # Deterministic pre-route intercept: same behavior as the UI's clear
-    # button, reachable by voice/text ("clear my history").
-    if routing.CLEAR_HISTORY_RE.search(req.text):
+    # button, reachable by voice/text ("clear my history"). Not for a messy
+    # request (sprint M14): that one goes to the pipeline.
+    if routing.asks_to_clear_history(req.text):
         return _clear_history_stream(session_id)
 
     async def stream():
@@ -774,7 +775,8 @@ async def _kronk_pipeline_tokens(text: str, model: str, context: list[dict] | No
     # Voice "clear my history": confirm and stop. There is no Kronk-side
     # store for shim clients (HA owns and resends voice history; its window
     # expires between conversations), so confirmation is the whole job.
-    if routing.CLEAR_HISTORY_RE.search(text):
+    # Not for a messy request (sprint M14): that one goes to the pipeline.
+    if routing.asks_to_clear_history(text):
         emit("history_cleared", session="shim")
         yield {"type": "token", "text": "Done — fresh start."}
         return

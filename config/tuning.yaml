@@ -61,3 +61,25 @@ tool_timeouts:
     # A cache read is under 2 s; refresh=true regenerates the brief (feeds
     # and one LLM call, about 20 to 35 s).
     news_brief: 90
+
+# The messy-transcript gate (sprint M14; docs/features/messy-transcript-gate.md).
+# A request with more sentences, or more words, than these skips the
+# rule-based fast paths (routing rule `messy`, after the typed-link rules)
+# and goes to the coordinator whole, which picks out the request. Messy
+# input goes to the model; the rules handle clean input only (Drew,
+# 2026-11-11). Nothing is trimmed. Provisional: set on 2026-11-17 from the
+# data that existed before M12 (corpus, routing_eval.jsonl, production
+# requests since 2026-09-14); replace them from M12's transcripts with the
+# query in the feature doc. null switches that half of the gate off.
+transcript_gate:
+  # More sentences than this is messy. How a sentence is counted (a single
+  # trailing full stop, initials, "Mr.", "No. 5", an ellipsis and a full
+  # stop before a lowercase word do not count): orchestrator/transcript_gate.py.
+  # Every multi-sentence request a fast-path rule took in the data was
+  # trailing speech or a request with context. 1 to 20, or null.
+  max_sentences: 1
+  # More words than this is messy. The longest one-sentence request a
+  # fast-path rule took in the data had 19 words (typed; spoken, 16). Above
+  # 20 words a clean request takes the model path: slower, not wrong.
+  # 1 to 500, or null.
+  max_words: 20

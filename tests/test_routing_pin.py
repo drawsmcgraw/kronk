@@ -25,6 +25,15 @@ Kronk to ...", decided by Drew 2026-11-11), first in the order, 16 outcomes.
 Its frozen matcher is FROZEN_LEAD_IN below (the pattern built from the
 shipped config/lead_in.yaml); its utterances were appended to the fixture
 and every earlier row kept its (route, rule).
+
+Sprint M14 made the second: the `messy` rule (the messy-transcript gate,
+decided by Drew 2026-11-11), after `url`, 17 outcomes. Its frozen matcher is
+transcript_gate.check with the shipped limits (FROZEN_GATE_LIMITS); the
+counter itself is pinned by tests/test_transcript_gate.py. The 83 fixture
+rows the gate calls messy changed their (route, rule) to direct/messy, in
+place (69 of them were direct/default already); every other row kept its
+(route, rule), and the gate's own utterances were appended.
+docs/sprint/M14-build.md lists the 83.
 """
 import asyncio
 import itertools
@@ -35,20 +44,21 @@ from pathlib import Path
 import pytest
 
 import routing
+import transcript_gate
 
 PIN = Path(__file__).resolve().parent / "fixtures" / "routing_pin.jsonl"
 
-# The 16 outcomes, in the order _classify_inner tries them (plan, "Verified
-# on Kronk, 2026-11-15", M7 line; `lead_in` first since M19). "default" is
-# the fall-through.
+# The 17 outcomes, in the order _classify_inner tries them (plan, "Verified
+# on Kronk, 2026-11-15", M7 line; `lead_in` first since M19; `messy` after
+# `url` since M14). "default" is the fall-through.
 ORDER = [
-    "lead_in", "talkie_explicit", "direct_override", "music_url", "url", "search_phrase",
+    "lead_in", "talkie_explicit", "direct_override", "music_url", "url", "messy", "search_phrase",
     "weather", "playback", "now_playing", "rate", "music_another", "taste",
     "music", "mm_update", "mm_ops", "default",
 ]
 ROUTES = {
     "lead_in": "direct", "talkie_explicit": "talkie", "direct_override": "direct", "music_url": "home",
-    "url": "research", "search_phrase": "research", "weather": "home",
+    "url": "research", "messy": "direct", "search_phrase": "research", "weather": "home",
     "playback": "home", "now_playing": "home", "rate": "home",
     "music_another": "home", "taste": "home", "music": "home",
     "mm_update": "home", "mm_ops": "devops", "default": "direct",
@@ -154,7 +164,17 @@ def _frozen_lead_in(text: str) -> bool:
     return bool(m) and not _FROZEN_EMPTY_REQUEST.fullmatch(m.group("request").strip())
 
 
-# Rule -> its matcher at 7c83f36 (lead_in: M19), built from the frozen copies.
+# The messy gate (sprint M14) with the limits shipped in config/tuning.yaml:
+# more than one sentence, or more than 20 words.
+FROZEN_GATE_LIMITS = (1, 20)
+
+
+def _frozen_messy(text: str) -> bool:
+    return transcript_gate.check(text, *FROZEN_GATE_LIMITS) is not None
+
+
+# Rule -> its matcher at 7c83f36 (lead_in: M19, messy: M14), built from the
+# frozen copies.
 _F = FROZEN
 FROZEN_MATCHERS = {
     "lead_in":         _frozen_lead_in,
@@ -162,6 +182,7 @@ FROZEN_MATCHERS = {
     "direct_override": lambda t: _F["_DIRECT_OVERRIDE"].search(t),
     "music_url":       lambda t: _F["_MUSIC_URL_RE"].search(t),
     "url":             lambda t: _F["_URL_RE"].search(t),
+    "messy":           _frozen_messy,
     "search_phrase":   lambda t: _F["_SEARCH_PHRASES"].search(t),
     "weather":         lambda t: _F["_WEATHER_RE"].search(t),
     "playback":        lambda t: _F["_PLAYBACK_RE"].search(t),
@@ -234,6 +255,36 @@ OVERLAPS = [
     "tell Kronk to pause",                                      # default (not the lead-in verb)
     "ask Kronk",                                                # default (nothing after it)
     "ask Kronk to.",                                            # default (nothing after it)
+    # sprint M14: the gate sits after the typed-link rules, before the rest
+    "Play Anime Pop Radio. That's probably about it.",          # messy > music
+    "Pause. Thank you.",                                        # messy (playback is anchored anyway)
+    "Thumbs up!  I know but you missed the best part.",         # messy (rate is anchored anyway)
+    "Never play Nickelback. Anyway, what's for dinner?",        # messy > taste
+    "Look up the score. Then play some jazz.",                  # messy > search_phrase
+    "What's the weather tomorrow? Play some jazz too.",         # messy > weather
+    "Update the magic mirror. And play some jazz.",             # messy > mm_update
+    "Thanks. Update the magic mirror.",                         # messy > mm_update
+    "Restart the magic mirror. It froze again.",                # messy > mm_ops
+    "play some jazz that is probably about it everything is pretty wet I just needed to make some space okay so yeah",  # messy (22 words) > music
+    "Ask Kronk to play jazz. That's all.",                      # lead_in > messy
+    "Ask talkie about the moon. Then the stars.",               # talkie > messy
+    "Don't search the web. Just tell me. Why is the sky blue?",  # direct_override > messy
+    "Play this. Here: https://music.youtube.com/watch?v=abc",         # music_url > messy
+    "Summarize this. Here: https://example.com/a",                    # url > messy
+    # look-alikes the gate calls clean (sprint M14 criterion 3)
+    "Play Mr. Brightside",                                      # music
+    "Play St. Vincent radio",                                   # music
+    "Play R.E.M.",                                              # music
+    "Play R.E.M. on the kitchen speaker",                       # music
+    "play Dr. Dre",                                             # music
+    "Play U2.",                                                 # music
+    "Play Mambo No. 5 by Lou Bega",                             # music
+    "Play Hotel Costas Radio. in the Kitchen",                  # music (the blueprint's room suffix)
+    "Play... Anime Pop Radio",                                  # music (ellipsis)
+    "Play Panic! at the Disco",                                 # music ("!" before lowercase)
+    "Set an alarm for 7 a.m. tomorrow",                         # default
+    "Is 98.6 a fever?",                                         # default
+    "Wake me at 7.30.",                                         # default
 ]
 
 
@@ -302,6 +353,16 @@ def variants() -> list[str]:
             ["pause", "play some jazz", "what song is this", "update the magic mirror",
              "", "please", "."],
             ["", "?", "."])
+    # the messy gate (sprint M14): a command for each rule behind the gate,
+    # alone and with a second sentence, a lowercase tail, or a run-on tail
+    product(["", " "],
+            ["Pause", "Stop!", "What song is this?", "Thumbs up", "Not that",
+             "Never play Nickelback", "Play Anime Pop Radio", "Put on some jazz",
+             "Look up the score", "What's the weather tomorrow?",
+             "Update the magic mirror", "Restart the magic mirror"],
+            ["", ".", ". That's probably about it.", ". in the Kitchen",
+             "  Thank you.", "? Okay.",
+             " that is probably about it everything is pretty wet I just needed to make some space"])
     return out
 
 
@@ -316,8 +377,8 @@ def _first_frozen(text: str) -> str:
 
 # ── 1. The outcomes and their order ──────────────────────────────────────────
 
-def test_sixteen_outcomes_and_their_routes():
-    assert len(ORDER) == 16 and len(set(ORDER)) == 16
+def test_seventeen_outcomes_and_their_routes():
+    assert len(ORDER) == 17 and len(set(ORDER)) == 17
     assert set(ROUTES) == set(ORDER)
 
 
@@ -385,6 +446,17 @@ def test_regex_accepts_what_its_frozen_copy_accepts(name):
     assert not diff, f"{name} differs from 7c83f36 on: {diff[:10]}"
 
 
+def test_gate_limits_are_the_frozen_ones():
+    """The limits in effect (the shipped config/tuning.yaml) are the frozen
+    ones, so the gate decides every pinned utterance as the pin says
+    (sprint M14)."""
+    import config_loader
+    g = config_loader.current().tuning.transcript_gate
+    assert (g.max_sentences, g.max_words) == FROZEN_GATE_LIMITS
+    diff = [r["text"] for r in PIN_ROWS if (routing.messy(r["text"]) is not None) != _frozen_messy(r["text"])]
+    assert not diff, diff[:10]
+
+
 def test_lead_in_matches_its_frozen_copy():
     """The lead-in pattern built from the shipped config/lead_in.yaml is the
     frozen one, and accepts (with a non-empty request) exactly what the
@@ -399,7 +471,7 @@ def test_lead_in_matches_its_frozen_copy():
 
 # ── 4. The table itself (O12, added with the refactor) ───────────────────────
 
-def test_rules_table_is_the_sixteen_outcomes_in_order():
+def test_rules_table_is_the_seventeen_outcomes_in_order():
     assert [r.name for r in routing.RULES] == ORDER
     assert {r.name: r.route for r in routing.RULES} == ROUTES
 

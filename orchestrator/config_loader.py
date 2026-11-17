@@ -195,10 +195,20 @@ class ToolTimeouts(_Strict):
         return self.default_s if value is None else value
 
 
+class TranscriptGate(_Strict):
+    """The messy-transcript gate (sprint M14; transcript_gate.py): more
+    sentences or more words than these sends a request past the fast paths
+    to the coordinator. None switches that half off. Defaults are the
+    shipped tuning.yaml (tests/test_transcript_gate.py compares them)."""
+    max_sentences: int | None = Field(1, ge=1, le=20)
+    max_words: int | None = Field(20, ge=1, le=500)
+
+
 class Tuning(_Strict):
     agent_loop: AgentLoop = Field(default_factory=AgentLoop)
     weather_context: WeatherContext = Field(default_factory=WeatherContext)
     tool_timeouts: ToolTimeouts = Field(default_factory=ToolTimeouts)
+    transcript_gate: TranscriptGate = Field(default_factory=TranscriptGate)   # sprint M14
 
 
 # The spoken lead-in (sprint M19): [filler ...] <verb> <name> [to] <request>.
