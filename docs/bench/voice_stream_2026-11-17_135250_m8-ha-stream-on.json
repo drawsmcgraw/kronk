@@ -1,0 +1,757 @@
+{
+  "mode": "ha",
+  "pipeline": "kronk-dev",
+  "kronk_url": "http://localhost/dev/voice",
+  "pipeline_tts": {
+    "tts_engine": "tts.piper",
+    "tts_voice": "en_US-hfc_male-medium",
+    "conversation_engine": "conversation.kronk_dev",
+    "prefer_local_intents": true
+  },
+  "rows": [
+    {
+      "question": "explain how a heat pump works",
+      "run": 1,
+      "run_start_tts_output": {
+        "token": "w3QIdHDAd_OkKGdUMfePRA.mp3",
+        "url": "/api/tts_proxy/w3QIdHDAd_OkKGdUMfePRA.mp3",
+        "mime_type": "audio/mpeg",
+        "stream_response": true
+      },
+      "tts_start_streaming_s": 0.594,
+      "first_content_delta_s": 0.594,
+      "content_deltas": 2,
+      "content_delta_times": [
+        0.594,
+        0.728
+      ],
+      "intent_end_s": 0.728,
+      "tts_start_s": 0.728,
+      "tts_end_s": 0.728,
+      "run_end_s": 0.728,
+      "error": null,
+      "event_types": [
+        [
+          0.001,
+          "run-start"
+        ],
+        [
+          0.001,
+          "intent-start"
+        ],
+        [
+          0.594,
+          "intent-progress"
+        ],
+        [
+          0.594,
+          "intent-progress"
+        ],
+        [
+          0.728,
+          "intent-progress"
+        ],
+        [
+          0.728,
+          "intent-progress"
+        ],
+        [
+          0.728,
+          "intent-end"
+        ],
+        [
+          0.728,
+          "tts-start"
+        ],
+        [
+          0.728,
+          "tts-end"
+        ],
+        [
+          0.728,
+          "run-end"
+        ]
+      ],
+      "rid": "42a52ca0",
+      "trace_id": "69841deabdd1235ce04fea287a174ceb",
+      "route": "direct",
+      "generation_s": 0.68,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          0.68
+        ]
+      ],
+      "pipeline_s": 0.72,
+      "voice_stream": {
+        "ts": 1794923573.073,
+        "rid": "42a52ca0",
+        "event": "voice_stream",
+        "trace_id": "69841deabdd1235ce04fea287a174ceb",
+        "error": null,
+        "chunks": 2,
+        "first_chunk_ms": 584,
+        "done_ms": 719,
+        "hold": 1,
+        "retracts": 0,
+        "retract_held_chars": 0,
+        "retract_unhonoured": 0,
+        "retract_unhonoured_chars": 0,
+        "spoken_chars": 274
+      }
+    },
+    {
+      "question": "how does a refrigerator keep food cold",
+      "run": 1,
+      "run_start_tts_output": {
+        "token": "FKCzeIbVbv-2MPqArx6tfA.mp3",
+        "url": "/api/tts_proxy/FKCzeIbVbv-2MPqArx6tfA.mp3",
+        "mime_type": "audio/mpeg",
+        "stream_response": true
+      },
+      "tts_start_streaming_s": 1.805,
+      "first_content_delta_s": 1.805,
+      "content_deltas": 2,
+      "content_delta_times": [
+        1.805,
+        1.974
+      ],
+      "intent_end_s": 1.974,
+      "tts_start_s": 1.974,
+      "tts_end_s": 1.974,
+      "run_end_s": 1.974,
+      "error": null,
+      "event_types": [
+        [
+          0.002,
+          "run-start"
+        ],
+        [
+          0.002,
+          "intent-start"
+        ],
+        [
+          1.805,
+          "intent-progress"
+        ],
+        [
+          1.805,
+          "intent-progress"
+        ],
+        [
+          1.974,
+          "intent-progress"
+        ],
+        [
+          1.974,
+          "intent-progress"
+        ],
+        [
+          1.974,
+          "intent-end"
+        ],
+        [
+          1.974,
+          "tts-start"
+        ],
+        [
+          1.974,
+          "tts-end"
+        ],
+        [
+          1.974,
+          "run-end"
+        ]
+      ],
+      "rid": "47a2bfe0",
+      "trace_id": "3a5ebdebe351fde2649d6d703efab5de",
+      "route": "direct",
+      "generation_s": 1.94,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          1.94
+        ]
+      ],
+      "pipeline_s": 1.96,
+      "voice_stream": {
+        "ts": 1794923575.08,
+        "rid": "47a2bfe0",
+        "event": "voice_stream",
+        "trace_id": "3a5ebdebe351fde2649d6d703efab5de",
+        "error": null,
+        "chunks": 2,
+        "first_chunk_ms": 1791,
+        "done_ms": 1962,
+        "hold": 1,
+        "retracts": 0,
+        "retract_held_chars": 0,
+        "retract_unhonoured": 0,
+        "retract_unhonoured_chars": 0,
+        "spoken_chars": 287
+      }
+    },
+    {
+      "question": "why is the sky blue",
+      "run": 1,
+      "skipped": "fuzzy HassGetCurrentTime only (strict pass misses)"
+    },
+    {
+      "question": "how do vaccines work",
+      "run": 1,
+      "run_start_tts_output": {
+        "token": "N9tmr4mUI5MOZ9C64424rg.mp3",
+        "url": "/api/tts_proxy/N9tmr4mUI5MOZ9C64424rg.mp3",
+        "mime_type": "audio/mpeg",
+        "stream_response": true
+      },
+      "tts_start_streaming_s": 0.563,
+      "first_content_delta_s": 0.563,
+      "content_deltas": 2,
+      "content_delta_times": [
+        0.563,
+        0.823
+      ],
+      "intent_end_s": 0.823,
+      "tts_start_s": 0.824,
+      "tts_end_s": 0.824,
+      "run_end_s": 0.824,
+      "error": null,
+      "event_types": [
+        [
+          0.003,
+          "run-start"
+        ],
+        [
+          0.003,
+          "intent-start"
+        ],
+        [
+          0.563,
+          "intent-progress"
+        ],
+        [
+          0.563,
+          "intent-progress"
+        ],
+        [
+          0.823,
+          "intent-progress"
+        ],
+        [
+          0.823,
+          "intent-progress"
+        ],
+        [
+          0.823,
+          "intent-end"
+        ],
+        [
+          0.824,
+          "tts-start"
+        ],
+        [
+          0.824,
+          "tts-end"
+        ],
+        [
+          0.824,
+          "run-end"
+        ]
+      ],
+      "rid": "2978633c",
+      "trace_id": "a5da1b42df04232557588677316445c9",
+      "route": "direct",
+      "generation_s": 0.79,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          0.79
+        ]
+      ],
+      "pipeline_s": 0.81,
+      "voice_stream": {
+        "ts": 1794923575.946,
+        "rid": "2978633c",
+        "event": "voice_stream",
+        "trace_id": "a5da1b42df04232557588677316445c9",
+        "error": null,
+        "chunks": 2,
+        "first_chunk_ms": 551,
+        "done_ms": 812,
+        "hold": 1,
+        "retracts": 0,
+        "retract_held_chars": 0,
+        "retract_unhonoured": 0,
+        "retract_unhonoured_chars": 0,
+        "spoken_chars": 358
+      }
+    },
+    {
+      "question": "what causes the seasons on earth",
+      "run": 1,
+      "run_start_tts_output": {
+        "token": "qNJ_S_JHWfatEAMzTlq57w.mp3",
+        "url": "/api/tts_proxy/qNJ_S_JHWfatEAMzTlq57w.mp3",
+        "mime_type": "audio/mpeg",
+        "stream_response": true
+      },
+      "tts_start_streaming_s": 2.935,
+      "first_content_delta_s": 2.935,
+      "content_deltas": 1,
+      "content_delta_times": [
+        2.935
+      ],
+      "intent_end_s": 2.936,
+      "tts_start_s": 2.936,
+      "tts_end_s": 2.936,
+      "run_end_s": 2.936,
+      "error": null,
+      "event_types": [
+        [
+          0.001,
+          "run-start"
+        ],
+        [
+          0.001,
+          "intent-start"
+        ],
+        [
+          2.935,
+          "intent-progress"
+        ],
+        [
+          2.935,
+          "intent-progress"
+        ],
+        [
+          2.935,
+          "intent-progress"
+        ],
+        [
+          2.936,
+          "intent-end"
+        ],
+        [
+          2.936,
+          "tts-start"
+        ],
+        [
+          2.936,
+          "tts-end"
+        ],
+        [
+          2.936,
+          "run-end"
+        ]
+      ],
+      "rid": "c73308c5",
+      "trace_id": "27042fb41023af60a25c0404133ffab3",
+      "route": "direct",
+      "generation_s": 2.88,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          2.88
+        ]
+      ],
+      "pipeline_s": 2.92,
+      "voice_stream": {
+        "ts": 1794923578.988,
+        "rid": "c73308c5",
+        "event": "voice_stream",
+        "trace_id": "27042fb41023af60a25c0404133ffab3",
+        "error": null,
+        "chunks": 1,
+        "first_chunk_ms": 2924,
+        "done_ms": 2924,
+        "hold": 1,
+        "retracts": 0,
+        "retract_held_chars": 0,
+        "retract_unhonoured": 0,
+        "retract_unhonoured_chars": 0,
+        "spoken_chars": 236
+      }
+    },
+    {
+      "question": "explain how a heat pump works",
+      "run": 2,
+      "run_start_tts_output": {
+        "token": "d3IcWvDV_mq1Ul8sxoTJ3Q.mp3",
+        "url": "/api/tts_proxy/d3IcWvDV_mq1Ul8sxoTJ3Q.mp3",
+        "mime_type": "audio/mpeg",
+        "stream_response": true
+      },
+      "tts_start_streaming_s": 3.057,
+      "first_content_delta_s": 3.057,
+      "content_deltas": 2,
+      "content_delta_times": [
+        3.057,
+        3.233
+      ],
+      "intent_end_s": 3.233,
+      "tts_start_s": 3.233,
+      "tts_end_s": 3.233,
+      "run_end_s": 3.233,
+      "error": null,
+      "event_types": [
+        [
+          0.005,
+          "run-start"
+        ],
+        [
+          0.005,
+          "intent-start"
+        ],
+        [
+          3.057,
+          "intent-progress"
+        ],
+        [
+          3.057,
+          "intent-progress"
+        ],
+        [
+          3.233,
+          "intent-progress"
+        ],
+        [
+          3.233,
+          "intent-progress"
+        ],
+        [
+          3.233,
+          "intent-end"
+        ],
+        [
+          3.233,
+          "tts-start"
+        ],
+        [
+          3.233,
+          "tts-end"
+        ],
+        [
+          3.233,
+          "run-end"
+        ]
+      ],
+      "rid": "4f3b8c48",
+      "trace_id": "f1dc7c1ec6436d913710e84e55e329d8",
+      "route": "direct",
+      "generation_s": 3.2,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          3.2
+        ]
+      ],
+      "pipeline_s": 3.22,
+      "voice_stream": {
+        "ts": 1794923582.266,
+        "rid": "4f3b8c48",
+        "event": "voice_stream",
+        "trace_id": "f1dc7c1ec6436d913710e84e55e329d8",
+        "error": null,
+        "chunks": 2,
+        "first_chunk_ms": 3046,
+        "done_ms": 3223,
+        "hold": 1,
+        "retracts": 0,
+        "retract_held_chars": 0,
+        "retract_unhonoured": 0,
+        "retract_unhonoured_chars": 0,
+        "spoken_chars": 253
+      }
+    },
+    {
+      "question": "how does a refrigerator keep food cold",
+      "run": 2,
+      "run_start_tts_output": {
+        "token": "w_l_awclWDHdzScSllnvLw.mp3",
+        "url": "/api/tts_proxy/w_l_awclWDHdzScSllnvLw.mp3",
+        "mime_type": "audio/mpeg",
+        "stream_response": true
+      },
+      "tts_start_streaming_s": 2.887,
+      "first_content_delta_s": 2.887,
+      "content_deltas": 2,
+      "content_delta_times": [
+        2.887,
+        3.143
+      ],
+      "intent_end_s": 3.143,
+      "tts_start_s": 3.143,
+      "tts_end_s": 3.143,
+      "run_end_s": 3.143,
+      "error": null,
+      "event_types": [
+        [
+          0.003,
+          "run-start"
+        ],
+        [
+          0.003,
+          "intent-start"
+        ],
+        [
+          2.887,
+          "intent-progress"
+        ],
+        [
+          2.887,
+          "intent-progress"
+        ],
+        [
+          3.143,
+          "intent-progress"
+        ],
+        [
+          3.143,
+          "intent-progress"
+        ],
+        [
+          3.143,
+          "intent-end"
+        ],
+        [
+          3.143,
+          "tts-start"
+        ],
+        [
+          3.143,
+          "tts-end"
+        ],
+        [
+          3.143,
+          "run-end"
+        ]
+      ],
+      "rid": "8a1c783c",
+      "trace_id": "5799f3e7b512116470d4418fcb719eb1",
+      "route": "direct",
+      "generation_s": 3.11,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          3.11
+        ]
+      ],
+      "pipeline_s": 3.13,
+      "voice_stream": {
+        "ts": 1794923585.47,
+        "rid": "8a1c783c",
+        "event": "voice_stream",
+        "trace_id": "5799f3e7b512116470d4418fcb719eb1",
+        "error": null,
+        "chunks": 2,
+        "first_chunk_ms": 2876,
+        "done_ms": 3134,
+        "hold": 1,
+        "retracts": 0,
+        "retract_held_chars": 0,
+        "retract_unhonoured": 0,
+        "retract_unhonoured_chars": 0,
+        "spoken_chars": 334
+      }
+    },
+    {
+      "question": "why is the sky blue",
+      "run": 2,
+      "skipped": "fuzzy HassGetCurrentTime only (strict pass misses)"
+    },
+    {
+      "question": "how do vaccines work",
+      "run": 2,
+      "run_start_tts_output": {
+        "token": "U9-rwdxAKvxKKYW0hd8TMQ.mp3",
+        "url": "/api/tts_proxy/U9-rwdxAKvxKKYW0hd8TMQ.mp3",
+        "mime_type": "audio/mpeg",
+        "stream_response": true
+      },
+      "tts_start_streaming_s": 1.202,
+      "first_content_delta_s": 1.202,
+      "content_deltas": 2,
+      "content_delta_times": [
+        1.202,
+        1.542
+      ],
+      "intent_end_s": 1.542,
+      "tts_start_s": 1.542,
+      "tts_end_s": 1.542,
+      "run_end_s": 1.542,
+      "error": null,
+      "event_types": [
+        [
+          0.001,
+          "run-start"
+        ],
+        [
+          0.001,
+          "intent-start"
+        ],
+        [
+          1.202,
+          "intent-progress"
+        ],
+        [
+          1.202,
+          "intent-progress"
+        ],
+        [
+          1.542,
+          "intent-progress"
+        ],
+        [
+          1.542,
+          "intent-progress"
+        ],
+        [
+          1.542,
+          "intent-end"
+        ],
+        [
+          1.542,
+          "tts-start"
+        ],
+        [
+          1.542,
+          "tts-end"
+        ],
+        [
+          1.542,
+          "run-end"
+        ]
+      ],
+      "rid": "54370ac9",
+      "trace_id": "2c439294aa5b79b16dfd6ffa66d32392",
+      "route": "direct",
+      "generation_s": 1.51,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          1.51
+        ]
+      ],
+      "pipeline_s": 1.53,
+      "voice_stream": {
+        "ts": 1794923587.137,
+        "rid": "54370ac9",
+        "event": "voice_stream",
+        "trace_id": "2c439294aa5b79b16dfd6ffa66d32392",
+        "error": null,
+        "chunks": 2,
+        "first_chunk_ms": 1192,
+        "done_ms": 1532,
+        "hold": 1,
+        "retracts": 0,
+        "retract_held_chars": 0,
+        "retract_unhonoured": 0,
+        "retract_unhonoured_chars": 0,
+        "spoken_chars": 336
+      }
+    },
+    {
+      "question": "what causes the seasons on earth",
+      "run": 2,
+      "run_start_tts_output": {
+        "token": "Mo-IPTqiRvE49Qsr91LfQA.mp3",
+        "url": "/api/tts_proxy/Mo-IPTqiRvE49Qsr91LfQA.mp3",
+        "mime_type": "audio/mpeg",
+        "stream_response": true
+      },
+      "tts_start_streaming_s": 1.191,
+      "first_content_delta_s": 1.191,
+      "content_deltas": 2,
+      "content_delta_times": [
+        1.191,
+        1.485
+      ],
+      "intent_end_s": 1.485,
+      "tts_start_s": 1.485,
+      "tts_end_s": 1.485,
+      "run_end_s": 1.485,
+      "error": null,
+      "event_types": [
+        [
+          0.001,
+          "run-start"
+        ],
+        [
+          0.001,
+          "intent-start"
+        ],
+        [
+          1.191,
+          "intent-progress"
+        ],
+        [
+          1.191,
+          "intent-progress"
+        ],
+        [
+          1.485,
+          "intent-progress"
+        ],
+        [
+          1.485,
+          "intent-progress"
+        ],
+        [
+          1.485,
+          "intent-end"
+        ],
+        [
+          1.485,
+          "tts-start"
+        ],
+        [
+          1.485,
+          "tts-end"
+        ],
+        [
+          1.485,
+          "run-end"
+        ]
+      ],
+      "rid": "6e177a27",
+      "trace_id": "00a12a9e132939f6a17d1ea40fc1753e",
+      "route": "direct",
+      "generation_s": 1.45,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          1.45
+        ]
+      ],
+      "pipeline_s": 1.47,
+      "voice_stream": {
+        "ts": 1794923588.683,
+        "rid": "6e177a27",
+        "event": "voice_stream",
+        "trace_id": "00a12a9e132939f6a17d1ea40fc1753e",
+        "error": null,
+        "chunks": 2,
+        "first_chunk_ms": 1179,
+        "done_ms": 1475,
+        "hold": 1,
+        "retracts": 0,
+        "retract_held_chars": 0,
+        "retract_unhonoured": 0,
+        "retract_unhonoured_chars": 0,
+        "spoken_chars": 333
+      }
+    }
+  ],
+  "label": "m8-ha-stream-on",
+  "started_utc": "2026-11-17T13:52:50+00:00",
+  "git": "fb5bc67"
+}

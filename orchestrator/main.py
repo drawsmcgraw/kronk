@@ -1002,10 +1002,13 @@ async def _ollama_collect(text: str, model: str,
 async def _ollama_single_chunk_stream(full: str, text: str, model: str):
     """Protocol-valid NDJSON stream carrying one pre-rendered content chunk.
 
-    The speech profile buffers the whole reply before scrubbing (markdown
-    markers can straddle token boundaries), then answers a streaming
-    request with a single content chunk + the terminal chunk. No perceived
-    cost: TTS needs the complete text before speaking anyway."""
+    The speech profile with VOICE_STREAM=off (the default): it buffers the
+    whole reply before scrubbing (markdown markers can straddle token
+    boundaries), then answers a streaming request with a single content
+    chunk + the terminal chunk. HA can speak a streamed reply as it arrives
+    (2026.5.4: tts_start_streaming past 60 characters), so this costs the
+    whole generation time before first audio; VOICE_STREAM=on sends units
+    as they complete instead (_ollama_speech_stream, sprint M8)."""
     created = time.strftime("%Y-%m-%dT%H:%M:%S.000000000Z", time.gmtime())
     yield json.dumps({
         "model": model, "created_at": created,
@@ -1156,8 +1159,10 @@ async def _ollama_speech_stream(text: str, model: str, context: list[dict] | Non
 async def _ollama_chat_impl(req: _OllamaChatRequest, voice: bool):
     """Shared /api/chat implementation. voice=False (/api/chat, the display
     profile) streams tokens untouched; voice=True (/voice/api/chat, the
-    speech profile) buffers and runs render.to_speech so no markdown ever
-    reaches a speaker (RENDER_PROFILES_PLAN). The same `voice` value goes
+    speech profile) runs render.to_speech so no markdown ever reaches a
+    speaker (RENDER_PROFILES_PLAN): on the whole reply, buffered, or with
+    VOICE_STREAM=on and a streaming request, unit by unit as it completes
+    (_ollama_speech_stream, sprint M8). The same `voice` value goes
     to _run_pipeline as origin.voice, so the speech profile and the
     pipeline's voice signal cannot disagree (sprint M2)."""
     user_msgs = [m for m in req.messages if m.role == "user" and m.content]

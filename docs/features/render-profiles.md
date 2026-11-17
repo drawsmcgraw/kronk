@@ -43,11 +43,16 @@ false` — the URL can't be changed via the flow API. Backup at
 file (or re-edit the URL back) and restart HA. Downtime for the flip:
 ~90 s.
 
-**Streaming:** the speech profile buffers the full reply and answers a
-streaming request with one protocol-valid content chunk + terminal chunk —
-markdown markers can straddle token boundaries, and TTS needs complete
-text anyway, so buffering costs nothing perceived. Display mounts stream
-untouched.
+**Streaming:** by default (`VOICE_STREAM=off`) the speech profile buffers
+the full reply and answers a streaming request with one protocol-valid
+content chunk + terminal chunk, since markdown markers can straddle token
+boundaries. The original claim that this "costs nothing perceived" because
+TTS needs complete text is no longer true: HA 2026.5.4 starts streamed TTS
+once a reply passes 60 characters. With `VOICE_STREAM=on` (sprint M8) the
+reply leaves in units that `to_speech` renders on their own exactly as
+inside the whole reply (sentences, whole lines, whole lists, tables and
+fences), one held back for retracts; see `voice-pipeline.md`, "Sentence
+streaming". Display mounts stream untouched.
 
 ## Verified behavior (live, 2026-08-25)
 

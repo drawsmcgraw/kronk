@@ -83,9 +83,107 @@ Every code-written failure leaves through `errors.failure_text`. A tool
 result counts as failed only when the code that produced it says so
 (`tools.ToolResult.failed`); model-written answers are spoken as written
 (M2 fix 2; same doc).
-Later voice-only behaviour (sentence streaming, M8) reads the same
-value rather than adding a second flag. The M14 gate does not read it: it
+M8's spoken-reply line keys on the same value (`_run_pipeline`'s
+`voice`), and only the mount's handler chooses the streamed reply, so no
+second flag exists. The M14 gate does not read it: it
 applies on every mount (`messy-transcript-gate.md`).
+
+## Sentence streaming and the spoken-reply line (sprint M8)
+
+Two independent changes on the speech mount. Build report:
+`docs/sprint/M8-build.md`.
+
+**The spoken-reply line.** On a `/voice/api/chat` request the
+coordinator's system text ends with one more block, `spoken_reply` in
+`config/voice.yaml`: the reply will be read aloud, so one to three short
+plain sentences, no lists or markdown. It is appended after every other
+block (`_run_pipeline`, `coordinator_extra`), so the system text before
+it, and llama.cpp's cached prompt prefix, is the same as a typed
+request's. Routed and delegated specialists do not get it. It applies
+whatever `VOICE_STREAM` says. Measured on dev, 10 long-answer questions ×
+5 runs: mean reply 753 → 322 characters, 9.3 → 3.0 sentences, coordinator
+generation 2.92 → 1.97 s. `spoken_reply: null` and a config reload turn
+it off.
+
+**Sentence streaming (`VOICE_STREAM`).** With the env switch on, a
+streaming `/voice/api/chat` request gets its reply as it is generated
+(`main._ollama_speech_stream`, `orchestrator/speech_stream.py`):
+
+- **Units.** `speech_stream.split_units` is the one place the reply is
+  cut: one sentence of a prose line, one whole line of any other kind
+  (heading, quote, rule), or one whole list, table or code fence. Each
+  unit goes through `render.to_speech` on its own and leaves as one NDJSON
+  content chunk; after the first, a chunk starts with the whitespace the
+  reply had there (`" "`, `"\n"`, `"\n\n"`), so HA's concatenation keeps
+  sentences apart. The cut rules exist so that `to_speech` renders each
+  unit exactly as inside the whole reply: sentence ends are
+  `transcript_gate.ends_sentence` (abbreviations, initials, `a.m.`,
+  `No. 5`, ellipses, decimals and URLs do not end a sentence), never after
+  a closing quote, never inside emphasis, inline code or a link, never
+  mid-line in a heading, quote, table row or list item, and a cut is made
+  only once the next unit has started, on information later text cannot
+  overturn. Joined, the chunks are the buffered path's text, whitespace
+  between chunks aside (one listed exception, a space before a full stop
+  `to_speech` adds on a non-table line that holds a `|`).
+- **The hold.** The last `stream.hold_sentences` complete units
+  (`config/voice.yaml`, default 1) are held: unit N leaves only when unit
+  N + hold completes, or the stream ends, when everything held leaves as
+  one chunk.
+- **Retracts.** Text a model writes in a round that ends in a tool call is
+  retracted (`TOOL_ROUND_RETRACT_PLAN`). While it is held it is dropped,
+  as the buffered path drops it. A retract longer than the held text drops
+  everything held; what was already sent stays spoken, and the event is
+  logged (`voice_stream_retract_unhonoured`, with a preview) and counted
+  on the trace.
+- **Blocks.** Nothing inside a list, table or fence leaves until the block
+  ends (the first line of another kind). An unclosed block leaves at the
+  end of the stream.
+- **Short replies keep their shape.** A one-sentence answer, a direct
+  dispatch, a terminal-tool result or a friendly failure leaves as one
+  content chunk with today's text and the same `done` record.
+- **Failure.** Decided by the pipeline's flag, as before: a turn that
+  fails mid-reply ends with its friendly sentence as the last content and
+  one `done` record. If the buffer itself raises (a bug), the rest of the
+  reply is collected as the buffered path collects it and leaves as one
+  last chunk; the pipeline always runs to its end and releases
+  `_llm_lock`.
+- **Unchanged:** `stream: false` on the voice mount (one JSON object),
+  the display mounts (`/api/chat`, `/v1/chat/completions`, `/message`),
+  and the whole buffered path when the switch is off.
+- **Telemetry.** The pipeline root carries `kronk.voice_stream=true`; a
+  `voice_stream` span under it carries `kronk.chunks`,
+  `kronk.first_chunk_ms`, `kronk.done_ms`, `kronk.hold`, `kronk.retracts`,
+  `kronk.retract_held_chars`, `kronk.retract_unhonoured`,
+  `kronk.retract_unhonoured_chars` and `kronk.spoken_chars`; the
+  `voice_stream` event carries the same. Buffered voice requests carry
+  neither. TraceQL: streamed `{ span.kronk.voice_stream = true }`;
+  leaked tool-round text `{ name = "voice_stream" &&
+  span.kronk.retract_unhonoured > 0 }`.
+
+**What HA does with it** (2026.5.4, read from its source): the Ollama
+client sends `stream=True` and has no request timeout (ollama 0.5.1,
+`timeout=None`; the 5 s `DEFAULT_TIMEOUT` covers only setup's `list()`).
+The pipeline starts streamed TTS (`intent-progress` with
+`tts_start_streaming`) once the reply passes 60 characters
+(`STREAM_RESPONSE_CHARS`), and only when the run has a TTS stage. ESPHome
+forwards that flag to the satellite, which starts fetching the TTS URL it
+got at `run-start` (`stream_response: true`). `wyoming-piper` 2.2.2
+streams by sentence by default. With one buffered chunk the flag fires at
+the same moment as `intent-end`; streamed, it fires at the first chunk.
+
+**The switch and rollback.** `VOICE_STREAM` (`on`/`off`, default off in
+code; an unknown value is off and logged) is set per service in
+`docker-compose.yml`: `on` for `orchestrator-dev`, `off` for production
+until the sprint coordinator promotes it. To roll back: set `off`,
+`docker compose up -d orchestrator` (an env change recreates the
+container), then `docker compose restart nginx`. The hold and the
+spoken-reply line change with a config reload
+(`scripts/config_reload.sh prod`), no rebuild.
+
+**Measuring it:** `scripts/voice_stream_bench.py` (dev only): shim mode
+times send, first content chunk and `done` on `/dev/voice/api/chat`; `ha`
+mode runs HA's `kronk-dev` pipeline from intent to TTS with no satellite
+and records when `tts_start_streaming` fires. Results in `docs/bench/`.
 
 ## Gotchas (learned the hard way)
 
@@ -100,6 +198,12 @@ applies on every mount (`messy-transcript-gate.md`).
 - HA local-intent fallback can leave a **duplicated user turn** in the chat
   log (fixed 2026-07-03 in `routing.py` + `litellm/hooks.py` — see the
   build-journal timeline).
+- **Tool-round text longer than the hold is spoken when streaming.**
+  On dev (2026-11-16/17) 31 of 33 voice tool rounds that wrote text wrote
+  more than 80 characters (home agent median 447, max 5271): leaked
+  deliberation that a one-sentence hold only partly catches. Watch
+  `kronk.retract_unhonoured` before widening the hold or turning
+  streaming on in production (`docs/sprint/M8-build.md`).
 - `tts.speak` silently no-ops for announcements; `assist_satellite.announce`
   is the correct service (matters for timers, ROADMAP item 3).
 
@@ -134,6 +238,14 @@ single utterance, from the shell:
 - The Whisper model-size ladder: hallucinations vs. empty transcriptions.
 - The two-assistant-slot Voice PE trap.
 - Shim archaeology: speaking Ollama's API because the OpenAI card vanished.
+- One line in the system prompt cut spoken answers from nine sentences to
+  three and a second off generation; sentence streaming then bought about
+  0.3 s more. Measure the cheap fix first.
+- Cutting a reply so a markdown scrubber renders the parts as the whole:
+  a pure splitter, a property test over thousands of generated replies,
+  and "never make a cut later text could overturn".
+- You cannot unsay a sentence: why a streamed voice reply needs a hold,
+  and what tool-round leaks say about how wide it must be.
 - The mount is the signal: three shims share one transport, so "will this
   be spoken?" has to come from the URL the client chose, held in one
   ContextVar, never from anything the client sends.
