@@ -55,3 +55,23 @@ resolver:
   # A miss names "the closest I found" only when that candidate scores at
   # least this; below it the guess is noise.
   hint_min_score: 0.5
+
+# Reading a spoken sentence (sprint M11: POST /music/say and its shadow,
+# music_resolve.parse_sentence; docs/features/voice-music-control.md). Not
+# used by the live /music path. Words are lowercase and single-spaced.
+parser:
+  # Words that mark a style rather than a named item: "some" or "something"
+  # as the request's first word, the others as its last ("play some jazz",
+  # "play italian music"). A type word below wins over these.
+  style_markers: [some, something, music, songs, vibes]
+  # A type word decides outright that the request names an item of that
+  # type: "play the album Jazz" is the album, not the style. Word: media
+  # type (artist, album, track, playlist or radio).
+  type_words: {album: album, albums: album, track: track, song: track, artist: artist, band: artist, playlist: playlist, radio: radio, station: radio}
+  # Words in front of a style, or before "songs by", that are not part of
+  # it: "some good deep house" is deep house, "top songs by X" is X.
+  fillers: [a bit of, a little bit of, a little, any, more, good, nice, great, top, best, greatest, me, us]
+  # A room or speaker named at the end of the sentence ("on the sonos move
+  # dirt") that matches no real name exactly still matches one this similar
+  # (0 to 1). Only the right-hand end of the sentence is read for a room.
+  room_min_score: 0.85

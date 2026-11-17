@@ -41,7 +41,9 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 from ruamel.yaml import YAML
 from ruamel.yaml.error import MarkedYAMLError, YAMLError
 
@@ -134,9 +136,56 @@ class Resolver(_Strict):
     hint_min_score: float = Field(0.5, **_SCORE)
 
 
+MediaType = Literal["artist", "album", "track", "playlist", "radio"]
+_WORDS = dict(min_length=1, max_length=64)
+
+
+def _lower_words(v: list[str]) -> list[str]:
+    for w in v:
+        if not w.strip() or w != w.strip().lower() or "  " in w:
+            raise ValueError(f"{w!r}: words are lowercase, single-spaced, not blank")
+    if len(set(v)) != len(v):
+        raise ValueError("a word is listed twice")
+    return v
+
+
+class Parser(_Strict):
+    """music_resolve.parse_sentence() (sprint M11): the words that read a
+    sentence. Lowercase, compared after music_resolve.fold()."""
+    # Words that mark a style ("play some jazz", "play italian music"):
+    # "some"/"something" as the request's first word, the others as its last.
+    style_markers: list[str] = Field(default_factory=lambda: ["some", "something", "music", "songs", "vibes"],
+                                     **_WORDS)
+    # A type word names a media type and decides outright: "play the album
+    # Jazz" is the album. Word -> media type.
+    type_words: dict[str, MediaType] = Field(default_factory=lambda: {
+        "album": "album", "albums": "album", "track": "track", "song": "track", "artist": "artist",
+        "band": "artist", "playlist": "playlist", "radio": "radio", "station": "radio"})
+    # Words in front of a style or before "songs by" that are not part of
+    # it ("some good deep house", "top songs by").
+    fillers: list[str] = Field(default_factory=lambda: [
+        "a bit of", "a little bit of", "a little", "any", "more", "good", "nice", "great", "top", "best",
+        "greatest", "me", "us"], **_WORDS)
+    # A room or speaker clause at the end ("on the sonos move dirt") that
+    # matches no real name exactly still matches one at this similarity.
+    room_min_score: float = Field(0.85, **_SCORE)
+
+    @field_validator("style_markers", "fillers")
+    @classmethod
+    def _words(cls, v):
+        return _lower_words(v)
+
+    @field_validator("type_words")
+    @classmethod
+    def _type_words(cls, v):
+        _lower_words(list(v))
+        return v
+
+
 class Music(_Strict):
     verify: Verify = Field(default_factory=Verify)
     resolver: Resolver = Field(default_factory=Resolver)
+    parser: Parser = Field(default_factory=Parser)
 
 
 @dataclass

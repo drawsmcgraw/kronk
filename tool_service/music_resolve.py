@@ -332,3 +332,248 @@ def rank(cands: list[Candidate], q: Query, media_type: str | None = None,
 # resolution. Tuned on the logged misses (tests/test_music_resolve.py):
 # every real target scores ≥ 0.82, gibberish ("zzqx florbent nonexistent")
 # stays under 0.4.
+
+
+# ── the sentence parser (sprint M11) ─────────────────────────────────────────
+# POST /music/say reads the user's own sentence instead of a model's
+# arguments. parse_sentence() is pure: the sentence, the real player and
+# room names (HA's players template), nothing else. It decides no reading:
+# the decision order (music_decide.py) does that from what it finds here.
+#
+# Rooms and players are matched from the right-hand end of the sentence
+# against real names, never with a greedy "(in|on) {room}" slot: the
+# blueprint's slot cut "The Girl with the Sun in Her Head by Orbital" into
+# a title "The Girl with the Sun" and a room "Her Head by Orbital"
+# (voice-music-control.md, 2026-09-16). The parser does not trim messy
+# transcripts (sprint M14 sends those to the coordinator); radio_name()
+# keeps cutting a station at a full stop.
+
+def parser_words() -> "config_loader.Parser":
+    """The parser's words in effect: config/music.yaml parser."""
+    return config_loader.current().music.parser
+
+
+def room_key(s: str | None) -> str:
+    """Case/punctuation-insensitive key: 'the Office speaker' → 'office'.
+    (main.resolve_players compares names with this.)"""
+    s = " ".join((s or "").lower().replace("-", " ").replace("_", " ").split())
+    s = re.sub(r"^(the|my)\s+", "", s)
+    s = re.sub(r"\s+(speakers?|players?|room)$", "", s)
+    return s
+
+
+# Lead-ins the request verb may follow: the routing pin's (_MUSIC_RE) and
+# radio_name()'s ("okay nabu, ...").
+_LEAD = (r"^\W*(?:(?:ok(?:ay)?|hey)\s+\w+[,\s]+)?"
+         r"(?:(?:please|kronk,?|hey\s+kronk,?|tell\s+kronk\s+to|can\s+you|could\s+you)\s+)*")
+_REQUEST_VERB_RE = re.compile(
+    _LEAD + r"(?P<verb>play|put\s+on|throw\s+on|listen\s+to|shuffle|queue\s+up|start|turn\s+on)\b[\s,:]*(?P<rest>.*)$",
+    re.IGNORECASE | re.DOTALL)
+# What routing._MUSIC_RE excludes (criterion 3; tests/test_music_parse.py
+# checks the lists against the routing pattern): the news anywhere; a game,
+# video, movie or podcast after a bare "play" with no music noun.
+NOT_MUSIC_ALWAYS = ("news",)
+NOT_MUSIC_AFTER_PLAY = ("game", "games", "video", "videos", "movie", "movies", "podcast")
+MUSIC_NOUNS = ("radio", "station", "music", "song", "songs", "track", "tracks", "album", "albums",
+               "playlist", "playlists", "artist", "mix", "pandora", "youtube", "spotify", "atlas", "the nas")
+# Verbs that only ever mean music; "play" may mean a game, "start" a timer.
+_MUSIC_ONLY_VERBS = {"put on", "throw on", "listen to", "shuffle", "queue up"}
+_PROVIDER_WORD = r"(?:youtube\s*music|you\s*tube\s*music|yt\s*music|youtube|you\s*tube|pandora|spotify|atlas|the\s+nas|nas)"
+_DEVICE_NOUNS = {"speaker", "speakers", "player", "players", "group", "room"}
+_ROOM_PREP_RE = re.compile(r"(?:^|[\s,])(?:in|on)\s+", re.IGNORECASE)
+_TAIL_PUNCT = " \t\n,.!?;:"
+# Words after the request that ask for nothing: "please", "to play it",
+# "for me" ("start an orbital radio to play on YouTube music").
+_PLEASE_RE = re.compile(r"[\s,]+(?:please|(?:and|to)\s+play(?:\s+it)?|for\s+(?:me|us))$", re.IGNORECASE)
+
+
+def _has_word(text: str, words) -> bool:
+    return any(re.search(rf"\b{re.escape(w)}\b", text, re.IGNORECASE) for w in words)
+
+
+def _provider_of(word: str) -> str:
+    return next(k for k, v in _PROVIDERS.items() if re.fullmatch(v, word.strip(), re.IGNORECASE))
+
+
+@dataclass
+class Parsed:
+    """What a sentence says, before any reading is decided."""
+    sentence: str
+    music: bool = True
+    reason: str | None = None          # why it is not a music request
+    verb: str | None = None
+    words: str = ""                    # the request: no verb, room, provider or type word
+    type: str | None = None            # media type a type word named
+    type_word: str | None = None
+    style_marker: str | None = None
+    name: str | None = None            # X of "X by Y", else the words
+    artist: str | None = None          # Y of "X by Y"
+    by_generic: bool = False           # "songs by Y", "music by Y": Y is the artist asked for
+    shuffle: bool = False
+    provider: str | None = None        # provider domain the sentence named
+    room: str | None = None            # the real area or player name matched
+    room_kind: str | None = None       # area | player | unknown
+    room_said: str | None = None       # the words that named it
+    radio_name: str | None = None      # radio_name(sentence), when it names a station
+
+    def as_dict(self) -> dict:
+        return {k: v for k, v in self.__dict__.items() if v not in (None, "", False) or k == "music"}
+
+
+def match_room(said: str, players: list[dict], min_score: float) -> tuple[str, str] | None:
+    """(real name, 'player' | 'area') for a room or speaker clause, or None.
+    Exact name first, then exact area (the blueprint's order), then the
+    clause as part of a name ("the sonos" → "Sonos Move Derp"), then a near
+    match. Never a name inside the clause: "the kitchen tapes" is a title,
+    not the Kitchen."""
+    key = room_key(said)
+    if not key:
+        return None
+    names = [(p["name"], "player") for p in players if p.get("name")]
+    areas = sorted({(p["area"], "area") for p in players if p.get("area")})
+    for pool in (names, areas):
+        hit = [x for x in pool if room_key(x[0]) == key]
+        if len(hit) == 1:
+            return hit[0]
+    for pool in (names, areas):
+        hit = [x for x in pool if key in room_key(x[0])]
+        if len(hit) == 1:
+            return hit[0]
+    scored = sorted(((similarity(key, room_key(n)), (n, k)) for n, k in names + areas), reverse=True)
+    if scored and scored[0][0] >= min_score and (len(scored) == 1 or scored[1][0] < scored[0][0]):
+        return scored[0][1]
+    return None
+
+
+def _strip_tail(text: str) -> str:
+    text = text.strip(_TAIL_PUNCT + "\"“”")
+    while (m := _PLEASE_RE.search(text)):
+        text = text[:m.start()].strip(_TAIL_PUNCT)
+    return text
+
+
+def _room_clause(text: str, players: list[dict], min_score: float):
+    """(text before the clause, real name, kind, words said) for a room or
+    speaker named at the right-hand end, else None. Prepositions are tried
+    from the right; each candidate clause runs to the end of the text."""
+    for m in reversed(list(_ROOM_PREP_RE.finditer(text))):
+        said = _strip_tail(text[m.end():])
+        if not said:
+            continue
+        hit = match_room(said, players, min_score)
+        if hit:
+            return text[:m.start()], hit[0], hit[1], said
+        words = room_key(re.sub(r"^(the|my)\s+", "", said.lower())).split()
+        raw = said.lower().split()
+        if raw and raw[-1] in _DEVICE_NOUNS and 1 <= len(words) <= 4 and not _has_word(said, ["by"]):
+            # "on the blue group": a speaker that does not exist. Said as a
+            # target, so it is one; resolution names what exists.
+            return text[:m.start()], room_key(said), "unknown", said
+    return None
+
+
+_IN_PROVIDER_RE = re.compile(
+    rf"^(?P<pre>(?:the|my|a|an)\s+)?(?P<prov>{_PROVIDER_WORD})\s+(?=(?:playlist|station|radio|album|track|song|artist)\b)",
+    re.IGNORECASE)
+
+
+def _type_word(text: str, type_words: dict[str, str]):
+    """(type, word, text without it) for a type word that opens or closes
+    the request ("the album X", "X radio", "the radio station X"), else None."""
+    words = sorted(type_words, key=len, reverse=True)
+    alt = "|".join(re.escape(w) for w in words)
+    lead = re.match(rf"^(?:(?:the|my|a|an)\s+)?(?P<w>radio\s+station|{alt})\b[\s,:]*(?P<rest>.+)$", text, re.I)
+    if lead and lead.group("rest").strip(_TAIL_PUNCT):
+        w = lead.group("w").lower()
+        return ("radio" if w.startswith("radio") else type_words[w]), w, lead.group("rest")
+    trail = re.match(rf"^(?P<rest>.+?)[\s,]+(?P<w>radio\s+station|{alt})$", text, re.I)
+    if trail and trail.group("rest").strip(_TAIL_PUNCT):
+        w = trail.group("w").lower()
+        return ("radio" if w.startswith("radio") else type_words[w]), w, trail.group("rest")
+    return None
+
+
+def strip_fillers(text: str, fillers: list[str]) -> str:
+    """Leading filler words off: 'some good deep house' with 'good' → 'deep house'."""
+    alt = "|".join(re.escape(f) for f in sorted(fillers, key=len, reverse=True))
+    prev = None
+    while prev != text:
+        prev = text
+        text = re.sub(rf"^(?:{alt})\s+", "", text, flags=re.IGNORECASE).strip()
+    return text
+
+
+_GENERIC_ITEMS = {"music", "songs", "song", "tracks", "stuff", "something", "anything", "hits"}
+
+
+def parse_sentence(sentence: str, players: list[dict] | None = None,
+                   words: "config_loader.Parser | None" = None) -> Parsed:
+    """Read one sentence. Never raises; never calls anything."""
+    w = words or parser_words()
+    players = players or []
+    p = Parsed(sentence=sentence or "")
+    m = _REQUEST_VERB_RE.match(p.sentence)
+    if not m:
+        p.music, p.reason = False, "no request verb at the start"
+        return p
+    p.verb = " ".join(m.group("verb").lower().split())
+    rest = m.group("rest")
+    if _has_word(rest, NOT_MUSIC_ALWAYS):
+        p.music, p.reason = False, "the news is not music"
+        return p
+    has_noun = _has_word(rest, MUSIC_NOUNS)
+    if p.verb == "play" and not has_noun and _has_word(rest, NOT_MUSIC_AFTER_PLAY):
+        p.music, p.reason = False, "a game, video, movie or podcast is not music"
+        return p
+    if p.verb in ("start", "turn on") and not has_noun:
+        p.music, p.reason = False, f"'{p.verb}' without a music word is not a music request"
+        return p
+    p.shuffle = p.verb == "shuffle"
+    p.radio_name = radio_name(p.sentence)
+
+    # The right-hand end: a provider clause and a room clause, in either
+    # order ("... from YouTube Music, in the kitchen").
+    rest = _strip_tail(rest)
+    for _ in range(2):
+        hm = _HINT_RE.search(" " + rest)
+        if hm and hm.start() > 0 and not p.provider:
+            p.provider = next(k for k in _PROVIDERS if hm.group(k))
+            rest = _strip_tail((" " + rest)[:hm.start()])
+            continue
+        if not p.room and (rc := _room_clause(rest, players, w.room_min_score)):
+            rest, p.room, p.room_kind, p.room_said = _strip_tail(rc[0]), rc[1], rc[2], rc[3]
+            continue
+        break
+
+    # A provider inside the request: "my YouTube playlist anime bangers".
+    if (im := _IN_PROVIDER_RE.match(rest)):
+        p.provider = p.provider or _provider_of(im.group("prov"))
+        rest = rest[im.end():]
+    if (tw := _type_word(rest, w.type_words)):
+        p.type, p.type_word, rest = tw[0], tw[1], tw[2]
+    rest = _strip_tail(re.sub(r"^(?:(?:a|an|my)\s+)", "", rest.strip(), flags=re.I))
+    if p.radio_name and p.type in (None, "radio"):
+        # The station the sentence names (radio_name, the live path's own
+        # reading): it stops at a full stop, so trailing speech is not part
+        # of the name ("Play Anime Pop Radio. That's probably about it ...").
+        p.type, p.type_word = "radio", p.type_word or "radio"
+        rest = _strip_tail(re.sub(r"^(?:(?:a|an|my|the)\s+)", "", p.radio_name, flags=re.I))
+    rest = re.sub(r"\s+", " ", re.sub(r"[\"“”]", "", rest)).strip()
+    p.words = rest
+
+    bm = _BY_RE.match(rest)
+    if bm:
+        x, y = bm.group("name").strip("\"“” ,"), bm.group("artist").strip("\"“” ,")
+        if strip_fillers(fold(x), w.fillers) in _GENERIC_ITEMS:
+            p.by_generic, p.name, p.type = True, y, p.type or "artist"
+        else:
+            p.name, p.artist = x, y
+    else:
+        p.name = rest or None
+    if not p.type and not p.by_generic:
+        first, last = (fold(rest).split() or [""])[0], (fold(rest).split() or [""])[-1]
+        if first in ("some", "something") and first in w.style_markers:
+            p.style_marker = first
+        elif last in w.style_markers and last not in ("some", "something"):
+            p.style_marker = last
+    return p

@@ -1300,11 +1300,9 @@ def parse_player_payload(raw: str) -> tuple[list[dict], str | None]:
 
 
 def _norm(s: str | None) -> str:
-    """Case/punctuation-insensitive key: 'the Office speaker' → 'office'."""
-    s = " ".join((s or "").lower().replace("-", " ").replace("_", " ").split())
-    s = re.sub(r"^(the|my)\s+", "", s)
-    s = re.sub(r"\s+(speakers?|players?|room)$", "", s)
-    return s
+    """Case/punctuation-insensitive key: 'the Office speaker' → 'office'.
+    Shared with the M11 sentence parser (music_resolve.room_key)."""
+    return music_resolve.room_key(s)
 
 
 def _label(targets: list[dict], area: str | None) -> str:
