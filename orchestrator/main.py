@@ -4,7 +4,7 @@ import json
 import logging
 import os
 import time
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, nullcontext
 from pathlib import Path
 
 import httpx
@@ -328,7 +328,17 @@ async def _run_pipeline(
     # keeps full detail — see errors.py.
     error_style = errors.style_for(voice)
 
-    async with _llm_lock:
+    # Direct dispatch (sprint M7): when the routing rule's match fixes the
+    # whole tool call, that tool runs with no model call, so the request
+    # does not wait for the model lock. Every other request takes the lock
+    # exactly as before (narrowing it in general is M9). routing.decide is
+    # pure (regex only); routing.classify below records the same decision.
+    try:
+        direct = routing.decide(text).direct
+    except Exception:
+        direct = None       # classify() below raises it again and reports it
+
+    async with (nullcontext() if direct else _llm_lock):
         trace = telemetry.start_pipeline(
             pipeline_name, text, rid=rid, transport=transport,
             origin=origin.current.get(), voice=voice,
@@ -345,16 +355,18 @@ async def _run_pipeline(
             # parts: weather block (2026-06-12 incident — misrouted
             # follow-ups must not invent forecasts), and for the web UI
             # also shared state and uploaded-file contexts.
+            # A direct call has no model to read them, so it skips them.
             extra_parts: list[str] = []
-            wx_ctx = await agents.weather_context()
-            if wx_ctx:
-                extra_parts.append(wx_ctx)
-            if include_local_context:
-                state = _load_state()
-                if state:
-                    extra_parts.append(f"[Kronk shared state]\n{state}")
-                for fc in file_contexts:
-                    extra_parts.append(f"[Attached file: {fc['name']}]\n{fc['content']}")
+            if direct is None:
+                wx_ctx = await agents.weather_context()
+                if wx_ctx:
+                    extra_parts.append(wx_ctx)
+                if include_local_context:
+                    state = _load_state()
+                    if state:
+                        extra_parts.append(f"[Kronk shared state]\n{state}")
+                    for fc in file_contexts:
+                        extra_parts.append(f"[Attached file: {fc['name']}]\n{fc['content']}")
 
             # ── Phase 1: route ────────────────────────────────────────────
             yield _stage("thinking")
@@ -372,6 +384,23 @@ async def _run_pipeline(
                 yield {"type": "token", "text": err}
                 return
             stages.append(_timing_stage("routing", s=round(time.monotonic() - t0, 2)))
+
+            # ── Direct dispatch (sprint M7) ───────────────────────────────
+            # The tool and its arguments came from the match. It runs
+            # through tools.execute, so every guard inside the handlers
+            # still applies (origin targeting, the mirror pin, dry-run), and
+            # its result is spoken by the same function the agent path uses
+            # for a terminal tool. A failure is spoken and the turn ends:
+            # no fall-through to a model, which could repeat a half-applied
+            # action. tools.execute never raises; anything else that does
+            # is caught by the last-resort guard below.
+            if direct is not None:
+                async for ev in _direct_dispatch(direct, agent_name, error_style,
+                                                 stages, t_request):
+                    if ev["type"] == "token":
+                        assistant_reply.append(ev["text"])
+                    yield ev
+                return
 
             # ── Phase 2: specialist agent (if routed to one) ──────────────
             if agent_name in agents.AGENTS:
@@ -546,6 +575,40 @@ async def _run_pipeline(
             if session_id and assistant_reply:
                 sessions.append(session_id, "user", text)
                 sessions.append(session_id, "assistant", "".join(assistant_reply))
+
+
+async def _direct_dispatch(call: routing.DirectCall, route: str, error_style: str,
+                           stages: list[dict], t_request: float):
+    """Run a routing rule's direct call (sprint M7) and speak its result.
+
+    Same events, span and sentence as the home agent's terminal-tool path
+    (agents.run_stream), minus the model round: a `tool.<name>` span under
+    the pipeline root, `tool_call` / `tool_complete` events (direct=true),
+    the sentence from agents._terminal_speech, then the timing payload and
+    `request_complete`."""
+    name, args = call
+    yield {"type": "narration", "text": agents._tool_narration(name, args)}
+    t_tool = time.monotonic()
+    emit("tool_call", agent=route, tool=name, args=list(args.keys()), direct=True)
+    tool_span = telemetry.root().child_span(f"tool.{name}", input=args,
+                                            metadata={"direct": True})
+    try:
+        with tool_span.current():   # tool_service joins via traceparent
+            outcome = await tools.execute(name, args)
+    except Exception as e:
+        tool_span.end(level="ERROR", status_message=str(e)[:200])
+        raise
+    tool_span.end(output=outcome.text[:2000])
+    tool_s = round(time.monotonic() - t_tool, 2)
+    emit("tool_complete", agent=route, tool=name, duration_s=tool_s, direct=True)
+    stages.append(_timing_stage(name, s=tool_s, ok=not outcome.failed))
+
+    speech = agents._terminal_speech(outcome.text, error_style, tool=name)
+    yield _stage("generating")
+    yield {"type": "narration", "text": ""}
+    yield {"type": "token", "text": speech}
+    yield {"type": "timing", "data": {"model": "none (direct call)", "stages": stages}}
+    emit("request_complete", route=route, duration_s=round(time.monotonic() - t_request, 2))
 
 
 @app.post("/message")

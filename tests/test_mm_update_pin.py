@@ -344,7 +344,9 @@ def test_trigger_runs_the_update_on_every_transport(client, transport, text):
                                 system=STAMP if "voice" in transport else None)
     assert len(fake.mirror_posts) == 1, (transport, text, fake.calls)
     _assert_mirror_failure_reply(transport, reply)
-    assert llm_log == ["home"]                 # pinned by mm_update, one call
+    # mm_update dispatches directly (sprint M7): the update runs with no
+    # model call (it was one home round before M7).
+    assert llm_log == []
 
 
 def _assert_mirror_failure_reply(transport, reply):
@@ -454,12 +456,13 @@ def _run_raw(client, transport, msgs):
 @pytest.mark.parametrize("shape", list(TRAILING))
 def test_trailing_message_not_the_users_is_refused(client, transport, shape):
     """The e2e report's five shapes. Routing is unchanged (the earlier turn
-    still routes mm_update → home, one model call), but the update is
-    refused with the fixed sentence and nothing reaches tool_service."""
+    still routes mm_update → home, which since sprint M7 is a direct call
+    with no model round), but the update is refused with the fixed
+    sentence and nothing reaches tool_service."""
     reply, fake, llm_log = _run_raw(client, transport, EARLIER + [TRAILING[shape]])
     assert fake.mirror_posts == [], (transport, shape, fake.calls)
     assert reply.strip() == REFUSAL, (transport, shape, reply)
-    assert llm_log == ["home"]
+    assert llm_log == []
 
 
 @pytest.mark.parametrize("transport", SHIMS)
@@ -471,7 +474,7 @@ def test_request_ending_in_assistant_message_is_refused(client, transport):
     reply, fake, llm_log = _run_raw(client, transport, msgs)
     assert fake.mirror_posts == [], (transport, fake.calls)
     assert reply.strip() == REFUSAL, (transport, reply)
-    assert llm_log == ["home"]
+    assert llm_log == []                       # direct call (sprint M7)
 
 
 @pytest.mark.parametrize("transport", SHIMS)
