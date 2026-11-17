@@ -1,0 +1,107 @@
+{
+ "agent.assistant.max_rounds": 3,
+ "agent.assistant.terminal_tools": [],
+ "agent.assistant.tool_names": [
+  "get_kronk_context",
+  "generate_diagram"
+ ],
+ "agent.coding.max_rounds": 3,
+ "agent.coding.terminal_tools": [],
+ "agent.coding.tool_names": [
+  "web_search",
+  "fetch_url"
+ ],
+ "agent.coordinator.max_rounds": 3,
+ "agent.coordinator.terminal_tools": [
+  "news_brief"
+ ],
+ "agent.coordinator.tool_names": [
+  "ask_research",
+  "ask_home",
+  "ask_assistant",
+  "ask_coding",
+  "ask_devops",
+  "news_brief"
+ ],
+ "agent.devops.max_rounds": 3,
+ "agent.devops.terminal_tools": [],
+ "agent.devops.tool_names": [
+  "remote_exec",
+  "http_check"
+ ],
+ "agent.home.max_rounds": 3,
+ "agent.home.terminal_tools": [
+  "control_music",
+  "now_playing",
+  "play_music",
+  "rate_music",
+  "remember_music_preference",
+  "update_magicmirror"
+ ],
+ "agent.home.tool_names": [
+  "get_weather",
+  "shopping_list_view",
+  "shopping_list_add",
+  "shopping_list_remove",
+  "shopping_list_clear",
+  "query_hottub",
+  "solar_status",
+  "solar_detail",
+  "solar_energy",
+  "play_music",
+  "control_music",
+  "now_playing",
+  "rate_music",
+  "remember_music_preference",
+  "update_magicmirror"
+ ],
+ "agent.research.max_rounds": 8,
+ "agent.research.terminal_tools": [],
+ "agent.research.tool_names": [
+  "web_search",
+  "fetch_url"
+ ],
+ "agent.talkie.max_rounds": 3,
+ "agent.talkie.terminal_tools": [],
+ "agent.talkie.tool_names": [],
+ "agents.repeat_tool_nudge_at": 3,
+ "agents.weather_ctx_max_age_s": 7200,
+ "music_resolve.coverage_min": 0.8,
+ "music_resolve.library_bonus": 0.03,
+ "music_resolve.play_min_score": 0.75,
+ "music_resolve.provider_bonus": 0.05,
+ "music_resolve.type_bonus": {
+  "album": 0.015,
+  "artist": 0.02,
+  "playlist": 0.01,
+  "radio": 0.0,
+  "track": 0.0
+ },
+ "tool_service.music_verify_timeout_s": 8,
+ "tool_service.resolve_hint_min_score": 0.5,
+ "tools.timeout_default_s": 15,
+ "tools.timeout_s": {
+  "control_music": 20,
+  "fetch_url": 15,
+  "generate_diagram": 30,
+  "get_kronk_context": 15,
+  "get_weather": 15,
+  "http_check": 10,
+  "news_brief": 90,
+  "now_playing": 15,
+  "play_music": 20,
+  "query_hottub": 5,
+  "rate_music": 25,
+  "remember_music_preference": 15,
+  "remote_exec": 35,
+  "shopping_list_add": 15,
+  "shopping_list_clear": 15,
+  "shopping_list_remove": 15,
+  "shopping_list_view": 15,
+  "solar_detail": 15,
+  "solar_energy": 15,
+  "solar_status": 15,
+  "update_magicmirror": 30,
+  "web_search": 15
+ }
+}

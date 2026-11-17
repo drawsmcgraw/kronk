@@ -1,0 +1,1290 @@
+{
+ "assistant|esc=0": [
+  {
+   "function": {
+    "description": "Read the Kronk system context file. Call this when you need detailed information about your own architecture, services, ports, data flows, or configuration. Always call this before generating an architecture diagram.",
+    "name": "get_kronk_context",
+    "parameters": {
+     "properties": {},
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "Generate a diagram image from Graphviz DOT language and return a URL to display it inline. ALWAYS use this tool when the user asks for a diagram — never write Mermaid, DOT, or any diagram code as a code block. The tool renders it server-side and returns an image URL. Use 'digraph' for directed graphs. Use subgraph cluster_X for grouped boxes. Keep node labels concise. After the tool returns a URL, include it in your response as markdown: ![title](url)",
+    "name": "generate_diagram",
+    "parameters": {
+     "properties": {
+      "dot": {
+       "description": "Complete, valid Graphviz DOT language string",
+       "type": "string"
+      }
+     },
+     "required": [
+      "dot"
+     ],
+     "type": "object"
+    }
+   },
+   "type": "function"
+  }
+ ],
+ "assistant|esc=1": [
+  {
+   "function": {
+    "description": "Read the Kronk system context file. Call this when you need detailed information about your own architecture, services, ports, data flows, or configuration. Always call this before generating an architecture diagram.",
+    "name": "get_kronk_context",
+    "parameters": {
+     "properties": {},
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "Generate a diagram image from Graphviz DOT language and return a URL to display it inline. ALWAYS use this tool when the user asks for a diagram — never write Mermaid, DOT, or any diagram code as a code block. The tool renders it server-side and returns an image URL. Use 'digraph' for directed graphs. Use subgraph cluster_X for grouped boxes. Keep node labels concise. After the tool returns a URL, include it in your response as markdown: ![title](url)",
+    "name": "generate_diagram",
+    "parameters": {
+     "properties": {
+      "dot": {
+       "description": "Complete, valid Graphviz DOT language string",
+       "type": "string"
+      }
+     },
+     "required": [
+      "dot"
+     ],
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "End your turn and hand this request to the Kronk coordinator because part of it needs data or tools outside your domain. Use ONLY when your own tools cannot cover part of the request — never for requests you can fully answer yourself.",
+    "name": "escalate",
+    "parameters": {
+     "properties": {
+      "note": {
+       "description": "One sentence: what you CAN provide, and which part you cannot.",
+       "type": "string"
+      }
+     },
+     "required": [
+      "note"
+     ],
+     "type": "object"
+    }
+   },
+   "type": "function"
+  }
+ ],
+ "coding|esc=0": [
+  {
+   "function": {
+    "description": "Search the web for current information. Use for news, facts, recent events, product info, local businesses, or any question that requires up-to-date data.",
+    "name": "web_search",
+    "parameters": {
+     "properties": {
+      "count": {
+       "default": 5,
+       "description": "Number of results (default 5)",
+       "type": "integer"
+      },
+      "query": {
+       "description": "Search query string",
+       "type": "string"
+      }
+     },
+     "required": [
+      "query"
+     ],
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "Fetch and read the content of a specific web page or URL.",
+    "name": "fetch_url",
+    "parameters": {
+     "properties": {
+      "url": {
+       "description": "Full URL to fetch",
+       "type": "string"
+      }
+     },
+     "required": [
+      "url"
+     ],
+     "type": "object"
+    }
+   },
+   "type": "function"
+  }
+ ],
+ "coding|esc=1": [
+  {
+   "function": {
+    "description": "Search the web for current information. Use for news, facts, recent events, product info, local businesses, or any question that requires up-to-date data.",
+    "name": "web_search",
+    "parameters": {
+     "properties": {
+      "count": {
+       "default": 5,
+       "description": "Number of results (default 5)",
+       "type": "integer"
+      },
+      "query": {
+       "description": "Search query string",
+       "type": "string"
+      }
+     },
+     "required": [
+      "query"
+     ],
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "Fetch and read the content of a specific web page or URL.",
+    "name": "fetch_url",
+    "parameters": {
+     "properties": {
+      "url": {
+       "description": "Full URL to fetch",
+       "type": "string"
+      }
+     },
+     "required": [
+      "url"
+     ],
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "End your turn and hand this request to the Kronk coordinator because part of it needs data or tools outside your domain. Use ONLY when your own tools cannot cover part of the request — never for requests you can fully answer yourself.",
+    "name": "escalate",
+    "parameters": {
+     "properties": {
+      "note": {
+       "description": "One sentence: what you CAN provide, and which part you cannot.",
+       "type": "string"
+      }
+     },
+     "required": [
+      "note"
+     ],
+     "type": "object"
+    }
+   },
+   "type": "function"
+  }
+ ],
+ "coordinator|esc=0": [
+  {
+   "function": {
+    "description": "Consult Kronk's research specialist. Web search, current events, news, online information, URL lookups, and current prices or rates (utility, market, retail) — anything needing live external data",
+    "name": "ask_research",
+    "parameters": {
+     "properties": {
+      "query": {
+       "description": "A complete, self-contained question for the specialist — include all context it needs.",
+       "type": "string"
+      }
+     },
+     "required": [
+      "query"
+     ],
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "Consult Kronk's home specialist. Weather lookups, shopping list management, hot tub status, solar panel health and energy production (kWh), playing music and controlling playback (stop, pause, resume, skip, volume), and updating or upgrading the magic mirror",
+    "name": "ask_home",
+    "parameters": {
+     "properties": {
+      "query": {
+       "description": "A complete, self-contained question for the specialist — include all context it needs.",
+       "type": "string"
+      }
+     },
+     "required": [
+      "query"
+     ],
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "Consult Kronk's assistant specialist. Kronk's own architecture, services, configuration, and generating diagrams",
+    "name": "ask_assistant",
+    "parameters": {
+     "properties": {
+      "query": {
+       "description": "A complete, self-contained question for the specialist — include all context it needs.",
+       "type": "string"
+      }
+     },
+     "required": [
+      "query"
+     ],
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "Consult Kronk's coding specialist. Writing code, debugging, explaining code, architecture questions, shell scripts, anything programming-related",
+    "name": "ask_coding",
+    "parameters": {
+     "properties": {
+      "query": {
+       "description": "A complete, self-contained question for the specialist — include all context it needs.",
+       "type": "string"
+      }
+     },
+     "required": [
+      "query"
+     ],
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "Consult Kronk's devops specialist. SSH commands, server administration, Linux troubleshooting, infrastructure, Docker, systemd, networking, host automation, and read-only checks on the magic mirror (uptime, status, logs), never updating or upgrading it: that is ask_home. It has no web access: when a task also needs documentation, ask research first and put its findings in the query.",
+    "name": "ask_devops",
+    "parameters": {
+     "properties": {
+      "query": {
+       "description": "A complete, self-contained question for the specialist — include all context it needs.",
+       "type": "string"
+      }
+     },
+     "required": [
+      "query"
+     ],
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "Deliver the pre-generated news brief (world, tech & AI, cybersecurity — refreshed at 6am/noon/6pm). Use whenever the user asks for a news brief, 'brief me', 'the news', or headlines. TERMINAL: its text reaches the user verbatim. For a SPECIFIC news question ('what happened with X?'), use ask_research instead.",
+    "name": "news_brief",
+    "parameters": {
+     "properties": {
+      "refresh": {
+       "description": "Set true ONLY when the user asks to update, refresh, or fetch the latest news (takes ~30 seconds). Omit for a normal brief request.",
+       "type": "boolean"
+      }
+     },
+     "type": "object"
+    }
+   },
+   "type": "function"
+  }
+ ],
+ "coordinator|esc=1": [
+  {
+   "function": {
+    "description": "Consult Kronk's research specialist. Web search, current events, news, online information, URL lookups, and current prices or rates (utility, market, retail) — anything needing live external data",
+    "name": "ask_research",
+    "parameters": {
+     "properties": {
+      "query": {
+       "description": "A complete, self-contained question for the specialist — include all context it needs.",
+       "type": "string"
+      }
+     },
+     "required": [
+      "query"
+     ],
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "Consult Kronk's home specialist. Weather lookups, shopping list management, hot tub status, solar panel health and energy production (kWh), playing music and controlling playback (stop, pause, resume, skip, volume), and updating or upgrading the magic mirror",
+    "name": "ask_home",
+    "parameters": {
+     "properties": {
+      "query": {
+       "description": "A complete, self-contained question for the specialist — include all context it needs.",
+       "type": "string"
+      }
+     },
+     "required": [
+      "query"
+     ],
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "Consult Kronk's assistant specialist. Kronk's own architecture, services, configuration, and generating diagrams",
+    "name": "ask_assistant",
+    "parameters": {
+     "properties": {
+      "query": {
+       "description": "A complete, self-contained question for the specialist — include all context it needs.",
+       "type": "string"
+      }
+     },
+     "required": [
+      "query"
+     ],
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "Consult Kronk's coding specialist. Writing code, debugging, explaining code, architecture questions, shell scripts, anything programming-related",
+    "name": "ask_coding",
+    "parameters": {
+     "properties": {
+      "query": {
+       "description": "A complete, self-contained question for the specialist — include all context it needs.",
+       "type": "string"
+      }
+     },
+     "required": [
+      "query"
+     ],
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "Consult Kronk's devops specialist. SSH commands, server administration, Linux troubleshooting, infrastructure, Docker, systemd, networking, host automation, and read-only checks on the magic mirror (uptime, status, logs), never updating or upgrading it: that is ask_home. It has no web access: when a task also needs documentation, ask research first and put its findings in the query.",
+    "name": "ask_devops",
+    "parameters": {
+     "properties": {
+      "query": {
+       "description": "A complete, self-contained question for the specialist — include all context it needs.",
+       "type": "string"
+      }
+     },
+     "required": [
+      "query"
+     ],
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "Deliver the pre-generated news brief (world, tech & AI, cybersecurity — refreshed at 6am/noon/6pm). Use whenever the user asks for a news brief, 'brief me', 'the news', or headlines. TERMINAL: its text reaches the user verbatim. For a SPECIFIC news question ('what happened with X?'), use ask_research instead.",
+    "name": "news_brief",
+    "parameters": {
+     "properties": {
+      "refresh": {
+       "description": "Set true ONLY when the user asks to update, refresh, or fetch the latest news (takes ~30 seconds). Omit for a normal brief request.",
+       "type": "boolean"
+      }
+     },
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "End your turn and hand this request to the Kronk coordinator because part of it needs data or tools outside your domain. Use ONLY when your own tools cannot cover part of the request — never for requests you can fully answer yourself.",
+    "name": "escalate",
+    "parameters": {
+     "properties": {
+      "note": {
+       "description": "One sentence: what you CAN provide, and which part you cannot.",
+       "type": "string"
+      }
+     },
+     "required": [
+      "note"
+     ],
+     "type": "object"
+    }
+   },
+   "type": "function"
+  }
+ ],
+ "devops|esc=0": [
+  {
+   "function": {
+    "description": "Run a READ-ONLY shell command on a managed host to inspect it, then read the output. Use for diagnostics — uptime, service status, logs, disk/memory, process list. The magic mirror is host 'magicmirror'. Only read-only commands are permitted (uptime, systemctl status, journalctl, ps, df, git log, …); anything that changes the system is refused. Compose one command; you may pipe between read commands (e.g. 'ps aux | grep node'). Iterate: run, read output, run another if needed.",
+    "name": "remote_exec",
+    "parameters": {
+     "properties": {
+      "command": {
+       "description": "The read-only command to run.",
+       "type": "string"
+      },
+      "host": {
+       "description": "Managed host name. Defaults to 'magicmirror'.",
+       "type": "string"
+      }
+     },
+     "required": [
+      "command"
+     ],
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "Check whether a URL is reachable from the Kronk host: one plain GET, five-second limit. Returns the HTTP status, time taken, any redirects, and the server / content-type / content-length / location headers, or the cause of failure (DNS failure, connection refused, timeout, TLS error). Never returns the page body. Works on any http or https address the Kronk host can reach, on the LAN or public.",
+    "name": "http_check",
+    "parameters": {
+     "properties": {
+      "url": {
+       "description": "Full http:// or https:// URL to check.",
+       "type": "string"
+      }
+     },
+     "required": [
+      "url"
+     ],
+     "type": "object"
+    }
+   },
+   "type": "function"
+  }
+ ],
+ "devops|esc=1": [
+  {
+   "function": {
+    "description": "Run a READ-ONLY shell command on a managed host to inspect it, then read the output. Use for diagnostics — uptime, service status, logs, disk/memory, process list. The magic mirror is host 'magicmirror'. Only read-only commands are permitted (uptime, systemctl status, journalctl, ps, df, git log, …); anything that changes the system is refused. Compose one command; you may pipe between read commands (e.g. 'ps aux | grep node'). Iterate: run, read output, run another if needed.",
+    "name": "remote_exec",
+    "parameters": {
+     "properties": {
+      "command": {
+       "description": "The read-only command to run.",
+       "type": "string"
+      },
+      "host": {
+       "description": "Managed host name. Defaults to 'magicmirror'.",
+       "type": "string"
+      }
+     },
+     "required": [
+      "command"
+     ],
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "Check whether a URL is reachable from the Kronk host: one plain GET, five-second limit. Returns the HTTP status, time taken, any redirects, and the server / content-type / content-length / location headers, or the cause of failure (DNS failure, connection refused, timeout, TLS error). Never returns the page body. Works on any http or https address the Kronk host can reach, on the LAN or public.",
+    "name": "http_check",
+    "parameters": {
+     "properties": {
+      "url": {
+       "description": "Full http:// or https:// URL to check.",
+       "type": "string"
+      }
+     },
+     "required": [
+      "url"
+     ],
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "End your turn and hand this request to the Kronk coordinator because part of it needs data or tools outside your domain. Use ONLY when your own tools cannot cover part of the request — never for requests you can fully answer yourself.",
+    "name": "escalate",
+    "parameters": {
+     "properties": {
+      "note": {
+       "description": "One sentence: what you CAN provide, and which part you cannot.",
+       "type": "string"
+      }
+     },
+     "required": [
+      "note"
+     ],
+     "type": "object"
+    }
+   },
+   "type": "function"
+  }
+ ],
+ "home|esc=0": [
+  {
+   "function": {
+    "description": "Get current weather and forecast for a location. Use this any time the user asks about weather, temperature, rain, snow, wind, or whether to bring an umbrella.",
+    "name": "get_weather",
+    "parameters": {
+     "properties": {
+      "location": {
+       "description": "City and state, e.g. 'Baltimore, MD'. Default: Laurel, MD",
+       "type": "string"
+      }
+     },
+     "required": [
+      "location"
+     ],
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "View the current shopping list.",
+    "name": "shopping_list_view",
+    "parameters": {
+     "properties": {},
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "Add one or more items to the shopping list.",
+    "name": "shopping_list_add",
+    "parameters": {
+     "properties": {
+      "items": {
+       "description": "Items to add",
+       "items": {
+        "type": "string"
+       },
+       "type": "array"
+      }
+     },
+     "required": [
+      "items"
+     ],
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "Remove an item from the shopping list.",
+    "name": "shopping_list_remove",
+    "parameters": {
+     "properties": {
+      "item": {
+       "description": "Item name to remove",
+       "type": "string"
+      }
+     },
+     "required": [
+      "item"
+     ],
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "Clear all items from the shopping list.",
+    "name": "shopping_list_clear",
+    "parameters": {
+     "properties": {},
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "Check the current status of the hot tub. Returns whether it is online or offline, the current water temperature, the target set temperature, and how long it has been offline if applicable. Use when the user asks about the hot tub, spa, or whether the hot tub breaker has tripped.",
+    "name": "query_hottub",
+    "parameters": {
+     "properties": {},
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "Quick solar panel system health summary: current total power output in kW, how many inverters are underperforming right now, and any inverters confirmed failing over several days. Use for a simple status check ('how's my solar?', 'is the solar okay?').",
+    "name": "solar_status",
+    "parameters": {
+     "properties": {},
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "Detailed per-inverter solar data for ANALYTICAL questions — which specific inverters are underperforming, their power/voltage/temperature, how many consecutive days each has been failing, and a short daily history (power and ratio-to-peers) for the troubled ones. Use when the user asks WHY something changed, which inverters are affected, whether one is getting worse, or anything needing per-inverter or trend detail. Reason over the numbers to answer; note that the 'underperforming right now' set is momentary (a marginal inverter dips in and out) while the consecutive bad-days count is what indicates a real, sustained failure. This tool is about HEALTH and FAULTS (from recent power), NOT cumulative energy: for 'which panel produced the most/least energy' or any lifetime/period production ranking, use solar_energy instead.",
+    "name": "solar_detail",
+    "parameters": {
+     "properties": {},
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "Solar ENERGY produced (kWh) — cumulative, not the instantaneous kW of solar_status. Use for 'how much have I produced', 'energy this week', 'total lifetime production', AND 'which panel/inverter produced the most/least energy' — the lifetime path returns per-panel lifetime totals, so this (not solar_detail) is the authoritative source for ranking panels by production. The 'period' arg: 'lifetime' (all-time, system + each inverter), 'today', 'yesterday', 'week' (past 7 days), 'month' (past 30 days), or 'since:YYYY-MM-DD'. Past-period figures start only from when tracking began; if a period predates that, the result says so.",
+    "name": "solar_energy",
+    "parameters": {
+     "properties": {
+      "period": {
+       "description": "lifetime | today | yesterday | week | month | since:YYYY-MM-DD",
+       "type": "string"
+      }
+     },
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "Play music through Music Assistant on a home speaker. Use whenever the user asks to play, put on, or listen to music — an artist, album, song, playlist, radio station, or genre. Pass the name as plain text; spelling mistakes are corrected for you. For a style instead of a specific record ('some deep house', 'something chill', 'jazz', 'some music') pass kind 'genre' and Kronk picks something the household likes. For 'not that' / 'something else' right after Kronk picked, pass kind 'another'.",
+    "name": "play_music",
+    "parameters": {
+     "properties": {
+      "kind": {
+       "description": "genre = a style or vibe, not a specific record (query is the style, or 'music' for 'play some music'); another = replace Kronk's last pick (query 'another'). Omit for a specific artist/album/song.",
+       "enum": [
+        "named",
+        "genre",
+        "another"
+       ],
+       "type": "string"
+      },
+      "media_type": {
+       "description": "What kind of thing the query names, if the user said so (album/song/etc). 'radio' whenever the user said 'radio' or 'station'. Omit when unsure.",
+       "enum": [
+        "artist",
+        "album",
+        "track",
+        "playlist",
+        "radio"
+       ],
+       "type": "string"
+      },
+      "player": {
+       "description": "Which speaker OR room to play in, exactly as the user said it (e.g. 'the office', 'kitchen', 'sonos move'). Omit when the user named none.",
+       "type": "string"
+      },
+      "query": {
+       "description": "What to play — artist, album, song, playlist, radio station, or genre (e.g. 'Pink Floyd', 'Wish You Were Here', 'Hotel Costes'). Pass the whole name as the user said it; never shorten it or drop words. Write numbers as digits: 'ninety's' → '90s', 'two thousands' → '2000s', 'nineteen eighty four' → '1984'.",
+       "type": "string"
+      },
+      "shuffle": {
+       "description": "True when the user said 'shuffle' (e.g. 'shuffle my playlist X'). Otherwise omit.",
+       "type": "boolean"
+      }
+     },
+     "required": [
+      "query"
+     ],
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "Control music that is already playing: pause, resume, stop (same as pause — keeps the queue), skip to the next track, or turn the volume up or down. Use for 'stop', 'pause', 'shut up', 'skip this', 'next', 'louder', 'quieter'. This is the ONLY way to control playback — never claim to have paused or stopped anything without calling it.",
+    "name": "control_music",
+    "parameters": {
+     "properties": {
+      "action": {
+       "enum": [
+        "pause",
+        "resume",
+        "stop",
+        "next",
+        "volume_up",
+        "volume_down"
+       ],
+       "type": "string"
+      },
+      "player": {
+       "description": "Which speaker OR room, exactly as the user said it. Omit when the user named none.",
+       "type": "string"
+      }
+     },
+     "required": [
+      "action"
+     ],
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "Thumbs up or thumbs down the track playing right now on a Pandora station (trains the station). Use for 'thumbs up', 'thumbs down', 'I love this song', 'never play this again'. Thumbs down also skips to the next track. This is the ONLY way to rate — never claim a rating was recorded without calling it.",
+    "name": "rate_music",
+    "parameters": {
+     "properties": {
+      "player": {
+       "description": "Which speaker OR room, exactly as the user said it. Omit when the user named none.",
+       "type": "string"
+      },
+      "thumb": {
+       "enum": [
+        "up",
+        "down"
+       ],
+       "type": "string"
+      }
+     },
+     "required": [
+      "thumb"
+     ],
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "Save a household music preference to Kronk's taste file. Use for 'we love Ulrich Schnauss', 'never play Nickelback', 'forget that we love X', 'when I say chill I mean deep house and downtempo'. Not for rating the song playing now (that is rate_music). This is the ONLY way to save one — never claim it was saved without calling it.",
+    "name": "remember_music_preference",
+    "parameters": {
+     "properties": {
+      "action": {
+       "description": "love = favor it; never = don't pick it; forget = remove it; means = what a genre word means here.",
+       "enum": [
+        "love",
+        "never",
+        "forget",
+        "means"
+       ],
+       "type": "string"
+      },
+      "meaning": {
+       "description": "For 'means' only: the genres, comma-separated (e.g. 'deep house, downtempo').",
+       "type": "string"
+      },
+      "value": {
+       "description": "The artist, album, or genre — or for 'means', the word being defined (e.g. 'chill').",
+       "type": "string"
+      }
+     },
+     "required": [
+      "action",
+      "value"
+     ],
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "Report what is playing right now on a speaker: song, artist, album, and source. Use for 'what song is this', 'what's playing', 'who is this'. Reads the speaker — never guess.",
+    "name": "now_playing",
+    "parameters": {
+     "properties": {
+      "player": {
+       "description": "Which speaker OR room, exactly as the user said it. Omit when the user named none.",
+       "type": "string"
+      }
+     },
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "Update the MagicMirror software on the hallway Raspberry Pi. Use when the user asks to update/upgrade the magic mirror. A full backup is taken first; the update runs in the background and takes a few minutes.",
+    "name": "update_magicmirror",
+    "parameters": {
+     "properties": {},
+     "type": "object"
+    }
+   },
+   "type": "function"
+  }
+ ],
+ "home|esc=1": [
+  {
+   "function": {
+    "description": "Get current weather and forecast for a location. Use this any time the user asks about weather, temperature, rain, snow, wind, or whether to bring an umbrella.",
+    "name": "get_weather",
+    "parameters": {
+     "properties": {
+      "location": {
+       "description": "City and state, e.g. 'Baltimore, MD'. Default: Laurel, MD",
+       "type": "string"
+      }
+     },
+     "required": [
+      "location"
+     ],
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "View the current shopping list.",
+    "name": "shopping_list_view",
+    "parameters": {
+     "properties": {},
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "Add one or more items to the shopping list.",
+    "name": "shopping_list_add",
+    "parameters": {
+     "properties": {
+      "items": {
+       "description": "Items to add",
+       "items": {
+        "type": "string"
+       },
+       "type": "array"
+      }
+     },
+     "required": [
+      "items"
+     ],
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "Remove an item from the shopping list.",
+    "name": "shopping_list_remove",
+    "parameters": {
+     "properties": {
+      "item": {
+       "description": "Item name to remove",
+       "type": "string"
+      }
+     },
+     "required": [
+      "item"
+     ],
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "Clear all items from the shopping list.",
+    "name": "shopping_list_clear",
+    "parameters": {
+     "properties": {},
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "Check the current status of the hot tub. Returns whether it is online or offline, the current water temperature, the target set temperature, and how long it has been offline if applicable. Use when the user asks about the hot tub, spa, or whether the hot tub breaker has tripped.",
+    "name": "query_hottub",
+    "parameters": {
+     "properties": {},
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "Quick solar panel system health summary: current total power output in kW, how many inverters are underperforming right now, and any inverters confirmed failing over several days. Use for a simple status check ('how's my solar?', 'is the solar okay?').",
+    "name": "solar_status",
+    "parameters": {
+     "properties": {},
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "Detailed per-inverter solar data for ANALYTICAL questions — which specific inverters are underperforming, their power/voltage/temperature, how many consecutive days each has been failing, and a short daily history (power and ratio-to-peers) for the troubled ones. Use when the user asks WHY something changed, which inverters are affected, whether one is getting worse, or anything needing per-inverter or trend detail. Reason over the numbers to answer; note that the 'underperforming right now' set is momentary (a marginal inverter dips in and out) while the consecutive bad-days count is what indicates a real, sustained failure. This tool is about HEALTH and FAULTS (from recent power), NOT cumulative energy: for 'which panel produced the most/least energy' or any lifetime/period production ranking, use solar_energy instead.",
+    "name": "solar_detail",
+    "parameters": {
+     "properties": {},
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "Solar ENERGY produced (kWh) — cumulative, not the instantaneous kW of solar_status. Use for 'how much have I produced', 'energy this week', 'total lifetime production', AND 'which panel/inverter produced the most/least energy' — the lifetime path returns per-panel lifetime totals, so this (not solar_detail) is the authoritative source for ranking panels by production. The 'period' arg: 'lifetime' (all-time, system + each inverter), 'today', 'yesterday', 'week' (past 7 days), 'month' (past 30 days), or 'since:YYYY-MM-DD'. Past-period figures start only from when tracking began; if a period predates that, the result says so.",
+    "name": "solar_energy",
+    "parameters": {
+     "properties": {
+      "period": {
+       "description": "lifetime | today | yesterday | week | month | since:YYYY-MM-DD",
+       "type": "string"
+      }
+     },
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "Play music through Music Assistant on a home speaker. Use whenever the user asks to play, put on, or listen to music — an artist, album, song, playlist, radio station, or genre. Pass the name as plain text; spelling mistakes are corrected for you. For a style instead of a specific record ('some deep house', 'something chill', 'jazz', 'some music') pass kind 'genre' and Kronk picks something the household likes. For 'not that' / 'something else' right after Kronk picked, pass kind 'another'.",
+    "name": "play_music",
+    "parameters": {
+     "properties": {
+      "kind": {
+       "description": "genre = a style or vibe, not a specific record (query is the style, or 'music' for 'play some music'); another = replace Kronk's last pick (query 'another'). Omit for a specific artist/album/song.",
+       "enum": [
+        "named",
+        "genre",
+        "another"
+       ],
+       "type": "string"
+      },
+      "media_type": {
+       "description": "What kind of thing the query names, if the user said so (album/song/etc). 'radio' whenever the user said 'radio' or 'station'. Omit when unsure.",
+       "enum": [
+        "artist",
+        "album",
+        "track",
+        "playlist",
+        "radio"
+       ],
+       "type": "string"
+      },
+      "player": {
+       "description": "Which speaker OR room to play in, exactly as the user said it (e.g. 'the office', 'kitchen', 'sonos move'). Omit when the user named none.",
+       "type": "string"
+      },
+      "query": {
+       "description": "What to play — artist, album, song, playlist, radio station, or genre (e.g. 'Pink Floyd', 'Wish You Were Here', 'Hotel Costes'). Pass the whole name as the user said it; never shorten it or drop words. Write numbers as digits: 'ninety's' → '90s', 'two thousands' → '2000s', 'nineteen eighty four' → '1984'.",
+       "type": "string"
+      },
+      "shuffle": {
+       "description": "True when the user said 'shuffle' (e.g. 'shuffle my playlist X'). Otherwise omit.",
+       "type": "boolean"
+      }
+     },
+     "required": [
+      "query"
+     ],
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "Control music that is already playing: pause, resume, stop (same as pause — keeps the queue), skip to the next track, or turn the volume up or down. Use for 'stop', 'pause', 'shut up', 'skip this', 'next', 'louder', 'quieter'. This is the ONLY way to control playback — never claim to have paused or stopped anything without calling it.",
+    "name": "control_music",
+    "parameters": {
+     "properties": {
+      "action": {
+       "enum": [
+        "pause",
+        "resume",
+        "stop",
+        "next",
+        "volume_up",
+        "volume_down"
+       ],
+       "type": "string"
+      },
+      "player": {
+       "description": "Which speaker OR room, exactly as the user said it. Omit when the user named none.",
+       "type": "string"
+      }
+     },
+     "required": [
+      "action"
+     ],
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "Thumbs up or thumbs down the track playing right now on a Pandora station (trains the station). Use for 'thumbs up', 'thumbs down', 'I love this song', 'never play this again'. Thumbs down also skips to the next track. This is the ONLY way to rate — never claim a rating was recorded without calling it.",
+    "name": "rate_music",
+    "parameters": {
+     "properties": {
+      "player": {
+       "description": "Which speaker OR room, exactly as the user said it. Omit when the user named none.",
+       "type": "string"
+      },
+      "thumb": {
+       "enum": [
+        "up",
+        "down"
+       ],
+       "type": "string"
+      }
+     },
+     "required": [
+      "thumb"
+     ],
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "Save a household music preference to Kronk's taste file. Use for 'we love Ulrich Schnauss', 'never play Nickelback', 'forget that we love X', 'when I say chill I mean deep house and downtempo'. Not for rating the song playing now (that is rate_music). This is the ONLY way to save one — never claim it was saved without calling it.",
+    "name": "remember_music_preference",
+    "parameters": {
+     "properties": {
+      "action": {
+       "description": "love = favor it; never = don't pick it; forget = remove it; means = what a genre word means here.",
+       "enum": [
+        "love",
+        "never",
+        "forget",
+        "means"
+       ],
+       "type": "string"
+      },
+      "meaning": {
+       "description": "For 'means' only: the genres, comma-separated (e.g. 'deep house, downtempo').",
+       "type": "string"
+      },
+      "value": {
+       "description": "The artist, album, or genre — or for 'means', the word being defined (e.g. 'chill').",
+       "type": "string"
+      }
+     },
+     "required": [
+      "action",
+      "value"
+     ],
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "Report what is playing right now on a speaker: song, artist, album, and source. Use for 'what song is this', 'what's playing', 'who is this'. Reads the speaker — never guess.",
+    "name": "now_playing",
+    "parameters": {
+     "properties": {
+      "player": {
+       "description": "Which speaker OR room, exactly as the user said it. Omit when the user named none.",
+       "type": "string"
+      }
+     },
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "Update the MagicMirror software on the hallway Raspberry Pi. Use when the user asks to update/upgrade the magic mirror. A full backup is taken first; the update runs in the background and takes a few minutes.",
+    "name": "update_magicmirror",
+    "parameters": {
+     "properties": {},
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "End your turn and hand this request to the Kronk coordinator because part of it needs data or tools outside your domain. Use ONLY when your own tools cannot cover part of the request — never for requests you can fully answer yourself.",
+    "name": "escalate",
+    "parameters": {
+     "properties": {
+      "note": {
+       "description": "One sentence: what you CAN provide, and which part you cannot.",
+       "type": "string"
+      }
+     },
+     "required": [
+      "note"
+     ],
+     "type": "object"
+    }
+   },
+   "type": "function"
+  }
+ ],
+ "research|esc=0": [
+  {
+   "function": {
+    "description": "Search the web for current information. Use for news, facts, recent events, product info, local businesses, or any question that requires up-to-date data.",
+    "name": "web_search",
+    "parameters": {
+     "properties": {
+      "count": {
+       "default": 5,
+       "description": "Number of results (default 5)",
+       "type": "integer"
+      },
+      "query": {
+       "description": "Search query string",
+       "type": "string"
+      }
+     },
+     "required": [
+      "query"
+     ],
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "Fetch and read the content of a specific web page or URL.",
+    "name": "fetch_url",
+    "parameters": {
+     "properties": {
+      "url": {
+       "description": "Full URL to fetch",
+       "type": "string"
+      }
+     },
+     "required": [
+      "url"
+     ],
+     "type": "object"
+    }
+   },
+   "type": "function"
+  }
+ ],
+ "research|esc=1": [
+  {
+   "function": {
+    "description": "Search the web for current information. Use for news, facts, recent events, product info, local businesses, or any question that requires up-to-date data.",
+    "name": "web_search",
+    "parameters": {
+     "properties": {
+      "count": {
+       "default": 5,
+       "description": "Number of results (default 5)",
+       "type": "integer"
+      },
+      "query": {
+       "description": "Search query string",
+       "type": "string"
+      }
+     },
+     "required": [
+      "query"
+     ],
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "Fetch and read the content of a specific web page or URL.",
+    "name": "fetch_url",
+    "parameters": {
+     "properties": {
+      "url": {
+       "description": "Full URL to fetch",
+       "type": "string"
+      }
+     },
+     "required": [
+      "url"
+     ],
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "End your turn and hand this request to the Kronk coordinator because part of it needs data or tools outside your domain. Use ONLY when your own tools cannot cover part of the request — never for requests you can fully answer yourself.",
+    "name": "escalate",
+    "parameters": {
+     "properties": {
+      "note": {
+       "description": "One sentence: what you CAN provide, and which part you cannot.",
+       "type": "string"
+      }
+     },
+     "required": [
+      "note"
+     ],
+     "type": "object"
+    }
+   },
+   "type": "function"
+  }
+ ],
+ "talkie|esc=0": null,
+ "talkie|esc=1": [
+  {
+   "function": {
+    "description": "End your turn and hand this request to the Kronk coordinator because part of it needs data or tools outside your domain. Use ONLY when your own tools cannot cover part of the request — never for requests you can fully answer yourself.",
+    "name": "escalate",
+    "parameters": {
+     "properties": {
+      "note": {
+       "description": "One sentence: what you CAN provide, and which part you cannot.",
+       "type": "string"
+      }
+     },
+     "required": [
+      "note"
+     ],
+     "type": "object"
+    }
+   },
+   "type": "function"
+  }
+ ]
+}
