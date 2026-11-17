@@ -342,8 +342,18 @@ def test_trigger_runs_the_update_on_every_transport(client, transport, text):
     reply, fake, llm_log = _run(client, transport, text,
                                 system=STAMP if "voice" in transport else None)
     assert len(fake.mirror_posts) == 1, (transport, text, fake.calls)
-    assert reply.startswith("I couldn't update the magic mirror. Mirror preflight failed")
+    _assert_mirror_failure_reply(transport, reply)
     assert llm_log == ["home"]                 # pinned by mm_update, one call
+
+
+def _assert_mirror_failure_reply(transport, reply):
+    """The update ran and its preflight failed. On the speech mount the
+    preflight detail is debug text and is not spoken (M2 fix 1); the other
+    transports keep today's text, detail included."""
+    if transport == "voice_api_chat":
+        assert reply == errors.FRIENDLY_MIRROR_NOT_STARTED, reply
+    else:
+        assert reply.startswith("I couldn't update the magic mirror. Mirror preflight failed")
 
 
 @pytest.mark.parametrize("transport", TRANSPORTS)
@@ -473,7 +483,7 @@ def test_pinned_sentence_as_last_message_after_history_still_runs(client, transp
             {"role": "user", "content": "update the magic mirror"}]
     reply, fake, _ = _run_raw(client, transport, msgs)
     assert len(fake.mirror_posts) == 1, (transport, fake.calls)
-    assert reply.startswith("I couldn't update the magic mirror. Mirror preflight failed")
+    _assert_mirror_failure_reply(transport, reply)
 
 
 def test_turn_said_reads_only_the_last_message():

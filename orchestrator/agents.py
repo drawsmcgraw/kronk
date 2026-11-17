@@ -95,13 +95,40 @@ def _tool_narration(name: str, args: dict) -> str:
     return f"running {name}..."
 
 
+def _news_speech(result: str, style: str) -> str:
+    """news_brief's result, which is display-ready prose, success or failure —
+    the whole point of the tool is that nothing rephrases it
+    (NEWS_BRIEF_PLAN). Its failure prose carries tool_service's detail and
+    tools.execute's exception line, so on the speech mount those go through
+    errors.failure_text like every other code-written failure (M2 fix 1)."""
+    if result.startswith("[Tool news_brief error: "):
+        return errors.failure_text(result, style, errors.friendly_tool_failure("news_brief"))
+    if result.startswith(tools.NEWS_UNAVAILABLE):
+        return errors.failure_text(result, style, errors.FRIENDLY_NEWS_UNAVAILABLE)
+    if result.startswith(tools.NEWS_REFRESH_FAILED) and "\n\n" in result:
+        # A failed refresh, then the cached brief: only the note is failure text.
+        note, brief = result.split("\n\n", 1)
+        return (errors.failure_text(note, style, errors.FRIENDLY_NEWS_REFRESH_FAILED)
+                + "\n\n" + brief)
+    return result
+
+
+# tools.py's argument refusals for terminal tools, e.g. "play_music error:
+# query is required" (brackets already stripped). No "Tool " prefix: that
+# one is tools.execute's exception line.
+_TOOL_BAD_REQUEST = re.compile(r"^(?!Tool )\S+ error: ")
+
+
 def _terminal_speech(result: str, style: str = errors.DEBUG,
                      tool: str | None = None) -> str:
-    """Speakable sentence from a terminal tool's structural result line."""
-    # news_brief returns display-ready prose, success or failure — the whole
-    # point of the tool is that nothing rephrases it (NEWS_BRIEF_PLAN).
+    """Speakable sentence from a terminal tool's structural result line.
+
+    Success lines map to their sentence in both styles. Every failure line
+    leaves through errors.failure_text: the music failures with their own
+    sentence are the same in both styles (criterion 8); the rest are the
+    friendly sentence in friendly style and today's text in debug."""
     if tool == "news_brief":
-        return result
+        return _news_speech(result, style)
     line = result.split("\n", 1)[0].strip().strip("[]")
     if line.startswith("Music playing: "):
         return f"Now playing {line[len('Music playing: '):]}."
@@ -112,43 +139,54 @@ def _terminal_speech(result: str, style: str = errors.DEBUG,
     if line.startswith("Could not play music: "):
         # The detail here is already a human sentence ("The speaker may be
         # powered off") — spoken in both styles.
-        return f"I couldn't play that. {line[len('Could not play music: '):]}"
+        return errors.failure_text(
+            f"I couldn't play that. {line[len('Could not play music: '):]}", style, None)
     if line.startswith("Music control: "):
         # tool_service's detail is already the sentence ("Paused on the
         # Office speaker.") — ends with a period so HA closes the mic.
         return line[len("Music control: "):]
     if line.startswith("Could not control music: "):
-        return f"I couldn't do that. {line[len('Could not control music: '):]}"
+        return errors.failure_text(
+            f"I couldn't do that. {line[len('Could not control music: '):]}", style, None)
     if line.startswith("Music rated: "):
         return line[len("Music rated: "):]
     if line.startswith("Could not rate music: "):
-        return f"I couldn't rate that. {line[len('Could not rate music: '):]}"
+        return errors.failure_text(
+            f"I couldn't rate that. {line[len('Could not rate music: '):]}", style, None)
     if line.startswith("Music taste: "):
         return line[len("Music taste: "):]        # tool_service's sentence, as-is
     if line.startswith("Could not save music taste: "):
-        return f"I couldn't save that. {line[len('Could not save music taste: '):]}"
+        return errors.failure_text(
+            f"I couldn't save that. {line[len('Could not save music taste: '):]}", style, None)
     if line.startswith("Now playing: "):
         return line[len("Now playing: "):]        # tool_service's sentence, as-is
     if line.startswith("Could not read the player: "):
-        return f"I couldn't tell. {line[len('Could not read the player: '):]}"
+        return errors.failure_text(
+            f"I couldn't tell. {line[len('Could not read the player: '):]}", style, None)
     if line.startswith("Magic mirror update started: "):
         return f"The magic mirror is {line[len('Magic mirror update started: '):]}."
     if line.startswith("Magic mirror update refused: "):
+        # A refusal, not a failure: the fixed sentence, spoken unchanged.
         return line[len("Magic mirror update refused: "):]   # tools.MM_UPDATE_REFUSAL
     if line.startswith("Could not update the magic mirror: "):
-        return ("I couldn't update the magic mirror. "
-                f"{line[len('Could not update the magic mirror: '):]}")
+        # The detail is tool_service's preflight text (key paths, ssh
+        # targets, ssh output): debug text, never spoken (M2 fix 1).
+        return errors.failure_text(
+            "I couldn't update the magic mirror. "
+            f"{line[len('Could not update the magic mirror: '):]}",
+            style, errors.FRIENDLY_MIRROR_NOT_STARTED)
     # Unrecognized shape — e.g. "Tool play_music error: ReadTimeout(...)" from
     # tools.execute on a transport failure. Spoken raw, that's a stack trace
     # read aloud; log the internals, speak a clean sentence with the cause
     # kept short in debug and dropped in friendly (2026-07-05 review P1.4).
     logger.warning("terminal tool result had no speech mapping: %r", result[:300])
-    if style == errors.FRIENDLY:
-        return errors.friendly_tool_failure(tool)
     if line.lower().startswith("tool ") and " error: " in line:
         cause = line.split(" error: ", 1)[1]
-        return f"That didn't work — the tool failed with {cause[:120]}."
-    return line
+        return errors.failure_text(f"That didn't work — the tool failed with {cause[:120]}.",
+                                   style, errors.friendly_tool_failure(tool))
+    if _TOOL_BAD_REQUEST.match(line):
+        return errors.failure_text(line, style, errors.friendly_tool_bad_request(tool))
+    return errors.failure_text(line, style, errors.friendly_tool_failure(tool))
 
 
 TALKIE_MODEL         = os.getenv("TALKIE_MODEL",         "talkie")
@@ -579,11 +617,19 @@ def kronk_facts() -> str:
     )
 
 
+def _empty_reply(agent: "AgentConfig", style: str) -> str:
+    """The model streamed no token and no tool call: say so (M2 fix 1)."""
+    emit("agent_empty_reply", agent=agent.name, model=agent.model)
+    return errors.failure_text(f"[{agent.name} agent returned no response]",
+                               style, errors.FRIENDLY_EMPTY_REPLY)
+
+
 async def run_stream(agent: AgentConfig, task: str, context: list[dict],
                      system_extra: str | None = None,
                      history_messages: list[dict] | None = None,
                      error_style: str | None = None,
-                     allow_escalation: bool = False):
+                     allow_escalation: bool = False,
+                     delegated: bool = False):
     """Run an agent's tool-calling loop with unified streaming.
 
     Used by specialists AND the coordinator (which carries ask_* agent-tools
@@ -611,6 +657,11 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
         # style, from origin.voice — so a delegated failure on the speech
         # mount is phrased for a speaker too.
         error_style = errors.current_style()
+    # Who reads this run's non-terminal text. A delegated run (run_delegated)
+    # hands it to the coordinator model, so an empty reply stays the debug
+    # marker the coordinator has always seen; its terminal results are
+    # relayed to the user verbatim, so those keep error_style.
+    user_style = errors.DEBUG if delegated else error_style
     agent_tool_defs = agent.tool_defs() or None
     if allow_escalation:
         # Top-level pinned specialist runs only (see ESCALATE_TOOL comment) —
@@ -717,7 +768,7 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
                 # Stream ended with no tool_calls → final answer. Content already streamed.
                 last_round_text = "".join(round_content)
                 if not round_content:
-                    yield {"type": "token", "text": f"[{agent.name} agent returned no response]"}
+                    yield {"type": "token", "text": _empty_reply(agent, user_style)}
                 yield {"type": "done", "model": agent.model, "ok": True}
                 return
 
@@ -804,6 +855,10 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
                         tool_span.end(level="ERROR", status_message=str(e)[:200])
                         raise
                     tool_span.end(output=result[:2000] if isinstance(result, str) else result)
+                    if errors.is_failed_tool_result(result):
+                        # Arms the speech-mount backstop for this turn
+                        # (errors.speech_backstop): the model may echo it.
+                        errors.note_failure(f"{fn_name}: {result[:200]}")
                     emit(
                         "tool_complete",
                         agent=agent.name,
@@ -939,7 +994,7 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
 
         last_round_text = "".join(final_content)
         if not final_content:
-            yield {"type": "token", "text": f"[{agent.name} agent returned no response]"}
+            yield {"type": "token", "text": _empty_reply(agent, user_style)}
         yield {"type": "done", "model": agent.model, "ok": True}
     finally:
         # Covers normal returns, error returns above, and client disconnects
@@ -955,7 +1010,7 @@ async def run_delegated(agent: AgentConfig, task: str, context: list[dict]) -> t
     text = ""
     error: str | None = None
     terminal = False
-    async for ev in run_stream(agent, task, context):
+    async for ev in run_stream(agent, task, context, delegated=True):
         t = ev.get("type")
         if t == "token":
             text += ev["text"]

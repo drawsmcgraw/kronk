@@ -963,6 +963,12 @@ async def _tool_update_magicmirror(client: httpx.AsyncClient, args: dict) -> str
     )
 
 
+# The news brief's own failure prose. Module constants so
+# agents._terminal_speech recognises them by the same text (one source).
+NEWS_REFRESH_FAILED = "I couldn't fetch fresh news "
+NEWS_UNAVAILABLE = "The news brief isn't available right now — "
+
+
 async def _tool_news_brief(client: httpx.AsyncClient, args: dict) -> str:
     """Terminal on the coordinator — the returned text is delivered to the
     user verbatim (both success and failure must read as finished prose,
@@ -979,11 +985,11 @@ async def _tool_news_brief(client: httpx.AsyncClient, args: dict) -> str:
                     cause = r.json().get("detail", "")[:150]
                 except Exception:
                     cause = r.text[:150]
-                refresh_note = ("I couldn't fetch fresh news "
+                refresh_note = (NEWS_REFRESH_FAILED +
                                 f"({cause or 'refresh failed'}) — here's the "
                                 "latest brief I have.\n\n")
         except Exception as e:
-            refresh_note = ("I couldn't fetch fresh news "
+            refresh_note = (NEWS_REFRESH_FAILED +
                             f"({str(e)[:100]}) — here's the latest brief I "
                             "have.\n\n")
     resp = await client.get(f"{TOOL_SERVICE_URL}/news/brief")
@@ -992,7 +998,7 @@ async def _tool_news_brief(client: httpx.AsyncClient, args: dict) -> str:
             detail = resp.json().get("detail", "")
         except Exception:
             detail = resp.text[:200]
-        return ("The news brief isn't available right now — "
+        return (NEWS_UNAVAILABLE +
                 f"{detail or 'the generator has not produced one yet'}. "
                 "Ask me to research the news live if you need it sooner.")
     d = resp.json()

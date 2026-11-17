@@ -88,8 +88,39 @@ The friendly sentences (debug twin in brackets):
 | Pipeline crash (cause unknown) | "Sorry — something went wrong on my end. I've noted the details." | `Error: the pipeline failed unexpectedly (<Type>: <cause>) [rid <rid>]` |
 | Model server unreachable (connect error, timeout, 5xx) | "Sorry — I couldn't reach my language model. Try again in a moment." | `[coordinator agent error: <cause>]` |
 | Model server refused (LiteLLM 4xx) | "Sorry — my language model couldn't handle that request." | `[coordinator agent error: LiteLLM returned 4xx: <detail>]` |
-| Terminal tool raised (e.g. tool_service down) | "That didn't work — I couldn't get through to the music service." (or "the magic mirror updater", or "the service that handles that") | `That didn't work — the tool failed with <cause>.` |
+| Terminal tool raised (e.g. tool_service down) | "That didn't work — I couldn't get through to the music service." (or "the magic mirror updater", "the news service", or "the service that handles that") | `That didn't work — the tool failed with <cause>.`; for `news_brief`, `[Tool news_brief error: <cause>]` |
+| Terminal tool refused its arguments (`[play_music error: query is required]`) | "That didn't work — I didn't get enough detail to ask the music service. Try saying it again." | `play_music error: query is required` |
+| Mirror update did not start (preflight failed, tool_service answered an error) | "I couldn't start the magic mirror update. The details are in the logs." | `I couldn't update the magic mirror. <tool_service detail>` |
+| News brief unavailable (tool_service answered an error) | "The news brief isn't available right now. Ask me to research the news live if you need it sooner." | `The news brief isn't available right now — <detail>. Ask me to research …` |
+| News refresh failed (cached brief follows) | "I couldn't fetch fresh news, so here's the latest brief I have." + the brief | `I couldn't fetch fresh news (<cause>) — here's the latest brief I have.` + the brief |
+| Model returned no token and no tool call | "Sorry — my language model didn't come up with an answer. Try asking again." | `[<agent> agent returned no response]` |
 | Music failures with their own sentence | unchanged in both styles ("I couldn't play that. The speaker may be powered off.") | same |
+| Mirror update refused (not the pinned sentence) | a refusal, not a failure: `To update the magic mirror, say "update the magic mirror".` in both styles | same |
+
+Every one of these leaves through `errors.failure_text(debug, style,
+friendly)`, the single exit for failure text the code writes for the user:
+friendly style gets the sentence, debug style gets the debug text unchanged.
+When it substitutes, the debug text is logged (`failure_spoken_friendly`
+event) and set on the current span (`kronk.failure.debug_text`). Two tests
+keep new paths honest: no literal or f-string may be yielded as a user token
+in `main.py` / `agents.py` without going through `errors.*`, and every
+terminal tool is driven through each way it can fail (service down, HTTP
+error with a poisoned detail, missing arguments) and its friendly speech
+checked for debug shapes (`tests/test_spoken_failures.py`).
+
+A delegated specialist's empty reply is model-facing (the coordinator reads
+it), so it stays `[<agent> agent returned no response]` on every mount.
+
+**Speech backstop.** On the speech mount only, the final text of a failed
+turn is checked against the code's own debug shapes (bracketed tool/agent
+markers, `Errno`, exception class names, tracebacks, URLs with ports, paths
+under `/keys/` or `/data/`) and replaced by the generic sentence if one is
+found (`errors.speech_backstop`). A turn counts as failed when any code
+failure text was rendered, any tool result matched the failure shapes, or
+the pipeline recorded an error; a turn with none is never touched. The
+original is logged (`speech_backstop` event) and set on the request's HTTP
+server span (`kronk.speech_backstop`, `kronk.speech_backstop.original`).
+It is off when `ERROR_STYLE_VOICE=debug`.
 
 Failures the model phrases — a non-terminal tool that failed, a specialist
 that failed and fell back to the coordinator — keep full detail model-side
@@ -130,3 +161,7 @@ span inside the trace). The invented-answer ban never relaxes.
   "correlate timestamps by hand."
 - When the model is part of your error path: FAILED labels, invented-answer
   bans, and never letting a model paraphrase a stack trace.
+- One exit for failure text: three spoken debug leaks (news, mirror, empty
+  reply) were three paths around the error style, not three bugs; the fix
+  was one function, a test that refuses new paths, and a speech backstop
+  that only ever looks at failed turns.
