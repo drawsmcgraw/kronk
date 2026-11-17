@@ -281,12 +281,13 @@ def effective_values() -> dict:
     v["tools.timeout_s"] = {n: timeouts.for_tool(n) for n in names}
     v["tools.timeout_default_s"] = timeouts.default_s
     v["tool_service.music_verify_timeout_s"] = ts.config_loader.current().music.verify.timeout_s
-    v["tool_service.resolve_hint_min_score"] = ts.RESOLVE_HINT_MIN_SCORE
-    v["music_resolve.play_min_score"] = mr.PLAY_MIN_SCORE
-    v["music_resolve.coverage_min"] = mr.COVERAGE_MIN
-    v["music_resolve.provider_bonus"] = mr.PROVIDER_BONUS
-    v["music_resolve.library_bonus"] = mr.LIBRARY_BONUS
-    v["music_resolve.type_bonus"] = dict(mr._TYPE_BONUS)
+    r = mr.policy()
+    v["tool_service.resolve_hint_min_score"] = r.hint_min_score
+    v["music_resolve.play_min_score"] = r.play_min_score
+    v["music_resolve.coverage_min"] = r.coverage_min
+    v["music_resolve.provider_bonus"] = r.provider_bonus
+    v["music_resolve.library_bonus"] = r.library_bonus
+    v["music_resolve.type_bonus"] = r.type_bonus.model_dump()
     return v
 
 

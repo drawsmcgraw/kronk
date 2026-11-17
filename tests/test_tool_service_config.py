@@ -112,3 +112,30 @@ def test_verify_constant_is_gone():
 
 def test_dockerfile_copies_the_loader():
     assert "config_loader.py" in (REPO / "tool_service" / "Dockerfile").read_text()
+
+
+# ── resolver thresholds ──────────────────────────────────────────────────────
+
+def test_resolver_values_take_effect_on_reload(cfgdir):
+    from tool_service import music_resolve as mr
+    q = mr.normalize("Hotel Costes 3")
+    c = mr.Candidate(uri="library://album/1", media_type="album", name="Hotel Costes 3",
+                     artists=["Stéphane Pompougnac"], providers={"filesystem_smb"}, in_library=True)
+    before = mr.score(c, q)
+    m = cfgdir / "music.yaml"
+    m.write_text(m.read_text().replace("library_bonus: 0.03", "library_bonus: 0.1"))
+    r = config_loader.reload()
+    assert r == {"ok": True, "changed": ["music.yaml:resolver.library_bonus: 0.03 -> 0.1"]}
+    assert mr.score(c, q) == pytest.approx(before + 0.07)
+
+
+def test_resolver_out_of_range_is_rejected_with_its_line(cfgdir):
+    m = cfgdir / "music.yaml"
+    text = m.read_text().replace("play_min_score: 0.75", "play_min_score: 1.5")
+    ((f, line, msg),) = _problems(cfgdir, text)
+    assert line == text.splitlines().index("  play_min_score: 1.5") + 1
+    assert msg.startswith("resolver.play_min_score: Input should be less than or equal to 1")
+
+
+def test_type_bonus_names_are_the_media_types():
+    assert set(config_loader.TypeBonus.model_fields) == {"artist", "album", "playlist", "track", "radio"}

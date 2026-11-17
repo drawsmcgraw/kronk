@@ -7,7 +7,8 @@ ruamel.yaml here), so each carries its own small loader rather than a
 shared package.
 
 Files (docs/features/config-directory.md has the full description):
-  music.yaml   the playback verify window; schema: the Music model below.
+  music.yaml   the playback verify window and the resolver's thresholds;
+               schema: the Music model below.
 
 Rules:
   - Load at startup (the first current() call). A file that fails
@@ -81,8 +82,33 @@ class Verify(_Strict):
     timeout_s: int | float = Field(8, gt=0, le=60)
 
 
+_SCORE = dict(ge=0.0, le=1.0)
+_BONUS = dict(ge=0.0, le=0.2)
+
+
+class TypeBonus(_Strict):
+    """Added to a candidate's score by its media type, to break near-ties."""
+    artist: float = Field(0.02, **_BONUS)
+    album: float = Field(0.015, **_BONUS)
+    playlist: float = Field(0.01, **_BONUS)
+    track: float = Field(0.0, **_BONUS)
+    radio: float = Field(0.0, **_BONUS)
+
+
+class Resolver(_Strict):
+    """music_resolve.score() and main._resolve(): how a named request is
+    matched against Music Assistant's search results."""
+    play_min_score: float = Field(0.75, **_SCORE)
+    coverage_min: float = Field(0.80, **_SCORE)
+    provider_bonus: float = Field(0.05, **_BONUS)
+    library_bonus: float = Field(0.03, **_BONUS)
+    type_bonus: TypeBonus = Field(default_factory=TypeBonus)
+    hint_min_score: float = Field(0.5, **_SCORE)
+
+
 class Music(_Strict):
     verify: Verify = Field(default_factory=Verify)
+    resolver: Resolver = Field(default_factory=Resolver)
 
 
 @dataclass

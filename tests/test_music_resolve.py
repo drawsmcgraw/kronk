@@ -120,17 +120,17 @@ def test_rank_misspelled_title_finds_the_album():
     q = mr.normalize("Destiny Waving by Ulrich Schnauss")
     ranked = mr.rank(mr.candidates_from_search(SCHNAUSS_WORKS), q, "album")
     assert ranked[0].uri == "ytmusic://album/MPREb_FZkLnRytAxt"
-    assert ranked[0].score >= mr.PLAY_MIN_SCORE
+    assert ranked[0].score >= mr.policy().play_min_score
     # the right artist does not carry the wrong title over the line
     wrong = next(c for c in ranked if c.name == "Far Away Trains Passing By")
-    assert wrong.score < mr.PLAY_MIN_SCORE
+    assert wrong.score < mr.policy().play_min_score
 
 
 def test_rank_misheard_artist():
     res = {"albums": [_album("DJ-Kicks", ["Kruder & Dorfmeister"], "ytmusic://album/KD"),
                       _album("DJ-Kicks: Sofia Kourtesis", ["Sofia Kourtesis"], "ytmusic://album/SK")]}
     ranked = mr.rank(mr.candidates_from_search(res), mr.normalize("DJ Kicks by Kuru Dorf Meister"))
-    assert ranked[0].uri == "ytmusic://album/KD" and ranked[0].score >= mr.PLAY_MIN_SCORE
+    assert ranked[0].uri == "ytmusic://album/KD" and ranked[0].score >= mr.policy().play_min_score
 
 
 def test_rank_numbers_must_match():
@@ -279,13 +279,13 @@ HITS_STATION = {"radio": [
 def test_rank_station_name_with_and_and_without_radio():
     for said in ("90s, 2000's and today's hits", "90s, 2000s, and today's hits from Pandora"):
         ranked = mr.rank(mr.candidates_from_search(HITS_STATION), mr.normalize(said), "radio")
-        assert ranked[0].uri == "library://radio/263" and ranked[0].score >= mr.PLAY_MIN_SCORE, said
+        assert ranked[0].uri == "library://radio/263" and ranked[0].score >= mr.policy().play_min_score, said
 
 
 def test_word_coverage_ignores_and_but_not_content_words():
     c = mr.candidates_from_search(HITS_STATION)[0]
-    assert mr.word_coverage("90s 2000s and todays hits", c) >= mr.COVERAGE_MIN
-    assert mr.word_coverage("90s 2000s and todays jazz", c) < mr.COVERAGE_MIN
+    assert mr.word_coverage("90s 2000s and todays hits", c) >= mr.policy().coverage_min
+    assert mr.word_coverage("90s 2000s and todays jazz", c) < mr.policy().coverage_min
 
 
 def test_play_radio_miss_by_name_resolves_the_station(search_env):
@@ -354,14 +354,14 @@ def test_numerals(said, digits):
 def test_rank_spoken_numbers_find_the_station():
     q = mr.normalize("ninety's two thousands and today's hits")
     ranked = mr.rank(mr.candidates_from_search(HITS_STATION), q, "radio")
-    assert ranked[0].uri == "library://radio/263" and ranked[0].score >= mr.PLAY_MIN_SCORE
+    assert ranked[0].uri == "library://radio/263" and ranked[0].score >= mr.policy().play_min_score
 
 
 def test_rank_spelled_out_names_still_match_themselves():
     res = {"artists": [{"name": "Three Dog Night", "uri": "a3", "media_type": "artist"},
                        {"name": "3 Doors Down", "uri": "a4", "media_type": "artist"}]}
     ranked = mr.rank(mr.candidates_from_search(res), mr.normalize("Three Dog Night"))
-    assert ranked[0].uri == "a3" and ranked[0].score >= mr.PLAY_MIN_SCORE
+    assert ranked[0].uri == "a3" and ranked[0].score >= mr.policy().play_min_score
 
 
 def test_query_without_numbers_has_no_digit_variant():

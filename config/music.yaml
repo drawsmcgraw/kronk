@@ -17,3 +17,41 @@ verify:
   # Keep it below the orchestrator's tool_timeouts for the music tools
   # (tuning.yaml). More than 0, at most 60.
   timeout_s: 8
+
+# Matching a named request ("Destiny Waving by Ulrich Schnauss") against
+# Music Assistant's search results: music_resolve.score() gives every
+# candidate a score, roughly 0 to 1, and the best one plays if it clears
+# play_min_score. Tuned on the logged misses in tests/test_music_resolve.py:
+# run that file after any change here. Scores and thresholds 0 to 1;
+# bonuses 0 to 0.2.
+resolver:
+  # Below this a match is a guess, not a resolution: nothing plays and the
+  # answer says what was not found. Every real target scores at least 0.82;
+  # gibberish stays under 0.4.
+  play_min_score: 0.75
+  # With no artist named, a near match must cover every word of the
+  # request this well (worst word's best match), or it is held under
+  # play_min_score. 0.80, not 0.85: one misheard vowel in a six-letter word
+  # is 0.83 ("Hotel Costas", 2026-11-08).
+  coverage_min: 0.80
+  # Added when the request named the candidate's provider ("on YouTube Music").
+  provider_bonus: 0.05
+  # Added when the candidate is in the household's library, so a near-tie
+  # goes to our own copy.
+  library_bonus: 0.03
+  # Added by media type, to break near-ties: the artist over a same-named
+  # album, a whole album over its title track.
+  type_bonus:
+    # An artist (plays the artist's radio or top tracks).
+    artist: 0.02
+    # An album.
+    album: 0.015
+    # A playlist.
+    playlist: 0.01
+    # A single track.
+    track: 0.0
+    # A radio station.
+    radio: 0.0
+  # A miss names "the closest I found" only when that candidate scores at
+  # least this; below it the guess is noise.
+  hint_min_score: 0.5

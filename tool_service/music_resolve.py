@@ -22,6 +22,17 @@ import unicodedata
 from dataclasses import dataclass, field
 from difflib import SequenceMatcher
 
+try:
+    from . import config_loader
+except ImportError:
+    import config_loader
+
+
+def policy() -> "config_loader.Resolver":
+    """The resolver thresholds in effect: config/music.yaml resolver
+    (sprint M21). Read at use, so a reload applies to the next request."""
+    return config_loader.current().music.resolver
+
 # Provider hint → MA provider domain. "Atlas" is the Synology NAS that
 # backs the local-files provider.
 _PROVIDERS = {
@@ -215,11 +226,10 @@ class Candidate:
         return " and ".join(self.artists) if self.artists else None
 
 
-# Small preferences when two candidates score the same: a whole album over
-# its title track, the artist over a same-named album.
-_TYPE_BONUS = {"artist": 0.02, "album": 0.015, "playlist": 0.01, "track": 0.0, "radio": 0.0}
-PROVIDER_BONUS = 0.05     # the user named this provider
-LIBRARY_BONUS = 0.03      # we own it (a near-tie goes to the household's copy)
+# Small preferences when two candidates score the same (music.yaml
+# resolver): type_bonus, a whole album over its title track and the artist
+# over a same-named album; provider_bonus, the user named this provider;
+# library_bonus, we own it (a near-tie goes to the household's copy).
 
 
 def candidates_from_search(result: dict | None) -> list[Candidate]:
@@ -267,12 +277,12 @@ def word_coverage(q: str | None, c: Candidate) -> float:
     return min(max(_ratio(w, p) for p in pool) for w in words)
 
 
-# With no artist to confirm it, a near match must cover every word:
-# "Destiny Waving" alone scored 0.92 against "Destiny Wave" by a stranger
-# ("waving"→"wave" 0.60 per word); "Destiny Waiving" covers it at 0.92.
-# 0.80, not 0.85: one misheard vowel in a six-letter word is 0.83
-# ("costas"→"costes", the "Hotel Costas" playlist miss, 2026-11-08).
-COVERAGE_MIN = 0.80
+# With no artist to confirm it, a near match must cover every word
+# (music.yaml resolver.coverage_min): "Destiny Waving" alone scored 0.92
+# against "Destiny Wave" by a stranger ("waving"→"wave" 0.60 per word);
+# "Destiny Waiving" covers it at 0.92. 0.80, not 0.85: one misheard vowel
+# in a six-letter word is 0.83 ("costas"→"costes", the "Hotel Costas"
+# playlist miss, 2026-11-08).
 
 
 def score(c: Candidate, q: Query) -> float:
@@ -294,13 +304,15 @@ def score(c: Candidate, q: Query) -> float:
             # Multiplicative: the right artist cannot carry the wrong title
             # ('Far Away Trains Passing By' for 'Destiny Waving').
             s = max(s, name_similarity(q.name, c.name) * (0.75 + 0.25 * art_s))
-    s += _TYPE_BONUS.get(c.media_type, 0.0)
+    p = policy()
+    if c.media_type in type(p.type_bonus).model_fields:
+        s += getattr(p.type_bonus, c.media_type)
     if q.provider and q.provider in c.providers:
-        s += PROVIDER_BONUS
+        s += p.provider_bonus
     if c.in_library:
-        s += LIBRARY_BONUS
-    if not q.artist and fold(full) != fold(c.name) and word_coverage(full, c) < COVERAGE_MIN:
-        s = min(s, PLAY_MIN_SCORE - 0.01)       # after the bonuses, so none can lift it back
+        s += p.library_bonus
+    if not q.artist and fold(full) != fold(c.name) and word_coverage(full, c) < p.coverage_min:
+        s = min(s, p.play_min_score - 0.01)     # after the bonuses, so none can lift it back
     return s
 
 
@@ -316,7 +328,7 @@ def rank(cands: list[Candidate], q: Query, media_type: str | None = None,
     return sorted(pool, key=lambda c: c.score, reverse=True)
 
 
-# Below this a match is a guess, not a resolution. Tuned on the logged
-# misses (tests/test_music_resolve.py): every real target scores ≥ 0.82,
-# gibberish ("zzqx florbent nonexistent") stays under 0.4.
-PLAY_MIN_SCORE = 0.75
+# Below music.yaml resolver.play_min_score a match is a guess, not a
+# resolution. Tuned on the logged misses (tests/test_music_resolve.py):
+# every real target scores ≥ 0.82, gibberish ("zzqx florbent nonexistent")
+# stays under 0.4.

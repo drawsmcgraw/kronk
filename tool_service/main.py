@@ -1599,7 +1599,7 @@ def _not_found_sentence(nq: "music_resolve.Query", media_type: str | None,
     what = f"{'an' if mt[:1] in 'aeiou' else 'a'} {mt}" if mt else "anything"
     by = f" by {nq.artist}" if nq.artist else ""
     detail = f"I couldn't find {what} called {nq.name or nq.text}{by} in Music Assistant."
-    if best_guess and best_guess.score >= RESOLVE_HINT_MIN_SCORE:
+    if best_guess and best_guess.score >= music_resolve.policy().hint_min_score:
         gby = f" by {best_guess.artist}" if best_guess.artist else ""
         detail += f" The closest I found was {best_guess.name}{gby}."
     return detail
@@ -1982,7 +1982,7 @@ RESOLVE_TYPES = ["artist", "album", "track", "playlist"]
 RESOLVE_SEARCH_LIMIT = 10
 RESOLVE_ARTIST_LIMIT = 50
 RESOLVE_SEARCH_TIMEOUT_S = 8
-RESOLVE_HINT_MIN_SCORE = 0.5    # below this a "closest I found" is noise
+# Below music.yaml resolver.hint_min_score a "closest I found" is noise.
 
 
 async def _ma_search(text: str, media_types: list[str], limit: int) -> dict | None:
@@ -2046,7 +2046,7 @@ async def _library_items(media_type: str) -> dict | None:
 async def _resolve_named(nq: "music_resolve.Query", media_type: str | None,
                          also: list["music_resolve.Query"] | None = None,
                          ) -> tuple["music_resolve.Candidate | None", "music_resolve.Candidate | None"]:
-    """(winner to play, best guess) — winner is None below PLAY_MIN_SCORE;
+    """(winner to play, best guess) — winner is None below resolver.play_min_score;
     both are None when MA can't be searched or found nothing, the cases the
     caller plays the text literally."""
     with telemetry.span("music.resolve", **{"music.media_type": media_type}) as sp:
@@ -2077,14 +2077,14 @@ async def _resolve_named_inner(nq, media_type, also):
     typed = media_type if media_type in types else None
     ranked = music_resolve.rank(list(cands.values()), nq, typed, also)
     stage = 1
-    if nq.artist and (not ranked or ranked[0].score < music_resolve.PLAY_MIN_SCORE):
+    if nq.artist and (not ranked or ranked[0].score < music_resolve.policy().play_min_score):
         stage = 2
         works = [t for t in types if t in ("album", "track")] or ["album", "track"]
         for c in music_resolve.candidates_from_search(await _search_each(nq.artist, works, RESOLVE_ARTIST_LIMIT)):
             cands.setdefault(c.uri, c)
         ranked = music_resolve.rank(list(cands.values()), nq, typed, also)
     best = ranked[0] if ranked else None
-    winner = best if best and best.score >= music_resolve.PLAY_MIN_SCORE else None
+    winner = best if best and best.score >= music_resolve.policy().play_min_score else None
     logger.info("music resolve %r [%s] stage %d, %d candidates -> %s",
                 nq.text, media_type, stage, len(cands),
                 f"{best.media_type} {best.name!r} by {best.artist!r} {best.uri} ({best.score:.2f})"
