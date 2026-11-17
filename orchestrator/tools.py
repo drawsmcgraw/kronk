@@ -1044,11 +1044,13 @@ _HANDLERS = {
 # Tools that change nothing anywhere (sprint M9 step 4). A request stopped
 # at its voice deadline after calling any other tool says the request may
 # still go through (errors.deadline_text); a tool missing from this set is
-# treated as one that acts, which is the safe side.
+# treated as one that acts, which is the safe side. news_brief is not here:
+# with refresh=true it starts a regeneration in tool_service that carries
+# on after the request is stopped (M9-e2e B1).
 READ_ONLY_TOOLS = frozenset({
     "get_weather", "web_search", "fetch_url", "shopping_list_view",
     "get_kronk_context", "query_hottub", "solar_status", "solar_detail",
-    "solar_energy", "now_playing", "http_check", "news_brief",
+    "solar_energy", "now_playing", "http_check",
 })
 
 

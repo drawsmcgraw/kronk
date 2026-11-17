@@ -230,7 +230,8 @@ def test_deadline_sentence_by_what_was_sent():
         == errors.FRIENDLY_DEADLINE
     for acting in ("play_music", "control_music", "rate_music", "remember_music_preference",
                    "shopping_list_add", "shopping_list_remove", "shopping_list_clear",
-                   "update_magicmirror", "remote_exec", "generate_diagram", "a_future_tool"):
+                   "update_magicmirror", "remote_exec", "generate_diagram", "news_brief",
+                   "a_future_tool"):
         assert errors.deadline_text(["web_search", acting], ro, 25, "r", errors.FRIENDLY) \
             == errors.FRIENDLY_DEADLINE_SENT, acting
     debug = errors.deadline_text(["play_music"], ro, 25, "abc", errors.DEBUG)
@@ -240,6 +241,18 @@ def test_deadline_sentence_by_what_was_sent():
 def test_every_tool_is_classified():
     """READ_ONLY_TOOLS names only real tools; everything else counts as acting."""
     assert tools.READ_ONLY_TOOLS <= set(tools._HANDLERS)
+
+
+def test_news_brief_is_not_read_only():
+    """A tool on READ_ONLY_TOOLS lets the deadline sentence say "I stopped".
+    news_brief sends POST /news/refresh when asked to refresh, which
+    regenerates and stores the brief after the request is gone (M9-e2e B1),
+    so it counts as acting."""
+    import inspect
+    assert "/news/refresh" in inspect.getsource(tools._tool_news_brief)
+    assert "news_brief" not in tools.READ_ONLY_TOOLS
+    assert errors.deadline_text(["news_brief"], tools.READ_ONLY_TOOLS, 25, "r", errors.FRIENDLY) \
+        == errors.FRIENDLY_DEADLINE_SENT
 
 
 def test_streamed_writer_keeps_what_was_sent_and_ends_with_the_sentence(client, monkeypatch):

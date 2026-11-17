@@ -161,10 +161,18 @@ TraceQL:
 
 `MODEL_LOCK=pipeline` (env on the orchestrator service, read per request)
 restores the pipeline-wide lock around a request's model phases, as after
-step 1, with no per-server lock. Unknown values mean `pipeline` and are
-logged once. The deadline: `deadline_s: null` in `config/voice.yaml` and
-`POST /config/reload`. The disconnect middleware has no switch; roll back
-by tag.
+step 1, with no per-server lock. Unknown and empty values mean `pipeline`
+and are logged once. The deadline: `deadline_s: null` in `config/voice.yaml`
+(a bare `deadline_s:` also reads as null, with no error). The disconnect
+middleware has no switch; roll back by tag.
+
+Production runs from `../kronk-releases/<tag>/` with its own
+`docker-compose.yml` and `config/`. Change either by commit, tag and
+`scripts/deploy_tag.sh deploy <tag>`. Do not run `docker compose up -d
+orchestrator` from the working tree: it would recreate production from the
+working tree. For an immediate deadline change, edit the running release's
+`config/voice.yaml` and run `scripts/config_reload.sh prod`; commit the
+same change so the next deploy keeps it.
 
 ## Gotchas
 

@@ -92,6 +92,8 @@ transcript_gate:
 # interrupted.
 model_lock:
   # A waiting display request is overtaken by at most this many voice
-  # requests that arrived after it; then it is served next. 0 makes the
-  # queue first come first served for everyone. 0 to 100.
+  # requests that arrived after it; then it is served next. 0 serves
+  # every waiting display request before any waiting voice request. When
+  # several display requests reach the limit together they all go ahead
+  # of voice, in their order of arrival. 0 to 100.
   max_overtakes: 3
