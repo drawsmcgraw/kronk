@@ -24,6 +24,7 @@ import origin
 import routing
 import servers
 import sessions
+import speech_stream
 import telemetry
 import tools
 from events import emit, new_request_id
@@ -1021,6 +1022,137 @@ async def _ollama_single_chunk_stream(full: str, text: str, model: str):
     }) + "\n"
 
 
+_VOICE_STREAM_ON = {"on", "true", "1", "yes"}
+_VOICE_STREAM_OFF = {"off", "false", "0", "no", ""}
+_voice_stream_warned: set[str] = set()
+
+
+def _voice_stream_on() -> bool:
+    """VOICE_STREAM (env, read per request): on sends a streaming
+    /voice/api/chat reply sentence by sentence (sprint M8); off, the
+    default, sends it whole as one chunk, as before M8. An unknown value is
+    off, and is logged once."""
+    raw = os.getenv("VOICE_STREAM", "off")
+    v = raw.strip().lower()
+    if v in _VOICE_STREAM_ON:
+        return True
+    if v not in _VOICE_STREAM_OFF and raw not in _voice_stream_warned:
+        _voice_stream_warned.add(raw)
+        logger.error("VOICE_STREAM=%r is not on or off; streaming stays off", raw)
+    return False
+
+
+def _ndjson_chunk(model: str, created: str, content: str) -> str:
+    return json.dumps({
+        "model": model, "created_at": created,
+        "message": {"role": "assistant", "content": content},
+        "done": False,
+    }) + "\n"
+
+
+async def _ollama_speech_stream(text: str, model: str, context: list[dict] | None,
+                                req_origin: origin.Origin | None, said: str | None):
+    """The speech profile, streamed (VOICE_STREAM=on; sprint M8).
+
+    Same pipeline and the same to_speech as the buffered path, but the reply
+    leaves in units (speech_stream.split_units: sentences, whole lines,
+    whole blocks) as they complete, one held back so a retract can still
+    remove it, each unit its own NDJSON content chunk. The chunks joined are
+    what _ollama_single_chunk_stream would have sent (whitespace between
+    chunks aside), and the closing `done` record has the same fields.
+    Failure is still the pipeline's: a failed turn ends with its friendly
+    sentence as the last content. Stats go to a `voice_stream` span under
+    the pipeline root and a `voice_stream` event."""
+    t0 = time.monotonic()
+    created = time.strftime("%Y-%m-%dT%H:%M:%S.000000000Z", time.gmtime())
+    hold = config_loader.current().voice.stream.hold_sentences
+    buf = speech_stream.SpeechBuffer(hold=hold)
+    root, trace_id, first_ms, error = None, None, None, None
+    # Set if the buffer itself fails (a bug): from then on the rest of the
+    # reply is collected as the buffered path collects it and sent as one
+    # last chunk. The pipeline is always run to its end, so it finishes its
+    # trace and releases _llm_lock as it would for the buffered path.
+    fallback: str | None = None
+    sent: list[str] = []
+    pipeline = _kronk_pipeline_tokens(text, model, context, req_origin, said, True)
+    try:
+        async for ev in pipeline:
+            if root is None:
+                root, trace_id = telemetry.root(), telemetry.current_trace_id()
+                root.set(**{"kronk.voice_stream": True})
+            out: list[str] = []
+            if fallback is not None:
+                if ev["type"] == "token":
+                    fallback += ev["text"]
+                elif ev["type"] == "retract":
+                    fallback = fallback[:-ev["chars"]] if ev["chars"] <= len(fallback) else ""
+                continue
+            try:
+                if ev["type"] == "token":
+                    out = buf.feed(ev["text"])
+                elif ev["type"] == "retract":
+                    lost = buf.retract(ev["chars"])
+                    if lost:
+                        # Already spoken; cannot be taken back. Counted so
+                        # the hold can be widened from data (voice.yaml).
+                        emit("voice_stream_retract_unhonoured", chars=ev["chars"],
+                             unhonoured=lost, hold=hold, preview=ev.get("preview", "")[:160])
+            except Exception as e:
+                logger.exception("voice stream buffer failed after %d chunks; "
+                                 "sending the rest as one chunk", len(sent))
+                error = f"{type(e).__name__}: {e}"
+                fallback, buf.pending = buf.pending, ""
+            for chunk in out:
+                if first_ms is None:
+                    first_ms = round((time.monotonic() - t0) * 1000)
+                sent.append(chunk)
+                yield _ndjson_chunk(model, created, chunk)
+    finally:
+        await pipeline.aclose()
+    if fallback is None:
+        try:
+            out = buf.finish()
+        except Exception as e:
+            logger.exception("voice stream buffer failed at the end")
+            error = f"{type(e).__name__}: {e}"
+            fallback, buf.pending = buf.pending, ""
+    if fallback is not None:
+        last = render.to_speech(fallback)
+        out = [(" " if sent and last else "") + last] if last else []
+    for chunk in out:
+        if first_ms is None:
+            first_ms = round((time.monotonic() - t0) * 1000)
+        sent.append(chunk)
+        yield _ndjson_chunk(model, created, chunk)
+    if not sent:
+        # An empty reply: the same shape as the buffered path's.
+        yield _ndjson_chunk(model, created, "")
+    full = "".join(sent)
+    yield json.dumps({
+        "model": model, "created_at": created,
+        "message": {"role": "assistant", "content": ""},
+        "done": True, "done_reason": "stop",
+        "total_duration": 0, "load_duration": 0,
+        "prompt_eval_count": _estimate_tokens(text),
+        "eval_count": _estimate_tokens(full),
+    }) + "\n"
+
+    stats = {
+        "chunks": len(sent),
+        "first_chunk_ms": first_ms,
+        "done_ms": round((time.monotonic() - t0) * 1000),
+        "hold": hold,
+        "retracts": buf.retracts,
+        "retract_held_chars": buf.retracted_held,
+        "retract_unhonoured": len(buf.unhonoured),
+        "retract_unhonoured_chars": sum(u[2] for u in buf.unhonoured),
+        "spoken_chars": len(full),
+    }
+    emit("voice_stream", trace_id=trace_id, error=error, **stats)
+    span = (root or telemetry.root()).child_span("voice_stream", metadata=stats)
+    span.end(level="ERROR" if error else None, status_message=error)
+
+
 async def _ollama_chat_impl(req: _OllamaChatRequest, voice: bool):
     """Shared /api/chat implementation. voice=False (/api/chat, the display
     profile) streams tokens untouched; voice=True (/voice/api/chat, the
@@ -1040,6 +1172,11 @@ async def _ollama_chat_impl(req: _OllamaChatRequest, voice: bool):
     req_origin = origin.from_messages(req.messages)
 
     if voice:
+        if req.stream and _voice_stream_on():
+            return StreamingResponse(
+                _ollama_speech_stream(text, model, context, req_origin, said),
+                media_type="application/x-ndjson",
+            )
         full = render.to_speech(
             await _ollama_collect(text, model, context, req_origin, said, voice))
         if req.stream:

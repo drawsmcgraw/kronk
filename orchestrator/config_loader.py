@@ -251,10 +251,18 @@ SPOKEN_REPLY_DEFAULT = (
 SpokenLine = Annotated[str, StringConstraints(pattern=r"^[^\n]*\S[^\n]*$", max_length=400)]
 
 
+class VoiceStream(_Strict):
+    # Units (sentences, lines or blocks) held back before sending; the last
+    # `hold_sentences` complete ones wait so a retract can still remove them
+    # (speech_stream.SpeechBuffer). Read per request.
+    hold_sentences: int = Field(1, ge=1, le=5)
+
+
 class Voice(_Strict):
     # One line; None leaves it out. main._run_pipeline appends it, last, to
     # the coordinator's system_extra when origin.voice is set.
     spoken_reply: SpokenLine | None = SPOKEN_REPLY_DEFAULT
+    stream: VoiceStream = Field(default_factory=VoiceStream)
 
 
 # Env vars that set a value before the move keep working, and win over the

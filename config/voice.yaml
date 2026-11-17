@@ -17,3 +17,16 @@ spoken_reply: >-
   [Spoken reply] Your reply will be read aloud by a speaker, not shown on a
   screen. Answer in one to three short, plain sentences. Do not use lists,
   headings, tables, links, code or markdown.
+
+# Sentence streaming on the speech mount, when the env switch VOICE_STREAM
+# is on (docker-compose.yml; off sends the whole reply as one chunk, as
+# before M8). The reply leaves in units: a sentence, a whole line, or a
+# whole list, table or code fence (orchestrator/speech_stream.py).
+stream:
+  # Complete units held back before sending, so a retract (text the model
+  # wrote in a round that ended in a tool call) can still remove them before
+  # anything is spoken. Unit N leaves only once unit N + hold_sentences has
+  # completed, or at the end. A retract longer than the held text is counted
+  # on the trace (span voice_stream, kronk.retract_unhonoured_chars): raise
+  # this if those show up. More hold means later first audio. 1 to 5.
+  hold_sentences: 1

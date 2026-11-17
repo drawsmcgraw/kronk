@@ -54,6 +54,7 @@ from __future__ import annotations
 
 import re
 
+import render
 from transcript_gate import OPENERS, ends_sentence
 
 _LIST_ITEM = re.compile(r"[ \t]*(?:[-*+•]|\d{1,3}[.)])[ \t]+")
@@ -205,3 +206,81 @@ def split_units(text: str, final: bool = False) -> tuple[list[str], str]:
             units.append(rest)
         rest = ""
     return units, rest
+
+
+# ── The buffer: one per streamed voice request ───────────────────────────────
+
+class SpeechBuffer:
+    """Holds the raw reply between the pipeline's token events and the
+    NDJSON writer (main._ollama_speech_stream).
+
+    feed(text) and finish() return the spoken chunks to send now, each
+    already through render.to_speech and, after the first, led by the
+    whitespace the reply had there (" ", "\\n" or "\\n\\n") so a client that
+    concatenates chunks gets the sentences apart.
+
+    The hold: the last `hold` complete units are kept back, so unit N leaves
+    only once unit N + hold has completed, or the stream ends. A retract
+    (agents.run_stream: tool-round text) removes characters from the end
+    of the reply; while they are still held they are simply dropped, as the
+    buffered path drops them. Text already sent cannot be unsent: a retract
+    longer than what is held drops everything held and records the rest as
+    unhonoured (`unhonoured`, one (asked, dropped, unhonoured) per event).
+    """
+
+    def __init__(self, hold: int = 1):
+        if hold < 1:
+            raise ValueError("hold must be at least 1")
+        self.hold = hold
+        self.pending = ""            # raw text received and not yet sent
+        self.chunks: list[str] = []  # every chunk sent, as sent
+        self.retracts = 0
+        self.retracted_held = 0      # characters dropped while still held
+        self.unhonoured: list[tuple[int, int, int]] = []
+        self._gap = ""               # whitespace the last sent unit ended with
+
+    def feed(self, text: str) -> list[str]:
+        self.pending += text
+        units, rest = split_units(self.pending)
+        if len(units) <= self.hold:
+            return []
+        keep = len(units) - self.hold
+        self.pending = "".join(units[keep:]) + rest
+        return self._send("".join(units[:keep]))
+
+    def retract(self, chars: int) -> int:
+        """Drop the last `chars` characters of the reply. Returns how many
+        could not be dropped because they were already sent (0 normally)."""
+        self.retracts += 1
+        if chars <= len(self.pending):
+            self.pending = self.pending[:len(self.pending) - chars]
+            self.retracted_held += chars
+            return 0
+        dropped = len(self.pending)
+        self.pending = ""
+        self.retracted_held += dropped
+        self.unhonoured.append((chars, dropped, chars - dropped))
+        return chars - dropped
+
+    def finish(self) -> list[str]:
+        """The stream has ended: everything still held leaves as one chunk."""
+        raw, self.pending = self.pending, ""
+        return self._send(raw)
+
+    def _send(self, raw: str) -> list[str]:
+        spoken = render.to_speech(raw)
+        lead = raw[: len(raw) - len(raw.lstrip())]
+        if not spoken:                       # whitespace, a rule, an empty fence
+            self._gap += raw
+            return []
+        gap = self._gap + lead
+        self._gap = raw[len(raw.rstrip()):]
+        if self.chunks:
+            spoken = ("\n\n" if "\n\n" in gap else "\n" if "\n" in gap else " ") + spoken
+        self.chunks.append(spoken)
+        return [spoken]
+
+    @property
+    def text(self) -> str:
+        """Everything sent, joined as a client that concatenates sees it."""
+        return "".join(self.chunks)

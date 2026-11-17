@@ -233,6 +233,13 @@ services:
       # - ERROR_STYLE_VOICE=debug
       # Per-client session store (SQLite at /data/sessions.db).
       - HISTORY_MAX_MESSAGES=40
+      # Sentence streaming on the speech mount (sprint M8): on sends a
+      # streaming /voice/api/chat reply sentence by sentence as it is
+      # generated; off (the default in code) sends it whole as one chunk.
+      # Set at promotion by the sprint coordinator. Roll back: off, then
+      # `up -d orchestrator` (an env change recreates the container) and
+      # restart nginx. Hold and spoken-reply line: config/voice.yaml.
+      - VOICE_STREAM=off
       # OpenTelemetry tracing → Tempo (stack: docker-compose.telemetry.yml,
       # reached by service name over the shared kronk network). Set
       # TELEMETRY_ENABLED=false to switch all instrumentation to no-ops.
@@ -370,6 +377,9 @@ services:
     environment:
       - LLM_SERVICE_URL=http://host.docker.internal:8002
       - TOOL_SERVICE_URL=http://tool_service-dev:8103
+      # Sentence streaming on the speech mount (sprint M8), on for the dev
+      # path; production's value is in the orchestrator service above.
+      - VOICE_STREAM=on
       - TELEMETRY_ENABLED=${TELEMETRY_ENABLED:-true}
       - OTEL_SERVICE_NAME=kronk-orchestrator-dev
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4318
