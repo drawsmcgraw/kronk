@@ -52,6 +52,7 @@ async def test_agent_round_event_carries_the_cache_split(caplog, usage, cached):
     (rnd,) = _rounds(caplog)
     assert rnd["prompt_tokens"] == 100
     assert rnd["cached_tokens"] == cached
+    assert rnd["completion_tokens"] == usage.get("completion_tokens")
 
 
 @pytest.mark.asyncio

@@ -665,6 +665,7 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
                 duration_s=round(time.monotonic() - t_llm, 2),
                 prompt_tokens=last_usage.get("prompt_tokens"),
                 cached_tokens=_cached_tokens(last_usage),
+                completion_tokens=last_usage.get("completion_tokens"),
             )
             metrics.record(
                 agent=agent.name,
@@ -899,6 +900,7 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
             duration_s=round(time.monotonic() - t_llm, 2),
             prompt_tokens=last_usage.get("prompt_tokens"),
             cached_tokens=_cached_tokens(last_usage),
+            completion_tokens=last_usage.get("completion_tokens"),
         )
         metrics.record(
             agent=agent.name,

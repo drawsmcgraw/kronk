@@ -190,7 +190,8 @@ def evidence(since: float, text: str, after: float | None = None) -> dict:
                     "server_s": end.get("duration_s"),
                     "ended": end.get("reason") if end.get("event") == "request_ended" else "complete",
                     "rounds": [{"agent": e.get("agent"), "phase": e.get("phase"), "s": e.get("duration_s"),
-                                "prompt": e.get("prompt_tokens"), "cached": e.get("cached_tokens")}
+                                "prompt": e.get("prompt_tokens"), "cached": e.get("cached_tokens"),
+                                "completion": e.get("completion_tokens")}
                                for e in rounds],
                     "lock_waits": [{"lock": e.get("lock"), "class": e.get("priority"),
                                     "wait_ms": e.get("wait_ms")} for e in waits],
@@ -302,22 +303,78 @@ def summarize_single(rows: list[dict]) -> list[dict]:
     return out
 
 
+def _samples(run: dict, key: str, mount: str) -> list[dict]:
+    return [r for r in run.get("single", []) if r["route_key"] == key and r["mount"] == mount
+            and r["http"] == 200]
+
+
+def overhead(r: dict) -> float:
+    """Client time not spent in a model generation: routing, tools, lock
+    waits, HTTP. Generation time varies with what the model writes."""
+    return r["client_s"] - sum((g.get("s") or 0) for g in (r.get("ev") or {}).get("rounds", []))
+
+
+def evaluated(r: dict) -> int | None:
+    """Prompt tokens the server evaluated (not taken from its cache) for
+    one request, over all its generations; None if any did not report."""
+    gens = (r.get("ev") or {}).get("rounds", [])
+    if any(g.get("prompt") is None or g.get("cached") is None for g in gens):
+        return None
+    return sum(g["prompt"] - g["cached"] for g in gens)
+
+
+def _med(xs):
+    xs = [x for x in xs if x is not None]
+    return statistics.median(xs) if xs else None
+
+
 def compare(paths: list[str]) -> None:
+    """The first two files are the baseline (two runs of the same code);
+    each later file is judged against them, per route and mount, on what a
+    lock change can move: the orchestrator's overhead (client time minus
+    generation time) and the prompt tokens the server had to evaluate
+    (cache reuse). Worse: the step's median is beyond the band the two
+    baselines span, widened by their difference (at least 0.05 s, or 10%
+    of the evaluated tokens). Client latency is printed alongside; it also
+    moves with how many tokens the model chose to write (temperature 1.0)."""
     runs = [json.loads(Path(p).read_text()) for p in paths]
-    labels = [r["label"] for r in runs]
-    print("route/mount".ljust(22) + "".join(f"{lb[:16]:>18s}" for lb in labels))
-    keys = [(s["route"], s["mount"]) for s in runs[0]["summary"]]
-    for key in keys:
-        cells = []
-        for r in runs:
-            s = next((x for x in r["summary"] if (x["route"], x["mount"]) == key), None)
-            cells.append(f"{s['median_s']:.2f}s {s['cache']['reuse'] or 0:.3f}" if s else "-")
-        print(f"{key[0]}/{key[1]}".ljust(22) + "".join(f"{c:>18s}" for c in cells))
+    a, b = runs[0], runs[1]
+    print(f"baseline: {a['label']} + {b['label']}   (latency s | overhead s | evaluated tokens | cache reuse)")
+    for key in ROUTES:
+        for mount in MOUNTS:
+            sa, sb = _samples(a, key, mount), _samples(b, key, mount)
+            if not sa or not sb:
+                continue
+            la, lb = (_med(x["client_s"] for x in s) for s in (sa, sb))
+            oa, ob = (_med(overhead(x) for x in s) for s in (sa, sb))
+            ea, eb = (_med(evaluated(x) for x in s) for s in (sa, sb))
+            ca, cb = cache_ratio(sa)["reuse"], cache_ratio(sb)["reuse"]
+            o_hi = max(oa, ob) + max(abs(oa - ob), 0.05)
+            e_hi = None if ea is None or eb is None else max(ea, eb) + max(abs(ea - eb), 0.1 * max(ea, eb))
+            line = (f"{key:10s} {mount:7s} base {la:5.2f}/{lb:5.2f} | {oa:4.2f}/{ob:4.2f} | "
+                    f"{ea}/{eb} | {ca}/{cb}")
+            for r in runs[2:]:
+                s = _samples(r, key, mount)
+                if not s:
+                    continue
+                lat, o, e, c = (_med(x["client_s"] for x in s), _med(overhead(x) for x in s),
+                                _med(evaluated(x) for x in s), cache_ratio(s)["reuse"])
+                flags = []
+                if o > o_hi:
+                    flags.append("OVERHEAD")
+                if e is not None and e_hi is not None and e > e_hi:
+                    flags.append("CACHE")
+                line += f" || {r['label']}: {lat:5.2f} | {o:4.2f} | {e} | {c} {' '.join(flags) or 'ok'}"
+            print(line)
     for r in runs:
         tw = r.get("two_client") or []
         vs = [x["voice"]["client_s"] for x in tw]
+        rs = [x["research"]["client_s"] for x in tw]
+        waits = [sum(w.get("wait_ms") or 0 for w in x["voice"]["ev"].get("lock_waits", [])) for x in tw]
+        ev = [evaluated(x["research"]) for x in tw]
         if vs:
-            print(f"two-client voice {r['label']}: median {statistics.median(vs):.2f}s  runs {vs}")
+            print(f"two-client {r['label']}: voice median {statistics.median(vs):.2f}s {vs}; "
+                  f"voice lock wait ms {waits}; research s {rs}; research evaluated tokens {ev}")
 
 
 def main() -> int:
@@ -337,7 +394,7 @@ def main() -> int:
     base = check_base(args.url)
     ts = require_dry_run(base)
     started = time.time()
-    result: dict = {"label": args.label, "base": base, "started_utc": dt.datetime.utcnow().isoformat() + "Z",
+    result: dict = {"label": args.label, "base": base, "started_utc": dt.datetime.now(dt.timezone.utc).replace(tzinfo=None).isoformat() + "Z",
                     "git": subprocess.run(["git", "-C", str(ROOT), "rev-parse", "--short", "HEAD"],
                                           capture_output=True, text=True).stdout.strip(),
                     "tool_service": {"music_dry_run": ts.get("music_dry_run")}}
@@ -355,8 +412,8 @@ def main() -> int:
         result["load"] = run_load(base)
     if args.mode in ("all", "single", "two"):
         result["log_errors"] = log_errors(started)
-    result["finished_utc"] = dt.datetime.utcnow().isoformat() + "Z"
-    stamp = dt.datetime.utcnow().strftime("%Y-%m-%d_%H%M%S")
+    result["finished_utc"] = dt.datetime.now(dt.timezone.utc).replace(tzinfo=None).isoformat() + "Z"
+    stamp = dt.datetime.now(dt.timezone.utc).replace(tzinfo=None).strftime("%Y-%m-%d_%H%M%S")
     out = Path(args.out) if args.out else ROOT / "docs" / "bench" / f"m9_lock_{stamp}_{args.label}.json"
     out.write_text(json.dumps(result, indent=1) + "\n")
     for s in result.get("summary", []):

@@ -1,0 +1,2261 @@
+{
+ "label": "m9-step1",
+ "base": "http://localhost/dev",
+ "started_utc": "2026-11-17T16:21:24.957671Z",
+ "git": "f79b68a",
+ "tool_service": {
+  "music_dry_run": true
+ },
+ "single": [
+  {
+   "mount": "voice",
+   "text": "what song is this",
+   "sent_at": 1794932484.9730062,
+   "client_s": 0.02,
+   "http": 200,
+   "reply": "Nothing is playing on the Office speaker.",
+   "rep": 0,
+   "route_key": "direct",
+   "ev": {
+    "rid": "695fae28",
+    "trace_id": "5f31030e124652e2ab6876fdbd8d3159",
+    "route": "home",
+    "server_s": 0.02,
+    "ended": "complete",
+    "rounds": [],
+    "lock_waits": []
+   }
+  },
+  {
+   "mount": "display",
+   "text": "what song is this",
+   "sent_at": 1794932485.5154443,
+   "client_s": 0.023,
+   "http": 200,
+   "reply": "Nothing is playing on the Office speaker.",
+   "rep": 0,
+   "route_key": "direct",
+   "ev": {
+    "rid": "20d84d2b",
+    "trace_id": "c96b9f4e3c35c7ec18172feca9162c2f",
+    "route": "home",
+    "server_s": 0.02,
+    "ended": "complete",
+    "rounds": [],
+    "lock_waits": []
+   }
+  },
+  {
+   "mount": "voice",
+   "text": "what's the weather like",
+   "sent_at": 1794932486.0537302,
+   "client_s": 6.379,
+   "http": 200,
+   "reply": "I\u2019m sorry, I couldn't retrieve the weather information for you. The weather service appears to be having an issue right now.",
+   "rep": 0,
+   "route_key": "specialist",
+   "ev": {
+    "rid": "b95767fc",
+    "trace_id": "34ab6f9dffa22a19d9692da23aaf6251",
+    "route": "home",
+    "server_s": 6.38,
+    "ended": "complete",
+    "rounds": [
+     {
+      "agent": "home",
+      "phase": "plan_1",
+      "s": 4.12,
+      "prompt": 3926,
+      "cached": 0
+     },
+     {
+      "agent": "home",
+      "phase": "synthesis",
+      "s": 1.41,
+      "prompt": 4119,
+      "cached": 3926
+     }
+    ],
+    "lock_waits": [
+     {
+      "lock": "pipeline",
+      "class": "voice",
+      "wait_ms": 0
+     }
+    ]
+   }
+  },
+  {
+   "mount": "display",
+   "text": "what's the weather like",
+   "sent_at": 1794932492.948193,
+   "client_s": 5.957,
+   "http": 200,
+   "reply": "I'm sorry, I'm having trouble retrieving the current weather data at the moment. Please try again later.",
+   "rep": 0,
+   "route_key": "specialist",
+   "ev": {
+    "rid": "3e1eaf7b",
+    "trace_id": "dcc5dd45c72cda99c46dfec08543a04c",
+    "route": "home",
+    "server_s": 5.95,
+    "ended": "complete",
+    "rounds": [
+     {
+      "agent": "home",
+      "phase": "plan_1",
+      "s": 2.62,
+      "prompt": 3926,
+      "cached": 1087
+     },
+     {
+      "agent": "home",
+      "phase": "synthesis",
+      "s": 2.38,
+      "prompt": 4074,
+      "cached": 3926
+     }
+    ],
+    "lock_waits": [
+     {
+      "lock": "pipeline",
+      "class": "display",
+      "wait_ms": 0
+     }
+    ]
+   }
+  },
+  {
+   "mount": "voice",
+   "text": "what is the capital of France",
+   "sent_at": 1794932499.419402,
+   "client_s": 2.014,
+   "http": 200,
+   "reply": "The capital of France is Paris.",
+   "rep": 0,
+   "route_key": "coord",
+   "ev": {
+    "rid": "2a62aba3",
+    "trace_id": "92ddac8f1be269cd84f9b7d35d48f9c1",
+    "route": "direct",
+    "server_s": 2.01,
+    "ended": "complete",
+    "rounds": [
+     {
+      "agent": "coordinator",
+      "phase": "synthesis",
+      "s": 1.98,
+      "prompt": 2058,
+      "cached": 0
+     }
+    ],
+    "lock_waits": [
+     {
+      "lock": "pipeline",
+      "class": "voice",
+      "wait_ms": 0
+     }
+    ]
+   }
+  },
+  {
+   "mount": "display",
+   "text": "what is the capital of France",
+   "sent_at": 1794932501.9493625,
+   "client_s": 0.606,
+   "http": 200,
+   "reply": "Paris.",
+   "rep": 0,
+   "route_key": "coord",
+   "ev": {
+    "rid": "853be013",
+    "trace_id": "bfae67442fcfbab3d642860c5537cb5b",
+    "route": "direct",
+    "server_s": 0.6,
+    "ended": "complete",
+    "rounds": [
+     {
+      "agent": "coordinator",
+      "phase": "synthesis",
+      "s": 0.58,
+      "prompt": 2011,
+      "cached": 2010
+     }
+    ],
+    "lock_waits": [
+     {
+      "lock": "pipeline",
+      "class": "display",
+      "wait_ms": 0
+     }
+    ]
+   }
+  },
+  {
+   "mount": "voice",
+   "text": "what's playing in the kitchen",
+   "sent_at": 1794932503.0701492,
+   "client_s": 5.648,
+   "http": 200,
+   "reply": "Nothing is playing on the Kitchen speaker.",
+   "rep": 0,
+   "route_key": "delegate",
+   "ev": {
+    "rid": "1158149f",
+    "trace_id": "4f4777a11b8d46864a262547bac90f7f",
+    "route": "direct",
+    "server_s": 5.64,
+    "ended": "complete",
+    "rounds": [
+     {
+      "agent": "coordinator",
+      "phase": "plan_1",
+      "s": 1.2,
+      "prompt": 2059,
+      "cached": 1330
+     },
+     {
+      "agent": "home",
+      "phase": "plan_1",
+      "s": 4.39,
+      "prompt": 3739,
+      "cached": 0
+     }
+    ],
+    "lock_waits": [
+     {
+      "lock": "pipeline",
+      "class": "voice",
+      "wait_ms": 0
+     }
+    ]
+   }
+  },
+  {
+   "mount": "display",
+   "text": "what's playing in the kitchen",
+   "sent_at": 1794932509.2320502,
+   "client_s": 3.339,
+   "http": 200,
+   "reply": "Nothing is playing on the Kitchen speaker.",
+   "rep": 0,
+   "route_key": "delegate",
+   "ev": {
+    "rid": "3a91c9a8",
+    "trace_id": "edef55747d17cfbc3d918ff0358d35d3",
+    "route": "direct",
+    "server_s": 3.34,
+    "ended": "complete",
+    "rounds": [
+     {
+      "agent": "coordinator",
+      "phase": "plan_1",
+      "s": 1.03,
+      "prompt": 2012,
+      "cached": 2011
+     },
+     {
+      "agent": "home",
+      "phase": "plan_1",
+      "s": 2.23,
+      "prompt": 3738,
+      "cached": 3728
+     }
+    ],
+    "lock_waits": [
+     {
+      "lock": "pipeline",
+      "class": "display",
+      "wait_ms": 0
+     }
+    ]
+   }
+  },
+  {
+   "mount": "voice",
+   "text": "search the web for when the eiffel tower was built",
+   "sent_at": 1794932513.0850348,
+   "client_s": 4.339,
+   "http": 200,
+   "reply": "The Eiffel Tower was built for the 1889 Paris Exposition (World's Fair) and was completed and dedicated in 1889. Specific sources indicate it opened on March 31, 1889. Construction on the tower started on July 1st, 1887.",
+   "rep": 0,
+   "route_key": "search",
+   "ev": {
+    "rid": "50f4ec60",
+    "trace_id": "d1406f965c4d226972be1156b24448fa",
+    "route": "research",
+    "server_s": 4.34,
+    "ended": "complete",
+    "rounds": [
+     {
+      "agent": "research",
+      "phase": "plan_1",
+      "s": 1.04,
+      "prompt": 750,
+      "cached": 0
+     },
+     {
+      "agent": "research",
+      "phase": "synthesis",
+      "s": 2.49,
+      "prompt": 1366,
+      "cached": 750
+     }
+    ],
+    "lock_waits": [
+     {
+      "lock": "pipeline",
+      "class": "voice",
+      "wait_ms": 0
+     }
+    ]
+   }
+  },
+  {
+   "mount": "display",
+   "text": "search the web for when the eiffel tower was built",
+   "sent_at": 1794932517.937317,
+   "client_s": 5.43,
+   "http": 200,
+   "reply": "The Eiffel Tower was built between 1887 and 1889. It was designed and built by Gustave Eiffel for the 1889 World's Fair in Paris.",
+   "rep": 0,
+   "route_key": "search",
+   "ev": {
+    "rid": "a6ea83ad",
+    "trace_id": "ee38198790521799a986a382f3fdfec6",
+    "route": "research",
+    "server_s": 5.43,
+    "ended": "complete",
+    "rounds": [
+     {
+      "agent": "research",
+      "phase": "plan_1",
+      "s": 0.51,
+      "prompt": 750,
+      "cached": 749
+     },
+     {
+      "agent": "research",
+      "phase": "synthesis",
+      "s": 1.11,
+      "prompt": 1375,
+      "cached": 750
+     }
+    ],
+    "lock_waits": [
+     {
+      "lock": "pipeline",
+      "class": "display",
+      "wait_ms": 0
+     }
+    ]
+   }
+  },
+  {
+   "mount": "voice",
+   "text": "what song is this",
+   "sent_at": 1794932523.895895,
+   "client_s": 0.018,
+   "http": 200,
+   "reply": "Nothing is playing on the Office speaker.",
+   "rep": 1,
+   "route_key": "direct",
+   "ev": {
+    "rid": "567455a5",
+    "trace_id": "55e0ae1629b5d84b489527cfaeaa5b7e",
+    "route": "home",
+    "server_s": 0.02,
+    "ended": "complete",
+    "rounds": [],
+    "lock_waits": []
+   }
+  },
+  {
+   "mount": "display",
+   "text": "what song is this",
+   "sent_at": 1794932524.4257972,
+   "client_s": 0.026,
+   "http": 200,
+   "reply": "Nothing is playing on the Office speaker.",
+   "rep": 1,
+   "route_key": "direct",
+   "ev": {
+    "rid": "6e27b456",
+    "trace_id": "cad7a5865529a85589161daef7ebe437",
+    "route": "home",
+    "server_s": 0.02,
+    "ended": "complete",
+    "rounds": [],
+    "lock_waits": []
+   }
+  },
+  {
+   "mount": "voice",
+   "text": "what's the weather like",
+   "sent_at": 1794932524.9669526,
+   "client_s": 10.635,
+   "http": 200,
+   "reply": "It is currently 49\u00b0F and sunny with a wind of 3 mph from the Northwest.",
+   "rep": 1,
+   "route_key": "specialist",
+   "ev": {
+    "rid": "da546179",
+    "trace_id": "e7483cbed48dac65ba985edffd87c45e",
+    "route": "home",
+    "server_s": 10.63,
+    "ended": "complete",
+    "rounds": [
+     {
+      "agent": "home",
+      "phase": "plan_1",
+      "s": 6.79,
+      "prompt": 3926,
+      "cached": 0
+     },
+     {
+      "agent": "home",
+      "phase": "synthesis",
+      "s": 2.93,
+      "prompt": 4294,
+      "cached": 3926
+     }
+    ],
+    "lock_waits": [
+     {
+      "lock": "pipeline",
+      "class": "voice",
+      "wait_ms": 0
+     }
+    ]
+   }
+  },
+  {
+   "mount": "display",
+   "text": "what's the weather like",
+   "sent_at": 1794932536.117101,
+   "client_s": 4.636,
+   "http": 200,
+   "reply": "I'm sorry, I\u2019m having trouble fetching the weather for Laurel, MD right now.",
+   "rep": 1,
+   "route_key": "specialist",
+   "ev": {
+    "rid": "3225504b",
+    "trace_id": "41226649d6d2d4b13ea3b074e5d494d4",
+    "route": "home",
+    "server_s": 4.63,
+    "ended": "complete",
+    "rounds": [
+     {
+      "agent": "home",
+      "phase": "plan_1",
+      "s": 1.62,
+      "prompt": 3926,
+      "cached": 3925
+     },
+     {
+      "agent": "home",
+      "phase": "synthesis",
+      "s": 2.19,
+      "prompt": 4074,
+      "cached": 3926
+     }
+    ],
+    "lock_waits": [
+     {
+      "lock": "pipeline",
+      "class": "display",
+      "wait_ms": 0
+     }
+    ]
+   }
+  },
+  {
+   "mount": "voice",
+   "text": "what is the capital of France",
+   "sent_at": 1794932541.2686975,
+   "client_s": 1.716,
+   "http": 200,
+   "reply": "The capital of France is Paris.",
+   "rep": 1,
+   "route_key": "coord",
+   "ev": {
+    "rid": "53a2ec59",
+    "trace_id": "e923eda602f0423d8e253659fd3bd4e7",
+    "route": "direct",
+    "server_s": 1.71,
+    "ended": "complete",
+    "rounds": [
+     {
+      "agent": "coordinator",
+      "phase": "synthesis",
+      "s": 1.69,
+      "prompt": 2058,
+      "cached": 0
+     }
+    ],
+    "lock_waits": [
+     {
+      "lock": "pipeline",
+      "class": "voice",
+      "wait_ms": 0
+     }
+    ]
+   }
+  },
+  {
+   "mount": "display",
+   "text": "what is the capital of France",
+   "sent_at": 1794932543.5000665,
+   "client_s": 0.618,
+   "http": 200,
+   "reply": "Paris.",
+   "rep": 1,
+   "route_key": "coord",
+   "ev": {
+    "rid": "a08fca54",
+    "trace_id": "66b0ef36c4bc9aff08e6ae03d23de11b",
+    "route": "direct",
+    "server_s": 0.61,
+    "ended": "complete",
+    "rounds": [
+     {
+      "agent": "coordinator",
+      "phase": "synthesis",
+      "s": 0.6,
+      "prompt": 2011,
+      "cached": 2010
+     }
+    ],
+    "lock_waits": [
+     {
+      "lock": "pipeline",
+      "class": "display",
+      "wait_ms": 0
+     }
+    ]
+   }
+  },
+  {
+   "mount": "voice",
+   "text": "what's playing in the kitchen",
+   "sent_at": 1794932544.6312754,
+   "client_s": 4.757,
+   "http": 200,
+   "reply": "Nothing is playing on the Kitchen speaker.",
+   "rep": 1,
+   "route_key": "delegate",
+   "ev": {
+    "rid": "63a5e988",
+    "trace_id": "f3517f6222641e5770d23138faaff29f",
+    "route": "direct",
+    "server_s": 4.75,
+    "ended": "complete",
+    "rounds": [
+     {
+      "agent": "coordinator",
+      "phase": "plan_1",
+      "s": 1.35,
+      "prompt": 2059,
+      "cached": 1330
+     },
+     {
+      "agent": "home",
+      "phase": "plan_1",
+      "s": 3.34,
+      "prompt": 3739,
+      "cached": 0
+     }
+    ],
+    "lock_waits": [
+     {
+      "lock": "pipeline",
+      "class": "voice",
+      "wait_ms": 0
+     }
+    ]
+   }
+  },
+  {
+   "mount": "display",
+   "text": "what's playing in the kitchen",
+   "sent_at": 1794932549.9023783,
+   "client_s": 7.583,
+   "http": 200,
+   "reply": "Nothing is playing on the Kitchen speaker.",
+   "rep": 1,
+   "route_key": "delegate",
+   "ev": {
+    "rid": "9939db04",
+    "trace_id": "2863f49c3b1fd293ee97d882e5594b24",
+    "route": "direct",
+    "server_s": 7.58,
+    "ended": "complete",
+    "rounds": [
+     {
+      "agent": "coordinator",
+      "phase": "plan_1",
+      "s": 3.52,
+      "prompt": 2012,
+      "cached": 0
+     },
+     {
+      "agent": "home",
+      "phase": "plan_1",
+      "s": 3.99,
+      "prompt": 3738,
+      "cached": 0
+     }
+    ],
+    "lock_waits": [
+     {
+      "lock": "pipeline",
+      "class": "display",
+      "wait_ms": 0
+     }
+    ]
+   }
+  },
+  {
+   "mount": "voice",
+   "text": "search the web for when the eiffel tower was built",
+   "sent_at": 1794932558.000167,
+   "client_s": 5.429,
+   "http": 200,
+   "reply": "The Eiffel Tower was built to be the main attraction of the 1889 Paris Exposition (World's Fair). Construction started on July 1st, 1887, and was completed in March 1889. It officially opened and was dedicated on March 31, 1889 (Source: National Geographic Kids, HISTORY, The Construction of the Eiff",
+   "rep": 1,
+   "route_key": "search",
+   "ev": {
+    "rid": "ba4ce4b4",
+    "trace_id": "d1ef702d8c2f76e27ca7129a92b3c2d9",
+    "route": "research",
+    "server_s": 5.43,
+    "ended": "complete",
+    "rounds": [
+     {
+      "agent": "research",
+      "phase": "plan_1",
+      "s": 1.26,
+      "prompt": 750,
+      "cached": 0
+     },
+     {
+      "agent": "research",
+      "phase": "synthesis",
+      "s": 3.54,
+      "prompt": 1366,
+      "cached": 750
+     }
+    ],
+    "lock_waits": [
+     {
+      "lock": "pipeline",
+      "class": "voice",
+      "wait_ms": 0
+     }
+    ]
+   }
+  },
+  {
+   "mount": "display",
+   "text": "search the web for when the eiffel tower was built",
+   "sent_at": 1794932563.9437094,
+   "client_s": 6.722,
+   "http": 200,
+   "reply": "The Eiffel Tower was built for the 1889 World's Fair in Paris. According to the search results, the construction began on July 1, 1887, and it was completed and dedicated on March 31, 1889.",
+   "rep": 1,
+   "route_key": "search",
+   "ev": {
+    "rid": "c0df0e86",
+    "trace_id": "899a2b8232809ad4a843f61dc26b0734",
+    "route": "research",
+    "server_s": 6.72,
+    "ended": "complete",
+    "rounds": [
+     {
+      "agent": "research",
+      "phase": "plan_1",
+      "s": 0.84,
+      "prompt": 750,
+      "cached": 749
+     },
+     {
+      "agent": "research",
+      "phase": "synthesis",
+      "s": 2.7,
+      "prompt": 1366,
+      "cached": 750
+     }
+    ],
+    "lock_waits": [
+     {
+      "lock": "pipeline",
+      "class": "display",
+      "wait_ms": 0
+     }
+    ]
+   }
+  },
+  {
+   "mount": "voice",
+   "text": "what song is this",
+   "sent_at": 1794932571.196749,
+   "client_s": 0.021,
+   "http": 200,
+   "reply": "Nothing is playing on the Office speaker.",
+   "rep": 2,
+   "route_key": "direct",
+   "ev": {
+    "rid": "7af75633",
+    "trace_id": "c9b6bf41ec9210e3acd7c7d977f1d194",
+    "route": "home",
+    "server_s": 0.02,
+    "ended": "complete",
+    "rounds": [],
+    "lock_waits": []
+   }
+  },
+  {
+   "mount": "display",
+   "text": "what song is this",
+   "sent_at": 1794932571.7304056,
+   "client_s": 0.029,
+   "http": 200,
+   "reply": "Nothing is playing on the Office speaker.",
+   "rep": 2,
+   "route_key": "direct",
+   "ev": {
+    "rid": "c8e8a7ee",
+    "trace_id": "1000364195df58b2fecf9eca158015d8",
+    "route": "home",
+    "server_s": 0.03,
+    "ended": "complete",
+    "rounds": [],
+    "lock_waits": []
+   }
+  },
+  {
+   "mount": "voice",
+   "text": "what's the weather like",
+   "sent_at": 1794932572.2747746,
+   "client_s": 12.037,
+   "http": 200,
+   "reply": "I'm sorry, but I am unable to retrieve the weather information at this time because the weather service lookup failed.",
+   "rep": 2,
+   "route_key": "specialist",
+   "ev": {
+    "rid": "d6b1310a",
+    "trace_id": "960ddd11d45f9f1de6590d883b2f56c2",
+    "route": "home",
+    "server_s": 12.03,
+    "ended": "complete",
+    "rounds": [
+     {
+      "agent": "home",
+      "phase": "plan_1",
+      "s": 4.47,
+      "prompt": 3926,
+      "cached": 0
+     },
+     {
+      "agent": "home",
+      "phase": "synthesis",
+      "s": 1.27,
+      "prompt": 4121,
+      "cached": 3926
+     }
+    ],
+    "lock_waits": [
+     {
+      "lock": "pipeline",
+      "class": "voice",
+      "wait_ms": 0
+     }
+    ]
+   }
+  },
+  {
+   "mount": "display",
+   "text": "what's the weather like",
+   "sent_at": 1794932584.8269248,
+   "client_s": 5.239,
+   "http": 200,
+   "reply": "I'm sorry, but I couldn't get the weather for you right now because the weather service is having a temporary issue.",
+   "rep": 2,
+   "route_key": "specialist",
+   "ev": {
+    "rid": "c19f92b4",
+    "trace_id": "657b73d10191694c02cc7e1281d901a9",
+    "route": "home",
+    "server_s": 5.24,
+    "ended": "complete",
+    "rounds": [
+     {
+      "agent": "home",
+      "phase": "plan_1",
+      "s": 3.08,
+      "prompt": 3926,
+      "cached": 893
+     },
+     {
+      "agent": "home",
+      "phase": "synthesis",
+      "s": 1.39,
+      "prompt": 4075,
+      "cached": 3926
+     }
+    ],
+    "lock_waits": [
+     {
+      "lock": "pipeline",
+      "class": "display",
+      "wait_ms": 0
+     }
+    ]
+   }
+  },
+  {
+   "mount": "voice",
+   "text": "what is the capital of France",
+   "sent_at": 1794932590.5814202,
+   "client_s": 1.947,
+   "http": 200,
+   "reply": "The capital of France is Paris.",
+   "rep": 2,
+   "route_key": "coord",
+   "ev": {
+    "rid": "ef927b16",
+    "trace_id": "25960faf7cf0e2fd80129e4c94741077",
+    "route": "direct",
+    "server_s": 1.94,
+    "ended": "complete",
+    "rounds": [
+     {
+      "agent": "coordinator",
+      "phase": "synthesis",
+      "s": 1.91,
+      "prompt": 2058,
+      "cached": 0
+     }
+    ],
+    "lock_waits": [
+     {
+      "lock": "pipeline",
+      "class": "voice",
+      "wait_ms": 0
+     }
+    ]
+   }
+  },
+  {
+   "mount": "display",
+   "text": "what is the capital of France",
+   "sent_at": 1794932593.0431387,
+   "client_s": 0.132,
+   "http": 200,
+   "reply": "Paris is the capital of France.",
+   "rep": 2,
+   "route_key": "coord",
+   "ev": {
+    "rid": "cbff1edd",
+    "trace_id": "6e9340683e68e50fb1750b95f58444ea",
+    "route": "direct",
+    "server_s": 0.13,
+    "ended": "complete",
+    "rounds": [
+     {
+      "agent": "coordinator",
+      "phase": "synthesis",
+      "s": 0.11,
+      "prompt": 2011,
+      "cached": 2010
+     }
+    ],
+    "lock_waits": [
+     {
+      "lock": "pipeline",
+      "class": "display",
+      "wait_ms": 0
+     }
+    ]
+   }
+  },
+  {
+   "mount": "voice",
+   "text": "what's playing in the kitchen",
+   "sent_at": 1794932593.6911476,
+   "client_s": 6.795,
+   "http": 200,
+   "reply": "Nothing is playing on the Kitchen speaker.",
+   "rep": 2,
+   "route_key": "delegate",
+   "ev": {
+    "rid": "91d70eaa",
+    "trace_id": "9c6ba32efc6bfec76dd727d707b73ba7",
+    "route": "direct",
+    "server_s": 6.79,
+    "ended": "complete",
+    "rounds": [
+     {
+      "agent": "coordinator",
+      "phase": "plan_1",
+      "s": 1.27,
+      "prompt": 2059,
+      "cached": 1330
+     },
+     {
+      "agent": "home",
+      "phase": "plan_1",
+      "s": 5.45,
+      "prompt": 3739,
+      "cached": 0
+     }
+    ],
+    "lock_waits": [
+     {
+      "lock": "pipeline",
+      "class": "voice",
+      "wait_ms": 0
+     }
+    ]
+   }
+  },
+  {
+   "mount": "display",
+   "text": "what's playing in the kitchen",
+   "sent_at": 1794932601.0013168,
+   "client_s": 4.664,
+   "http": 200,
+   "reply": "Nothing is playing on the Kitchen speaker.",
+   "rep": 2,
+   "route_key": "delegate",
+   "ev": {
+    "rid": "6cb4398d",
+    "trace_id": "e62feee4ed4088b7a5aa4408563730e0",
+    "route": "direct",
+    "server_s": 4.66,
+    "ended": "complete",
+    "rounds": [
+     {
+      "agent": "coordinator",
+      "phase": "plan_1",
+      "s": 2.73,
+      "prompt": 2012,
+      "cached": 2011
+     },
+     {
+      "agent": "home",
+      "phase": "plan_1",
+      "s": 1.86,
+      "prompt": 3740,
+      "cached": 3727
+     }
+    ],
+    "lock_waits": [
+     {
+      "lock": "pipeline",
+      "class": "display",
+      "wait_ms": 0
+     }
+    ]
+   }
+  },
+  {
+   "mount": "voice",
+   "text": "what song is this",
+   "sent_at": 1794932606.19697,
+   "client_s": 0.021,
+   "http": 200,
+   "reply": "Nothing is playing on the Office speaker.",
+   "rep": 3,
+   "route_key": "direct",
+   "ev": {
+    "rid": "d09339f8",
+    "trace_id": "c0f734cc8b28d5e5aa86efba568d663d",
+    "route": "home",
+    "server_s": 0.02,
+    "ended": "complete",
+    "rounds": [],
+    "lock_waits": []
+   }
+  },
+  {
+   "mount": "display",
+   "text": "what song is this",
+   "sent_at": 1794932606.7300944,
+   "client_s": 0.024,
+   "http": 200,
+   "reply": "Nothing is playing on the Office speaker.",
+   "rep": 3,
+   "route_key": "direct",
+   "ev": {
+    "rid": "3b4b5535",
+    "trace_id": "b2b092b4385360aa08260806ccef505b",
+    "route": "home",
+    "server_s": 0.02,
+    "ended": "complete",
+    "rounds": [],
+    "lock_waits": []
+   }
+  },
+  {
+   "mount": "voice",
+   "text": "what's the weather like",
+   "sent_at": 1794932607.2690854,
+   "client_s": 3.236,
+   "http": 200,
+   "reply": "I apologize, but I was unable to retrieve the current weather information because the weather service failed to respond.",
+   "rep": 3,
+   "route_key": "specialist",
+   "ev": {
+    "rid": "5e1a3800",
+    "trace_id": "53eb15f3be28fb3e5d7030cdb5d80aa0",
+    "route": "home",
+    "server_s": 3.23,
+    "ended": "complete",
+    "rounds": [
+     {
+      "agent": "home",
+      "phase": "plan_1",
+      "s": 1.25,
+      "prompt": 3926,
+      "cached": 3925
+     },
+     {
+      "agent": "home",
+      "phase": "synthesis",
+      "s": 1.3,
+      "prompt": 4119,
+      "cached": 3926
+     }
+    ],
+    "lock_waits": [
+     {
+      "lock": "pipeline",
+      "class": "voice",
+      "wait_ms": 0
+     }
+    ]
+   }
+  },
+  {
+   "mount": "display",
+   "text": "what's the weather like",
+   "sent_at": 1794932611.0203998,
+   "client_s": 6.986,
+   "http": 200,
+   "reply": "I\u2019m sorry, I\u2019m having trouble connecting to the weather service right now. I cannot provide an accurate weather update until the connection is restored.",
+   "rep": 3,
+   "route_key": "specialist",
+   "ev": {
+    "rid": "db864cbb",
+    "trace_id": "ab04ae7d1e46af2ac36e85b745f22a57",
+    "route": "home",
+    "server_s": 6.98,
+    "ended": "complete",
+    "rounds": [
+     {
+      "agent": "home",
+      "phase": "plan_1",
+      "s": 2.97,
+      "prompt": 3926,
+      "cached": 0
+     },
+     {
+      "agent": "home",
+      "phase": "synthesis",
+      "s": 3.36,
+      "prompt": 4074,
+      "cached": 3926
+     }
+    ],
+    "lock_waits": [
+     {
+      "lock": "pipeline",
+      "class": "display",
+      "wait_ms": 0
+     }
+    ]
+   }
+  },
+  {
+   "mount": "voice",
+   "text": "what is the capital of France",
+   "sent_at": 1794932618.5202315,
+   "client_s": 1.914,
+   "http": 200,
+   "reply": "The capital of France is Paris.",
+   "rep": 3,
+   "route_key": "coord",
+   "ev": {
+    "rid": "023b0704",
+    "trace_id": "fdf5427632427dd93ada3ea431b619d6",
+    "route": "direct",
+    "server_s": 1.91,
+    "ended": "complete",
+    "rounds": [
+     {
+      "agent": "coordinator",
+      "phase": "synthesis",
+      "s": 1.9,
+      "prompt": 2058,
+      "cached": 0
+     }
+    ],
+    "lock_waits": [
+     {
+      "lock": "pipeline",
+      "class": "voice",
+      "wait_ms": 0
+     }
+    ]
+   }
+  },
+  {
+   "mount": "display",
+   "text": "what is the capital of France",
+   "sent_at": 1794932620.9489896,
+   "client_s": 2.21,
+   "http": 200,
+   "reply": "The capital of France is Paris.",
+   "rep": 3,
+   "route_key": "coord",
+   "ev": {
+    "rid": "9e580a6a",
+    "trace_id": "6cbafbbcc85ce072b3b9844e10a9096f",
+    "route": "direct",
+    "server_s": 2.21,
+    "ended": "complete",
+    "rounds": [
+     {
+      "agent": "coordinator",
+      "phase": "synthesis",
+      "s": 2.19,
+      "prompt": 2011,
+      "cached": 2010
+     }
+    ],
+    "lock_waits": [
+     {
+      "lock": "pipeline",
+      "class": "display",
+      "wait_ms": 0
+     }
+    ]
+   }
+  },
+  {
+   "mount": "voice",
+   "text": "what's playing in the kitchen",
+   "sent_at": 1794932623.671852,
+   "client_s": 6.407,
+   "http": 200,
+   "reply": "Nothing is playing on the Kitchen speaker.",
+   "rep": 3,
+   "route_key": "delegate",
+   "ev": {
+    "rid": "2009e177",
+    "trace_id": "1cc176bcada7f37b80133daa2133dc59",
+    "route": "direct",
+    "server_s": 6.4,
+    "ended": "complete",
+    "rounds": [
+     {
+      "agent": "coordinator",
+      "phase": "plan_1",
+      "s": 1.38,
+      "prompt": 2059,
+      "cached": 1330
+     },
+     {
+      "agent": "home",
+      "phase": "plan_1",
+      "s": 4.97,
+      "prompt": 3738,
+      "cached": 0
+     }
+    ],
+    "lock_waits": [
+     {
+      "lock": "pipeline",
+      "class": "voice",
+      "wait_ms": 0
+     }
+    ]
+   }
+  },
+  {
+   "mount": "display",
+   "text": "what's playing in the kitchen",
+   "sent_at": 1794932630.5913987,
+   "client_s": 3.553,
+   "http": 200,
+   "reply": "Nothing is playing on the Kitchen speaker.",
+   "rep": 3,
+   "route_key": "delegate",
+   "ev": {
+    "rid": "180963df",
+    "trace_id": "2ddcfdae6ce78f474e414711723de788",
+    "route": "direct",
+    "server_s": 3.55,
+    "ended": "complete",
+    "rounds": [
+     {
+      "agent": "coordinator",
+      "phase": "plan_1",
+      "s": 1.15,
+      "prompt": 2012,
+      "cached": 2011
+     },
+     {
+      "agent": "home",
+      "phase": "plan_1",
+      "s": 2.34,
+      "prompt": 3738,
+      "cached": 3726
+     }
+    ],
+    "lock_waits": [
+     {
+      "lock": "pipeline",
+      "class": "display",
+      "wait_ms": 0
+     }
+    ]
+   }
+  },
+  {
+   "mount": "voice",
+   "text": "what song is this",
+   "sent_at": 1794932634.672533,
+   "client_s": 0.016,
+   "http": 200,
+   "reply": "Nothing is playing on the Office speaker.",
+   "rep": 4,
+   "route_key": "direct",
+   "ev": {
+    "rid": "2d4af9c5",
+    "trace_id": "7c51cccbb25d3eda2e0c27b89cfb6c80",
+    "route": "home",
+    "server_s": 0.01,
+    "ended": "complete",
+    "rounds": [],
+    "lock_waits": []
+   }
+  },
+  {
+   "mount": "display",
+   "text": "what song is this",
+   "sent_at": 1794932635.2006438,
+   "client_s": 0.029,
+   "http": 200,
+   "reply": "Nothing is playing on the Office speaker.",
+   "rep": 4,
+   "route_key": "direct",
+   "ev": {
+    "rid": "842fa024",
+    "trace_id": "16fc9bc2803f3a0380dff8de75d0a3f3",
+    "route": "home",
+    "server_s": 0.03,
+    "ended": "complete",
+    "rounds": [],
+    "lock_waits": []
+   }
+  },
+  {
+   "mount": "voice",
+   "text": "what's the weather like",
+   "sent_at": 1794932635.7431917,
+   "client_s": 4.864,
+   "http": 200,
+   "reply": "I am unable to retrieve the weather right now because the forecast fetch failed.",
+   "rep": 4,
+   "route_key": "specialist",
+   "ev": {
+    "rid": "a0a0285e",
+    "trace_id": "206edce2c5fe22a5e01cb3528be164be",
+    "route": "home",
+    "server_s": 4.86,
+    "ended": "complete",
+    "rounds": [
+     {
+      "agent": "home",
+      "phase": "plan_1",
+      "s": 2.43,
+      "prompt": 3926,
+      "cached": 3925
+     },
+     {
+      "agent": "home",
+      "phase": "synthesis",
+      "s": 1.73,
+      "prompt": 4119,
+      "cached": 3926
+     }
+    ],
+    "lock_waits": [
+     {
+      "lock": "pipeline",
+      "class": "voice",
+      "wait_ms": 0
+     }
+    ]
+   }
+  },
+  {
+   "mount": "display",
+   "text": "what's the weather like",
+   "sent_at": 1794932641.1224344,
+   "client_s": 6.689,
+   "http": 200,
+   "reply": "I apologize, but I'm currently unable to retrieve the weather information for your area due to a service error.",
+   "rep": 4,
+   "route_key": "specialist",
+   "ev": {
+    "rid": "07e6d04e",
+    "trace_id": "8f3de9619e57d372914943a3739b9783",
+    "route": "home",
+    "server_s": 6.69,
+    "ended": "complete",
+    "rounds": [
+     {
+      "agent": "home",
+      "phase": "plan_1",
+      "s": 4.84,
+      "prompt": 3926,
+      "cached": 0
+     },
+     {
+      "agent": "home",
+      "phase": "synthesis",
+      "s": 1.05,
+      "prompt": 4075,
+      "cached": 3926
+     }
+    ],
+    "lock_waits": [
+     {
+      "lock": "pipeline",
+      "class": "display",
+      "wait_ms": 0
+     }
+    ]
+   }
+  },
+  {
+   "mount": "voice",
+   "text": "what is the capital of France",
+   "sent_at": 1794932648.3245568,
+   "client_s": 1.709,
+   "http": 200,
+   "reply": "The capital of France is Paris.",
+   "rep": 4,
+   "route_key": "coord",
+   "ev": {
+    "rid": "6e442c12",
+    "trace_id": "93765d74d272d0aee366b2d854b4626f",
+    "route": "direct",
+    "server_s": 1.71,
+    "ended": "complete",
+    "rounds": [
+     {
+      "agent": "coordinator",
+      "phase": "synthesis",
+      "s": 1.68,
+      "prompt": 2058,
+      "cached": 0
+     }
+    ],
+    "lock_waits": [
+     {
+      "lock": "pipeline",
+      "class": "voice",
+      "wait_ms": 0
+     }
+    ]
+   }
+  },
+  {
+   "mount": "display",
+   "text": "what is the capital of France",
+   "sent_at": 1794932650.5471861,
+   "client_s": 0.14,
+   "http": 200,
+   "reply": "The capital of France is Paris.",
+   "rep": 4,
+   "route_key": "coord",
+   "ev": {
+    "rid": "085b68d9",
+    "trace_id": "86e86df04d7a1417610fc3c8af9db314",
+    "route": "direct",
+    "server_s": 0.14,
+    "ended": "complete",
+    "rounds": [
+     {
+      "agent": "coordinator",
+      "phase": "synthesis",
+      "s": 0.11,
+      "prompt": 2011,
+      "cached": 2010
+     }
+    ],
+    "lock_waits": [
+     {
+      "lock": "pipeline",
+      "class": "display",
+      "wait_ms": 0
+     }
+    ]
+   }
+  },
+  {
+   "mount": "voice",
+   "text": "what's playing in the kitchen",
+   "sent_at": 1794932651.2021892,
+   "client_s": 5.843,
+   "http": 200,
+   "reply": "Nothing is playing on the Kitchen speaker.",
+   "rep": 4,
+   "route_key": "delegate",
+   "ev": {
+    "rid": "d917e257",
+    "trace_id": "a6c713ffe69f0eb6d0760db8b208597c",
+    "route": "direct",
+    "server_s": 5.84,
+    "ended": "complete",
+    "rounds": [
+     {
+      "agent": "coordinator",
+      "phase": "plan_1",
+      "s": 2.77,
+      "prompt": 2059,
+      "cached": 1330
+     },
+     {
+      "agent": "home",
+      "phase": "plan_1",
+      "s": 3.0,
+      "prompt": 3738,
+      "cached": 0
+     }
+    ],
+    "lock_waits": [
+     {
+      "lock": "pipeline",
+      "class": "voice",
+      "wait_ms": 0
+     }
+    ]
+   }
+  },
+  {
+   "mount": "display",
+   "text": "what's playing in the kitchen",
+   "sent_at": 1794932657.5588927,
+   "client_s": 3.862,
+   "http": 200,
+   "reply": "Nothing is playing on the Kitchen speaker.",
+   "rep": 4,
+   "route_key": "delegate",
+   "ev": {
+    "rid": "3e854bbc",
+    "trace_id": "c9f0e1280d2b3282c0342314513f123c",
+    "route": "direct",
+    "server_s": 3.86,
+    "ended": "complete",
+    "rounds": [
+     {
+      "agent": "coordinator",
+      "phase": "plan_1",
+      "s": 1.72,
+      "prompt": 2012,
+      "cached": 2011
+     },
+     {
+      "agent": "home",
+      "phase": "plan_1",
+      "s": 2.07,
+      "prompt": 3739,
+      "cached": 3726
+     }
+    ],
+    "lock_waits": [
+     {
+      "lock": "pipeline",
+      "class": "display",
+      "wait_ms": 0
+     }
+    ]
+   }
+  },
+  {
+   "mount": "voice",
+   "text": "what song is this",
+   "sent_at": 1794932661.9523745,
+   "client_s": 0.02,
+   "http": 200,
+   "reply": "Nothing is playing on the Office speaker.",
+   "rep": 5,
+   "route_key": "direct",
+   "ev": {
+    "rid": "d0188ff1",
+    "trace_id": "72b49cb36125d2a7e0211ea4d37105bb",
+    "route": "home",
+    "server_s": 0.02,
+    "ended": "complete",
+    "rounds": [],
+    "lock_waits": []
+   }
+  },
+  {
+   "mount": "display",
+   "text": "what song is this",
+   "sent_at": 1794932662.4848561,
+   "client_s": 0.024,
+   "http": 200,
+   "reply": "Nothing is playing on the Office speaker.",
+   "rep": 5,
+   "route_key": "direct",
+   "ev": {
+    "rid": "5151ce16",
+    "trace_id": "0a1fb858f955e5621d83dfb1caee3de0",
+    "route": "home",
+    "server_s": 0.02,
+    "ended": "complete",
+    "rounds": [],
+    "lock_waits": []
+   }
+  },
+  {
+   "mount": "voice",
+   "text": "what's the weather like",
+   "sent_at": 1794932663.0233207,
+   "client_s": 4.883,
+   "http": 200,
+   "reply": "I\u2019m sorry, but the weather forecast service seems to be experiencing technical difficulties right now.",
+   "rep": 5,
+   "route_key": "specialist",
+   "ev": {
+    "rid": "8875adfd",
+    "trace_id": "e60775e908b4ff66f4f7b9a81ec4da35",
+    "route": "home",
+    "server_s": 4.88,
+    "ended": "complete",
+    "rounds": [
+     {
+      "agent": "home",
+      "phase": "plan_1",
+      "s": 1.96,
+      "prompt": 3926,
+      "cached": 3925
+     },
+     {
+      "agent": "home",
+      "phase": "synthesis",
+      "s": 2.06,
+      "prompt": 4122,
+      "cached": 3926
+     }
+    ],
+    "lock_waits": [
+     {
+      "lock": "pipeline",
+      "class": "voice",
+      "wait_ms": 0
+     }
+    ]
+   }
+  },
+  {
+   "mount": "display",
+   "text": "what's the weather like",
+   "sent_at": 1794932668.4209898,
+   "client_s": 7.264,
+   "http": 200,
+   "reply": "It is currently 49\u00b0F and sunny in Laurel, with a wind of 3 mph from the northwest.",
+   "rep": 5,
+   "route_key": "specialist",
+   "ev": {
+    "rid": "8f546638",
+    "trace_id": "27ebd32d4cc65793aea30c11e502dca0",
+    "route": "home",
+    "server_s": 7.26,
+    "ended": "complete",
+    "rounds": [
+     {
+      "agent": "home",
+      "phase": "plan_1",
+      "s": 3.53,
+      "prompt": 3926,
+      "cached": 0
+     },
+     {
+      "agent": "home",
+      "phase": "synthesis",
+      "s": 2.75,
+      "prompt": 4076,
+      "cached": 3926
+     }
+    ],
+    "lock_waits": [
+     {
+      "lock": "pipeline",
+      "class": "display",
+      "wait_ms": 0
+     }
+    ]
+   }
+  },
+  {
+   "mount": "voice",
+   "text": "what is the capital of France",
+   "sent_at": 1794932676.1985831,
+   "client_s": 1.632,
+   "http": 200,
+   "reply": "The capital of France is Paris.",
+   "rep": 5,
+   "route_key": "coord",
+   "ev": {
+    "rid": "b9ed4c58",
+    "trace_id": "3403c55f30bb31f96d0d03f2b6ddda57",
+    "route": "direct",
+    "server_s": 1.63,
+    "ended": "complete",
+    "rounds": [
+     {
+      "agent": "coordinator",
+      "phase": "synthesis",
+      "s": 1.61,
+      "prompt": 2058,
+      "cached": 0
+     }
+    ],
+    "lock_waits": [
+     {
+      "lock": "pipeline",
+      "class": "voice",
+      "wait_ms": 0
+     }
+    ]
+   }
+  },
+  {
+   "mount": "display",
+   "text": "what is the capital of France",
+   "sent_at": 1794932678.345572,
+   "client_s": 0.144,
+   "http": 200,
+   "reply": "The capital of France is Paris.",
+   "rep": 5,
+   "route_key": "coord",
+   "ev": {
+    "rid": "fe2e5250",
+    "trace_id": "5c6d541aba0e69ae824623dd31125a18",
+    "route": "direct",
+    "server_s": 0.14,
+    "ended": "complete",
+    "rounds": [
+     {
+      "agent": "coordinator",
+      "phase": "synthesis",
+      "s": 0.12,
+      "prompt": 2011,
+      "cached": 2010
+     }
+    ],
+    "lock_waits": [
+     {
+      "lock": "pipeline",
+      "class": "display",
+      "wait_ms": 0
+     }
+    ]
+   }
+  },
+  {
+   "mount": "voice",
+   "text": "what's playing in the kitchen",
+   "sent_at": 1794932679.0034084,
+   "client_s": 4.293,
+   "http": 200,
+   "reply": "Nothing is playing on the Kitchen speaker.",
+   "rep": 5,
+   "route_key": "delegate",
+   "ev": {
+    "rid": "5d3da9b7",
+    "trace_id": "04d3ba5563bbdede6ed95aed4fe89573",
+    "route": "direct",
+    "server_s": 4.29,
+    "ended": "complete",
+    "rounds": [
+     {
+      "agent": "coordinator",
+      "phase": "plan_1",
+      "s": 1.33,
+      "prompt": 2059,
+      "cached": 1330
+     },
+     {
+      "agent": "home",
+      "phase": "plan_1",
+      "s": 2.91,
+      "prompt": 3739,
+      "cached": 0
+     }
+    ],
+    "lock_waits": [
+     {
+      "lock": "pipeline",
+      "class": "voice",
+      "wait_ms": 0
+     }
+    ]
+   }
+  },
+  {
+   "mount": "display",
+   "text": "what's playing in the kitchen",
+   "sent_at": 1794932683.8119533,
+   "client_s": 4.001,
+   "http": 200,
+   "reply": "Nothing is playing on the Kitchen speaker.",
+   "rep": 5,
+   "route_key": "delegate",
+   "ev": {
+    "rid": "355e392e",
+    "trace_id": "8238932c84d8da92685123e9335368bb",
+    "route": "direct",
+    "server_s": 4.0,
+    "ended": "complete",
+    "rounds": [
+     {
+      "agent": "coordinator",
+      "phase": "plan_1",
+      "s": 2.84,
+      "prompt": 2012,
+      "cached": 2011
+     },
+     {
+      "agent": "home",
+      "phase": "plan_1",
+      "s": 1.06,
+      "prompt": 3738,
+      "cached": 3728
+     }
+    ],
+    "lock_waits": [
+     {
+      "lock": "pipeline",
+      "class": "display",
+      "wait_ms": 0
+     }
+    ]
+   }
+  }
+ ],
+ "summary": [
+  {
+   "route": "direct",
+   "mount": "voice",
+   "n": 6,
+   "ok": 6,
+   "median_s": 0.02,
+   "mean_s": 0.019,
+   "min_s": 0.016,
+   "max_s": 0.021,
+   "cache": {
+    "generations": 0,
+    "prompt_tokens": 0,
+    "cached_tokens": 0,
+    "evaluated_tokens": 0,
+    "reuse": null
+   }
+  },
+  {
+   "route": "direct",
+   "mount": "display",
+   "n": 6,
+   "ok": 6,
+   "median_s": 0.025,
+   "mean_s": 0.026,
+   "min_s": 0.023,
+   "max_s": 0.029,
+   "cache": {
+    "generations": 0,
+    "prompt_tokens": 0,
+    "cached_tokens": 0,
+    "evaluated_tokens": 0,
+    "reuse": null
+   }
+  },
+  {
+   "route": "specialist",
+   "mount": "voice",
+   "n": 6,
+   "ok": 6,
+   "median_s": 5.631,
+   "mean_s": 7.006,
+   "min_s": 3.236,
+   "max_s": 12.037,
+   "cache": {
+    "generations": 12,
+    "prompt_tokens": 48450,
+    "cached_tokens": 35331,
+    "evaluated_tokens": 13119,
+    "reuse": 0.7292
+   }
+  },
+  {
+   "route": "specialist",
+   "mount": "display",
+   "n": 6,
+   "ok": 6,
+   "median_s": 6.323,
+   "mean_s": 6.128,
+   "min_s": 4.636,
+   "max_s": 7.264,
+   "cache": {
+    "generations": 12,
+    "prompt_tokens": 48004,
+    "cached_tokens": 29461,
+    "evaluated_tokens": 18543,
+    "reuse": 0.6137
+   }
+  },
+  {
+   "route": "coord",
+   "mount": "voice",
+   "n": 6,
+   "ok": 6,
+   "median_s": 1.815,
+   "mean_s": 1.822,
+   "min_s": 1.632,
+   "max_s": 2.014,
+   "cache": {
+    "generations": 6,
+    "prompt_tokens": 12348,
+    "cached_tokens": 0,
+    "evaluated_tokens": 12348,
+    "reuse": 0.0
+   }
+  },
+  {
+   "route": "coord",
+   "mount": "display",
+   "n": 6,
+   "ok": 6,
+   "median_s": 0.375,
+   "mean_s": 0.642,
+   "min_s": 0.132,
+   "max_s": 2.21,
+   "cache": {
+    "generations": 6,
+    "prompt_tokens": 12066,
+    "cached_tokens": 12060,
+    "evaluated_tokens": 6,
+    "reuse": 0.9995
+   }
+  },
+  {
+   "route": "delegate",
+   "mount": "voice",
+   "n": 6,
+   "ok": 6,
+   "median_s": 5.745,
+   "mean_s": 5.624,
+   "min_s": 4.293,
+   "max_s": 6.795,
+   "cache": {
+    "generations": 12,
+    "prompt_tokens": 34786,
+    "cached_tokens": 7980,
+    "evaluated_tokens": 26806,
+    "reuse": 0.2294
+   }
+  },
+  {
+   "route": "delegate",
+   "mount": "display",
+   "n": 6,
+   "ok": 6,
+   "median_s": 3.932,
+   "mean_s": 4.5,
+   "min_s": 3.339,
+   "max_s": 7.583,
+   "cache": {
+    "generations": 12,
+    "prompt_tokens": 34503,
+    "cached_tokens": 28690,
+    "evaluated_tokens": 5813,
+    "reuse": 0.8315
+   }
+  },
+  {
+   "route": "search",
+   "mount": "voice",
+   "n": 2,
+   "ok": 2,
+   "median_s": 4.884,
+   "mean_s": 4.884,
+   "min_s": 4.339,
+   "max_s": 5.429,
+   "cache": {
+    "generations": 4,
+    "prompt_tokens": 4232,
+    "cached_tokens": 1500,
+    "evaluated_tokens": 2732,
+    "reuse": 0.3544
+   }
+  },
+  {
+   "route": "search",
+   "mount": "display",
+   "n": 2,
+   "ok": 2,
+   "median_s": 6.076,
+   "mean_s": 6.076,
+   "min_s": 5.43,
+   "max_s": 6.722,
+   "cache": {
+    "generations": 4,
+    "prompt_tokens": 4241,
+    "cached_tokens": 2998,
+    "evaluated_tokens": 1243,
+    "reuse": 0.7069
+   }
+  }
+ ],
+ "cache_all_single": {
+  "generations": 68,
+  "prompt_tokens": 198630,
+  "cached_tokens": 118020,
+  "evaluated_tokens": 80610,
+  "reuse": 0.5942
+ },
+ "two_client": [
+  {
+   "rep": 0,
+   "research": {
+    "mount": "display",
+    "text": "search the web for who designed the golden gate bridge",
+    "sent_at": 1794932688.3450303,
+    "client_s": 8.691,
+    "http": 200,
+    "reply": "The Golden Gate Bridge was designed by Joseph B. Strauss and Charles A. Ellis.",
+    "ev": {
+     "rid": "20abeacb",
+     "trace_id": "267b8ad135d15675a3b9a80ae2ad2bfb",
+     "route": "research",
+     "server_s": 8.69,
+     "ended": "complete",
+     "rounds": [
+      {
+       "agent": "research",
+       "phase": "plan_1",
+       "s": 1.02,
+       "prompt": 749,
+       "cached": 0
+      },
+      {
+       "agent": "research",
+       "phase": "synthesis",
+       "s": 1.61,
+       "prompt": 1307,
+       "cached": 749
+      }
+     ],
+     "lock_waits": [
+      {
+       "lock": "pipeline",
+       "class": "display",
+       "wait_ms": 0
+      }
+     ]
+    }
+   },
+   "voice": {
+    "mount": "voice",
+    "text": "what's the weather like",
+    "sent_at": 1794932689.3460054,
+    "client_s": 16.552,
+    "http": 200,
+    "reply": "I\u2019m sorry, the weather service is currently unavailable and I can't provide a current forecast.\n\n(Self-correction/Refinement: Since the data was provided in the prompt's ambient facts, and the tool failed, I should probably use the data provided in the ambient facts if it's fresh enough, as the prom",
+    "ev": {
+     "rid": "4b2fe0e1",
+     "trace_id": "6283a3f6eb47a8a57d61975fb896fc92",
+     "route": "home",
+     "server_s": 16.55,
+     "ended": "complete",
+     "rounds": [
+      {
+       "agent": "home",
+       "phase": "plan_1",
+       "s": 2.88,
+       "prompt": 3926,
+       "cached": 3925
+      },
+      {
+       "agent": "home",
+       "phase": "synthesis",
+       "s": 5.09,
+       "prompt": 4121,
+       "cached": 3926
+      }
+     ],
+     "lock_waits": [
+      {
+       "lock": "pipeline",
+       "class": "voice",
+       "wait_ms": 7674
+      }
+     ]
+    },
+    "started_after_research_s": 1.001
+   }
+  },
+  {
+   "rep": 1,
+   "research": {
+    "mount": "display",
+    "text": "search the web for who designed the golden gate bridge",
+    "sent_at": 1794932706.9405515,
+    "client_s": 3.094,
+    "http": 200,
+    "reply": "The chief engineer of the Golden Gate Bridge was Joseph Baermann Strauss.",
+    "ev": {
+     "rid": "9ee86808",
+     "trace_id": "454e19318a14c38a99bef512f8369ae5",
+     "route": "research",
+     "server_s": 3.09,
+     "ended": "complete",
+     "rounds": [
+      {
+       "agent": "research",
+       "phase": "plan_1",
+       "s": 0.93,
+       "prompt": 749,
+       "cached": 0
+      },
+      {
+       "agent": "research",
+       "phase": "synthesis",
+       "s": 1.21,
+       "prompt": 1771,
+       "cached": 749
+      }
+     ],
+     "lock_waits": [
+      {
+       "lock": "pipeline",
+       "class": "display",
+       "wait_ms": 0
+      }
+     ]
+    }
+   },
+   "voice": {
+    "mount": "voice",
+    "text": "what's the weather like",
+    "sent_at": 1794932707.9414923,
+    "client_s": 11.118,
+    "http": 200,
+    "reply": "The weather service is currently having trouble providing an accurate forecast, but the current conditions in Laurel, MD are 49\u00b0F and Sunny.",
+    "ev": {
+     "rid": "3d3e568a",
+     "trace_id": "0c43407a965e9299276f4afe26ff6a67",
+     "route": "home",
+     "server_s": 11.11,
+     "ended": "complete",
+     "rounds": [
+      {
+       "agent": "home",
+       "phase": "plan_1",
+       "s": 5.24,
+       "prompt": 3926,
+       "cached": 0
+      },
+      {
+       "agent": "home",
+       "phase": "synthesis",
+       "s": 3.07,
+       "prompt": 4128,
+       "cached": 3926
+      }
+     ],
+     "lock_waits": [
+      {
+       "lock": "pipeline",
+       "class": "voice",
+       "wait_ms": 2082
+      }
+     ]
+    },
+    "started_after_research_s": 1.001
+   }
+  },
+  {
+   "rep": 2,
+   "research": {
+    "mount": "display",
+    "text": "search the web for who designed the golden gate bridge",
+    "sent_at": 1794932720.1007962,
+    "client_s": 3.036,
+    "http": 200,
+    "reply": "The Golden Gate Bridge was designed by Joseph B. Strauss and Charles A. Ellis.",
+    "ev": {
+     "rid": "60db0247",
+     "trace_id": "4f50892b3cc6559f7124430e78274ecc",
+     "route": "research",
+     "server_s": 3.03,
+     "ended": "complete",
+     "rounds": [
+      {
+       "agent": "research",
+       "phase": "plan_1",
+       "s": 0.94,
+       "prompt": 749,
+       "cached": 0
+      },
+      {
+       "agent": "research",
+       "phase": "synthesis",
+       "s": 1.44,
+       "prompt": 1351,
+       "cached": 749
+      }
+     ],
+     "lock_waits": [
+      {
+       "lock": "pipeline",
+       "class": "display",
+       "wait_ms": 0
+      }
+     ]
+    }
+   },
+   "voice": {
+    "mount": "voice",
+    "text": "what's the weather like",
+    "sent_at": 1794932721.101954,
+    "client_s": 5.946,
+    "http": 200,
+    "reply": "I apologize, but I\u2019m currently unable to retrieve the weather forecast for Laurel, MD.",
+    "ev": {
+     "rid": "cc251f29",
+     "trace_id": "b576b61284bd8adcbf75595b7ddf5c6c",
+     "route": "home",
+     "server_s": 5.93,
+     "ended": "complete",
+     "rounds": [
+      {
+       "agent": "home",
+       "phase": "plan_1",
+       "s": 1.68,
+       "prompt": 3926,
+       "cached": 3925
+      },
+      {
+       "agent": "home",
+       "phase": "synthesis",
+       "s": 1.58,
+       "prompt": 4121,
+       "cached": 3926
+      }
+     ],
+     "lock_waits": [
+      {
+       "lock": "pipeline",
+       "class": "voice",
+       "wait_ms": 2015
+      }
+     ]
+    },
+    "started_after_research_s": 1.001
+   }
+  },
+  {
+   "rep": 3,
+   "research": {
+    "mount": "display",
+    "text": "search the web for who designed the golden gate bridge",
+    "sent_at": 1794932728.0905023,
+    "client_s": 3.85,
+    "http": 200,
+    "reply": "The Golden Gate Bridge was designed by Joseph B. Strauss and Charles A. Ellis.",
+    "ev": {
+     "rid": "8b883a09",
+     "trace_id": "490489250056e766b709ef3479ad9650",
+     "route": "research",
+     "server_s": 3.85,
+     "ended": "complete",
+     "rounds": [
+      {
+       "agent": "research",
+       "phase": "plan_1",
+       "s": 1.63,
+       "prompt": 749,
+       "cached": 0
+      },
+      {
+       "agent": "research",
+       "phase": "synthesis",
+       "s": 1.57,
+       "prompt": 1351,
+       "cached": 749
+      }
+     ],
+     "lock_waits": [
+      {
+       "lock": "pipeline",
+       "class": "display",
+       "wait_ms": 0
+      }
+     ]
+    }
+   },
+   "voice": {
+    "mount": "voice",
+    "text": "what's the weather like",
+    "sent_at": 1794932729.091355,
+    "client_s": 10.014,
+    "http": 200,
+    "reply": "I'm sorry, but I was unable to fetch the current weather information for you.",
+    "ev": {
+     "rid": "230cc9f4",
+     "trace_id": "b039ac309c05f0e01a84def54404024b",
+     "route": "home",
+     "server_s": 10.01,
+     "ended": "complete",
+     "rounds": [
+      {
+       "agent": "home",
+       "phase": "plan_1",
+       "s": 4.88,
+       "prompt": 3926,
+       "cached": 0
+      },
+      {
+       "agent": "home",
+       "phase": "synthesis",
+       "s": 1.62,
+       "prompt": 4119,
+       "cached": 3926
+      }
+     ],
+     "lock_waits": [
+      {
+       "lock": "pipeline",
+       "class": "voice",
+       "wait_ms": 2826
+      }
+     ]
+    },
+    "started_after_research_s": 1.001
+   }
+  }
+ ],
+ "log_errors": {
+  "llama": [],
+  "litellm": []
+ },
+ "finished_utc": "2026-11-17T16:25:40.269401Z"
+}
