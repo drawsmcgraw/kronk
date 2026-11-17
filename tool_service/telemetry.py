@@ -92,7 +92,15 @@ if ENABLED:
 # log lines. With the switch on, all three are kept as before.
 
 _QUERY_RE = re.compile(r"(?<=[\w/])\?[\w%.~+-]+=[^\s\"']*")
-_URL_ATTRS = ("http.target", "http.url", "url.full", "url.query")
+_URL_ATTRS = ("http.target", "http.url", "url.full", "url.path", "url.query")
+# Words in a URL path (M12 fix 1, block 3): the one route here that carries
+# them, by rule. DELETE /shopping_list/{item} (the orchestrator's
+# shopping_list_remove tool). Every other route has a fixed path
+# (docs/sprint/M12-fix1.md, F3). /shopping_list/clear is a fixed word and
+# stays. The orchestrator's telemetry.py has the same rule.
+_PATH_TEXT = (
+    (re.compile(r"(?<=/shopping_list/)(?!clear(?=[?#\s\"']|$))[^?#\s\"']+"), "<item>"),
+)
 
 
 def text(value: Any, limit: int) -> str | None:
@@ -108,9 +116,24 @@ def strip_query(s: str) -> str:
     return _QUERY_RE.sub("?<query>", s)
 
 
+def mask_path(s: str) -> str:
+    """A URL, path or log message with the words of a text-carrying path
+    segment (_PATH_TEXT) replaced by a placeholder."""
+    for rx, placeholder in _PATH_TEXT:
+        s = rx.sub(placeholder, s)
+    return s
+
+
+def strip_url_text(s: str) -> str:
+    """mask_path and strip_query together: what the switch-off log filter
+    and span hooks apply."""
+    return strip_query(mask_path(s))
+
+
 def _strip_url_attrs(span, *_a) -> None:
     """Request hook for the FastAPI and httpx instrumentations: drop the
-    query string from the URL attributes unless text recording is on."""
+    query string, and the words of a text-carrying path segment, from the
+    URL attributes unless text recording is on."""
     if RECORD_TEXT:
         return
     try:
@@ -119,17 +142,26 @@ def _strip_url_attrs(span, *_a) -> None:
             v = attrs.get(k)
             if isinstance(v, str) and v:
                 if k == "url.query":
-                    span.set_attribute(k, "<query>")
-                elif "?" in v:
-                    span.set_attribute(k, v.split("?", 1)[0] + "?<query>")
+                    new = "<query>"
+                else:
+                    base, q, _ = v.partition("?")
+                    new = mask_path(base) + ("?<query>" if q else "")
+                if new != v:
+                    span.set_attribute(k, new)
     except Exception as e:
         logger.debug("telemetry: url strip failed: %s", e)
 
 
+async def _strip_url_attrs_async(span, request) -> None:
+    """The same hook for httpx.AsyncClient (every outgoing call here)."""
+    _strip_url_attrs(span, request)
+
+
 class _NoQueryText(logging.Filter):
-    """Rewrites query strings out of a log record's arguments (httpx's
-    "HTTP Request: GET <url>", uvicorn's access line) unless text recording
-    is on. Arguments, not the message: uvicorn's formatter unpacks them."""
+    """Rewrites query strings and text-carrying path segments out of a log
+    record's arguments (httpx's "HTTP Request: GET <url>", uvicorn's access
+    line) unless text recording is on. Arguments, not the message:
+    uvicorn's formatter unpacks them."""
 
     def filter(self, record: logging.LogRecord) -> bool:
         if RECORD_TEXT or not isinstance(record.args, tuple):
@@ -142,7 +174,7 @@ def _clean_arg(a):
     if a is None or isinstance(a, (int, float)):
         return a
     s = str(a)
-    return strip_query(s) if "?" in s else a
+    return strip_url_text(s) if ("?" in s or "/" in s) else a
 
 
 def install_log_filters() -> None:
@@ -169,7 +201,10 @@ def instrument_app(app) -> None:
             exclude_spans=["receive", "send"],
             server_request_hook=_strip_url_attrs,
         )
-        HTTPXClientInstrumentor().instrument(tracer_provider=_provider, request_hook=_strip_url_attrs)
+        # AsyncClient takes its hook as async_request_hook, a coroutine
+        # function; request_hook is for the sync Client only (M12-e2e block 1).
+        HTTPXClientInstrumentor().instrument(tracer_provider=_provider, request_hook=_strip_url_attrs,
+                                             async_request_hook=_strip_url_attrs_async)
     except Exception as e:
         logger.error("telemetry: auto-instrumentation failed: %s", e)
 
