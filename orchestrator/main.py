@@ -638,8 +638,8 @@ async def _run_pipeline(
             # a failed turn leaves the stored conversation untouched, and
             # so does a turn stopped part way (deadline, client gone).
             if session_id and assistant_reply and ended is None:
-                sessions.append(session_id, "user", text)
-                sessions.append(session_id, "assistant", "".join(assistant_reply))
+                sessions.append_exchange(session_id, [("user", text),
+                                                      ("assistant", "".join(assistant_reply))])
 
 
 def _why_stopped() -> str:

@@ -27,6 +27,7 @@ Design notes:
 import logging
 import os
 import sqlite3
+import threading
 import time
 from pathlib import Path
 
@@ -38,8 +39,14 @@ ASSISTANT_PROMPT_CHARS = int(os.getenv("ASSISTANT_PROMPT_CHARS", "1500"))
 SESSION_IDLE_PRUNE_DAYS = int(os.getenv("SESSION_IDLE_PRUNE_DAYS", "30"))
 
 # In-process cache: session_id -> list[{"role","content"}] (full content).
-# Single-writer process; safe under the orchestrator's _llm_lock.
+# Requests run concurrently since sprint M9 (no pipeline-wide lock), so the
+# cache and the database are written under _write_lock, and a turn's user
+# and assistant messages are written together (append_exchange): one
+# transaction, one cache update, never split by another request's turn.
+# A threading lock, not an asyncio one: the critical sections never await,
+# and it also holds if a caller ever runs these on a worker thread.
 _cache: dict[str, list[dict]] = {}
+_write_lock = threading.RLock()
 
 
 def init_db() -> None:
@@ -81,7 +88,8 @@ def _load(session_id: str) -> list[dict]:
 
 def window(session_id: str) -> list[dict]:
     """History window for prompting: capped, boundary-aligned, truncated."""
-    msgs = _load(session_id)
+    with _write_lock:
+        msgs = list(_load(session_id))
     recent = msgs[-HISTORY_MAX_MESSAGES:]
     # Never start the window mid-exchange (same walk as routing.py).
     while recent and recent[0]["role"] != "user":
@@ -96,34 +104,45 @@ def window(session_id: str) -> list[dict]:
 
 
 def append(session_id: str, role: str, content: str) -> None:
-    # Populate the cache BEFORE the DB write: _load on a cache miss reads the
-    # DB, so loading after the insert would double-count this very message
-    # (caught by test_sessions on first-append-after-restart).
-    msgs = _load(session_id)
-    # Persist, then mutate the cache — if the write fails the caller still
-    # gets a usable in-memory conversation, but we say so honestly instead
-    # of silently diverging memory from disk.
-    try:
-        with sqlite3.connect(SESSIONS_DB) as conn:
-            conn.execute(
-                "INSERT INTO session_messages (session_id, role, content, created_at) VALUES (?, ?, ?, ?)",
-                (session_id, role, content, time.time()),
+    append_exchange(session_id, [(role, content)])
+
+
+def append_exchange(session_id: str, messages: list[tuple[str, str]]) -> None:
+    """Store `messages` ((role, content) pairs, in order) as one write: one
+    transaction, then one cache update, under the write lock. A turn's user
+    and assistant messages go in together, so a concurrent request on the
+    same session cannot land between them (sprint M9 step 5)."""
+    with _write_lock:
+        # Populate the cache BEFORE the DB write: _load on a cache miss reads
+        # the DB, so loading after the insert would double-count these very
+        # messages (caught by test_sessions on first-append-after-restart).
+        msgs = _load(session_id)
+        # Persist, then mutate the cache — if the write fails the caller
+        # still gets a usable in-memory conversation, but we say so honestly
+        # instead of silently diverging memory from disk.
+        now = time.time()
+        try:
+            with sqlite3.connect(SESSIONS_DB) as conn:
+                conn.executemany(
+                    "INSERT INTO session_messages (session_id, role, content, created_at) VALUES (?, ?, ?, ?)",
+                    [(session_id, role, content, now) for role, content in messages],
+                )
+        except Exception as e:
+            logger.warning(
+                "sessions: append(%s) NOT persisted — memory-only, will not survive restart: %s",
+                session_id, e,
             )
-    except Exception as e:
-        logger.warning(
-            "sessions: append(%s) NOT persisted — memory-only, will not survive restart: %s",
-            session_id, e,
-        )
-    msgs.append({"role": role, "content": content})
+        msgs.extend({"role": role, "content": content} for role, content in messages)
 
 
 def clear(session_id: str) -> None:
-    _cache[session_id] = []
-    try:
-        with sqlite3.connect(SESSIONS_DB) as conn:
-            conn.execute("DELETE FROM session_messages WHERE session_id = ?", (session_id,))
-    except Exception as e:
-        logger.warning("sessions: clear(%s) failed: %s", session_id, e)
+    with _write_lock:
+        _cache[session_id] = []
+        try:
+            with sqlite3.connect(SESSIONS_DB) as conn:
+                conn.execute("DELETE FROM session_messages WHERE session_id = ?", (session_id,))
+        except Exception as e:
+            logger.warning("sessions: clear(%s) failed: %s", session_id, e)
 
 
 def prune_idle() -> int:
