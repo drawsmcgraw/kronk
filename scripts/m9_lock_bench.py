@@ -308,10 +308,44 @@ def _samples(run: dict, key: str, mount: str) -> list[dict]:
             and r["http"] == 200]
 
 
+TEMPO = "http://127.0.0.1:3200"
+_tempo_cache: dict[str, float | None] = {}
+
+
+def tool_seconds(trace_id: str | None) -> float | None:
+    """Seconds the request spent in service tool calls (spans `tool.*`
+    other than `tool.ask_*`, which contain model rounds), read from Tempo
+    on this host. None when the trace cannot be read."""
+    if not trace_id:
+        return None
+    if trace_id in _tempo_cache:
+        return _tempo_cache[trace_id]
+    total = None
+    try:
+        with urllib.request.urlopen(f"{TEMPO}/api/traces/{trace_id}", timeout=10) as r:
+            d = json.loads(r.read().decode())
+        total = 0.0
+        for batch in d.get("batches", []):
+            for ss in batch.get("scopeSpans", []):
+                for sp in ss.get("spans", []):
+                    name = sp.get("name", "")
+                    if name.startswith("tool.") and not name.startswith("tool.ask_"):
+                        total += (int(sp["endTimeUnixNano"]) - int(sp["startTimeUnixNano"])) / 1e9
+    except Exception:
+        total = None
+    _tempo_cache[trace_id] = total
+    return total
+
+
 def overhead(r: dict) -> float:
-    """Client time not spent in a model generation: routing, tools, lock
-    waits, HTTP. Generation time varies with what the model writes."""
-    return r["client_s"] - sum((g.get("s") or 0) for g in (r.get("ev") or {}).get("rounds", []))
+    """Client time spent neither in a model generation nor in a service
+    tool call: routing, context, lock waits outside a round, HTTP. Model
+    time varies with what the model writes; tool time with the services
+    behind the tools (the weather API, SearXNG). Tool time from Tempo; if
+    the trace is not there, tool time counts as overhead."""
+    gen = sum((g.get("s") or 0) for g in (r.get("ev") or {}).get("rounds", []))
+    tools = tool_seconds((r.get("ev") or {}).get("trace_id")) or 0.0
+    return r["client_s"] - gen - tools
 
 
 def evaluated(r: dict) -> int | None:
