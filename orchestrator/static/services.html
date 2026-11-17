@@ -149,6 +149,13 @@
     <div class="service-grid" id="internal-grid"></div>
   </div>
 
+  <div>
+    <div class="section-label">Config (config/ prompts and tuning)</div>
+    <div class="service-grid" id="config-grid">
+      <!-- populated by api/config (orchestrator + tool_service loaders) -->
+    </div>
+  </div>
+
 </main>
 
 <script src="/static/js/kronk.js"></script>
@@ -260,8 +267,31 @@
     }
   }
 
+  // config/ status (sprint M21). Relative URL on purpose: under /dev/ the
+  // page asks orchestrator-dev, not production.
+  // card() escapes desc, so it is built as plain text.
+  async function loadConfig() {
+    const grid = document.getElementById('config-grid');
+    try {
+      const { services } = await (await fetch('api/config')).json();
+      grid.innerHTML = services.map((s, i) => {
+        const errs = (s.errors || []).map(e =>
+          `${e.file || ''}${e.line ? ' line ' + e.line : ''}: ${e.message}`);
+        const when = s.at ? new Date(s.at * 1000).toLocaleString() : '';
+        const desc = s.ok
+          ? `${s.source} · ${Object.keys(s.files || {}).length} files · ${s.event || ''} ${when}`
+          : `${(s.event || 'load').toUpperCase()} REJECTED ${when} — ${errs.join(' | ')} — in effect: ${s.kept || s.source}`;
+        return card({ icon: '🗂️', name: s.service, badge: s.ok ? 'ok' : 'error',
+                      dotId: `s-config-${i}`, desc, tag: s.dir || '' });
+      }).join('');
+      services.forEach((s, i) => setDot(`s-config-${i}`, !!s.ok));
+    } catch {
+      grid.innerHTML = '<div style="color:var(--text3);font-size:12px;padding:0.5rem">could not load api/config</div>';
+    }
+  }
+
   async function refresh() {
-    await Promise.allSettled([KronkUI.checkDots(checks), loadDynamic()]);
+    await Promise.allSettled([KronkUI.checkDots(checks), loadDynamic(), loadConfig()]);
   }
 
   refresh();

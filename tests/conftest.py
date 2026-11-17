@@ -19,6 +19,10 @@ os.environ.setdefault("MUSIC_TASTE_FILE", os.path.join(_TASTE_TMP, "music_taste.
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+# config/ (sprint M21): the services read /config in the container; tests
+# read the repo's own files, so the pins prove the shipped files.
+os.environ.setdefault("KRONK_CONFIG_DIR", os.path.join(REPO_ROOT, "config"))
+
 _ORCH = os.path.join(REPO_ROOT, "orchestrator")
 if _ORCH not in sys.path:
     sys.path.append(_ORCH)

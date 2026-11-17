@@ -327,6 +327,24 @@ def test_tuning_values_are_identical():
     assert effective_values() == _load("values.json")
 
 
+def test_builtin_defaults_render_the_pinned_prompts_and_values(tmp_path, monkeypatch):
+    """With config/ unreadable the services run on the built-in defaults
+    (criterion 8), and those are today's values too."""
+    import config_loader
+    good = os.environ["KRONK_CONFIG_DIR"]
+    monkeypatch.setenv("KRONK_CONFIG_DIR", str(tmp_path / "missing"))
+    config_loader.start()
+    try:
+        assert config_loader.current().source == "defaults"
+        prompts, menus = render_prompts(tmp_path)
+        assert prompts == _load("prompts.json")
+        assert menus == _load("menus.json")
+        assert effective_values() == _load("values.json")
+    finally:
+        monkeypatch.setenv("KRONK_CONFIG_DIR", good)
+        config_loader.start()
+
+
 # ── writer (once, before the move) ───────────────────────────────────────────
 
 def _write():

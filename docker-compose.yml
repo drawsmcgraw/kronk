@@ -62,6 +62,9 @@ services:
       # read-only). Bind-mounted so hosts hot-add with no rebuild. hosts.json
       # is gitignored; the mirror also auto-synthesizes from MM_SSH_* env.
       - ./ops:/ops:ro
+      # Music policy and tuning (sprint M21; docs/features/config-directory.md).
+      # Read at startup and on POST /config/reload (scripts/config_reload.sh).
+      - ./config:/config:ro
     environment:
       - SEARXNG_URL=http://searxng:8080
       # Hourly home-forecast cache (served at /weather/cached; the
@@ -200,6 +203,9 @@ services:
       - ./data:/data
       - ./kronk-context.md:/kronk-context.md:ro
       - ./litellm/config.yaml:/litellm-config.yaml:ro
+      # Prompts and tuning (sprint M21; docs/features/config-directory.md).
+      # Read at startup and on POST /config/reload (scripts/config_reload.sh).
+      - ./config:/config:ro
     environment:
       - LLM_SERVICE_URL=http://host.docker.internal:8002
       - TOOL_SERVICE_URL=http://tool_service:8003
@@ -298,6 +304,8 @@ services:
       # directory read-only at that path instead of under /shared.
       - ./data/hottub:/data/hottub:ro
       - ./ops:/ops:ro
+      # The same config/ as production (sprint M21).
+      - ./config:/config:ro
     environment:
       - SEARXNG_URL=http://searxng:8080
       - HOME_LOCATION=Laurel, MD
@@ -345,6 +353,9 @@ services:
       - ./data/dev:/data
       - ./kronk-context.md:/kronk-context.md:ro
       - ./litellm/config.yaml:/litellm-config.yaml:ro
+      # Prompts and tuning (sprint M21; docs/features/config-directory.md).
+      # Read at startup and on POST /config/reload (scripts/config_reload.sh).
+      - ./config:/config:ro
     environment:
       - LLM_SERVICE_URL=http://host.docker.internal:8002
       - TOOL_SERVICE_URL=http://tool_service-dev:8103

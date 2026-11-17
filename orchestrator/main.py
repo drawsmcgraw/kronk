@@ -15,6 +15,7 @@ from pydantic import BaseModel
 from pypdf import PdfReader
 
 import agents
+import config_api
 import errors
 import render
 import metrics
@@ -204,6 +205,12 @@ async def health_probe():
             return {"status": "ok", "llm_service": llm_h.json(), "tool_service": tool_h.json()}
     except Exception as e:
         raise HTTPException(status_code=503, detail=str(e))
+
+
+# ── config/ (sprint M21 step 1): POST /config/reload, GET /api/config ───────
+# In their own router: the reload refusal reads a request header, and main.py
+# keeps its no-raw-Request rule (tests/test_voice_signal.py, sprint M2).
+app.include_router(config_api.router)
 
 
 # ── /message: the main chat endpoint ─────────────────────────────────────────

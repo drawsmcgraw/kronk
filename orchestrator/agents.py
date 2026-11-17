@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 
 import httpx
 
+import config_loader
 import errors
 import llm
 import metrics
@@ -216,8 +217,10 @@ class AgentConfig:
     icon: str
     # Which status probe represents this agent's upstream dependency.
     probe: str
-    system_prompt: str
-    tool_names: list[str]
+    # Set from config/prompts/<name>.md by apply_config for every agent in
+    # AGENTS and the coordinator; given inline only by agents built in tests.
+    system_prompt: str = field(default="")
+    tool_names: list[str] = field(default_factory=list)
     model: str = field(default="")
     # Tool-use round budget. Research needs depth (rank → fetch → enumerate
     # → per-item lookups); single-tool agents don't (2026-06-12 budget-cliff
@@ -272,51 +275,7 @@ AGENTS: dict[str, AgentConfig] = {
         routing_hint="weather, forecast, shopping list, hot tub, spa, solar, solar panels, inverters, play music, songs, albums, speakers, stop, pause, resume, skip, volume, updating the magic mirror",
         icon="🏠",
         probe="tools",
-        system_prompt=(
-            "You are Kronk's home specialist. Handle weather lookups, shopping list management, home device status, and playing music.\n"
-            "Use get_weather for weather queries. Use shopping list tools for list management.\n"
-            "Use query_hottub to check if the hot tub is online and report its temperature. "
-            "If the hot tub is offline, clearly state that the breaker may have tripped and report how long it has been offline.\n"
-            "For a quick solar check ('how's my solar?'), use solar_status and summarize in one or two sentences. "
-            "For anything analytical — which specific inverters are affected, why a count changed, whether one is "
-            "getting worse, per-inverter or trend questions — use solar_detail and reason over the per-inverter "
-            "numbers and daily history to give a specific, thoughtful answer.\n"
-            "For solar ENERGY produced (kWh, cumulative — not the instantaneous kW of solar_status), use "
-            "solar_energy: 'how much have I produced' or 'total/lifetime' → period 'lifetime'; "
-            "'today'/'this week'/'this month' → the matching period; a specific start → 'since:YYYY-MM-DD'. "
-            "'Which panel produced the most/least energy' is an ENERGY question → solar_energy (lifetime), "
-            "not solar_detail (which is about faults/health from recent power, not cumulative production).\n"
-            "Use play_music when the user asks to play or put on music. For a style rather than a specific "
-            "artist, album or song — 'some deep house', 'something chill', 'jazz', 'play some music' — pass "
-            "kind 'genre' with the style as the query ('music' if none); Kronk picks from the household's "
-            "taste. For 'not that', 'something else', 'play something different' pass kind 'another'. "
-            "Otherwise pass what they want to hear "
-            "as the query; pass the speaker or room only if the user named one. If the user pasted a YouTube Music link, "
-            "pass the link itself as the query. If they say 'shuffle', pass shuffle true. 'X radio', 'X station', "
-            "or 'X on Pandora' means media_type 'radio' with query X. Call play_music at most once — "
-            "when it reports music playing, report that back and stop. If the tool reports failure, tell "
-            "the user playback failed and why — never claim music is playing after a failed tool call.\n"
-            "Use now_playing when the user asks what song/artist is playing or what this is — it reads the "
-            "speaker; never guess or say you can't tell.\n"
-            "Use control_music for stop, pause, resume, skip/next, louder/quieter ('stop' means pause). "
-            "It is the ONLY way you can control playback: never say you paused, stopped, or skipped "
-            "anything unless control_music reported it. Call it at most once; the speaker is chosen "
-            "automatically unless the user named one.\n"
-            "Use rate_music for 'thumbs up', 'thumbs down', 'I love this song', 'never play this again' — "
-            "it rates the track playing on a Pandora station and thumbs down also skips. It is the ONLY "
-            "way to rate; never claim a rating was recorded unless rate_music reported it.\n"
-            "Use remember_music_preference when the user states a lasting taste: 'we love X' (love), "
-            "'never play X' (never), 'forget that we love X' (forget), 'when I say chill I mean deep "
-            "house' (means, value 'chill', meaning 'deep house'). Call it at most once.\n"
-            "Use update_magicmirror when the user asks to update or upgrade the magic mirror. "
-            "Call it at most once; a full backup happens automatically first.\n"
-            "When the user asks about weather without naming a place, call get_weather "
-            "without the location argument — do not ask for clarification, the tool defaults to the home location.\n"
-            "Be brief and direct. Answer in one or two short sentences — your replies are "
-            "often spoken aloud by a voice assistant, so keep them tight. "
-            "Never restate tool calls, tool arguments, or tool output syntax in your reply — "
-            "reply in plain sentences only."
-        ),
+        # system prompt: config/prompts/home.md
         tool_names=["get_weather", "shopping_list_view", "shopping_list_add", "shopping_list_remove", "shopping_list_clear", "query_hottub", "solar_status", "solar_detail", "solar_energy", "play_music", "control_music", "now_playing", "rate_music", "remember_music_preference", "update_magicmirror"],
         terminal_tools=frozenset({"play_music", "control_music", "now_playing", "rate_music", "remember_music_preference", "update_magicmirror"}),
     ),
@@ -554,6 +513,21 @@ COORDINATOR.tool_names = [d["function"]["name"] for d in _coordinator_tool_defs(
 # AgentConfig.tool_defs() only knows tools.TOOL_DEFINITIONS; give the
 # coordinator its combined menu directly.
 COORDINATOR.tool_defs = _coordinator_tool_defs  # type: ignore[method-assign]
+
+
+# ── config/ (sprint M21) ─────────────────────────────────────────────────────
+# The prompts live in config/prompts/<name>.md. apply_config copies them onto
+# the registry above at import (config_loader's first load) and after every
+# successful POST /config/reload, so run_stream and everything else read
+# agent.system_prompt as before.
+
+def apply_config(cfg: "config_loader.Config") -> None:
+    for name, text in cfg.prompts.items():
+        agent = COORDINATOR if name == "coordinator" else AGENTS[name]
+        agent.system_prompt = config_loader.fill(text, max_rounds=agent.max_rounds)
+
+
+config_loader.on_change(apply_config)
 
 
 # The LLM router (ROUTING_PROMPT / VALID_ROUTES / build_routing_prompt) was
