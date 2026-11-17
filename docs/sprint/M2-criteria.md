@@ -91,3 +91,21 @@ once, here.
 
 Build: `docs/sprint/M2-build.md`. End to end: `docs/sprint/M2-e2e.md`, one
 line per criterion with pass, fail or not testable, and the evidence.
+
+## Coordinator rulings after the retest (2026-11-17)
+
+- **The speech backstop is withdrawn.** The coordinator asked for it in the
+  fix round 1 brief; the retest showed it replacing correct spoken answers
+  (`M2-e2e2.md` findings 1, 2 and 4). It is removed, not tuned. Criterion 6
+  is met by code-written failure text leaving through one function, not by
+  matching text after the fact.
+- **Whether a tool result is a failure is decided by the code that produced
+  it, never by matching its text.** A result that embeds user, model or web
+  text must not be able to look like a failure.
+- **Criterion 8 wins over criterion 6 for music.** Music failure sentences,
+  including the detail tool_service puts in them (for example
+  `(HTTP 502)` or `(ConnectError)`), are spoken as they are today. The plan
+  says these stay specific. Finding 3 is an observation.
+- The mirror preflight detail is not spoken on voice; protocol errors
+  (400/422 for malformed requests) are out of scope; the M4b refusal
+  sentence is spoken unchanged.
