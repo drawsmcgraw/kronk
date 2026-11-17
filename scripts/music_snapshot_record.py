@@ -111,8 +111,13 @@ async def run_live(row: dict, snap: dict) -> None:
 
 
 async def run_new(row: dict, snap: dict) -> None:
-    from tests.music_snapshot import decide_row      # added with the M11 decision order
-    await decide_row(row, snap)
+    # Every branch the model question can send it down, so each one's reads
+    # are recorded: no answer, "style", "named". No model is called.
+    for answer in (None, "style", "named"):
+        try:
+            await snapmod.decide_row(row, snap, model_answer=answer)
+        except ts.HTTPException:
+            pass
 
 
 async def main_async(args) -> int:
@@ -123,7 +128,7 @@ async def main_async(args) -> int:
         snap["genres"] = snapmod.genres_from_db(ROOT / "data" / "music_taste.db")
     if args.refresh or not snap["taste"]:
         snap["taste"] = (ROOT / "data" / "music_taste.yaml").read_text()
-    rows = [r for r in snapmod.corpus_rows() if r["expect"].get("tool") == "play_music"]
+    rows = snapmod.corpus_rows()            # live: play_music rows only (run_live skips the rest)
     if args.id:
         rows = [r for r in rows if r["id"] in set(args.id)]
     rec = Recorder(snap, ts.ma_command, args.refresh)

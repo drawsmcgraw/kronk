@@ -265,3 +265,24 @@ def offline_env(snap: dict, tmp: Path, ma=None):
             yield replay
 
     return cm()
+
+
+class ScriptedModel:
+    """Stand-in for main.ask_style_or_named: a fixed answer (or None), no network."""
+
+    def __init__(self, answer: str | None):
+        self.answer, self.asked = answer, []
+
+    async def __call__(self, sentence, words):
+        self.asked.append(words)
+        return self.answer, ({} if self.answer else {"error": "no model in this run"})
+
+
+async def decide_row(row: dict, snap: dict, model_answer: str | None = None, ask_model: bool = True):
+    """The M11 decision for a corpus row (main.decide_sentence), inside an
+    offline_env. The model question gets `model_answer`."""
+    from unittest.mock import patch
+    import tool_service.main as ts
+    area, device = origin_of(row)
+    with patch.object(ts, "ask_style_or_named", new=ScriptedModel(model_answer)):
+        return await ts.decide_sentence(row["text"], device, area, ask_model=ask_model)

@@ -10,6 +10,7 @@ import subprocess
 import time
 import uuid
 from contextlib import asynccontextmanager
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import List
@@ -1528,46 +1529,55 @@ async def play_music(req: MusicRequest):
         if nq.provider or nq.uri:
             logger.info("music query normalized %r -> %r (provider=%s)", req.query,
                         service_data["media_id"], nq.provider)
-        if MUSIC_DRY_RUN:
-            return _dry_run_play(label, entities, service_data, bool(req.shuffle), resolved, station)
-        # No blind retry without media_type: MA's untyped search always
-        # returns *something* — "zzqx florbent nonexistent" played Akon
-        # (2026-09-30, live test). The resolver above is the checked retry.
-        await _shuffle_before_play(client, headers, entities, bool(req.shuffle))
-        started, failure = await _play_verified(client, headers, entities, service_data)
-        if started is not None:
-            entity, state = started
-            attrs = state.get("attributes", {})
-            # Shuffle is a player (queue) setting, not a play_media
-            # option — set it explicitly every time, on or off, so a
-            # previous "shuffle" never leaks into the next album. Set
-            # before the play (above); this is the retry for a queue that
-            # refused it then. Reported from the player's own attribute
-            # afterwards, not from the request.
-            shuffle = bool(attrs.get("shuffle"))
-            if bool(req.shuffle) != shuffle:
-                try:
-                    await ha_call_service("media_player", "shuffle_set",
-                                          {"shuffle": bool(req.shuffle)},
-                                          target={"entity_id": entities})
-                    state = (await client.get(f"{HA_URL}/api/states/{entity}", headers=headers)).json()
-                    shuffle = bool(state.get("attributes", {}).get("shuffle"))
-                except HAServiceError as e:
-                    logger.warning("shuffle_set failed on %s: %s", entity, e)
-            result = {
-                "status": "playing",
-                "player": label,
-                "artist": attrs.get("media_artist"),
-                "title":  attrs.get("media_title"),
-                "shuffle": shuffle,
-            }
-            if station:
-                result["station"] = {"name": station["name"], "created": station["created"]}
-            if resolved:
-                result["resolved"] = {"name": resolved.name, "artist": resolved.artist,
-                                      "media_type": resolved.media_type}
-            return result
+        return await _play_named(client, headers, entities, label, service_data, bool(req.shuffle),
+                                 resolved, station)
 
+
+async def _play_named(client: httpx.AsyncClient, headers: dict, entities: list[str], label: str,
+                      service_data: dict, want_shuffle: bool, resolved: "music_resolve.Candidate | None",
+                      station: dict | None, dry_run: bool | None = None) -> dict:
+    """Play one resolved item and verify it started: the tail of /music,
+    shared with POST /music/say (sprint M11). `dry_run` None means
+    MUSIC_DRY_RUN; /music/say passes True when either says dry run."""
+    if MUSIC_DRY_RUN if dry_run is None else dry_run:
+        return _dry_run_play(label, entities, service_data, want_shuffle, resolved, station)
+    # No blind retry without media_type: MA's untyped search always
+    # returns *something* — "zzqx florbent nonexistent" played Akon
+    # (2026-09-30, live test). The resolver above is the checked retry.
+    await _shuffle_before_play(client, headers, entities, want_shuffle)
+    started, failure = await _play_verified(client, headers, entities, service_data)
+    if started is not None:
+        entity, state = started
+        attrs = state.get("attributes", {})
+        # Shuffle is a player (queue) setting, not a play_media
+        # option — set it explicitly every time, on or off, so a
+        # previous "shuffle" never leaks into the next album. Set
+        # before the play (above); this is the retry for a queue that
+        # refused it then. Reported from the player's own attribute
+        # afterwards, not from the request.
+        shuffle = bool(attrs.get("shuffle"))
+        if want_shuffle != shuffle:
+            try:
+                await ha_call_service("media_player", "shuffle_set",
+                                      {"shuffle": want_shuffle},
+                                      target={"entity_id": entities})
+                state = (await client.get(f"{HA_URL}/api/states/{entity}", headers=headers)).json()
+                shuffle = bool(state.get("attributes", {}).get("shuffle"))
+            except HAServiceError as e:
+                logger.warning("shuffle_set failed on %s: %s", entity, e)
+        result = {
+            "status": "playing",
+            "player": label,
+            "artist": attrs.get("media_artist"),
+            "title":  attrs.get("media_title"),
+            "shuffle": shuffle,
+        }
+        if station:
+            result["station"] = {"name": station["name"], "created": station["created"]}
+        if resolved:
+            result["resolved"] = {"name": resolved.name, "artist": resolved.artist,
+                                  "media_type": resolved.media_type}
+        return result
     if failure:
         raise HTTPException(status_code=502, detail=_failure_sentence(failure))
     raise HTTPException(status_code=502, detail=_no_start_sentence(label))
@@ -1842,8 +1852,8 @@ def _another_plan(entities: list[str]) -> dict:
 
 
 async def _play_genre(client: httpx.AsyncClient, headers: dict, entities: list[str], label: str,
-                      req: MusicRequest, plan: dict) -> dict:
-    if MUSIC_DRY_RUN:
+                      req: MusicRequest, plan: dict, dry_run: bool | None = None) -> dict:
+    if MUSIC_DRY_RUN if dry_run is None else dry_run:
         # The pick that would play first; nothing recorded, so "not that"
         # has no list to advance under a dry run.
         pick = plan["picks"][plan["start"]]
@@ -2192,6 +2202,108 @@ class ReadOnlyMusic(music_decide.Reads):
 
     async def ask_model(self, sentence, words):
         return await ask_style_or_named(sentence, words)
+
+
+@dataclass
+class Decided:
+    """A sentence read and decided, nothing played (decide_sentence)."""
+    parsed: "music_resolve.Parsed"
+    outcome: "music_decide.Outcome"
+    trace: dict
+    entities: list[str] | None = None
+    label: str | None = None
+    error: str | None = None          # the target failed: unknown room, speaker unavailable
+
+
+async def decide_sentence(sentence: str, origin_device: str | None = None, origin_area: str | None = None,
+                          *, ask_model: bool = True) -> Decided:
+    """Parse the user's sentence against the real players, pick the target
+    the way /music does (resolve_players), and run the decision order. Reads
+    only: HA's players template and ReadOnlyMusic. Raises HTTPException only
+    when the players cannot be listed."""
+    headers = {"Authorization": f"Bearer {HA_TOKEN}", "Content-Type": "application/json"}
+    async with httpx.AsyncClient(timeout=10) as client:
+        players, origin_key = await _fetch_players(client, headers, origin_device)
+    p = music_resolve.parse_sentence(sentence, players)
+    if not p.music:
+        return Decided(p, music_decide.Outcome("not_music", decided_by="parser", reason=p.reason), {})
+    entities = label = error = None
+    area = None
+    try:
+        targets, label = resolve_players(p.room, origin_area, players, MUSIC_DEFAULT_PLAYER,
+                                         origin_key=origin_key)
+        live = [t for t in targets if t["state"] != "unavailable"]
+        if live:
+            entities, area = [t["entity_id"] for t in live], live[0].get("area")
+        else:
+            names = " and ".join(t["name"] for t in targets)
+            error = f"{names} {'is' if len(targets) == 1 else 'are'} unavailable — it may be powered off or asleep."
+    except HTTPException as e:
+        error = e.detail
+    outcome, trace = await music_decide.decide(p, ReadOnlyMusic(area=area), ask_model=ask_model)
+    return Decided(p, outcome, trace, entities, label, error)
+
+
+class MusicSayRequest(BaseModel):
+    sentence: str                    # the user's words, as transcribed
+    origin_device: str | None = None  # HA device id of the satellite that heard it
+    origin_area: str | None = None   # its area
+    dry_run: bool = False            # True forces a dry run; it can never turn MUSIC_DRY_RUN off
+
+
+def _say_not_found(d: Decided) -> str:
+    o = d.outcome
+    if o.kind == "genre":
+        return f"I couldn't find anything to play for {o.name or 'that'}."
+    nq = music_resolve.normalize(o.name or d.parsed.words, o.artist)
+    return _not_found_sentence(nq, o.media_type, o.closest)
+
+
+# POST /music/say (sprint M11): the sentence and the device in, one decision
+# in tool_service, one sentence back. Nothing calls it for a live request in
+# this sprint item (shadow only); HA's thin automation and the orchestrator's
+# direct dispatch move to it at cutover, after Drew reviews the shadow and
+# corpus data. Always 200 with `ok` and `say`, like /music/voice. Not
+# reachable through nginx (tool_service's port is bound to loopback and nginx
+# proxies only /solar/ and /health to it).
+@app.post("/music/say")
+async def music_say(req: MusicSayRequest):
+    if not HA_TOKEN:
+        return {"ok": False, "say": "Home Assistant is not configured (HA_TOKEN)."}
+    if not req.sentence.strip():
+        return {"ok": False, "say": "I didn't hear a music request."}
+    dry = MUSIC_DRY_RUN or req.dry_run
+    try:
+        d = await decide_sentence(req.sentence, req.origin_device, req.origin_area)
+    except HTTPException as e:
+        return {"ok": False, "say": f"I couldn't play that. {e.detail}", "dry_run": dry}
+    o = d.outcome
+    base = {"decision": o.as_dict(), "parsed": d.parsed.as_dict(), "trace": d.trace, "dry_run": dry}
+    if o.action == "not_music":
+        return {"ok": False, "say": "That doesn't sound like music I can play.", **base}
+    if d.error:
+        return {"ok": False, "say": f"I couldn't play that. {d.error}", **base}
+    if o.action != "play":
+        return {"ok": False, "say": _say_not_found(d), **base}
+    mreq = MusicRequest(query=o.name or d.parsed.words, media_type=o.media_type, artist=o.artist, kind=o.kind,
+                        player=d.parsed.room, shuffle=d.parsed.shuffle, origin_area=req.origin_area,
+                        origin_device=req.origin_device, said=req.sentence)
+    headers = {"Authorization": f"Bearer {HA_TOKEN}", "Content-Type": "application/json"}
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            if o.kind == "genre":
+                info = await _play_genre(client, headers, d.entities, d.label, mreq, o.plan, dry_run=dry)
+            else:
+                info = await _play_named(client, headers, d.entities, d.label,
+                                         {"media_id": o.uri, "media_type": o.media_type},
+                                         d.parsed.shuffle, o.candidate, o.station, dry_run=dry)
+    except HTTPException as e:
+        return {"ok": False, "say": f"I couldn't play that. {e.detail}", **base}
+    say = voice_sentence(info)
+    if o.cross_type and not info.get("dry_run"):
+        what = " by ".join(x for x in (o.name, o.artist) if x)
+        say = f"Playing the {o.media_type} {what} on {info.get('player') or 'the speaker'}."
+    return {"ok": True, "say": say, "result": info, "request": mreq.model_dump(exclude_none=True), **base}
 
 
 # ── Household taste: the told half (MUSIC_TASTE_AGENT_PLAN step 3) ───────────
