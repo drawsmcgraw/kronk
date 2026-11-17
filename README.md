@@ -12,8 +12,10 @@ It holds no health or financial data (those features were removed
 **Machine:** Framework desktop — AMD Ryzen AI 375 (hostname `kronk`), Radeon
 8060S integrated GPU (GFX1151), 122 GB RAM.
 
-**Last updated:** 2026-11-17 — routing is an ordered rules table, and five
-pinned commands run their tool directly with no model call (sprint M7).
+**Last updated:** 2026-11-17 — "ask Kronk to …" skips every routing
+shortcut and goes to the model (sprint M19). Routing is an ordered rules
+table, and five pinned commands run their tool directly with no model call
+(sprint M7).
 2026-11-16 — hot tub monitor kept: its removal (sprint
 M1b) was reversed. 2026-11-15 — health, finance and retirement features
 removed (sprint M1). 2026-11-04 — inventory, routing and stacks brought in
@@ -29,7 +31,7 @@ in [`docs/HISTORY.md`](docs/HISTORY.md).
 Every message — chat UI, OpenAI shim, or the Ollama shim that Home Assistant's
 voice pipeline calls — flows through the same pipeline:
 
-1. **Routing** (`orchestrator/routing.py`) — an ordered table of 15 rules
+1. **Routing** (`orchestrator/routing.py`) — an ordered table of 16 rules
    (`routing.RULES`): narrow deterministic shortcuts pin a message to a
    specialist (a named household entity, an explicit method, or domain
    vocabulary with context); the last rule, `default`, sends everything else
@@ -41,6 +43,13 @@ voice pipeline calls — flows through the same pipeline:
    the pipeline runs that tool itself, with no model call and without waiting
    for the model lock, and speaks the result the way the home agent would
    ([`docs/features/direct-dispatch.md`](docs/features/direct-dispatch.md)).
+   **The lead-in:** the first rule, `lead_in`, takes any message that starts
+   with "ask Kronk to" (or "ask Kronk", optionally after "hey", "okay", "can
+   you" …), cuts the lead-in off and sends the rest to the coordinator, past
+   every shortcut and direct dispatch. The rule for users: **say it plainly
+   for the fast path; start with "ask Kronk to" and the model handles it.**
+   The words live in `config/lead_in.yaml`
+   ([`docs/features/lead-in.md`](docs/features/lead-in.md)).
 2. **Coordinator** — `gemma-4-e4b` answers directly or delegates through its
    `ask_<agent>` tools, and delivers the pre-generated `news_brief` verbatim.
 3. **Specialist** — the chosen agent runs the unified streaming tool-calling
@@ -269,6 +278,9 @@ services (sprint M21 step 1):
   budget.
 - `config/tuning.yaml` (orchestrator) — round budgets, the repeat-call
   nudge, the weather-context age, per-tool HTTP timeouts.
+- `config/lead_in.yaml` (orchestrator) — the words of the "ask Kronk to"
+  lead-in: verb, name (and any mis-heard spelling captured data shows),
+  leading fillers (sprint M19).
 - `config/music.yaml` (`tool_service`) — the playback verify window and the
   music resolver's thresholds.
 
@@ -282,7 +294,8 @@ Precedence: `WEATHER_CTX_MAX_AGE_S` (the one pre-existing env var for a moved
 value) > file > built-in default. Reload with `POST /config/reload` on each
 service — host and compose network only, never through nginx:
 `scripts/config_reload.sh dev|prod`. No secrets in `config/` (a test scans
-it). Routing regexes stay in `routing.py`; model assignments stay env vars;
+it). Routing regexes stay in `routing.py` (the lead-in's words are the one
+routing input in `config/`); model assignments stay env vars;
 llama unit flags and `litellm/config.yaml` are unchanged. Details:
 [`docs/features/config-directory.md`](docs/features/config-directory.md).
 

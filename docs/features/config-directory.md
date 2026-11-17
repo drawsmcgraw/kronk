@@ -16,6 +16,7 @@ the models are told and how the loop is tuned:
 |---|---|---|
 | `config/prompts/<name>.md` | orchestrator | The system prompt of each agent in `agents.AGENTS` (research, home, assistant, coding, talkie, devops) and of the coordinator |
 | `config/tuning.yaml` | orchestrator | Round budgets per agent, the repeat-call nudge threshold, the weather-context age, per-tool HTTP timeouts |
+| `config/lead_in.yaml` | orchestrator | The words of the "ask Kronk to" lead-in: verbs, names, leading fillers (sprint M19, `docs/features/lead-in.md`) |
 | `config/music.yaml` | tool_service | The playback verify window and the music resolver's thresholds and bonuses |
 
 The move changed no behaviour: `tests/test_m21_pins.py` renders 3390
@@ -160,7 +161,9 @@ stay env vars.
 
 ## What is not in config/
 
-Routing regexes (`routing.py`, with their unit tests), secrets (`.env`;
+Routing regexes (`routing.py`, with their unit tests; since M19 the
+lead-in's words are in `lead_in.yaml`, escaped into its pattern, so no file
+holds a regex), secrets (`.env`;
 `tests/test_config_loader.py` scans `config/` for secret names and
 token-shaped strings), llama unit flags and `litellm/config.yaml`, tool
 descriptions, `_terminal_speech` templates, `errors.py` sentences, the

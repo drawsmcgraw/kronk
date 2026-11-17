@@ -36,6 +36,17 @@ Key design decisions (full rationale in the build journal):
   into every agent path — fixed the "what location?" reflex on bare weather
   queries.
 
+## The "ask Kronk to" lead-in (sprint M19)
+
+**Say it plainly for the fast path; start with "ask Kronk to" and the model
+handles it.** HA takes no lead-in sentence locally (checked read-only on all
+three satellites, 2026-11-17), so "Okay Nabu, ask Kronk to find some deep
+house music and play it" reaches Kronk, where the first routing rule cuts
+off "ask Kronk to" and hands the rest to the coordinator, past every
+shortcut and direct dispatch. Slower by design: one or two model hops,
+about 3–7 s on dev. Adding "Kronk" to the Whisper prompt (plan M19 step 4)
+is left to M13. Details: [`lead-in.md`](lead-in.md).
+
 ## The voice signal (sprint M2)
 
 `/voice/api/chat`, `/api/chat` and `/v1/chat/completions` all run the

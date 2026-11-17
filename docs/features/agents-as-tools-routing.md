@@ -15,6 +15,10 @@
 > directly with no model call and outside the model lock. See
 > `direct-dispatch.md`.
 
+> **Update 2026-11-17 (sprint M19):** a 16th rule, `lead_in`, comes first:
+> "ask Kronk to <request>" skips every other rule and gives the coordinator
+> the request without the lead-in. See `lead-in.md`.
+
 ## What it does
 
 When the phase-1 router (gemma-3-4b) sends an ambiguous query down the

@@ -31,6 +31,11 @@ accepts the text. It is pure (regex only, no event, no span).
 `routing.classify()` and `routing._classify_inner()` keep their signatures and
 return values and log the decision as before.
 
+Since sprint M19 a `lead_in` rule comes first ("ask Kronk to …", route
+`direct`, no direct call): it skips every rule below, so none of the five
+direct calls runs for a request that starts with the lead-in
+(`docs/features/lead-in.md`). The numbers below are M7's.
+
 | # | Rule | Route | Direct call |
 |---|---|---|---|
 | 1 | `talkie_explicit` | talkie | — |
