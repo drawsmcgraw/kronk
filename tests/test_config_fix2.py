@@ -380,7 +380,7 @@ _ALPHABET = list("ab:- \n[]{},?#'\"|>&*!%@`~0123456789.\t") + [
 def _generated(n, seed):
     """Small texts: the shipped YAML files with a few edits, and token soups."""
     rng = random.Random(seed)
-    shipped = [(CONFIG / f).read_text() for f in ("tuning.yaml", "music.yaml", "lead_in.yaml")]
+    shipped = [(CONFIG / f).read_text() for f in ("tuning.yaml", "music.yaml", "lead_in.yaml", "voice.yaml")]
     for _ in range(n):
         if rng.random() < 0.4:
             s = list(rng.choice(shipped))

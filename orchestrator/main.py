@@ -516,13 +516,22 @@ async def _run_pipeline(
             t_llm_start = time.monotonic()
             yield _stage("waiting")
 
+            # The speech mount's spoken-reply line (sprint M8,
+            # config/voice.yaml): the answer will be read aloud, so keep it
+            # short and plain. Added last, after every other block, so the
+            # system text before it (and llama.cpp's cached prefix) is the
+            # same as a typed request's. Coordinator only.
+            coordinator_extra = list(extra_parts)
+            if voice and (spoken := config_loader.current().voice.spoken_reply):
+                coordinator_extra.append(spoken)
+
             first_token = True
             t_first_token: float | None = None
             async for ev in agents.run_stream(
                 agents.COORDINATOR,
                 model_text,
                 [],  # no embedded context — history goes in as real messages
-                system_extra="\n\n".join(extra_parts) or None,
+                system_extra="\n\n".join(coordinator_extra) or None,
                 history_messages=history,
                 error_style=error_style,
             ):

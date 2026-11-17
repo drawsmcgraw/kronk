@@ -1,0 +1,19 @@
+# The speech mount, /voice/api/chat (sprint M8; docs/features/voice-pipeline.md).
+#
+# Read by orchestrator/config_loader.py at startup and on POST /config/reload
+# (scripts/config_reload.sh). Schema: the Voice model in config_loader.py.
+# An unknown key, a wrong type or an out-of-range value rejects the whole
+# load, with its line, on /services; the values in effect stay as they were.
+# A key left out takes its built-in default, which is the value written here.
+
+# Added as the last block of the coordinator's system text on requests that
+# arrived on the speech mount (origin.voice), and on no other request. It is
+# last so the system text before it, and with it llama.cpp's cached prompt
+# prefix, is the same as for a typed request. The coordinator only: routed
+# and delegated specialists do not get it. A shorter answer is generated and
+# spoken sooner whether or not sentence streaming is on (VOICE_STREAM).
+# One line, at most 400 characters; null leaves it out.
+spoken_reply: >-
+  [Spoken reply] Your reply will be read aloud by a speaker, not shown on a
+  screen. Answer in one to three short, plain sentences. Do not use lists,
+  headings, tables, links, code or markdown.

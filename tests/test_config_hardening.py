@@ -89,7 +89,7 @@ def _ts_app():
 SERVICES = {
     "orchestrator": lambda: Svc("orchestrator", orch_loader, "tuning.yaml",
                                 "weather_context", "max_age_s", 7200, _orch_app,
-                                yaml_files=("tuning.yaml", "lead_in.yaml")),
+                                yaml_files=("tuning.yaml", "lead_in.yaml", "voice.yaml")),
     "tool_service": lambda: Svc("tool_service", ts_loader, "music.yaml",
                                 "verify", "timeout_s", 8, _ts_app),
 }

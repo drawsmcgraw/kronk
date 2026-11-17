@@ -199,6 +199,10 @@ async def _render_direct() -> tuple[dict, dict, dict]:
     return shas, base, menus
 
 
+# Where _render_pipeline found the spoken-reply line (sprint M8).
+SPOKEN_LINE_SEEN: list[str] = []
+
+
 async def _render_pipeline(tmp_state: Path) -> dict:
     """System prompts as main._run_pipeline assembles them, in call order."""
     import main
@@ -242,11 +246,22 @@ async def _render_pipeline(tmp_state: Path) -> dict:
                     pass
         return cap.calls
 
+    import config_loader
+    spoken = "\n\n" + config_loader.SPOKEN_REPLY_DEFAULT
     for name, route, voice, stamp, local, script in scenarios:
         calls = await run(route, voice, stamp, local, script)
         out[f"pipeline|{name}|calls"] = len(calls)
         for i, c in enumerate(calls):
-            out[f"pipeline|{name}|call={i}"] = _sha(c["messages"][0]["content"])
+            text = c["messages"][0]["content"]
+            # Sprint M8: on the speech mount the coordinator's system text
+            # gains one last block, the spoken-reply line (config/voice.yaml).
+            # Everything before it must still match the pin, so the line is
+            # cut off here and where it appeared is recorded for
+            # test_spoken_reply_line_is_exactly_where_expected.
+            if text.endswith(spoken):
+                text = text[: -len(spoken)]
+                SPOKEN_LINE_SEEN.append(f"{name}|call={i}")
+            out[f"pipeline|{name}|call={i}"] = _sha(text)
             out[f"pipeline|{name}|call={i}|tools"] = _sha(json.dumps(c["tools"], sort_keys=True))
     return out
 
@@ -321,6 +336,14 @@ def test_every_prompt_variant_is_byte_identical(rendered):
     assert sorted(got) == sorted(want), "the set of variants changed"
     changed = [k for k in want if got[k] != want[k]]
     assert not changed, f"{len(changed)} variants changed, e.g. {changed[:5]}"
+
+
+def test_spoken_reply_line_is_exactly_where_expected(rendered):
+    """Sprint M8: the spoken-reply line ends the coordinator's system text on
+    the speech mount (the voice scenarios that reach the coordinator) and
+    nowhere else; with it cut off, those variants equal the pin above."""
+    assert sorted(set(SPOKEN_LINE_SEEN)) == [
+        "direct_voice_origin|call=0", "home_failed_friendly_voice|call=1"]
 
 
 def test_tool_menus_are_identical(rendered):

@@ -15,6 +15,9 @@ Files (docs/features/config-directory.md has the full description):
   lead_in.yaml       the spoken lead-in ("ask Kronk to ...") that sends a
                      request straight to the coordinator (sprint M19,
                      routing rule lead_in); schema: the LeadIn model below.
+  voice.yaml         the speech mount (sprint M8): the spoken-reply line
+                     added to the coordinator's system text on voice
+                     requests; schema: the Voice model below.
 
 Rules:
   - Load at startup (the first current() call). A file that fails
@@ -63,6 +66,7 @@ logger = logging.getLogger(__name__)
 PROMPTS_DIR = "prompts"
 TUNING_FILE = "tuning.yaml"
 LEAD_IN_FILE = "lead_in.yaml"
+VOICE_FILE = "voice.yaml"
 # Read by tool_service (tool_service/config_loader.py); listed so the
 # stray-file scan, done here once for the whole directory, knows it.
 TOOL_SERVICE_FILES = frozenset({"music.yaml"})
@@ -237,6 +241,22 @@ class LeadIn(_Strict):
         return v
 
 
+# The speech mount (sprint M8; config/voice.yaml documents each key).
+# Defaults are the shipped file (tests/test_spoken_reply.py compares them).
+SPOKEN_REPLY_DEFAULT = (
+    "[Spoken reply] Your reply will be read aloud by a speaker, not shown on a "
+    "screen. Answer in one to three short, plain sentences. Do not use lists, "
+    "headings, tables, links, code or markdown."
+)
+SpokenLine = Annotated[str, StringConstraints(pattern=r"^[^\n]*\S[^\n]*$", max_length=400)]
+
+
+class Voice(_Strict):
+    # One line; None leaves it out. main._run_pipeline appends it, last, to
+    # the coordinator's system_extra when origin.voice is set.
+    spoken_reply: SpokenLine | None = SPOKEN_REPLY_DEFAULT
+
+
 # Env vars that set a value before the move keep working, and win over the
 # file: env > file > built-in default. Only these; no new env vars.
 ENV_OVERRIDES: dict[str, tuple[str, ...]] = {
@@ -278,6 +298,7 @@ class Config:
     tuning: "Tuning"
     source: str                                   # "files" | "defaults"
     lead_in: "LeadIn" = field(default_factory=LeadIn)    # sprint M19
+    voice: "Voice" = field(default_factory=Voice)        # sprint M8
     loaded_at: float = field(default_factory=time.time)
     digests: dict[str, str] = field(default_factory=dict)   # file -> sha256[:12]
     env: dict[str, str] = field(default_factory=dict)       # env overrides in effect
@@ -394,13 +415,19 @@ def _load_lead_in(base: Path) -> tuple["LeadIn", str, bool]:
     return validate(LeadIn, data, lines, LEAD_IN_FILE), _digest(text), bool(data)
 
 
+def _load_voice(base: Path) -> tuple["Voice", str, bool]:
+    text = _read(base, VOICE_FILE, config_files.MAX_YAML_BYTES)
+    data, lines = parse_yaml(text, VOICE_FILE)
+    return validate(Voice, data, lines, VOICE_FILE), _digest(text), bool(data)
+
+
 def _strays(base: Path) -> tuple[list[Problem], list[Problem]]:
     """(errors, warnings) for entries under config/ that no service reads.
     An unknown prompts/*.md is an error (it looks like a prompt the
     operator expects to take effect); anything else is a warning."""
     errors, warnings = [], []
     prompt_files = {f"{n}.md" for n in prompt_defaults.PROMPTS}
-    known = {"": {TUNING_FILE, LEAD_IN_FILE, PROMPTS_DIR, *TOOL_SERVICE_FILES},
+    known = {"": {TUNING_FILE, LEAD_IN_FILE, VOICE_FILE, PROMPTS_DIR, *TOOL_SERVICE_FILES},
              PROMPTS_DIR: prompt_files}
     for rel, message in config_files.stray_entries(base, known):
         if rel.startswith(f"{PROMPTS_DIR}/") and rel.endswith(".md"):
@@ -450,6 +477,16 @@ def load(base: Path | None = None) -> Config:
     except Exception as e:
         problems.append(Problem(LEAD_IN_FILE, None, config_files.unexpected(e)))
 
+    voice = None
+    try:
+        voice, digests[VOICE_FILE], has_keys = _load_voice(base)
+        if not has_keys:
+            warnings.append(Problem(VOICE_FILE, None, EMPTY_YAML))
+    except ConfigInvalid as e:
+        problems += e.problems
+    except Exception as e:
+        problems.append(Problem(VOICE_FILE, None, config_files.unexpected(e)))
+
     try:
         stray_errors, stray_warnings = _strays(base)
         problems += stray_errors
@@ -465,7 +502,7 @@ def load(base: Path | None = None) -> Config:
     if problems:
         raise ConfigInvalid(problems)
     return Config(prompts=prompts, tuning=tuning, source="files", lead_in=lead_in,
-                  digests=digests, env=env, warnings=warnings)
+                  voice=voice, digests=digests, env=env, warnings=warnings)
 
 
 def _try_load() -> tuple[Config | None, list[Problem]]:
@@ -500,6 +537,8 @@ def _flatten(cfg: Config) -> dict[str, object]:
         walk(f"{TUNING_FILE}:{k}", v)
     for k, v in cfg.lead_in.model_dump().items():
         walk(f"{LEAD_IN_FILE}:{k}", v)
+    for k, v in cfg.voice.model_dump().items():
+        walk(f"{VOICE_FILE}:{k}", v)
     return flat
 
 
