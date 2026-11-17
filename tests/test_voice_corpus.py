@@ -196,19 +196,92 @@ def test_corpus_direct_call(row):
 
 # ── M11 parser assertions (the hook) ─────────────────────────────────────────
 #
-# M11 writes the sentence parser in tool_service/music_resolve.py. When it
-# exists, point PARSE at it (the import below picks up `parse_request` by
-# default; change the name here if M11 picks another). It is called as
-# PARSE(text, origin_area) and must return a dict carrying any of the keys in
-# PARSER_FIELDS. For each row whose expected tool is play_music, every field
-# the row states is compared; rows with `xfail.parser` run as strict xfails.
-# Until PARSE exists these tests are not collected, so they add no skips.
+# Sprint M11 filled the hook M10 left here. Each play_music row runs through
+# the M11 path offline: music_resolve.parse_sentence against the real player
+# names, then music_decide.decide with Music Assistant replayed from the
+# recorded snapshot (tests/music_snapshot.py; MUSIC_DRY_RUN on, HA service
+# calls refused). The model question gets no answer here, so this is the
+# rules' reading: what the M11 path does with the model down, and what its
+# shadow does. PARSE(row) returns the fields below; the call shape changed
+# from M10's PARSE(text, origin_area) because the target is checked against
+# the origin device, not the area.
+#
+# How each field is compared (docs/features/voice-regression-corpus.md):
+#   kind, media_type, shuffle   equal
+#   name, artist                equal after music_resolve.fold (case, accents,
+#                               punctuation, a leading "the"); the artist may
+#                               be one of several credited ("X and Y")
+#   provider                    null: the sentence names none; otherwise the
+#                               provider the sentence named or the one chosen
+#   player                      the speakers it resolves to, compared with
+#                               the ones the row's player names (so "origin"
+#                               and "area:Kitchen" agree for the kitchen PE,
+#                               the only player in Kitchen); unknown:<words>
+#                               expects the target error naming the words
+# Rows with `xfail.parser` run as strict xfails.
 PARSER_FIELDS = ("kind", "media_type", "name", "artist", "provider", "player", "shuffle")
+_PROVIDER = {"ytmusic": "youtube_music", "filesystem_local": "nas", "pandora": "pandora"}
 
-try:  # pragma: no cover - activates with M11
-    from tool_service.music_resolve import parse_request as PARSE
-except ImportError:
-    PARSE = None
+try:  # the M11 path; absent before M11
+    from tests import music_snapshot as _snap
+    from tool_service import music_resolve as _mr
+    import tool_service.main as _ts
+    _SNAP = _snap.load()
+except (ImportError, FileNotFoundError):  # pragma: no cover
+    _snap = None
+
+
+def PARSE(row, tmp_path):
+    """The M11 path's reading of a corpus row, offline. A lead-in row is read
+    as the orchestrator hands it on: origin.said is the request without "ask
+    Kronk to" (sprint M19), so that is the sentence the M11 path gets."""
+    said = routing.lead_in_request(row["text"]) or row["text"]
+    with _snap.offline_env(_SNAP, tmp_path):
+        d = asyncio.run(_snap.decide_row({**row, "text": said}, _SNAP, model_answer=None))
+    o, p = d.outcome, d.parsed
+    return {"kind": o.kind, "media_type": o.media_type, "name": o.name, "artist": o.artist,
+            "provider": {"named": p.provider, "chosen": o.provider}, "shuffle": p.shuffle,
+            "player": {"entities": d.entities, "error": d.error}, "action": o.action,
+            "decided_by": o.decided_by}
+
+
+def _expected_entities(row):
+    players = [_ts._norm_player(x) for x in _SNAP["players"]]
+    want = row["expect"]["player"]
+    if want.startswith("entity:"):
+        return sorted([want.split(":", 1)[1]])
+    if want.startswith("area:"):
+        return sorted(t["entity_id"] for t in _ts._by_area(players, want.split(":", 1)[1]))
+    area, device = _snap.origin_of(row)
+    targets, _ = _ts.resolve_players(None, area, players, _snap.DEFAULT_PLAYER,
+                                     origin_key=_snap.ORIGIN_KEYS.get(device or ""))
+    return sorted(t["entity_id"] for t in targets)
+
+
+def parser_diff(row, got):
+    want = {k: row["expect"][k] for k in PARSER_FIELDS if k in row["expect"]}
+    diff = {}
+    for k, w in want.items():
+        g = got[k]
+        if k == "name":
+            ok = (w is None and g is None) or (w is not None and g is not None and _mr.fold(w) == _mr.fold(g))
+        elif k == "artist":   # one of the credited artists ("Ulrich Schnauss and Mark Peters")
+            ok = (w is None and g is None) or (w is not None and g is not None and (
+                _mr.fold(w) == _mr.fold(g) or _mr.fold(w) in [_mr.fold(a) for a in g.split(" and ")]))
+        elif k == "provider":
+            named, chosen = _PROVIDER.get(g["named"]), _PROVIDER.get(g["chosen"])
+            ok = named is None if w is None else w in (named, chosen)
+            g = {"named": named, "chosen": chosen}
+        elif k == "player":
+            if w.startswith("unknown:"):
+                ok = bool(g["error"]) and w.split(":", 1)[1].lower() in g["error"].lower()
+            else:
+                ok = g["entities"] is not None and sorted(g["entities"]) == _expected_entities(row)
+        else:
+            ok = g == w
+        if not ok:
+            diff[k] = (w, g)
+    return diff
 
 
 def _parser_params():
@@ -220,13 +293,19 @@ def _parser_params():
         yield pytest.param(r, id=r["id"], marks=marks)
 
 
-if PARSE is not None:  # pragma: no cover - activates with M11
+if _snap is not None:
+    @pytest.mark.usefixtures("no_network")
     @pytest.mark.parametrize("row", list(_parser_params()))
-    def test_corpus_parser(row):
-        got = PARSE(row["text"], row["origin"]["area"])
-        want = {k: row["expect"][k] for k in PARSER_FIELDS if k in row["expect"]}
-        diff = {k: (want[k], got.get(k)) for k in want if got.get(k) != want[k]}
-        assert not diff, f"corpus row {row['id']}: {row['text']!r} parsed wrong (want, got): {diff}"
+    def test_corpus_parser(row, tmp_path):
+        got = PARSE(row, tmp_path)
+        diff = parser_diff(row, got)
+        assert not diff, (f"corpus row {row['id']}: {row['text']!r} read wrong (want, got): {diff}; "
+                          f"decided_by {got['decided_by']}")
+
+    @pytest.mark.parametrize("row", [r for r in ROWS if "non-music" in r["tags"]], ids=lambda r: r["id"])
+    def test_corpus_parser_says_not_music(row):
+        p = _mr.parse_sentence(row["text"], _SNAP["players"])
+        assert p.music is False, f"corpus row {row['id']}: {row['text']!r} parsed as music"
 
 
 def test_parser_rows_carry_the_m11_fields():

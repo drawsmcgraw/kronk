@@ -74,7 +74,7 @@ def test_an_unknown_speaker_says_what_exists(say):
 
 def test_nothing_found_is_said_plainly_and_nothing_plays(say):
     b = say("put on the radio station Zorblax Fnordwave Nonexistent")
-    assert b["ok"] is False and "result" not in b
+    assert b["ok"] is False and "result" not in b and b["targets"] == [snapmod.DEFAULT_PLAYER]
     assert b["say"].startswith("I couldn't find a station called Zorblax Fnordwave Nonexistent")
 
 

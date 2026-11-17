@@ -1,7 +1,7 @@
 {
 "meta": {
-"recorded": "2026-11-17T12:15:18Z",
-"rows": 160,
+"recorded": "2026-11-17T12:19:19Z",
+"rows": 1,
 "paths": [
 "live",
 "new"
@@ -14649,6 +14649,26 @@
 "tracks": [],
 "playlists": [],
 "radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"radio\"], \"search_query\": \"Hotel Costes Radio\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [],
+"playlists": [],
+"radio": [
+{
+"uri": "library://radio/274",
+"name": "Hotel Costes Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "274",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+}
+]
 },
 "[\"music/search\", {\"limit\": 10, \"media_types\": [\"radio\"], \"search_query\": \"K-pop Radio\"}]": {
 "artists": [],

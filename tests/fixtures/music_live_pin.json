@@ -4048,7 +4048,7 @@
  },
  "m14-lookalike-blueprint-room-suffix": {
   "request": {
-   "query": "Hotel Costas Radio",
+   "query": "Hotel Costes Radio",
    "said": "Play Hotel Costas Radio. in the Kitchen",
    "media_type": "radio",
    "kind": "named",
@@ -4091,7 +4091,7 @@
    [
     "music/search",
     {
-     "search_query": "Hotel Costas Radio",
+     "search_query": "Hotel Costes Radio",
      "media_types": [
       "radio"
      ],

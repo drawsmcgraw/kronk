@@ -8,6 +8,7 @@ expected outcome. Default pipeline: `kronk-dev` (the Hey Jarvis dev path).
 
     python3 scripts/voice_replay.py [--label NAME] [--id ID ...] [--tag TAG ...]
     python3 scripts/voice_replay.py --check-only        # read-only checks, runs nothing
+    tests/.venv/bin/python scripts/voice_replay.py --answers --label m11-say   # M11 answer check
 
 Needs: HA_TOKEN (environment or .env), the `websockets` package (system
 python3 and tests/.venv both have it), PyYAML for trigger names (optional),
@@ -39,6 +40,17 @@ Silent and safe by construction:
    before the run and after each executed row. Any change stops the run.
 5. Rows tagged `needs-context` (a follow-up with no history in a replay) or
    `url` (a typed link) are skipped and reported.
+
+Answer check (sprint M11, --answers). Instead of HA, every play_music row and
+every row tagged non-music is sent to the dev tool_service directly: POST
+/music/say with the sentence and the row's satellite (dry_run forced on), and
+POST /music with the stand-in model arguments (tests/music_snapshot.live_args)
+for today's live path. Each answer says what would play; the script compares
+the M11 path's with the row's expectation (as layer one does) and with the
+live path's. Most "play ..." sentences are taken by the HA blueprint locally,
+so they are never sent through HA; this mode calls the endpoints with the
+sentence instead. Dev only (the tool_service URL must be the dev port 8103),
+dry run required as above. Statuses use xfail.parser.
 
 Writes docs/bench/voice_replay_<UTC time>_<label>.json (or --out) with, per
 row: status, expected against actual, latency, trace id and pipeline run id.
@@ -410,6 +422,230 @@ def status_of(row: dict, checks: list[dict]) -> tuple[str, str | None]:
     return ("pass" if ok else "fail"), None
 
 
+# ── M11 answer check: the new endpoint against the row and the live path ────
+
+DEV_TOOL_SERVICE = os.environ.get("KRONK_DEV_TOOL_SERVICE", "http://127.0.0.1:8103")
+_PROVIDER_NAMES = {"ytmusic": "youtube_music", "filesystem_local": "nas", "pandora": "pandora"}
+
+
+def fold(s: str | None) -> str:
+    """music_resolve.fold: lowercase, no accents or punctuation, '&' as 'and',
+    no leading 'the'."""
+    import unicodedata
+    s = unicodedata.normalize("NFKD", s or "")
+    s = "".join(c for c in s if not unicodedata.combining(c)).lower().replace("&", " and ")
+    s = re.sub(r"\s+", " ", re.sub(r"[^\w\s]", " ", s)).strip()
+    return s[4:] if s.startswith("the ") else s
+
+
+def post_json(url: str, body: dict, timeout: float = 60) -> tuple[int, dict]:
+    req = urllib.request.Request(url, data=json.dumps(body).encode(), method="POST",
+                                 headers={"Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return r.status, json.loads(r.read())
+    except urllib.error.HTTPError as e:
+        return e.code, json.loads(e.read() or b"{}")
+
+
+def dev_players(token: str) -> list[dict]:
+    """The Music Assistant players, from the same read-only template /music
+    uses (tool_service.main._players_template)."""
+    import tempfile
+    sys.path.insert(0, str(ROOT))
+    os.environ.setdefault("KRONK_CONFIG_DIR", str(ROOT / "config"))
+    tmp = tempfile.gettempdir()          # importing tool_service must never reach /data
+    os.environ.setdefault("MUSIC_TASTE_DB", os.path.join(tmp, "voice-replay-no-taste.db"))
+    os.environ.setdefault("MUSIC_TASTE_FILE", os.path.join(tmp, "voice-replay-no-taste.yaml"))
+    from tool_service import main as ts  # noqa: E402  (tests/.venv/bin/python)
+    req = urllib.request.Request(f"{HA_REST}/api/template",
+                                 data=json.dumps({"template": ts._players_template(None)}).encode(),
+                                 method="POST", headers={"Authorization": f"Bearer {token}",
+                                                         "Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=10) as r:
+        players, _ = ts.parse_player_payload(r.read().decode())
+    return players
+
+
+def expected_targets(row: dict, players: list[dict], device: dict) -> list[str] | str:
+    want = row["expect"].get("player") or "origin"
+    if want == "origin":
+        return [device["player"]]
+    kind, _, val = want.partition(":")
+    if kind == "entity":
+        return [val]
+    if kind == "area":
+        return sorted(p["entity_id"] for p in players if (p.get("area") or "").lower() == val.lower())
+    return want                                     # unknown:<words>
+
+
+def answer_of(code: int, body: dict) -> dict:
+    """What an answer says would play: {action, kind, media_type, name, artist, uri, targets, provider}."""
+    if "decision" in body or "say" in body:          # /music/say
+        d = body.get("decision") or {}
+        res = body.get("result") or {}
+        return {"ok": bool(body.get("ok")), "action": d.get("action"), "kind": d.get("kind"),
+                "media_type": d.get("media_type"), "name": d.get("name"), "artist": d.get("artist"),
+                "provider": d.get("provider"), "named_provider": (body.get("parsed") or {}).get("provider"),
+                "uri": (res.get("would_play") or {}).get("media_id") or d.get("uri"),
+                "targets": res.get("targets") or body.get("targets"), "say": body.get("say"),
+                "decided_by": d.get("decided_by")}
+    if code != 200:                                  # /music failed
+        return {"ok": False, "error": body.get("detail")}
+    res = body.get("resolved") or {}
+    pick = body.get("pick") or {}
+    station = body.get("station") or {}
+    wp = body.get("would_play") or {}
+    return {"ok": True, "kind": "genre" if pick else "named",
+            "media_type": None if pick else (res.get("media_type") or wp.get("media_type")),
+            "name": pick.get("phrase") or res.get("name") or station.get("name") or wp.get("media_id"),
+            "artist": res.get("artist"), "uri": wp.get("media_id"), "targets": body.get("targets"),
+            "detail": body.get("detail")}
+
+
+def compare_answer(row: dict, new: dict, players: list[dict], device: dict) -> list[dict]:
+    e, checks = row["expect"], []
+    for k in ("kind", "media_type"):
+        if k in e:
+            checks.append({"check": k, "ok": new.get(k) == e[k], "expected": e[k], "actual": new.get(k)})
+    if "name" in e:
+        ok = (e["name"] is None and new.get("name") is None) or \
+            (e["name"] is not None and fold(e["name"]) == fold(new.get("name")))
+        checks.append({"check": "name", "ok": ok, "expected": e["name"], "actual": new.get("name")})
+    if "artist" in e:
+        got = new.get("artist") or ""
+        ok = fold(e["artist"]) == fold(got) or fold(e["artist"]) in [fold(a) for a in got.split(" and ")]
+        checks.append({"check": "artist", "ok": ok, "expected": e["artist"], "actual": new.get("artist")})
+    if "provider" in e:
+        named = _PROVIDER_NAMES.get(new.get("named_provider"))
+        chosen = _PROVIDER_NAMES.get(new.get("provider"))
+        ok = named is None if e["provider"] is None else e["provider"] in (named, chosen)
+        checks.append({"check": "provider", "ok": ok, "expected": e["provider"],
+                       "actual": {"named": named, "chosen": chosen}})
+    want = expected_targets(row, players, device)
+    if isinstance(want, str):
+        ok = not new.get("ok") and want.split(":", 1)[1].lower() in (new.get("say") or "").lower()
+    else:
+        ok = sorted(new.get("targets") or []) == sorted(want)
+    checks.append({"check": "player", "ok": ok, "expected": want, "actual": new.get("targets")})
+    return checks
+
+
+def agree_with_live(new: dict, live: dict) -> tuple[bool, str]:
+    if not new.get("ok") and not live.get("ok"):
+        return True, "both fail"
+    if bool(new.get("ok")) != bool(live.get("ok")):
+        return False, "only the new path plays" if new.get("ok") else "only the live path plays"
+    if sorted(new.get("targets") or []) != sorted(live.get("targets") or []):
+        return False, "different speaker"
+    if new.get("kind") != live.get("kind"):
+        return False, f"live read {live.get('kind')}, new read {new.get('kind')}"
+    if new.get("kind") == "genre":
+        same = fold(new.get("name")) == fold(live.get("name"))
+        return same, "same style" if same else "different style"
+    if new.get("uri") and new.get("uri") == live.get("uri"):
+        return True, "same item"
+    same = new.get("media_type") == live.get("media_type") and fold(new.get("name")) == fold(live.get("name"))
+    return same, "same type and name" if same else "different item"
+
+
+def lead_in_stripped(text: str) -> str:
+    """The sentence as origin.said carries it: without "ask Kronk to" (M19)."""
+    sys.path.insert(0, str(ROOT / "orchestrator"))
+    import routing  # noqa: E402  (needs the orchestrator's deps: run with tests/.venv/bin/python)
+    return routing.lead_in_request(text) or text
+
+
+def answers(args) -> int:
+    url = args.tool_service_url.rstrip("/")
+    if not re.match(r"^https?://(127\.0\.0\.1|localhost):8103$", url):
+        raise Refused(f"--answers runs against the dev tool_service only (port 8103), not {url}")
+    def dry_on() -> dict:
+        h = http_json(f"{url}/health")
+        if h.get("music_dry_run") is not True:
+            raise Refused(f"music dry-run is not on at {url} ({h}); refusing")
+        return h
+    health = dry_on()
+    token = ha_token()
+    sys.path.insert(0, str(ROOT))
+    from tests import music_snapshot as snapmod      # the stand-in model arguments
+    snap = {"players": dev_players(token)}
+    rows = [json.loads(l) for l in CORPUS.read_text().splitlines() if l.strip()]
+    selected, not_selected = select_rows(rows, args)
+    selected = [r for r in selected if r["expect"].get("tool") == "play_music" or "non-music" in r["tags"]]
+    started = dt.datetime.now(dt.timezone.utc)
+    before = player_snapshot(token)
+    result = {"meta": {"started": started.isoformat(timespec="seconds"), "label": args.label, "mode": "answers",
+                       "tool_service": url, "tool_service_health": health,
+                       "git_commit": subprocess.run(["git", "-C", str(ROOT), "rev-parse", "--short", "HEAD"],
+                                                    capture_output=True, text=True).stdout.strip(),
+                       "corpus_sha256": hashlib.sha256(CORPUS.read_bytes()).hexdigest()[:16],
+                       "selected": len(selected)}, "rows": []}
+    print(f"voice_replay --answers: {url}, dry-run on, {len(selected)} rows")
+    for i, row in enumerate(selected):
+        if i and i % 20 == 0:
+            dry_on()
+        dkey = row["origin"].get("device") or args.device
+        device = DEVICES[dkey]
+        o_area, o_dev = DEVICES[dkey]["area"], DEVICES[dkey]["device_id"]
+        said = lead_in_stripped(row["text"])
+        t0 = time.monotonic()
+        code, body = post_json(f"{url}/music/say", {"sentence": said, "origin_device": o_dev,
+                                                    "origin_area": o_area, "dry_run": True})
+        new_ms = round((time.monotonic() - t0) * 1000)
+        new = answer_of(code, body)
+        rec = {"id": row["id"], "text": row["text"], "said": said, "device": dkey, "expected": row["expect"],
+               "xfail": row.get("xfail"), "new": new, "new_ms": new_ms,
+               "new_trace": {k: (body.get("trace") or {}).get(k) for k in ("steps", "model", "searches", "ms")}}
+        if "non-music" in row["tags"]:
+            ok = new.get("action") == "not_music"
+            rec["checks"] = [{"check": "not music", "ok": ok, "expected": "not_music", "actual": new.get("action")}]
+        else:
+            rec["checks"] = compare_answer(row, new, snap["players"], device)
+            largs = snapmod.live_args(row, {"players": snap["players"]})
+            if largs is not None:
+                largs.update(origin_device=o_dev, origin_area=o_area)
+                t0 = time.monotonic()
+                lcode, lbody = post_json(f"{url}/music", largs)
+                rec["live_ms"] = round((time.monotonic() - t0) * 1000)
+                rec["live"] = answer_of(lcode, lbody)
+                rec["agree_with_live"], rec["agree_why"] = agree_with_live(new, rec["live"])
+        ok = all(c["ok"] for c in rec["checks"])
+        reason = (row.get("xfail") or {}).get("parser")
+        rec["status"] = ("xpass" if ok else "xfail") if reason else ("pass" if ok else "fail")
+        result["rows"].append(rec)
+        mark = {"pass": ".", "fail": "F", "xfail": "x", "xpass": "X"}[rec["status"]]
+        live_note = "" if "agree_with_live" not in rec else (" =live" if rec["agree_with_live"] else
+                                                             f" !=live ({rec['agree_why']})")
+        print(f"  {mark} {rec['status']:5s} {row['id']}{live_note}"
+              + (f"  [{'; '.join(c['check'] + ' ' + str(c['actual']) for c in rec['checks'] if not c['ok'])}]"
+                 if rec["status"] in ("fail", "xpass") else ""))
+    after = player_snapshot(token)
+    changed = snapshot_diff(before, after)
+    result["players"] = {"changed": changed, "unchanged": not changed, "count": len(before)}
+    counts: dict = {}
+    for r in result["rows"]:
+        counts[r["status"]] = counts.get(r["status"], 0) + 1
+    compared = [r for r in result["rows"] if "agree_with_live" in r]
+    result["summary"] = {"counts": counts, "compared_with_live": len(compared),
+                         "agree_with_live": sum(1 for r in compared if r["agree_with_live"]),
+                         "failed": [r["id"] for r in result["rows"] if r["status"] == "fail"],
+                         "xpassed": [r["id"] for r in result["rows"] if r["status"] == "xpass"],
+                         "disagree_with_live": [{"id": r["id"], "why": r["agree_why"]}
+                                                for r in compared if not r["agree_with_live"]]}
+    result["meta"]["finished"] = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
+    out = Path(args.out) if args.out else (
+        ROOT / "docs" / "bench" / f"voice_replay_{started:%Y-%m-%d_%H%M%S}_{args.label}.json")
+    out.write_text(json.dumps(result, indent=1, ensure_ascii=False) + "\n")
+    s = result["summary"]
+    print(f"voice_replay --answers: {counts}; agree with live {s['agree_with_live']}/{s['compared_with_live']}; "
+          f"players {'unchanged' if not changed else 'CHANGED: ' + str(changed)}")
+    print(f"voice_replay: wrote {out}")
+    if changed:
+        return 3
+    return 1 if s["failed"] else 0
+
+
 # ── main ─────────────────────────────────────────────────────────────────────
 
 async def resolve_target(ha: HA, token: str, args) -> dict:
@@ -646,8 +882,13 @@ def main() -> int:
     ap.add_argument("--timeout", type=float, default=60, help="per-row pipeline timeout, seconds")
     ap.add_argument("--orchestrator-container")
     ap.add_argument("--tool-service-container")
+    ap.add_argument("--answers", action="store_true",
+                    help="M11 answer check: POST /music/say and /music on the dev tool_service; no HA run")
+    ap.add_argument("--tool-service-url", default=DEV_TOOL_SERVICE, help="dev tool_service for --answers")
     args = ap.parse_args()
     try:
+        if args.answers:
+            return answers(args)
         return asyncio.run(replay(args))
     except Refused as e:
         print(f"voice_replay: REFUSED: {e}", file=sys.stderr)

@@ -2318,7 +2318,8 @@ async def music_say(req: MusicSayRequest):
     except HTTPException as e:
         return {"ok": False, "say": f"I couldn't play that. {e.detail}", "dry_run": dry}
     o = d.outcome
-    base = {"decision": o.as_dict(), "parsed": d.parsed.as_dict(), "trace": d.trace, "dry_run": dry}
+    base = {"decision": o.as_dict(), "parsed": d.parsed.as_dict(), "trace": d.trace, "dry_run": dry,
+            "targets": d.entities, "player": d.label}
     if o.action == "not_music":
         return {"ok": False, "say": "That doesn't sound like music I can play.", **base}
     if d.error:

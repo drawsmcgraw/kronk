@@ -341,3 +341,47 @@ def test_direct_row_passes_only_on_the_direct_path():
     assert on["direct"] is True and off["direct"] is False and old["direct"] is False
     plain = {c["check"] for c in vr.compare_kronk(_row(), dev, False, base)}
     assert "direct" not in plain
+
+
+# ── --answers (sprint M11): the new endpoint against the row and live ───────
+
+@pytest.mark.parametrize("url", ["http://127.0.0.1:8003", "http://192.168.1.10:8103", "http://localhost"])
+def test_answers_refuses_anything_but_the_dev_tool_service(url):
+    args = SimpleNamespace(tool_service_url=url)
+    with pytest.raises(vr.Refused, match="dev tool_service only"):
+        vr.answers(args)
+
+
+def test_answers_refuses_without_dry_run(monkeypatch):
+    monkeypatch.setattr(vr, "http_json", lambda u, *a, **k: {"status": "ok", "music_dry_run": False})
+    with pytest.raises(vr.Refused, match="dry-run is not on"):
+        vr.answers(SimpleNamespace(tool_service_url="http://127.0.0.1:8103"))
+
+
+def test_fold_matches_the_resolver():
+    from tool_service import music_resolve
+    for s in ("Hôtel Costes", "The Beatles", "Kruder & Dorfmeister", "90s, 2000's and Today's Hits", "R.E.M."):
+        assert vr.fold(s) == music_resolve.fold(s)
+
+
+ROW = {"expect": {"kind": "named", "media_type": "album", "name": "Destiny Waiving", "artist": "Ulrich Schnauss",
+                  "provider": None, "player": "origin"}}
+DEV = {"player": "media_player.satellite1_d8d1bc"}
+
+
+def test_compare_answer_reads_the_new_path_like_layer_one():
+    new = {"ok": True, "kind": "named", "media_type": "album", "name": "DESTINY WAIVING",
+           "artist": "Ulrich Schnauss and Mark Peters", "named_provider": None, "provider": "ytmusic",
+           "targets": ["media_player.satellite1_d8d1bc"]}
+    assert all(c["ok"] for c in vr.compare_answer(ROW, new, [], DEV))
+    bad = {**new, "named_provider": "ytmusic", "targets": ["media_player.x"]}
+    assert {c["check"] for c in vr.compare_answer(ROW, bad, [], DEV) if not c["ok"]} == {"provider", "player"}
+
+
+def test_agree_with_live():
+    a = {"ok": True, "kind": "named", "uri": "x://1", "targets": ["p"], "media_type": "album", "name": "A"}
+    assert vr.agree_with_live(a, dict(a)) == (True, "same item")
+    assert vr.agree_with_live(a, {**a, "uri": "y://2", "name": "B"}) == (False, "different item")
+    assert vr.agree_with_live({"ok": False}, {"ok": False}) == (True, "both fail")
+    assert vr.agree_with_live({**a, "kind": "genre", "name": "jazz"},
+                              {**a, "kind": "genre", "name": "Jazz", "uri": "z"}) == (True, "same style")
