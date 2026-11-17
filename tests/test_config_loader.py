@@ -357,3 +357,58 @@ def test_every_yaml_key_has_a_comment():
                 continue
             above = lines[i - 1].strip() if i else ""
             assert "#" in line or above.startswith("#"), f"{path.name}:{i + 1} has no comment: {line!r}"
+
+
+# ── criterion 11: precedence env > file > built-in default ───────────────────
+
+def test_env_var_wins_over_the_file(cfgdir, monkeypatch):
+    monkeypatch.setenv("WEATHER_CTX_MAX_AGE_S", "600")
+    cfg = config_loader.load(cfgdir)
+    assert cfg.tuning.weather_context.max_age_s == 600
+    assert cfg.env == {"WEATHER_CTX_MAX_AGE_S": "600"}
+
+
+def test_file_wins_over_the_default_when_env_is_unset(cfgdir, monkeypatch):
+    monkeypatch.delenv("WEATHER_CTX_MAX_AGE_S", raising=False)
+    t = cfgdir / "tuning.yaml"
+    t.write_text(t.read_text().replace("max_age_s: 7200", "max_age_s: 3600"))
+    assert config_loader.load(cfgdir).tuning.weather_context.max_age_s == 3600
+    t.write_text("# nothing\n")
+    assert config_loader.load(cfgdir).tuning.weather_context.max_age_s == 7200
+
+
+def test_bad_env_var_is_an_error_naming_the_variable(cfgdir, monkeypatch):
+    monkeypatch.setenv("WEATHER_CTX_MAX_AGE_S", "two hours")
+    with pytest.raises(config_loader.ConfigInvalid) as e:
+        config_loader.load(cfgdir)
+    assert str(e.value.problems[0]) == "(env WEATHER_CTX_MAX_AGE_S): not an integer: 'two hours'"
+    monkeypatch.setenv("WEATHER_CTX_MAX_AGE_S", "5")
+    with pytest.raises(config_loader.ConfigInvalid) as e:
+        config_loader.load(cfgdir)
+    assert e.value.problems[0].file == "(env WEATHER_CTX_MAX_AGE_S)"
+    assert "greater than or equal to 60" in e.value.problems[0].message
+
+
+def test_builtin_defaults_keep_a_valid_env_var(monkeypatch):
+    monkeypatch.setenv("WEATHER_CTX_MAX_AGE_S", "900")
+    assert config_loader.defaults().tuning.weather_context.max_age_s == 900
+
+
+@pytest.mark.asyncio
+async def test_weather_context_uses_the_age_in_effect(cfgdir, monkeypatch):
+    class Client:
+        def __init__(self, *a, **kw): pass
+        async def __aenter__(self): return self
+        async def __aexit__(self, *a): return False
+        async def get(self, url):
+            class R:
+                status_code = 200
+                def json(self): return {"age_s": 5000, "location": "Laurel, MD", "summary": "Sunny."}
+            return R()
+
+    monkeypatch.setattr(agents.httpx, "AsyncClient", Client)
+    assert await agents.weather_context() is not None          # 5000 < 7200
+    t = cfgdir / "tuning.yaml"
+    t.write_text(t.read_text().replace("max_age_s: 7200", "max_age_s: 3600"))
+    assert config_loader.reload()["ok"]
+    assert await agents.weather_context() is None              # 5000 > 3600

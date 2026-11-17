@@ -69,12 +69,17 @@ class Problem:
     line: int | None     # 1-based; None when the problem is the whole file
     message: str
 
+    @property
+    def path(self) -> str:
+        # "(env NAME)" for an env override; else the file under config/.
+        return self.file if self.file.startswith("(") else f"config/{self.file}"
+
     def __str__(self) -> str:
-        where = f"{self.file}:{self.line}" if self.line else self.file
-        return f"config/{where}: {self.message}"
+        where = f"{self.path}:{self.line}" if self.line else self.path
+        return f"{where}: {self.message}"
 
     def as_dict(self) -> dict:
-        return {"file": f"config/{self.file}", "line": self.line, "message": self.message}
+        return {"file": self.path, "line": self.line, "message": self.message}
 
 
 class ConfigInvalid(Exception):
@@ -117,8 +122,49 @@ class AgentLoop(_Strict):
     repeat_tool_nudge_at: int = Field(3, ge=2, le=20)
 
 
+class WeatherContext(_Strict):
+    # The cached forecast stops being injected into prompts past this age.
+    max_age_s: int = Field(7200, ge=60, le=86400)
+
+
 class Tuning(_Strict):
     agent_loop: AgentLoop = Field(default_factory=AgentLoop)
+    weather_context: WeatherContext = Field(default_factory=WeatherContext)
+
+
+# Env vars that set a value before the move keep working, and win over the
+# file: env > file > built-in default. Only these; no new env vars.
+ENV_OVERRIDES: dict[str, tuple[str, ...]] = {
+    "WEATHER_CTX_MAX_AGE_S": ("weather_context", "max_age_s"),
+}
+
+
+def _apply_env(tuning: "Tuning") -> tuple["Tuning", dict[str, str], list["Problem"]]:
+    """tuning with each set env override applied and validated on its own,
+    so an error names the variable, not a file line."""
+    env: dict[str, str] = {}
+    problems: list[Problem] = []
+    for var, path in ENV_OVERRIDES.items():
+        raw = os.getenv(var)
+        if raw is None or raw.strip() == "":
+            continue
+        where = f"(env {var})"
+        try:
+            value = int(raw.strip())
+        except ValueError:
+            problems.append(Problem(where, None, f"not an integer: {raw!r}"))
+            continue
+        data = tuning.model_dump()
+        node = data
+        for k in path[:-1]:
+            node = node[k]
+        node[path[-1]] = value
+        try:
+            tuning = validate(Tuning, data, {}, where)
+            env[var] = raw
+        except ConfigInvalid as e:
+            problems += [Problem(where, None, p.message) for p in e.problems]
+    return tuning, env, problems
 
 
 @dataclass
@@ -133,7 +179,8 @@ class Config:
 
 def defaults() -> Config:
     """The built-in config: today's values, no files read."""
-    return Config(prompts=dict(prompt_defaults.PROMPTS), tuning=Tuning(), source="defaults")
+    tuning, env, _ = _apply_env(Tuning())    # a bad env var is reported by load()
+    return Config(prompts=dict(prompt_defaults.PROMPTS), tuning=tuning, source="defaults", env=env)
 
 
 # ── parsing ──────────────────────────────────────────────────────────────────
@@ -268,10 +315,14 @@ def load(base: Path | None = None) -> Config:
         digests[TUNING_FILE] = _digest(text)
     except ConfigInvalid as e:
         problems += e.problems
+    env: dict[str, str] = {}
+    if tuning is not None:
+        tuning, env, env_problems = _apply_env(tuning)
+        problems += env_problems
 
     if problems:
         raise ConfigInvalid(problems)
-    return Config(prompts=prompts, tuning=tuning, source="files", digests=digests)
+    return Config(prompts=prompts, tuning=tuning, source="files", digests=digests, env=env)
 
 
 # ── the values in effect ─────────────────────────────────────────────────────

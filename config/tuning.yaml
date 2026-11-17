@@ -22,3 +22,11 @@ agent_loop:
   # A tool called this many times in one turn gets a stop order appended to
   # its result (2026-07-05: five near-identical web_search calls). 2 to 20.
   repeat_tool_nudge_at: 3
+
+# The hourly cached home forecast, injected into the home agent's and the
+# coordinator's prompt so weather answers need no tool call (agents.weather_context).
+weather_context:
+  # Past this age (seconds) the forecast is left out and the agent calls
+  # get_weather instead. 60 to 86400. The env var WEATHER_CTX_MAX_AGE_S,
+  # when set, wins over this line.
+  max_age_s: 7200

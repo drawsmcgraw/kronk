@@ -24,9 +24,9 @@ logger = logging.getLogger(__name__)
 
 # Inject the hourly-cached home forecast into the home agent's prompt so
 # weather questions resolve in one LLM round with no tool call (2026-06
-# response-time program). Past this age we omit the injection and the agent
-# falls back to the live get_weather tool.
-WEATHER_CTX_MAX_AGE_S = int(os.getenv("WEATHER_CTX_MAX_AGE_S", "7200"))
+# response-time program). Past config/tuning.yaml weather_context.max_age_s
+# (env WEATHER_CTX_MAX_AGE_S wins if set) we omit the injection and the
+# agent falls back to the live get_weather tool.
 
 
 async def weather_context() -> str | None:
@@ -37,7 +37,7 @@ async def weather_context() -> str | None:
         if resp.status_code != 200:
             return None
         wx = resp.json()
-        if wx.get("age_s", 1e9) > WEATHER_CTX_MAX_AGE_S:
+        if wx.get("age_s", 1e9) > config_loader.current().tuning.weather_context.max_age_s:
             return None
         age_min = wx["age_s"] // 60
         return (
