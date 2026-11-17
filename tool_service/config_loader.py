@@ -240,9 +240,9 @@ def _changes(old: Config, new: Config) -> list[str]:
     return [f"{k}: {a.get(k)!r} -> {b.get(k)!r}" for k in sorted(set(a) | set(b)) if a.get(k) != b.get(k)]
 
 
-def _report(problems: list[Problem], when: str, kept: str) -> None:
+def _report(problems: list[Problem], when: str, effect: str) -> None:
     for p in problems:
-        logger.error("config %s rejected: %s (%s)", when, p, kept)
+        logger.error("config %s rejected: %s (%s)", when, p, effect)
 
 
 def start() -> Config:
@@ -272,7 +272,7 @@ def reload() -> dict:
     except ConfigInvalid as e:
         kept = (f"last good values ({old.source}, loaded "
                 f"{time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(old.loaded_at))})")
-        _report(e.problems, "on reload", f"kept {kept}")
+        _report(e.problems, "on reload", f"keeping {kept}")
         _status = {"ok": False, "errors": [p.as_dict() for p in e.problems], "event": "reload",
                    "kept": kept, "at": time.time()}
         return {"ok": False, "errors": _status["errors"], "kept": kept}
