@@ -1,6 +1,6 @@
 {
 "meta": {
-"recorded": "2026-11-17T12:09:31Z",
+"recorded": "2026-11-17T12:15:18Z",
 "rows": 160,
 "paths": [
 "live",
@@ -4416,6 +4416,249 @@
 ]
 }
 ],
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"album\"], \"search_query\": \"Albuquerque by Weird Al Yankovic\"}]": {
+"artists": [],
+"albums": [
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_3ArCHZrZ46m",
+"name": "Running With Scissors",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_3ArCHZrZ46m",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "\"Weird Al\" Yankovic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_P39nwhZcUy3",
+"name": "Polkamania!",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_P39nwhZcUy3",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "\"Weird Al\" Yankovic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_f2zQ75KjuqS",
+"name": "Hamildrops: The Complete Collection",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_f2zQ75KjuqS",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Lin-Manuel Miranda"
+}
+]
+}
+],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"album\"], \"search_query\": \"Albuquerque\"}]": {
+"artists": [],
+"albums": [
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_OE5fI1WuFAb",
+"name": "Albuquerque",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_OE5fI1WuFAb",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Albuquerque Bs. As."
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_AW8t53MXXx1",
+"name": "Albuquerque",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_AW8t53MXXx1",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Szymi Szyms"
+},
+{
+"name": "OsaKa"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_HwZx6rwy0Tg",
+"name": "Albuquerque",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_HwZx6rwy0Tg",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Michael Stacey"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_8J2WtXV0P1E",
+"name": "Albuquerque",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_8J2WtXV0P1E",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "The Picturebooks"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_SoJaHQlVtkQ",
+"name": "Live in Albuquerque '24",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_SoJaHQlVtkQ",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "bootleg gizzard"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_GMG5ZQk93U3",
+"name": "40 West to Albuquerque",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_GMG5ZQk93U3",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Joe Amato"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_xqpZf2i9PGG",
+"name": "Maré Cheia",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_xqpZf2i9PGG",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "P. Albuquerque"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_1VnoYG5sWTS",
+"name": "Cânticos de Sião Vol. 1",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_1VnoYG5sWTS",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Ivonaldo Albuquerque"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_pl3iRiq4Prg",
+"name": "Jeová",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_pl3iRiq4Prg",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Bereia Music"
+},
+{
+"name": "Ivonaldo Albuquerque"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_Viw1iUNcYDj",
+"name": "Cânticos de Recordações Vol. 1",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_Viw1iUNcYDj",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Ivonaldo Albuquerque"
+}
+]
+}
+],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
 "[\"music/search\", {\"limit\": 10, \"media_types\": [\"album\"], \"search_query\": \"Anime Pop Radio that's probably about it everything is pretty wet I just needed to make some space okay so yeah\"}]": {
 "artists": [],
 "albums": [
@@ -4433,6 +4676,184 @@
 "artists": [
 {
 "name": "The Weeknd"
+}
+]
+}
+],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"album\"], \"search_query\": \"Burning Down the House\"}]": {
+"artists": [],
+"albums": [
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_q57ktEdGXN4",
+"name": "Burning Down The House",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_q57ktEdGXN4",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Slydub"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_Z6W1VhWOttH",
+"name": "Burning Down The House",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_Z6W1VhWOttH",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "QUÉTIER"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_d9elK3ym34k",
+"name": "Burning Down the House",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_d9elK3ym34k",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Done Again"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_4jJj97d52d1",
+"name": "Burning Down The House",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_4jJj97d52d1",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Yung Felix"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_QiASzhYlePJ",
+"name": "Burning Down the House",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_QiASzhYlePJ",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Nytndae Jones"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_ckoOagz7QFt",
+"name": "BURNING DOWN THE HOUSE",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_ckoOagz7QFt",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "THE MARIO"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_SZebtngZjRM",
+"name": "Burning Down the House",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_SZebtngZjRM",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Leo"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_GXBCudgucb3",
+"name": "Burning Down the House",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_GXBCudgucb3",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Colucci"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_JzfHRfk7CW6",
+"name": "Speaking in Tongues",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_JzfHRfk7CW6",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Talking Heads"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_i1qdYfarWj7",
+"name": "The Karaoke Channel - Sing Burning Down the House Like Talking Heads",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_i1qdYfarWj7",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "The Karaoke Channel"
 }
 ]
 }
@@ -6783,6 +7204,314 @@
 "playlists": [],
 "radio": []
 },
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"album\"], \"search_query\": \"The Girl with the Sun in Her Head by Orbital\"}]": {
+"artists": [],
+"albums": [
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_MFbXN8PR9RS",
+"name": "In Sides",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_MFbXN8PR9RS",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Orbital"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_oj0jnoBO05h",
+"name": "Orbital 20",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_oj0jnoBO05h",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Orbital"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_5SwxMsraThp",
+"name": "Live at Glastonbury 1994-2004",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_5SwxMsraThp",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Orbital"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_8iASSFjwzcH",
+"name": "A Beginner's Guide (Best Of)",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_8iASSFjwzcH",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Orbital"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_cdgJWmgP1fF",
+"name": "30 Something",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_cdgJWmgP1fF",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Orbital"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_3s53YyVf0Q2",
+"name": "20",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_3s53YyVf0Q2",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Orbital"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_aIcexJk3p7h",
+"name": "Best Of Phonk",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_aIcexJk3p7h",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Popular Phonk Songs"
+},
+{
+"name": "Todays Phonk Music Top Hits"
+}
+]
+}
+],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"album\"], \"search_query\": \"The Girl with the Sun in Her Head\"}]": {
+"artists": [],
+"albums": [
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_MFbXN8PR9RS",
+"name": "In Sides",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_MFbXN8PR9RS",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Orbital"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_Qz7UyWlaCFg",
+"name": "No Album 2015",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_Qz7UyWlaCFg",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "dubqnp"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_oj0jnoBO05h",
+"name": "Orbital 20",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_oj0jnoBO05h",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Orbital"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_5SwxMsraThp",
+"name": "Live at Glastonbury 1994-2004",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_5SwxMsraThp",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Orbital"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_cdgJWmgP1fF",
+"name": "30 Something",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_cdgJWmgP1fF",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Orbital"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_0I6N8Xg7cax",
+"name": "WUNNA",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_0I6N8Xg7cax",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Gunna"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_3s53YyVf0Q2",
+"name": "20",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_3s53YyVf0Q2",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Orbital"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_8iASSFjwzcH",
+"name": "A Beginner's Guide (Best Of)",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_8iASSFjwzcH",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Orbital"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_veCWvfEngoW",
+"name": "Who Really Cares",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_veCWvfEngoW",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "TV Girl"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_iZ6rTVOt1Mi",
+"name": "A Girl Like Me",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_iZ6rTVOt1Mi",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Rihanna"
+}
+]
+}
+],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
 "[\"music/search\", {\"limit\": 10, \"media_types\": [\"album\"], \"search_query\": \"Toys in the Attic by Aerosmith\"}]": {
 "artists": [],
 "albums": [
@@ -7979,6 +8708,362 @@
 "playlists": [],
 "radio": []
 },
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"album\"], \"search_query\": \"toys in the attic by aerosmith\"}]": {
+"artists": [],
+"albums": [
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_VOMghHjJRyh",
+"name": "Toys In The Attic",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_VOMghHjJRyh",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_frBTvyWHZm9",
+"name": "Greatest Hits",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_frBTvyWHZm9",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_vUEeimM4xpl",
+"name": "Rocks",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_vUEeimM4xpl",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_qJUaRq83XHi",
+"name": "The Karaoke Channel - Sing Toys in the Attic Like Aerosmith",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_qJUaRq83XHi",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "The Karaoke Channel"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_Cf2ecVCLOkC",
+"name": "Aerosmith Medley: Pink / Walk This Way / Dream On / Janie's Got a Gun / Sweet Emotion / Fine / Love in a Elevator / Big Ten Inch Record / Toys in the Attic / Angel / Dude Looks Like a Lady / I Don't Wanna Miss a Thing",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_Cf2ecVCLOkC",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Silver"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_IrAUvxBEe0o",
+"name": "A Salute To Aerosmith",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_IrAUvxBEe0o",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Various Artists"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_xtzxdm2mi3K",
+"name": "Get A Grip Tour",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_xtzxdm2mi3K",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_A3ZKPcW1Nfo",
+"name": "Classics Live II",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_A3ZKPcW1Nfo",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_ddRz03b9ZCJ",
+"name": "A Tribute to Aerosmith",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_ddRz03b9ZCJ",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Studio Sunset"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_xPBQmejcdKR",
+"name": "A Tribute to Aerosmith",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_xPBQmejcdKR",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "The Insurgency"
+}
+]
+}
+],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"album\"], \"search_query\": \"toys in the attic\"}]": {
+"artists": [],
+"albums": [
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_VOMghHjJRyh",
+"name": "Toys In The Attic",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_VOMghHjJRyh",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_S0WSDzIlPhv",
+"name": "Toys in the Attic",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_S0WSDzIlPhv",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Moonalice"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_X6WaVFwkDTT",
+"name": "Toys In The Attic",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_X6WaVFwkDTT",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Treehouse"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_4aHeXllZFxA",
+"name": "Toys in the Attic",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_4aHeXllZFxA",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Icez Reggae"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_QieKHBjCbsJ",
+"name": "Toys in the Attic",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_QieKHBjCbsJ",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Band of Rain"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_OtZcd6m73rP",
+"name": "Toys in the Attic",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_OtZcd6m73rP",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Kau Tau"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_bB6s48ngA6k",
+"name": "Toys In The Attic",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_bB6s48ngA6k",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "MUTE"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_riDqdQxpoZZ",
+"name": "Toys In The Attic",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_riDqdQxpoZZ",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "EPayne"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_yRvrpiO9DPa",
+"name": "Toys In The Attic",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_yRvrpiO9DPa",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "LoTecOne"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_frBTvyWHZm9",
+"name": "Greatest Hits",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_frBTvyWHZm9",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+}
+],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
 "[\"music/search\", {\"limit\": 10, \"media_types\": [\"artist\"], \"search_query\": \"Aerosmith\"}]": {
 "artists": [
 {
@@ -8071,8 +9156,140 @@
 "playlists": [],
 "radio": []
 },
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"artist\"], \"search_query\": \"Albuquerque by Weird Al Yankovic\"}]": {
+"artists": [
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCa4LILjjT1YCeo5Xg9rQTMQ",
+"name": "Weird Al Yankovic",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCa4LILjjT1YCeo5Xg9rQTMQ",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+}
+],
+"albums": [],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"artist\"], \"search_query\": \"Albuquerque\"}]": {
+"artists": [
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCn6M9ym1TkTxIWDNQKRyxzw",
+"name": "Albuquerque",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCn6M9ym1TkTxIWDNQKRyxzw",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCa4LILjjT1YCeo5Xg9rQTMQ",
+"name": "Weird Al Yankovic",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCa4LILjjT1YCeo5Xg9rQTMQ",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+}
+],
+"albums": [],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
 "[\"music/search\", {\"limit\": 10, \"media_types\": [\"artist\"], \"search_query\": \"Anime Pop Radio that's probably about it everything is pretty wet I just needed to make some space okay so yeah\"}]": {
 "artists": [],
+"albums": [],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"artist\"], \"search_query\": \"Burning Down the House\"}]": {
+"artists": [
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCii49oLh3f6or9c1cIDyMcA",
+"name": "Burning Down The House",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCii49oLh3f6or9c1cIDyMcA",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCCmr_pJ7az1JfWUiujsiHWg",
+"name": "Talking Heads",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCCmr_pJ7az1JfWUiujsiHWg",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UChPyJft6cxsuQeo9yzQ4PQQ",
+"name": "AJR",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UChPyJft6cxsuQeo9yzQ4PQQ",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCEhvCLyMAAEhR4MkYW0RsKw",
+"name": "Burning Down The House Ringtone",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCEhvCLyMAAEhR4MkYW0RsKw",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCXATF3-9RFGyY-it_d2hB6A",
+"name": "Alex Warren",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCXATF3-9RFGyY-it_d2hB6A",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCaJzNdWS8sqLZErmGpSMuIQ",
+"name": "David Byrne",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCaJzNdWS8sqLZErmGpSMuIQ",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+}
+],
 "albums": [],
 "tracks": [],
 "playlists": [],
@@ -8980,6 +10197,133 @@
 "playlists": [],
 "radio": []
 },
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"artist\"], \"search_query\": \"The Girl with the Sun in Her Head by Orbital\"}]": {
+"artists": [
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCAObJYwBDFQWmIcT57UAptQ",
+"name": "Orbital",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCAObJYwBDFQWmIcT57UAptQ",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCReKBSHZ3WD75-IfsH6_7xw",
+"name": "John Barry",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCReKBSHZ3WD75-IfsH6_7xw",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+}
+],
+"albums": [],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"artist\"], \"search_query\": \"The Girl with the Sun in Her Head\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"artist\"], \"search_query\": \"Toys in the Attic by Aerosmith\"}]": {
+"artists": [
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCYuinPfuhK_rSlrJXvZQrng",
+"name": "Aerosmith",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCYuinPfuhK_rSlrJXvZQrng",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCkPXJdQaDMR7bbWN7pEcDwA",
+"name": "Steven Tyler",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCkPXJdQaDMR7bbWN7pEcDwA",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+}
+],
+"albums": [],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"artist\"], \"search_query\": \"Toys in the Attic\"}]": {
+"artists": [
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCHiNhmb-rH97W5xP5taAtlA",
+"name": "Toys in the Attic",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCHiNhmb-rH97W5xP5taAtlA",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCYuinPfuhK_rSlrJXvZQrng",
+"name": "Aerosmith",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCYuinPfuhK_rSlrJXvZQrng",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCkPXJdQaDMR7bbWN7pEcDwA",
+"name": "Steven Tyler",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCkPXJdQaDMR7bbWN7pEcDwA",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UC6yVJlo-Kx8hIIBLJ1Txg8g",
+"name": "Aerosmith Tribute Band",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UC6yVJlo-Kx8hIIBLJ1Txg8g",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+}
+],
+"albums": [],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
 "[\"music/search\", {\"limit\": 10, \"media_types\": [\"artist\"], \"search_query\": \"U2\"}]": {
 "artists": [
 {
@@ -9431,6 +10775,350 @@
 "playlists": [],
 "radio": []
 },
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"artist\"], \"search_query\": \"toys in the attic by aerosmith\"}]": {
+"artists": [
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCYuinPfuhK_rSlrJXvZQrng",
+"name": "Aerosmith",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCYuinPfuhK_rSlrJXvZQrng",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCkPXJdQaDMR7bbWN7pEcDwA",
+"name": "Steven Tyler",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCkPXJdQaDMR7bbWN7pEcDwA",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+}
+],
+"albums": [],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"artist\"], \"search_query\": \"toys in the attic\"}]": {
+"artists": [
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCHiNhmb-rH97W5xP5taAtlA",
+"name": "Toys in the Attic",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCHiNhmb-rH97W5xP5taAtlA",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCYuinPfuhK_rSlrJXvZQrng",
+"name": "Aerosmith",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCYuinPfuhK_rSlrJXvZQrng",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCkPXJdQaDMR7bbWN7pEcDwA",
+"name": "Steven Tyler",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCkPXJdQaDMR7bbWN7pEcDwA",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UC6yVJlo-Kx8hIIBLJ1Txg8g",
+"name": "Aerosmith Tribute Band",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UC6yVJlo-Kx8hIIBLJ1Txg8g",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+}
+],
+"albums": [],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"playlist\"], \"search_query\": \"Albuquerque by Weird Al Yankovic\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [],
+"playlists": [
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLRs7P0JducvisngI7LB4aD9YK0e4oEWu8",
+"name": "Albuquerque on Crack",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLRs7P0JducvisngI7LB4aD9YK0e4oEWu8",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLmFGeCXFR-mRowvw5QqFYaLMXyG1Oi1rn",
+"name": "Albuquerque but...",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLmFGeCXFR-mRowvw5QqFYaLMXyG1Oi1rn",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPL1Ghb6vWvFpPQc6z4rPKIPZCV6AaAybPA",
+"name": "albuquerque shit",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPL1Ghb6vWvFpPQc6z4rPKIPZCV6AaAybPA",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLc7D7WuIIE5A",
+"name": "Albuquerque is everything",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLc7D7WuIIE5A",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLR2APcW4ddL16Wmvzxewz9dV_v90fLbp1",
+"name": "albuquerque",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLR2APcW4ddL16Wmvzxewz9dV_v90fLbp1",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLba4NTCSHFnQKfwzYbbzscuRhB0gOxexZ",
+"name": "albuquerque",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLba4NTCSHFnQKfwzYbbzscuRhB0gOxexZ",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLrcaSnZRsweQnkYGMST3cB4hOE2aFhJoL",
+"name": "\"Weird Al\" Yankovic - The Saga Begins (Official Video) (alyankovic), ...",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLrcaSnZRsweQnkYGMST3cB4hOE2aFhJoL",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLf2MdbwF8gUoc29iY9hDV830qvwlJshQ0",
+"name": "Albuquerque",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLf2MdbwF8gUoc29iY9hDV830qvwlJshQ0",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLR6P76er3rX95YS8sbAztxxDxRX_6qFr-",
+"name": "My Albuquerque But Collections",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLR6P76er3rX95YS8sbAztxxDxRX_6qFr-",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPL2JzZ50hXXTXuAYusA4Z4L79eWRShgSrd",
+"name": "The Albuquerque Collection",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPL2JzZ50hXXTXuAYusA4Z4L79eWRShgSrd",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+}
+],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"playlist\"], \"search_query\": \"Albuquerque\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [],
+"playlists": [
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLYFF2U6hxnJo",
+"name": "Albuquerque",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLYFF2U6hxnJo",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLXUaT4hh09hR9ROPJmkKxkoqXDNUB7mtj",
+"name": "Albuquerque 3D",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLXUaT4hh09hR9ROPJmkKxkoqXDNUB7mtj",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLuzvm67XxeuxY2XIHV9U4StYqj-O60SVj",
+"name": "albuquerque knights",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLuzvm67XxeuxY2XIHV9U4StYqj-O60SVj",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLcQG3ISrK1xi9WXJ0AwN2KDOkW62iSEC0",
+"name": "Albuquerque but beta wireless",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLcQG3ISrK1xi9WXJ0AwN2KDOkW62iSEC0",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLWlhT8_mVCtsdcd7JqDZGZxKk1yYj6GyG",
+"name": "10 Different Versions of Albuquerque",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLWlhT8_mVCtsdcd7JqDZGZxKk1yYj6GyG",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLSg8Jx8gdrItdvEhOeiXaIWFPo-wMpACx",
+"name": "Los Reyes De Albuquerque",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLSg8Jx8gdrItdvEhOeiXaIWFPo-wMpACx",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLvpS10l-BHMjYon10JU28Vf-OcJZJrATk",
+"name": "Albuquerque/Al show / everything you know is wrong",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLvpS10l-BHMjYon10JU28Vf-OcJZJrATk",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPL6S4MqcAoKjaLgaF5yszhUl4v8yv-CV1l",
+"name": "Albuquerque but it's ordered by length",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPL6S4MqcAoKjaLgaF5yszhUl4v8yv-CV1l",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLHKMB4kxC83Owy6SlxlJOL1yyjSpErCHH",
+"name": "The Mavericks - Full Concert Stream - Albuquerque, NM - 7/23/2022 (The Mavericks), ...",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLHKMB4kxC83Owy6SlxlJOL1yyjSpErCHH",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLmrWSPRJIa7Dp4QEoWxnGXCEcrEE9fko6",
+"name": "Mix - Victor de Albuquerque",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLmrWSPRJIa7Dp4QEoWxnGXCEcrEE9fko6",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+}
+],
+"radio": []
+},
 "[\"music/search\", {\"limit\": 10, \"media_types\": [\"playlist\"], \"search_query\": \"Anime Bankers\"}]": {
 "artists": [],
 "albums": [],
@@ -9564,6 +11252,134 @@
 "albums": [],
 "tracks": [],
 "playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"playlist\"], \"search_query\": \"Burning Down the House\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [],
+"playlists": [
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLaJhh0k4dkH2TJ6l7ybkdFWgqYhN0zHj4",
+"name": "Burning down the house",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLaJhh0k4dkH2TJ6l7ybkdFWgqYhN0zHj4",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLaMulG2PkDaLotEYcDGQvE3xjfi_9Vxwv",
+"name": "BURNING DOWN THE HOUSE",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLaMulG2PkDaLotEYcDGQvE3xjfi_9Vxwv",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLL8tOUsgZwumw36I7byKgFjnZNkAhdqXZ",
+"name": "Song - Burning Down The House",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLL8tOUsgZwumw36I7byKgFjnZNkAhdqXZ",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLUgsH6P7ClEXIoEnZASep2IF7Pz9uM9dU",
+"name": "Burning Down The House - Talking Heads (Remixication Performances Playlist)",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLUgsH6P7ClEXIoEnZASep2IF7Pz9uM9dU",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLHUxpjp-uHx8",
+"name": "Burning Down The House Demo Reel",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLHUxpjp-uHx8",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLv0U_cEXUuiRIMd1KbO24cQ_6gdtrxs0E",
+"name": "burning down the house full movie",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLv0U_cEXUuiRIMd1KbO24cQ_6gdtrxs0E",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLJgKOXgk5L6vefBglF9vdPDQlZxP0VPDi",
+"name": "1983 - Burning Down The House",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLJgKOXgk5L6vefBglF9vdPDQlZxP0VPDi",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLgWtMszhB-4IamIyAJBlSGfjWZzMsOcZW",
+"name": "burning down the house live 1984",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLgWtMszhB-4IamIyAJBlSGfjWZzMsOcZW",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLHch3iFulb2soXBrHzwHjVOdJ2HSNDwei",
+"name": "Talking Heads - Burning Down the House (Single)",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLHch3iFulb2soXBrHzwHjVOdJ2HSNDwei",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLiTFILCyoQXE3rf5-xxlnvEXIFVlI4VEC",
+"name": "burning down the house movie scene",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLiTFILCyoQXE3rf5-xxlnvEXIFVlI4VEC",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+}
+],
 "radio": []
 },
 "[\"music/search\", {\"limit\": 10, \"media_types\": [\"playlist\"], \"search_query\": \"Don't stop me now by queen\"}]": {
@@ -10729,6 +12545,518 @@
 "media_type": "playlist",
 "provider": "ytmusic--kGmHoQDn",
 "item_id": "VLPLUyxVRjXWQL9cIDfItfPShXGQGPTW4TAe",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+}
+],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"playlist\"], \"search_query\": \"The Girl with the Sun in Her Head by Orbital\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [],
+"playlists": [
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLWJzFQuEc0H6cFkz3SeCDu_Me2N0X-Iu3",
+"name": "Best Of Orbital",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLWJzFQuEc0H6cFkz3SeCDu_Me2N0X-Iu3",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPL83B3FE2DF313D18F",
+"name": "Orbital",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPL83B3FE2DF313D18F",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLFD1F6DD80D2470DA",
+"name": "Orbital",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLFD1F6DD80D2470DA",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLdP7M4LAtXNiqgGlxsXNyZDFOGj-WLbKS",
+"name": "Orbital",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLdP7M4LAtXNiqgGlxsXNyZDFOGj-WLbKS",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLNL9I4BY2IGxnn65IUyDBuUGaOGV1kU_H",
+"name": "Orbital",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLNL9I4BY2IGxnn65IUyDBuUGaOGV1kU_H",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPL9bDKRED3z_B5pLzMMWbN1PBOAl5ima_1",
+"name": "Favorite Orbital",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPL9bDKRED3z_B5pLzMMWbN1PBOAl5ima_1",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLB4640D51982D84C9",
+"name": "Orbital",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLB4640D51982D84C9",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPL15559D758DA64F30",
+"name": "orbital",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPL15559D758DA64F30",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLD95A1312C4B4DEC2",
+"name": "Orbital ( mix )",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLD95A1312C4B4DEC2",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLBDFFE74B29076C95",
+"name": "orbital",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLBDFFE74B29076C95",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+}
+],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"playlist\"], \"search_query\": \"The Girl with the Sun in Her Head\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [],
+"playlists": [
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLDwAcYA24c4PMHlxf5zwxRg_TxbmMl_-h",
+"name": "Orbital - The girl with the sun in her head...",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLDwAcYA24c4PMHlxf5zwxRg_TxbmMl_-h",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLWzIKromiOwY",
+"name": "the orb",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLWzIKromiOwY",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLnjVULLIwbH_Yfx-h-9010Zybbc4BQThd",
+"name": "Thuis",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLnjVULLIwbH_Yfx-h-9010Zybbc4BQThd",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLE8-5oJ4qAuzPztNRfePRRaifmt2hzaqm",
+"name": "Warm up Kevin Murphy",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLE8-5oJ4qAuzPztNRfePRRaifmt2hzaqm",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLo6jl-COffjX58ZpgWsht9OHZHeiMjv8J",
+"name": "Drill 'n' Bass",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLo6jl-COffjX58ZpgWsht9OHZHeiMjv8J",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLuxrM-koIW3qkwtp5P2JazJLMiG0E40er",
+"name": "Patinir",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLuxrM-koIW3qkwtp5P2JazJLMiG0E40er",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLFq-gdYv4WFkxwdWWqM7nelSdYgfgkgGM",
+"name": "electronica",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLFq-gdYv4WFkxwdWWqM7nelSdYgfgkgGM",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLzTOn-amZ8Nmo9ykAi7hZySmvxsCmbTA1",
+"name": "New",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLzTOn-amZ8Nmo9ykAi7hZySmvxsCmbTA1",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLB0eNpWGDPlhiPoRYGNAuxKuHMWH6Itta",
+"name": "90s Trip Hop",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLB0eNpWGDPlhiPoRYGNAuxKuHMWH6Itta",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLq_pKbaNtusOkCSPcqybp1T72kyJZPjI7",
+"name": "1st-pt4",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLq_pKbaNtusOkCSPcqybp1T72kyJZPjI7",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+}
+],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"playlist\"], \"search_query\": \"Toys in the Attic by Aerosmith\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [],
+"playlists": [
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPL0bG8k_sNiqvHTDCwVWXG3hnRx5Zh2yPB",
+"name": "Aerosmith Toys in the Attic World Tour 1976-1977",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPL0bG8k_sNiqvHTDCwVWXG3hnRx5Zh2yPB",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLCAUI3rVZIQCWECSz92odzwbkLUCpyqCu",
+"name": "Aerosmith - Toys in the attic tour 1975",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLCAUI3rVZIQCWECSz92odzwbkLUCpyqCu",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLnIcEwAeZ-2gGWQOkGVnton4TPvpBD8iu",
+"name": "Aerosmith - Aerosmith / Get Your Wings / Toys in the Attic (Full Album)",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLnIcEwAeZ-2gGWQOkGVnton4TPvpBD8iu",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLUmnFgTjSIVXzEufUNbr5aWHwVonnAIZC",
+"name": "Aerosmith Unplugged",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLUmnFgTjSIVXzEufUNbr5aWHwVonnAIZC",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLq-sIok7EHJ3msb0Z8S1LhMt53TVV4JVs",
+"name": "1975 Aerosmith Toys In the Attic",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLq-sIok7EHJ3msb0Z8S1LhMt53TVV4JVs",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLkqz3S84Tw-TO2emQk1yCprgFienpy8t8",
+"name": "Aerosmith 'Toys In The Attic' Album 50th Anniversary",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLkqz3S84Tw-TO2emQk1yCprgFienpy8t8",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLI9dLXW_wEkeMTBaE3QVA3QCKHSfpYVWJ",
+"name": "Aerosmith ( Toy's In The Attic ) The Best of Them",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLI9dLXW_wEkeMTBaE3QVA3QCKHSfpYVWJ",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLotdSh_BA0OcgpFGRHuiLzk8kq3QZtfxX",
+"name": "Toys In The Attic／Aerosmith cover",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLotdSh_BA0OcgpFGRHuiLzk8kq3QZtfxX",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLFDC7987443DD28A3",
+"name": "Aerosmith - Toys in the Attic 1975",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLFDC7987443DD28A3",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLhnUGN9dSCAcw04CfYa5rgV2FqFn1yMRQ",
+"name": "Aerosmith-toys in the attic",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLhnUGN9dSCAcw04CfYa5rgV2FqFn1yMRQ",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+}
+],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"playlist\"], \"search_query\": \"Toys in the Attic\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [],
+"playlists": [
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLIkBOmM1YD00m6lhJUTWo0eiPG-FMnhCP",
+"name": "Aerosmith - “Toys in the Attic” (Full Album)",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLIkBOmM1YD00m6lhJUTWo0eiPG-FMnhCP",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPL0bG8k_sNiqvHTDCwVWXG3hnRx5Zh2yPB",
+"name": "Aerosmith Toys in the Attic World Tour 1976-1977",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPL0bG8k_sNiqvHTDCwVWXG3hnRx5Zh2yPB",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLrqC-Q5z4EboAkjtJ9r1-2h8J4bdEG9yg",
+"name": "Aetosmith-toys in the attic",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLrqC-Q5z4EboAkjtJ9r1-2h8J4bdEG9yg",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLotdSh_BA0OcgpFGRHuiLzk8kq3QZtfxX",
+"name": "Toys In The Attic／Aerosmith cover",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLotdSh_BA0OcgpFGRHuiLzk8kq3QZtfxX",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLnIcEwAeZ-2gGWQOkGVnton4TPvpBD8iu",
+"name": "Aerosmith - Aerosmith / Get Your Wings / Toys in the Attic (Full Album)",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLnIcEwAeZ-2gGWQOkGVnton4TPvpBD8iu",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLCd52J6eCO4I5_ZsKY2-ktB1JJ1nVnqTW",
+"name": "Aerosmith (1975) - Toys In The Attic",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLCd52J6eCO4I5_ZsKY2-ktB1JJ1nVnqTW",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLQ52gpnDA8MlwdiuDzZajPNpY4o00hm1u",
+"name": "Aerosmith - Aerosmith / Get Your Wings / Toys in the Attic (Full Album)",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLQ52gpnDA8MlwdiuDzZajPNpY4o00hm1u",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLZTq9opKXtb0",
+"name": "toys in the attic movie 1963 youtube",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLZTq9opKXtb0",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLq-sIok7EHJ3msb0Z8S1LhMt53TVV4JVs",
+"name": "1975 Aerosmith Toys In the Attic",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLq-sIok7EHJ3msb0Z8S1LhMt53TVV4JVs",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLH6OHJWKGKxE",
+"name": "toys in the attic 2009 full movie",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLH6OHJWKGKxE",
 "provider_mappings": [
 {
 "provider_domain": "ytmusic"
@@ -11975,6 +14303,262 @@
 "media_type": "playlist",
 "provider": "ytmusic--kGmHoQDn",
 "item_id": "VLPL8M5x1MuyLqj8Az4LlzgR7A54g4lp8tGx",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+}
+],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"playlist\"], \"search_query\": \"toys in the attic by aerosmith\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [],
+"playlists": [
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPL0bG8k_sNiqvHTDCwVWXG3hnRx5Zh2yPB",
+"name": "Aerosmith Toys in the Attic World Tour 1976-1977",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPL0bG8k_sNiqvHTDCwVWXG3hnRx5Zh2yPB",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLCAUI3rVZIQCWECSz92odzwbkLUCpyqCu",
+"name": "Aerosmith - Toys in the attic tour 1975",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLCAUI3rVZIQCWECSz92odzwbkLUCpyqCu",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLnIcEwAeZ-2gGWQOkGVnton4TPvpBD8iu",
+"name": "Aerosmith - Aerosmith / Get Your Wings / Toys in the Attic (Full Album)",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLnIcEwAeZ-2gGWQOkGVnton4TPvpBD8iu",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLq-sIok7EHJ3msb0Z8S1LhMt53TVV4JVs",
+"name": "1975 Aerosmith Toys In the Attic",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLq-sIok7EHJ3msb0Z8S1LhMt53TVV4JVs",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLUmnFgTjSIVXzEufUNbr5aWHwVonnAIZC",
+"name": "Aerosmith Unplugged",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLUmnFgTjSIVXzEufUNbr5aWHwVonnAIZC",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLI9dLXW_wEkeMTBaE3QVA3QCKHSfpYVWJ",
+"name": "Aerosmith ( Toy's In The Attic ) The Best of Them",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLI9dLXW_wEkeMTBaE3QVA3QCKHSfpYVWJ",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLkqz3S84Tw-TO2emQk1yCprgFienpy8t8",
+"name": "Aerosmith 'Toys In The Attic' Album 50th Anniversary",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLkqz3S84Tw-TO2emQk1yCprgFienpy8t8",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLotdSh_BA0OcgpFGRHuiLzk8kq3QZtfxX",
+"name": "Toys In The Attic／Aerosmith cover",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLotdSh_BA0OcgpFGRHuiLzk8kq3QZtfxX",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLFDC7987443DD28A3",
+"name": "Aerosmith - Toys in the Attic 1975",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLFDC7987443DD28A3",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLhnUGN9dSCAcw04CfYa5rgV2FqFn1yMRQ",
+"name": "Aerosmith-toys in the attic",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLhnUGN9dSCAcw04CfYa5rgV2FqFn1yMRQ",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+}
+],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"playlist\"], \"search_query\": \"toys in the attic\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [],
+"playlists": [
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLIkBOmM1YD00m6lhJUTWo0eiPG-FMnhCP",
+"name": "Aerosmith - “Toys in the Attic” (Full Album)",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLIkBOmM1YD00m6lhJUTWo0eiPG-FMnhCP",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPL0bG8k_sNiqvHTDCwVWXG3hnRx5Zh2yPB",
+"name": "Aerosmith Toys in the Attic World Tour 1976-1977",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPL0bG8k_sNiqvHTDCwVWXG3hnRx5Zh2yPB",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLotdSh_BA0OcgpFGRHuiLzk8kq3QZtfxX",
+"name": "Toys In The Attic／Aerosmith cover",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLotdSh_BA0OcgpFGRHuiLzk8kq3QZtfxX",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLnIcEwAeZ-2gGWQOkGVnton4TPvpBD8iu",
+"name": "Aerosmith - Aerosmith / Get Your Wings / Toys in the Attic (Full Album)",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLnIcEwAeZ-2gGWQOkGVnton4TPvpBD8iu",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLQ52gpnDA8MlwdiuDzZajPNpY4o00hm1u",
+"name": "Aerosmith - Aerosmith / Get Your Wings / Toys in the Attic (Full Album)",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLQ52gpnDA8MlwdiuDzZajPNpY4o00hm1u",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLZTq9opKXtb0",
+"name": "toys in the attic movie 1963 youtube",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLZTq9opKXtb0",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLq-sIok7EHJ3msb0Z8S1LhMt53TVV4JVs",
+"name": "1975 Aerosmith Toys In the Attic",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLq-sIok7EHJ3msb0Z8S1LhMt53TVV4JVs",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLH6OHJWKGKxE",
+"name": "toys in the attic 2009 full movie",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLH6OHJWKGKxE",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLA8MTaI12xRpsIiAbnk2TNAtFnpUsiDYB",
+"name": "Aerosmith - Toys In The Attic (Ai Instrumental)",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLA8MTaI12xRpsIiAbnk2TNAtFnpUsiDYB",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLCGk6tWQDLHFZadE_QTJweuGzxlO-Geli",
+"name": "Aerosmith Toys in the Attic",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLCGk6tWQDLHFZadE_QTJweuGzxlO-Geli",
 "provider_mappings": [
 {
 "provider_domain": "ytmusic"
@@ -16241,6 +18825,362 @@
 "playlists": [],
 "radio": []
 },
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"track\"], \"search_query\": \"Toys in the Attic by Aerosmith\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [
+{
+"uri": "ytmusic--kGmHoQDn://track/GNbVW12E_Sc",
+"name": "Toys In The Attic",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "GNbVW12E_Sc",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/UYfixAc1Bcs",
+"name": "Back In the Saddle",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UYfixAc1Bcs",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/_klibXZYrqM",
+"name": "Toys In The Attic",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "_klibXZYrqM",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Black Happy"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/1SX1fvt-a5g",
+"name": "Train Kept a Rollin'",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "1SX1fvt-a5g",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/7BJE7fuskCU",
+"name": "Toys in the Attic",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "7BJE7fuskCU",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "The Insurgency"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/vphgDqleuKc",
+"name": "Toys In The Attic",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "vphgDqleuKc",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Tracii Guns (L.A. Guns)"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/b5q_y43ht7s",
+"name": "Toys in the Attic (Originally Performed By Aerosmith)",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "b5q_y43ht7s",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Dohn Joe"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/Qzu9Z2Z9Irk",
+"name": "Toys in the Attic (Originally Performed by Aerosmith)",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "Qzu9Z2Z9Irk",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "The Karaoke Channel"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/4_sbRCEjzx4",
+"name": "Toys in the Attic (Made Popular By Aerosmith)",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "4_sbRCEjzx4",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Party Tyme Karaoke"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/GvI9acvFTn0",
+"name": "Walk This Way",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "GvI9acvFTn0",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+}
+],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"track\"], \"search_query\": \"Toys in the Attic\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [
+{
+"uri": "library://track/1998",
+"name": "Toys In The Attic",
+"media_type": "track",
+"provider": "library",
+"item_id": "1998",
+"provider_mappings": [
+{
+"provider_domain": "filesystem_local"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/GNbVW12E_Sc",
+"name": "Toys In The Attic",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "GNbVW12E_Sc",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/_klibXZYrqM",
+"name": "Toys In The Attic",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "_klibXZYrqM",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Black Happy"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/O-kH4Bz5Fq4",
+"name": "Toys In The Attic",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "O-kH4Bz5Fq4",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Jack Jones"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/Q_H_Ex7fscc",
+"name": "Toys In The Attic",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "Q_H_Ex7fscc",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "EPayne"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/ADVrnAMojPs",
+"name": "Toys In The Attic",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "ADVrnAMojPs",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Lady Dude"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/eAKsZIbh-gs",
+"name": "No More No More",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "eAKsZIbh-gs",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/2MfFTgaXqGQ",
+"name": "Jobsick",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "2MfFTgaXqGQ",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Toys in the Attic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/yCPBzXU0PXQ",
+"name": "Toy In The Attic",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "yCPBzXU0PXQ",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "James Clarke"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/wPJUJZIVEkc",
+"name": "Toyz in the Attic",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "wPJUJZIVEkc",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "OMNIA"
+}
+]
+}
+],
+"playlists": [],
+"radio": []
+},
 "[\"music/search\", {\"limit\": 10, \"media_types\": [\"track\"], \"search_query\": \"it\"}]": {
 "artists": [],
 "albums": [],
@@ -17470,6 +20410,362 @@
 "artists": [
 {
 "name": "EELS"
+}
+]
+}
+],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"track\"], \"search_query\": \"toys in the attic by aerosmith\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [
+{
+"uri": "ytmusic--kGmHoQDn://track/GNbVW12E_Sc",
+"name": "Toys In The Attic",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "GNbVW12E_Sc",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/UYfixAc1Bcs",
+"name": "Back In the Saddle",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UYfixAc1Bcs",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/_klibXZYrqM",
+"name": "Toys In The Attic",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "_klibXZYrqM",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Black Happy"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/1SX1fvt-a5g",
+"name": "Train Kept a Rollin'",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "1SX1fvt-a5g",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/vphgDqleuKc",
+"name": "Toys In The Attic",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "vphgDqleuKc",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Tracii Guns (L.A. Guns)"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/b5q_y43ht7s",
+"name": "Toys in the Attic (Originally Performed By Aerosmith)",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "b5q_y43ht7s",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Dohn Joe"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/d4N04HJ-ndc",
+"name": "Toys In The Attic",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "d4N04HJ-ndc",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/7BJE7fuskCU",
+"name": "Toys in the Attic",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "7BJE7fuskCU",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "The Insurgency"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/Qzu9Z2Z9Irk",
+"name": "Toys in the Attic (Originally Performed by Aerosmith)",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "Qzu9Z2Z9Irk",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "The Karaoke Channel"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/4_sbRCEjzx4",
+"name": "Toys in the Attic (Made Popular By Aerosmith)",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "4_sbRCEjzx4",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Party Tyme Karaoke"
+}
+]
+}
+],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"track\"], \"search_query\": \"toys in the attic\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [
+{
+"uri": "library://track/1998",
+"name": "Toys In The Attic",
+"media_type": "track",
+"provider": "library",
+"item_id": "1998",
+"provider_mappings": [
+{
+"provider_domain": "filesystem_local"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/GNbVW12E_Sc",
+"name": "Toys In The Attic",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "GNbVW12E_Sc",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/_klibXZYrqM",
+"name": "Toys In The Attic",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "_klibXZYrqM",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Black Happy"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/O-kH4Bz5Fq4",
+"name": "Toys In The Attic",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "O-kH4Bz5Fq4",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Jack Jones"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/ADVrnAMojPs",
+"name": "Toys In The Attic",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "ADVrnAMojPs",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Lady Dude"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/Q_H_Ex7fscc",
+"name": "Toys In The Attic",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "Q_H_Ex7fscc",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "EPayne"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/Fz6ApKSdy2w",
+"name": "Toys in the Attic",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "Fz6ApKSdy2w",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Dez"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/0QMQ3tH3Wew",
+"name": "Toys in the Attic",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "0QMQ3tH3Wew",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Latte Chill"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/2MfFTgaXqGQ",
+"name": "Jobsick",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "2MfFTgaXqGQ",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Toys in the Attic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/yCPBzXU0PXQ",
+"name": "Toy In The Attic",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "yCPBzXU0PXQ",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "James Clarke"
 }
 ]
 }

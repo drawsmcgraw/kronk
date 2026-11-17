@@ -53,7 +53,8 @@ logger = logging.getLogger("tool_service.music_decide")
 
 ALL_TYPES = ["artist", "album", "track", "playlist"]
 # Untyped exact-name checks, in the order a tie goes (resolver type_bonus).
-EXACT_ORDER = ["artist", "album", "playlist", "track"]
+# Not tracks: a title track must not beat its own album (title_track_album).
+EXACT_ORDER = ["artist", "album", "playlist"]
 GENERIC_TAIL = {"music", "songs", "song", "tunes", "stuff", "tracks", "vibes", "mix", "playlist", "please"}
 
 
@@ -252,6 +253,8 @@ async def _resolve(st: State, name: str, artist: str | None, media_type: str | N
     for c in res.ranked[:5]:
         st.candidates.append({"via": "search", **_cand(c)})
     st.keep_best(res.best)
+    if res.winner and media_type is None:
+        res.winner = title_track_album(res.winner, res.ranked, st.pol.strong_min_score)
     if res.winner:
         return res.winner, res, "search"
     if media_type == "radio" and types is None:
@@ -262,6 +265,22 @@ async def _resolve(st: State, name: str, artist: str | None, media_type: str | N
             st.candidates.append({"via": "station", **_cand(c), "created": station.get("created")})
             return c, res, "station"
     return None, res, "search"
+
+
+def title_track_album(winner, ranked, threshold):
+    """An untyped request whose winner is a track, with a strong album of the
+    same name and artist among the candidates, plays the album: the
+    resolver's type bonus is there for "a whole album over its title track",
+    and the library bonus on an owned track outweighs it ("Toys in the Attic
+    by Aerosmith": the NAS track 1.03, the album 1.015; M11 dev shadow)."""
+    if winner.media_type != "track":
+        return winner
+    key = (music_resolve.fold(winner.name), music_resolve.fold(winner.artist))
+    for c in ranked:
+        if c.media_type == "album" and c.score >= threshold and \
+                (music_resolve.fold(c.name), music_resolve.fold(c.artist)) == key:
+            return c
+    return winner
 
 
 async def finish_named(st: State, c, step: str, via: str, cross: bool = False) -> None:

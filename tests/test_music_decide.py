@@ -451,3 +451,13 @@ def test_a_whole_name_is_not_a_weak_title():
                StubReads(items=[item("Burning Down The House", "track", ("ytmusic",), "Talking Heads", library=False)],
                          genres=GENRES, model="style"))
     assert (o.kind, o.decided_by) == ("named", "named")
+
+
+def test_an_untyped_title_track_yields_to_its_album():
+    track = item("Toys In The Attic", "track", ("filesystem_local",), "Aerosmith")       # in the library
+    album = item("Toys in the Attic", "album", ("ytmusic",), "Aerosmith", library=False)
+    r = StubReads(library=[track], items=[album], genres=GENRES)
+    o, _ = run("Play toys in the attic by aerosmith", r)
+    assert (o.media_type, o.name) == ("album", "Toys in the Attic")
+    o, _ = run("play the song Toys in the Attic by Aerosmith", StubReads(library=[track], items=[album], genres=GENRES))
+    assert o.media_type == "track"                                                   # a type word decides
