@@ -162,9 +162,14 @@ services:
     # by satellite device id + time window. Read-only HA websocket with the
     # existing token; no HA change. See voice_tracer/main.py and
     # docs/features/telemetry.md.
-    build: ./voice_tracer
+    build:
+      context: ./voice_tracer
+      # orchestrator/command_forms.py is copied into the image (sprint M12:
+      # the wrong-action mark reads routing's own command forms).
+      additional_contexts:
+        orchestrator: ./orchestrator
     volumes:
-      - ./data:/data          # /data/voice_tracer_state.json — emitted run ids
+      - ./data:/data          # /data/voice_tracer_state.json — emitted and held run ids
     environment:
       - HA_URL=http://host.docker.internal:8123
       - HA_TOKEN=${HA_TOKEN}

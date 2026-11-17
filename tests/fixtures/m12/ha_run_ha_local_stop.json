@@ -1,0 +1,145 @@
+{
+ "note": "Real HA 2026.5.4 pipeline_debug/get payload shape (kronk pipeline, kitchen satellite, answered by HA's local intent, recorded 2026-11-17). Transcript and reply replaced by tests/voice_corpus.jsonl sentences; conversation id and TTS token replaced.",
+ "run_id": "01M7N8KB6KR016B41YWMFE60V4",
+ "result": {
+  "events": [
+   {
+    "type": "run-start",
+    "data": {
+     "pipeline": "01ksc2pw5bkhtk37dh2d6zwcxp",
+     "language": "en",
+     "conversation_id": "01M12FIXTURECONVERSATION00",
+     "satellite_id": "assist_satellite.home_assistant_voice_0ac919_assist_satellite",
+     "tts_output": {
+      "token": "m12-fixture-token.flac",
+      "url": "/api/tts_proxy/m12-fixture-token.flac",
+      "mime_type": "audio/flac",
+      "stream_response": true
+     }
+    },
+    "timestamp": "2026-11-17T17:24:13.651773+00:00"
+   },
+   {
+    "type": "stt-start",
+    "data": {
+     "engine": "stt.faster_whisper",
+     "metadata": {
+      "language": "en",
+      "format": "wav",
+      "codec": "pcm",
+      "bit_rate": 16,
+      "sample_rate": 16000,
+      "channel": 1
+     }
+    },
+    "timestamp": "2026-11-17T17:24:13.652061+00:00"
+   },
+   {
+    "type": "stt-vad-start",
+    "data": {
+     "timestamp": 1180
+    },
+    "timestamp": "2026-11-17T17:24:14.809330+00:00"
+   },
+   {
+    "type": "stt-vad-end",
+    "data": {
+     "timestamp": 2110
+    },
+    "timestamp": "2026-11-17T17:24:15.749305+00:00"
+   },
+   {
+    "type": "stt-end",
+    "data": {
+     "stt_output": {
+      "text": "Stop."
+     }
+    },
+    "timestamp": "2026-11-17T17:24:16.078023+00:00"
+   },
+   {
+    "type": "intent-start",
+    "data": {
+     "engine": "conversation.ollama_conversation",
+     "language": "en",
+     "intent_input": "Stop.",
+     "conversation_id": "01M12FIXTURECONVERSATION00",
+     "device_id": "e0949788663255952ce7778975527882",
+     "satellite_id": "assist_satellite.home_assistant_voice_0ac919_assist_satellite",
+     "prefer_local_intents": true
+    },
+    "timestamp": "2026-11-17T17:24:16.078272+00:00"
+   },
+   {
+    "type": "intent-end",
+    "data": {
+     "processed_locally": true,
+     "intent_output": {
+      "response": {
+       "speech": {
+        "plain": {
+         "speech": "Paused",
+         "extra_data": null
+        }
+       },
+       "card": {},
+       "language": "en",
+       "response_type": "action_done",
+       "data": {
+        "success": [
+         {
+          "name": "Kitchen",
+          "type": "area",
+          "id": "kitchen"
+         },
+         {
+          "name": "kitchen voice pe ma",
+          "type": "entity",
+          "id": "media_player.home_assistant_voice_0ac919_pe_01"
+         },
+         {
+          "name": "kitchen voice pe Media Player",
+          "type": "entity",
+          "id": "media_player.home_assistant_voice_0ac919_media_player"
+         }
+        ],
+        "failed": []
+       }
+      },
+      "conversation_id": "01M12FIXTURECONVERSATION00",
+      "continue_conversation": false
+     }
+    },
+    "timestamp": "2026-11-17T17:24:16.094327+00:00"
+   },
+   {
+    "type": "tts-start",
+    "data": {
+     "engine": "tts.piper",
+     "language": "en_US",
+     "voice": "en_US-hfc_male-medium",
+     "tts_input": "Paused",
+     "acknowledge_override": true
+    },
+    "timestamp": "2026-11-17T17:24:16.094467+00:00"
+   },
+   {
+    "type": "tts-end",
+    "data": {
+     "tts_output": {
+      "media_id": "media-source://tts/m12-fixture",
+      "token": "m12-fixture-token.flac",
+      "url": "/api/tts_proxy/m12-fixture-token.flac",
+      "mime_type": "audio/flac"
+     }
+    },
+    "timestamp": "2026-11-17T17:24:16.094662+00:00"
+   },
+   {
+    "type": "run-end",
+    "data": null,
+    "timestamp": "2026-11-17T17:24:16.094810+00:00"
+   }
+  ]
+ }
+}

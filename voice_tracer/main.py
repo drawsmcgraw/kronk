@@ -27,6 +27,17 @@ Trace and span ids derive from HA's run ids, so re-emitting a run (after a
 restart, or the periodic backstop poll) is idempotent in Tempo. The set of
 emitted run ids is also kept in /data/voice_tracer_state.json.
 
+The wrong-action signal (sprint M12, marks.py): a satellite's voice run is
+held back from export until its correction window (60 s, plus grace for a
+run that started at the edge) has closed, so a correction from the same
+satellite ("not that", a thumbs down, a stop, the same request again) is set
+as attributes on the earlier run's voice.run span before it leaves. Expect
+satellite voice traces in Grafana about three to four minutes after the
+utterance. The held run ids are in the state file too: after a restart they
+are fetched again from HA (up to HELD_RECOVERY_S old) and their marks are
+recomputed; any that HA no longer lists are logged and counted
+(/health held_lost), never dropped silently.
+
 Env:
   HA_URL, HA_TOKEN             Home Assistant (host networking → host.docker.internal)
   TEMPO_URL                    http://tempo:3200 (search API for the join)
@@ -58,9 +69,10 @@ import httpx
 import websockets
 
 try:
-    from . import convert
+    from . import convert, marks
 except ImportError:
     import convert
+    import marks
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger("voice_tracer")
@@ -82,6 +94,9 @@ JOIN_DELAYS_S = [15, 30, 45, 60]
 BACKFILL_S = 600         # at start, emit runs from the last 10 min not yet seen —
                          # older ones would land outside Tempo's ingestion slack
                          # (telemetry/tempo.yaml) and be invisible to ranged search
+HELD_RECOVERY_S = 660   # after a restart, runs that were held (not yet emitted) are fetched
+                        # again up to this age (11 min); marks.AGE_LIMIT_S (12 min) still
+                        # leaves them a minute to be classified, inside Tempo's 15 m slack
 SEEN_KEEP = 2000
 KRONK_SERVICE = "kronk-orchestrator"
 DEV_PIPELINES = {p.strip() for p in os.getenv("VOICE_TRACER_DEV_PIPELINES", "kronk-dev").split(",") if p.strip()}
@@ -94,7 +109,11 @@ def is_dev_run(specs: list) -> bool:
     return bool(specs) and specs[0].attrs.get("ha.pipeline_name") in DEV_PIPELINES
 
 HEALTH = {"connected": False, "last_event": None, "emitted": 0, "joined": 0,
-          "ambiguous": 0, "errors": 0, "started": time.time()}
+          "ambiguous": 0, "errors": 0, "started": time.time(),
+          # wrong-action signal (M12): runs held for their window, marks set,
+          # corrections that arrived after the earlier run was already
+          # exported, held runs lost across a restart
+          "held": 0, "marked": 0, "marks_late": 0, "held_lost": 0}
 
 
 # ── Emitter: SpanSpec trees → OTel spans with explicit timestamps ───────────
@@ -268,15 +287,23 @@ class VoiceTracer:
         self.pending_voice: dict[str, dict] = {}  # run_id → {"specs", "ends_at", "attempt"}
         self.recent_bp: dict[str, list[convert.SpanSpec]] = {}   # run_id → specs (for joins)
         self.recent_voice: dict[str, list[convert.SpanSpec]] = {}
+        # wrong-action signal (M12)
+        self.held: dict[str, dict] = {}           # run_id → {"specs", "key"}: finished, not yet emitted
+        self.facts: dict[str, marks.RunFacts] = {}   # run_id → facts, every recent fetched run
+        self.emitted_runs: set[str] = set()       # run ids exported this process (late-mark check)
+        self.prev_held: set[str] = set()          # held at the last save, from the state file
         self._load_state()
 
     # state
     def _load_state(self) -> None:
         try:
             with open(STATE_FILE) as f:
-                ids = json.load(f).get("seen") or []
+                state = json.load(f)
+            ids = state.get("seen") or []
             self.seen, self.seen_order = set(ids), list(ids)
-            logger.info("state: %d run ids loaded from %s", len(ids), STATE_FILE)
+            self.prev_held = set(state.get("held") or [])
+            logger.info("state: %d run ids loaded from %s (%d held for the wrong-action window)",
+                        len(ids), STATE_FILE, len(self.prev_held))
         except FileNotFoundError:
             pass
         except Exception as e:
@@ -291,10 +318,19 @@ class VoiceTracer:
             for old in self.seen_order[:-SEEN_KEEP]:
                 self.seen.discard(old)
             self.seen_order = self.seen_order[-SEEN_KEEP:]
+        self._save_state()
+
+    def _unemitted_held_ids(self) -> list[str]:
+        """Satellite runs fetched but not yet emitted (pending a join, or
+        held for the wrong-action window): what a restart must fetch again."""
+        out = [rid for rid, p in self.pending_voice.items() if p.get("holdable")]
+        return out + [rid for rid in self.held if rid not in self.pending_voice]
+
+    def _save_state(self) -> None:
         try:
             tmp = STATE_FILE + ".tmp"
             with open(tmp, "w") as f:
-                json.dump({"seen": self.seen_order}, f)
+                json.dump({"seen": self.seen_order, "held": sorted(self._unemitted_held_ids())}, f)
             os.replace(tmp, STATE_FILE)
         except Exception as e:
             logger.debug("state: could not save: %s", e)
@@ -304,7 +340,9 @@ class VoiceTracer:
         res = await ha.result(type="assist_pipeline/pipeline/list")
         self.pipelines = {p["id"]: p.get("name", p["id"]) for p in res.get("pipelines", [])}
 
-    async def fetch_voice_runs(self, ha: HAClient, since_s: float) -> None:
+    async def fetch_voice_runs(self, ha: HAClient, since_s: float, also: set[str] | frozenset = frozenset()) -> None:
+        """New finished runs since since_s. `also`: run ids held before a
+        restart, fetched again up to HELD_RECOVERY_S old."""
         for pid, pname in list(self.pipelines.items()):
             try:
                 lst = await ha.result(type="assist_pipeline/pipeline_debug/list", pipeline_id=pid)
@@ -314,9 +352,10 @@ class VoiceTracer:
             for r in lst.get("pipeline_runs") or []:
                 rid = r.get("pipeline_run_id")
                 key = f"pipeline:{rid}"
-                if not rid or key in self.seen or rid in self.pending_voice:
+                if not rid or key in self.seen or rid in self.pending_voice or rid in self.held:
                     continue
-                if convert._ns(r.get("timestamp")) / 1e9 < since_s:
+                t_run = convert._ns(r.get("timestamp")) / 1e9
+                if t_run < since_s and not (rid in also and t_run >= time.time() - HELD_RECOVERY_S):
                     continue
                 try:
                     g = await ha.result(type="assist_pipeline/pipeline_debug/get",
@@ -332,8 +371,12 @@ class VoiceTracer:
                         and time.time() - specs[0].end_ns / 1e9 < 120:
                     continue   # still running; pick it up next time
                 convert.assign_ids("pipeline", rid, specs)
+                facts = marks.facts_from_specs(specs, rid, pname in DEV_PIPELINES, RECORD_TEXT,
+                                               fetched_at=time.time())
+                self.facts[rid] = facts
                 self.pending_voice[rid] = {"specs": specs, "ends_at": specs[0].end_ns / 1e9,
-                                           "attempt": 0, "key": key}
+                                           "attempt": 0, "key": key,
+                                           "holdable": facts.satellite is not None}
                 logger.info("voice run %s (%s): %s, handled_by=%s", rid, pname,
                             specs[0].attrs.get("voice.stages"), specs[0].attrs.get("voice.handled_by"))
 
@@ -368,7 +411,7 @@ class VoiceTracer:
                     continue
                 convert.assign_ids("automation", rid, specs)
                 # join to a voice run already fetched (pending or emitted)
-                for v in list(self.pending_voice.values()):
+                for v in list(self.pending_voice.values()) + list(self.held.values()):
                     if convert.join_blueprint(v["specs"], specs):
                         break
                 else:
@@ -422,7 +465,20 @@ class VoiceTracer:
                 logger.warning("tempo search failed (attempt %d): %s", p["attempt"], ex)
                 ids = []
             if ids:
+                p["routing"] = await self.kronk_routing(http, ids[0])
                 self._finish_voice(rid, p, ids)
+        self.flush_held()
+
+    async def kronk_routing(self, http: httpx.AsyncClient, trace_id: str) -> dict:
+        """The joined Kronk trace's routing rule, direct choice and tools
+        (marks.routing_from_trace). Never text. {} when Tempo fails."""
+        try:
+            r = await http.get(f"{TEMPO_URL}/api/v2/traces/{trace_id}", timeout=10)
+            r.raise_for_status()
+            return marks.routing_from_trace(r.json())
+        except Exception as e:
+            logger.warning("tempo trace %s for routing failed: %s", trace_id, e)
+            return {}
 
     def _finish_voice(self, rid: str, p: dict, kronk_ids: list[str]) -> None:
         specs = p["specs"]
@@ -440,10 +496,97 @@ class VoiceTracer:
             if convert.join_blueprint(specs, bp_specs):
                 break
         self.recent_voice[rid] = specs
+        self._apply_routing(rid, specs, p.get("routing") or {})
+        self._mark_corrections(rid, specs)
         self.pending_voice.pop(rid, None)
-        self._emit(specs, p["key"])
-        logger.info("voice run %s emitted: handled_by=%s kronk=%s trace=%032x", rid,
-                    specs[0].attrs.get("voice.handled_by"), kronk_ids or "-", specs[0].trace_id)
+        facts = self.facts.get(rid)
+        if facts is not None and facts.satellite is not None:
+            specs[0].attrs["voice.mark_basis"] = "rule_and_text" if RECORD_TEXT else "rule_only"
+            self.held[rid] = {"specs": specs, "key": p["key"]}
+            HEALTH["held"] = len(self.held)
+            self._save_state()
+            logger.info("voice run %s held for the correction window: handled_by=%s kronk=%s trace=%032x",
+                        rid, specs[0].attrs.get("voice.handled_by"), kronk_ids or "-", specs[0].trace_id)
+        else:
+            self._emit_run(rid, specs, p["key"])
+
+    def _apply_routing(self, rid: str, specs: list[convert.SpanSpec], routing: dict) -> None:
+        """Kronk's routing decision onto the voice run (for the transcript
+        listing) and into its facts (for the mark)."""
+        root = specs[0]
+        for attr, k in (("kronk.rule", "rule"), ("kronk.direct_action", "direct_action")):
+            if routing.get(k):
+                root.attrs[attr] = routing[k]
+        if routing.get("tools"):
+            root.attrs["kronk.tools"] = list(routing["tools"])
+        facts = self.facts.get(rid)
+        if facts is not None:
+            facts.kronk_rule = routing.get("rule")
+            facts.kronk_action = routing.get("direct_action")
+
+    def _mark_corrections(self, rid: str, specs: list[convert.SpanSpec]) -> None:
+        """If this run corrects the run before it on the same satellite,
+        mark both (marks.find_mark). The earlier run is still pending or
+        held unless HOLD_MAX_S forced it out; then the mark is counted as
+        late and logged, not lost silently."""
+        later = self.facts.get(rid)
+        if later is None:
+            return
+        mark = marks.find_mark(list(self.facts.values()), later, RECORD_TEXT)
+        if mark is None:
+            return
+        target = self.pending_voice.get(mark.earlier_run_id) or self.held.get(mark.earlier_run_id)
+        if target is None:
+            HEALTH["marks_late"] += 1
+            logger.warning("voice run %s corrects %s (%s after %.1fs), but %s was already exported; not marked",
+                           rid, mark.earlier_run_id, mark.kind, mark.after_s, mark.earlier_run_id)
+            return
+        if "voice.corrected_by" in target["specs"][0].attrs:
+            return                               # the first correction wins
+        marks.apply_mark(target["specs"][0], specs[0], mark)
+        HEALTH["marked"] += 1
+        logger.info("voice run %s marked: %s by %s after %.1fs", mark.earlier_run_id, mark.kind, rid, mark.after_s)
+
+    def flush_held(self, now: float | None = None) -> None:
+        """Emit held runs whose correction window has closed."""
+        now = time.time() if now is None else now
+        unclassified = [self.facts[r] for r in self.pending_voice if r in self.facts]
+        for rid in list(self.held):
+            facts = self.facts.get(rid)
+            if facts is None or marks.ready_to_emit(facts, now, unclassified):
+                h = self.held.pop(rid)
+                self._emit_run(rid, h["specs"], h["key"])
+        HEALTH["held"] = len(self.held)
+        # forget facts no run can still need
+        for rid, f in list(self.facts.items()):
+            if rid not in self.pending_voice and rid not in self.held \
+                    and now - f.end_s > marks.AGE_LIMIT_S + marks.WINDOW_S:
+                self.facts.pop(rid, None)
+
+    def account_for_prev_held(self) -> None:
+        """After the first fetch following a start: runs held before the
+        restart that were not fetched again are lost. Say so."""
+        if not self.prev_held:
+            return
+        back = set(self.pending_voice) | set(self.held) | self.emitted_runs
+        lost = sorted(r for r in self.prev_held if r not in back and f"pipeline:{r}" not in self.seen)
+        if lost:
+            HEALTH["held_lost"] += len(lost)
+            logger.warning("%d voice run(s) held for the wrong-action window before the restart are no longer "
+                           "available from HA (older than %ds); not emitted: %s", len(lost), HELD_RECOVERY_S, lost)
+        else:
+            logger.info("all %d held voice run(s) fetched again after the restart", len(self.prev_held))
+        self.prev_held = set()
+        self._save_state()
+
+    def _emit_run(self, rid: str, specs: list[convert.SpanSpec], key: str) -> None:
+        self.emitted_runs.add(rid)
+        if len(self.emitted_runs) > SEEN_KEEP:
+            self.emitted_runs = set(list(self.emitted_runs)[-SEEN_KEEP // 2:])
+        self._emit(specs, key)
+        logger.info("voice run %s emitted: handled_by=%s corrected_by=%s trace=%032x", rid,
+                    specs[0].attrs.get("voice.handled_by"), specs[0].attrs.get("voice.corrected_by", "-"),
+                    specs[0].trace_id)
 
     def _emit(self, specs: list[convert.SpanSpec], key: str) -> None:
         emitter = self.dev_emitter if is_dev_run(specs) else self.emitter
@@ -483,8 +626,9 @@ class VoiceTracer:
             logger.info("connected to HA; pipelines=%s automations=%s",
                         list(self.pipelines.values()), list(self._automation_ids))
             since = time.time() - BACKFILL_S
-            await self.fetch_voice_runs(ha, since)
+            await self.fetch_voice_runs(ha, since, also=self.prev_held)
             await self.fetch_blueprint_runs(ha, since)
+            self.account_for_prev_held()
             fetch_voice_at: float | None = None
             fetch_bp_at: float | None = None
             last_poll = time.time()
@@ -524,6 +668,8 @@ class VoiceTracer:
                         await self.fetch_blueprint_runs(ha, now - 600)
                     if self.pending_voice:
                         await self.resolve_joins(http)
+                    if self.held:
+                        self.flush_held()
         finally:
             HEALTH["connected"] = False
             reader.cancel()

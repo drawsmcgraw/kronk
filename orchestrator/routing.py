@@ -25,6 +25,7 @@ import re
 from dataclasses import dataclass
 from typing import Callable
 
+import command_forms
 import config_loader
 import telemetry
 import transcript_gate
@@ -140,33 +141,10 @@ def asks_for_mirror_update(text: str | None) -> bool:
     """True when `text` contains the pinned mirror-update sentence."""
     return bool(text) and _MM_UPDATE_RE.search(text) is not None
 
-# Bare playback commands ("Stop!", "pause the music", "skip this song",
-# "louder") pin to the home agent, which owns control_music. A METHOD pin
-# in the plan's sense: the whole utterance IS the command, so there is no
-# compositeness to lose. Added 2026-09-10 after the coordinator answered a
-# bare "Stop!" with "Stop what?" (INVESTIGATION_2026-09-10_voice_stop).
-# Anchored start-to-end on purpose: "stop the timer", "pause my
-# subscription", "what is the next holiday" must not match.
-# Sprint M7: the match also fixes control_music's action, so the rule calls
-# the tool directly (RULES below). Each branch carries one named group;
-# _PLAYBACK_ACTIONS maps it to the action. "stop" means pause (the home
-# prompt's rule and tool_service's: pause keeps the queue for "resume").
-_PLAYBACK_RE = re.compile(
-    r"^\W*(?:please\s+)?(?:"
-    r"(?:(?P<pause>stop|pause|shut\s+up)|(?P<resume>resume|unpause)|(?P<next>skip|next))"
-    r"(?:\s+(?:the|this|that|my)?\s*(?:music|song|track|it|playback|playing))?"
-    r"|(?P<next_track>skip|next)\s+(?:this\s+|the\s+)?(?:song|track)"
-    r"|turn\s+(?:it|that|the\s+(?:music|volume))\s+(?:(?P<turn_up>up)|(?P<turn_down>down))"
-    r"|(?P<louder>louder)|(?P<quieter>quieter)"
-    r"|volume\s+(?:(?P<volume_up>up)|(?P<volume_down>down))"
-    r")(?:\s+please)?\W*$",
-    re.IGNORECASE,
-)
-_PLAYBACK_ACTIONS = {
-    "pause": "pause", "resume": "resume", "next": "next", "next_track": "next",
-    "turn_up": "volume_up", "louder": "volume_up", "volume_up": "volume_up",
-    "turn_down": "volume_down", "quieter": "volume_down", "volume_down": "volume_down",
-}
+# The bare playback, thumbs and "not that" forms live in command_forms.py
+# (sprint M12: voice_tracer reads the same forms). Aliased here.
+_PLAYBACK_RE = command_forms.PLAYBACK_RE
+_PLAYBACK_ACTIONS = command_forms.PLAYBACK_ACTIONS
 
 # Music requests pin to the home agent, which owns play_music. Added
 # 2026-10-05 after the coordinator answered blueprint misses itself with no
@@ -198,43 +176,10 @@ _MUSIC_RE = re.compile(
     re.IGNORECASE | re.DOTALL,
 )
 
-# Thumbs on the playing track pin to the home agent's rate_music tool
-# (2026-10-06, MA_LOCAL_PANDORA_FEATURES_PLAN). Anchored; the whole utterance
-# is the verdict. "I like this" alone is left to the coordinator — too
-# ambiguous without "song"/"one"/"track".
-# Sprint M7: the named group that matched fixes rate_music's thumb
-# (_RATE_THUMBS), so the rule calls the tool directly.
-_RATE_RE = re.compile(
-    r"^\W*(?:please\s+|kronk,?\s+)*(?:"
-    r"thumbs?\s*(?:(?P<thumbs_up>up)|(?P<thumbs_down>down))"
-    r"(?:\s+(?:on|for|to)?\s*(?:this|that|the)?\s*(?:song|track|one|station|it))?"
-    r"|(?:i\s+)?(?:(?P<like>like|love)|(?P<dislike>hate|dislike|don'?t\s+like))"
-    r"\s+(?:this|that)\s+(?:song|track|one|tune)"
-    r"|(?P<never_again>(?:never|don'?t)\s+play\s+(?:this|that)(?:\s+(?:song|track|one))?\s+again)"
-    r"|(?:(?P<upvote>up)|(?P<downvote>down))\s*vote(?:\s+(?:this|that)(?:\s+(?:song|track|one))?)?"
-    r"|(?:(?P<more>more)|(?P<less>less))\s+like\s+(?:this|that)(?:\s+(?:song|track|one))?"
-    r")(?:\s+please)?\W*$",
-    re.IGNORECASE,
-)
-_RATE_THUMBS = {
-    "thumbs_up": "up", "like": "up", "upvote": "up", "more": "up",
-    "thumbs_down": "down", "dislike": "down", "never_again": "down", "downvote": "down",
-    "less": "down",
-}
+_RATE_RE = command_forms.RATE_RE
+_RATE_THUMBS = command_forms.RATE_THUMBS
 
-# "Not that" after Kronk picked a genre plays the next pick (MUSIC_TASTE_
-# AGENT_PLAN step 5). Anchored: the whole utterance is the rejection.
-_ANOTHER_RE = re.compile(
-    r"^\W*(?:please\s+|kronk,?\s+)*(?:"
-    r"(?:no,?\s+)?not\s+(?:that|this)(?:\s+one)?"
-    r"|(?:play\s+|try\s+|put\s+on\s+)?something\s+(?:else|different)"
-    r"|(?:play\s+|try\s+)?(?:a\s+)?different\s+(?:one|song|station|music|genre|artist)"
-    r")(?:\s+please)?"
-    # the music blueprint appends the satellite's room (KRONK change 9);
-    # the `room` group is passed on as play_music's player (sprint M7)
-    r"(?:\s+(?:in|on)\s+the\s+(?P<room>[\w' -]{1,40}?))?\W*$",
-    re.IGNORECASE,
-)
+_ANOTHER_RE = command_forms.ANOTHER_RE
 
 # Stated household taste pins to the home agent's remember_music_preference
 # (MUSIC_TASTE_AGENT_PLAN step 3). Precision-first: "never play X" (not
@@ -480,6 +425,13 @@ async def classify(text: str, prior_history: list[dict]) -> str:
         meta = {"rule": d.rule}
         if d.direct:
             meta["direct"] = d.direct[0]
+            # The fixed-vocabulary choice of a direct call (control_music's
+            # action, rate_music's thumb): never user text, so it is on the
+            # span with TELEMETRY_RECORD_TEXT off. voice_tracer reads it to
+            # tell a stop or a thumbs down from a resume or a thumbs up (M12).
+            choice = (d.direct[1] or {}).get("action") or (d.direct[1] or {}).get("thumb")
+            if choice:
+                meta["direct_action"] = choice
         if d.request is not None:
             # The lead-in (M19): how much of the utterance was cut off.
             meta["lead_in_chars"] = len(text) - len(d.request)

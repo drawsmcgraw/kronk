@@ -1,0 +1,148 @@
+{
+ "note": "Real HA 2026.5.4 pipeline_debug/get payload shape (kronk pipeline, kitchen satellite, answered by Kronk, recorded 2026-11-17). Transcript and reply replaced by tests/voice_corpus.jsonl sentences; conversation id and TTS token replaced.",
+ "run_id": "01M7N8BBGP14J5CCD3M172F6RP",
+ "result": {
+  "events": [
+   {
+    "type": "run-start",
+    "data": {
+     "pipeline": "01ksc2pw5bkhtk37dh2d6zwcxp",
+     "language": "en",
+     "conversation_id": "01M12FIXTURECONVERSATION00",
+     "satellite_id": "assist_satellite.home_assistant_voice_0ac919_assist_satellite",
+     "tts_output": {
+      "token": "m12-fixture-token.flac",
+      "url": "/api/tts_proxy/m12-fixture-token.flac",
+      "mime_type": "audio/flac",
+      "stream_response": true
+     }
+    },
+    "timestamp": "2026-11-17T17:19:51.830886+00:00"
+   },
+   {
+    "type": "stt-start",
+    "data": {
+     "engine": "stt.faster_whisper",
+     "metadata": {
+      "language": "en",
+      "format": "wav",
+      "codec": "pcm",
+      "bit_rate": 16,
+      "sample_rate": 16000,
+      "channel": 1
+     }
+    },
+    "timestamp": "2026-11-17T17:19:51.831097+00:00"
+   },
+   {
+    "type": "stt-vad-start",
+    "data": {
+     "timestamp": 1050
+    },
+    "timestamp": "2026-11-17T17:19:52.875585+00:00"
+   },
+   {
+    "type": "stt-vad-end",
+    "data": {
+     "timestamp": 2820
+    },
+    "timestamp": "2026-11-17T17:19:54.628899+00:00"
+   },
+   {
+    "type": "stt-end",
+    "data": {
+     "stt_output": {
+      "text": "Play French Dinner Radio."
+     }
+    },
+    "timestamp": "2026-11-17T17:19:54.936318+00:00"
+   },
+   {
+    "type": "intent-start",
+    "data": {
+     "engine": "conversation.ollama_conversation",
+     "language": "en",
+     "intent_input": "Play French Dinner Radio.",
+     "conversation_id": "01M12FIXTURECONVERSATION00",
+     "device_id": "e0949788663255952ce7778975527882",
+     "satellite_id": "assist_satellite.home_assistant_voice_0ac919_assist_satellite",
+     "prefer_local_intents": true
+    },
+    "timestamp": "2026-11-17T17:19:54.936535+00:00"
+   },
+   {
+    "type": "intent-progress",
+    "data": {
+     "chat_log_delta": {
+      "role": "assistant",
+      "content": "Now playing French Dinner Radio."
+     }
+    },
+    "timestamp": "2026-11-17T17:19:54.996006+00:00"
+   },
+   {
+    "type": "intent-progress",
+    "data": {
+     "chat_log_delta": {
+      "content": ""
+     }
+    },
+    "timestamp": "2026-11-17T17:19:54.996090+00:00"
+   },
+   {
+    "type": "intent-end",
+    "data": {
+     "processed_locally": false,
+     "intent_output": {
+      "response": {
+       "speech": {
+        "plain": {
+         "speech": "Now playing French Dinner Radio.",
+         "extra_data": null
+        }
+       },
+       "card": {},
+       "language": "en",
+       "response_type": "action_done",
+       "data": {
+        "success": [],
+        "failed": []
+       }
+      },
+      "conversation_id": "01M12FIXTURECONVERSATION00",
+      "continue_conversation": false
+     }
+    },
+    "timestamp": "2026-11-17T17:19:54.996391+00:00"
+   },
+   {
+    "type": "tts-start",
+    "data": {
+     "engine": "tts.piper",
+     "language": "en_US",
+     "voice": "en_US-hfc_male-medium",
+     "tts_input": "Now playing French Dinner Radio.",
+     "acknowledge_override": false
+    },
+    "timestamp": "2026-11-17T17:19:54.996576+00:00"
+   },
+   {
+    "type": "tts-end",
+    "data": {
+     "tts_output": {
+      "media_id": "media-source://tts/m12-fixture",
+      "token": "m12-fixture-token.flac",
+      "url": "/api/tts_proxy/m12-fixture-token.flac",
+      "mime_type": "audio/flac"
+     }
+    },
+    "timestamp": "2026-11-17T17:19:54.997287+00:00"
+   },
+   {
+    "type": "run-end",
+    "data": null,
+    "timestamp": "2026-11-17T17:19:54.997591+00:00"
+   }
+  ]
+ }
+}
