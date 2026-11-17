@@ -24,11 +24,13 @@ PIN = json.loads((ROOT / "tests" / "fixtures" / "music_live_pin.json").read_text
 ROWS = [r for r in snapmod.corpus_rows() if snapmod.live_args(r, SNAP) is not None]
 
 
-def test_shadow_is_off_by_default_in_code_and_in_production_compose():
+def test_shadow_is_off_by_default_in_code_and_a_compose_setting_in_production():
+    """Off in code. In production it is one environment line in compose, turned
+    on at M11's promotion (2026-11-17); commenting that line turns it off."""
     assert music_shadow.ENABLED is False                 # the test env sets no MUSIC_SHADOW
     prod = (ROOT / "docker-compose.yml").read_text().split("\n  tool_service:")[1].split("\n  litellm:")[0]
-    lines = [line.strip() for line in prod.splitlines() if "MUSIC_SHADOW" in line]
-    assert lines and all(line.startswith("#") for line in lines), lines
+    lines = [line.strip() for line in prod.splitlines() if "MUSIC_SHADOW=" in line]
+    assert lines in (["- MUSIC_SHADOW=1"], ["# - MUSIC_SHADOW=1"]), lines
 
 
 def test_dev_turns_it_on_and_logs_under_data_dev():

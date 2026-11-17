@@ -96,9 +96,9 @@ services:
       # M11 shadow mode (docs/features/voice-music-control.md, "Shadow
       # mode"): every /music request also runs the new music decision on the
       # user's sentence and logs a comparison to ./data/music_shadow.jsonl;
-      # nothing it decides is played. Off unless set; the sprint coordinator
-      # turns it on at M11's promotion by uncommenting the next line.
-      # - MUSIC_SHADOW=1
+      # nothing it decides is played. Off unless set; turned on at M11's
+      # promotion (2026-11-17). Comment the next line to turn it off.
+      - MUSIC_SHADOW=1
       # Operator-only push alerts (e.g. a voice thumbs up that failed after
       # the household already heard "Thumbs up"). Same phone as the scripts.
       - HA_NOTIFY_SERVICE=notify/mobile_app_drew_pixel_11_pro
