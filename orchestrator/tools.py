@@ -6,6 +6,7 @@ from dataclasses import dataclass
 
 import httpx
 
+import config_loader
 from events import emit
 import origin
 import routing
@@ -505,22 +506,8 @@ def failure(text: str) -> ToolResult:
     """A handler's failed result: `text` is what the model reads, unchanged."""
     return ToolResult(text, failed=True)
 
-# Per-tool HTTP timeout policy (seconds). Everything else uses the default.
-TOOL_TIMEOUT_DEFAULT = 15
-TOOL_TIMEOUTS = {
-    "generate_diagram": 30,  # graphviz render can be slow on big graphs
-    "query_hottub": 5,       # local file read — fail fast
-    "play_music": 20,        # tool_service polls up to 8s to confirm playback
-    "control_music": 20,     # same verify poll for pause/resume/skip/volume
-    "rate_music": 25,        # MA feedback call + the skip verify poll on thumbs down
-    "now_playing": 15,
-    "remote_exec": 35,         # tool_service caps the exec at 30s + SSH setup
-    "http_check": 10,          # tool_service caps the whole check at 5s
-    "update_magicmirror": 30,  # SSH preflight to the Pi (~5-20s); the update
-                               # itself runs as a tool_service background task
-    "news_brief": 90,          # cache read is <2s; refresh=true regenerates
-                               # (feeds + one LLM call, ~20-35s)
-}
+# Per-tool HTTP timeouts (seconds) live in config/tuning.yaml tool_timeouts;
+# execute() reads the value in effect at call time.
 
 
 def _fail(action: str, resp: httpx.Response) -> ToolResult:
@@ -1061,7 +1048,7 @@ async def execute(name: str, args: dict) -> ToolResult:
     if handler is None:
         return failure(f"[Unknown tool: {name}]")
     try:
-        timeout = TOOL_TIMEOUTS.get(name, TOOL_TIMEOUT_DEFAULT)
+        timeout = config_loader.current().tuning.tool_timeouts.for_tool(name)
         async with httpx.AsyncClient(timeout=timeout) as client:
             out = await handler(client, args)
     except Exception as e:

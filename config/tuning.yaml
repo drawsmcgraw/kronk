@@ -30,3 +30,34 @@ weather_context:
   # get_weather instead. 60 to 86400. The env var WEATHER_CTX_MAX_AGE_S,
   # when set, wins over this line.
   max_age_s: 7200
+
+# How long the orchestrator waits for one tool's HTTP call to tool_service
+# (tools.execute), in seconds, more than 0 and at most 600.
+tool_timeouts:
+  # Every tool without its own line under per_tool.
+  default_s: 15
+  # By tool name; a name that is not a tool is rejected.
+  per_tool:
+    # Graphviz render can be slow on big graphs.
+    generate_diagram: 30
+    # Local file read: fail fast.
+    query_hottub: 5
+    # tool_service polls up to music.yaml verify.timeout_s (8 s) for
+    # `playing`; keep this above it.
+    play_music: 20
+    # Same verify poll for pause, resume, skip and volume.
+    control_music: 20
+    # Music Assistant feedback call, plus the skip verify poll on thumbs down.
+    rate_music: 25
+    # Reads the player state.
+    now_playing: 15
+    # SSH preflight to the Pi (about 5 to 20 s); the update itself runs as a
+    # tool_service background task.
+    update_magicmirror: 30
+    # tool_service caps the command at 30 s, plus SSH setup.
+    remote_exec: 35
+    # tool_service caps the whole check at 5 s.
+    http_check: 10
+    # A cache read is under 2 s; refresh=true regenerates the brief (feeds
+    # and one LLM call, about 20 to 35 s).
+    news_brief: 90

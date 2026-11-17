@@ -127,9 +127,50 @@ class WeatherContext(_Strict):
     max_age_s: int = Field(7200, ge=60, le=86400)
 
 
+_SECONDS = dict(gt=0, le=600)
+
+
+class PerToolTimeouts(_Strict):
+    """HTTP timeout (seconds) of one tool's call, by tool name. One field
+    per tool in tools.TOOL_DEFINITIONS (tests/test_config_loader.py checks
+    the names); None uses ToolTimeouts.default_s."""
+    get_weather: float | None = Field(None, **_SECONDS)
+    web_search: float | None = Field(None, **_SECONDS)
+    fetch_url: float | None = Field(None, **_SECONDS)
+    shopping_list_view: float | None = Field(None, **_SECONDS)
+    shopping_list_add: float | None = Field(None, **_SECONDS)
+    shopping_list_remove: float | None = Field(None, **_SECONDS)
+    shopping_list_clear: float | None = Field(None, **_SECONDS)
+    get_kronk_context: float | None = Field(None, **_SECONDS)
+    generate_diagram: float | None = Field(30, **_SECONDS)
+    query_hottub: float | None = Field(5, **_SECONDS)
+    solar_status: float | None = Field(None, **_SECONDS)
+    solar_detail: float | None = Field(None, **_SECONDS)
+    solar_energy: float | None = Field(None, **_SECONDS)
+    play_music: float | None = Field(20, **_SECONDS)
+    control_music: float | None = Field(20, **_SECONDS)
+    rate_music: float | None = Field(25, **_SECONDS)
+    remember_music_preference: float | None = Field(None, **_SECONDS)
+    now_playing: float | None = Field(15, **_SECONDS)
+    update_magicmirror: float | None = Field(30, **_SECONDS)
+    remote_exec: float | None = Field(35, **_SECONDS)
+    http_check: float | None = Field(10, **_SECONDS)
+    news_brief: float | None = Field(90, **_SECONDS)
+
+
+class ToolTimeouts(_Strict):
+    default_s: float = Field(15, **_SECONDS)
+    per_tool: PerToolTimeouts = Field(default_factory=PerToolTimeouts)
+
+    def for_tool(self, name: str) -> float:
+        value = getattr(self.per_tool, name) if name in type(self.per_tool).model_fields else None
+        return self.default_s if value is None else value
+
+
 class Tuning(_Strict):
     agent_loop: AgentLoop = Field(default_factory=AgentLoop)
     weather_context: WeatherContext = Field(default_factory=WeatherContext)
+    tool_timeouts: ToolTimeouts = Field(default_factory=ToolTimeouts)
 
 
 # Env vars that set a value before the move keep working, and win over the

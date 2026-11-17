@@ -412,3 +412,49 @@ async def test_weather_context_uses_the_age_in_effect(cfgdir, monkeypatch):
     t.write_text(t.read_text().replace("max_age_s: 7200", "max_age_s: 3600"))
     assert config_loader.reload()["ok"]
     assert await agents.weather_context() is None              # 5000 > 3600
+
+
+# ── tool timeouts ─────────────────────────────────────────────────────────────
+
+def test_tool_timeout_names_are_the_tools():
+    import tools
+    assert set(config_loader.PerToolTimeouts.model_fields) == \
+        {d["function"]["name"] for d in tools.TOOL_DEFINITIONS}
+
+
+def test_unknown_tool_timeout_is_rejected_with_its_line(cfgdir):
+    t = cfgdir / "tuning.yaml"
+    text = t.read_text().replace("    query_hottub: 5\n", "    query_hottub: 5\n    play_musik: 20\n")
+    t.write_text(text)
+    with pytest.raises(config_loader.ConfigInvalid) as e:
+        config_loader.load(cfgdir)
+    (p,) = e.value.problems
+    assert (p.line, p.message) == (text.splitlines().index("    play_musik: 20") + 1,
+                                   "tool_timeouts.per_tool.play_musik: unknown key")
+
+
+@pytest.mark.asyncio
+async def test_execute_uses_the_timeout_in_effect(cfgdir, monkeypatch):
+    import tools
+    seen = []
+
+    class Client:
+        def __init__(self, timeout=None, **kw): seen.append(timeout)
+        async def __aenter__(self): return self
+        async def __aexit__(self, *a): return False
+
+    async def handler(client, args):
+        return "ok"
+
+    monkeypatch.setattr(tools.httpx, "AsyncClient", Client)
+    monkeypatch.setitem(tools._HANDLERS, "query_hottub", handler)
+    monkeypatch.setitem(tools._HANDLERS, "web_search", handler)
+    await tools.execute("query_hottub", {})
+    await tools.execute("web_search", {})
+    t = cfgdir / "tuning.yaml"
+    t.write_text(t.read_text().replace("query_hottub: 5", "query_hottub: 7")
+                 .replace("default_s: 15", "default_s: 12"))
+    assert config_loader.reload()["ok"]
+    await tools.execute("query_hottub", {})
+    await tools.execute("web_search", {})
+    assert seen == [5, 15, 7, 12]

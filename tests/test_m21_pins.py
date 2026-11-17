@@ -277,8 +277,9 @@ def effective_values() -> dict:
     v["agents.weather_ctx_max_age_s"] = \
         agents.config_loader.current().tuning.weather_context.max_age_s
     names = sorted(d["function"]["name"] for d in tools.TOOL_DEFINITIONS)
-    v["tools.timeout_s"] = {n: tools.TOOL_TIMEOUTS.get(n, tools.TOOL_TIMEOUT_DEFAULT) for n in names}
-    v["tools.timeout_default_s"] = tools.TOOL_TIMEOUT_DEFAULT
+    timeouts = tools.config_loader.current().tuning.tool_timeouts
+    v["tools.timeout_s"] = {n: timeouts.for_tool(n) for n in names}
+    v["tools.timeout_default_s"] = timeouts.default_s
     v["tool_service.music_verify_timeout_s"] = ts.MUSIC_VERIFY_TIMEOUT_S
     v["tool_service.resolve_hint_min_score"] = ts.RESOLVE_HINT_MIN_SCORE
     v["music_resolve.play_min_score"] = mr.PLAY_MIN_SCORE

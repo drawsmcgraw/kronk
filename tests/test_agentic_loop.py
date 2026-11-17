@@ -118,7 +118,7 @@ def test_health_and_finance_features_are_gone():
     names = {t["function"]["name"] for t in tools.TOOL_DEFINITIONS}
     assert not removed_tools & names
     assert not removed_tools & set(tools._HANDLERS)
-    assert not removed_tools & set(tools.TOOL_TIMEOUTS)
+    assert not removed_tools & set(tools.config_loader.PerToolTimeouts.model_fields)
     assert "health" not in agents.AGENTS and "finance" not in agents.AGENTS
     menu = {d["function"]["name"] for d in agents.COORDINATOR.tool_defs()}
     assert "ask_health" not in menu and "ask_finance" not in menu
