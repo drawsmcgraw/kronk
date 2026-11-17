@@ -16,6 +16,7 @@ from pypdf import PdfReader
 
 import agents
 import config_api
+import config_loader
 import errors
 import render
 import metrics
@@ -35,6 +36,14 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # config/ was loaded when agents was imported, before logging was set
+    # up above; say the outcome again where the log will keep it.
+    st = config_loader.status()
+    if st["ok"]:
+        logger.info("config: %s from %s (%d files)", st["source"], st["dir"], len(st["files"]))
+    for e in st.get("errors", []):
+        logger.error("config at startup rejected: %s:%s: %s (running on built-in defaults)",
+                     e["file"], e["line"], e["message"])
     metrics.init_db()
     sessions.init_db()
     pruned = sessions.prune_idle()

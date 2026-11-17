@@ -123,6 +123,9 @@ async def _solar_poll_loop() -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global _weather_cache
+    # config/ (sprint M21): load now, so a bad file is reported at startup
+    # rather than on the first music request. Never raises.
+    config_loader.start()
     # Warm-start from disk so a restart doesn't lose the cache.
     try:
         if WEATHER_CACHE_FILE.exists():
