@@ -141,3 +141,25 @@ def test_resolver_out_of_range_is_rejected_with_its_line(cfgdir):
 
 def test_type_bonus_names_are_the_media_types():
     assert set(config_loader.TypeBonus.model_fields) == {"artist", "album", "playlist", "track", "radio"}
+
+
+def test_the_image_copies_every_module_the_service_imports():
+    """The Dockerfile copies an explicit file list. A tool_service module
+    missing from it crash-loops the container on import (M11 build: the dev
+    tool_service failed on music_decide before this test existed)."""
+    import ast
+    import re as _re
+    tdir = REPO / "tool_service"
+    local = {p.stem for p in tdir.glob("*.py") if p.stem != "__init__"}
+    copied = set(_re.findall(r"(\w+)\.py", " ".join(
+        line for line in (tdir / "Dockerfile").read_text().splitlines() if line.startswith("COPY"))))
+    needed, todo = set(), ["main"]
+    while todo:
+        mod = todo.pop()
+        if mod in needed:
+            continue
+        needed.add(mod)
+        for node in ast.walk(ast.parse((tdir / f"{mod}.py").read_text())):
+            names = [a.name for a in node.names] if isinstance(node, (ast.Import, ast.ImportFrom)) else []
+            todo += [n for n in names if n in local]
+    assert needed <= copied, sorted(needed - copied)
