@@ -326,3 +326,18 @@ def test_log_lines_drop_lines_before_the_row(monkeypatch):
     monkeypatch.setattr(vr, "docker", lambda *a: lines)
     t = vr.dt.datetime(2026, 11, 16, 1, 23, 10, 900000, tzinfo=vr.dt.timezone.utc).timestamp()
     assert [l.split(": ")[-1] for l in vr._log_lines("c", t)] == ["new"]
+
+
+def test_direct_row_passes_only_on_the_direct_path():
+    """Sprint M7: a row with expect.direct passes only if the orchestrator
+    logged its tool_call with direct=true."""
+    row = _row(direct=True)
+    dev = vr.DEVICES["office_sat1"]
+    base = {"rid": "a", "route": "home", "rule": "playback", "tools": ["home:control_music"],
+            "dry_run": []}
+    on = {c["check"]: c["ok"] for c in vr.compare_kronk(row, dev, False, {**base, "direct": ["control_music"]})}
+    off = {c["check"]: c["ok"] for c in vr.compare_kronk(row, dev, False, {**base, "direct": []})}
+    old = {c["check"]: c["ok"] for c in vr.compare_kronk(row, dev, False, base)}
+    assert on["direct"] is True and off["direct"] is False and old["direct"] is False
+    plain = {c["check"] for c in vr.compare_kronk(_row(), dev, False, base)}
+    assert "direct" not in plain

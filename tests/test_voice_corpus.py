@@ -45,6 +45,9 @@ PROVIDERS = {"pandora", "youtube_music", "nas"}
 AREAS = {None, "Kitchen", "Office", "Basement Theater"}
 DEVICES = {"Kitchen": "kitchen_pe", "Office": "office_sat1", "Basement Theater": "basement_pe"}
 XFAIL_LAYERS = {"routing", "live", "parser"}
+# The rules whose match fixes the whole tool call (sprint M7): their rows
+# carry expect.direct = true, and Kronk runs the tool with no model call.
+DIRECT_RULES = {"playback", "now_playing", "rate", "music_another", "mm_update"}
 PLAYER_RE = re.compile(r"^(origin|area:.+|entity:media_player\.[a-z0-9_]+|unknown:.+)$")
 ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 
@@ -92,6 +95,9 @@ def test_corpus_row_schema(row):
         assert e.get("provider") in PROVIDERS | {None}, rid
     if "player" in e:
         assert PLAYER_RE.match(e["player"]), f"{rid}: bad player {e['player']!r}"
+    # expect.direct pins the path: present (and true) exactly on the M7 rules.
+    assert e.get("direct", False) is (e["rule"] in DIRECT_RULES), (
+        f"{rid}: expect.direct must be true exactly for rules {sorted(DIRECT_RULES)}")
 
     assert row["source"], rid
     for src in row["source"]:
@@ -153,6 +159,38 @@ def test_corpus_routing(row):
         f"corpus row {row['id']}: {row['text']!r} routed {actual[0]}/{actual[1]}, "
         f"expected {expected[0]}/{expected[1]}"
     )
+
+
+# ── Layer one: the direct call (sprint M7) ───────────────────────────────────
+
+def _direct_params():
+    # A routing xfail makes the direct check fail only on rows that expect
+    # the direct path; elsewhere "no direct call" already holds.
+    for r in ROWS:
+        reason = r.get("xfail", {}).get("routing") if r["expect"].get("direct") else None
+        marks = [pytest.mark.xfail(strict=True, reason=f"[{r['id']}] {reason}")] if reason else []
+        yield pytest.param(r, id=r["id"], marks=marks)
+
+
+@pytest.mark.parametrize("row", list(_direct_params()))
+def test_corpus_direct_call(row):
+    """A row that expects the direct path gets routing.decide's direct call
+    for its tool, with its action / thumb; any other row gets none. Rows
+    marked xfail.routing are strict xfails here too."""
+    e = row["expect"]
+    d = routing.decide(row["text"])
+    if not e.get("direct"):
+        assert d.direct is None, f"corpus row {row['id']}: unexpected direct call {d.direct}"
+        return
+    assert d.direct is not None, f"corpus row {row['id']}: {row['text']!r} has no direct call ({d.rule})"
+    tool, args = d.direct
+    assert tool == e["tool"], f"corpus row {row['id']}: direct tool {tool}, expected {e['tool']}"
+    if "action" in e:
+        assert args.get("action") == e["action"], f"corpus row {row['id']}: {args}"
+    if "thumb" in e:
+        assert args.get("thumb") == e["thumb"], f"corpus row {row['id']}: {args}"
+    if e.get("kind") == "another":
+        assert args.get("kind") == "another", f"corpus row {row['id']}: {args}"
 
 
 # ── M11 parser assertions (the hook) ─────────────────────────────────────────

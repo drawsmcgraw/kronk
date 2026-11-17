@@ -278,7 +278,8 @@ def kronk_evidence(orch: str, tools: str, t_start: float, text: str, wait: float
     to lines written after the row was sent."""
     want = norm(text)[:60]
     deadline = time.monotonic() + wait
-    ev = {"rid": None, "route": None, "rule": None, "tools": [], "trace_id": None, "events": []}
+    ev = {"rid": None, "route": None, "rule": None, "tools": [], "direct": [], "trace_id": None,
+          "events": []}
     while True:
         lines = _log_lines(orch, t_start)
         reqs, by_rid = [], {}
@@ -302,6 +303,8 @@ def kronk_evidence(orch: str, tools: str, t_start: float, text: str, wait: float
                         ev["route"], ev["rule"] = e.get("route"), e.get("rule")
                     if e.get("event") == "tool_call":
                         ev["tools"].append(f"{e.get('agent')}:{e.get('tool')}")
+                        if e.get("direct"):       # run with no model call (sprint M7)
+                            ev["direct"].append(e.get("tool"))
                 break
         if time.monotonic() > deadline:
             break
@@ -371,6 +374,10 @@ def compare_kronk(row: dict, device: dict, processed_locally: bool, kev: dict) -
         # a claim the code cannot back.
         fired = [n for n in names if n in MUSIC_TOOLS]
         checks.append({"check": "no music tool", "ok": not fired, "expected": [], "actual": fired})
+    if e.get("direct"):
+        # The M7 rules run their tool directly, with no model call.
+        checks.append({"check": "direct", "ok": tool in kev.get("direct", []),
+                       "expected": tool, "actual": kev.get("direct", [])})
     refused = "mm_update_refused" in (kev.get("events") or [])
     if tool == MIRROR_TOOL:
         checks.append({"check": "mirror update not refused", "ok": not refused,
