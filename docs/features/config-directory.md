@@ -17,7 +17,7 @@ the models are told and how the loop is tuned:
 | `config/prompts/<name>.md` | orchestrator | The system prompt of each agent in `agents.AGENTS` (research, home, assistant, coding, talkie, devops) and of the coordinator |
 | `config/tuning.yaml` | orchestrator | Round budgets per agent, the repeat-call nudge threshold, the weather-context age, per-tool HTTP timeouts; since M14 the messy-transcript gate's `max_sentences` and `max_words` (`docs/features/messy-transcript-gate.md`) |
 | `config/lead_in.yaml` | orchestrator | The words of the "ask Kronk to" lead-in: verbs, names, leading fillers (sprint M19, `docs/features/lead-in.md`) |
-| `config/music.yaml` | tool_service | The playback verify window and the music resolver's thresholds and bonuses |
+| `config/music.yaml` | tool_service | The playback verify window and the music resolver's thresholds and bonuses; since M11 the sentence parser's words (`parser`) and the decision order's policy (`decision`: step order and the model step's place, thresholds, provider order, the model question), `docs/features/voice-music-control.md` |
 
 The move changed no behaviour: `tests/test_m21_pins.py` renders 3390
 system-prompt variants, 14 tool menus and every moved value and compares

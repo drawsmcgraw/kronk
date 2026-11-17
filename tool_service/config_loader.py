@@ -10,8 +10,9 @@ only tokenises here, and config_files.build() decides what a value is, so
 music.yaml and tuning.yaml are read as the same language.
 
 Files (docs/features/config-directory.md has the full description):
-  music.yaml   the playback verify window and the resolver's thresholds;
-               schema: the Music model below.
+  music.yaml   the playback verify window, the resolver's thresholds, and
+               (sprint M11) the sentence parser's words and the decision
+               order's policy; schema: the Music model below.
 
 Rules:
   - Load at startup (the first current() call). A file that fails

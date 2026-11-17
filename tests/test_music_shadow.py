@@ -218,6 +218,15 @@ def test_compare(live, new, want):
 
 # ── the review script ────────────────────────────────────────────────────────
 
+def test_report_counts_declined_sentences_apart(tmp_path, shadow_on):
+    _post({"query": "Orbital Radio", "media_type": "radio", "said": "We'll play Orbital Radio."})
+    _post({"query": "Portishead", "media_type": "artist", "said": "play Portishead"})
+    out = subprocess.run([sys.executable, str(ROOT / "scripts" / "music_shadow_report.py"), str(shadow_on.log),
+                          "--json"], capture_output=True, text=True, check=True)
+    s = json.loads(out.stdout)
+    assert (s["compared"], s["agree"], s["declined_not_music"], s["declined_live_played"]) == (1, 1, 1, 1)
+
+
 def test_report_summarises_a_log(tmp_path, shadow_on):
     for body in ({"query": "Portishead", "media_type": "artist", "said": "play Portishead"},
                  {"query": "jazz", "kind": "genre", "said": "put on some jazz"},
@@ -227,9 +236,10 @@ def test_report_summarises_a_log(tmp_path, shadow_on):
     out = subprocess.run([sys.executable, str(ROOT / "scripts" / "music_shadow_report.py"), str(shadow_on.log),
                           "--json"], capture_output=True, text=True, check=True)
     s = json.loads(out.stdout)
-    assert (s["shadowed"], s["compared"], s["skipped"]) == (4, 3, 1)
+    assert (s["shadowed"], s["compared"], s["skipped"], s["declined_not_music"]) == (4, 3, 1, 0)
     assert s["agree"] >= 2 and s["decided_by"] and "model_would_ask" in s
     assert all({"sentence", "live", "new", "why"} <= set(d) for d in s["disagreements"])
     text = subprocess.run([sys.executable, str(ROOT / "scripts" / "music_shadow_report.py"), str(shadow_on.log)],
                           capture_output=True, text=True, check=True).stdout
     assert "agreement:" in text and "decided_by:" in text and "model question would have fired:" in text
+    assert "declined (no request verb" in text

@@ -1,6 +1,6 @@
 {
  "meta": {
-  "started": "2026-11-17T12:22:52+00:00",
+  "started": "2026-11-17T12:31:12+00:00",
   "label": "m11-answers",
   "mode": "answers",
   "tool_service": "http://127.0.0.1:8103",
@@ -8,10 +8,10 @@
    "status": "ok",
    "music_dry_run": true
   },
-  "git_commit": "f6c91ee",
+  "git_commit": "26c6701",
   "corpus_sha256": "e1517e8d28b2d513",
   "selected": 107,
-  "finished": "2026-11-17T12:23:00+00:00"
+  "finished": "2026-11-17T12:31:19+00:00"
  },
  "rows": [
   {
@@ -51,7 +51,7 @@
     "say": "Dry run: would play the radio Anime Pop Radio on the Kitchen speaker. Nothing was sent to the speaker.",
     "decided_by": "named"
    },
-   "new_ms": 40,
+   "new_ms": 19,
    "new_trace": {
     "steps": [
      {
@@ -72,7 +72,7 @@
     ],
     "model": {},
     "searches": 0,
-    "ms": 20
+    "ms": 6
    },
    "checks": [
     {
@@ -113,7 +113,7 @@
      ]
     }
    ],
-   "live_ms": 19,
+   "live_ms": 10,
    "live": {
     "ok": true,
     "kind": "named",
@@ -167,7 +167,7 @@
     "say": "Dry run: would play the radio Anime Pop Radio on the Kitchen speaker. Nothing was sent to the speaker.",
     "decided_by": "named"
    },
-   "new_ms": 28,
+   "new_ms": 30,
    "new_trace": {
     "steps": [
      {
@@ -229,7 +229,7 @@
      ]
     }
    ],
-   "live_ms": 12,
+   "live_ms": 11,
    "live": {
     "ok": true,
     "kind": "named",
@@ -283,7 +283,7 @@
     "say": "Dry run: would play the radio Anime Pop Radio on the basement voice pe ma speaker. Nothing was sent to the speaker.",
     "decided_by": "named"
    },
-   "new_ms": 25,
+   "new_ms": 18,
    "new_trace": {
     "steps": [
      {
@@ -304,7 +304,7 @@
     ],
     "model": {},
     "searches": 0,
-    "ms": 7
+    "ms": 5
    },
    "checks": [
     {
@@ -345,7 +345,7 @@
      ]
     }
    ],
-   "live_ms": 11,
+   "live_ms": 9,
    "live": {
     "ok": true,
     "kind": "named",
@@ -399,7 +399,7 @@
     "say": "Dry run: would play the radio Mushroom Jazz Radio on the basement voice pe ma speaker. Nothing was sent to the speaker.",
     "decided_by": "named"
    },
-   "new_ms": 27,
+   "new_ms": 30,
    "new_trace": {
     "steps": [
      {
@@ -420,7 +420,7 @@
     ],
     "model": {},
     "searches": 0,
-    "ms": 7
+    "ms": 8
    },
    "checks": [
     {
@@ -461,7 +461,7 @@
      ]
     }
    ],
-   "live_ms": 11,
+   "live_ms": 13,
    "live": {
     "ok": true,
     "kind": "named",
@@ -514,7 +514,7 @@
     "say": "Dry run: would play the artist Portishead on the basement voice pe ma speaker. Nothing was sent to the speaker.",
     "decided_by": "named"
    },
-   "new_ms": 27,
+   "new_ms": 20,
    "new_trace": {
     "steps": [
      {
@@ -535,7 +535,7 @@
     ],
     "model": {},
     "searches": 0,
-    "ms": 7
+    "ms": 4
    },
    "checks": [
     {
@@ -567,7 +567,7 @@
      ]
     }
    ],
-   "live_ms": 14,
+   "live_ms": 10,
    "live": {
     "ok": true,
     "kind": "named",
@@ -614,7 +614,7 @@
     "say": "That doesn't sound like music I can play.",
     "decided_by": "parser"
    },
-   "new_ms": 15,
+   "new_ms": 11,
    "new_trace": {
     "steps": null,
     "model": null,
@@ -666,7 +666,7 @@
     "say": "Dry run: would play the radio Orbital Radio on the Kitchen speaker. Nothing was sent to the speaker.",
     "decided_by": "named"
    },
-   "new_ms": 16,
+   "new_ms": 13,
    "new_trace": {
     "steps": [
      {
@@ -728,7 +728,7 @@
      ]
     }
    ],
-   "live_ms": 40,
+   "live_ms": 28,
    "live": {
     "ok": true,
     "kind": "named",
@@ -780,7 +780,7 @@
     "say": "Dry run: would play the radio Orbital Radio on the Kitchen speaker. Nothing was sent to the speaker.",
     "decided_by": "named"
    },
-   "new_ms": 26,
+   "new_ms": 21,
    "new_trace": {
     "steps": [
      {
@@ -842,7 +842,7 @@
      ]
     }
    ],
-   "live_ms": 14,
+   "live_ms": 7,
    "live": {
     "ok": true,
     "kind": "named",
@@ -894,7 +894,7 @@
     "say": "Dry run: would play the radio Orbital Radio on the Kitchen speaker. Nothing was sent to the speaker.",
     "decided_by": "named"
    },
-   "new_ms": 25,
+   "new_ms": 17,
    "new_trace": {
     "steps": [
      {
@@ -915,7 +915,7 @@
     ],
     "model": {},
     "searches": 0,
-    "ms": 6
+    "ms": 4
    },
    "checks": [
     {
@@ -947,7 +947,7 @@
      ]
     }
    ],
-   "live_ms": 15,
+   "live_ms": 9,
    "live": {
     "ok": true,
     "kind": "named",
@@ -999,7 +999,7 @@
     "say": "That doesn't sound like music I can play.",
     "decided_by": "parser"
    },
-   "new_ms": 16,
+   "new_ms": 10,
    "new_trace": {
     "steps": null,
     "model": null,
@@ -1043,7 +1043,7 @@
      "actual": null
     }
    ],
-   "live_ms": 13,
+   "live_ms": 9,
    "live": {
     "ok": true,
     "kind": "named",
@@ -1093,7 +1093,7 @@
     "say": "That doesn't sound like music I can play.",
     "decided_by": "parser"
    },
-   "new_ms": 14,
+   "new_ms": 9,
    "new_trace": {
     "steps": null,
     "model": null,
@@ -1128,7 +1128,7 @@
      "actual": null
     }
    ],
-   "live_ms": 12,
+   "live_ms": 7,
    "live": {
     "ok": true,
     "kind": "named",
@@ -1182,7 +1182,7 @@
     "say": "Dry run: would play the radio French Dinner Radio on the Kitchen speaker. Nothing was sent to the speaker.",
     "decided_by": "named"
    },
-   "new_ms": 25,
+   "new_ms": 23,
    "new_trace": {
     "steps": [
      {
@@ -1203,7 +1203,7 @@
     ],
     "model": {},
     "searches": 0,
-    "ms": 4
+    "ms": 5
    },
    "checks": [
     {
@@ -1244,7 +1244,7 @@
      ]
     }
    ],
-   "live_ms": 14,
+   "live_ms": 12,
    "live": {
     "ok": true,
     "kind": "named",
@@ -1296,7 +1296,7 @@
     "say": "Dry run: would play the radio French Dinner Radio on the Kitchen speaker. Nothing was sent to the speaker.",
     "decided_by": "named"
    },
-   "new_ms": 24,
+   "new_ms": 22,
    "new_trace": {
     "steps": [
      {
@@ -1349,7 +1349,7 @@
      ]
     }
    ],
-   "live_ms": 13,
+   "live_ms": 10,
    "live": {
     "ok": true,
     "kind": "named",
@@ -1403,7 +1403,7 @@
     "say": "Dry run: would play the radio French Cafe Radio on the Kitchen speaker. Nothing was sent to the speaker.",
     "decided_by": "named"
    },
-   "new_ms": 21,
+   "new_ms": 24,
    "new_trace": {
     "steps": [
      {
@@ -1424,7 +1424,7 @@
     ],
     "model": {},
     "searches": 0,
-    "ms": 5
+    "ms": 6
    },
    "checks": [
     {
@@ -1518,7 +1518,7 @@
     "say": "Dry run: would play the track The Girl With The Sun In Her Head by Orbital on the Office speaker. Nothing was sent to the speaker.",
     "decided_by": "named"
    },
-   "new_ms": 58,
+   "new_ms": 56,
    "new_trace": {
     "steps": [
      {
@@ -1549,7 +1549,7 @@
     ],
     "model": {},
     "searches": 8,
-    "ms": 41
+    "ms": 40
    },
    "checks": [
     {
@@ -1587,7 +1587,7 @@
      ]
     }
    ],
-   "live_ms": 20,
+   "live_ms": 14,
    "live": {
     "ok": true,
     "kind": "named",
@@ -1663,7 +1663,7 @@
     ],
     "model": {},
     "searches": 0,
-    "ms": 5
+    "ms": 6
    },
    "checks": [
     {
@@ -1704,7 +1704,7 @@
      ]
     }
    ],
-   "live_ms": 32,
+   "live_ms": 45,
    "live": {
     "ok": true,
     "kind": "named",
@@ -1749,14 +1749,14 @@
     "artist": null,
     "provider": null,
     "named_provider": null,
-    "uri": "library://artist/1762",
+    "uri": "library://radio/258",
     "targets": [
      "media_player.satellite1_d8d1bc"
     ],
-    "say": "Dry run: would play Parov Stelar, for jazz, on the Office speaker. Nothing was sent to the speaker.",
+    "say": "Dry run: would play Mushroom Jazz Radio, for jazz, on the Office speaker. Nothing was sent to the speaker.",
     "decided_by": "genre_list"
    },
-   "new_ms": 42,
+   "new_ms": 48,
    "new_trace": {
     "steps": [
      {
@@ -1772,7 +1772,7 @@
     ],
     "model": {},
     "searches": 0,
-    "ms": 28
+    "ms": 29
    },
    "checks": [
     {
@@ -1804,7 +1804,7 @@
      ]
     }
    ],
-   "live_ms": 38,
+   "live_ms": 29,
    "live": {
     "ok": true,
     "kind": "genre",
@@ -1858,7 +1858,7 @@
     "say": "Dry run: would play the radio 90s, 2000s, Today's Hits Radio on the basement voice pe ma speaker. Nothing was sent to the speaker.",
     "decided_by": "named"
    },
-   "new_ms": 82,
+   "new_ms": 96,
    "new_trace": {
     "steps": [
      {
@@ -1890,7 +1890,7 @@
     ],
     "model": {},
     "searches": 4,
-    "ms": 47
+    "ms": 50
    },
    "checks": [
     {
@@ -1931,7 +1931,7 @@
      ]
     }
    ],
-   "live_ms": 40,
+   "live_ms": 46,
    "live": {
     "ok": true,
     "kind": "named",
@@ -1986,7 +1986,7 @@
     "say": "Dry run: would play the album Daisies of the Galaxy by Eels on the Kitchen speaker. Nothing was sent to the speaker.",
     "decided_by": "named"
    },
-   "new_ms": 25,
+   "new_ms": 20,
    "new_trace": {
     "steps": [
      {
@@ -2007,7 +2007,7 @@
     ],
     "model": {},
     "searches": 0,
-    "ms": 7
+    "ms": 6
    },
    "checks": [
     {
@@ -2054,7 +2054,7 @@
      ]
     }
    ],
-   "live_ms": 47,
+   "live_ms": 21,
    "live": {
     "ok": true,
     "kind": "named",
@@ -2104,7 +2104,7 @@
     "say": "That doesn't sound like music I can play.",
     "decided_by": "parser"
    },
-   "new_ms": 10,
+   "new_ms": 44,
    "new_trace": {
     "steps": null,
     "model": null,
@@ -2148,18 +2148,18 @@
      "actual": null
     }
    ],
-   "live_ms": 50,
+   "live_ms": 74,
    "live": {
     "ok": true,
     "kind": "genre",
     "media_type": null,
     "name": "deep house chill",
     "artist": null,
-    "uri": "Thievery Corporation",
+    "uri": "library://artist/1724",
     "targets": [
      "media_player.home_assistant_voice_0ac919_pe_01"
     ],
-    "detail": "Dry run: would play Thievery Corporation, for deep house chill, on the Kitchen speaker. Nothing was sent to the speaker."
+    "detail": "Dry run: would play Kruder & Dorfmeister, for deep house chill, on the Kitchen speaker. Nothing was sent to the speaker."
    },
    "agree_with_live": false,
    "agree_why": "only the live path plays",
@@ -2201,7 +2201,7 @@
     "say": "Dry run: would play the album Destiny Waiving by Ulrich Schnauss and Mark Peters on the Office speaker. Nothing was sent to the speaker.",
     "decided_by": "named"
    },
-   "new_ms": 41,
+   "new_ms": 61,
    "new_trace": {
     "steps": [
      {
@@ -2232,7 +2232,7 @@
     ],
     "model": {},
     "searches": 3,
-    "ms": 30
+    "ms": 46
    },
    "checks": [
     {
@@ -2270,7 +2270,7 @@
      ]
     }
    ],
-   "live_ms": 18,
+   "live_ms": 21,
    "live": {
     "ok": true,
     "kind": "named",
@@ -2325,7 +2325,7 @@
     "say": "Dry run: would play the album Destiny Waiving by Ulrich Schnauss and Mark Peters on the Kitchen speaker. Nothing was sent to the speaker.",
     "decided_by": "named"
    },
-   "new_ms": 54,
+   "new_ms": 85,
    "new_trace": {
     "steps": [
      {
@@ -2356,7 +2356,7 @@
     ],
     "model": {},
     "searches": 3,
-    "ms": 39
+    "ms": 69
    },
    "checks": [
     {
@@ -2403,7 +2403,7 @@
      ]
     }
    ],
-   "live_ms": 33,
+   "live_ms": 19,
    "live": {
     "ok": true,
     "kind": "named",
@@ -2458,7 +2458,7 @@
     "say": "Dry run: would play the album Hôtel Costes: 1999–2007, The Anniversary Boxset by Aphrodelics on the Kitchen speaker. Nothing was sent to the speaker.",
     "decided_by": "named"
    },
-   "new_ms": 26,
+   "new_ms": 33,
    "new_trace": {
     "steps": [
      {
@@ -2490,7 +2490,7 @@
     ],
     "model": {},
     "searches": 1,
-    "ms": 11
+    "ms": 16
    },
    "checks": [
     {
@@ -2531,7 +2531,7 @@
      ]
     }
    ],
-   "live_ms": 31,
+   "live_ms": 38,
    "live": {
     "ok": true,
     "kind": "named",
@@ -2582,7 +2582,7 @@
     "say": "That doesn't sound like music I can play.",
     "decided_by": "parser"
    },
-   "new_ms": 9,
+   "new_ms": 10,
    "new_trace": {
     "steps": null,
     "model": null,
@@ -2626,7 +2626,7 @@
      "actual": null
     }
    ],
-   "live_ms": 12,
+   "live_ms": 13,
    "live": {
     "ok": true,
     "kind": "named",
@@ -2789,7 +2789,7 @@
      "actual": null
     }
    ],
-   "live_ms": 10,
+   "live_ms": 16,
    "live": {
     "ok": true,
     "kind": "named",
@@ -2841,7 +2841,7 @@
     "say": "That doesn't sound like music I can play.",
     "decided_by": "parser"
    },
-   "new_ms": 23,
+   "new_ms": 9,
    "new_trace": {
     "steps": null,
     "model": null,
@@ -2885,7 +2885,7 @@
      "actual": null
     }
    ],
-   "live_ms": 8,
+   "live_ms": 10,
    "live": {
     "ok": true,
     "kind": "named",
@@ -2938,7 +2938,7 @@
     "say": "Dry run: would play the radio 90s, 2000s, Today's Hits Radio on the Office speaker. Nothing was sent to the speaker.",
     "decided_by": "named"
    },
-   "new_ms": 17,
+   "new_ms": 21,
    "new_trace": {
     "steps": [
      {
@@ -2959,7 +2959,7 @@
     ],
     "model": {},
     "searches": 0,
-    "ms": 3
+    "ms": 4
    },
    "checks": [
     {
@@ -3053,7 +3053,7 @@
     "say": "Dry run: would play the radio WOODSTOCK Radio on the Office speaker. Nothing was sent to the speaker.",
     "decided_by": "named"
    },
-   "new_ms": 20,
+   "new_ms": 19,
    "new_trace": {
     "steps": [
      {
@@ -3074,7 +3074,7 @@
     ],
     "model": {},
     "searches": 0,
-    "ms": 5
+    "ms": 6
    },
    "checks": [
     {
@@ -3115,7 +3115,7 @@
      ]
     }
    ],
-   "live_ms": 8,
+   "live_ms": 9,
    "live": {
     "ok": true,
     "kind": "named",
@@ -3169,7 +3169,7 @@
     "say": "Dry run: would play the playlist old man sings on the basement voice pe ma speaker, shuffled. Nothing was sent to the speaker.",
     "decided_by": "named"
    },
-   "new_ms": 18,
+   "new_ms": 23,
    "new_trace": {
     "steps": [
      {
@@ -3190,7 +3190,7 @@
     ],
     "model": {},
     "searches": 0,
-    "ms": 4
+    "ms": 6
    },
    "checks": [
     {
@@ -3276,7 +3276,7 @@
     "say": "Dry run: would play the radio 90s, 2000s, Today's Hits Radio on the Kitchen speaker. Nothing was sent to the speaker.",
     "decided_by": "named"
    },
-   "new_ms": 45,
+   "new_ms": 49,
    "new_trace": {
     "steps": [
      {
@@ -3308,7 +3308,7 @@
     ],
     "model": {},
     "searches": 2,
-    "ms": 28
+    "ms": 35
    },
    "checks": [
     {
@@ -3349,7 +3349,7 @@
      ]
     }
    ],
-   "live_ms": 31,
+   "live_ms": 42,
    "live": {
     "ok": true,
     "kind": "named",
@@ -3395,14 +3395,14 @@
     "artist": null,
     "provider": null,
     "named_provider": null,
-    "uri": "library://artist/1762",
+    "uri": "library://radio/258",
     "targets": [
      "media_player.satellite1_d8d1bc"
     ],
-    "say": "Dry run: would play Parov Stelar, for jazz, on the Office speaker. Nothing was sent to the speaker.",
+    "say": "Dry run: would play Mushroom Jazz Radio, for jazz, on the Office speaker. Nothing was sent to the speaker.",
     "decided_by": "genre_list"
    },
-   "new_ms": 56,
+   "new_ms": 47,
    "new_trace": {
     "steps": [
      {
@@ -3418,7 +3418,7 @@
     ],
     "model": {},
     "searches": 0,
-    "ms": 38
+    "ms": 31
    },
    "checks": [
     {
@@ -3450,18 +3450,18 @@
      ]
     }
    ],
-   "live_ms": 40,
+   "live_ms": 48,
    "live": {
     "ok": true,
     "kind": "genre",
     "media_type": null,
     "name": "jazz",
     "artist": null,
-    "uri": "library://artist/1762",
+    "uri": "library://radio/258",
     "targets": [
      "media_player.satellite1_d8d1bc"
     ],
-    "detail": "Dry run: would play Parov Stelar, for jazz, on the Office speaker. Nothing was sent to the speaker."
+    "detail": "Dry run: would play Mushroom Jazz Radio, for jazz, on the Office speaker. Nothing was sent to the speaker."
    },
    "agree_with_live": true,
    "agree_why": "same style",
@@ -3495,14 +3495,14 @@
     "artist": null,
     "provider": null,
     "named_provider": null,
-    "uri": "Groove Armada",
+    "uri": "Thievery Corporation",
     "targets": [
      "media_player.satellite1_d8d1bc"
     ],
-    "say": "Dry run: would play Groove Armada, for deep house chill, on the Office speaker. Nothing was sent to the speaker.",
+    "say": "Dry run: would play Thievery Corporation, for deep house chill, on the Office speaker. Nothing was sent to the speaker.",
     "decided_by": "genre_list"
    },
-   "new_ms": 84,
+   "new_ms": 104,
    "new_trace": {
     "steps": [
      {
@@ -3518,7 +3518,7 @@
     ],
     "model": {},
     "searches": 0,
-    "ms": 51
+    "ms": 55
    },
    "checks": [
     {
@@ -3557,11 +3557,11 @@
     "media_type": null,
     "name": "deep house chill",
     "artist": null,
-    "uri": "Thievery Corporation",
+    "uri": "Groove Armada",
     "targets": [
      "media_player.satellite1_d8d1bc"
     ],
-    "detail": "Dry run: would play Thievery Corporation, for deep house chill, on the Office speaker. Nothing was sent to the speaker."
+    "detail": "Dry run: would play Groove Armada, for deep house chill, on the Office speaker. Nothing was sent to the speaker."
    },
    "agree_with_live": true,
    "agree_why": "same style",
@@ -3595,14 +3595,14 @@
     "artist": null,
     "provider": null,
     "named_provider": null,
-    "uri": "ytmusic--kGmHoQDn://playlist/VLPLDf94jp-w2nTMh9tUBbtW9QGrgy5xA2BD",
+    "uri": "ytmusic--kGmHoQDn://playlist/VLPLscbe1HLfAPcb2MYx96Jk83Xzwn2P_FPK",
     "targets": [
      "media_player.satellite1_d8d1bc"
     ],
-    "say": "Dry run: would play Italian cooking music, for italian, on the Office speaker. Nothing was sent to the speaker.",
+    "say": "Dry run: would play ITALIAN GREATEST HITS, for italian, on the Office speaker. Nothing was sent to the speaker.",
     "decided_by": "model"
    },
-   "new_ms": 413,
+   "new_ms": 406,
    "new_trace": {
     "steps": [
      {
@@ -3640,7 +3640,7 @@
      "ms": 300
     },
     "searches": 4,
-    "ms": 359
+    "ms": 351
    },
    "checks": [
     {
@@ -3672,18 +3672,18 @@
      ]
     }
    ],
-   "live_ms": 27,
+   "live_ms": 25,
    "live": {
     "ok": true,
     "kind": "genre",
     "media_type": null,
     "name": "italian",
     "artist": null,
-    "uri": "ytmusic--kGmHoQDn://playlist/VLPLeffkdQ-r0eBWwi1VqZHDkgcVidR1TJUU",
+    "uri": "ytmusic--kGmHoQDn://playlist/VLPLscbe1HLfAPcb2MYx96Jk83Xzwn2P_FPK",
     "targets": [
      "media_player.satellite1_d8d1bc"
     ],
-    "detail": "Dry run: would play italian cooking music, for italian, on the Office speaker. Nothing was sent to the speaker."
+    "detail": "Dry run: would play ITALIAN GREATEST HITS, for italian, on the Office speaker. Nothing was sent to the speaker."
    },
    "agree_with_live": true,
    "agree_why": "same style",
@@ -3724,7 +3724,7 @@
     "say": "Dry run: would play Groove Armada, for deep house, on the Office speaker. Nothing was sent to the speaker.",
     "decided_by": "genre_list"
    },
-   "new_ms": 52,
+   "new_ms": 50,
    "new_trace": {
     "steps": [
      {
@@ -3738,7 +3738,7 @@
     ],
     "model": {},
     "searches": 0,
-    "ms": 30
+    "ms": 28
    },
    "checks": [
     {
@@ -3770,7 +3770,7 @@
      ]
     }
    ],
-   "live_ms": 59,
+   "live_ms": 45,
    "live": {
     "ok": true,
     "kind": "genre",
@@ -3822,7 +3822,7 @@
     "say": "Dry run: would play the artist Portishead on the Office speaker. Nothing was sent to the speaker.",
     "decided_by": "named"
    },
-   "new_ms": 56,
+   "new_ms": 52,
    "new_trace": {
     "steps": [
      {
@@ -3841,7 +3841,7 @@
     ],
     "model": {},
     "searches": 0,
-    "ms": 40
+    "ms": 42
    },
    "checks": [
     {
@@ -3873,7 +3873,7 @@
      ]
     }
    ],
-   "live_ms": 9,
+   "live_ms": 12,
    "live": {
     "ok": true,
     "kind": "named",
@@ -3919,7 +3919,7 @@
     "say": "That doesn't sound like music I can play.",
     "decided_by": "parser"
    },
-   "new_ms": 16,
+   "new_ms": 19,
    "new_trace": {
     "steps": null,
     "model": null,
@@ -3971,7 +3971,7 @@
     "say": "Dry run: would play the artist Pink Floyd on the Sonos Move Derp speaker. Nothing was sent to the speaker.",
     "decided_by": "other_reading"
    },
-   "new_ms": 23,
+   "new_ms": 22,
    "new_trace": {
     "steps": [
      {
@@ -4000,7 +4000,7 @@
     ],
     "model": {},
     "searches": 0,
-    "ms": 14
+    "ms": 13
    },
    "checks": [
     {
@@ -4032,7 +4032,7 @@
      ]
     }
    ],
-   "live_ms": 9,
+   "live_ms": 8,
    "live": {
     "ok": true,
     "kind": "named",
@@ -4084,7 +4084,7 @@
     "say": "Dry run: would play the radio K-Pop Radio on the Sonos Move Derp speaker. Nothing was sent to the speaker.",
     "decided_by": "named"
    },
-   "new_ms": 46,
+   "new_ms": 47,
    "new_trace": {
     "steps": [
      {
@@ -4115,7 +4115,7 @@
     ],
     "model": {},
     "searches": 2,
-    "ms": 25
+    "ms": 23
    },
    "checks": [
     {
@@ -4147,7 +4147,7 @@
      ]
     }
    ],
-   "live_ms": 8,
+   "live_ms": 9,
    "live": {
     "ok": true,
     "kind": "named",
@@ -4197,7 +4197,7 @@
     "say": "Dry run: would play the playlist anime bangers on the Sonos Move Derp speaker, shuffled. Nothing was sent to the speaker.",
     "decided_by": "named"
    },
-   "new_ms": 41,
+   "new_ms": 32,
    "new_trace": {
     "steps": [
      {
@@ -4229,7 +4229,7 @@
     ],
     "model": {},
     "searches": 1,
-    "ms": 27
+    "ms": 16
    },
    "checks": [
     {
@@ -4261,7 +4261,7 @@
      ]
     }
    ],
-   "live_ms": 15,
+   "live_ms": 25,
    "live": {
     "ok": true,
     "kind": "named",
@@ -4313,7 +4313,7 @@
     "say": "Dry run: would play the artist Pink Floyd on the Office speaker. Nothing was sent to the speaker.",
     "decided_by": "named"
    },
-   "new_ms": 21,
+   "new_ms": 16,
    "new_trace": {
     "steps": [
      {
@@ -4366,7 +4366,7 @@
      ]
     }
    ],
-   "live_ms": 10,
+   "live_ms": 14,
    "live": {
     "ok": true,
     "kind": "named",
@@ -4418,7 +4418,7 @@
     "say": "Dry run: would play the artist Pink Floyd on the Sonos Move Derp speaker. Nothing was sent to the speaker.",
     "decided_by": "named"
    },
-   "new_ms": 38,
+   "new_ms": 28,
    "new_trace": {
     "steps": [
      {
@@ -4437,7 +4437,7 @@
     ],
     "model": {},
     "searches": 0,
-    "ms": 20
+    "ms": 14
    },
    "checks": [
     {
@@ -4469,7 +4469,7 @@
      ]
     }
    ],
-   "live_ms": 13,
+   "live_ms": 12,
    "live": {
     "ok": true,
     "kind": "named",
@@ -4521,7 +4521,7 @@
     "say": "Dry run: would play Mushroom Jazz Radio, for jazz, on the Sonos Move Derp speaker. Nothing was sent to the speaker.",
     "decided_by": "genre_list"
    },
-   "new_ms": 53,
+   "new_ms": 69,
    "new_trace": {
     "steps": [
      {
@@ -4537,7 +4537,7 @@
     ],
     "model": {},
     "searches": 0,
-    "ms": 30
+    "ms": 38
    },
    "checks": [
     {
@@ -4569,18 +4569,18 @@
      ]
     }
    ],
-   "live_ms": 30,
+   "live_ms": 27,
    "live": {
     "ok": true,
     "kind": "genre",
     "media_type": null,
     "name": "jazz",
     "artist": null,
-    "uri": "library://artist/1724",
+    "uri": "library://radio/258",
     "targets": [
      "media_player.sonos_move_derp_2"
     ],
-    "detail": "Dry run: would play Kruder & Dorfmeister, for jazz, on the Sonos Move Derp speaker. Nothing was sent to the speaker."
+    "detail": "Dry run: would play Mushroom Jazz Radio, for jazz, on the Sonos Move Derp speaker. Nothing was sent to the speaker."
    },
    "agree_with_live": true,
    "agree_why": "same style",
@@ -4621,7 +4621,7 @@
     "say": "Dry run: would play the artist The Beatles on the Kitchen speaker. Nothing was sent to the speaker.",
     "decided_by": "named"
    },
-   "new_ms": 51,
+   "new_ms": 50,
    "new_trace": {
     "steps": [
      {
@@ -4640,7 +4640,7 @@
     ],
     "model": {},
     "searches": 0,
-    "ms": 17
+    "ms": 16
    },
    "checks": [
     {
@@ -4672,7 +4672,7 @@
      ]
     }
    ],
-   "live_ms": 14,
+   "live_ms": 9,
    "live": {
     "ok": true,
     "kind": "named",
@@ -4726,7 +4726,7 @@
     "say": "Dry run: would play the playlist Mellow Pink Floyd on the Kitchen speaker. Nothing was sent to the speaker.",
     "decided_by": "model"
    },
-   "new_ms": 344,
+   "new_ms": 348,
    "new_trace": {
     "steps": [
      {
@@ -4755,16 +4755,16 @@
      {
       "step": "model",
       "answer": "named",
-      "ms": 293
+      "ms": 299
      }
     ],
     "model": {
      "asked": true,
      "answer": "named",
-     "ms": 293
+     "ms": 299
     },
     "searches": 4,
-    "ms": 320
+    "ms": 325
    },
    "checks": [
     {
@@ -4796,7 +4796,7 @@
      ]
     }
    ],
-   "live_ms": 18,
+   "live_ms": 17,
    "live": {
     "ok": true,
     "kind": "named",
@@ -4849,7 +4849,7 @@
     "say": "Dry run: would play the track Albuquerque by Weird Al Yankovic on the Office speaker. Nothing was sent to the speaker.",
     "decided_by": "named"
    },
-   "new_ms": 83,
+   "new_ms": 85,
    "new_trace": {
     "steps": [
      {
@@ -4879,7 +4879,7 @@
     ],
     "model": {},
     "searches": 8,
-    "ms": 58
+    "ms": 61
    },
    "checks": [
     {
@@ -4969,7 +4969,7 @@
     "say": "Dry run: would play the artist Weird Al Yankovic on the Sonos Move Derp speaker. Nothing was sent to the speaker.",
     "decided_by": "named"
    },
-   "new_ms": 27,
+   "new_ms": 59,
    "new_trace": {
     "steps": [
      {
@@ -4990,7 +4990,7 @@
     ],
     "model": {},
     "searches": 0,
-    "ms": 5
+    "ms": 8
    },
    "checks": [
     {
@@ -5022,7 +5022,7 @@
      ]
     }
    ],
-   "live_ms": 27,
+   "live_ms": 28,
    "live": {
     "ok": true,
     "kind": "named",
@@ -5074,7 +5074,7 @@
     "say": "Dry run: would play the artist Journey on the Sonos Move Derp speaker. Nothing was sent to the speaker.",
     "decided_by": "named"
    },
-   "new_ms": 27,
+   "new_ms": 31,
    "new_trace": {
     "steps": [
      {
@@ -5093,7 +5093,7 @@
     ],
     "model": {},
     "searches": 0,
-    "ms": 13
+    "ms": 11
    },
    "checks": [
     {
@@ -5125,7 +5125,7 @@
      ]
     }
    ],
-   "live_ms": 13,
+   "live_ms": 9,
    "live": {
     "ok": true,
     "kind": "named",
@@ -5175,7 +5175,7 @@
     "say": "I couldn't play that. I don't know a speaker or room called 'blue group'. Speakers: Cameron’s MacBook Pro, Living Room Sony Bravia, SHIELD, Sonos Move Derp, Upper Shield, basement voice pe ma, kitchen voice pe ma, satellite 1 ma. Rooms with a speaker: Kitchen, Office.",
     "decided_by": "named"
    },
-   "new_ms": 38,
+   "new_ms": 34,
    "new_trace": {
     "steps": [
      {
@@ -5194,7 +5194,7 @@
     ],
     "model": {},
     "searches": 0,
-    "ms": 20
+    "ms": 14
    },
    "checks": [
     {
@@ -5222,7 +5222,7 @@
      "actual": null
     }
    ],
-   "live_ms": 10,
+   "live_ms": 6,
    "live": {
     "ok": false,
     "error": "I don't know a speaker or room called 'blue group'. Speakers: Cameron’s MacBook Pro, Living Room Sony Bravia, SHIELD, Sonos Move Derp, Upper Shield, basement voice pe ma, kitchen voice pe ma, satellite 1 ma. Rooms with a speaker: Kitchen, Office."
@@ -5266,7 +5266,7 @@
     "say": "Dry run: would play the artist Pink Floyd on the Sonos Move Derp speaker. Nothing was sent to the speaker.",
     "decided_by": "named"
    },
-   "new_ms": 52,
+   "new_ms": 35,
    "new_trace": {
     "steps": [
      {
@@ -5285,7 +5285,7 @@
     ],
     "model": {},
     "searches": 0,
-    "ms": 22
+    "ms": 15
    },
    "checks": [
     {
@@ -5317,7 +5317,7 @@
      ]
     }
    ],
-   "live_ms": 12,
+   "live_ms": 8,
    "live": {
     "ok": true,
     "kind": "named",
@@ -5370,7 +5370,7 @@
     "say": "Dry run: would play the track Don't Stop Me Now by Queen on the satellite 1 ma speaker. Nothing was sent to the speaker.",
     "decided_by": "named"
    },
-   "new_ms": 57,
+   "new_ms": 55,
    "new_trace": {
     "steps": [
      {
@@ -5437,7 +5437,7 @@
      ]
     }
    ],
-   "live_ms": 20,
+   "live_ms": 19,
    "live": {
     "ok": true,
     "kind": "named",
@@ -5511,7 +5511,7 @@
     ],
     "model": {},
     "searches": 0,
-    "ms": 5
+    "ms": 6
    },
    "checks": [
     {
@@ -5543,7 +5543,7 @@
      ]
     }
    ],
-   "live_ms": 28,
+   "live_ms": 24,
    "live": {
     "ok": true,
     "kind": "named",
@@ -5626,7 +5626,7 @@
     ],
     "model": {},
     "searches": 8,
-    "ms": 38
+    "ms": 42
    },
    "checks": [
     {
@@ -5664,7 +5664,7 @@
      ]
     }
    ],
-   "live_ms": 21,
+   "live_ms": 16,
    "live": {
     "ok": true,
     "kind": "named",
@@ -5837,7 +5837,251 @@
     ],
     "model": {},
     "searches": 1,
-    "ms": 30
+    "ms": 32
+   },
+   "checks": [
+    {
+     "check": "kind",
+     "ok": true,
+     "expected": "named",
+     "actual": "named"
+    },
+    {
+     "check": "media_type",
+     "ok": true,
+     "expected": "playlist",
+     "actual": "playlist"
+    },
+    {
+     "check": "name",
+     "ok": true,
+     "expected": "anime bangers",
+     "actual": "anime bangers"
+    },
+    {
+     "check": "provider",
+     "ok": true,
+     "expected": "youtube_music",
+     "actual": {
+      "named": "youtube_music",
+      "chosen": "youtube_music"
+     }
+    },
+    {
+     "check": "player",
+     "ok": true,
+     "expected": [
+      "media_player.satellite1_d8d1bc"
+     ],
+     "actual": [
+      "media_player.satellite1_d8d1bc"
+     ]
+    }
+   ],
+   "live_ms": 15,
+   "live": {
+    "ok": true,
+    "kind": "named",
+    "media_type": "playlist",
+    "name": "anime bangers",
+    "artist": null,
+    "uri": "library://playlist/13",
+    "targets": [
+     "media_player.satellite1_d8d1bc"
+    ],
+    "detail": "Dry run: would play the playlist anime bangers on the Office speaker, shuffled. Nothing was sent to the speaker."
+   },
+   "agree_with_live": true,
+   "agree_why": "same item",
+   "status": "pass"
+  },
+  {
+   "id": "eval-shuffle-my-youtube-playlist-old-man-video",
+   "text": "Shuffle my YouTube playlist, Old Man Video Games.",
+   "said": "Shuffle my YouTube playlist, Old Man Video Games.",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger",
+     "trigger": "playlist"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "playlist",
+    "name": "Old Man Video Games",
+    "provider": "youtube_music",
+    "shuffle": true,
+    "player": "origin"
+   },
+   "xfail": null,
+   "new": {
+    "ok": true,
+    "action": "play",
+    "kind": "named",
+    "media_type": "playlist",
+    "name": "Old man video games",
+    "artist": null,
+    "provider": "ytmusic",
+    "named_provider": "ytmusic",
+    "uri": "ytmusic--kGmHoQDn://playlist/VLPL0aUO9VyzQxd96o-H3aJjfBsIyRch37F8",
+    "targets": [
+     "media_player.satellite1_d8d1bc"
+    ],
+    "say": "Dry run: would play the playlist Old man video games on the Office speaker, shuffled. Nothing was sent to the speaker.",
+    "decided_by": "named"
+   },
+   "new_ms": 34,
+   "new_trace": {
+    "steps": [
+     {
+      "step": "markers",
+      "type": "playlist",
+      "type_word": "playlist",
+      "reading": "named"
+     },
+     {
+      "step": "genre_list",
+      "skipped": "a type word decided it"
+     },
+     {
+      "step": "named",
+      "via": "search",
+      "strong": true,
+      "best": {
+       "name": "Old man video games",
+       "artist": null,
+       "media_type": "playlist",
+       "uri": "ytmusic--kGmHoQDn://playlist/VLPL0aUO9VyzQxd96o-H3aJjfBsIyRch37F8",
+       "providers": [
+        "ytmusic"
+       ],
+       "score": 1.06
+      }
+     }
+    ],
+    "model": {},
+    "searches": 1,
+    "ms": 20
+   },
+   "checks": [
+    {
+     "check": "kind",
+     "ok": true,
+     "expected": "named",
+     "actual": "named"
+    },
+    {
+     "check": "media_type",
+     "ok": true,
+     "expected": "playlist",
+     "actual": "playlist"
+    },
+    {
+     "check": "name",
+     "ok": true,
+     "expected": "Old Man Video Games",
+     "actual": "Old man video games"
+    },
+    {
+     "check": "provider",
+     "ok": true,
+     "expected": "youtube_music",
+     "actual": {
+      "named": "youtube_music",
+      "chosen": "youtube_music"
+     }
+    },
+    {
+     "check": "player",
+     "ok": true,
+     "expected": [
+      "media_player.satellite1_d8d1bc"
+     ],
+     "actual": [
+      "media_player.satellite1_d8d1bc"
+     ]
+    }
+   ],
+   "live_ms": 16,
+   "live": {
+    "ok": true,
+    "kind": "named",
+    "media_type": "playlist",
+    "name": "Old man video games",
+    "artist": null,
+    "uri": "ytmusic--kGmHoQDn://playlist/VLPL0aUO9VyzQxd96o-H3aJjfBsIyRch37F8",
+    "targets": [
+     "media_player.satellite1_d8d1bc"
+    ],
+    "detail": "Dry run: would play the playlist Old man video games on the Office speaker, shuffled. Nothing was sent to the speaker."
+   },
+   "agree_with_live": true,
+   "agree_why": "same item",
+   "status": "pass"
+  },
+  {
+   "id": "eval-shuffle-my-youtube-playlist-anime-bangers",
+   "text": "Shuffle my YouTube playlist, anime bangers.",
+   "said": "Shuffle my YouTube playlist, anime bangers.",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger",
+     "trigger": "playlist"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "playlist",
+    "name": "anime bangers",
+    "provider": "youtube_music",
+    "shuffle": true,
+    "player": "origin"
+   },
+   "xfail": null,
+   "new": {
+    "ok": true,
+    "action": "play",
+    "kind": "named",
+    "media_type": "playlist",
+    "name": "anime bangers",
+    "artist": null,
+    "provider": "ytmusic",
+    "named_provider": "ytmusic",
+    "uri": "library://playlist/13",
+    "targets": [
+     "media_player.satellite1_d8d1bc"
+    ],
+    "say": "Dry run: would play the playlist anime bangers on the Office speaker, shuffled. Nothing was sent to the speaker.",
+    "decided_by": "named"
+   },
+   "new_ms": 15,
+   "new_trace": {
+    "steps": [
+     {
+      "step": "markers",
+      "type": "playlist",
+      "type_word": "playlist",
+      "reading": "named"
+     },
+     {
+      "step": "genre_list",
+      "skipped": "a type word decided it"
+     },
+     {
+      "step": "named",
+      "via": "exact",
+      "strong": true
+     }
+    ],
+    "model": {},
+    "searches": 0,
+    "ms": 3
    },
    "checks": [
     {
@@ -5896,250 +6140,6 @@
    "status": "pass"
   },
   {
-   "id": "eval-shuffle-my-youtube-playlist-old-man-video",
-   "text": "Shuffle my YouTube playlist, Old Man Video Games.",
-   "said": "Shuffle my YouTube playlist, Old Man Video Games.",
-   "device": "office_sat1",
-   "expected": {
-    "tier": "ha_local",
-    "ha": {
-     "source": "trigger",
-     "trigger": "playlist"
-    },
-    "route": "home",
-    "rule": "music",
-    "tool": "play_music",
-    "kind": "named",
-    "media_type": "playlist",
-    "name": "Old Man Video Games",
-    "provider": "youtube_music",
-    "shuffle": true,
-    "player": "origin"
-   },
-   "xfail": null,
-   "new": {
-    "ok": true,
-    "action": "play",
-    "kind": "named",
-    "media_type": "playlist",
-    "name": "Old man video games",
-    "artist": null,
-    "provider": "ytmusic",
-    "named_provider": "ytmusic",
-    "uri": "ytmusic--kGmHoQDn://playlist/VLPL0aUO9VyzQxd96o-H3aJjfBsIyRch37F8",
-    "targets": [
-     "media_player.satellite1_d8d1bc"
-    ],
-    "say": "Dry run: would play the playlist Old man video games on the Office speaker, shuffled. Nothing was sent to the speaker.",
-    "decided_by": "named"
-   },
-   "new_ms": 36,
-   "new_trace": {
-    "steps": [
-     {
-      "step": "markers",
-      "type": "playlist",
-      "type_word": "playlist",
-      "reading": "named"
-     },
-     {
-      "step": "genre_list",
-      "skipped": "a type word decided it"
-     },
-     {
-      "step": "named",
-      "via": "search",
-      "strong": true,
-      "best": {
-       "name": "Old man video games",
-       "artist": null,
-       "media_type": "playlist",
-       "uri": "ytmusic--kGmHoQDn://playlist/VLPL0aUO9VyzQxd96o-H3aJjfBsIyRch37F8",
-       "providers": [
-        "ytmusic"
-       ],
-       "score": 1.06
-      }
-     }
-    ],
-    "model": {},
-    "searches": 1,
-    "ms": 21
-   },
-   "checks": [
-    {
-     "check": "kind",
-     "ok": true,
-     "expected": "named",
-     "actual": "named"
-    },
-    {
-     "check": "media_type",
-     "ok": true,
-     "expected": "playlist",
-     "actual": "playlist"
-    },
-    {
-     "check": "name",
-     "ok": true,
-     "expected": "Old Man Video Games",
-     "actual": "Old man video games"
-    },
-    {
-     "check": "provider",
-     "ok": true,
-     "expected": "youtube_music",
-     "actual": {
-      "named": "youtube_music",
-      "chosen": "youtube_music"
-     }
-    },
-    {
-     "check": "player",
-     "ok": true,
-     "expected": [
-      "media_player.satellite1_d8d1bc"
-     ],
-     "actual": [
-      "media_player.satellite1_d8d1bc"
-     ]
-    }
-   ],
-   "live_ms": 22,
-   "live": {
-    "ok": true,
-    "kind": "named",
-    "media_type": "playlist",
-    "name": "Old man video games",
-    "artist": null,
-    "uri": "ytmusic--kGmHoQDn://playlist/VLPL0aUO9VyzQxd96o-H3aJjfBsIyRch37F8",
-    "targets": [
-     "media_player.satellite1_d8d1bc"
-    ],
-    "detail": "Dry run: would play the playlist Old man video games on the Office speaker, shuffled. Nothing was sent to the speaker."
-   },
-   "agree_with_live": true,
-   "agree_why": "same item",
-   "status": "pass"
-  },
-  {
-   "id": "eval-shuffle-my-youtube-playlist-anime-bangers",
-   "text": "Shuffle my YouTube playlist, anime bangers.",
-   "said": "Shuffle my YouTube playlist, anime bangers.",
-   "device": "office_sat1",
-   "expected": {
-    "tier": "ha_local",
-    "ha": {
-     "source": "trigger",
-     "trigger": "playlist"
-    },
-    "route": "home",
-    "rule": "music",
-    "tool": "play_music",
-    "kind": "named",
-    "media_type": "playlist",
-    "name": "anime bangers",
-    "provider": "youtube_music",
-    "shuffle": true,
-    "player": "origin"
-   },
-   "xfail": null,
-   "new": {
-    "ok": true,
-    "action": "play",
-    "kind": "named",
-    "media_type": "playlist",
-    "name": "anime bangers",
-    "artist": null,
-    "provider": "ytmusic",
-    "named_provider": "ytmusic",
-    "uri": "library://playlist/13",
-    "targets": [
-     "media_player.satellite1_d8d1bc"
-    ],
-    "say": "Dry run: would play the playlist anime bangers on the Office speaker, shuffled. Nothing was sent to the speaker.",
-    "decided_by": "named"
-   },
-   "new_ms": 29,
-   "new_trace": {
-    "steps": [
-     {
-      "step": "markers",
-      "type": "playlist",
-      "type_word": "playlist",
-      "reading": "named"
-     },
-     {
-      "step": "genre_list",
-      "skipped": "a type word decided it"
-     },
-     {
-      "step": "named",
-      "via": "exact",
-      "strong": true
-     }
-    ],
-    "model": {},
-    "searches": 0,
-    "ms": 7
-   },
-   "checks": [
-    {
-     "check": "kind",
-     "ok": true,
-     "expected": "named",
-     "actual": "named"
-    },
-    {
-     "check": "media_type",
-     "ok": true,
-     "expected": "playlist",
-     "actual": "playlist"
-    },
-    {
-     "check": "name",
-     "ok": true,
-     "expected": "anime bangers",
-     "actual": "anime bangers"
-    },
-    {
-     "check": "provider",
-     "ok": true,
-     "expected": "youtube_music",
-     "actual": {
-      "named": "youtube_music",
-      "chosen": "youtube_music"
-     }
-    },
-    {
-     "check": "player",
-     "ok": true,
-     "expected": [
-      "media_player.satellite1_d8d1bc"
-     ],
-     "actual": [
-      "media_player.satellite1_d8d1bc"
-     ]
-    }
-   ],
-   "live_ms": 23,
-   "live": {
-    "ok": true,
-    "kind": "named",
-    "media_type": "playlist",
-    "name": "anime bangers",
-    "artist": null,
-    "uri": "library://playlist/13",
-    "targets": [
-     "media_player.satellite1_d8d1bc"
-    ],
-    "detail": "Dry run: would play the playlist anime bangers on the Office speaker, shuffled. Nothing was sent to the speaker."
-   },
-   "agree_with_live": true,
-   "agree_why": "same item",
-   "status": "pass"
-  },
-  {
    "id": "eval-shuffle-the-youtube-music-playlist-anime-bangers",
    "text": "Shuffle the YouTube music playlist, anime bangers.",
    "said": "Shuffle the YouTube music playlist, anime bangers.",
@@ -6177,7 +6177,7 @@
     "say": "Dry run: would play the playlist anime bangers on the Office speaker, shuffled. Nothing was sent to the speaker.",
     "decided_by": "named"
    },
-   "new_ms": 21,
+   "new_ms": 16,
    "new_trace": {
     "steps": [
      {
@@ -6198,7 +6198,7 @@
     ],
     "model": {},
     "searches": 0,
-    "ms": 7
+    "ms": 3
    },
    "checks": [
     {
@@ -6239,7 +6239,7 @@
      ]
     }
    ],
-   "live_ms": 20,
+   "live_ms": 15,
    "live": {
     "ok": true,
     "kind": "named",
@@ -6291,7 +6291,7 @@
     "say": "Dry run: would play the artist Aerosmith on the Office speaker. Nothing was sent to the speaker.",
     "decided_by": "other_reading"
    },
-   "new_ms": 25,
+   "new_ms": 26,
    "new_trace": {
     "steps": [
      {
@@ -6320,7 +6320,7 @@
     ],
     "model": {},
     "searches": 0,
-    "ms": 12
+    "ms": 13
    },
    "checks": [
     {
@@ -6352,7 +6352,7 @@
      ]
     }
    ],
-   "live_ms": 14,
+   "live_ms": 8,
    "live": {
     "ok": true,
     "kind": "named",
@@ -6465,7 +6465,7 @@
      ]
     }
    ],
-   "live_ms": 16,
+   "live_ms": 11,
    "live": {
     "ok": true,
     "kind": "named",
@@ -6515,7 +6515,7 @@
     "say": "That doesn't sound like music I can play.",
     "decided_by": "parser"
    },
-   "new_ms": 21,
+   "new_ms": 14,
    "new_trace": {
     "steps": null,
     "model": null,
@@ -6550,7 +6550,7 @@
      "actual": null
     }
    ],
-   "live_ms": 10,
+   "live_ms": 9,
    "live": {
     "ok": true,
     "kind": "named",
@@ -6602,7 +6602,7 @@
     "say": "I couldn't find a station called Zorblax Fnordwave Nonexistent in Music Assistant. The closest I found was Ramones Radio.",
     "decided_by": "not_found"
    },
-   "new_ms": 44,
+   "new_ms": 45,
    "new_trace": {
     "steps": [
      {
@@ -6646,7 +6646,7 @@
     ],
     "model": {},
     "searches": 2,
-    "ms": 35
+    "ms": 33
    },
    "checks": [
     {
@@ -6678,7 +6678,7 @@
      ]
     }
    ],
-   "live_ms": 29,
+   "live_ms": 28,
    "live": {
     "ok": false,
     "error": "I couldn't find a station called Zorblax Fnordwave Nonexistent in Music Assistant."
@@ -6720,7 +6720,7 @@
     "say": "That doesn't sound like music I can play.",
     "decided_by": "parser"
    },
-   "new_ms": 11,
+   "new_ms": 10,
    "new_trace": {
     "steps": null,
     "model": null,
@@ -6755,7 +6755,7 @@
      "actual": null
     }
    ],
-   "live_ms": 13,
+   "live_ms": 9,
    "live": {
     "ok": true,
     "kind": "named",
@@ -6809,7 +6809,7 @@
     "say": "Dry run: would play the radio Groove Armada Radio on the Kitchen speaker. Nothing was sent to the speaker.",
     "decided_by": "named"
    },
-   "new_ms": 39,
+   "new_ms": 14,
    "new_trace": {
     "steps": [
      {
@@ -6830,7 +6830,7 @@
     ],
     "model": {},
     "searches": 0,
-    "ms": 28
+    "ms": 4
    },
    "checks": [
     {
@@ -6871,7 +6871,7 @@
      ]
     }
    ],
-   "live_ms": 25,
+   "live_ms": 33,
    "live": {
     "ok": true,
     "kind": "named",
@@ -6926,7 +6926,7 @@
     "say": "I couldn't find anything called the Albo Daisies of the Galaxy in Music Assistant. The closest I found was Daisies Of The Galaxy by EELS.",
     "decided_by": "model"
    },
-   "new_ms": 292,
+   "new_ms": 311,
    "new_trace": {
     "steps": [
      {
@@ -6963,16 +6963,16 @@
      {
       "step": "model",
       "answer": "named",
-      "ms": 258
+      "ms": 278
      }
     ],
     "model": {
      "asked": true,
      "answer": "named",
-     "ms": 258
+     "ms": 278
     },
     "searches": 4,
-    "ms": 279
+    "ms": 300
    },
    "checks": [
     {
@@ -7010,7 +7010,7 @@
      ]
     }
    ],
-   "live_ms": 20,
+   "live_ms": 17,
    "live": {
     "ok": true,
     "kind": "named",
@@ -7086,7 +7086,7 @@
     ],
     "model": {},
     "searches": 0,
-    "ms": 5
+    "ms": 6
    },
    "checks": [
     {
@@ -7127,7 +7127,7 @@
      ]
     }
    ],
-   "live_ms": 26,
+   "live_ms": 20,
    "live": {
     "ok": true,
     "kind": "named",
@@ -7182,7 +7182,7 @@
     "say": "Dry run: would play the playlist Old man video games on the Office speaker, shuffled. Nothing was sent to the speaker.",
     "decided_by": "named"
    },
-   "new_ms": 29,
+   "new_ms": 26,
    "new_trace": {
     "steps": [
      {
@@ -7213,7 +7213,7 @@
     ],
     "model": {},
     "searches": 1,
-    "ms": 15
+    "ms": 14
    },
    "checks": [
     {
@@ -7254,7 +7254,7 @@
      ]
     }
    ],
-   "live_ms": 23,
+   "live_ms": 17,
    "live": {
     "ok": true,
     "kind": "named",
@@ -7307,7 +7307,7 @@
     "say": "That doesn't sound like music I can play.",
     "decided_by": "parser"
    },
-   "new_ms": 9,
+   "new_ms": 10,
    "new_trace": {
     "steps": null,
     "model": null,
@@ -7351,7 +7351,7 @@
      "actual": null
     }
    ],
-   "live_ms": 28,
+   "live_ms": 20,
    "live": {
     "ok": true,
     "kind": "named",
@@ -7402,7 +7402,7 @@
     "say": "That doesn't sound like music I can play.",
     "decided_by": "parser"
    },
-   "new_ms": 10,
+   "new_ms": 14,
    "new_trace": {
     "steps": null,
     "model": null,
@@ -7483,7 +7483,7 @@
     "say": "That doesn't sound like music I can play.",
     "decided_by": "parser"
    },
-   "new_ms": 9,
+   "new_ms": 5,
    "new_trace": {
     "steps": null,
     "model": null,
@@ -7527,7 +7527,7 @@
      "actual": null
     }
    ],
-   "live_ms": 26,
+   "live_ms": 20,
    "live": {
     "ok": true,
     "kind": "named",
@@ -7581,7 +7581,7 @@
     "say": "Dry run: would play the radio Deep Chill House Radio on the Kitchen speaker. Nothing was sent to the speaker.",
     "decided_by": "named"
    },
-   "new_ms": 35,
+   "new_ms": 55,
    "new_trace": {
     "steps": [
      {
@@ -7612,7 +7612,7 @@
     ],
     "model": {},
     "searches": 2,
-    "ms": 20
+    "ms": 35
    },
    "checks": [
     {
@@ -7653,7 +7653,7 @@
      ]
     }
    ],
-   "live_ms": 14,
+   "live_ms": 10,
    "live": {
     "ok": true,
     "kind": "named",
@@ -7705,7 +7705,7 @@
     "say": "That doesn't sound like music I can play.",
     "decided_by": "parser"
    },
-   "new_ms": 13,
+   "new_ms": 10,
    "new_trace": {
     "steps": null,
     "model": null,
@@ -7749,7 +7749,7 @@
      "actual": null
     }
    ],
-   "live_ms": 16,
+   "live_ms": 9,
    "live": {
     "ok": true,
     "kind": "named",
@@ -7843,18 +7843,18 @@
      "actual": null
     }
    ],
-   "live_ms": 84,
+   "live_ms": 66,
    "live": {
     "ok": true,
     "kind": "genre",
     "media_type": null,
     "name": "deep house chill",
     "artist": null,
-    "uri": "library://artist/1724",
+    "uri": "Thievery Corporation",
     "targets": [
      "media_player.satellite1_d8d1bc"
     ],
-    "detail": "Dry run: would play Kruder & Dorfmeister, for deep house chill, on the Office speaker. Nothing was sent to the speaker."
+    "detail": "Dry run: would play Thievery Corporation, for deep house chill, on the Office speaker. Nothing was sent to the speaker."
    },
    "agree_with_live": false,
    "agree_why": "only the live path plays",
@@ -7893,7 +7893,7 @@
     "say": "That doesn't sound like music I can play.",
     "decided_by": "parser"
    },
-   "new_ms": 16,
+   "new_ms": 9,
    "new_trace": {
     "steps": null,
     "model": null,
@@ -7937,7 +7937,7 @@
      "actual": null
     }
    ],
-   "live_ms": 63,
+   "live_ms": 50,
    "live": {
     "ok": true,
     "kind": "genre",
@@ -7990,7 +7990,7 @@
     "say": "Dry run: would play the track Lunchlady Land by Adam Sandler on the Kitchen speaker. Nothing was sent to the speaker.",
     "decided_by": "named"
    },
-   "new_ms": 71,
+   "new_ms": 45,
    "new_trace": {
     "steps": [
      {
@@ -8019,7 +8019,7 @@
     ],
     "model": {},
     "searches": 8,
-    "ms": 55
+    "ms": 31
    },
    "checks": [
     {
@@ -8057,7 +8057,7 @@
      ]
     }
    ],
-   "live_ms": 20,
+   "live_ms": 15,
    "live": {
     "ok": true,
     "kind": "named",
@@ -8112,7 +8112,7 @@
     "say": "Dry run: would play the track Lunchlady Land by Adam Sandler on the Office speaker. Nothing was sent to the speaker.",
     "decided_by": "named"
    },
-   "new_ms": 83,
+   "new_ms": 69,
    "new_trace": {
     "steps": [
      {
@@ -8141,7 +8141,7 @@
     ],
     "model": {},
     "searches": 8,
-    "ms": 53
+    "ms": 48
    },
    "checks": [
     {
@@ -8179,7 +8179,7 @@
      ]
     }
    ],
-   "live_ms": 20,
+   "live_ms": 14,
    "live": {
     "ok": true,
     "kind": "named",
@@ -8233,7 +8233,7 @@
     "say": "Dry run: would play the track Lunchlady Land by Adam Sandler on the Kitchen speaker. Nothing was sent to the speaker.",
     "decided_by": "named"
    },
-   "new_ms": 54,
+   "new_ms": 53,
    "new_trace": {
     "steps": [
      {
@@ -8302,7 +8302,7 @@
      ]
     }
    ],
-   "live_ms": 19,
+   "live_ms": 17,
    "live": {
     "ok": true,
     "kind": "named",
@@ -8353,7 +8353,7 @@
     "say": "That doesn't sound like music I can play.",
     "decided_by": "parser"
    },
-   "new_ms": 13,
+   "new_ms": 9,
    "new_trace": {
     "steps": null,
     "model": null,
@@ -8397,7 +8397,7 @@
      "actual": null
     }
    ],
-   "live_ms": 15,
+   "live_ms": 11,
    "live": {
     "ok": true,
     "kind": "named",
@@ -8448,7 +8448,7 @@
     "say": "That doesn't sound like music I can play.",
     "decided_by": "parser"
    },
-   "new_ms": 17,
+   "new_ms": 13,
    "new_trace": {
     "steps": null,
     "model": null,
@@ -8492,7 +8492,7 @@
      "actual": null
     }
    ],
-   "live_ms": 13,
+   "live_ms": 8,
    "live": {
     "ok": true,
     "kind": "named",
@@ -8542,7 +8542,7 @@
     "say": "I couldn't find a station called zzqx florbent in Music Assistant. The closest I found was Orbital Radio.",
     "decided_by": "not_found"
    },
-   "new_ms": 41,
+   "new_ms": 39,
    "new_trace": {
     "steps": [
      {
@@ -8627,7 +8627,7 @@
      ]
     }
    ],
-   "live_ms": 25,
+   "live_ms": 24,
    "live": {
     "ok": false,
     "error": "I couldn't find a station called zzqx florbent in Music Assistant."
@@ -8731,7 +8731,7 @@
      ]
     }
    ],
-   "live_ms": 21,
+   "live_ms": 19,
    "live": {
     "ok": true,
     "kind": "named",
@@ -8781,7 +8781,7 @@
     "say": "That doesn't sound like music I can play.",
     "decided_by": "parser"
    },
-   "new_ms": 21,
+   "new_ms": 5,
    "new_trace": {
     "steps": null,
     "model": null,
@@ -8825,7 +8825,7 @@
      "actual": null
     }
    ],
-   "live_ms": 9,
+   "live_ms": 23,
    "live": {
     "ok": true,
     "kind": "named",
@@ -8909,7 +8909,7 @@
      "actual": null
     }
    ],
-   "live_ms": 40,
+   "live_ms": 25,
    "live": {
     "ok": true,
     "kind": "genre",
@@ -8958,7 +8958,7 @@
     "say": "Dry run: would play Mushroom Jazz Radio, for jazz, on the Office speaker. Nothing was sent to the speaker.",
     "decided_by": "genre_list"
    },
-   "new_ms": 40,
+   "new_ms": 37,
    "new_trace": {
     "steps": [
      {
@@ -8974,7 +8974,7 @@
     ],
     "model": {},
     "searches": 0,
-    "ms": 26
+    "ms": 25
    },
    "checks": [
     {
@@ -9006,7 +9006,7 @@
      ]
     }
    ],
-   "live_ms": 40,
+   "live_ms": 26,
    "live": {
     "ok": true,
     "kind": "genre",
@@ -9048,14 +9048,14 @@
     "artist": null,
     "provider": null,
     "named_provider": null,
-    "uri": "library://artist/1762",
+    "uri": "library://radio/258",
     "targets": [
      "media_player.satellite1_d8d1bc"
     ],
-    "say": "Dry run: would play Parov Stelar, for jazz, on the Office speaker. Nothing was sent to the speaker.",
+    "say": "Dry run: would play Mushroom Jazz Radio, for jazz, on the Office speaker. Nothing was sent to the speaker.",
     "decided_by": "genre_list"
    },
-   "new_ms": 41,
+   "new_ms": 62,
    "new_trace": {
     "steps": [
      {
@@ -9069,7 +9069,7 @@
     ],
     "model": {},
     "searches": 0,
-    "ms": 26
+    "ms": 29
    },
    "checks": [
     {
@@ -9101,18 +9101,18 @@
      ]
     }
    ],
-   "live_ms": 36,
+   "live_ms": 31,
    "live": {
     "ok": true,
     "kind": "genre",
     "media_type": null,
     "name": "jazz",
     "artist": null,
-    "uri": "library://artist/1762",
+    "uri": "library://artist/1724",
     "targets": [
      "media_player.satellite1_d8d1bc"
     ],
-    "detail": "Dry run: would play Parov Stelar, for jazz, on the Office speaker. Nothing was sent to the speaker."
+    "detail": "Dry run: would play Kruder & Dorfmeister, for jazz, on the Office speaker. Nothing was sent to the speaker."
    },
    "agree_with_live": true,
    "agree_why": "same style",
@@ -9157,7 +9157,7 @@
     "say": "Dry run: would play Andy Grammer, for anime pop radio that s probably about it everything is pretty wet i just needed to make some space okay so yeah, on the Kitchen speaker. Nothing was sent to the speaker.",
     "decided_by": "model"
    },
-   "new_ms": 408,
+   "new_ms": 433,
    "new_trace": {
     "steps": [
      {
@@ -9194,16 +9194,16 @@
      {
       "step": "model",
       "answer": "style",
-      "ms": 307
+      "ms": 314
      }
     ],
     "model": {
      "asked": true,
      "answer": "style",
-     "ms": 307
+     "ms": 314
     },
     "searches": 4,
-    "ms": 393
+    "ms": 399
    },
    "checks": [
     {
@@ -9244,7 +9244,7 @@
      ]
     }
    ],
-   "live_ms": 14,
+   "live_ms": 10,
    "live": {
     "ok": true,
     "kind": "named",
@@ -9300,7 +9300,7 @@
     "say": "Dry run: would play the artist Mr. Brightside on the Office speaker. Nothing was sent to the speaker.",
     "decided_by": "named"
    },
-   "new_ms": 73,
+   "new_ms": 75,
    "new_trace": {
     "steps": [
      {
@@ -9329,7 +9329,7 @@
     ],
     "model": {},
     "searches": 4,
-    "ms": 51
+    "ms": 54
    },
    "checks": [
     {
@@ -9367,7 +9367,7 @@
      ]
     }
    ],
-   "live_ms": 21,
+   "live_ms": 16,
    "live": {
     "ok": true,
     "kind": "named",
@@ -9483,7 +9483,7 @@
      ]
     }
    ],
-   "live_ms": 13,
+   "live_ms": 11,
    "live": {
     "ok": true,
     "kind": "named",
@@ -9536,7 +9536,7 @@
     "say": "Dry run: would play the artist R.E.M. on the Office speaker. Nothing was sent to the speaker.",
     "decided_by": "named"
    },
-   "new_ms": 42,
+   "new_ms": 45,
    "new_trace": {
     "steps": [
      {
@@ -9565,7 +9565,7 @@
     ],
     "model": {},
     "searches": 4,
-    "ms": 27
+    "ms": 30
    },
    "checks": [
     {
@@ -9597,7 +9597,7 @@
      ]
     }
    ],
-   "live_ms": 20,
+   "live_ms": 19,
    "live": {
     "ok": true,
     "kind": "named",
@@ -9650,7 +9650,7 @@
     "say": "Dry run: would play the artist Dr. Dre on the Office speaker. Nothing was sent to the speaker.",
     "decided_by": "named"
    },
-   "new_ms": 55,
+   "new_ms": 58,
    "new_trace": {
     "steps": [
      {
@@ -9679,7 +9679,7 @@
     ],
     "model": {},
     "searches": 4,
-    "ms": 30
+    "ms": 37
    },
    "checks": [
     {
@@ -9711,7 +9711,7 @@
      ]
     }
    ],
-   "live_ms": 19,
+   "live_ms": 12,
    "live": {
     "ok": true,
     "kind": "named",
@@ -9783,7 +9783,7 @@
     ],
     "model": {},
     "searches": 0,
-    "ms": 16
+    "ms": 17
    },
    "checks": [
     {
@@ -9815,7 +9815,7 @@
      ]
     }
    ],
-   "live_ms": 17,
+   "live_ms": 13,
    "live": {
     "ok": true,
     "kind": "named",
@@ -9871,7 +9871,7 @@
     "say": "Dry run: would play the album Mambo No.5 by Lou Bega on the Office speaker. Nothing was sent to the speaker.",
     "decided_by": "named"
    },
-   "new_ms": 80,
+   "new_ms": 63,
    "new_trace": {
     "steps": [
      {
@@ -9900,7 +9900,7 @@
     ],
     "model": {},
     "searches": 8,
-    "ms": 47
+    "ms": 42
    },
    "checks": [
     {
@@ -9938,7 +9938,7 @@
      ]
     }
    ],
-   "live_ms": 21,
+   "live_ms": 15,
    "live": {
     "ok": true,
     "kind": "named",
@@ -9991,7 +9991,7 @@
     "say": "Dry run: would play the radio Hotel Costes Radio on the Kitchen speaker. Nothing was sent to the speaker.",
     "decided_by": "named"
    },
-   "new_ms": 65,
+   "new_ms": 70,
    "new_trace": {
     "steps": [
      {
@@ -10023,7 +10023,7 @@
     ],
     "model": {},
     "searches": 2,
-    "ms": 43
+    "ms": 49
    },
    "checks": [
     {
@@ -10109,7 +10109,7 @@
     "say": "Dry run: would play the radio Anime Pop Radio on the Office speaker. Nothing was sent to the speaker.",
     "decided_by": "named"
    },
-   "new_ms": 21,
+   "new_ms": 18,
    "new_trace": {
     "steps": [
      {
@@ -10130,7 +10130,7 @@
     ],
     "model": {},
     "searches": 0,
-    "ms": 6
+    "ms": 5
    },
    "checks": [
     {
@@ -10224,7 +10224,7 @@
     "say": "Dry run: would play the artist Panic! At The Disco on the Office speaker. Nothing was sent to the speaker.",
     "decided_by": "named"
    },
-   "new_ms": 51,
+   "new_ms": 55,
    "new_trace": {
     "steps": [
      {
@@ -10253,7 +10253,7 @@
     ],
     "model": {},
     "searches": 4,
-    "ms": 26
+    "ms": 29
    },
    "checks": [
     {
@@ -10285,7 +10285,7 @@
      ]
     }
    ],
-   "live_ms": 12,
+   "live_ms": 9,
    "live": {
     "ok": true,
     "kind": "named",
@@ -10328,7 +10328,7 @@
     "say": "That doesn't sound like music I can play.",
     "decided_by": "parser"
    },
-   "new_ms": 17,
+   "new_ms": 16,
    "new_trace": {
     "steps": null,
     "model": null,
@@ -10414,7 +10414,7 @@
     "say": "That doesn't sound like music I can play.",
     "decided_by": "parser"
    },
-   "new_ms": 8,
+   "new_ms": 7,
    "new_trace": {
     "steps": null,
     "model": null,
@@ -10459,14 +10459,14 @@
     "artist": null,
     "provider": null,
     "named_provider": null,
-    "uri": "library://artist/1724",
+    "uri": "library://artist/1762",
     "targets": [
      "media_player.satellite1_d8d1bc"
     ],
-    "say": "Dry run: would play Kruder & Dorfmeister, for jazz, on the Office speaker. Nothing was sent to the speaker.",
+    "say": "Dry run: would play Parov Stelar, for jazz, on the Office speaker. Nothing was sent to the speaker.",
     "decided_by": "genre_list"
    },
-   "new_ms": 44,
+   "new_ms": 46,
    "new_trace": {
     "steps": [
      {
@@ -10482,7 +10482,7 @@
     ],
     "model": {},
     "searches": 0,
-    "ms": 34
+    "ms": 36
    },
    "checks": [
     {
@@ -10521,11 +10521,11 @@
     "media_type": null,
     "name": "jazz",
     "artist": null,
-    "uri": "library://radio/258",
+    "uri": "library://artist/1724",
     "targets": [
      "media_player.satellite1_d8d1bc"
     ],
-    "detail": "Dry run: would play Mushroom Jazz Radio, for jazz, on the Office speaker. Nothing was sent to the speaker."
+    "detail": "Dry run: would play Kruder & Dorfmeister, for jazz, on the Office speaker. Nothing was sent to the speaker."
    },
    "agree_with_live": true,
    "agree_why": "same style",
@@ -10588,7 +10588,7 @@
     ],
     "model": {},
     "searches": 0,
-    "ms": 7
+    "ms": 6
    },
    "checks": [
     {
@@ -10626,7 +10626,7 @@
      ]
     }
    ],
-   "live_ms": 19,
+   "live_ms": 16,
    "live": {
     "ok": true,
     "kind": "named",
@@ -10681,7 +10681,7 @@
     "say": "Dry run: would play the track Burning Down the House by [unknown] on the Office speaker. Nothing was sent to the speaker.",
     "decided_by": "named"
    },
-   "new_ms": 41,
+   "new_ms": 36,
    "new_trace": {
     "steps": [
      {
@@ -10711,7 +10711,7 @@
     ],
     "model": {},
     "searches": 4,
-    "ms": 26
+    "ms": 25
    },
    "checks": [
     {
@@ -10749,7 +10749,7 @@
      ]
     }
    ],
-   "live_ms": 20,
+   "live_ms": 15,
    "live": {
     "ok": true,
     "kind": "named",
@@ -10802,7 +10802,7 @@
     "say": "Dry run: would play the track The Girl With The Sun In Her Head by Orbital on the Office speaker. Nothing was sent to the speaker.",
     "decided_by": "named"
    },
-   "new_ms": 63,
+   "new_ms": 60,
    "new_trace": {
     "steps": [
      {
@@ -10833,7 +10833,7 @@
     ],
     "model": {},
     "searches": 8,
-    "ms": 35
+    "ms": 39
    },
    "checks": [
     {
@@ -10871,7 +10871,7 @@
      ]
     }
    ],
-   "live_ms": 17,
+   "live_ms": 14,
    "live": {
     "ok": true,
     "kind": "named",
@@ -10924,7 +10924,7 @@
     "say": "Dry run: would play the album Toys In The Attic by Aerosmith on the Kitchen speaker. Nothing was sent to the speaker.",
     "decided_by": "named"
    },
-   "new_ms": 70,
+   "new_ms": 74,
    "new_trace": {
     "steps": [
      {
@@ -10954,7 +10954,7 @@
     ],
     "model": {},
     "searches": 8,
-    "ms": 48
+    "ms": 50
    },
    "checks": [
     {
@@ -10992,7 +10992,7 @@
      ]
     }
    ],
-   "live_ms": 20,
+   "live_ms": 15,
    "live": {
     "ok": true,
     "kind": "named",
@@ -11045,7 +11045,7 @@
     "say": "Dry run: would play the radio Handcuffed To A Fence In Mississippi Radio on the Office speaker. Nothing was sent to the speaker.",
     "decided_by": "named"
    },
-   "new_ms": 33,
+   "new_ms": 25,
    "new_trace": {
     "steps": [
      {
@@ -11066,7 +11066,7 @@
     ],
     "model": {},
     "searches": 0,
-    "ms": 7
+    "ms": 5
    },
    "checks": [
     {
@@ -11107,7 +11107,7 @@
      ]
     }
    ],
-   "live_ms": 27,
+   "live_ms": 29,
    "live": {
     "ok": true,
     "kind": "named",
@@ -11159,7 +11159,7 @@
     "say": "Dry run: would play Parov Stelar, for jazz, on the basement voice pe ma speaker. Nothing was sent to the speaker.",
     "decided_by": "genre_list"
    },
-   "new_ms": 42,
+   "new_ms": 40,
    "new_trace": {
     "steps": [
      {
@@ -11207,18 +11207,18 @@
      ]
     }
    ],
-   "live_ms": 39,
+   "live_ms": 26,
    "live": {
     "ok": true,
     "kind": "genre",
     "media_type": null,
     "name": "jazz",
     "artist": null,
-    "uri": "library://artist/1724",
+    "uri": "library://radio/258",
     "targets": [
      "media_player.home_assistant_voice_0ab117"
     ],
-    "detail": "Dry run: would play Kruder & Dorfmeister, for jazz, on the basement voice pe ma speaker. Nothing was sent to the speaker."
+    "detail": "Dry run: would play Mushroom Jazz Radio, for jazz, on the basement voice pe ma speaker. Nothing was sent to the speaker."
    },
    "agree_with_live": true,
    "agree_why": "same style",
@@ -11253,7 +11253,7 @@
     "say": "That doesn't sound like music I can play.",
     "decided_by": "parser"
    },
-   "new_ms": 31,
+   "new_ms": 29,
    "new_trace": {
     "steps": null,
     "model": null,
@@ -11299,7 +11299,7 @@
     "say": "That doesn't sound like music I can play.",
     "decided_by": "parser"
    },
-   "new_ms": 8,
+   "new_ms": 6,
    "new_trace": {
     "steps": null,
     "model": null,

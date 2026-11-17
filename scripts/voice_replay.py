@@ -604,7 +604,7 @@ def answers(args) -> int:
             rec["checks"] = compare_answer(row, new, snap["players"], device)
             largs = snapmod.live_args(row, {"players": snap["players"]})
             if largs is not None:
-                largs.update(origin_device=o_dev, origin_area=o_area)
+                largs.update(origin_device=o_dev, origin_area=o_area, said=said)    # as origin.said carries it
                 t0 = time.monotonic()
                 lcode, lbody = post_json(f"{url}/music", largs)
                 rec["live_ms"] = round((time.monotonic() - t0) * 1000)

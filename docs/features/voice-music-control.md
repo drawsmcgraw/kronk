@@ -156,6 +156,166 @@ providers → audio on the player. The route:
 `tests/test_music_players.py` pins the Python order. If the blueprint's
 rule ever changes, change both.
 
+## One decision-maker in tool_service: built and shadowed (sprint M11, 2026-11-17)
+
+**Status: built, running in shadow mode only. Nothing the household hears
+changed.** Criteria: `../sprint/M11-criteria.md`; build report:
+`../sprint/M11-build.md`; plan: `Kronk evaluation findings and implementation
+plan.md`, M11. Today three systems decide music (HA's built-in intents, the
+blueprint fork's Jinja, the `home` agent's model plus `/music`). M11 builds
+the one place that will decide instead: `tool_service` reads the user's own
+sentence and decides, and the model is kept for one narrow question.
+
+### The path
+
+`POST /music/say` takes `{sentence, origin_device, origin_area, dry_run}` and
+answers like `/music/voice`: always 200, `ok` and `say`, plus the decision,
+the parsed sentence, the trace of steps and the targets. It honours
+`MUSIC_DRY_RUN` exactly as `/music` does; its `dry_run` field can only turn a
+dry run on. Nothing calls it for a live request yet: HA's thin automation and
+the orchestrator's direct dispatch move to it at cutover. Not reachable
+through nginx (tool_service's ports are bound to loopback; nginx proxies only
+`/solar/` and `/health` to it).
+
+1. **Parse** (`music_resolve.parse_sentence`, pure): the request verb (after
+   the routing pin's lead-ins: "please", "Kronk,", "tell Kronk to", "can
+   you", "okay nabu,"), the words, a type word, "X by Y" ("songs by Y" is the
+   artist), shuffle, a named provider, and the target. Rooms and players are
+   matched **from the right-hand end** against the real names HA lists:
+   exact player name, exact area, the clause as part of a name ("the sonos"),
+   then a near match (`room_min_score`); never a name inside the clause. So
+   "The Girl with the Sun in Her Head by Orbital" keeps its title and "…
+   in the office" targets the office. A clause ending in a device noun
+   ("on the blue group") that matches nothing is an unknown target. Non-music
+   "play" (news, games, videos, movies, podcasts) uses `routing._MUSIC_RE`'s
+   exclusions; a test reads both lists out of the routing pattern. A station
+   name comes from `radio_name()`, which still stops at a full stop. The
+   parser trims nothing else: messy transcripts are the M14 gate's.
+2. **Target**: `resolve_players`, as `/music` does (named player or room, own
+   device, own room, default). The basement Voice PE's player has no area
+   and is reached by its name or the device join.
+3. **Decide** (`music_decide.decide`), one function per step, in the order
+   `config/music.yaml` `decision.order` gives:
+   - `markers`: a type word (album, song, artist, playlist, radio, station)
+     means a named item of that type; a style word ("some", "something" first;
+     "music", "songs", "vibes" last) means a style.
+   - `genre_list`: unmarked or style-marked, a known genre is a style. The
+     list is the taste DB's vocabulary (the built-in set, `music_taste.yaml`'s
+     genres, and the genre tags of the household's artists, from Music
+     Assistant and the tagging model), read-only. "play jazz" is the style,
+     "play the album Jazz" the album.
+   - `named`: the fast case first, an exact library name (one local MA
+     library query per type; no search), then the resolver: one search per
+     type and query variant, scored as `/music` scores. The **provider
+     policy** is a preference over those candidates, never one search per
+     provider: among candidates at least `provider_min_score` (0.95) good and
+     of the best one's type, the first provider in `provider_order` wins
+     (NAS, then YouTube Music; radio Pandora; a provider named in the
+     sentence first). Below that bar the top score wins, so a poor NAS match
+     never beats a good YouTube Music one. An untyped title track yields to
+     its same-named album. On an unmarked request, a match of only part of a
+     name ("play italian" → "Italian Lesson No. 3") is a weak title and does
+     not decide alone. A radio with no strong match asks MA's own station
+     lookup (a Pandora catalogue station is created on its first play).
+   - `cross_type`: a typed request with no strong match looks for the name as
+     another type, strong matches only, and says what it found ("Playing the
+     album …").
+   - `other_reading`: a style the genre list does not know ("play some
+     Portishead") is retried as a name; a strong **artist** plays, a lone
+     title does not (rule 7). A name with no strong match is a style only if
+     the genre list knows it.
+   - `model`: still unclear (a weak or lone title, or an unmarked name with
+     no match), one question to the model: style or named item, output
+     constrained by a JSON schema to those two words. The answer picks the
+     branch; the words still come from the sentence. tool_service calls
+     LiteLLM directly (as `news.py` and `taste.py` do) with thinking off: 0.3
+     s against 1.5 to 2.5 s with reasoning, the same answer on 20 of 20 test
+     requests. Down, slow (`timeout_s`) or off the two words: no answer, and
+     the rules' reading stands.
+   - Then rule 7 (a lone title never beats a style reading) and rule 8:
+     nothing resolves, say so plainly and name the closest match. **The raw
+     words are never passed to Music Assistant**: a play always carries a URI
+     from the library, a search or MA's station lookup. (`/music` keeps its
+     literal-play fallback until cutover; a test pins it.)
+4. **Play**: the existing play path (`_play_named`, the shared tail of
+   `/music`, or `_play_genre`), with its verify poll.
+
+Every decision is a `music.decide` span (`music.decided_by`, `music.reading`,
+`music.reading_by`, `music.uri`, `music.candidates` with scores,
+`music.model_asked`, `music.model_would_ask`, `music.searches`) and a
+`music decision` log line with the steps and candidates. The model question
+is its own `music.model_question` span.
+
+**The policy file.** `config/music.yaml` has two new sections, through the
+M21 loader (schema, comments, defaults equal to the file): `parser` (style
+markers, type words, fillers, `room_min_score`) and `decision` (`order`,
+`strong_min_score`, `title_min_score`, `provider_min_score`,
+`provider_order` per media type, and `model`: `enabled`, `model`,
+`thinking`, `timeout_s`). Drew's design principle, the model step earlier as
+it gets faster: move `model` in `decision.order`; the other five keep their
+order, and the loader refuses anything else. Neither section touches the
+live `/music` path.
+
+### Shadow mode
+
+`MUSIC_SHADOW=1` (env; off in code and in production compose, on for
+`tool_service-dev`). Every request that reaches the live `/music` (the
+`music` rule through the home agent, `play_music` from the coordinator,
+`/music/voice`) is answered exactly as before. After the answer exists, the
+user's sentence (`said`) runs through the parser and decision order and one
+JSON line is appended to `MUSIC_SHADOW_LOG` (default `/data/music_shadow.jsonl`:
+`./data/music_shadow.jsonl` for production, `./data/dev/music_shadow.jsonl`
+for dev), plus a `music.shadow` span.
+
+- **It cannot play.** `music_shadow.py` imports no HA or MA client and is
+  handed one function, `decide_sentence` with the model never asked; that
+  reads HA's players template and decides through `ReadOnlyMusic`, whose
+  Music Assistant access goes through `ma_read` (read commands only; any
+  other is refused before it is sent) and whose taste access opens the DB
+  read-only. A test reads the two modules' imports and names.
+- **It never asks the model.** Where the decision would, the record says
+  `"would_ask": true`.
+- **It never surfaces.** It starts after the live answer, runs one at a
+  time, times out after `MUSIC_SHADOW_TIMEOUT_S` (30), and records any
+  failure in its own line. Measured on dev: with requests 1.5 s apart, live
+  `/music` p50/p95 32/43 ms with shadow on, 30/44 ms off (24 each); back to
+  back, 37/60 against 21/37 ms (the previous request's shadow still
+  running); answers identical in all 48 pairs.
+- **Record** (`"v": 1`): `ts`, `trace_id`, `sentence`, `origin`,
+  `live_request` (the model's arguments), `live` (`status`, `uri`, `targets`,
+  `kind`, `media_type`, `name`, `artist`, `pick`, `literal` when the words
+  were sent as they were, `error`, `ms`), `new` (the outcome: `action`,
+  `reading`, `reading_by`, `decided_by`, `kind`, `media_type`, `name`,
+  `artist`, `uri`, `provider`, `via`, `station`, `pick`, `closest`,
+  `targets`, `target_error`, `model`, `searches`, `candidates`, `parsed`,
+  `ms`, `error`), `agree` and `why`; or `skipped` when there is no sentence
+  or the request was "not that".
+- **Reading it**: `python3 scripts/music_shadow_report.py [LOG] [--since
+  2026-11-18] [--json]` prints the agreement rate over the requests the
+  parser read as music, the declined sentences apart (no request verb: they
+  stay on the model path at cutover, since HA's trigger is on request
+  verbs), `decided_by` counts, how often the model question would have
+  fired, both paths' latency, and every disagreement with both outcomes and
+  the trace id.
+- **What it cannot see**: requests the blueprint plays itself through Music
+  Assistant never reach Kronk, so they are never shadowed; and what does
+  reach Kronk is, by selection, what the blueprint did not take (mostly
+  sentences without a request verb at the start). Per the plan (C5) the
+  corpus replay is the main evidence for cutover; `scripts/voice_replay.py
+  --answers` runs every corpus row through dev's `/music/say` and `/music`.
+
+### Not done (waits for Drew's review of the shadow and corpus data)
+
+- Cutover, one trigger type at a time behind a blueprint input, loose and
+  catch-all first, named albums and stations last (plan steps 5 and 6).
+- The thin HA automation and `rest_command.kronk_music` to `/music/say`
+  (needs `rest_command` loaded: plan C6).
+- The orchestrator's `music` route as a direct dispatch to `/music/say`.
+- Retiring the blueprint's Jinja resolution and the fork's changes (keep the
+  file for rollback).
+- Removing the literal-play fallback from `/music`.
+- Charting `music.decided_by` on the Music dashboard.
+
 ## Adding a satellite
 
 Assign an **area** in HA to both of its devices — the ESPHome one that
@@ -347,6 +507,14 @@ thing obtainable while HA is the broker.
   `/music` wraps its own shuffle_set the same way.
 
 ## Blog hooks
+
+- One decision-maker for music: a parser that reads rooms from the
+  right-hand end, a decision order with one function per step, and the
+  model kept for a single two-word question (0.3 s with thinking off).
+- Shadow mode that cannot play by construction: hand the shadow a
+  read-only function, not a flag.
+- The selection effect: what reaches the fallback path is what the fast
+  path could not read, so a rules-only shadow mostly declines it.
 
 - Terminal tools: when prompt engineering loses to a 4B model, change the
   loop, not the prompt.

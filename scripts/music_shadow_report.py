@@ -6,7 +6,9 @@
 LOG defaults to data/music_shadow.jsonl (production's tool_service writes
 /data/music_shadow.jsonl; the dev pair writes data/dev/music_shadow.jsonl).
 Prints: how many requests were shadowed, compared and skipped; the agreement
-rate; decided_by counts; how often the model question would have fired; and
+rate over the requests the parser read as music (sentences it declines, with
+no request verb at the start, are counted apart: they stay on the model path
+at cutover); decided_by counts; how often the model question would have fired; and
 every disagreement with both outcomes. Reads the file only.
 
 Record format: docs/features/voice-music-control.md, "Shadow mode".
@@ -57,9 +59,15 @@ def _what(side: dict) -> str:
 
 
 def summarise(rows: list[dict]) -> dict:
-    compared = [r for r in rows if "agree" in r]
+    compared_all = [r for r in rows if "agree" in r]
+    # The parser found no request verb: the M11 path declines the sentence,
+    # which stays on the model path at cutover (the HA trigger is on request
+    # verbs). Counted apart, so they do not swamp the agreement rate.
+    declined = [r for r in compared_all if (r.get("new") or {}).get("action") == "not_music"]
+    compared = [r for r in compared_all if r not in declined]
     skipped = [r for r in rows if r.get("skipped")]
     errors = [r for r in rows if "agree" not in r and not r.get("skipped")]
+    declined_live_played = sum(1 for r in declined if (r.get("live") or {}).get("status") in ("playing", "dry_run"))
     agree = sum(1 for r in compared if r["agree"])
     decided = collections.Counter((r.get("new") or {}).get("decided_by") for r in compared)
     would_ask = sum(1 for r in rows if ((r.get("new") or {}).get("model") or {}).get("would_ask"))
@@ -71,6 +79,7 @@ def summarise(rows: list[dict]) -> dict:
         return xs[min(len(xs) - 1, int(q * len(xs)))] if xs else None
     return {
         "shadowed": len(rows), "compared": len(compared), "skipped": len(skipped), "shadow_errors": len(errors),
+        "declined_not_music": len(declined), "declined_live_played": declined_live_played,
         "agree": agree, "agreement_rate": round(agree / len(compared), 3) if compared else None,
         "decided_by": dict(decided.most_common()), "model_would_ask": would_ask,
         "why": dict(why.most_common()),
@@ -106,7 +115,9 @@ def main() -> int:
     rate = f"{s['agreement_rate']:.0%}" if s["agreement_rate"] is not None else "n/a"
     print(f"{path}: {s['shadowed']} requests shadowed, {s['compared']} compared, {s['skipped']} skipped, "
           f"{s['shadow_errors']} shadow errors, {bad} unreadable lines")
-    print(f"agreement: {s['agree']}/{s['compared']} ({rate})")
+    print(f"agreement: {s['agree']}/{s['compared']} ({rate}) of the requests the parser read as music")
+    print(f"declined (no request verb; these stay on the model path): {s['declined_not_music']}, "
+          f"of which the live path played {s['declined_live_played']}")
     print(f"decided_by: {s['decided_by']}")
     print(f"model question would have fired: {s['model_would_ask']}")
     print(f"live ms p50/p95: {s['live_ms']['p50']}/{s['live_ms']['p95']}; "

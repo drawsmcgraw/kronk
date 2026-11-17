@@ -94,12 +94,30 @@ What "expected" means, decided once so rows stay consistent:
   and `kind`; every other row gets none. A row that expects the direct path
   and carries `xfail.routing` is a strict xfail here too.
 
-**M11 hook.** The bottom of `tests/test_voice_corpus.py` imports
-`tool_service.music_resolve.parse_request` if it exists and then asserts,
-for each `play_music` row, every field of `PARSER_FIELDS` the row states
-(`xfail.parser` rows as strict xfails). Until the function exists the test is
-not collected. M11 changes only the import name if it picks another, and the
-call shape `PARSE(text, origin_area) -> dict`.
+**M11 parser layer** (sprint M11). The bottom of `tests/test_voice_corpus.py`
+runs every `play_music` row through the M11 path offline:
+`music_resolve.parse_sentence` against the real player names, then
+`music_decide.decide`, with Music Assistant replayed from the recorded
+snapshot `tests/fixtures/music_snapshot.json` (`tests/music_snapshot.py`;
+re-record with `scripts/music_snapshot_record.py`, reads only, merging).
+The model question gets no answer, so this is the rules' reading. A
+lead-in row is read without "ask Kronk to", as origin.said carries it.
+Rows tagged `non-music` must parse as not music. Fields compared:
+
+- `kind`, `media_type`, `shuffle` equal;
+- `name`, `artist` equal after `music_resolve.fold` (case, accents,
+  punctuation, a leading "the"); the artist may be one of several credited;
+- `provider`: `null` means the sentence names none; a value must be the
+  provider the sentence named or the one the path chose;
+- `player`: the speakers the target resolves to, compared with the ones the
+  row names (`origin` and `area:Kitchen` agree for the kitchen PE, the only
+  player in Kitchen); `unknown:<words>` expects the target error.
+
+`xfail.parser` rows are strict xfails with their reasons (30 at M11: no
+request verb at the start, composite or follow-up requests, links, and a
+few ties and policy cases; `../sprint/M11-build.md` lists them). The live
+`/music` path is pinned separately for the same rows
+(`tests/test_music_live_pin.py`, `tests/fixtures/music_live_pin.json`).
 
 ## Layer two: live replay
 
@@ -108,7 +126,22 @@ python3 scripts/voice_replay.py --label <name>          # full corpus on kronk-d
 python3 scripts/voice_replay.py --tag playback          # a subset by tag
 python3 scripts/voice_replay.py --id plan-stop-bang     # one row (repeatable)
 python3 scripts/voice_replay.py --check-only            # read-only checks; runs nothing
+tests/.venv/bin/python scripts/voice_replay.py --answers --label <name>   # M11 answer check
 ```
+
+**Answer check (`--answers`, sprint M11).** No HA run: each `play_music`
+row and each `non-music` row is sent to the dev tool_service directly, as
+`POST /music/say` (the sentence, the row's satellite, `dry_run` forced on)
+and as `POST /music` with stand-in model arguments built from the row's
+expectation (today's live path). It checks the new path against the row
+(the layer-one comparisons) and against the live path (same URI, or the
+same type and name, or the same style; same speakers). Most "play …"
+sentences are taken by the blueprint locally and must never be sent
+through HA; this mode reaches the endpoints with the sentence instead. Dev
+only (port 8103) with dry run on; statuses use `xfail.parser`. The stand-in
+arguments are what a perfect model would pass, so "the live path plays it"
+there means "the model path can"; the shadow log
+(`voice-music-control.md`, "Shadow mode") compares against the real model.
 
 Result: `docs/bench/voice_replay_<UTC time>_<label>.json` (or `--out`). Per
 row: status (`pass`, `fail`, `xfail`, `xpass`, `skip`), the checks with

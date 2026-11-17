@@ -152,9 +152,11 @@ lead-in, "pause" is a direct call in 0.02 s.
   verb in `config/lead_in.yaml` only if Drew wants one.
 - **No wake-word filler.** "Okay Nabu, ask Kronk to …" is not a lead-in:
   the wake word is not transcribed, so it is not in the list.
-- **M11's parser hook** (`tests/test_voice_corpus.py`) will parse the
-  corpus text as stored, lead-in included; the `play_music` lead-in rows
-  state what the request means.
+- **M11's parser layer** (`tests/test_voice_corpus.py`) reads a lead-in
+  row as the orchestrator hands it on: without "ask Kronk to", which is
+  what origin.said carries. A request left with no request verb ("find some
+  deep house music and play it") is declined by the parser, by design: the
+  lead-in sends it to the model.
 - **The Whisper prompt** (plan M19 step 4, adding "Kronk") is M13's and is
   not part of this change.
 
