@@ -27,6 +27,13 @@ Rules:
     watching.
   - Precedence where a value has more than one source: env var (only the
     ones that existed before the move) > file > built-in default.
+  - No file can take a load down (fix round 1): reading is bounded and
+    YAML is read in the restricted dialect of config_files.py, and any
+    exception at all while loading a file becomes a config error for that
+    file. start() never raises and reload() always answers.
+  - Warnings, not errors: a YAML file with no keys (every value at its
+    default) and an entry under config/ that no service reads. They are on
+    /api/config and in the reload answer; the load still succeeds.
 """
 import hashlib
 import logging
@@ -39,6 +46,7 @@ from pathlib import Path
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
+import config_files
 import prompt_defaults
 from events import emit
 
@@ -46,10 +54,15 @@ logger = logging.getLogger(__name__)
 
 PROMPTS_DIR = "prompts"
 TUNING_FILE = "tuning.yaml"
+# Read by tool_service (tool_service/config_loader.py); listed so the
+# stray-file scan, done here once for the whole directory, knows it.
+TOOL_SERVICE_FILES = frozenset({"music.yaml"})
+EMPTY_YAML = "all defaults (file has no keys)"
 # A prompt may name these, written {{name}}; agents.apply_config fills them.
 PLACEHOLDERS = frozenset({"max_rounds"})
 _PLACEHOLDER = re.compile(r"\{\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*\}\}")
 _HEADER_OPEN, _HEADER_CLOSE = "<!--", "-->"
+_COMMENT = re.compile(r"<!--.*?(?:-->|\Z)", re.S)
 
 
 def fill(text: str, **values) -> str:
@@ -216,6 +229,7 @@ class Config:
     loaded_at: float = field(default_factory=time.time)
     digests: dict[str, str] = field(default_factory=dict)   # file -> sha256[:12]
     env: dict[str, str] = field(default_factory=dict)       # env overrides in effect
+    warnings: list["Problem"] = field(default_factory=list)  # loaded, but worth a look
 
 
 def defaults() -> Config:
@@ -226,19 +240,22 @@ def defaults() -> Config:
 
 # ── parsing ──────────────────────────────────────────────────────────────────
 
-def _read(base: Path, rel: str) -> str:
-    path = base / rel
+def _read(base: Path, rel: str, max_bytes: int) -> str:
+    """Bounded read (config_files.read_text): regular file, no symlink,
+    at most max_bytes."""
     try:
-        return path.read_text(encoding="utf-8")
-    except FileNotFoundError:
-        raise ConfigInvalid([Problem(rel, None, "file is missing")])
-    except (OSError, UnicodeDecodeError) as e:
-        raise ConfigInvalid([Problem(rel, None, f"cannot be read: {e}")])
+        return config_files.read_text(base, rel, max_bytes)
+    except config_files.FileError as e:
+        raise ConfigInvalid([Problem(rel, e.line, e.message)])
 
 
 def parse_prompt(text: str, rel: str) -> str:
     """The prompt in a prompt file: the text after its header comment,
     without leading and trailing blank lines."""
+    bad = config_files.control_character(text)
+    if bad:
+        raise ConfigInvalid([Problem(rel, bad[0], f"control character {bad[1]} is not allowed "
+                                                  "in a prompt (only newline and tab)")])
     if not text.startswith(_HEADER_OPEN):
         raise ConfigInvalid([Problem(rel, 1, "must start with a <!-- header comment -->")])
     end = text.find(_HEADER_CLOSE)
@@ -249,6 +266,8 @@ def parse_prompt(text: str, rel: str) -> str:
     header_lines = text[:body_start].count("\n") + 1
     if not body.strip():
         raise ConfigInvalid([Problem(rel, header_lines, "prompt is empty")])
+    if not _COMMENT.sub("", body).strip():
+        raise ConfigInvalid([Problem(rel, header_lines, "prompt is empty (only comments after the header)")])
     problems = []
     for m in _PLACEHOLDER.finditer(text, body_start):
         if m.group(1) not in PLACEHOLDERS:
@@ -261,40 +280,18 @@ def parse_prompt(text: str, rel: str) -> str:
 
 
 def parse_yaml(text: str, rel: str) -> tuple[dict, dict[tuple, int]]:
-    """(data, key path -> 1-based line). Duplicate keys are an error:
-    PyYAML would silently keep the last one."""
+    """(data, key path -> 1-based line), in the dialect of config_files.build:
+    no anchors, aliases, merge keys or tags, bounded nesting, duplicate keys
+    are errors, and scalars resolved the same way as in tool_service."""
     try:
-        node = yaml.compose(text, Loader=yaml.SafeLoader)
-        data = yaml.safe_load(text)
+        return config_files.build(yaml.parse(text, Loader=yaml.SafeLoader))
+    except config_files.FileError as e:
+        raise ConfigInvalid([Problem(rel, e.line, e.message)])
     except yaml.YAMLError as e:
         mark = getattr(e, "problem_mark", None)
         why = getattr(e, "problem", None) or str(e)
-        raise ConfigInvalid([Problem(rel, mark.line + 1 if mark else None, f"not valid YAML: {why}")])
-    if data is None:
-        data, node = {}, None
-    if not isinstance(data, dict):
-        raise ConfigInvalid([Problem(rel, 1, "must be a mapping of keys to values")])
-    lines: dict[tuple, int] = {}
-    problems: list[Problem] = []
-
-    def walk(n, path):
-        if not isinstance(n, yaml.MappingNode):
-            return
-        seen = set()
-        for k, v in n.value:
-            key = k.value
-            p = path + (key,)
-            if key in seen:
-                problems.append(Problem(rel, k.start_mark.line + 1,
-                                        f"duplicate key {'.'.join(p)}"))
-            seen.add(key)
-            lines[p] = k.start_mark.line + 1
-            walk(v, p)
-
-    walk(node, ())
-    if problems:
-        raise ConfigInvalid(problems)
-    return data, lines
+        raise ConfigInvalid([Problem(rel, mark.line + 1 if mark else None,
+                                     f"not valid YAML: {config_files.shorten(str(why))}")])
 
 
 def validate(model: type[BaseModel], data: dict, lines: dict[tuple, int], rel: str):
@@ -315,7 +312,7 @@ def validate(model: type[BaseModel], data: dict, lines: dict[tuple, int], rel: s
                 msg = f"{name}: unknown key"
             else:
                 got = err.get("input")
-                msg = f"{name}: {err['msg']}" + (f" (got {got!r})" if not isinstance(got, dict) else "")
+                msg = f"{name}: {err['msg']}" + (f" (got {config_files.quote(got)})" if not isinstance(got, dict) else "")
             problems.append(Problem(rel, line, msg))
         raise ConfigInvalid(problems)
 
@@ -324,38 +321,69 @@ def _digest(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()[:12]
 
 
+def _load_prompt(base: Path, rel: str) -> tuple[str, str]:
+    text = _read(base, rel, config_files.MAX_PROMPT_BYTES)
+    return parse_prompt(text, rel), _digest(text)
+
+
+def _load_tuning(base: Path) -> tuple["Tuning", str, bool]:
+    text = _read(base, TUNING_FILE, config_files.MAX_YAML_BYTES)
+    data, lines = parse_yaml(text, TUNING_FILE)
+    return validate(Tuning, data, lines, TUNING_FILE), _digest(text), bool(data)
+
+
+def _strays(base: Path) -> tuple[list[Problem], list[Problem]]:
+    """(errors, warnings) for entries under config/ that no service reads.
+    An unknown prompts/*.md is an error (it looks like a prompt the
+    operator expects to take effect); anything else is a warning."""
+    errors, warnings = [], []
+    prompt_files = {f"{n}.md" for n in prompt_defaults.PROMPTS}
+    known = {"": {TUNING_FILE, PROMPTS_DIR, *TOOL_SERVICE_FILES}, PROMPTS_DIR: prompt_files}
+    for rel, message in config_files.stray_entries(base, known):
+        if rel.startswith(f"{PROMPTS_DIR}/") and rel.endswith(".md"):
+            errors.append(Problem(rel, None, "unknown prompt file: no agent of that name "
+                                             f"(known: {', '.join(prompt_defaults.PROMPTS)})"))
+        else:
+            warnings.append(Problem(rel, None, message))
+    return errors, warnings
+
+
 def load(base: Path | None = None) -> Config:
     """Read and validate every file. Raises ConfigInvalid with every
-    problem found."""
+    problem found, and nothing else: any other exception while loading a
+    file becomes a problem for that file."""
     base = base or config_dir()
     problems: list[Problem] = []
+    warnings: list[Problem] = []
     prompts: dict[str, str] = {}
     digests: dict[str, str] = {}
 
-    pdir = base / PROMPTS_DIR
     for name in prompt_defaults.PROMPTS:
         rel = f"{PROMPTS_DIR}/{name}.md"
         try:
-            text = _read(base, rel)
-            prompts[name] = parse_prompt(text, rel)
-            digests[rel] = _digest(text)
+            prompts[name], digests[rel] = _load_prompt(base, rel)
         except ConfigInvalid as e:
             problems += e.problems
-    if pdir.is_dir():
-        for p in sorted(pdir.glob("*.md")):
-            if p.stem not in prompt_defaults.PROMPTS:
-                problems.append(Problem(f"{PROMPTS_DIR}/{p.name}", None,
-                                        "unknown prompt file: no agent of that name "
-                                        f"(known: {', '.join(prompt_defaults.PROMPTS)})"))
+        except Exception as e:          # RecursionError, MemoryError, a library bug
+            problems.append(Problem(rel, None, config_files.unexpected(e)))
 
     tuning = None
     try:
-        text = _read(base, TUNING_FILE)
-        data, lines = parse_yaml(text, TUNING_FILE)
-        tuning = validate(Tuning, data, lines, TUNING_FILE)
-        digests[TUNING_FILE] = _digest(text)
+        tuning, digests[TUNING_FILE], has_keys = _load_tuning(base)
+        if not has_keys:
+            warnings.append(Problem(TUNING_FILE, None, EMPTY_YAML))
     except ConfigInvalid as e:
         problems += e.problems
+    except Exception as e:
+        problems.append(Problem(TUNING_FILE, None, config_files.unexpected(e)))
+
+    try:
+        stray_errors, stray_warnings = _strays(base)
+        problems += stray_errors
+        warnings += stray_warnings
+    except Exception as e:
+        warnings.append(Problem(".", None, f"stray-file scan failed: {config_files.unexpected(e)}"))
+
     env: dict[str, str] = {}
     if tuning is not None:
         tuning, env, env_problems = _apply_env(tuning)
@@ -363,7 +391,19 @@ def load(base: Path | None = None) -> Config:
 
     if problems:
         raise ConfigInvalid(problems)
-    return Config(prompts=prompts, tuning=tuning, source="files", digests=digests, env=env)
+    return Config(prompts=prompts, tuning=tuning, source="files", digests=digests, env=env,
+                  warnings=warnings)
+
+
+def _try_load() -> tuple[Config | None, list[Problem]]:
+    """load(), never raising: (config, []) or (None, problems)."""
+    try:
+        return load(), []
+    except ConfigInvalid as e:
+        return None, config_files.cap_problems(
+            e.problems, lambda first, n: Problem(first.file, None, f"and {n} more problems, not shown"))
+    except Exception as e:
+        return None, [Problem("(loader)", None, config_files.unexpected(e))]
 
 
 # ── the values in effect ─────────────────────────────────────────────────────
@@ -406,6 +446,11 @@ def _report(problems: list[Problem], when: str, effect: str) -> None:
     emit("config_error", when=when, effect=effect, problems=[str(p) for p in problems][:10])
 
 
+def _warn(warnings: list[Problem], when: str) -> None:
+    for w in warnings:
+        logger.warning("config %s: %s", when, w)
+
+
 def _set(cfg: Config) -> None:
     global _current
     _current = cfg
@@ -416,15 +461,17 @@ def _set(cfg: Config) -> None:
 def start() -> Config:
     """Load at startup: the files if valid, else the built-in defaults."""
     global _status
-    try:
-        cfg = load()
-        _status = {"ok": True, "errors": [], "event": "startup"}
+    cfg, problems = _try_load()
+    if cfg is not None:
+        _status = {"ok": True, "errors": [], "event": "startup",
+                   "warnings": [w.as_dict() for w in cfg.warnings]}
         logger.info("config loaded from %s (%d prompts)", config_dir(), len(cfg.prompts))
-    except ConfigInvalid as e:
+        _warn(cfg.warnings, "at startup")
+    else:
         cfg = defaults()
-        _report(e.problems, "at startup", "running on built-in defaults")
-        _status = {"ok": False, "errors": [p.as_dict() for p in e.problems], "event": "startup",
-                   "kept": "built-in defaults"}
+        _report(problems, "at startup", "running on built-in defaults")
+        _status = {"ok": False, "errors": [p.as_dict() for p in problems], "event": "startup",
+                   "kept": "built-in defaults", "warnings": []}
     _status["at"] = time.time()
     _set(cfg)
     return cfg
@@ -446,20 +493,25 @@ def reload() -> dict:
     what changed. Invalid: nothing changes, and the answer has the errors."""
     global _status
     old = current()
-    try:
-        new = load()
-    except ConfigInvalid as e:
+    new, problems = _try_load()
+    if new is None:
         kept = f"last good values ({old.source}, loaded {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(old.loaded_at))})"
-        _report(e.problems, "on reload", f"keeping {kept}")
-        _status = {"ok": False, "errors": [p.as_dict() for p in e.problems], "event": "reload",
-                   "kept": kept, "at": time.time()}
+        _report(problems, "on reload", f"keeping {kept}")
+        _status = {"ok": False, "errors": [p.as_dict() for p in problems], "event": "reload",
+                   "kept": kept, "at": time.time(), "warnings": []}
         return {"ok": False, "errors": _status["errors"], "kept": kept}
     changed = _changes(old, new)
     _set(new)
-    _status = {"ok": True, "errors": [], "event": "reload", "at": time.time(), "changed": changed}
+    warnings = [w.as_dict() for w in new.warnings]
+    _status = {"ok": True, "errors": [], "event": "reload", "at": time.time(), "changed": changed,
+               "warnings": warnings}
     emit("config_reloaded", changed=changed[:20])
     logger.info("config reloaded: %s", "; ".join(changed) or "no changes")
-    return {"ok": True, "changed": changed}
+    _warn(new.warnings, "on reload")
+    result = {"ok": True, "changed": changed}
+    if warnings:
+        result["warnings"] = warnings
+    return result
 
 
 def status() -> dict:

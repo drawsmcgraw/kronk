@@ -277,11 +277,16 @@
       grid.innerHTML = services.map((s, i) => {
         const errs = (s.errors || []).map(e =>
           `${e.file || ''}${e.line ? ' line ' + e.line : ''}: ${e.message}`);
+        // Warnings (fix round 1): loaded, but worth a look — a YAML file
+        // with no keys, or a file under config/ that no service reads.
+        const warns = (s.warnings || []).map(e =>
+          `${e.file || ''}${e.line ? ' line ' + e.line : ''}: ${e.message}`);
         const when = s.at ? new Date(s.at * 1000).toLocaleString() : '';
         const desc = s.ok
           ? `${s.source} · ${Object.keys(s.files || {}).length} files · ${s.event || ''} ${when}`
+            + (warns.length ? ` — WARNING: ${warns.join(' | ')}` : '')
           : `${(s.event || 'load').toUpperCase()} REJECTED ${when} — ${errs.join(' | ')} — in effect: ${s.kept || s.source}`;
-        return card({ icon: '🗂️', name: s.service, badge: s.ok ? 'ok' : 'error',
+        return card({ icon: '🗂️', name: s.service, badge: s.ok ? (warns.length ? 'warning' : 'ok') : 'error',
                       dotId: `s-config-${i}`, desc, tag: s.dir || '' });
       }).join('');
       services.forEach((s, i) => setDot(`s-config-${i}`, !!s.ok));

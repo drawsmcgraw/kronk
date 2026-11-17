@@ -4,7 +4,10 @@ The same rules as orchestrator/config_loader.py, for the one file
 tool_service reads. The two services build separate images from their own
 directories, and each already pins a different YAML library (PyYAML there,
 ruamel.yaml here), so each carries its own small loader rather than a
-shared package.
+shared package. What both must agree on (bounded reading, the YAML
+dialect) is config_files.py, byte-identical in both directories: ruamel
+only tokenises here, and config_files.build() decides what a value is, so
+music.yaml and tuning.yaml are read as the same language.
 
 Files (docs/features/config-directory.md has the full description):
   music.yaml   the playback verify window and the resolver's thresholds;
@@ -18,12 +21,17 @@ Rules:
     the error is kept, with file and line, for GET /config/status (shown
     on the orchestrator's /services page) and is logged.
   - Reload only on an explicit POST /config/reload. No file watching.
+  - No file can take a load down (fix round 1): any exception at all
+    while loading becomes a config error; start() never raises and
+    reload() always answers. An empty or comments-only music.yaml loads,
+    with the warning "all defaults (file has no keys)".
+  - Stray files under config/ are reported once, by the orchestrator,
+    which scans the whole directory.
   - The models are not frozen so tests can patch a value with
     patch.object(config_loader.current().music.verify, "timeout_s", 0);
     code never assigns to them.
 """
 import hashlib
-import io
 import logging
 import os
 import time
@@ -32,12 +40,18 @@ from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from ruamel.yaml import YAML
-from ruamel.yaml.comments import CommentedMap, CommentedSeq
 from ruamel.yaml.error import MarkedYAMLError, YAMLError
+
+# Dual-compat, as in main.py: package import in tests, flat in the image.
+try:
+    from . import config_files
+except ImportError:
+    import config_files
 
 logger = logging.getLogger("tool_service.config")
 
 MUSIC_FILE = "music.yaml"
+EMPTY_YAML = "all defaults (file has no keys)"
 
 
 def config_dir() -> Path:
@@ -52,12 +66,17 @@ class Problem:
     line: int | None     # 1-based; None when the problem is the whole file
     message: str
 
+    @property
+    def path(self) -> str:
+        # "(loader)" for a failure outside any one file; else the file under config/.
+        return self.file if self.file.startswith("(") else f"config/{self.file}"
+
     def __str__(self) -> str:
-        where = f"{self.file}:{self.line}" if self.line else self.file
-        return f"config/{where}: {self.message}"
+        where = f"{self.path}:{self.line}" if self.line else self.path
+        return f"{where}: {self.message}"
 
     def as_dict(self) -> dict:
-        return {"file": f"config/{self.file}", "line": self.line, "message": self.message}
+        return {"file": self.path, "line": self.line, "message": self.message}
 
 
 class ConfigInvalid(Exception):
@@ -117,6 +136,7 @@ class Config:
     source: str                                   # "files" | "defaults"
     loaded_at: float = field(default_factory=time.time)
     digests: dict[str, str] = field(default_factory=dict)
+    warnings: list[Problem] = field(default_factory=list)
 
 
 def defaults() -> Config:
@@ -125,59 +145,27 @@ def defaults() -> Config:
 
 # ── parsing ──────────────────────────────────────────────────────────────────
 
-def _plain(v):
-    """ruamel round-trip types → plain Python, so strict validation sees
-    int, float, str, bool, dict and list."""
-    if isinstance(v, dict):
-        return {str(k): _plain(x) for k, x in v.items()}
-    if isinstance(v, list):
-        return [_plain(x) for x in v]
-    if isinstance(v, bool):
-        return bool(v)
-    if isinstance(v, int):
-        return int(v)
-    if isinstance(v, float):
-        return float(v)
-    if isinstance(v, str):
-        return str(v)
-    return v
-
-
 def parse_yaml(text: str, rel: str) -> tuple[dict, dict[tuple, int]]:
-    """(data, key path -> 1-based line). ruamel rejects duplicate keys."""
+    """(data, key path -> 1-based line), in the dialect of
+    config_files.build (the orchestrator reads tuning.yaml the same way)."""
     try:
-        doc = YAML(typ="rt").load(io.StringIO(text))
+        return config_files.build(YAML(typ="safe", pure=True).parse(text))
+    except config_files.FileError as e:
+        raise ConfigInvalid([Problem(rel, e.line, e.message)])
     except MarkedYAMLError as e:
         mark = e.problem_mark or e.context_mark
         why = e.problem or str(e)
-        raise ConfigInvalid([Problem(rel, mark.line + 1 if mark else None, f"not valid YAML: {why}")])
+        raise ConfigInvalid([Problem(rel, mark.line + 1 if mark else None,
+                                     f"not valid YAML: {config_files.shorten(str(why))}")])
     except YAMLError as e:
-        raise ConfigInvalid([Problem(rel, None, f"not valid YAML: {e}")])
-    if doc is None:
-        return {}, {}
-    if not isinstance(doc, CommentedMap):
-        raise ConfigInvalid([Problem(rel, 1, "must be a mapping of keys to values")])
-    lines: dict[tuple, int] = {}
-
-    def walk(m, path):
-        for k in m:
-            p = path + (str(k),)
-            lines[p] = m.lc.key(k)[0] + 1
-            v = m[k]
-            if isinstance(v, CommentedMap):
-                walk(v, p)
-            elif isinstance(v, CommentedSeq):
-                pass
-
-    walk(doc, ())
-    return _plain(doc), lines
+        raise ConfigInvalid([Problem(rel, None, f"not valid YAML: {config_files.shorten(str(e))}")])
 
 
 def validate(model: type[BaseModel], data: dict, lines: dict[tuple, int], rel: str):
     try:
         return model.model_validate(data)
     except ValidationError as e:
-        problems = []
+        problems, seen = [], set()
         for err in e.errors():
             loc = tuple(str(x) for x in err["loc"])
             if loc and loc[-1] in ("int", "float"):
@@ -194,25 +182,42 @@ def validate(model: type[BaseModel], data: dict, lines: dict[tuple, int], rel: s
                 msg = f"{name}: unknown key"
             else:
                 got = err.get("input")
-                msg = f"{name}: {err['msg']}" + (f" (got {got!r})" if not isinstance(got, dict) else "")
-            if Problem(rel, line, msg) not in problems:
-                problems.append(Problem(rel, line, msg))
+                msg = f"{name}: {err['msg']}" + (f" (got {config_files.quote(got)})" if not isinstance(got, dict) else "")
+            problem = Problem(rel, line, msg)
+            if problem not in seen:         # a set: a file of thousands of keys stays linear
+                seen.add(problem)
+                problems.append(problem)
         raise ConfigInvalid(problems)
 
 
 def load(base: Path | None = None) -> Config:
+    """Read and validate music.yaml. Raises ConfigInvalid and nothing else:
+    any other exception while loading becomes a problem for the file."""
     base = base or config_dir()
-    path = base / MUSIC_FILE
     try:
-        text = path.read_text(encoding="utf-8")
-    except FileNotFoundError:
-        raise ConfigInvalid([Problem(MUSIC_FILE, None, "file is missing")])
-    except (OSError, UnicodeDecodeError) as e:
-        raise ConfigInvalid([Problem(MUSIC_FILE, None, f"cannot be read: {e}")])
-    data, lines = parse_yaml(text, MUSIC_FILE)
-    music = validate(Music, data, lines, MUSIC_FILE)
-    return Config(music=music, source="files",
+        text = config_files.read_text(base, MUSIC_FILE, config_files.MAX_YAML_BYTES)
+        data, lines = parse_yaml(text, MUSIC_FILE)
+        music = validate(Music, data, lines, MUSIC_FILE)
+    except config_files.FileError as e:
+        raise ConfigInvalid([Problem(MUSIC_FILE, e.line, e.message)])
+    except ConfigInvalid:
+        raise
+    except Exception as e:              # RecursionError, MemoryError, a library bug
+        raise ConfigInvalid([Problem(MUSIC_FILE, None, config_files.unexpected(e))])
+    warnings = [] if data else [Problem(MUSIC_FILE, None, EMPTY_YAML)]
+    return Config(music=music, source="files", warnings=warnings,
                   digests={MUSIC_FILE: hashlib.sha256(text.encode()).hexdigest()[:12]})
+
+
+def _try_load() -> tuple[Config | None, list[Problem]]:
+    """load(), never raising: (config, []) or (None, problems)."""
+    try:
+        return load(), []
+    except ConfigInvalid as e:
+        return None, config_files.cap_problems(
+            e.problems, lambda first, n: Problem(first.file, None, f"and {n} more problems, not shown"))
+    except Exception as e:
+        return None, [Problem("(loader)", None, config_files.unexpected(e))]
 
 
 # ── the values in effect ─────────────────────────────────────────────────────
@@ -245,17 +250,27 @@ def _report(problems: list[Problem], when: str, effect: str) -> None:
         logger.error("config %s rejected: %s (%s)", when, p, effect)
 
 
+def _warn(warnings: list[Problem], when: str) -> None:
+    for w in warnings:
+        logger.warning("config %s: %s", when, w)
+
+
 def start() -> Config:
+    """Load at startup: the file if valid, else the built-in defaults.
+    Never raises."""
     global _current, _status
-    try:
-        _current = load()
-        _status = {"ok": True, "errors": [], "event": "startup"}
+    cfg, problems = _try_load()
+    if cfg is not None:
+        _current = cfg
+        _status = {"ok": True, "errors": [], "event": "startup",
+                   "warnings": [w.as_dict() for w in cfg.warnings]}
         logger.info("config loaded from %s", config_dir())
-    except ConfigInvalid as e:
+        _warn(cfg.warnings, "at startup")
+    else:
         _current = defaults()
-        _report(e.problems, "at startup", "running on built-in defaults")
-        _status = {"ok": False, "errors": [p.as_dict() for p in e.problems], "event": "startup",
-                   "kept": "built-in defaults"}
+        _report(problems, "at startup", "running on built-in defaults")
+        _status = {"ok": False, "errors": [p.as_dict() for p in problems], "event": "startup",
+                   "kept": "built-in defaults", "warnings": []}
     _status["at"] = time.time()
     return _current
 
@@ -267,20 +282,25 @@ def current() -> Config:
 def reload() -> dict:
     global _current, _status
     old = current()
-    try:
-        new = load()
-    except ConfigInvalid as e:
+    new, problems = _try_load()
+    if new is None:
         kept = (f"last good values ({old.source}, loaded "
                 f"{time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(old.loaded_at))})")
-        _report(e.problems, "on reload", f"keeping {kept}")
-        _status = {"ok": False, "errors": [p.as_dict() for p in e.problems], "event": "reload",
-                   "kept": kept, "at": time.time()}
+        _report(problems, "on reload", f"keeping {kept}")
+        _status = {"ok": False, "errors": [p.as_dict() for p in problems], "event": "reload",
+                   "kept": kept, "at": time.time(), "warnings": []}
         return {"ok": False, "errors": _status["errors"], "kept": kept}
     changed = _changes(old, new)
     _current = new
-    _status = {"ok": True, "errors": [], "event": "reload", "at": time.time(), "changed": changed}
+    warnings = [w.as_dict() for w in new.warnings]
+    _status = {"ok": True, "errors": [], "event": "reload", "at": time.time(), "changed": changed,
+               "warnings": warnings}
     logger.info("config reloaded: %s", "; ".join(changed) or "no changes")
-    return {"ok": True, "changed": changed}
+    _warn(new.warnings, "on reload")
+    result = {"ok": True, "changed": changed}
+    if warnings:
+        result["warnings"] = warnings
+    return result
 
 
 def status() -> dict:

@@ -11,7 +11,8 @@
 # orchestrator publishes no host port, so its reload goes through
 # `docker exec` to its own localhost; tool_service is reached on its
 # loopback port. Each answers with what changed (200) or with the errors,
-# file and line, and the last good values still in effect (422).
+# file and line, and the last good values still in effect (422); the
+# script prints "<HTTP code> <body>" for both.
 # Exit status: 0 when both reloads succeeded, 1 otherwise.
 set -uo pipefail
 
@@ -22,17 +23,25 @@ case "${1:-}" in
 esac
 
 ok=0
+# Each service's answer is printed as "<HTTP code> <body>", success or not.
 echo "== orchestrator ($orch)"
 docker exec "$orch" python -c "
 import sys, urllib.request, urllib.error
 req = urllib.request.Request('http://localhost:$orch_port/config/reload', method='POST')
 try:
-    print(urllib.request.urlopen(req, timeout=10).read().decode())
+    with urllib.request.urlopen(req, timeout=10) as resp:
+        print(resp.status, resp.read().decode())
 except urllib.error.HTTPError as e:
     print(e.code, e.read().decode()); sys.exit(1)
+except OSError as e:
+    print('000', 'no answer:', e); sys.exit(1)
 " || ok=1
 echo
 echo "== tool_service (127.0.0.1:$ts_port)"
-curl -sS --max-time 10 -X POST -w '\n%{http_code}\n' "http://127.0.0.1:$ts_port/config/reload" \
-    | { body=$(cat); echo "$body" | head -n -1; code=$(echo "$body" | tail -n 1); [ "$code" = 200 ]; } || ok=1
+out=$(curl -sS --max-time 10 -X POST -w '\n%{http_code}' "http://127.0.0.1:$ts_port/config/reload" 2>&1)
+code=${out##*$'\n'}
+body=${out%$'\n'*}
+[ "$body" = "$out" ] && body=""
+echo "$code $body"
+[ "$code" = 200 ] || ok=1
 exit $ok

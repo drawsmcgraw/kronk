@@ -59,8 +59,10 @@ def test_out_of_range_names_file_and_line(cfgdir):
 def test_yaml_syntax_error_and_duplicate_key_name_the_line(cfgdir):
     ((f, line, msg),) = _problems(cfgdir, "verify:\n  timeout_s: [8\n")
     assert f == "music.yaml" and line is not None and "not valid YAML" in msg
-    ((f, line, msg),) = _problems(cfgdir, "verify:\n  timeout_s: 8\n  timeout_s: 9\n")
-    assert f == "music.yaml" and line == 3 and "not valid YAML" in msg
+    # One dialect (fix round 1): the shared builder reports duplicates, in
+    # the orchestrator's words.
+    assert _problems(cfgdir, "verify:\n  timeout_s: 8\n  timeout_s: 9\n") == \
+        [("music.yaml", 3, "duplicate key verify.timeout_s")]
 
 
 def test_missing_file_is_an_error(cfgdir):

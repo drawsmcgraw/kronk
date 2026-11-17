@@ -34,16 +34,25 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 logger = logging.getLogger(__name__)
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # config/ was loaded when agents was imported, before logging was set
-    # up above; say the outcome again where the log will keep it.
+def _log_config_status() -> None:
+    """config/ was loaded when agents was imported, before logging was set
+    up above; say the outcome again where the log will keep it."""
     st = config_loader.status()
     if st["ok"]:
         logger.info("config: %s from %s (%d files)", st["source"], st["dir"], len(st["files"]))
+
+    def where(e):
+        return f"{e['file']}:{e['line']}" if e.get("line") else e["file"]
     for e in st.get("errors", []):
-        logger.error("config at startup rejected: %s:%s: %s (running on built-in defaults)",
-                     e["file"], e["line"], e["message"])
+        logger.error("config at startup rejected: %s: %s (running on built-in defaults)",
+                     where(e), e["message"])
+    for w in st.get("warnings", []):
+        logger.warning("config at startup: %s: %s", where(w), w["message"])
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    _log_config_status()
     metrics.init_db()
     sessions.init_db()
     pruned = sessions.prune_idle()
