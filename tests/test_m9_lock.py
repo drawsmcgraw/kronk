@@ -342,3 +342,143 @@ async def test_the_switch_restores_one_request_at_a_time(monkeypatch):
             await asyncio.gather(_collect("what is two plus two"),
                                  _collect("what is three plus three"))
         assert (peak > 1) is overlap, mode
+
+# ── Step 3: the per-server lock is a priority queue ──────────────────────────
+
+async def _hold_then_queue(lock, classes):
+    """Hold `lock`, queue one waiter per class in `classes` (in that order),
+    release, and return the order the waiters got the lock in."""
+    order = []
+
+    async def waiter(i, cls):
+        await lock.acquire(cls)
+        order.append((i, cls))
+        await asyncio.sleep(0)
+        lock.release()
+
+    await lock.acquire(model_lock.DISPLAY)
+    tasks = []
+    for i, cls in enumerate(classes):
+        tasks.append(asyncio.ensure_future(waiter(i, cls)))
+        await asyncio.sleep(0)          # arrival order is the list order
+    assert lock.waiting() == list(classes)
+    lock.release()
+    await asyncio.wait_for(asyncio.gather(*tasks), timeout=2)
+    assert not lock.locked()
+    return order
+
+
+@pytest.mark.asyncio
+async def test_voice_waiters_go_first_fifo_within_a_class():
+    lock = model_lock.PriorityLock("t", max_overtakes=lambda: 10)
+    order = await _hold_then_queue(lock, ["display", "voice", "display", "voice"])
+    assert order == [(1, "voice"), (3, "voice"), (0, "display"), (2, "display")]
+
+
+@pytest.mark.asyncio
+async def test_three_waiters():
+    lock = model_lock.PriorityLock("t", max_overtakes=lambda: 3)
+    order = await _hold_then_queue(lock, ["display", "display", "voice"])
+    assert order == [(2, "voice"), (0, "display"), (1, "display")]
+
+
+@pytest.mark.asyncio
+async def test_a_display_request_cannot_starve():
+    """Voice requests keep arriving while the lock is busy; the display
+    request that was waiting first is served after at most max_overtakes."""
+    lock = model_lock.PriorityLock("t", max_overtakes=lambda: 2)
+    order = []
+
+    async def waiter(name, cls):
+        await lock.acquire(cls)
+        order.append(name)
+        # each holder lets one more voice request arrive before releasing
+        lock.release()
+
+    await lock.acquire(model_lock.VOICE)
+    d = asyncio.ensure_future(waiter("display", "display"))
+    await asyncio.sleep(0)
+    vs = []
+    for i in range(5):
+        vs.append(asyncio.ensure_future(waiter(f"v{i}", "voice")))
+        await asyncio.sleep(0)
+    lock.release()
+    await asyncio.wait_for(asyncio.gather(d, *vs), timeout=2)
+    assert order.index("display") == 2, order
+
+
+@pytest.mark.asyncio
+async def test_no_preemption_the_holder_keeps_the_lock():
+    lock = model_lock.PriorityLock("t")
+    await lock.acquire("display")
+    v = asyncio.ensure_future(lock.acquire("voice"))
+    await asyncio.sleep(0.05)
+    assert not v.done() and lock.locked()
+    lock.release()
+    await asyncio.wait_for(v, timeout=1)
+    lock.release()
+    assert not lock.locked()
+
+
+@pytest.mark.asyncio
+async def test_cancelled_waiters_leave_no_trace():
+    lock = model_lock.PriorityLock("t")
+    await lock.acquire("display")
+    a = asyncio.ensure_future(lock.acquire("voice"))
+    b = asyncio.ensure_future(lock.acquire("display"))
+    await asyncio.sleep(0)
+    a.cancel()
+    await asyncio.sleep(0)
+    lock.release()
+    await asyncio.wait_for(b, timeout=1)
+    assert lock.waiting() == []
+    lock.release()
+    assert not lock.locked()
+
+
+@pytest.mark.asyncio
+async def test_granted_then_cancelled_passes_the_lock_on():
+    lock = model_lock.PriorityLock("t")
+    await lock.acquire("display")
+    a = asyncio.ensure_future(lock.acquire("voice"))
+    b = asyncio.ensure_future(lock.acquire("display"))
+    await asyncio.sleep(0)
+    lock.release()          # granted to a, which has not run yet
+    a.cancel()
+    await asyncio.wait_for(b, timeout=1)
+    assert lock.locked()
+    lock.release()
+    assert not lock.locked() and lock.waiting() == []
+
+
+def test_max_overtakes_default_is_the_shipped_file():
+    import config_loader
+    assert config_loader.ModelLock().max_overtakes == 3
+    assert config_loader.current().tuning.model_lock.max_overtakes == 3
+
+
+@pytest.mark.asyncio
+async def test_queue_order_through_held_and_the_priority_class():
+    """Three requests queue on one server through model_lock.held, which
+    takes the class from origin.voice: the voice one goes first."""
+    import origin
+    lock = model_lock.PriorityLock("t", max_overtakes=lambda: 3)
+    order = []
+
+    async def request(name, voice):
+        token = origin.voice.set(voice)
+        try:
+            async with model_lock.held(lock, "t"):
+                order.append(name)
+                await asyncio.sleep(0)
+        finally:
+            origin.voice.reset(token)
+
+    await lock.acquire(model_lock.DISPLAY)
+    tasks = []
+    for name, voice in (("d1", False), ("d2", False), ("v1", True)):
+        tasks.append(asyncio.ensure_future(request(name, voice)))
+        await asyncio.sleep(0)
+    lock.release()
+    await asyncio.wait_for(asyncio.gather(*tasks), timeout=2)
+    assert order == ["v1", "d1", "d2"]

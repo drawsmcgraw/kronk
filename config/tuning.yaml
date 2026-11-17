@@ -84,3 +84,14 @@ transcript_gate:
   # 20 words a clean request takes the model path: slower, not wrong.
   # 1 to 500, or null.
   max_words: 20
+
+# The model locks (sprint M9; docs/features/model-locks.md). Each llama.cpp
+# server has one lock, held for one generation; requests waiting for it are
+# served voice (the speech mount) before display (web UI, /api/chat, /v1),
+# first come first served within each, and a running generation is never
+# interrupted.
+model_lock:
+  # A waiting display request is overtaken by at most this many voice
+  # requests that arrived after it; then it is served next. 0 makes the
+  # queue first come first served for everyone. 0 to 100.
+  max_overtakes: 3

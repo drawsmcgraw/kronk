@@ -208,11 +208,19 @@ class TranscriptGate(_Strict):
     max_words: int | None = Field(20, ge=1, le=500)
 
 
+class ModelLock(_Strict):
+    """The per-server model locks (sprint M9; model_lock.PriorityLock): a
+    waiting display request is overtaken by at most this many voice
+    requests that arrived after it, then served. Read per release."""
+    max_overtakes: int = Field(3, ge=0, le=100)
+
+
 class Tuning(_Strict):
     agent_loop: AgentLoop = Field(default_factory=AgentLoop)
     weather_context: WeatherContext = Field(default_factory=WeatherContext)
     tool_timeouts: ToolTimeouts = Field(default_factory=ToolTimeouts)
     transcript_gate: TranscriptGate = Field(default_factory=TranscriptGate)   # sprint M14
+    model_lock: ModelLock = Field(default_factory=ModelLock)                  # sprint M9
 
 
 # The spoken lead-in (sprint M19): [filler ...] <verb> <name> [to] <request>.
