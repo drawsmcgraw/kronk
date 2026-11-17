@@ -19,6 +19,12 @@ refactor can be shown to change no routing outcome:
 No rule may be added, removed, reordered or widened (stopping rule, Drew
 2026-11-11). A deliberate routing change updates the frozen copies and the
 fixture in the same commit and says why.
+
+Sprint M19 made the one deliberate change so far: the `lead_in` rule ("ask
+Kronk to ...", decided by Drew 2026-11-11), first in the order, 16 outcomes.
+Its frozen matcher is FROZEN_LEAD_IN below (the pattern built from the
+shipped config/lead_in.yaml); its utterances were appended to the fixture
+and every earlier row kept its (route, rule).
 """
 import asyncio
 import itertools
@@ -32,15 +38,16 @@ import routing
 
 PIN = Path(__file__).resolve().parent / "fixtures" / "routing_pin.jsonl"
 
-# The 15 outcomes, in the order _classify_inner tries them (plan, "Verified
-# on Kronk, 2026-11-15", M7 line). "default" is the fall-through.
+# The 16 outcomes, in the order _classify_inner tries them (plan, "Verified
+# on Kronk, 2026-11-15", M7 line; `lead_in` first since M19). "default" is
+# the fall-through.
 ORDER = [
-    "talkie_explicit", "direct_override", "music_url", "url", "search_phrase",
+    "lead_in", "talkie_explicit", "direct_override", "music_url", "url", "search_phrase",
     "weather", "playback", "now_playing", "rate", "music_another", "taste",
     "music", "mm_update", "mm_ops", "default",
 ]
 ROUTES = {
-    "talkie_explicit": "talkie", "direct_override": "direct", "music_url": "home",
+    "lead_in": "direct", "talkie_explicit": "talkie", "direct_override": "direct", "music_url": "home",
     "url": "research", "search_phrase": "research", "weather": "home",
     "playback": "home", "now_playing": "home", "rate": "home",
     "music_another": "home", "taste": "home", "music": "home",
@@ -134,9 +141,23 @@ FROZEN = {
     "_MM_UPDATE_RE": re.compile(r'\bupdate\s+the\s+magic\s*mirror\b', _I),
 }
 
-# Rule -> its matcher at 7c83f36, built from the frozen copies.
+# The lead-in (sprint M19), as built from the shipped config/lead_in.yaml:
+# [filler ...] ask Kronk [to] <request>, with a request that is not empty.
+FROZEN_LEAD_IN = re.compile(
+    r"[\W_]*(?:(?:could\s+you|can\s+you|please|okay|hey|ok)\b[\s,.!?;:]*)*(?:ask)[\s,]+(?:Kronk)"
+    r"(?=[\s,.!?;:]|\Z)[\s,.!?;:]*(?:to\b\s*)?(?P<request>.*)", _I | _D)
+_FROZEN_EMPTY_REQUEST = re.compile(r"[\W_]*(?:please[\W_]*)?", _I)
+
+
+def _frozen_lead_in(text: str) -> bool:
+    m = FROZEN_LEAD_IN.match(text)
+    return bool(m) and not _FROZEN_EMPTY_REQUEST.fullmatch(m.group("request").strip())
+
+
+# Rule -> its matcher at 7c83f36 (lead_in: M19), built from the frozen copies.
 _F = FROZEN
 FROZEN_MATCHERS = {
+    "lead_in":         _frozen_lead_in,
     "talkie_explicit": lambda t: _F["_TALKIE_PHRASES"].search(t),
     "direct_override": lambda t: _F["_DIRECT_OVERRIDE"].search(t),
     "music_url":       lambda t: _F["_MUSIC_URL_RE"].search(t),
@@ -195,6 +216,24 @@ OVERLAPS = [
     "skip this song in the kitchen",                            # default (room named)
     "what's playing in the kitchen",                            # default (room named)
     "thumbs up in the office",                                  # default (room named)
+    # sprint M19: the lead-in wins over every rule it overlaps
+    "ask Kronk to pause",                                       # lead_in > playback
+    "ask Kronk to play some jazz",                              # lead_in > music
+    "ask Kronk what song is this",                              # lead_in > now_playing
+    "ask Kronk to search the web for the best pizza in town",   # lead_in > search_phrase
+    "ask Kronk to update the magic mirror",                     # lead_in > mm_update
+    "ask Kronk to ask talkie about the moon",                   # lead_in > talkie
+    "ask Kronk to answer it yourself",                          # lead_in > direct_override
+    "ask Kronk what's the weather tomorrow",                    # lead_in > weather
+    "ask Kronk to thumbs up",                                   # lead_in > rate
+    "ask Kronk to play something else",                         # lead_in > music_another, music
+    "ask Kronk to play https://music.youtube.com/watch?v=abc",  # lead_in > music_url, url
+    "ask Kronk to never play nickelback",                       # lead_in > taste
+    "ask Kronk to restart the magic mirror",                    # lead_in > mm_ops
+    "what happens if I ask Kronk to pause",                     # default (not at the start)
+    "tell Kronk to pause",                                      # default (not the lead-in verb)
+    "ask Kronk",                                                # default (nothing after it)
+    "ask Kronk to.",                                            # default (nothing after it)
 ]
 
 
@@ -256,6 +295,13 @@ def variants() -> list[str]:
              "update magic mirror", "upgrade the magic mirror", "did the magic mirror update",
              "update the magic mirror and tell me the weather", "update the  magic mirror"],
             ["", " please", ".", "?"])
+    # lead_in (sprint M19) and its near misses
+    product(["", " ", "hey, ", "Okay, ", "OK ", "please ", "can you ", "Could you ", "so "],
+            ["ask Kronk to ", "Ask Kronk ", "ask kronk, ", "ASK KRONK TO ", "tell Kronk to ",
+             "ask Kronky to ", "ask Kronk's "],
+            ["pause", "play some jazz", "what song is this", "update the magic mirror",
+             "", "please", "."],
+            ["", "?", "."])
     return out
 
 
@@ -270,8 +316,8 @@ def _first_frozen(text: str) -> str:
 
 # ── 1. The outcomes and their order ──────────────────────────────────────────
 
-def test_fifteen_outcomes_and_their_routes():
-    assert len(ORDER) == 15 and len(set(ORDER)) == 15
+def test_sixteen_outcomes_and_their_routes():
+    assert len(ORDER) == 16 and len(set(ORDER)) == 16
     assert set(ROUTES) == set(ORDER)
 
 
@@ -339,9 +385,21 @@ def test_regex_accepts_what_its_frozen_copy_accepts(name):
     assert not diff, f"{name} differs from 7c83f36 on: {diff[:10]}"
 
 
+def test_lead_in_matches_its_frozen_copy():
+    """The lead-in pattern built from the shipped config/lead_in.yaml is the
+    frozen one, and accepts (with a non-empty request) exactly what the
+    frozen copy accepts on every pinned utterance (sprint M19)."""
+    assert routing.lead_in_pattern().pattern == FROZEN_LEAD_IN.pattern
+    assert routing.lead_in_pattern().flags & (re.I | re.S) == re.I | re.S
+    assert routing._EMPTY_REQUEST.pattern == _FROZEN_EMPTY_REQUEST.pattern
+    diff = [r["text"] for r in PIN_ROWS
+            if (routing.lead_in_request(r["text"]) is not None) != _frozen_lead_in(r["text"])]
+    assert not diff, diff[:10]
+
+
 # ── 4. The table itself (O12, added with the refactor) ───────────────────────
 
-def test_rules_table_is_the_fifteen_outcomes_in_order():
+def test_rules_table_is_the_sixteen_outcomes_in_order():
     assert [r.name for r in routing.RULES] == ORDER
     assert {r.name: r.route for r in routing.RULES} == ROUTES
 

@@ -48,10 +48,13 @@ ALIAS_BOMB_LINES = [
 class Svc:
     """One service's loader, pointed at a scratch copy of config/."""
 
-    def __init__(self, name, loader, yaml_file, section, field, good, app):
+    def __init__(self, name, loader, yaml_file, section, field, good, app, yaml_files=None):
         self.name, self.loader, self.yaml_file = name, loader, yaml_file
         self.section, self.field, self.good = section, field, good
         self._app = app
+        # Every YAML file the service reads, in load order: a test that
+        # breaks the parser or validator itself gets one problem per file.
+        self.yaml_files = yaml_files or (yaml_file,)
 
     @property
     def yaml_path(self) -> Path:
@@ -85,7 +88,8 @@ def _ts_app():
 
 SERVICES = {
     "orchestrator": lambda: Svc("orchestrator", orch_loader, "tuning.yaml",
-                                "weather_context", "max_age_s", 7200, _orch_app),
+                                "weather_context", "max_age_s", 7200, _orch_app,
+                                yaml_files=("tuning.yaml", "lead_in.yaml")),
     "tool_service": lambda: Svc("tool_service", ts_loader, "music.yaml",
                                 "verify", "timeout_s", 8, _ts_app),
 }
@@ -368,8 +372,8 @@ def test_any_exception_while_loading_a_file_is_a_config_error(svc, monkeypatch, 
     with monkeypatch.context() as m:        # undone before the fixture's teardown
         m.setattr(svc.loader, "validate", boom)
         errs = _problems(svc.loader, svc.dir)
-        assert errs == [(svc.yaml_file, None, f"could not be loaded ({type(exc).__name__}"
-                                              + (f": {exc})" if str(exc) else ")"))]
+        assert errs == [(f, None, f"could not be loaded ({type(exc).__name__}"
+                                  + (f": {exc})" if str(exc) else ")")) for f in svc.yaml_files]
         # Startup survives it ...
         svc.loader.start()
         st = svc.loader.status()

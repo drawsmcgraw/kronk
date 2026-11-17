@@ -12,6 +12,9 @@ Files (docs/features/config-directory.md has the full description):
                      lines, is the system prompt, byte for byte.
   tuning.yaml        agent-loop budgets and the other orchestrator
                      numbers; schema: the Tuning model below.
+  lead_in.yaml       the spoken lead-in ("ask Kronk to ...") that sends a
+                     request straight to the coordinator (sprint M19,
+                     routing rule lead_in); schema: the LeadIn model below.
 
 Rules:
   - Load at startup (the first current() call). A file that fails
@@ -46,9 +49,10 @@ import re
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Annotated
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, ValidationError, field_validator
 
 import config_files
 import prompt_defaults
@@ -58,6 +62,7 @@ logger = logging.getLogger(__name__)
 
 PROMPTS_DIR = "prompts"
 TUNING_FILE = "tuning.yaml"
+LEAD_IN_FILE = "lead_in.yaml"
 # Read by tool_service (tool_service/config_loader.py); listed so the
 # stray-file scan, done here once for the whole directory, knows it.
 TOOL_SERVICE_FILES = frozenset({"music.yaml"})
@@ -196,6 +201,32 @@ class Tuning(_Strict):
     tool_timeouts: ToolTimeouts = Field(default_factory=ToolTimeouts)
 
 
+# The spoken lead-in (sprint M19): [filler ...] <verb> <name> [to] <request>.
+# routing.py builds its first rule from these words (each escaped, so no
+# entry is a pattern); config/lead_in.yaml documents each list. Defaults are
+# the shipped file (tests/test_lead_in.py compares them).
+LeadInWords = Annotated[str, StringConstraints(
+    pattern=r"^[A-Za-z0-9'-]+( [A-Za-z0-9'-]+)*$", min_length=1, max_length=40)]
+
+
+class LeadIn(_Strict):
+    verbs: list[LeadInWords] = Field(default_factory=lambda: ["ask"], min_length=1, max_length=10)
+    names: list[LeadInWords] = Field(default_factory=lambda: ["Kronk"], min_length=1, max_length=20)
+    fillers: list[LeadInWords] = Field(
+        default_factory=lambda: ["hey", "okay", "ok", "please", "can you", "could you"],
+        min_length=0, max_length=20)
+
+    @field_validator("verbs", "names", "fillers")
+    @classmethod
+    def _no_repeats(cls, v: list[str]) -> list[str]:
+        seen: set[str] = set()
+        for w in v:
+            if w.casefold() in seen:
+                raise ValueError(f"{w!r} is listed twice (matching ignores case)")
+            seen.add(w.casefold())
+        return v
+
+
 # Env vars that set a value before the move keep working, and win over the
 # file: env > file > built-in default. Only these; no new env vars.
 ENV_OVERRIDES: dict[str, tuple[str, ...]] = {
@@ -236,6 +267,7 @@ class Config:
     prompts: dict[str, str]                       # name -> prompt text (placeholders unfilled)
     tuning: "Tuning"
     source: str                                   # "files" | "defaults"
+    lead_in: "LeadIn" = field(default_factory=LeadIn)    # sprint M19
     loaded_at: float = field(default_factory=time.time)
     digests: dict[str, str] = field(default_factory=dict)   # file -> sha256[:12]
     env: dict[str, str] = field(default_factory=dict)       # env overrides in effect
@@ -346,13 +378,20 @@ def _load_tuning(base: Path) -> tuple["Tuning", str, bool]:
     return validate(Tuning, data, lines, TUNING_FILE), _digest(text), bool(data)
 
 
+def _load_lead_in(base: Path) -> tuple["LeadIn", str, bool]:
+    text = _read(base, LEAD_IN_FILE, config_files.MAX_YAML_BYTES)
+    data, lines = parse_yaml(text, LEAD_IN_FILE)
+    return validate(LeadIn, data, lines, LEAD_IN_FILE), _digest(text), bool(data)
+
+
 def _strays(base: Path) -> tuple[list[Problem], list[Problem]]:
     """(errors, warnings) for entries under config/ that no service reads.
     An unknown prompts/*.md is an error (it looks like a prompt the
     operator expects to take effect); anything else is a warning."""
     errors, warnings = [], []
     prompt_files = {f"{n}.md" for n in prompt_defaults.PROMPTS}
-    known = {"": {TUNING_FILE, PROMPTS_DIR, *TOOL_SERVICE_FILES}, PROMPTS_DIR: prompt_files}
+    known = {"": {TUNING_FILE, LEAD_IN_FILE, PROMPTS_DIR, *TOOL_SERVICE_FILES},
+             PROMPTS_DIR: prompt_files}
     for rel, message in config_files.stray_entries(base, known):
         if rel.startswith(f"{PROMPTS_DIR}/") and rel.endswith(".md"):
             errors.append(Problem(rel, None, "unknown prompt file: no agent of that name "
@@ -391,6 +430,16 @@ def load(base: Path | None = None) -> Config:
     except Exception as e:
         problems.append(Problem(TUNING_FILE, None, config_files.unexpected(e)))
 
+    lead_in = None
+    try:
+        lead_in, digests[LEAD_IN_FILE], has_keys = _load_lead_in(base)
+        if not has_keys:
+            warnings.append(Problem(LEAD_IN_FILE, None, EMPTY_YAML))
+    except ConfigInvalid as e:
+        problems += e.problems
+    except Exception as e:
+        problems.append(Problem(LEAD_IN_FILE, None, config_files.unexpected(e)))
+
     try:
         stray_errors, stray_warnings = _strays(base)
         problems += stray_errors
@@ -405,8 +454,8 @@ def load(base: Path | None = None) -> Config:
 
     if problems:
         raise ConfigInvalid(problems)
-    return Config(prompts=prompts, tuning=tuning, source="files", digests=digests, env=env,
-                  warnings=warnings)
+    return Config(prompts=prompts, tuning=tuning, source="files", lead_in=lead_in,
+                  digests=digests, env=env, warnings=warnings)
 
 
 def _try_load() -> tuple[Config | None, list[Problem]]:
@@ -439,6 +488,8 @@ def _flatten(cfg: Config) -> dict[str, object]:
 
     for k, v in cfg.tuning.model_dump().items():
         walk(f"{TUNING_FILE}:{k}", v)
+    for k, v in cfg.lead_in.model_dump().items():
+        walk(f"{LEAD_IN_FILE}:{k}", v)
     return flat
 
 

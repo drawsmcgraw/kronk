@@ -334,9 +334,23 @@ async def _run_pipeline(
     # exactly as before (narrowing it in general is M9). routing.decide is
     # pure (regex only); routing.classify below records the same decision.
     try:
-        direct = routing.decide(text).direct
+        decision = routing.decide(text)
+        direct, request = decision.direct, decision.request
     except Exception:
-        direct = None       # classify() below raises it again and reports it
+        direct = request = None   # classify() below raises it again and reports it
+
+    # The spoken lead-in (sprint M19): "ask Kronk to <request>" goes to the
+    # coordinator, and the model is given <request> without the lead-in.
+    # origin.said becomes the request too, so tool_service reads the
+    # sentence as it would without the lead-in (music_resolve.radio_name()
+    # anchors on the request verb). It is still the user's own words: a
+    # suffix of this turn's last message, so it holds the pinned mirror
+    # sentence exactly when that message does (M4b). When the turn has no
+    # words of its own (said is None, see _turn_said) it stays None.
+    # History, the trace input and the `request` event keep the utterance.
+    model_text = text if request is None else request
+    if request is not None and said == text:
+        said = request
 
     async with (nullcontext() if direct else _llm_lock):
         trace = telemetry.start_pipeline(
@@ -416,7 +430,7 @@ async def _run_pipeline(
                 stage_sent = False
                 reply_mark = len(assistant_reply)
 
-                async for ev in agents.run_stream(agent_cfg, text, list(history[-5:]),
+                async for ev in agents.run_stream(agent_cfg, model_text, list(history[-5:]),
                                                   error_style=error_style,
                                                   allow_escalation=True):
                     etype = ev.get("type")
@@ -506,7 +520,7 @@ async def _run_pipeline(
             t_first_token: float | None = None
             async for ev in agents.run_stream(
                 agents.COORDINATOR,
-                text,
+                model_text,
                 [],  # no embedded context — history goes in as real messages
                 system_extra="\n\n".join(extra_parts) or None,
                 history_messages=history,

@@ -6413,3 +6413,1284 @@
 {"text": "please update the  magic mirror please", "route": "home", "rule": "mm_update"}
 {"text": "please update the  magic mirror.", "route": "home", "rule": "mm_update"}
 {"text": "please update the  magic mirror?", "route": "home", "rule": "mm_update"}
+{"text": " Ask Kronk to play Groove Armada Radio on Pandora.", "route": "direct", "rule": "lead_in"}
+{"text": " Ask Kronk to ask the home agent to play French Dinner Radio from Pandora.", "route": "direct", "rule": "lead_in"}
+{"text": "ask Kronk to find some deep house music and play it", "route": "direct", "rule": "lead_in"}
+{"text": "ask Kronk to pause", "route": "direct", "rule": "lead_in"}
+{"text": "ask Kronk to play some jazz", "route": "direct", "rule": "lead_in"}
+{"text": "ask Kronk to play jazz in the office", "route": "direct", "rule": "lead_in"}
+{"text": "ask Kronk what song is this", "route": "direct", "rule": "lead_in"}
+{"text": "Hey, ask Kronk what's playing?", "route": "direct", "rule": "lead_in"}
+{"text": "Can you ask Kronk to turn it up?", "route": "direct", "rule": "lead_in"}
+{"text": "ask Kronk to search the web for the tallest building in Ohio", "route": "direct", "rule": "lead_in"}
+{"text": "ask Kronk to update the magic mirror", "route": "direct", "rule": "lead_in"}
+{"text": "what happens if I ask Kronk to pause", "route": "direct", "rule": "default"}
+{"text": "Ask Kronk.", "route": "direct", "rule": "default"}
+{"text": "ask Kronk to search the web for the best pizza in town", "route": "direct", "rule": "lead_in"}
+{"text": "ask Kronk to ask talkie about the moon", "route": "direct", "rule": "lead_in"}
+{"text": "ask Kronk to answer it yourself", "route": "direct", "rule": "lead_in"}
+{"text": "ask Kronk what's the weather tomorrow", "route": "direct", "rule": "lead_in"}
+{"text": "ask Kronk to thumbs up", "route": "direct", "rule": "lead_in"}
+{"text": "ask Kronk to play something else", "route": "direct", "rule": "lead_in"}
+{"text": "ask Kronk to play https://music.youtube.com/watch?v=abc", "route": "direct", "rule": "lead_in"}
+{"text": "ask Kronk to never play nickelback", "route": "direct", "rule": "lead_in"}
+{"text": "ask Kronk to restart the magic mirror", "route": "direct", "rule": "lead_in"}
+{"text": "tell Kronk to pause", "route": "direct", "rule": "default"}
+{"text": "ask Kronk", "route": "direct", "rule": "default"}
+{"text": "ask Kronk to.", "route": "direct", "rule": "default"}
+{"text": "ask Kronk to pause?", "route": "direct", "rule": "lead_in"}
+{"text": "ask Kronk to pause.", "route": "direct", "rule": "lead_in"}
+{"text": "ask Kronk to play some jazz?", "route": "direct", "rule": "lead_in"}
+{"text": "ask Kronk to play some jazz.", "route": "direct", "rule": "lead_in"}
+{"text": "ask Kronk to what song is this", "route": "direct", "rule": "lead_in"}
+{"text": "ask Kronk to what song is this?", "route": "direct", "rule": "lead_in"}
+{"text": "ask Kronk to what song is this.", "route": "direct", "rule": "lead_in"}
+{"text": "ask Kronk to update the magic mirror?", "route": "direct", "rule": "lead_in"}
+{"text": "ask Kronk to update the magic mirror.", "route": "direct", "rule": "lead_in"}
+{"text": "ask Kronk to ", "route": "direct", "rule": "default"}
+{"text": "ask Kronk to ?", "route": "direct", "rule": "default"}
+{"text": "ask Kronk to .", "route": "direct", "rule": "default"}
+{"text": "ask Kronk to please", "route": "direct", "rule": "default"}
+{"text": "ask Kronk to please?", "route": "direct", "rule": "default"}
+{"text": "ask Kronk to please.", "route": "direct", "rule": "default"}
+{"text": "ask Kronk to .?", "route": "direct", "rule": "default"}
+{"text": "ask Kronk to ..", "route": "direct", "rule": "default"}
+{"text": "Ask Kronk pause", "route": "direct", "rule": "lead_in"}
+{"text": "Ask Kronk pause?", "route": "direct", "rule": "lead_in"}
+{"text": "Ask Kronk pause.", "route": "direct", "rule": "lead_in"}
+{"text": "Ask Kronk play some jazz", "route": "direct", "rule": "lead_in"}
+{"text": "Ask Kronk play some jazz?", "route": "direct", "rule": "lead_in"}
+{"text": "Ask Kronk play some jazz.", "route": "direct", "rule": "lead_in"}
+{"text": "Ask Kronk what song is this", "route": "direct", "rule": "lead_in"}
+{"text": "Ask Kronk what song is this?", "route": "direct", "rule": "lead_in"}
+{"text": "Ask Kronk what song is this.", "route": "direct", "rule": "lead_in"}
+{"text": "Ask Kronk update the magic mirror", "route": "direct", "rule": "lead_in"}
+{"text": "Ask Kronk update the magic mirror?", "route": "direct", "rule": "lead_in"}
+{"text": "Ask Kronk update the magic mirror.", "route": "direct", "rule": "lead_in"}
+{"text": "Ask Kronk ", "route": "direct", "rule": "default"}
+{"text": "Ask Kronk ?", "route": "direct", "rule": "default"}
+{"text": "Ask Kronk .", "route": "direct", "rule": "default"}
+{"text": "Ask Kronk please", "route": "direct", "rule": "default"}
+{"text": "Ask Kronk please?", "route": "direct", "rule": "default"}
+{"text": "Ask Kronk please.", "route": "direct", "rule": "default"}
+{"text": "Ask Kronk .?", "route": "direct", "rule": "default"}
+{"text": "Ask Kronk ..", "route": "direct", "rule": "default"}
+{"text": "ask kronk, pause", "route": "direct", "rule": "lead_in"}
+{"text": "ask kronk, pause?", "route": "direct", "rule": "lead_in"}
+{"text": "ask kronk, pause.", "route": "direct", "rule": "lead_in"}
+{"text": "ask kronk, play some jazz", "route": "direct", "rule": "lead_in"}
+{"text": "ask kronk, play some jazz?", "route": "direct", "rule": "lead_in"}
+{"text": "ask kronk, play some jazz.", "route": "direct", "rule": "lead_in"}
+{"text": "ask kronk, what song is this", "route": "direct", "rule": "lead_in"}
+{"text": "ask kronk, what song is this?", "route": "direct", "rule": "lead_in"}
+{"text": "ask kronk, what song is this.", "route": "direct", "rule": "lead_in"}
+{"text": "ask kronk, update the magic mirror", "route": "direct", "rule": "lead_in"}
+{"text": "ask kronk, update the magic mirror?", "route": "direct", "rule": "lead_in"}
+{"text": "ask kronk, update the magic mirror.", "route": "direct", "rule": "lead_in"}
+{"text": "ask kronk, ", "route": "direct", "rule": "default"}
+{"text": "ask kronk, ?", "route": "direct", "rule": "default"}
+{"text": "ask kronk, .", "route": "direct", "rule": "default"}
+{"text": "ask kronk, please", "route": "direct", "rule": "default"}
+{"text": "ask kronk, please?", "route": "direct", "rule": "default"}
+{"text": "ask kronk, please.", "route": "direct", "rule": "default"}
+{"text": "ask kronk, .?", "route": "direct", "rule": "default"}
+{"text": "ask kronk, ..", "route": "direct", "rule": "default"}
+{"text": "ASK KRONK TO pause", "route": "direct", "rule": "lead_in"}
+{"text": "ASK KRONK TO pause?", "route": "direct", "rule": "lead_in"}
+{"text": "ASK KRONK TO pause.", "route": "direct", "rule": "lead_in"}
+{"text": "ASK KRONK TO play some jazz", "route": "direct", "rule": "lead_in"}
+{"text": "ASK KRONK TO play some jazz?", "route": "direct", "rule": "lead_in"}
+{"text": "ASK KRONK TO play some jazz.", "route": "direct", "rule": "lead_in"}
+{"text": "ASK KRONK TO what song is this", "route": "direct", "rule": "lead_in"}
+{"text": "ASK KRONK TO what song is this?", "route": "direct", "rule": "lead_in"}
+{"text": "ASK KRONK TO what song is this.", "route": "direct", "rule": "lead_in"}
+{"text": "ASK KRONK TO update the magic mirror", "route": "direct", "rule": "lead_in"}
+{"text": "ASK KRONK TO update the magic mirror?", "route": "direct", "rule": "lead_in"}
+{"text": "ASK KRONK TO update the magic mirror.", "route": "direct", "rule": "lead_in"}
+{"text": "ASK KRONK TO ", "route": "direct", "rule": "default"}
+{"text": "ASK KRONK TO ?", "route": "direct", "rule": "default"}
+{"text": "ASK KRONK TO .", "route": "direct", "rule": "default"}
+{"text": "ASK KRONK TO please", "route": "direct", "rule": "default"}
+{"text": "ASK KRONK TO please?", "route": "direct", "rule": "default"}
+{"text": "ASK KRONK TO please.", "route": "direct", "rule": "default"}
+{"text": "ASK KRONK TO .?", "route": "direct", "rule": "default"}
+{"text": "ASK KRONK TO ..", "route": "direct", "rule": "default"}
+{"text": "tell Kronk to pause?", "route": "direct", "rule": "default"}
+{"text": "tell Kronk to pause.", "route": "direct", "rule": "default"}
+{"text": "tell Kronk to play some jazz", "route": "home", "rule": "music"}
+{"text": "tell Kronk to play some jazz?", "route": "home", "rule": "music"}
+{"text": "tell Kronk to play some jazz.", "route": "home", "rule": "music"}
+{"text": "tell Kronk to what song is this", "route": "direct", "rule": "default"}
+{"text": "tell Kronk to what song is this?", "route": "direct", "rule": "default"}
+{"text": "tell Kronk to what song is this.", "route": "direct", "rule": "default"}
+{"text": "tell Kronk to update the magic mirror", "route": "home", "rule": "mm_update"}
+{"text": "tell Kronk to update the magic mirror?", "route": "home", "rule": "mm_update"}
+{"text": "tell Kronk to update the magic mirror.", "route": "home", "rule": "mm_update"}
+{"text": "tell Kronk to ", "route": "direct", "rule": "default"}
+{"text": "tell Kronk to ?", "route": "direct", "rule": "default"}
+{"text": "tell Kronk to .", "route": "direct", "rule": "default"}
+{"text": "tell Kronk to please", "route": "direct", "rule": "default"}
+{"text": "tell Kronk to please?", "route": "direct", "rule": "default"}
+{"text": "tell Kronk to please.", "route": "direct", "rule": "default"}
+{"text": "tell Kronk to .?", "route": "direct", "rule": "default"}
+{"text": "tell Kronk to ..", "route": "direct", "rule": "default"}
+{"text": "ask Kronky to pause", "route": "direct", "rule": "default"}
+{"text": "ask Kronky to pause?", "route": "direct", "rule": "default"}
+{"text": "ask Kronky to pause.", "route": "direct", "rule": "default"}
+{"text": "ask Kronky to play some jazz", "route": "direct", "rule": "default"}
+{"text": "ask Kronky to play some jazz?", "route": "direct", "rule": "default"}
+{"text": "ask Kronky to play some jazz.", "route": "direct", "rule": "default"}
+{"text": "ask Kronky to what song is this", "route": "direct", "rule": "default"}
+{"text": "ask Kronky to what song is this?", "route": "direct", "rule": "default"}
+{"text": "ask Kronky to what song is this.", "route": "direct", "rule": "default"}
+{"text": "ask Kronky to update the magic mirror", "route": "home", "rule": "mm_update"}
+{"text": "ask Kronky to update the magic mirror?", "route": "home", "rule": "mm_update"}
+{"text": "ask Kronky to update the magic mirror.", "route": "home", "rule": "mm_update"}
+{"text": "ask Kronky to ", "route": "direct", "rule": "default"}
+{"text": "ask Kronky to ?", "route": "direct", "rule": "default"}
+{"text": "ask Kronky to .", "route": "direct", "rule": "default"}
+{"text": "ask Kronky to please", "route": "direct", "rule": "default"}
+{"text": "ask Kronky to please?", "route": "direct", "rule": "default"}
+{"text": "ask Kronky to please.", "route": "direct", "rule": "default"}
+{"text": "ask Kronky to .?", "route": "direct", "rule": "default"}
+{"text": "ask Kronky to ..", "route": "direct", "rule": "default"}
+{"text": "ask Kronk's pause", "route": "direct", "rule": "default"}
+{"text": "ask Kronk's pause?", "route": "direct", "rule": "default"}
+{"text": "ask Kronk's pause.", "route": "direct", "rule": "default"}
+{"text": "ask Kronk's play some jazz", "route": "direct", "rule": "default"}
+{"text": "ask Kronk's play some jazz?", "route": "direct", "rule": "default"}
+{"text": "ask Kronk's play some jazz.", "route": "direct", "rule": "default"}
+{"text": "ask Kronk's what song is this", "route": "direct", "rule": "default"}
+{"text": "ask Kronk's what song is this?", "route": "direct", "rule": "default"}
+{"text": "ask Kronk's what song is this.", "route": "direct", "rule": "default"}
+{"text": "ask Kronk's update the magic mirror", "route": "home", "rule": "mm_update"}
+{"text": "ask Kronk's update the magic mirror?", "route": "home", "rule": "mm_update"}
+{"text": "ask Kronk's update the magic mirror.", "route": "home", "rule": "mm_update"}
+{"text": "ask Kronk's ", "route": "direct", "rule": "default"}
+{"text": "ask Kronk's ?", "route": "direct", "rule": "default"}
+{"text": "ask Kronk's .", "route": "direct", "rule": "default"}
+{"text": "ask Kronk's please", "route": "direct", "rule": "default"}
+{"text": "ask Kronk's please?", "route": "direct", "rule": "default"}
+{"text": "ask Kronk's please.", "route": "direct", "rule": "default"}
+{"text": "ask Kronk's .?", "route": "direct", "rule": "default"}
+{"text": "ask Kronk's ..", "route": "direct", "rule": "default"}
+{"text": " ask Kronk to pause", "route": "direct", "rule": "lead_in"}
+{"text": " ask Kronk to pause?", "route": "direct", "rule": "lead_in"}
+{"text": " ask Kronk to pause.", "route": "direct", "rule": "lead_in"}
+{"text": " ask Kronk to play some jazz", "route": "direct", "rule": "lead_in"}
+{"text": " ask Kronk to play some jazz?", "route": "direct", "rule": "lead_in"}
+{"text": " ask Kronk to play some jazz.", "route": "direct", "rule": "lead_in"}
+{"text": " ask Kronk to what song is this", "route": "direct", "rule": "lead_in"}
+{"text": " ask Kronk to what song is this?", "route": "direct", "rule": "lead_in"}
+{"text": " ask Kronk to what song is this.", "route": "direct", "rule": "lead_in"}
+{"text": " ask Kronk to update the magic mirror", "route": "direct", "rule": "lead_in"}
+{"text": " ask Kronk to update the magic mirror?", "route": "direct", "rule": "lead_in"}
+{"text": " ask Kronk to update the magic mirror.", "route": "direct", "rule": "lead_in"}
+{"text": " ask Kronk to ", "route": "direct", "rule": "default"}
+{"text": " ask Kronk to ?", "route": "direct", "rule": "default"}
+{"text": " ask Kronk to .", "route": "direct", "rule": "default"}
+{"text": " ask Kronk to please", "route": "direct", "rule": "default"}
+{"text": " ask Kronk to please?", "route": "direct", "rule": "default"}
+{"text": " ask Kronk to please.", "route": "direct", "rule": "default"}
+{"text": " ask Kronk to .?", "route": "direct", "rule": "default"}
+{"text": " ask Kronk to ..", "route": "direct", "rule": "default"}
+{"text": " Ask Kronk pause", "route": "direct", "rule": "lead_in"}
+{"text": " Ask Kronk pause?", "route": "direct", "rule": "lead_in"}
+{"text": " Ask Kronk pause.", "route": "direct", "rule": "lead_in"}
+{"text": " Ask Kronk play some jazz", "route": "direct", "rule": "lead_in"}
+{"text": " Ask Kronk play some jazz?", "route": "direct", "rule": "lead_in"}
+{"text": " Ask Kronk play some jazz.", "route": "direct", "rule": "lead_in"}
+{"text": " Ask Kronk what song is this", "route": "direct", "rule": "lead_in"}
+{"text": " Ask Kronk what song is this?", "route": "direct", "rule": "lead_in"}
+{"text": " Ask Kronk what song is this.", "route": "direct", "rule": "lead_in"}
+{"text": " Ask Kronk update the magic mirror", "route": "direct", "rule": "lead_in"}
+{"text": " Ask Kronk update the magic mirror?", "route": "direct", "rule": "lead_in"}
+{"text": " Ask Kronk update the magic mirror.", "route": "direct", "rule": "lead_in"}
+{"text": " Ask Kronk ", "route": "direct", "rule": "default"}
+{"text": " Ask Kronk ?", "route": "direct", "rule": "default"}
+{"text": " Ask Kronk .", "route": "direct", "rule": "default"}
+{"text": " Ask Kronk please", "route": "direct", "rule": "default"}
+{"text": " Ask Kronk please?", "route": "direct", "rule": "default"}
+{"text": " Ask Kronk please.", "route": "direct", "rule": "default"}
+{"text": " Ask Kronk .?", "route": "direct", "rule": "default"}
+{"text": " Ask Kronk ..", "route": "direct", "rule": "default"}
+{"text": " ask kronk, pause", "route": "direct", "rule": "lead_in"}
+{"text": " ask kronk, pause?", "route": "direct", "rule": "lead_in"}
+{"text": " ask kronk, pause.", "route": "direct", "rule": "lead_in"}
+{"text": " ask kronk, play some jazz", "route": "direct", "rule": "lead_in"}
+{"text": " ask kronk, play some jazz?", "route": "direct", "rule": "lead_in"}
+{"text": " ask kronk, play some jazz.", "route": "direct", "rule": "lead_in"}
+{"text": " ask kronk, what song is this", "route": "direct", "rule": "lead_in"}
+{"text": " ask kronk, what song is this?", "route": "direct", "rule": "lead_in"}
+{"text": " ask kronk, what song is this.", "route": "direct", "rule": "lead_in"}
+{"text": " ask kronk, update the magic mirror", "route": "direct", "rule": "lead_in"}
+{"text": " ask kronk, update the magic mirror?", "route": "direct", "rule": "lead_in"}
+{"text": " ask kronk, update the magic mirror.", "route": "direct", "rule": "lead_in"}
+{"text": " ask kronk, ", "route": "direct", "rule": "default"}
+{"text": " ask kronk, ?", "route": "direct", "rule": "default"}
+{"text": " ask kronk, .", "route": "direct", "rule": "default"}
+{"text": " ask kronk, please", "route": "direct", "rule": "default"}
+{"text": " ask kronk, please?", "route": "direct", "rule": "default"}
+{"text": " ask kronk, please.", "route": "direct", "rule": "default"}
+{"text": " ask kronk, .?", "route": "direct", "rule": "default"}
+{"text": " ask kronk, ..", "route": "direct", "rule": "default"}
+{"text": " ASK KRONK TO pause", "route": "direct", "rule": "lead_in"}
+{"text": " ASK KRONK TO pause?", "route": "direct", "rule": "lead_in"}
+{"text": " ASK KRONK TO pause.", "route": "direct", "rule": "lead_in"}
+{"text": " ASK KRONK TO play some jazz", "route": "direct", "rule": "lead_in"}
+{"text": " ASK KRONK TO play some jazz?", "route": "direct", "rule": "lead_in"}
+{"text": " ASK KRONK TO play some jazz.", "route": "direct", "rule": "lead_in"}
+{"text": " ASK KRONK TO what song is this", "route": "direct", "rule": "lead_in"}
+{"text": " ASK KRONK TO what song is this?", "route": "direct", "rule": "lead_in"}
+{"text": " ASK KRONK TO what song is this.", "route": "direct", "rule": "lead_in"}
+{"text": " ASK KRONK TO update the magic mirror", "route": "direct", "rule": "lead_in"}
+{"text": " ASK KRONK TO update the magic mirror?", "route": "direct", "rule": "lead_in"}
+{"text": " ASK KRONK TO update the magic mirror.", "route": "direct", "rule": "lead_in"}
+{"text": " ASK KRONK TO ", "route": "direct", "rule": "default"}
+{"text": " ASK KRONK TO ?", "route": "direct", "rule": "default"}
+{"text": " ASK KRONK TO .", "route": "direct", "rule": "default"}
+{"text": " ASK KRONK TO please", "route": "direct", "rule": "default"}
+{"text": " ASK KRONK TO please?", "route": "direct", "rule": "default"}
+{"text": " ASK KRONK TO please.", "route": "direct", "rule": "default"}
+{"text": " ASK KRONK TO .?", "route": "direct", "rule": "default"}
+{"text": " ASK KRONK TO ..", "route": "direct", "rule": "default"}
+{"text": " tell Kronk to pause", "route": "direct", "rule": "default"}
+{"text": " tell Kronk to pause?", "route": "direct", "rule": "default"}
+{"text": " tell Kronk to pause.", "route": "direct", "rule": "default"}
+{"text": " tell Kronk to play some jazz", "route": "home", "rule": "music"}
+{"text": " tell Kronk to play some jazz?", "route": "home", "rule": "music"}
+{"text": " tell Kronk to play some jazz.", "route": "home", "rule": "music"}
+{"text": " tell Kronk to what song is this", "route": "direct", "rule": "default"}
+{"text": " tell Kronk to what song is this?", "route": "direct", "rule": "default"}
+{"text": " tell Kronk to what song is this.", "route": "direct", "rule": "default"}
+{"text": " tell Kronk to update the magic mirror", "route": "home", "rule": "mm_update"}
+{"text": " tell Kronk to update the magic mirror?", "route": "home", "rule": "mm_update"}
+{"text": " tell Kronk to update the magic mirror.", "route": "home", "rule": "mm_update"}
+{"text": " tell Kronk to ", "route": "direct", "rule": "default"}
+{"text": " tell Kronk to ?", "route": "direct", "rule": "default"}
+{"text": " tell Kronk to .", "route": "direct", "rule": "default"}
+{"text": " tell Kronk to please", "route": "direct", "rule": "default"}
+{"text": " tell Kronk to please?", "route": "direct", "rule": "default"}
+{"text": " tell Kronk to please.", "route": "direct", "rule": "default"}
+{"text": " tell Kronk to .?", "route": "direct", "rule": "default"}
+{"text": " tell Kronk to ..", "route": "direct", "rule": "default"}
+{"text": " ask Kronky to pause", "route": "direct", "rule": "default"}
+{"text": " ask Kronky to pause?", "route": "direct", "rule": "default"}
+{"text": " ask Kronky to pause.", "route": "direct", "rule": "default"}
+{"text": " ask Kronky to play some jazz", "route": "direct", "rule": "default"}
+{"text": " ask Kronky to play some jazz?", "route": "direct", "rule": "default"}
+{"text": " ask Kronky to play some jazz.", "route": "direct", "rule": "default"}
+{"text": " ask Kronky to what song is this", "route": "direct", "rule": "default"}
+{"text": " ask Kronky to what song is this?", "route": "direct", "rule": "default"}
+{"text": " ask Kronky to what song is this.", "route": "direct", "rule": "default"}
+{"text": " ask Kronky to update the magic mirror", "route": "home", "rule": "mm_update"}
+{"text": " ask Kronky to update the magic mirror?", "route": "home", "rule": "mm_update"}
+{"text": " ask Kronky to update the magic mirror.", "route": "home", "rule": "mm_update"}
+{"text": " ask Kronky to ", "route": "direct", "rule": "default"}
+{"text": " ask Kronky to ?", "route": "direct", "rule": "default"}
+{"text": " ask Kronky to .", "route": "direct", "rule": "default"}
+{"text": " ask Kronky to please", "route": "direct", "rule": "default"}
+{"text": " ask Kronky to please?", "route": "direct", "rule": "default"}
+{"text": " ask Kronky to please.", "route": "direct", "rule": "default"}
+{"text": " ask Kronky to .?", "route": "direct", "rule": "default"}
+{"text": " ask Kronky to ..", "route": "direct", "rule": "default"}
+{"text": " ask Kronk's pause", "route": "direct", "rule": "default"}
+{"text": " ask Kronk's pause?", "route": "direct", "rule": "default"}
+{"text": " ask Kronk's pause.", "route": "direct", "rule": "default"}
+{"text": " ask Kronk's play some jazz", "route": "direct", "rule": "default"}
+{"text": " ask Kronk's play some jazz?", "route": "direct", "rule": "default"}
+{"text": " ask Kronk's play some jazz.", "route": "direct", "rule": "default"}
+{"text": " ask Kronk's what song is this", "route": "direct", "rule": "default"}
+{"text": " ask Kronk's what song is this?", "route": "direct", "rule": "default"}
+{"text": " ask Kronk's what song is this.", "route": "direct", "rule": "default"}
+{"text": " ask Kronk's update the magic mirror", "route": "home", "rule": "mm_update"}
+{"text": " ask Kronk's update the magic mirror?", "route": "home", "rule": "mm_update"}
+{"text": " ask Kronk's update the magic mirror.", "route": "home", "rule": "mm_update"}
+{"text": " ask Kronk's ", "route": "direct", "rule": "default"}
+{"text": " ask Kronk's ?", "route": "direct", "rule": "default"}
+{"text": " ask Kronk's .", "route": "direct", "rule": "default"}
+{"text": " ask Kronk's please", "route": "direct", "rule": "default"}
+{"text": " ask Kronk's please?", "route": "direct", "rule": "default"}
+{"text": " ask Kronk's please.", "route": "direct", "rule": "default"}
+{"text": " ask Kronk's .?", "route": "direct", "rule": "default"}
+{"text": " ask Kronk's ..", "route": "direct", "rule": "default"}
+{"text": "hey, ask Kronk to pause", "route": "direct", "rule": "lead_in"}
+{"text": "hey, ask Kronk to pause?", "route": "direct", "rule": "lead_in"}
+{"text": "hey, ask Kronk to pause.", "route": "direct", "rule": "lead_in"}
+{"text": "hey, ask Kronk to play some jazz", "route": "direct", "rule": "lead_in"}
+{"text": "hey, ask Kronk to play some jazz?", "route": "direct", "rule": "lead_in"}
+{"text": "hey, ask Kronk to play some jazz.", "route": "direct", "rule": "lead_in"}
+{"text": "hey, ask Kronk to what song is this", "route": "direct", "rule": "lead_in"}
+{"text": "hey, ask Kronk to what song is this?", "route": "direct", "rule": "lead_in"}
+{"text": "hey, ask Kronk to what song is this.", "route": "direct", "rule": "lead_in"}
+{"text": "hey, ask Kronk to update the magic mirror", "route": "direct", "rule": "lead_in"}
+{"text": "hey, ask Kronk to update the magic mirror?", "route": "direct", "rule": "lead_in"}
+{"text": "hey, ask Kronk to update the magic mirror.", "route": "direct", "rule": "lead_in"}
+{"text": "hey, ask Kronk to ", "route": "direct", "rule": "default"}
+{"text": "hey, ask Kronk to ?", "route": "direct", "rule": "default"}
+{"text": "hey, ask Kronk to .", "route": "direct", "rule": "default"}
+{"text": "hey, ask Kronk to please", "route": "direct", "rule": "default"}
+{"text": "hey, ask Kronk to please?", "route": "direct", "rule": "default"}
+{"text": "hey, ask Kronk to please.", "route": "direct", "rule": "default"}
+{"text": "hey, ask Kronk to .?", "route": "direct", "rule": "default"}
+{"text": "hey, ask Kronk to ..", "route": "direct", "rule": "default"}
+{"text": "hey, Ask Kronk pause", "route": "direct", "rule": "lead_in"}
+{"text": "hey, Ask Kronk pause?", "route": "direct", "rule": "lead_in"}
+{"text": "hey, Ask Kronk pause.", "route": "direct", "rule": "lead_in"}
+{"text": "hey, Ask Kronk play some jazz", "route": "direct", "rule": "lead_in"}
+{"text": "hey, Ask Kronk play some jazz?", "route": "direct", "rule": "lead_in"}
+{"text": "hey, Ask Kronk play some jazz.", "route": "direct", "rule": "lead_in"}
+{"text": "hey, Ask Kronk what song is this", "route": "direct", "rule": "lead_in"}
+{"text": "hey, Ask Kronk what song is this?", "route": "direct", "rule": "lead_in"}
+{"text": "hey, Ask Kronk what song is this.", "route": "direct", "rule": "lead_in"}
+{"text": "hey, Ask Kronk update the magic mirror", "route": "direct", "rule": "lead_in"}
+{"text": "hey, Ask Kronk update the magic mirror?", "route": "direct", "rule": "lead_in"}
+{"text": "hey, Ask Kronk update the magic mirror.", "route": "direct", "rule": "lead_in"}
+{"text": "hey, Ask Kronk ", "route": "direct", "rule": "default"}
+{"text": "hey, Ask Kronk ?", "route": "direct", "rule": "default"}
+{"text": "hey, Ask Kronk .", "route": "direct", "rule": "default"}
+{"text": "hey, Ask Kronk please", "route": "direct", "rule": "default"}
+{"text": "hey, Ask Kronk please?", "route": "direct", "rule": "default"}
+{"text": "hey, Ask Kronk please.", "route": "direct", "rule": "default"}
+{"text": "hey, Ask Kronk .?", "route": "direct", "rule": "default"}
+{"text": "hey, Ask Kronk ..", "route": "direct", "rule": "default"}
+{"text": "hey, ask kronk, pause", "route": "direct", "rule": "lead_in"}
+{"text": "hey, ask kronk, pause?", "route": "direct", "rule": "lead_in"}
+{"text": "hey, ask kronk, pause.", "route": "direct", "rule": "lead_in"}
+{"text": "hey, ask kronk, play some jazz", "route": "direct", "rule": "lead_in"}
+{"text": "hey, ask kronk, play some jazz?", "route": "direct", "rule": "lead_in"}
+{"text": "hey, ask kronk, play some jazz.", "route": "direct", "rule": "lead_in"}
+{"text": "hey, ask kronk, what song is this", "route": "direct", "rule": "lead_in"}
+{"text": "hey, ask kronk, what song is this?", "route": "direct", "rule": "lead_in"}
+{"text": "hey, ask kronk, what song is this.", "route": "direct", "rule": "lead_in"}
+{"text": "hey, ask kronk, update the magic mirror", "route": "direct", "rule": "lead_in"}
+{"text": "hey, ask kronk, update the magic mirror?", "route": "direct", "rule": "lead_in"}
+{"text": "hey, ask kronk, update the magic mirror.", "route": "direct", "rule": "lead_in"}
+{"text": "hey, ask kronk, ", "route": "direct", "rule": "default"}
+{"text": "hey, ask kronk, ?", "route": "direct", "rule": "default"}
+{"text": "hey, ask kronk, .", "route": "direct", "rule": "default"}
+{"text": "hey, ask kronk, please", "route": "direct", "rule": "default"}
+{"text": "hey, ask kronk, please?", "route": "direct", "rule": "default"}
+{"text": "hey, ask kronk, please.", "route": "direct", "rule": "default"}
+{"text": "hey, ask kronk, .?", "route": "direct", "rule": "default"}
+{"text": "hey, ask kronk, ..", "route": "direct", "rule": "default"}
+{"text": "hey, ASK KRONK TO pause", "route": "direct", "rule": "lead_in"}
+{"text": "hey, ASK KRONK TO pause?", "route": "direct", "rule": "lead_in"}
+{"text": "hey, ASK KRONK TO pause.", "route": "direct", "rule": "lead_in"}
+{"text": "hey, ASK KRONK TO play some jazz", "route": "direct", "rule": "lead_in"}
+{"text": "hey, ASK KRONK TO play some jazz?", "route": "direct", "rule": "lead_in"}
+{"text": "hey, ASK KRONK TO play some jazz.", "route": "direct", "rule": "lead_in"}
+{"text": "hey, ASK KRONK TO what song is this", "route": "direct", "rule": "lead_in"}
+{"text": "hey, ASK KRONK TO what song is this?", "route": "direct", "rule": "lead_in"}
+{"text": "hey, ASK KRONK TO what song is this.", "route": "direct", "rule": "lead_in"}
+{"text": "hey, ASK KRONK TO update the magic mirror", "route": "direct", "rule": "lead_in"}
+{"text": "hey, ASK KRONK TO update the magic mirror?", "route": "direct", "rule": "lead_in"}
+{"text": "hey, ASK KRONK TO update the magic mirror.", "route": "direct", "rule": "lead_in"}
+{"text": "hey, ASK KRONK TO ", "route": "direct", "rule": "default"}
+{"text": "hey, ASK KRONK TO ?", "route": "direct", "rule": "default"}
+{"text": "hey, ASK KRONK TO .", "route": "direct", "rule": "default"}
+{"text": "hey, ASK KRONK TO please", "route": "direct", "rule": "default"}
+{"text": "hey, ASK KRONK TO please?", "route": "direct", "rule": "default"}
+{"text": "hey, ASK KRONK TO please.", "route": "direct", "rule": "default"}
+{"text": "hey, ASK KRONK TO .?", "route": "direct", "rule": "default"}
+{"text": "hey, ASK KRONK TO ..", "route": "direct", "rule": "default"}
+{"text": "hey, tell Kronk to pause", "route": "direct", "rule": "default"}
+{"text": "hey, tell Kronk to pause?", "route": "direct", "rule": "default"}
+{"text": "hey, tell Kronk to pause.", "route": "direct", "rule": "default"}
+{"text": "hey, tell Kronk to play some jazz", "route": "direct", "rule": "default"}
+{"text": "hey, tell Kronk to play some jazz?", "route": "direct", "rule": "default"}
+{"text": "hey, tell Kronk to play some jazz.", "route": "direct", "rule": "default"}
+{"text": "hey, tell Kronk to what song is this", "route": "direct", "rule": "default"}
+{"text": "hey, tell Kronk to what song is this?", "route": "direct", "rule": "default"}
+{"text": "hey, tell Kronk to what song is this.", "route": "direct", "rule": "default"}
+{"text": "hey, tell Kronk to update the magic mirror", "route": "home", "rule": "mm_update"}
+{"text": "hey, tell Kronk to update the magic mirror?", "route": "home", "rule": "mm_update"}
+{"text": "hey, tell Kronk to update the magic mirror.", "route": "home", "rule": "mm_update"}
+{"text": "hey, tell Kronk to ", "route": "direct", "rule": "default"}
+{"text": "hey, tell Kronk to ?", "route": "direct", "rule": "default"}
+{"text": "hey, tell Kronk to .", "route": "direct", "rule": "default"}
+{"text": "hey, tell Kronk to please", "route": "direct", "rule": "default"}
+{"text": "hey, tell Kronk to please?", "route": "direct", "rule": "default"}
+{"text": "hey, tell Kronk to please.", "route": "direct", "rule": "default"}
+{"text": "hey, tell Kronk to .?", "route": "direct", "rule": "default"}
+{"text": "hey, tell Kronk to ..", "route": "direct", "rule": "default"}
+{"text": "hey, ask Kronky to pause", "route": "direct", "rule": "default"}
+{"text": "hey, ask Kronky to pause?", "route": "direct", "rule": "default"}
+{"text": "hey, ask Kronky to pause.", "route": "direct", "rule": "default"}
+{"text": "hey, ask Kronky to play some jazz", "route": "direct", "rule": "default"}
+{"text": "hey, ask Kronky to play some jazz?", "route": "direct", "rule": "default"}
+{"text": "hey, ask Kronky to play some jazz.", "route": "direct", "rule": "default"}
+{"text": "hey, ask Kronky to what song is this", "route": "direct", "rule": "default"}
+{"text": "hey, ask Kronky to what song is this?", "route": "direct", "rule": "default"}
+{"text": "hey, ask Kronky to what song is this.", "route": "direct", "rule": "default"}
+{"text": "hey, ask Kronky to update the magic mirror", "route": "home", "rule": "mm_update"}
+{"text": "hey, ask Kronky to update the magic mirror?", "route": "home", "rule": "mm_update"}
+{"text": "hey, ask Kronky to update the magic mirror.", "route": "home", "rule": "mm_update"}
+{"text": "hey, ask Kronky to ", "route": "direct", "rule": "default"}
+{"text": "hey, ask Kronky to ?", "route": "direct", "rule": "default"}
+{"text": "hey, ask Kronky to .", "route": "direct", "rule": "default"}
+{"text": "hey, ask Kronky to please", "route": "direct", "rule": "default"}
+{"text": "hey, ask Kronky to please?", "route": "direct", "rule": "default"}
+{"text": "hey, ask Kronky to please.", "route": "direct", "rule": "default"}
+{"text": "hey, ask Kronky to .?", "route": "direct", "rule": "default"}
+{"text": "hey, ask Kronky to ..", "route": "direct", "rule": "default"}
+{"text": "hey, ask Kronk's pause", "route": "direct", "rule": "default"}
+{"text": "hey, ask Kronk's pause?", "route": "direct", "rule": "default"}
+{"text": "hey, ask Kronk's pause.", "route": "direct", "rule": "default"}
+{"text": "hey, ask Kronk's play some jazz", "route": "direct", "rule": "default"}
+{"text": "hey, ask Kronk's play some jazz?", "route": "direct", "rule": "default"}
+{"text": "hey, ask Kronk's play some jazz.", "route": "direct", "rule": "default"}
+{"text": "hey, ask Kronk's what song is this", "route": "direct", "rule": "default"}
+{"text": "hey, ask Kronk's what song is this?", "route": "direct", "rule": "default"}
+{"text": "hey, ask Kronk's what song is this.", "route": "direct", "rule": "default"}
+{"text": "hey, ask Kronk's update the magic mirror", "route": "home", "rule": "mm_update"}
+{"text": "hey, ask Kronk's update the magic mirror?", "route": "home", "rule": "mm_update"}
+{"text": "hey, ask Kronk's update the magic mirror.", "route": "home", "rule": "mm_update"}
+{"text": "hey, ask Kronk's ", "route": "direct", "rule": "default"}
+{"text": "hey, ask Kronk's ?", "route": "direct", "rule": "default"}
+{"text": "hey, ask Kronk's .", "route": "direct", "rule": "default"}
+{"text": "hey, ask Kronk's please", "route": "direct", "rule": "default"}
+{"text": "hey, ask Kronk's please?", "route": "direct", "rule": "default"}
+{"text": "hey, ask Kronk's please.", "route": "direct", "rule": "default"}
+{"text": "hey, ask Kronk's .?", "route": "direct", "rule": "default"}
+{"text": "hey, ask Kronk's ..", "route": "direct", "rule": "default"}
+{"text": "Okay, ask Kronk to pause", "route": "direct", "rule": "lead_in"}
+{"text": "Okay, ask Kronk to pause?", "route": "direct", "rule": "lead_in"}
+{"text": "Okay, ask Kronk to pause.", "route": "direct", "rule": "lead_in"}
+{"text": "Okay, ask Kronk to play some jazz", "route": "direct", "rule": "lead_in"}
+{"text": "Okay, ask Kronk to play some jazz?", "route": "direct", "rule": "lead_in"}
+{"text": "Okay, ask Kronk to play some jazz.", "route": "direct", "rule": "lead_in"}
+{"text": "Okay, ask Kronk to what song is this", "route": "direct", "rule": "lead_in"}
+{"text": "Okay, ask Kronk to what song is this?", "route": "direct", "rule": "lead_in"}
+{"text": "Okay, ask Kronk to what song is this.", "route": "direct", "rule": "lead_in"}
+{"text": "Okay, ask Kronk to update the magic mirror", "route": "direct", "rule": "lead_in"}
+{"text": "Okay, ask Kronk to update the magic mirror?", "route": "direct", "rule": "lead_in"}
+{"text": "Okay, ask Kronk to update the magic mirror.", "route": "direct", "rule": "lead_in"}
+{"text": "Okay, ask Kronk to ", "route": "direct", "rule": "default"}
+{"text": "Okay, ask Kronk to ?", "route": "direct", "rule": "default"}
+{"text": "Okay, ask Kronk to .", "route": "direct", "rule": "default"}
+{"text": "Okay, ask Kronk to please", "route": "direct", "rule": "default"}
+{"text": "Okay, ask Kronk to please?", "route": "direct", "rule": "default"}
+{"text": "Okay, ask Kronk to please.", "route": "direct", "rule": "default"}
+{"text": "Okay, ask Kronk to .?", "route": "direct", "rule": "default"}
+{"text": "Okay, ask Kronk to ..", "route": "direct", "rule": "default"}
+{"text": "Okay, Ask Kronk pause", "route": "direct", "rule": "lead_in"}
+{"text": "Okay, Ask Kronk pause?", "route": "direct", "rule": "lead_in"}
+{"text": "Okay, Ask Kronk pause.", "route": "direct", "rule": "lead_in"}
+{"text": "Okay, Ask Kronk play some jazz", "route": "direct", "rule": "lead_in"}
+{"text": "Okay, Ask Kronk play some jazz?", "route": "direct", "rule": "lead_in"}
+{"text": "Okay, Ask Kronk play some jazz.", "route": "direct", "rule": "lead_in"}
+{"text": "Okay, Ask Kronk what song is this", "route": "direct", "rule": "lead_in"}
+{"text": "Okay, Ask Kronk what song is this?", "route": "direct", "rule": "lead_in"}
+{"text": "Okay, Ask Kronk what song is this.", "route": "direct", "rule": "lead_in"}
+{"text": "Okay, Ask Kronk update the magic mirror", "route": "direct", "rule": "lead_in"}
+{"text": "Okay, Ask Kronk update the magic mirror?", "route": "direct", "rule": "lead_in"}
+{"text": "Okay, Ask Kronk update the magic mirror.", "route": "direct", "rule": "lead_in"}
+{"text": "Okay, Ask Kronk ", "route": "direct", "rule": "default"}
+{"text": "Okay, Ask Kronk ?", "route": "direct", "rule": "default"}
+{"text": "Okay, Ask Kronk .", "route": "direct", "rule": "default"}
+{"text": "Okay, Ask Kronk please", "route": "direct", "rule": "default"}
+{"text": "Okay, Ask Kronk please?", "route": "direct", "rule": "default"}
+{"text": "Okay, Ask Kronk please.", "route": "direct", "rule": "default"}
+{"text": "Okay, Ask Kronk .?", "route": "direct", "rule": "default"}
+{"text": "Okay, Ask Kronk ..", "route": "direct", "rule": "default"}
+{"text": "Okay, ask kronk, pause", "route": "direct", "rule": "lead_in"}
+{"text": "Okay, ask kronk, pause?", "route": "direct", "rule": "lead_in"}
+{"text": "Okay, ask kronk, pause.", "route": "direct", "rule": "lead_in"}
+{"text": "Okay, ask kronk, play some jazz", "route": "direct", "rule": "lead_in"}
+{"text": "Okay, ask kronk, play some jazz?", "route": "direct", "rule": "lead_in"}
+{"text": "Okay, ask kronk, play some jazz.", "route": "direct", "rule": "lead_in"}
+{"text": "Okay, ask kronk, what song is this", "route": "direct", "rule": "lead_in"}
+{"text": "Okay, ask kronk, what song is this?", "route": "direct", "rule": "lead_in"}
+{"text": "Okay, ask kronk, what song is this.", "route": "direct", "rule": "lead_in"}
+{"text": "Okay, ask kronk, update the magic mirror", "route": "direct", "rule": "lead_in"}
+{"text": "Okay, ask kronk, update the magic mirror?", "route": "direct", "rule": "lead_in"}
+{"text": "Okay, ask kronk, update the magic mirror.", "route": "direct", "rule": "lead_in"}
+{"text": "Okay, ask kronk, ", "route": "direct", "rule": "default"}
+{"text": "Okay, ask kronk, ?", "route": "direct", "rule": "default"}
+{"text": "Okay, ask kronk, .", "route": "direct", "rule": "default"}
+{"text": "Okay, ask kronk, please", "route": "direct", "rule": "default"}
+{"text": "Okay, ask kronk, please?", "route": "direct", "rule": "default"}
+{"text": "Okay, ask kronk, please.", "route": "direct", "rule": "default"}
+{"text": "Okay, ask kronk, .?", "route": "direct", "rule": "default"}
+{"text": "Okay, ask kronk, ..", "route": "direct", "rule": "default"}
+{"text": "Okay, ASK KRONK TO pause", "route": "direct", "rule": "lead_in"}
+{"text": "Okay, ASK KRONK TO pause?", "route": "direct", "rule": "lead_in"}
+{"text": "Okay, ASK KRONK TO pause.", "route": "direct", "rule": "lead_in"}
+{"text": "Okay, ASK KRONK TO play some jazz", "route": "direct", "rule": "lead_in"}
+{"text": "Okay, ASK KRONK TO play some jazz?", "route": "direct", "rule": "lead_in"}
+{"text": "Okay, ASK KRONK TO play some jazz.", "route": "direct", "rule": "lead_in"}
+{"text": "Okay, ASK KRONK TO what song is this", "route": "direct", "rule": "lead_in"}
+{"text": "Okay, ASK KRONK TO what song is this?", "route": "direct", "rule": "lead_in"}
+{"text": "Okay, ASK KRONK TO what song is this.", "route": "direct", "rule": "lead_in"}
+{"text": "Okay, ASK KRONK TO update the magic mirror", "route": "direct", "rule": "lead_in"}
+{"text": "Okay, ASK KRONK TO update the magic mirror?", "route": "direct", "rule": "lead_in"}
+{"text": "Okay, ASK KRONK TO update the magic mirror.", "route": "direct", "rule": "lead_in"}
+{"text": "Okay, ASK KRONK TO ", "route": "direct", "rule": "default"}
+{"text": "Okay, ASK KRONK TO ?", "route": "direct", "rule": "default"}
+{"text": "Okay, ASK KRONK TO .", "route": "direct", "rule": "default"}
+{"text": "Okay, ASK KRONK TO please", "route": "direct", "rule": "default"}
+{"text": "Okay, ASK KRONK TO please?", "route": "direct", "rule": "default"}
+{"text": "Okay, ASK KRONK TO please.", "route": "direct", "rule": "default"}
+{"text": "Okay, ASK KRONK TO .?", "route": "direct", "rule": "default"}
+{"text": "Okay, ASK KRONK TO ..", "route": "direct", "rule": "default"}
+{"text": "Okay, tell Kronk to pause", "route": "direct", "rule": "default"}
+{"text": "Okay, tell Kronk to pause?", "route": "direct", "rule": "default"}
+{"text": "Okay, tell Kronk to pause.", "route": "direct", "rule": "default"}
+{"text": "Okay, tell Kronk to play some jazz", "route": "direct", "rule": "default"}
+{"text": "Okay, tell Kronk to play some jazz?", "route": "direct", "rule": "default"}
+{"text": "Okay, tell Kronk to play some jazz.", "route": "direct", "rule": "default"}
+{"text": "Okay, tell Kronk to what song is this", "route": "direct", "rule": "default"}
+{"text": "Okay, tell Kronk to what song is this?", "route": "direct", "rule": "default"}
+{"text": "Okay, tell Kronk to what song is this.", "route": "direct", "rule": "default"}
+{"text": "Okay, tell Kronk to update the magic mirror", "route": "home", "rule": "mm_update"}
+{"text": "Okay, tell Kronk to update the magic mirror?", "route": "home", "rule": "mm_update"}
+{"text": "Okay, tell Kronk to update the magic mirror.", "route": "home", "rule": "mm_update"}
+{"text": "Okay, tell Kronk to ", "route": "direct", "rule": "default"}
+{"text": "Okay, tell Kronk to ?", "route": "direct", "rule": "default"}
+{"text": "Okay, tell Kronk to .", "route": "direct", "rule": "default"}
+{"text": "Okay, tell Kronk to please", "route": "direct", "rule": "default"}
+{"text": "Okay, tell Kronk to please?", "route": "direct", "rule": "default"}
+{"text": "Okay, tell Kronk to please.", "route": "direct", "rule": "default"}
+{"text": "Okay, tell Kronk to .?", "route": "direct", "rule": "default"}
+{"text": "Okay, tell Kronk to ..", "route": "direct", "rule": "default"}
+{"text": "Okay, ask Kronky to pause", "route": "direct", "rule": "default"}
+{"text": "Okay, ask Kronky to pause?", "route": "direct", "rule": "default"}
+{"text": "Okay, ask Kronky to pause.", "route": "direct", "rule": "default"}
+{"text": "Okay, ask Kronky to play some jazz", "route": "direct", "rule": "default"}
+{"text": "Okay, ask Kronky to play some jazz?", "route": "direct", "rule": "default"}
+{"text": "Okay, ask Kronky to play some jazz.", "route": "direct", "rule": "default"}
+{"text": "Okay, ask Kronky to what song is this", "route": "direct", "rule": "default"}
+{"text": "Okay, ask Kronky to what song is this?", "route": "direct", "rule": "default"}
+{"text": "Okay, ask Kronky to what song is this.", "route": "direct", "rule": "default"}
+{"text": "Okay, ask Kronky to update the magic mirror", "route": "home", "rule": "mm_update"}
+{"text": "Okay, ask Kronky to update the magic mirror?", "route": "home", "rule": "mm_update"}
+{"text": "Okay, ask Kronky to update the magic mirror.", "route": "home", "rule": "mm_update"}
+{"text": "Okay, ask Kronky to ", "route": "direct", "rule": "default"}
+{"text": "Okay, ask Kronky to ?", "route": "direct", "rule": "default"}
+{"text": "Okay, ask Kronky to .", "route": "direct", "rule": "default"}
+{"text": "Okay, ask Kronky to please", "route": "direct", "rule": "default"}
+{"text": "Okay, ask Kronky to please?", "route": "direct", "rule": "default"}
+{"text": "Okay, ask Kronky to please.", "route": "direct", "rule": "default"}
+{"text": "Okay, ask Kronky to .?", "route": "direct", "rule": "default"}
+{"text": "Okay, ask Kronky to ..", "route": "direct", "rule": "default"}
+{"text": "Okay, ask Kronk's pause", "route": "direct", "rule": "default"}
+{"text": "Okay, ask Kronk's pause?", "route": "direct", "rule": "default"}
+{"text": "Okay, ask Kronk's pause.", "route": "direct", "rule": "default"}
+{"text": "Okay, ask Kronk's play some jazz", "route": "direct", "rule": "default"}
+{"text": "Okay, ask Kronk's play some jazz?", "route": "direct", "rule": "default"}
+{"text": "Okay, ask Kronk's play some jazz.", "route": "direct", "rule": "default"}
+{"text": "Okay, ask Kronk's what song is this", "route": "direct", "rule": "default"}
+{"text": "Okay, ask Kronk's what song is this?", "route": "direct", "rule": "default"}
+{"text": "Okay, ask Kronk's what song is this.", "route": "direct", "rule": "default"}
+{"text": "Okay, ask Kronk's update the magic mirror", "route": "home", "rule": "mm_update"}
+{"text": "Okay, ask Kronk's update the magic mirror?", "route": "home", "rule": "mm_update"}
+{"text": "Okay, ask Kronk's update the magic mirror.", "route": "home", "rule": "mm_update"}
+{"text": "Okay, ask Kronk's ", "route": "direct", "rule": "default"}
+{"text": "Okay, ask Kronk's ?", "route": "direct", "rule": "default"}
+{"text": "Okay, ask Kronk's .", "route": "direct", "rule": "default"}
+{"text": "Okay, ask Kronk's please", "route": "direct", "rule": "default"}
+{"text": "Okay, ask Kronk's please?", "route": "direct", "rule": "default"}
+{"text": "Okay, ask Kronk's please.", "route": "direct", "rule": "default"}
+{"text": "Okay, ask Kronk's .?", "route": "direct", "rule": "default"}
+{"text": "Okay, ask Kronk's ..", "route": "direct", "rule": "default"}
+{"text": "OK ask Kronk to pause", "route": "direct", "rule": "lead_in"}
+{"text": "OK ask Kronk to pause?", "route": "direct", "rule": "lead_in"}
+{"text": "OK ask Kronk to pause.", "route": "direct", "rule": "lead_in"}
+{"text": "OK ask Kronk to play some jazz", "route": "direct", "rule": "lead_in"}
+{"text": "OK ask Kronk to play some jazz?", "route": "direct", "rule": "lead_in"}
+{"text": "OK ask Kronk to play some jazz.", "route": "direct", "rule": "lead_in"}
+{"text": "OK ask Kronk to what song is this", "route": "direct", "rule": "lead_in"}
+{"text": "OK ask Kronk to what song is this?", "route": "direct", "rule": "lead_in"}
+{"text": "OK ask Kronk to what song is this.", "route": "direct", "rule": "lead_in"}
+{"text": "OK ask Kronk to update the magic mirror", "route": "direct", "rule": "lead_in"}
+{"text": "OK ask Kronk to update the magic mirror?", "route": "direct", "rule": "lead_in"}
+{"text": "OK ask Kronk to update the magic mirror.", "route": "direct", "rule": "lead_in"}
+{"text": "OK ask Kronk to ", "route": "direct", "rule": "default"}
+{"text": "OK ask Kronk to ?", "route": "direct", "rule": "default"}
+{"text": "OK ask Kronk to .", "route": "direct", "rule": "default"}
+{"text": "OK ask Kronk to please", "route": "direct", "rule": "default"}
+{"text": "OK ask Kronk to please?", "route": "direct", "rule": "default"}
+{"text": "OK ask Kronk to please.", "route": "direct", "rule": "default"}
+{"text": "OK ask Kronk to .?", "route": "direct", "rule": "default"}
+{"text": "OK ask Kronk to ..", "route": "direct", "rule": "default"}
+{"text": "OK Ask Kronk pause", "route": "direct", "rule": "lead_in"}
+{"text": "OK Ask Kronk pause?", "route": "direct", "rule": "lead_in"}
+{"text": "OK Ask Kronk pause.", "route": "direct", "rule": "lead_in"}
+{"text": "OK Ask Kronk play some jazz", "route": "direct", "rule": "lead_in"}
+{"text": "OK Ask Kronk play some jazz?", "route": "direct", "rule": "lead_in"}
+{"text": "OK Ask Kronk play some jazz.", "route": "direct", "rule": "lead_in"}
+{"text": "OK Ask Kronk what song is this", "route": "direct", "rule": "lead_in"}
+{"text": "OK Ask Kronk what song is this?", "route": "direct", "rule": "lead_in"}
+{"text": "OK Ask Kronk what song is this.", "route": "direct", "rule": "lead_in"}
+{"text": "OK Ask Kronk update the magic mirror", "route": "direct", "rule": "lead_in"}
+{"text": "OK Ask Kronk update the magic mirror?", "route": "direct", "rule": "lead_in"}
+{"text": "OK Ask Kronk update the magic mirror.", "route": "direct", "rule": "lead_in"}
+{"text": "OK Ask Kronk ", "route": "direct", "rule": "default"}
+{"text": "OK Ask Kronk ?", "route": "direct", "rule": "default"}
+{"text": "OK Ask Kronk .", "route": "direct", "rule": "default"}
+{"text": "OK Ask Kronk please", "route": "direct", "rule": "default"}
+{"text": "OK Ask Kronk please?", "route": "direct", "rule": "default"}
+{"text": "OK Ask Kronk please.", "route": "direct", "rule": "default"}
+{"text": "OK Ask Kronk .?", "route": "direct", "rule": "default"}
+{"text": "OK Ask Kronk ..", "route": "direct", "rule": "default"}
+{"text": "OK ask kronk, pause", "route": "direct", "rule": "lead_in"}
+{"text": "OK ask kronk, pause?", "route": "direct", "rule": "lead_in"}
+{"text": "OK ask kronk, pause.", "route": "direct", "rule": "lead_in"}
+{"text": "OK ask kronk, play some jazz", "route": "direct", "rule": "lead_in"}
+{"text": "OK ask kronk, play some jazz?", "route": "direct", "rule": "lead_in"}
+{"text": "OK ask kronk, play some jazz.", "route": "direct", "rule": "lead_in"}
+{"text": "OK ask kronk, what song is this", "route": "direct", "rule": "lead_in"}
+{"text": "OK ask kronk, what song is this?", "route": "direct", "rule": "lead_in"}
+{"text": "OK ask kronk, what song is this.", "route": "direct", "rule": "lead_in"}
+{"text": "OK ask kronk, update the magic mirror", "route": "direct", "rule": "lead_in"}
+{"text": "OK ask kronk, update the magic mirror?", "route": "direct", "rule": "lead_in"}
+{"text": "OK ask kronk, update the magic mirror.", "route": "direct", "rule": "lead_in"}
+{"text": "OK ask kronk, ", "route": "direct", "rule": "default"}
+{"text": "OK ask kronk, ?", "route": "direct", "rule": "default"}
+{"text": "OK ask kronk, .", "route": "direct", "rule": "default"}
+{"text": "OK ask kronk, please", "route": "direct", "rule": "default"}
+{"text": "OK ask kronk, please?", "route": "direct", "rule": "default"}
+{"text": "OK ask kronk, please.", "route": "direct", "rule": "default"}
+{"text": "OK ask kronk, .?", "route": "direct", "rule": "default"}
+{"text": "OK ask kronk, ..", "route": "direct", "rule": "default"}
+{"text": "OK ASK KRONK TO pause", "route": "direct", "rule": "lead_in"}
+{"text": "OK ASK KRONK TO pause?", "route": "direct", "rule": "lead_in"}
+{"text": "OK ASK KRONK TO pause.", "route": "direct", "rule": "lead_in"}
+{"text": "OK ASK KRONK TO play some jazz", "route": "direct", "rule": "lead_in"}
+{"text": "OK ASK KRONK TO play some jazz?", "route": "direct", "rule": "lead_in"}
+{"text": "OK ASK KRONK TO play some jazz.", "route": "direct", "rule": "lead_in"}
+{"text": "OK ASK KRONK TO what song is this", "route": "direct", "rule": "lead_in"}
+{"text": "OK ASK KRONK TO what song is this?", "route": "direct", "rule": "lead_in"}
+{"text": "OK ASK KRONK TO what song is this.", "route": "direct", "rule": "lead_in"}
+{"text": "OK ASK KRONK TO update the magic mirror", "route": "direct", "rule": "lead_in"}
+{"text": "OK ASK KRONK TO update the magic mirror?", "route": "direct", "rule": "lead_in"}
+{"text": "OK ASK KRONK TO update the magic mirror.", "route": "direct", "rule": "lead_in"}
+{"text": "OK ASK KRONK TO ", "route": "direct", "rule": "default"}
+{"text": "OK ASK KRONK TO ?", "route": "direct", "rule": "default"}
+{"text": "OK ASK KRONK TO .", "route": "direct", "rule": "default"}
+{"text": "OK ASK KRONK TO please", "route": "direct", "rule": "default"}
+{"text": "OK ASK KRONK TO please?", "route": "direct", "rule": "default"}
+{"text": "OK ASK KRONK TO please.", "route": "direct", "rule": "default"}
+{"text": "OK ASK KRONK TO .?", "route": "direct", "rule": "default"}
+{"text": "OK ASK KRONK TO ..", "route": "direct", "rule": "default"}
+{"text": "OK tell Kronk to pause", "route": "direct", "rule": "default"}
+{"text": "OK tell Kronk to pause?", "route": "direct", "rule": "default"}
+{"text": "OK tell Kronk to pause.", "route": "direct", "rule": "default"}
+{"text": "OK tell Kronk to play some jazz", "route": "direct", "rule": "default"}
+{"text": "OK tell Kronk to play some jazz?", "route": "direct", "rule": "default"}
+{"text": "OK tell Kronk to play some jazz.", "route": "direct", "rule": "default"}
+{"text": "OK tell Kronk to what song is this", "route": "direct", "rule": "default"}
+{"text": "OK tell Kronk to what song is this?", "route": "direct", "rule": "default"}
+{"text": "OK tell Kronk to what song is this.", "route": "direct", "rule": "default"}
+{"text": "OK tell Kronk to update the magic mirror", "route": "home", "rule": "mm_update"}
+{"text": "OK tell Kronk to update the magic mirror?", "route": "home", "rule": "mm_update"}
+{"text": "OK tell Kronk to update the magic mirror.", "route": "home", "rule": "mm_update"}
+{"text": "OK tell Kronk to ", "route": "direct", "rule": "default"}
+{"text": "OK tell Kronk to ?", "route": "direct", "rule": "default"}
+{"text": "OK tell Kronk to .", "route": "direct", "rule": "default"}
+{"text": "OK tell Kronk to please", "route": "direct", "rule": "default"}
+{"text": "OK tell Kronk to please?", "route": "direct", "rule": "default"}
+{"text": "OK tell Kronk to please.", "route": "direct", "rule": "default"}
+{"text": "OK tell Kronk to .?", "route": "direct", "rule": "default"}
+{"text": "OK tell Kronk to ..", "route": "direct", "rule": "default"}
+{"text": "OK ask Kronky to pause", "route": "direct", "rule": "default"}
+{"text": "OK ask Kronky to pause?", "route": "direct", "rule": "default"}
+{"text": "OK ask Kronky to pause.", "route": "direct", "rule": "default"}
+{"text": "OK ask Kronky to play some jazz", "route": "direct", "rule": "default"}
+{"text": "OK ask Kronky to play some jazz?", "route": "direct", "rule": "default"}
+{"text": "OK ask Kronky to play some jazz.", "route": "direct", "rule": "default"}
+{"text": "OK ask Kronky to what song is this", "route": "direct", "rule": "default"}
+{"text": "OK ask Kronky to what song is this?", "route": "direct", "rule": "default"}
+{"text": "OK ask Kronky to what song is this.", "route": "direct", "rule": "default"}
+{"text": "OK ask Kronky to update the magic mirror", "route": "home", "rule": "mm_update"}
+{"text": "OK ask Kronky to update the magic mirror?", "route": "home", "rule": "mm_update"}
+{"text": "OK ask Kronky to update the magic mirror.", "route": "home", "rule": "mm_update"}
+{"text": "OK ask Kronky to ", "route": "direct", "rule": "default"}
+{"text": "OK ask Kronky to ?", "route": "direct", "rule": "default"}
+{"text": "OK ask Kronky to .", "route": "direct", "rule": "default"}
+{"text": "OK ask Kronky to please", "route": "direct", "rule": "default"}
+{"text": "OK ask Kronky to please?", "route": "direct", "rule": "default"}
+{"text": "OK ask Kronky to please.", "route": "direct", "rule": "default"}
+{"text": "OK ask Kronky to .?", "route": "direct", "rule": "default"}
+{"text": "OK ask Kronky to ..", "route": "direct", "rule": "default"}
+{"text": "OK ask Kronk's pause", "route": "direct", "rule": "default"}
+{"text": "OK ask Kronk's pause?", "route": "direct", "rule": "default"}
+{"text": "OK ask Kronk's pause.", "route": "direct", "rule": "default"}
+{"text": "OK ask Kronk's play some jazz", "route": "direct", "rule": "default"}
+{"text": "OK ask Kronk's play some jazz?", "route": "direct", "rule": "default"}
+{"text": "OK ask Kronk's play some jazz.", "route": "direct", "rule": "default"}
+{"text": "OK ask Kronk's what song is this", "route": "direct", "rule": "default"}
+{"text": "OK ask Kronk's what song is this?", "route": "direct", "rule": "default"}
+{"text": "OK ask Kronk's what song is this.", "route": "direct", "rule": "default"}
+{"text": "OK ask Kronk's update the magic mirror", "route": "home", "rule": "mm_update"}
+{"text": "OK ask Kronk's update the magic mirror?", "route": "home", "rule": "mm_update"}
+{"text": "OK ask Kronk's update the magic mirror.", "route": "home", "rule": "mm_update"}
+{"text": "OK ask Kronk's ", "route": "direct", "rule": "default"}
+{"text": "OK ask Kronk's ?", "route": "direct", "rule": "default"}
+{"text": "OK ask Kronk's .", "route": "direct", "rule": "default"}
+{"text": "OK ask Kronk's please", "route": "direct", "rule": "default"}
+{"text": "OK ask Kronk's please?", "route": "direct", "rule": "default"}
+{"text": "OK ask Kronk's please.", "route": "direct", "rule": "default"}
+{"text": "OK ask Kronk's .?", "route": "direct", "rule": "default"}
+{"text": "OK ask Kronk's ..", "route": "direct", "rule": "default"}
+{"text": "please ask Kronk to pause", "route": "direct", "rule": "lead_in"}
+{"text": "please ask Kronk to pause?", "route": "direct", "rule": "lead_in"}
+{"text": "please ask Kronk to pause.", "route": "direct", "rule": "lead_in"}
+{"text": "please ask Kronk to play some jazz", "route": "direct", "rule": "lead_in"}
+{"text": "please ask Kronk to play some jazz?", "route": "direct", "rule": "lead_in"}
+{"text": "please ask Kronk to play some jazz.", "route": "direct", "rule": "lead_in"}
+{"text": "please ask Kronk to what song is this", "route": "direct", "rule": "lead_in"}
+{"text": "please ask Kronk to what song is this?", "route": "direct", "rule": "lead_in"}
+{"text": "please ask Kronk to what song is this.", "route": "direct", "rule": "lead_in"}
+{"text": "please ask Kronk to update the magic mirror", "route": "direct", "rule": "lead_in"}
+{"text": "please ask Kronk to update the magic mirror?", "route": "direct", "rule": "lead_in"}
+{"text": "please ask Kronk to update the magic mirror.", "route": "direct", "rule": "lead_in"}
+{"text": "please ask Kronk to ", "route": "direct", "rule": "default"}
+{"text": "please ask Kronk to ?", "route": "direct", "rule": "default"}
+{"text": "please ask Kronk to .", "route": "direct", "rule": "default"}
+{"text": "please ask Kronk to please", "route": "direct", "rule": "default"}
+{"text": "please ask Kronk to please?", "route": "direct", "rule": "default"}
+{"text": "please ask Kronk to please.", "route": "direct", "rule": "default"}
+{"text": "please ask Kronk to .?", "route": "direct", "rule": "default"}
+{"text": "please ask Kronk to ..", "route": "direct", "rule": "default"}
+{"text": "please Ask Kronk pause", "route": "direct", "rule": "lead_in"}
+{"text": "please Ask Kronk pause?", "route": "direct", "rule": "lead_in"}
+{"text": "please Ask Kronk pause.", "route": "direct", "rule": "lead_in"}
+{"text": "please Ask Kronk play some jazz", "route": "direct", "rule": "lead_in"}
+{"text": "please Ask Kronk play some jazz?", "route": "direct", "rule": "lead_in"}
+{"text": "please Ask Kronk play some jazz.", "route": "direct", "rule": "lead_in"}
+{"text": "please Ask Kronk what song is this", "route": "direct", "rule": "lead_in"}
+{"text": "please Ask Kronk what song is this?", "route": "direct", "rule": "lead_in"}
+{"text": "please Ask Kronk what song is this.", "route": "direct", "rule": "lead_in"}
+{"text": "please Ask Kronk update the magic mirror", "route": "direct", "rule": "lead_in"}
+{"text": "please Ask Kronk update the magic mirror?", "route": "direct", "rule": "lead_in"}
+{"text": "please Ask Kronk update the magic mirror.", "route": "direct", "rule": "lead_in"}
+{"text": "please Ask Kronk ", "route": "direct", "rule": "default"}
+{"text": "please Ask Kronk ?", "route": "direct", "rule": "default"}
+{"text": "please Ask Kronk .", "route": "direct", "rule": "default"}
+{"text": "please Ask Kronk please", "route": "direct", "rule": "default"}
+{"text": "please Ask Kronk please?", "route": "direct", "rule": "default"}
+{"text": "please Ask Kronk please.", "route": "direct", "rule": "default"}
+{"text": "please Ask Kronk .?", "route": "direct", "rule": "default"}
+{"text": "please Ask Kronk ..", "route": "direct", "rule": "default"}
+{"text": "please ask kronk, pause", "route": "direct", "rule": "lead_in"}
+{"text": "please ask kronk, pause?", "route": "direct", "rule": "lead_in"}
+{"text": "please ask kronk, pause.", "route": "direct", "rule": "lead_in"}
+{"text": "please ask kronk, play some jazz", "route": "direct", "rule": "lead_in"}
+{"text": "please ask kronk, play some jazz?", "route": "direct", "rule": "lead_in"}
+{"text": "please ask kronk, play some jazz.", "route": "direct", "rule": "lead_in"}
+{"text": "please ask kronk, what song is this", "route": "direct", "rule": "lead_in"}
+{"text": "please ask kronk, what song is this?", "route": "direct", "rule": "lead_in"}
+{"text": "please ask kronk, what song is this.", "route": "direct", "rule": "lead_in"}
+{"text": "please ask kronk, update the magic mirror", "route": "direct", "rule": "lead_in"}
+{"text": "please ask kronk, update the magic mirror?", "route": "direct", "rule": "lead_in"}
+{"text": "please ask kronk, update the magic mirror.", "route": "direct", "rule": "lead_in"}
+{"text": "please ask kronk, ", "route": "direct", "rule": "default"}
+{"text": "please ask kronk, ?", "route": "direct", "rule": "default"}
+{"text": "please ask kronk, .", "route": "direct", "rule": "default"}
+{"text": "please ask kronk, please", "route": "direct", "rule": "default"}
+{"text": "please ask kronk, please?", "route": "direct", "rule": "default"}
+{"text": "please ask kronk, please.", "route": "direct", "rule": "default"}
+{"text": "please ask kronk, .?", "route": "direct", "rule": "default"}
+{"text": "please ask kronk, ..", "route": "direct", "rule": "default"}
+{"text": "please ASK KRONK TO pause", "route": "direct", "rule": "lead_in"}
+{"text": "please ASK KRONK TO pause?", "route": "direct", "rule": "lead_in"}
+{"text": "please ASK KRONK TO pause.", "route": "direct", "rule": "lead_in"}
+{"text": "please ASK KRONK TO play some jazz", "route": "direct", "rule": "lead_in"}
+{"text": "please ASK KRONK TO play some jazz?", "route": "direct", "rule": "lead_in"}
+{"text": "please ASK KRONK TO play some jazz.", "route": "direct", "rule": "lead_in"}
+{"text": "please ASK KRONK TO what song is this", "route": "direct", "rule": "lead_in"}
+{"text": "please ASK KRONK TO what song is this?", "route": "direct", "rule": "lead_in"}
+{"text": "please ASK KRONK TO what song is this.", "route": "direct", "rule": "lead_in"}
+{"text": "please ASK KRONK TO update the magic mirror", "route": "direct", "rule": "lead_in"}
+{"text": "please ASK KRONK TO update the magic mirror?", "route": "direct", "rule": "lead_in"}
+{"text": "please ASK KRONK TO update the magic mirror.", "route": "direct", "rule": "lead_in"}
+{"text": "please ASK KRONK TO ", "route": "direct", "rule": "default"}
+{"text": "please ASK KRONK TO ?", "route": "direct", "rule": "default"}
+{"text": "please ASK KRONK TO .", "route": "direct", "rule": "default"}
+{"text": "please ASK KRONK TO please", "route": "direct", "rule": "default"}
+{"text": "please ASK KRONK TO please?", "route": "direct", "rule": "default"}
+{"text": "please ASK KRONK TO please.", "route": "direct", "rule": "default"}
+{"text": "please ASK KRONK TO .?", "route": "direct", "rule": "default"}
+{"text": "please ASK KRONK TO ..", "route": "direct", "rule": "default"}
+{"text": "please tell Kronk to pause", "route": "direct", "rule": "default"}
+{"text": "please tell Kronk to pause?", "route": "direct", "rule": "default"}
+{"text": "please tell Kronk to pause.", "route": "direct", "rule": "default"}
+{"text": "please tell Kronk to play some jazz", "route": "home", "rule": "music"}
+{"text": "please tell Kronk to play some jazz?", "route": "home", "rule": "music"}
+{"text": "please tell Kronk to play some jazz.", "route": "home", "rule": "music"}
+{"text": "please tell Kronk to what song is this", "route": "direct", "rule": "default"}
+{"text": "please tell Kronk to what song is this?", "route": "direct", "rule": "default"}
+{"text": "please tell Kronk to what song is this.", "route": "direct", "rule": "default"}
+{"text": "please tell Kronk to update the magic mirror", "route": "home", "rule": "mm_update"}
+{"text": "please tell Kronk to update the magic mirror?", "route": "home", "rule": "mm_update"}
+{"text": "please tell Kronk to update the magic mirror.", "route": "home", "rule": "mm_update"}
+{"text": "please tell Kronk to ", "route": "direct", "rule": "default"}
+{"text": "please tell Kronk to ?", "route": "direct", "rule": "default"}
+{"text": "please tell Kronk to .", "route": "direct", "rule": "default"}
+{"text": "please tell Kronk to please", "route": "direct", "rule": "default"}
+{"text": "please tell Kronk to please?", "route": "direct", "rule": "default"}
+{"text": "please tell Kronk to please.", "route": "direct", "rule": "default"}
+{"text": "please tell Kronk to .?", "route": "direct", "rule": "default"}
+{"text": "please tell Kronk to ..", "route": "direct", "rule": "default"}
+{"text": "please ask Kronky to pause", "route": "direct", "rule": "default"}
+{"text": "please ask Kronky to pause?", "route": "direct", "rule": "default"}
+{"text": "please ask Kronky to pause.", "route": "direct", "rule": "default"}
+{"text": "please ask Kronky to play some jazz", "route": "direct", "rule": "default"}
+{"text": "please ask Kronky to play some jazz?", "route": "direct", "rule": "default"}
+{"text": "please ask Kronky to play some jazz.", "route": "direct", "rule": "default"}
+{"text": "please ask Kronky to what song is this", "route": "direct", "rule": "default"}
+{"text": "please ask Kronky to what song is this?", "route": "direct", "rule": "default"}
+{"text": "please ask Kronky to what song is this.", "route": "direct", "rule": "default"}
+{"text": "please ask Kronky to update the magic mirror", "route": "home", "rule": "mm_update"}
+{"text": "please ask Kronky to update the magic mirror?", "route": "home", "rule": "mm_update"}
+{"text": "please ask Kronky to update the magic mirror.", "route": "home", "rule": "mm_update"}
+{"text": "please ask Kronky to ", "route": "direct", "rule": "default"}
+{"text": "please ask Kronky to ?", "route": "direct", "rule": "default"}
+{"text": "please ask Kronky to .", "route": "direct", "rule": "default"}
+{"text": "please ask Kronky to please", "route": "direct", "rule": "default"}
+{"text": "please ask Kronky to please?", "route": "direct", "rule": "default"}
+{"text": "please ask Kronky to please.", "route": "direct", "rule": "default"}
+{"text": "please ask Kronky to .?", "route": "direct", "rule": "default"}
+{"text": "please ask Kronky to ..", "route": "direct", "rule": "default"}
+{"text": "please ask Kronk's pause", "route": "direct", "rule": "default"}
+{"text": "please ask Kronk's pause?", "route": "direct", "rule": "default"}
+{"text": "please ask Kronk's pause.", "route": "direct", "rule": "default"}
+{"text": "please ask Kronk's play some jazz", "route": "direct", "rule": "default"}
+{"text": "please ask Kronk's play some jazz?", "route": "direct", "rule": "default"}
+{"text": "please ask Kronk's play some jazz.", "route": "direct", "rule": "default"}
+{"text": "please ask Kronk's what song is this", "route": "direct", "rule": "default"}
+{"text": "please ask Kronk's what song is this?", "route": "direct", "rule": "default"}
+{"text": "please ask Kronk's what song is this.", "route": "direct", "rule": "default"}
+{"text": "please ask Kronk's update the magic mirror", "route": "home", "rule": "mm_update"}
+{"text": "please ask Kronk's update the magic mirror?", "route": "home", "rule": "mm_update"}
+{"text": "please ask Kronk's update the magic mirror.", "route": "home", "rule": "mm_update"}
+{"text": "please ask Kronk's ", "route": "direct", "rule": "default"}
+{"text": "please ask Kronk's ?", "route": "direct", "rule": "default"}
+{"text": "please ask Kronk's .", "route": "direct", "rule": "default"}
+{"text": "please ask Kronk's please", "route": "direct", "rule": "default"}
+{"text": "please ask Kronk's please?", "route": "direct", "rule": "default"}
+{"text": "please ask Kronk's please.", "route": "direct", "rule": "default"}
+{"text": "please ask Kronk's .?", "route": "direct", "rule": "default"}
+{"text": "please ask Kronk's ..", "route": "direct", "rule": "default"}
+{"text": "can you ask Kronk to pause", "route": "direct", "rule": "lead_in"}
+{"text": "can you ask Kronk to pause?", "route": "direct", "rule": "lead_in"}
+{"text": "can you ask Kronk to pause.", "route": "direct", "rule": "lead_in"}
+{"text": "can you ask Kronk to play some jazz", "route": "direct", "rule": "lead_in"}
+{"text": "can you ask Kronk to play some jazz?", "route": "direct", "rule": "lead_in"}
+{"text": "can you ask Kronk to play some jazz.", "route": "direct", "rule": "lead_in"}
+{"text": "can you ask Kronk to what song is this", "route": "direct", "rule": "lead_in"}
+{"text": "can you ask Kronk to what song is this?", "route": "direct", "rule": "lead_in"}
+{"text": "can you ask Kronk to what song is this.", "route": "direct", "rule": "lead_in"}
+{"text": "can you ask Kronk to update the magic mirror", "route": "direct", "rule": "lead_in"}
+{"text": "can you ask Kronk to update the magic mirror?", "route": "direct", "rule": "lead_in"}
+{"text": "can you ask Kronk to update the magic mirror.", "route": "direct", "rule": "lead_in"}
+{"text": "can you ask Kronk to ", "route": "direct", "rule": "default"}
+{"text": "can you ask Kronk to ?", "route": "direct", "rule": "default"}
+{"text": "can you ask Kronk to .", "route": "direct", "rule": "default"}
+{"text": "can you ask Kronk to please", "route": "direct", "rule": "default"}
+{"text": "can you ask Kronk to please?", "route": "direct", "rule": "default"}
+{"text": "can you ask Kronk to please.", "route": "direct", "rule": "default"}
+{"text": "can you ask Kronk to .?", "route": "direct", "rule": "default"}
+{"text": "can you ask Kronk to ..", "route": "direct", "rule": "default"}
+{"text": "can you Ask Kronk pause", "route": "direct", "rule": "lead_in"}
+{"text": "can you Ask Kronk pause?", "route": "direct", "rule": "lead_in"}
+{"text": "can you Ask Kronk pause.", "route": "direct", "rule": "lead_in"}
+{"text": "can you Ask Kronk play some jazz", "route": "direct", "rule": "lead_in"}
+{"text": "can you Ask Kronk play some jazz?", "route": "direct", "rule": "lead_in"}
+{"text": "can you Ask Kronk play some jazz.", "route": "direct", "rule": "lead_in"}
+{"text": "can you Ask Kronk what song is this", "route": "direct", "rule": "lead_in"}
+{"text": "can you Ask Kronk what song is this?", "route": "direct", "rule": "lead_in"}
+{"text": "can you Ask Kronk what song is this.", "route": "direct", "rule": "lead_in"}
+{"text": "can you Ask Kronk update the magic mirror", "route": "direct", "rule": "lead_in"}
+{"text": "can you Ask Kronk update the magic mirror?", "route": "direct", "rule": "lead_in"}
+{"text": "can you Ask Kronk update the magic mirror.", "route": "direct", "rule": "lead_in"}
+{"text": "can you Ask Kronk ", "route": "direct", "rule": "default"}
+{"text": "can you Ask Kronk ?", "route": "direct", "rule": "default"}
+{"text": "can you Ask Kronk .", "route": "direct", "rule": "default"}
+{"text": "can you Ask Kronk please", "route": "direct", "rule": "default"}
+{"text": "can you Ask Kronk please?", "route": "direct", "rule": "default"}
+{"text": "can you Ask Kronk please.", "route": "direct", "rule": "default"}
+{"text": "can you Ask Kronk .?", "route": "direct", "rule": "default"}
+{"text": "can you Ask Kronk ..", "route": "direct", "rule": "default"}
+{"text": "can you ask kronk, pause", "route": "direct", "rule": "lead_in"}
+{"text": "can you ask kronk, pause?", "route": "direct", "rule": "lead_in"}
+{"text": "can you ask kronk, pause.", "route": "direct", "rule": "lead_in"}
+{"text": "can you ask kronk, play some jazz", "route": "direct", "rule": "lead_in"}
+{"text": "can you ask kronk, play some jazz?", "route": "direct", "rule": "lead_in"}
+{"text": "can you ask kronk, play some jazz.", "route": "direct", "rule": "lead_in"}
+{"text": "can you ask kronk, what song is this", "route": "direct", "rule": "lead_in"}
+{"text": "can you ask kronk, what song is this?", "route": "direct", "rule": "lead_in"}
+{"text": "can you ask kronk, what song is this.", "route": "direct", "rule": "lead_in"}
+{"text": "can you ask kronk, update the magic mirror", "route": "direct", "rule": "lead_in"}
+{"text": "can you ask kronk, update the magic mirror?", "route": "direct", "rule": "lead_in"}
+{"text": "can you ask kronk, update the magic mirror.", "route": "direct", "rule": "lead_in"}
+{"text": "can you ask kronk, ", "route": "direct", "rule": "default"}
+{"text": "can you ask kronk, ?", "route": "direct", "rule": "default"}
+{"text": "can you ask kronk, .", "route": "direct", "rule": "default"}
+{"text": "can you ask kronk, please", "route": "direct", "rule": "default"}
+{"text": "can you ask kronk, please?", "route": "direct", "rule": "default"}
+{"text": "can you ask kronk, please.", "route": "direct", "rule": "default"}
+{"text": "can you ask kronk, .?", "route": "direct", "rule": "default"}
+{"text": "can you ask kronk, ..", "route": "direct", "rule": "default"}
+{"text": "can you ASK KRONK TO pause", "route": "direct", "rule": "lead_in"}
+{"text": "can you ASK KRONK TO pause?", "route": "direct", "rule": "lead_in"}
+{"text": "can you ASK KRONK TO pause.", "route": "direct", "rule": "lead_in"}
+{"text": "can you ASK KRONK TO play some jazz", "route": "direct", "rule": "lead_in"}
+{"text": "can you ASK KRONK TO play some jazz?", "route": "direct", "rule": "lead_in"}
+{"text": "can you ASK KRONK TO play some jazz.", "route": "direct", "rule": "lead_in"}
+{"text": "can you ASK KRONK TO what song is this", "route": "direct", "rule": "lead_in"}
+{"text": "can you ASK KRONK TO what song is this?", "route": "direct", "rule": "lead_in"}
+{"text": "can you ASK KRONK TO what song is this.", "route": "direct", "rule": "lead_in"}
+{"text": "can you ASK KRONK TO update the magic mirror", "route": "direct", "rule": "lead_in"}
+{"text": "can you ASK KRONK TO update the magic mirror?", "route": "direct", "rule": "lead_in"}
+{"text": "can you ASK KRONK TO update the magic mirror.", "route": "direct", "rule": "lead_in"}
+{"text": "can you ASK KRONK TO ", "route": "direct", "rule": "default"}
+{"text": "can you ASK KRONK TO ?", "route": "direct", "rule": "default"}
+{"text": "can you ASK KRONK TO .", "route": "direct", "rule": "default"}
+{"text": "can you ASK KRONK TO please", "route": "direct", "rule": "default"}
+{"text": "can you ASK KRONK TO please?", "route": "direct", "rule": "default"}
+{"text": "can you ASK KRONK TO please.", "route": "direct", "rule": "default"}
+{"text": "can you ASK KRONK TO .?", "route": "direct", "rule": "default"}
+{"text": "can you ASK KRONK TO ..", "route": "direct", "rule": "default"}
+{"text": "can you tell Kronk to pause", "route": "direct", "rule": "default"}
+{"text": "can you tell Kronk to pause?", "route": "direct", "rule": "default"}
+{"text": "can you tell Kronk to pause.", "route": "direct", "rule": "default"}
+{"text": "can you tell Kronk to play some jazz", "route": "home", "rule": "music"}
+{"text": "can you tell Kronk to play some jazz?", "route": "home", "rule": "music"}
+{"text": "can you tell Kronk to play some jazz.", "route": "home", "rule": "music"}
+{"text": "can you tell Kronk to what song is this", "route": "direct", "rule": "default"}
+{"text": "can you tell Kronk to what song is this?", "route": "direct", "rule": "default"}
+{"text": "can you tell Kronk to what song is this.", "route": "direct", "rule": "default"}
+{"text": "can you tell Kronk to update the magic mirror", "route": "home", "rule": "mm_update"}
+{"text": "can you tell Kronk to update the magic mirror?", "route": "home", "rule": "mm_update"}
+{"text": "can you tell Kronk to update the magic mirror.", "route": "home", "rule": "mm_update"}
+{"text": "can you tell Kronk to ", "route": "direct", "rule": "default"}
+{"text": "can you tell Kronk to ?", "route": "direct", "rule": "default"}
+{"text": "can you tell Kronk to .", "route": "direct", "rule": "default"}
+{"text": "can you tell Kronk to please", "route": "direct", "rule": "default"}
+{"text": "can you tell Kronk to please?", "route": "direct", "rule": "default"}
+{"text": "can you tell Kronk to please.", "route": "direct", "rule": "default"}
+{"text": "can you tell Kronk to .?", "route": "direct", "rule": "default"}
+{"text": "can you tell Kronk to ..", "route": "direct", "rule": "default"}
+{"text": "can you ask Kronky to pause", "route": "direct", "rule": "default"}
+{"text": "can you ask Kronky to pause?", "route": "direct", "rule": "default"}
+{"text": "can you ask Kronky to pause.", "route": "direct", "rule": "default"}
+{"text": "can you ask Kronky to play some jazz", "route": "direct", "rule": "default"}
+{"text": "can you ask Kronky to play some jazz?", "route": "direct", "rule": "default"}
+{"text": "can you ask Kronky to play some jazz.", "route": "direct", "rule": "default"}
+{"text": "can you ask Kronky to what song is this", "route": "direct", "rule": "default"}
+{"text": "can you ask Kronky to what song is this?", "route": "direct", "rule": "default"}
+{"text": "can you ask Kronky to what song is this.", "route": "direct", "rule": "default"}
+{"text": "can you ask Kronky to update the magic mirror", "route": "home", "rule": "mm_update"}
+{"text": "can you ask Kronky to update the magic mirror?", "route": "home", "rule": "mm_update"}
+{"text": "can you ask Kronky to update the magic mirror.", "route": "home", "rule": "mm_update"}
+{"text": "can you ask Kronky to ", "route": "direct", "rule": "default"}
+{"text": "can you ask Kronky to ?", "route": "direct", "rule": "default"}
+{"text": "can you ask Kronky to .", "route": "direct", "rule": "default"}
+{"text": "can you ask Kronky to please", "route": "direct", "rule": "default"}
+{"text": "can you ask Kronky to please?", "route": "direct", "rule": "default"}
+{"text": "can you ask Kronky to please.", "route": "direct", "rule": "default"}
+{"text": "can you ask Kronky to .?", "route": "direct", "rule": "default"}
+{"text": "can you ask Kronky to ..", "route": "direct", "rule": "default"}
+{"text": "can you ask Kronk's pause", "route": "direct", "rule": "default"}
+{"text": "can you ask Kronk's pause?", "route": "direct", "rule": "default"}
+{"text": "can you ask Kronk's pause.", "route": "direct", "rule": "default"}
+{"text": "can you ask Kronk's play some jazz", "route": "direct", "rule": "default"}
+{"text": "can you ask Kronk's play some jazz?", "route": "direct", "rule": "default"}
+{"text": "can you ask Kronk's play some jazz.", "route": "direct", "rule": "default"}
+{"text": "can you ask Kronk's what song is this", "route": "direct", "rule": "default"}
+{"text": "can you ask Kronk's what song is this?", "route": "direct", "rule": "default"}
+{"text": "can you ask Kronk's what song is this.", "route": "direct", "rule": "default"}
+{"text": "can you ask Kronk's update the magic mirror", "route": "home", "rule": "mm_update"}
+{"text": "can you ask Kronk's update the magic mirror?", "route": "home", "rule": "mm_update"}
+{"text": "can you ask Kronk's update the magic mirror.", "route": "home", "rule": "mm_update"}
+{"text": "can you ask Kronk's ", "route": "direct", "rule": "default"}
+{"text": "can you ask Kronk's ?", "route": "direct", "rule": "default"}
+{"text": "can you ask Kronk's .", "route": "direct", "rule": "default"}
+{"text": "can you ask Kronk's please", "route": "direct", "rule": "default"}
+{"text": "can you ask Kronk's please?", "route": "direct", "rule": "default"}
+{"text": "can you ask Kronk's please.", "route": "direct", "rule": "default"}
+{"text": "can you ask Kronk's .?", "route": "direct", "rule": "default"}
+{"text": "can you ask Kronk's ..", "route": "direct", "rule": "default"}
+{"text": "Could you ask Kronk to pause", "route": "direct", "rule": "lead_in"}
+{"text": "Could you ask Kronk to pause?", "route": "direct", "rule": "lead_in"}
+{"text": "Could you ask Kronk to pause.", "route": "direct", "rule": "lead_in"}
+{"text": "Could you ask Kronk to play some jazz", "route": "direct", "rule": "lead_in"}
+{"text": "Could you ask Kronk to play some jazz?", "route": "direct", "rule": "lead_in"}
+{"text": "Could you ask Kronk to play some jazz.", "route": "direct", "rule": "lead_in"}
+{"text": "Could you ask Kronk to what song is this", "route": "direct", "rule": "lead_in"}
+{"text": "Could you ask Kronk to what song is this?", "route": "direct", "rule": "lead_in"}
+{"text": "Could you ask Kronk to what song is this.", "route": "direct", "rule": "lead_in"}
+{"text": "Could you ask Kronk to update the magic mirror", "route": "direct", "rule": "lead_in"}
+{"text": "Could you ask Kronk to update the magic mirror?", "route": "direct", "rule": "lead_in"}
+{"text": "Could you ask Kronk to update the magic mirror.", "route": "direct", "rule": "lead_in"}
+{"text": "Could you ask Kronk to ", "route": "direct", "rule": "default"}
+{"text": "Could you ask Kronk to ?", "route": "direct", "rule": "default"}
+{"text": "Could you ask Kronk to .", "route": "direct", "rule": "default"}
+{"text": "Could you ask Kronk to please", "route": "direct", "rule": "default"}
+{"text": "Could you ask Kronk to please?", "route": "direct", "rule": "default"}
+{"text": "Could you ask Kronk to please.", "route": "direct", "rule": "default"}
+{"text": "Could you ask Kronk to .?", "route": "direct", "rule": "default"}
+{"text": "Could you ask Kronk to ..", "route": "direct", "rule": "default"}
+{"text": "Could you Ask Kronk pause", "route": "direct", "rule": "lead_in"}
+{"text": "Could you Ask Kronk pause?", "route": "direct", "rule": "lead_in"}
+{"text": "Could you Ask Kronk pause.", "route": "direct", "rule": "lead_in"}
+{"text": "Could you Ask Kronk play some jazz", "route": "direct", "rule": "lead_in"}
+{"text": "Could you Ask Kronk play some jazz?", "route": "direct", "rule": "lead_in"}
+{"text": "Could you Ask Kronk play some jazz.", "route": "direct", "rule": "lead_in"}
+{"text": "Could you Ask Kronk what song is this", "route": "direct", "rule": "lead_in"}
+{"text": "Could you Ask Kronk what song is this?", "route": "direct", "rule": "lead_in"}
+{"text": "Could you Ask Kronk what song is this.", "route": "direct", "rule": "lead_in"}
+{"text": "Could you Ask Kronk update the magic mirror", "route": "direct", "rule": "lead_in"}
+{"text": "Could you Ask Kronk update the magic mirror?", "route": "direct", "rule": "lead_in"}
+{"text": "Could you Ask Kronk update the magic mirror.", "route": "direct", "rule": "lead_in"}
+{"text": "Could you Ask Kronk ", "route": "direct", "rule": "default"}
+{"text": "Could you Ask Kronk ?", "route": "direct", "rule": "default"}
+{"text": "Could you Ask Kronk .", "route": "direct", "rule": "default"}
+{"text": "Could you Ask Kronk please", "route": "direct", "rule": "default"}
+{"text": "Could you Ask Kronk please?", "route": "direct", "rule": "default"}
+{"text": "Could you Ask Kronk please.", "route": "direct", "rule": "default"}
+{"text": "Could you Ask Kronk .?", "route": "direct", "rule": "default"}
+{"text": "Could you Ask Kronk ..", "route": "direct", "rule": "default"}
+{"text": "Could you ask kronk, pause", "route": "direct", "rule": "lead_in"}
+{"text": "Could you ask kronk, pause?", "route": "direct", "rule": "lead_in"}
+{"text": "Could you ask kronk, pause.", "route": "direct", "rule": "lead_in"}
+{"text": "Could you ask kronk, play some jazz", "route": "direct", "rule": "lead_in"}
+{"text": "Could you ask kronk, play some jazz?", "route": "direct", "rule": "lead_in"}
+{"text": "Could you ask kronk, play some jazz.", "route": "direct", "rule": "lead_in"}
+{"text": "Could you ask kronk, what song is this", "route": "direct", "rule": "lead_in"}
+{"text": "Could you ask kronk, what song is this?", "route": "direct", "rule": "lead_in"}
+{"text": "Could you ask kronk, what song is this.", "route": "direct", "rule": "lead_in"}
+{"text": "Could you ask kronk, update the magic mirror", "route": "direct", "rule": "lead_in"}
+{"text": "Could you ask kronk, update the magic mirror?", "route": "direct", "rule": "lead_in"}
+{"text": "Could you ask kronk, update the magic mirror.", "route": "direct", "rule": "lead_in"}
+{"text": "Could you ask kronk, ", "route": "direct", "rule": "default"}
+{"text": "Could you ask kronk, ?", "route": "direct", "rule": "default"}
+{"text": "Could you ask kronk, .", "route": "direct", "rule": "default"}
+{"text": "Could you ask kronk, please", "route": "direct", "rule": "default"}
+{"text": "Could you ask kronk, please?", "route": "direct", "rule": "default"}
+{"text": "Could you ask kronk, please.", "route": "direct", "rule": "default"}
+{"text": "Could you ask kronk, .?", "route": "direct", "rule": "default"}
+{"text": "Could you ask kronk, ..", "route": "direct", "rule": "default"}
+{"text": "Could you ASK KRONK TO pause", "route": "direct", "rule": "lead_in"}
+{"text": "Could you ASK KRONK TO pause?", "route": "direct", "rule": "lead_in"}
+{"text": "Could you ASK KRONK TO pause.", "route": "direct", "rule": "lead_in"}
+{"text": "Could you ASK KRONK TO play some jazz", "route": "direct", "rule": "lead_in"}
+{"text": "Could you ASK KRONK TO play some jazz?", "route": "direct", "rule": "lead_in"}
+{"text": "Could you ASK KRONK TO play some jazz.", "route": "direct", "rule": "lead_in"}
+{"text": "Could you ASK KRONK TO what song is this", "route": "direct", "rule": "lead_in"}
+{"text": "Could you ASK KRONK TO what song is this?", "route": "direct", "rule": "lead_in"}
+{"text": "Could you ASK KRONK TO what song is this.", "route": "direct", "rule": "lead_in"}
+{"text": "Could you ASK KRONK TO update the magic mirror", "route": "direct", "rule": "lead_in"}
+{"text": "Could you ASK KRONK TO update the magic mirror?", "route": "direct", "rule": "lead_in"}
+{"text": "Could you ASK KRONK TO update the magic mirror.", "route": "direct", "rule": "lead_in"}
+{"text": "Could you ASK KRONK TO ", "route": "direct", "rule": "default"}
+{"text": "Could you ASK KRONK TO ?", "route": "direct", "rule": "default"}
+{"text": "Could you ASK KRONK TO .", "route": "direct", "rule": "default"}
+{"text": "Could you ASK KRONK TO please", "route": "direct", "rule": "default"}
+{"text": "Could you ASK KRONK TO please?", "route": "direct", "rule": "default"}
+{"text": "Could you ASK KRONK TO please.", "route": "direct", "rule": "default"}
+{"text": "Could you ASK KRONK TO .?", "route": "direct", "rule": "default"}
+{"text": "Could you ASK KRONK TO ..", "route": "direct", "rule": "default"}
+{"text": "Could you tell Kronk to pause", "route": "direct", "rule": "default"}
+{"text": "Could you tell Kronk to pause?", "route": "direct", "rule": "default"}
+{"text": "Could you tell Kronk to pause.", "route": "direct", "rule": "default"}
+{"text": "Could you tell Kronk to play some jazz", "route": "home", "rule": "music"}
+{"text": "Could you tell Kronk to play some jazz?", "route": "home", "rule": "music"}
+{"text": "Could you tell Kronk to play some jazz.", "route": "home", "rule": "music"}
+{"text": "Could you tell Kronk to what song is this", "route": "direct", "rule": "default"}
+{"text": "Could you tell Kronk to what song is this?", "route": "direct", "rule": "default"}
+{"text": "Could you tell Kronk to what song is this.", "route": "direct", "rule": "default"}
+{"text": "Could you tell Kronk to update the magic mirror", "route": "home", "rule": "mm_update"}
+{"text": "Could you tell Kronk to update the magic mirror?", "route": "home", "rule": "mm_update"}
+{"text": "Could you tell Kronk to update the magic mirror.", "route": "home", "rule": "mm_update"}
+{"text": "Could you tell Kronk to ", "route": "direct", "rule": "default"}
+{"text": "Could you tell Kronk to ?", "route": "direct", "rule": "default"}
+{"text": "Could you tell Kronk to .", "route": "direct", "rule": "default"}
+{"text": "Could you tell Kronk to please", "route": "direct", "rule": "default"}
+{"text": "Could you tell Kronk to please?", "route": "direct", "rule": "default"}
+{"text": "Could you tell Kronk to please.", "route": "direct", "rule": "default"}
+{"text": "Could you tell Kronk to .?", "route": "direct", "rule": "default"}
+{"text": "Could you tell Kronk to ..", "route": "direct", "rule": "default"}
+{"text": "Could you ask Kronky to pause", "route": "direct", "rule": "default"}
+{"text": "Could you ask Kronky to pause?", "route": "direct", "rule": "default"}
+{"text": "Could you ask Kronky to pause.", "route": "direct", "rule": "default"}
+{"text": "Could you ask Kronky to play some jazz", "route": "direct", "rule": "default"}
+{"text": "Could you ask Kronky to play some jazz?", "route": "direct", "rule": "default"}
+{"text": "Could you ask Kronky to play some jazz.", "route": "direct", "rule": "default"}
+{"text": "Could you ask Kronky to what song is this", "route": "direct", "rule": "default"}
+{"text": "Could you ask Kronky to what song is this?", "route": "direct", "rule": "default"}
+{"text": "Could you ask Kronky to what song is this.", "route": "direct", "rule": "default"}
+{"text": "Could you ask Kronky to update the magic mirror", "route": "home", "rule": "mm_update"}
+{"text": "Could you ask Kronky to update the magic mirror?", "route": "home", "rule": "mm_update"}
+{"text": "Could you ask Kronky to update the magic mirror.", "route": "home", "rule": "mm_update"}
+{"text": "Could you ask Kronky to ", "route": "direct", "rule": "default"}
+{"text": "Could you ask Kronky to ?", "route": "direct", "rule": "default"}
+{"text": "Could you ask Kronky to .", "route": "direct", "rule": "default"}
+{"text": "Could you ask Kronky to please", "route": "direct", "rule": "default"}
+{"text": "Could you ask Kronky to please?", "route": "direct", "rule": "default"}
+{"text": "Could you ask Kronky to please.", "route": "direct", "rule": "default"}
+{"text": "Could you ask Kronky to .?", "route": "direct", "rule": "default"}
+{"text": "Could you ask Kronky to ..", "route": "direct", "rule": "default"}
+{"text": "Could you ask Kronk's pause", "route": "direct", "rule": "default"}
+{"text": "Could you ask Kronk's pause?", "route": "direct", "rule": "default"}
+{"text": "Could you ask Kronk's pause.", "route": "direct", "rule": "default"}
+{"text": "Could you ask Kronk's play some jazz", "route": "direct", "rule": "default"}
+{"text": "Could you ask Kronk's play some jazz?", "route": "direct", "rule": "default"}
+{"text": "Could you ask Kronk's play some jazz.", "route": "direct", "rule": "default"}
+{"text": "Could you ask Kronk's what song is this", "route": "direct", "rule": "default"}
+{"text": "Could you ask Kronk's what song is this?", "route": "direct", "rule": "default"}
+{"text": "Could you ask Kronk's what song is this.", "route": "direct", "rule": "default"}
+{"text": "Could you ask Kronk's update the magic mirror", "route": "home", "rule": "mm_update"}
+{"text": "Could you ask Kronk's update the magic mirror?", "route": "home", "rule": "mm_update"}
+{"text": "Could you ask Kronk's update the magic mirror.", "route": "home", "rule": "mm_update"}
+{"text": "Could you ask Kronk's ", "route": "direct", "rule": "default"}
+{"text": "Could you ask Kronk's ?", "route": "direct", "rule": "default"}
+{"text": "Could you ask Kronk's .", "route": "direct", "rule": "default"}
+{"text": "Could you ask Kronk's please", "route": "direct", "rule": "default"}
+{"text": "Could you ask Kronk's please?", "route": "direct", "rule": "default"}
+{"text": "Could you ask Kronk's please.", "route": "direct", "rule": "default"}
+{"text": "Could you ask Kronk's .?", "route": "direct", "rule": "default"}
+{"text": "Could you ask Kronk's ..", "route": "direct", "rule": "default"}
+{"text": "so ask Kronk to pause", "route": "direct", "rule": "default"}
+{"text": "so ask Kronk to pause?", "route": "direct", "rule": "default"}
+{"text": "so ask Kronk to pause.", "route": "direct", "rule": "default"}
+{"text": "so ask Kronk to play some jazz", "route": "direct", "rule": "default"}
+{"text": "so ask Kronk to play some jazz?", "route": "direct", "rule": "default"}
+{"text": "so ask Kronk to play some jazz.", "route": "direct", "rule": "default"}
+{"text": "so ask Kronk to what song is this", "route": "direct", "rule": "default"}
+{"text": "so ask Kronk to what song is this?", "route": "direct", "rule": "default"}
+{"text": "so ask Kronk to what song is this.", "route": "direct", "rule": "default"}
+{"text": "so ask Kronk to update the magic mirror", "route": "home", "rule": "mm_update"}
+{"text": "so ask Kronk to update the magic mirror?", "route": "home", "rule": "mm_update"}
+{"text": "so ask Kronk to update the magic mirror.", "route": "home", "rule": "mm_update"}
+{"text": "so ask Kronk to ", "route": "direct", "rule": "default"}
+{"text": "so ask Kronk to ?", "route": "direct", "rule": "default"}
+{"text": "so ask Kronk to .", "route": "direct", "rule": "default"}
+{"text": "so ask Kronk to please", "route": "direct", "rule": "default"}
+{"text": "so ask Kronk to please?", "route": "direct", "rule": "default"}
+{"text": "so ask Kronk to please.", "route": "direct", "rule": "default"}
+{"text": "so ask Kronk to .?", "route": "direct", "rule": "default"}
+{"text": "so ask Kronk to ..", "route": "direct", "rule": "default"}
+{"text": "so Ask Kronk pause", "route": "direct", "rule": "default"}
+{"text": "so Ask Kronk pause?", "route": "direct", "rule": "default"}
+{"text": "so Ask Kronk pause.", "route": "direct", "rule": "default"}
+{"text": "so Ask Kronk play some jazz", "route": "direct", "rule": "default"}
+{"text": "so Ask Kronk play some jazz?", "route": "direct", "rule": "default"}
+{"text": "so Ask Kronk play some jazz.", "route": "direct", "rule": "default"}
+{"text": "so Ask Kronk what song is this", "route": "direct", "rule": "default"}
+{"text": "so Ask Kronk what song is this?", "route": "direct", "rule": "default"}
+{"text": "so Ask Kronk what song is this.", "route": "direct", "rule": "default"}
+{"text": "so Ask Kronk update the magic mirror", "route": "home", "rule": "mm_update"}
+{"text": "so Ask Kronk update the magic mirror?", "route": "home", "rule": "mm_update"}
+{"text": "so Ask Kronk update the magic mirror.", "route": "home", "rule": "mm_update"}
+{"text": "so Ask Kronk ", "route": "direct", "rule": "default"}
+{"text": "so Ask Kronk ?", "route": "direct", "rule": "default"}
+{"text": "so Ask Kronk .", "route": "direct", "rule": "default"}
+{"text": "so Ask Kronk please", "route": "direct", "rule": "default"}
+{"text": "so Ask Kronk please?", "route": "direct", "rule": "default"}
+{"text": "so Ask Kronk please.", "route": "direct", "rule": "default"}
+{"text": "so Ask Kronk .?", "route": "direct", "rule": "default"}
+{"text": "so Ask Kronk ..", "route": "direct", "rule": "default"}
+{"text": "so ask kronk, pause", "route": "direct", "rule": "default"}
+{"text": "so ask kronk, pause?", "route": "direct", "rule": "default"}
+{"text": "so ask kronk, pause.", "route": "direct", "rule": "default"}
+{"text": "so ask kronk, play some jazz", "route": "direct", "rule": "default"}
+{"text": "so ask kronk, play some jazz?", "route": "direct", "rule": "default"}
+{"text": "so ask kronk, play some jazz.", "route": "direct", "rule": "default"}
+{"text": "so ask kronk, what song is this", "route": "direct", "rule": "default"}
+{"text": "so ask kronk, what song is this?", "route": "direct", "rule": "default"}
+{"text": "so ask kronk, what song is this.", "route": "direct", "rule": "default"}
+{"text": "so ask kronk, update the magic mirror", "route": "home", "rule": "mm_update"}
+{"text": "so ask kronk, update the magic mirror?", "route": "home", "rule": "mm_update"}
+{"text": "so ask kronk, update the magic mirror.", "route": "home", "rule": "mm_update"}
+{"text": "so ask kronk, ", "route": "direct", "rule": "default"}
+{"text": "so ask kronk, ?", "route": "direct", "rule": "default"}
+{"text": "so ask kronk, .", "route": "direct", "rule": "default"}
+{"text": "so ask kronk, please", "route": "direct", "rule": "default"}
+{"text": "so ask kronk, please?", "route": "direct", "rule": "default"}
+{"text": "so ask kronk, please.", "route": "direct", "rule": "default"}
+{"text": "so ask kronk, .?", "route": "direct", "rule": "default"}
+{"text": "so ask kronk, ..", "route": "direct", "rule": "default"}
+{"text": "so ASK KRONK TO pause", "route": "direct", "rule": "default"}
+{"text": "so ASK KRONK TO pause?", "route": "direct", "rule": "default"}
+{"text": "so ASK KRONK TO pause.", "route": "direct", "rule": "default"}
+{"text": "so ASK KRONK TO play some jazz", "route": "direct", "rule": "default"}
+{"text": "so ASK KRONK TO play some jazz?", "route": "direct", "rule": "default"}
+{"text": "so ASK KRONK TO play some jazz.", "route": "direct", "rule": "default"}
+{"text": "so ASK KRONK TO what song is this", "route": "direct", "rule": "default"}
+{"text": "so ASK KRONK TO what song is this?", "route": "direct", "rule": "default"}
+{"text": "so ASK KRONK TO what song is this.", "route": "direct", "rule": "default"}
+{"text": "so ASK KRONK TO update the magic mirror", "route": "home", "rule": "mm_update"}
+{"text": "so ASK KRONK TO update the magic mirror?", "route": "home", "rule": "mm_update"}
+{"text": "so ASK KRONK TO update the magic mirror.", "route": "home", "rule": "mm_update"}
+{"text": "so ASK KRONK TO ", "route": "direct", "rule": "default"}
+{"text": "so ASK KRONK TO ?", "route": "direct", "rule": "default"}
+{"text": "so ASK KRONK TO .", "route": "direct", "rule": "default"}
+{"text": "so ASK KRONK TO please", "route": "direct", "rule": "default"}
+{"text": "so ASK KRONK TO please?", "route": "direct", "rule": "default"}
+{"text": "so ASK KRONK TO please.", "route": "direct", "rule": "default"}
+{"text": "so ASK KRONK TO .?", "route": "direct", "rule": "default"}
+{"text": "so ASK KRONK TO ..", "route": "direct", "rule": "default"}
+{"text": "so tell Kronk to pause", "route": "direct", "rule": "default"}
+{"text": "so tell Kronk to pause?", "route": "direct", "rule": "default"}
+{"text": "so tell Kronk to pause.", "route": "direct", "rule": "default"}
+{"text": "so tell Kronk to play some jazz", "route": "direct", "rule": "default"}
+{"text": "so tell Kronk to play some jazz?", "route": "direct", "rule": "default"}
+{"text": "so tell Kronk to play some jazz.", "route": "direct", "rule": "default"}
+{"text": "so tell Kronk to what song is this", "route": "direct", "rule": "default"}
+{"text": "so tell Kronk to what song is this?", "route": "direct", "rule": "default"}
+{"text": "so tell Kronk to what song is this.", "route": "direct", "rule": "default"}
+{"text": "so tell Kronk to update the magic mirror", "route": "home", "rule": "mm_update"}
+{"text": "so tell Kronk to update the magic mirror?", "route": "home", "rule": "mm_update"}
+{"text": "so tell Kronk to update the magic mirror.", "route": "home", "rule": "mm_update"}
+{"text": "so tell Kronk to ", "route": "direct", "rule": "default"}
+{"text": "so tell Kronk to ?", "route": "direct", "rule": "default"}
+{"text": "so tell Kronk to .", "route": "direct", "rule": "default"}
+{"text": "so tell Kronk to please", "route": "direct", "rule": "default"}
+{"text": "so tell Kronk to please?", "route": "direct", "rule": "default"}
+{"text": "so tell Kronk to please.", "route": "direct", "rule": "default"}
+{"text": "so tell Kronk to .?", "route": "direct", "rule": "default"}
+{"text": "so tell Kronk to ..", "route": "direct", "rule": "default"}
+{"text": "so ask Kronky to pause", "route": "direct", "rule": "default"}
+{"text": "so ask Kronky to pause?", "route": "direct", "rule": "default"}
+{"text": "so ask Kronky to pause.", "route": "direct", "rule": "default"}
+{"text": "so ask Kronky to play some jazz", "route": "direct", "rule": "default"}
+{"text": "so ask Kronky to play some jazz?", "route": "direct", "rule": "default"}
+{"text": "so ask Kronky to play some jazz.", "route": "direct", "rule": "default"}
+{"text": "so ask Kronky to what song is this", "route": "direct", "rule": "default"}
+{"text": "so ask Kronky to what song is this?", "route": "direct", "rule": "default"}
+{"text": "so ask Kronky to what song is this.", "route": "direct", "rule": "default"}
+{"text": "so ask Kronky to update the magic mirror", "route": "home", "rule": "mm_update"}
+{"text": "so ask Kronky to update the magic mirror?", "route": "home", "rule": "mm_update"}
+{"text": "so ask Kronky to update the magic mirror.", "route": "home", "rule": "mm_update"}
+{"text": "so ask Kronky to ", "route": "direct", "rule": "default"}
+{"text": "so ask Kronky to ?", "route": "direct", "rule": "default"}
+{"text": "so ask Kronky to .", "route": "direct", "rule": "default"}
+{"text": "so ask Kronky to please", "route": "direct", "rule": "default"}
+{"text": "so ask Kronky to please?", "route": "direct", "rule": "default"}
+{"text": "so ask Kronky to please.", "route": "direct", "rule": "default"}
+{"text": "so ask Kronky to .?", "route": "direct", "rule": "default"}
+{"text": "so ask Kronky to ..", "route": "direct", "rule": "default"}
+{"text": "so ask Kronk's pause", "route": "direct", "rule": "default"}
+{"text": "so ask Kronk's pause?", "route": "direct", "rule": "default"}
+{"text": "so ask Kronk's pause.", "route": "direct", "rule": "default"}
+{"text": "so ask Kronk's play some jazz", "route": "direct", "rule": "default"}
+{"text": "so ask Kronk's play some jazz?", "route": "direct", "rule": "default"}
+{"text": "so ask Kronk's play some jazz.", "route": "direct", "rule": "default"}
+{"text": "so ask Kronk's what song is this", "route": "direct", "rule": "default"}
+{"text": "so ask Kronk's what song is this?", "route": "direct", "rule": "default"}
+{"text": "so ask Kronk's what song is this.", "route": "direct", "rule": "default"}
+{"text": "so ask Kronk's update the magic mirror", "route": "home", "rule": "mm_update"}
+{"text": "so ask Kronk's update the magic mirror?", "route": "home", "rule": "mm_update"}
+{"text": "so ask Kronk's update the magic mirror.", "route": "home", "rule": "mm_update"}
+{"text": "so ask Kronk's ", "route": "direct", "rule": "default"}
+{"text": "so ask Kronk's ?", "route": "direct", "rule": "default"}
+{"text": "so ask Kronk's .", "route": "direct", "rule": "default"}
+{"text": "so ask Kronk's please", "route": "direct", "rule": "default"}
+{"text": "so ask Kronk's please?", "route": "direct", "rule": "default"}
+{"text": "so ask Kronk's please.", "route": "direct", "rule": "default"}
+{"text": "so ask Kronk's .?", "route": "direct", "rule": "default"}
+{"text": "so ask Kronk's ..", "route": "direct", "rule": "default"}

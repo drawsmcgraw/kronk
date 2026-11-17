@@ -1,0 +1,45 @@
+# The spoken lead-in that sends a request straight to the model (sprint M19;
+# docs/features/lead-in.md).
+#
+# An utterance that starts with
+#
+#     [filler ...] <verb> <name> [to] <request>
+#
+# ("ask Kronk to find some deep house music and play it", "hey, ask Kronk
+# what's playing") skips every routing shortcut and every direct dispatch:
+# the lead-in is cut off and <request> goes to the coordinator with its full
+# tool menu (routing rule `lead_in`, first in routing.RULES). With nothing
+# after the lead-in it is not one, and the utterance is routed as usual.
+#
+# Read by orchestrator/config_loader.py at startup and on POST /config/reload
+# (scripts/config_reload.sh). Schema: the LeadIn model in config_loader.py.
+# Matching ignores case. Each entry is one or more words of letters, digits,
+# apostrophes or hyphens, separated by single spaces, at most 40 characters;
+# no entry may appear twice in a list. A key left out takes its built-in
+# default, which is the value written here. Run the corpus
+# (./scripts/run_tests.sh) after a change: a filler or name that is also the
+# start of an ordinary sentence would send that sentence to the model.
+
+# The word that opens the lead-in. Drew's phrase is "ask Kronk to"
+# (2026-11-11). 1 to 10 entries.
+verbs:
+  - ask
+
+# The assistant's name as speech-to-text writes it. A mis-heard spelling is
+# added only when captured transcripts show it (HA's pipeline debug, the
+# orchestrator log, the corpus, the incident docs). None did by 2026-11-17:
+# the three spoken requests that named Kronk were all transcribed "Kronk"
+# (docs/sprint/M19-build.md). 1 to 20 entries.
+names:
+  - Kronk
+
+# Words that may come before the lead-in: a greeting speech-to-text keeps, or
+# a polite frame ("can you ask Kronk to ..."). Any number of them, in any
+# order, each followed by optional commas or full stops. 0 to 20 entries.
+fillers:
+  - hey
+  - okay
+  - ok
+  - please
+  - can you
+  - could you

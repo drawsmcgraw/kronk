@@ -12,12 +12,16 @@ with context.
 
 Since sprint M7 the rules are an ordered table (RULES, below), and five of
 them carry a direct tool call that the pipeline runs with no model at all —
-docs/features/direct-dispatch.md.
+docs/features/direct-dispatch.md. Since sprint M19 the first rule is the
+spoken lead-in ("ask Kronk to ..."), which skips every other rule and hands
+the rest of the sentence to the coordinator — docs/features/lead-in.md.
 """
+import functools
 import re
 from dataclasses import dataclass
 from typing import Callable
 
+import config_loader
 import telemetry
 from events import emit
 
@@ -262,6 +266,55 @@ _NOW_PLAYING_RE = re.compile(
 )
 
 
+# The spoken lead-in (sprint M19; Drew, 2026-11-11): "ask Kronk to <request>"
+# is the one way to skip every rule below and hand a request to the model.
+# Shape: [filler ...] <verb> <name> [to] <request>, at the start of the
+# utterance, any casing. The words live in config/lead_in.yaml
+# (config_loader.LeadIn); each is escaped, so no config entry is a pattern.
+# Anchored on purpose: "what happens if I ask Kronk to pause" is not a
+# lead-in and is routed by the rest of the table. The name must end at a
+# separator, so "ask Kronk's opinion" is not one either. "to" is optional
+# and needs a word boundary: "ask Kronk tonight's forecast" keeps "tonight's".
+_LEAD_IN_SEP = r"[\s,.!?;:]"
+# With nothing after the lead-in (punctuation, or a lone "please") there is
+# no request to hand on: not a lead-in, so the utterance is routed as usual.
+_EMPTY_REQUEST = re.compile(r"[\W_]*(?:please[\W_]*)?", re.IGNORECASE)
+
+
+def _alternatives(phrases) -> str:
+    """One regex alternation of `phrases`, longest first, each escaped, with
+    any run of whitespace between its words."""
+    words = sorted(phrases, key=len, reverse=True)
+    return "|".join(r"\s+".join(re.escape(w) for w in p.split()) for p in words)
+
+
+@functools.lru_cache(maxsize=8)
+def _lead_in_pattern(verbs: tuple, names: tuple, fillers: tuple) -> re.Pattern:
+    filler = (rf"(?:(?:{_alternatives(fillers)})\b{_LEAD_IN_SEP}*)*" if fillers else "")
+    return re.compile(
+        rf"[\W_]*{filler}(?:{_alternatives(verbs)})[\s,]+(?:{_alternatives(names)})"
+        rf"(?={_LEAD_IN_SEP}|\Z){_LEAD_IN_SEP}*(?:to\b\s*)?(?P<request>.*)",
+        re.IGNORECASE | re.DOTALL,
+    )
+
+
+def lead_in_pattern() -> re.Pattern:
+    """The lead-in pattern for the words in effect (config_loader.current()),
+    so a config reload is followed on the next request."""
+    li = config_loader.current().lead_in
+    return _lead_in_pattern(tuple(li.verbs), tuple(li.names), tuple(li.fillers))
+
+
+def lead_in_request(text: str | None) -> str | None:
+    """The request after a spoken lead-in at the start of `text`, or None
+    when `text` does not start with one or nothing follows it."""
+    m = lead_in_pattern().match(text or "")
+    if not m:
+        return None
+    request = m.group("request").strip()
+    return None if _EMPTY_REQUEST.fullmatch(request) else request
+
+
 # ── The rules table (review item O12, sprint M7) ─────────────────────────────
 #
 # Routing is this ordered table: the first rule whose matcher accepts the
@@ -282,6 +335,11 @@ _NOW_PLAYING_RE = re.compile(
 # and the pipeline runs that tool with no model call
 # (main._run_pipeline, docs/features/agents-as-tools-routing.md). Every
 # other rule has direct=None and goes to its agent as before.
+#
+# The lead-in (sprint M19) is the one rule with `request`: it builds, from
+# the match, the text the model is given in place of the utterance (the
+# request without the lead-in). main._run_pipeline gives the coordinator
+# that text and sets origin.said to it.
 
 DirectCall = tuple[str, dict]
 
@@ -292,6 +350,7 @@ class Rule:
     route: str                     # an agent name, or "direct" (the coordinator)
     match: Callable[[str], object]  # truthy when the rule applies
     direct: Callable[[object], DirectCall] | None = None   # match -> the tool call
+    request: Callable[[object], str] | None = None         # match -> the model's text
 
 
 @dataclass(frozen=True)
@@ -299,6 +358,7 @@ class Decision:
     route: str
     rule: str
     direct: DirectCall | None = None   # (tool_name, args) to run without a model
+    request: str | None = None         # the model's text, when not the utterance
 
 
 def _group(m: re.Match, table: dict[str, str]) -> str:
@@ -319,7 +379,12 @@ def _another_call(m: re.Match) -> DirectCall:
 
 
 RULES: tuple[Rule, ...] = (
-    # Talkie first: it takes priority over all other routing.
+    # The lead-in first (sprint M19): it skips every rule after it, Talkie's
+    # included ("ask Kronk to ..." asks Kronk). The coordinator gets the
+    # request without the lead-in, with its full tool menu.
+    Rule("lead_in",         "direct",   lambda t: lead_in_request(t),
+         request=lambda req: req),
+    # Talkie next: it takes priority over all other routing.
     Rule("talkie_explicit", "talkie", lambda t: _TALKIE_PHRASES.search(t)),
     Rule("direct_override", "direct", lambda t: _DIRECT_OVERRIDE.search(t)),
     Rule("music_url",       "home",     lambda t: _MUSIC_URL_RE.search(t)),
@@ -355,7 +420,9 @@ def decide(text: str) -> Decision:
     taking the model lock."""
     for rule in RULES:
         if m := rule.match(text):
-            return Decision(rule.route, rule.name, rule.direct(m) if rule.direct else None)
+            return Decision(rule.route, rule.name,
+                            rule.direct(m) if rule.direct else None,
+                            rule.request(m) if rule.request else None)
     raise AssertionError("unreachable: the default rule accepts everything")
 
 
@@ -372,6 +439,9 @@ async def classify(text: str, prior_history: list[dict]) -> str:
         meta = {"rule": d.rule}
         if d.direct:
             meta["direct"] = d.direct[0]
+        if d.request is not None:
+            # The lead-in (M19): how much of the utterance was cut off.
+            meta["lead_in_chars"] = len(text) - len(d.request)
         span.end(output=d.route, metadata=meta)
         return d.route
     except Exception as e:

@@ -380,7 +380,7 @@ _ALPHABET = list("ab:- \n[]{},?#'\"|>&*!%@`~0123456789.\t") + [
 def _generated(n, seed):
     """Small texts: the shipped YAML files with a few edits, and token soups."""
     rng = random.Random(seed)
-    shipped = [(CONFIG / f).read_text() for f in ("tuning.yaml", "music.yaml")]
+    shipped = [(CONFIG / f).read_text() for f in ("tuning.yaml", "music.yaml", "lead_in.yaml")]
     for _ in range(n):
         if rng.random() < 0.4:
             s = list(rng.choice(shipped))
@@ -444,8 +444,8 @@ def test_a_yaml_error_without_a_mark_says_line_unknown(svc, monkeypatch):
             def parse(self, text):
                 raise YAMLError("the library gave no position")
         monkeypatch.setattr(ts_loader, "YAML", NoPosition)
-    ((f, line, msg),) = _problems(svc.loader, svc.dir)
-    assert (line, msg) == (None, "not valid YAML: the library gave no position; line unknown")
+    assert _problems(svc.loader, svc.dir) == [
+        (f, None, "not valid YAML: the library gave no position; line unknown") for f in svc.yaml_files]
 
 
 def test_a_very_long_integer_names_its_line(svc):
