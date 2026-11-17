@@ -345,7 +345,9 @@ time window. Storage is Grafana Tempo, UI is Grafana at `http://kronk:3000`
 `TELEMETRY_ENABLED=false` turns every span into a no-op. Traces hold what was
 said and answered only with `TELEMETRY_RECORD_TEXT=true` (production turns it
 on for sprint M12; the dev pair has it on); with it off, no span attribute or
-log line carries the words. Grafana needs no login, so on the LAN transcripts
+log line carries the words, apart from the named exceptions in
+`docs/features/voice-capture.md` (failure detail behind a spoken error,
+exception text, a fetched page's URL, nginx's access log). Grafana needs no login, so on the LAN transcripts
 are readable by anyone, guests included. Since M12 every puck also records
 audio for two weeks, and `voice_tracer` marks voice runs the user corrected
 within 60 s: [`docs/features/voice-capture.md`](docs/features/voice-capture.md).

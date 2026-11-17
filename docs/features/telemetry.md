@@ -52,9 +52,14 @@ Every interaction is one trace, end to end:
   `voice.speech` on `voice.run`, `kronk.input` / `kronk.output` on Kronk's
   spans, previews in `kronk.events`, music queries in tool_service's log,
   URL query strings on HTTP spans and in httpx/uvicorn log lines. Off: none
-  of those carries words (lengths stay; query strings read `?<query>`),
-  except the failure detail behind a friendly spoken error, which the
-  spoken sentence promises is logged. Kept 90 days in Tempo; container logs
+  of those carries words (lengths stay; query strings read `?<query>`, the
+  shopping-list item in a URL path `<item>`, a play failure carries
+  `music.failure_kind` instead of HA's message), except, on purpose, the
+  failure detail behind a friendly spoken error (the spoken sentence
+  promises it is logged) and exception text (status descriptions,
+  `exception.message`, error log lines), and, known, a fetched page's own
+  URL path and nginx's access log. The full list: `voice-capture.md`,
+  "With the switch off". Kept 90 days in Tempo; container logs
   are journald, bounded by size (about 44 days on 2026-11-17), not time.
   Grafana is viewable without a login (Drew's decision), so transcripts are
   readable on the LAN. Dev pair: on, by compose. Production: `.env`.
@@ -91,8 +96,13 @@ Every interaction is one trace, end to end:
   trace 30–90 s after ingest (live-store `max_block_duration` 30 s). Voice
   traces land ~2 min after the utterance because of the join wait; since
   M12 a satellite's voice run is also held for its 60 s correction window
-  (plus 90 s grace), so 3–4 min. Never more than 12 min: the ingestion
-  slack below.
+  (plus 90 s grace), so 3–4 min. While voice_tracer is up and connected a
+  run is held at most 12 min after it ended. A stop (SIGTERM) or a dropped
+  HA websocket exports every held run at once (`voice.window_cut_short`)
+  rather than holding it through the outage, and no run whose first span
+  is older than 14 min (`EXPORT_AGE_MAX_S`) is ever exported: it is counted
+  in voice_tracer's `/health` `too_old` instead (the ingestion slack
+  below; M12 fix 1).
 - **Ingestion slack — never emit spans older than it.** A span ingested
   more than `ingestion_time_range_slack` (set to 15 m on all three WALs in
   `telemetry/tempo.yaml`; Tempo default 2 m) away from its own timestamp

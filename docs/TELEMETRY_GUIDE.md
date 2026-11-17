@@ -65,7 +65,7 @@ tool_service (`kronk-tool-service`):
 | `music.resolve` | MA search + scoring for a named request | `music.media_type`, `music.stage`, `music.candidates`, `music.best_score`, `music.outcome` (winner / below_threshold / nothing) |
 | `music.pandora_station` | MA name lookup for a radio request | `outcome` (owned / created / not_pandora / no_item / ma_error) |
 | `music.genre_plan` | Taste-based picks for a genre request | `music.forced`, `music.picks`, `music.outcome` |
-| `music.play_verified` | HA `play_media` + the wait for the player to change | `music.outcome` (started / started_after_failure / failed / resolve_miss / no_start), `music.failure` |
+| `music.play_verified` | HA `play_media` + the wait for the player to change | `music.outcome` (started / started_after_failure / failed / resolve_miss / no_start), `music.failure_kind` (resolve_miss / ha_unreachable / ha_websocket / ha_auth / ha_error), `music.failure` (HA's message; text, only with `TELEMETRY_RECORD_TEXT=true`) |
 | `ma.command` | One Music Assistant websocket command | `ma.command` |
 | `ha.call_service` | One HA service call over the websocket | `ha.domain`, `ha.service`, `ha.entity_id` |
 | `ssh.exec` | MagicMirror / ops SSH subprocess | `ssh.program`, `ssh.target`, `ssh.exit_code` |
@@ -83,10 +83,13 @@ voice_tracer (`kronk-voice-tracer`), from Home Assistant's own records:
 | `ha.music_assistant.play_media`, `ha.media_player.shuffle_set`, `bp.wait`, `bp.handoff_kronk` | Blueprint steps, timed from HA's trace | `bp.path`, `bp.alias` |
 
 No prompt, answer or transcript text is on any span, and none in any log
-line (the `kronk.events` previews included, since sprint M12), unless
-`TELEMETRY_RECORD_TEXT=true` on the containers. The dev pair has it on;
-production sets it in `.env`. Stores and retention:
-`docs/features/voice-capture.md`.
+line (the `kronk.events` previews, URL query strings and the shopping-list
+item in a URL path included, since sprint M12), unless
+`TELEMETRY_RECORD_TEXT=true` on the containers, with named exceptions:
+the failure detail behind a friendly spoken error, exception text, a
+fetched page's own URL path and nginx's access log
+(`docs/features/voice-capture.md`, "With the switch off"). The dev pair has
+it on; production sets it in `.env`. Stores and retention: the same doc.
 
 Wrong-action marks (M12), production pucks:
 `{ name = "voice.run" && resource.service.name = "kronk-voice-tracer" && span.ha.pipeline_name != "kronk-dev" && span.voice.corrected_by != nil }`.
