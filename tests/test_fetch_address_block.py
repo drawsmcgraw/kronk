@@ -321,7 +321,9 @@ def test_refusal_reaches_the_agent_as_an_ordinary_tool_failure():
                                              "error": "blocked: 192.168.1.1 is a private (RFC 1918) address"},
                                   request=httpx.Request("GET", url))
 
-    text = asyncio.run(tools._tool_fetch_url(C(), {"url": "http://192.168.1.1/"}))
+    result = asyncio.run(tools._tool_fetch_url(C(), {"url": "http://192.168.1.1/"}))
+    assert result.failed
+    text = result.text
     assert text.startswith("[Could not fetch http://192.168.1.1/: blocked:")
     assert "RFC 1918" in text
 

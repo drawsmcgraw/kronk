@@ -106,31 +106,40 @@ keep new paths honest: no literal or f-string may be yielded as a user token
 in `main.py` / `agents.py` without going through `errors.*`, and every
 terminal tool is driven through each way it can fail (service down, HTTP
 error with a poisoned detail, missing arguments) and its friendly speech
-checked for debug shapes (`tests/test_spoken_failures.py`).
+checked for technical text (`tests/test_spoken_failures.py`).
 
 A delegated specialist's empty reply is model-facing (the coordinator reads
 it), so it stays `[<agent> agent returned no response]` on every mount.
 
-**Speech backstop.** On the speech mount only, the final text of a failed
-turn is checked against the code's own debug shapes (bracketed tool/agent
-markers, `Errno`, exception class names, tracebacks, URLs with ports, paths
-under `/keys/` or `/data/`) and replaced by the generic sentence if one is
-found (`errors.speech_backstop`). A turn counts as failed when any code
-failure text was rendered, any tool result matched the failure shapes, or
-the pipeline recorded an error; a turn with none is never touched. The
-original is logged (`speech_backstop` event) and set on the request's HTTP
-server span (`kronk.speech_backstop`, `kronk.speech_backstop.original`).
-It is off when `ERROR_STYLE_VOICE=debug`.
+Model-written text is never matched or replaced after the fact. (Fix 1 of
+sprint M2 added a "speech backstop" that replaced a failed spoken turn's
+answer when it carried a debug shape; it replaced correct answers and was
+removed in fix 2. See `docs/sprint/M2-fix2.md`.)
 
 Failures the model phrases — a non-terminal tool that failed, a specialist
 that failed and fell back to the coordinator — keep full detail model-side
 in both styles. In friendly style the phrasing rule
 (`errors.FRIENDLY_TOOL_PHRASING`) is appended to the failed tool result
-itself (`errors.is_failed_tool_result` recognises the code's own failure
-shapes), and the specialist-failure block carries the friendly instruction.
-Nothing is added to the system prompt, so a successful request sees the same
-prompt in both styles. These sentences are model-written, so they are
-instructed, not guaranteed.
+itself, and the specialist-failure block carries the friendly instruction.
+Nothing is added to the system prompt or to a successful result, so a
+successful request's model input is byte-identical in both styles. These
+sentences are model-written, so they are instructed, not guaranteed.
+
+**Whether a tool result failed is decided by the code that wrote it, never
+by reading its text.** A handler in `orchestrator/tools.py` returns its text
+for a success and `tools.failure(text)` for a failure; `tools.execute`
+returns `ToolResult(text, failed)` (an exception or an unknown tool is a
+failure). For a delegated specialist, `agents.run_delegated` returns
+`(text, terminal, failed)`: failed when it errored before any text or
+returned nothing. The agent loop appends the phrasing rule only when
+`failed` is set. A successful result embeds search queries, page text and
+speaker names that can look like anything — a search for "pip build failed:
+ModuleNotFoundError" once got the failure rule and its answer replaced
+(`docs/sprint/M2-e2e2.md` finding 1). `tests/test_tool_failure_flag.py`
+drives every handler through success with failure-looking text and through
+each failure branch. Not failures, by design: a shopping-list item that was
+not on the list, a hot tub that answered "offline", the mirror refusal, and
+a news refresh that failed but delivered the cached brief.
 
 The toggle governs **rendering only, never capture**: logs and traces
 always get full detail, and traces are marked ERROR in both styles — in
@@ -163,5 +172,8 @@ span inside the trace). The invented-answer ban never relaxes.
   bans, and never letting a model paraphrase a stack trace.
 - One exit for failure text: three spoken debug leaks (news, mirror, empty
   reply) were three paths around the error style, not three bugs; the fix
-  was one function, a test that refuses new paths, and a speech backstop
-  that only ever looks at failed turns.
+  was one function and a test that refuses new paths.
+- Don't decide failure by reading text: a regex over tool results and a
+  "backstop" over the spoken answer both took a web search for "pip build
+  failed: ModuleNotFoundError" for a failure and replaced a correct answer.
+  The fix was a flag set by the code that wrote the result.

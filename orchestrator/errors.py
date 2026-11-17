@@ -27,20 +27,20 @@ One exit for code-written failure text (sprint M2 fix 1): every place the
 orchestrator writes failure text that reaches the user — pipeline errors,
 terminal-tool failures, the news brief, an empty model reply — returns it
 through failure_text(), which gives the friendly sentence in friendly
-style and today's exact text otherwise. speech_backstop() is the last
-check on the speech mount: a failed turn whose final text still carries one
-of the code's own debug shapes is replaced by the generic sentence.
+style and today's exact text otherwise.
+
+Model-written text is never matched or replaced after the fact. Whether a
+tool result failed is decided by the code that produced it
+(tools.ToolResult.failed, agents.run_delegated), never by reading its text
+(M2 fix 2): a successful result embeds search queries and page text that
+can look like anything.
 """
-import logging
 import os
 import re
-from contextvars import ContextVar
 
 import origin
 import telemetry
 from events import emit
-
-logger = logging.getLogger(__name__)
 
 DEBUG = "debug"
 FRIENDLY = "friendly"
@@ -115,12 +115,10 @@ def failure_text(debug: str, style: str, friendly: str | None) -> str:
               sentence fit for a speaker and is used in both styles (the
               music failure sentences, criterion 8).
 
-    Every call also marks the running turn as failed (note_failure), which
-    arms speech_backstop. When the friendly sentence replaces the debug
-    text, the debug text is logged and put on the current span, so the
-    spoken sentence's claim that the details are noted stays true (tenet 7).
+    When the friendly sentence replaces the debug text, the debug text is
+    logged and put on the current span, so the spoken sentence's claim that
+    the details are noted stays true (tenet 7).
     """
-    note_failure(debug)
     if style != FRIENDLY or friendly is None or friendly == debug:
         return debug
     emit("failure_spoken_friendly", debug=debug[:300], spoken=friendly)
@@ -207,8 +205,9 @@ def specialist_failed_block(agent_name: str, error: str, style: str) -> str:
     )
 
 
-# Friendly style only: appended to a FAILED tool result (never to the system
-# prompt), so the prompt of every successful request is unchanged and the
+# Friendly style only: appended to a tool result the code that produced it
+# flagged as failed (tools.ToolResult.failed; never to the system prompt or a
+# successful result), so the input of every successful request is unchanged and the
 # instruction sits right next to the failure it is about. The result itself
 # keeps full detail — the model needs it to act.
 FRIENDLY_TOOL_PHRASING = (
@@ -216,93 +215,3 @@ FRIENDLY_TOOL_PHRASING = (
     "failed in one short natural sentence — never mention HTTP status codes, "
     "error names, URLs, ports, model names or other technical identifiers.]"
 )
-
-# The code's own failure shapes for a tool result: tools.execute's exception
-# line and unknown-tool line, a handler's argument refusal ("[play_music
-# error: query is required]"), a delegated specialist's error or empty reply
-# (agents.run_stream / run_delegated), tools._fail()'s HTTP failure, the
-# handlers' "Could not …" / "… failed: …" lines, and the hot tub and solar
-# energy "no data" lines (M2 e2e observation 5).
-_FAILED_RESULT = re.compile(
-    r"^\[(?:Tool \S+ error: |\S+ error: |\S+ agent error: "
-    r"|\S+ agent returned no response\]|Unknown tool: |no such specialist: "
-    r"|Could not |Hot tub status (?:unknown: |unavailable\])"
-    r"|Solar energy — [^\]\n]*\] no figure available"
-    r"|[^\]\n]* failed \(HTTP \d{3}\): |[^\]\n]* failed: )"
-)
-
-
-def is_failed_tool_result(result) -> bool:
-    return isinstance(result, str) and bool(_FAILED_RESULT.match(result))
-
-
-# ── the turn's failures, and the speech-mount backstop ────────────────────────
-#
-# A request-scoped list of the failures the running turn has met: every
-# failure_text() call, every failed tool result the agent loop saw, and the
-# pipeline's own error. main._kronk_pipeline_tokens opens it for a shim turn
-# (begin_turn) and reads it at the end; code that runs outside a turn (the
-# web UI, unit tests calling helpers directly) notes into nothing. A
-# ContextVar holding a list, so a task spawned inside the turn appends to
-# the same list.
-_turn: ContextVar[list | None] = ContextVar("kronk_turn_failures", default=None)
-
-
-def begin_turn():
-    return _turn.set([])
-
-
-def end_turn(token) -> None:
-    _turn.reset(token)
-
-
-def note_failure(detail) -> None:
-    failures = _turn.get()
-    if failures is not None:
-        failures.append(str(detail)[:300])
-
-
-def turn_failures() -> list[str]:
-    return list(_turn.get() or [])
-
-
-# The orchestrator's own debug shapes. Only checked on a failed turn on the
-# speech mount, so a successful answer is never touched.
-_DEBUG_SHAPES = re.compile(
-    r"\[(?:Tool \S+ error|\S+ agent error|\S+ agent returned no response"
-    r"|\S+ error: |Unknown tool: |no such specialist: |Could not )"
-    r"|\bErrno\b"
-    r"|Traceback \(most recent call last\)"
-    r"|\b[A-Z]\w*(?:Error|Exception)\b"
-    r"|\bhttps?://[^\s/:]+:\d+"
-    r"|(?<![\w.])/(?:keys|data)/"
-)
-
-
-def debug_shape(text: str | None) -> str | None:
-    """The first debug shape in `text`, or None."""
-    m = _DEBUG_SHAPES.search(text or "")
-    return m.group(0) if m else None
-
-
-def speech_backstop(text: str, failures: list[str]) -> str:
-    """Last check before text goes to a speaker (the speech mount only).
-
-    A turn with no recorded failure passes untouched, whatever it says. A
-    failed turn whose final text still carries one of the code's own debug
-    shapes is replaced by the generic friendly sentence; the original is
-    logged and put on the current span. Off when ERROR_STYLE_VOICE=debug —
-    the operator asked to hear the debug text."""
-    if not failures or style_for(voice=True) != FRIENDLY:
-        return text
-    shape = debug_shape(text)
-    if shape is None:
-        return text
-    logger.warning("speech backstop replaced a failed turn's reply (matched %r): %r",
-                   shape, text[:300])
-    emit("speech_backstop", matched=shape, original=text[:300],
-         failures=[f[:120] for f in failures[:5]])
-    telemetry.current().set(**{"kronk.speech_backstop": True,
-                               "kronk.speech_backstop.matched": shape,
-                               "kronk.speech_backstop.original": text[:300]})
-    return _FRIENDLY_GENERIC

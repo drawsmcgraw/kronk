@@ -281,7 +281,9 @@ async def test_tool_news_brief_failure_is_user_facing_prose():
     client = AsyncMock()
     client.get.return_value.status_code = 503
     client.get.return_value.json = lambda: {"detail": "no news brief has been generated yet"}
-    out = await orch_tools._tool_news_brief(client, {})
+    result = await orch_tools._tool_news_brief(client, {})
+    assert result.failed
+    out = result.text
     assert "isn't available right now" in out
     assert "no news brief has been generated yet" in out
     assert not out.startswith("[")

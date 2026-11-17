@@ -138,7 +138,7 @@ async def test_devops_loop_still_runs_remote_exec_next_to_a_rejected_call():
 
     async def fake_execute(name, a):
         executed.append(name)
-        return "[TOOL: remote_exec — magicmirror]\nexit=0\nup 3 days"
+        return agents.tools.ToolResult("[TOOL: remote_exec — magicmirror]\nexit=0\nup 3 days")
 
     with patch("agents.llm.stream", new=fake_stream), \
          patch("agents.tools.execute", new=fake_execute):

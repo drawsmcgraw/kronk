@@ -2,6 +2,7 @@
 import json
 import logging
 import os
+from dataclasses import dataclass
 
 import httpx
 
@@ -484,6 +485,25 @@ TOOL_DEFINITIONS = [
 # One small handler per tool, registered in _HANDLERS. Adding a tool =
 # definition in TOOL_DEFINITIONS + one handler function + one dict entry
 # (+ tool_names on whichever agents get it).
+#
+# A handler returns its text (a str) when it succeeded and failure(text)
+# when it did not. Whether a result is a failure is decided by the handler
+# that wrote it — never by reading the text afterwards: a successful
+# result embeds user, model and web text (a search query, a page) that can
+# look like anything (M2 fix 2).
+
+
+@dataclass(frozen=True)
+class ToolResult:
+    """What execute() hands the agent loop: the text the model reads, and
+    whether the code that produced it reported a failure."""
+    text: str
+    failed: bool = False
+
+
+def failure(text: str) -> ToolResult:
+    """A handler's failed result: `text` is what the model reads, unchanged."""
+    return ToolResult(text, failed=True)
 
 # Per-tool HTTP timeout policy (seconds). Everything else uses the default.
 TOOL_TIMEOUT_DEFAULT = 15
@@ -503,7 +523,7 @@ TOOL_TIMEOUTS = {
 }
 
 
-def _fail(action: str, resp: httpx.Response) -> str:
+def _fail(action: str, resp: httpx.Response) -> ToolResult:
     """Uniform tool-failure string that keeps the sub-service's detail.
 
     All three services put the specific cause in a JSON `detail` field
@@ -514,10 +534,10 @@ def _fail(action: str, resp: httpx.Response) -> str:
         detail = resp.json().get("detail") or resp.text[:200]
     except ValueError:
         detail = resp.text[:200]
-    return f"[{action} failed (HTTP {resp.status_code}): {detail}]"
+    return failure(f"[{action} failed (HTTP {resp.status_code}): {detail}]")
 
 
-async def _tool_get_weather(client: httpx.AsyncClient, args: dict) -> str:
+async def _tool_get_weather(client: httpx.AsyncClient, args: dict) -> str | ToolResult:
     location = args.get("location", DEFAULT_LOCATION)
     resp = await client.get(f"{TOOL_SERVICE_URL}/weather", params={"location": location})
     if resp.status_code == 200:
@@ -526,7 +546,7 @@ async def _tool_get_weather(client: httpx.AsyncClient, args: dict) -> str:
     return _fail(f"Weather lookup for {location}", resp)
 
 
-async def _tool_web_search(client: httpx.AsyncClient, args: dict) -> str:
+async def _tool_web_search(client: httpx.AsyncClient, args: dict) -> str | ToolResult:
     resp = await client.get(
         f"{TOOL_SERVICE_URL}/search",
         params={"q": args.get("query", ""), "count": args.get("count", 5)},
@@ -546,7 +566,7 @@ async def _tool_web_search(client: httpx.AsyncClient, args: dict) -> str:
     return _fail("Web search", resp)
 
 
-async def _tool_fetch_url(client: httpx.AsyncClient, args: dict) -> str:
+async def _tool_fetch_url(client: httpx.AsyncClient, args: dict) -> str | ToolResult:
     url = args.get("url", "")
     resp = await client.get(f"{TOOL_SERVICE_URL}/fetch", params={"url": url})
     if resp.status_code == 200:
@@ -554,14 +574,14 @@ async def _tool_fetch_url(client: httpx.AsyncClient, args: dict) -> str:
         if page.get("ok"):
             return f"[Page content from {url}]\n\n{page['text']}"
         reason = page.get("error", "unknown error")
-        return (
+        return failure(
             f"[Could not fetch {url}: {reason}. "
             "Try a different URL from the search results.]"
         )
-    return f"[Could not fetch {url}: tool service returned {resp.status_code}]"
+    return failure(f"[Could not fetch {url}: tool service returned {resp.status_code}]")
 
 
-async def _tool_shopping_list_view(client: httpx.AsyncClient, args: dict) -> str:
+async def _tool_shopping_list_view(client: httpx.AsyncClient, args: dict) -> str | ToolResult:
     resp = await client.get(f"{TOOL_SERVICE_URL}/shopping_list")
     if resp.status_code == 200:
         items = resp.json().get("items", [])
@@ -571,7 +591,7 @@ async def _tool_shopping_list_view(client: httpx.AsyncClient, args: dict) -> str
     return _fail("Shopping list view", resp)
 
 
-async def _tool_shopping_list_add(client: httpx.AsyncClient, args: dict) -> str:
+async def _tool_shopping_list_add(client: httpx.AsyncClient, args: dict) -> str | ToolResult:
     resp = await client.post(
         f"{TOOL_SERVICE_URL}/shopping_list",
         json={"items": args.get("items", [])},
@@ -582,7 +602,7 @@ async def _tool_shopping_list_add(client: httpx.AsyncClient, args: dict) -> str:
     return _fail("Shopping list add", resp)
 
 
-async def _tool_shopping_list_remove(client: httpx.AsyncClient, args: dict) -> str:
+async def _tool_shopping_list_remove(client: httpx.AsyncClient, args: dict) -> str | ToolResult:
     item = args.get("item", "")
     resp = await client.delete(f"{TOOL_SERVICE_URL}/shopping_list/{item}")
     if resp.status_code == 200:
@@ -592,7 +612,7 @@ async def _tool_shopping_list_remove(client: httpx.AsyncClient, args: dict) -> s
     return _fail("Shopping list remove", resp)
 
 
-async def _tool_shopping_list_clear(client: httpx.AsyncClient, args: dict) -> str:
+async def _tool_shopping_list_clear(client: httpx.AsyncClient, args: dict) -> str | ToolResult:
     # Used to ignore the response entirely and claim success (tenet 6).
     resp = await client.delete(f"{TOOL_SERVICE_URL}/shopping_list/clear")
     if resp.status_code == 200:
@@ -600,7 +620,7 @@ async def _tool_shopping_list_clear(client: httpx.AsyncClient, args: dict) -> st
     return _fail("Shopping list clear", resp)
 
 
-async def _tool_get_kronk_context(client: httpx.AsyncClient, args: dict) -> str:
+async def _tool_get_kronk_context(client: httpx.AsyncClient, args: dict) -> str | ToolResult:
     try:
         with open("/kronk-context.md") as f:
             content = f.read()
@@ -613,18 +633,18 @@ async def _tool_get_kronk_context(client: httpx.AsyncClient, args: dict) -> str:
             "code as text or in a code block."
         )
     except Exception as e:
-        return f"[Could not read context file: {e}]"
+        return failure(f"[Could not read context file: {e}]")
 
 
-async def _tool_generate_diagram(client: httpx.AsyncClient, args: dict) -> str:
+async def _tool_generate_diagram(client: httpx.AsyncClient, args: dict) -> str | ToolResult:
     resp = await client.post(f"{TOOL_SERVICE_URL}/diagram", json={"dot": args.get("dot", "")})
     if resp.status_code == 200:
         url = resp.json().get("url", "")
         return f"[Diagram generated: {url}]\n![diagram]({url})"
-    return f"[Diagram generation failed: {resp.status_code} {resp.text[:200]}]"
+    return failure(f"[Diagram generation failed: {resp.status_code} {resp.text[:200]}]")
 
 
-async def _tool_solar_status(client: httpx.AsyncClient, args: dict) -> str:
+async def _tool_solar_status(client: httpx.AsyncClient, args: dict) -> str | ToolResult:
     resp = await client.get(f"{TOOL_SERVICE_URL}/solar/status")
     if resp.status_code != 200:
         return _fail("Solar status", resp)
@@ -645,7 +665,7 @@ async def _tool_solar_status(client: httpx.AsyncClient, args: dict) -> str:
         ". Summarize for the user in one or two short sentences.")
 
 
-async def _tool_solar_detail(client: httpx.AsyncClient, args: dict) -> str:
+async def _tool_solar_detail(client: httpx.AsyncClient, args: dict) -> str | ToolResult:
     resp = await client.get(f"{TOOL_SERVICE_URL}/solar/detail")
     if resp.status_code != 200:
         return _fail("Solar detail", resp)
@@ -678,14 +698,15 @@ async def _tool_solar_detail(client: httpx.AsyncClient, args: dict) -> str:
     return "\n".join(lines)
 
 
-async def _tool_solar_energy(client: httpx.AsyncClient, args: dict) -> str:
+async def _tool_solar_energy(client: httpx.AsyncClient, args: dict) -> str | ToolResult:
     period = (args.get("period") or "lifetime").strip()
     resp = await client.get(f"{TOOL_SERVICE_URL}/solar/energy", params={"period": period})
     if resp.status_code != 200:
         return _fail("Solar energy", resp)
     d = resp.json()
     if d.get("error"):
-        return f"[Solar energy — {period}] no figure available: {d['error']}. Tell the user plainly."
+        return failure(f"[Solar energy — {period}] no figure available: {d['error']}. "
+                       "Tell the user plainly.")
     if "lifetime_kwh" in d:  # lifetime path
         per = d.get("per_inverter") or {}
         line = f"[Solar energy — LIFETIME] system total {d.get('lifetime_kwh')} kWh produced all-time."
@@ -705,12 +726,12 @@ async def _tool_solar_energy(client: httpx.AsyncClient, args: dict) -> str:
             f"Give the user the kWh for the period in a sentence.")
 
 
-async def _tool_query_hottub(client: httpx.AsyncClient, args: dict) -> str:
+async def _tool_query_hottub(client: httpx.AsyncClient, args: dict) -> str | ToolResult:
     resp = await client.get(f"{TOOL_SERVICE_URL}/hottub")
     if resp.status_code == 200:
         d = resp.json()
         if d.get("online") is None:
-            return f"[Hot tub status unknown: {d.get('error', 'no data')}]"
+            return failure(f"[Hot tub status unknown: {d.get('error', 'no data')}]")
         if d["online"]:
             return (
                 f"[Hot tub ONLINE]\n"
@@ -725,13 +746,13 @@ async def _tool_query_hottub(client: httpx.AsyncClient, args: dict) -> str:
             f"Last seen: {d.get('last_seen')}\n"
             f"Last checked: {d.get('last_check')}"
         )
-    return "[Hot tub status unavailable]"
+    return failure("[Hot tub status unavailable]")
 
 
-async def _tool_play_music(client: httpx.AsyncClient, args: dict) -> str:
+async def _tool_play_music(client: httpx.AsyncClient, args: dict) -> str | ToolResult:
     query = (args.get("query") or "").strip()
     if not query:
-        return "[play_music error: query is required]"
+        return failure("[play_music error: query is required]")
     payload: dict = {"query": query}
     if args.get("media_type"):
         payload["media_type"] = args["media_type"]
@@ -784,17 +805,17 @@ async def _tool_play_music(client: httpx.AsyncClient, args: dict) -> str:
         detail = resp.json().get("detail", "")
     except Exception:
         detail = resp.text[:200]
-    return (
+    return failure(
         f"[Could not play music: {detail}]\n"
         "Playback FAILED — tell the user it failed and why. "
         "Do NOT claim music is playing. Do NOT call play_music again."
     )
 
 
-async def _tool_control_music(client: httpx.AsyncClient, args: dict) -> str:
+async def _tool_control_music(client: httpx.AsyncClient, args: dict) -> str | ToolResult:
     action = (args.get("action") or "").strip()
     if not action:
-        return "[control_music error: action is required]"
+        return failure("[control_music error: action is required]")
     payload: dict = {"action": action}
     if args.get("player"):
         payload["player"] = args["player"]
@@ -811,17 +832,17 @@ async def _tool_control_music(client: httpx.AsyncClient, args: dict) -> str:
         detail = resp.json().get("detail", "")
     except Exception:
         detail = resp.text[:200]
-    return (
+    return failure(
         f"[Could not control music: {detail}]\n"
         "The action FAILED — tell the user it failed and why. "
         "Do NOT claim it worked. Do NOT call control_music again."
     )
 
 
-async def _tool_rate_music(client: httpx.AsyncClient, args: dict) -> str:
+async def _tool_rate_music(client: httpx.AsyncClient, args: dict) -> str | ToolResult:
     thumb = (args.get("thumb") or "").strip().lower()
     if thumb not in ("up", "down"):
-        return "[rate_music error: thumb must be 'up' or 'down']"
+        return failure("[rate_music error: thumb must be 'up' or 'down']")
     payload: dict = {"thumb": thumb}
     if args.get("player"):
         payload["player"] = args["player"]
@@ -838,14 +859,14 @@ async def _tool_rate_music(client: httpx.AsyncClient, args: dict) -> str:
         detail = resp.json().get("detail", "")
     except Exception:
         detail = resp.text[:200]
-    return (
+    return failure(
         f"[Could not rate music: {detail}]\n"
         "The rating FAILED — tell the user it failed and why. "
         "Do NOT claim it was recorded. Do NOT call rate_music again."
     )
 
 
-async def _tool_remember_music_preference(client: httpx.AsyncClient, args: dict) -> str:
+async def _tool_remember_music_preference(client: httpx.AsyncClient, args: dict) -> str | ToolResult:
     payload: dict = {"action": (args.get("action") or "").strip().lower(),
                      "value": (args.get("value") or "").strip()}
     if args.get("meaning"):
@@ -857,13 +878,13 @@ async def _tool_remember_music_preference(client: httpx.AsyncClient, args: dict)
         detail = resp.json().get("detail", "")
     except Exception:
         detail = resp.text[:200]
-    return (
+    return failure(
         f"[Could not save music taste: {detail}]\n"
         "Saving FAILED — tell the user it failed and why. Do NOT claim it was saved."
     )
 
 
-async def _tool_now_playing(client: httpx.AsyncClient, args: dict) -> str:
+async def _tool_now_playing(client: httpx.AsyncClient, args: dict) -> str | ToolResult:
     payload: dict = {}
     if args.get("player"):
         payload["player"] = args["player"]
@@ -880,16 +901,16 @@ async def _tool_now_playing(client: httpx.AsyncClient, args: dict) -> str:
         detail = resp.json().get("detail", "")
     except Exception:
         detail = resp.text[:200]
-    return (
+    return failure(
         f"[Could not read the player: {detail}]\n"
         "Tell the user you couldn't tell what's playing and why. Do NOT guess a song."
     )
 
 
-async def _tool_remote_exec(client: httpx.AsyncClient, args: dict) -> str:
+async def _tool_remote_exec(client: httpx.AsyncClient, args: dict) -> str | ToolResult:
     command = (args.get("command") or "").strip()
     if not command:
-        return "[remote_exec error: command is required]"
+        return failure("[remote_exec error: command is required]")
     host = args.get("host") or "magicmirror"
     resp = await client.post(f"{TOOL_SERVICE_URL}/ops/exec",
                              json={"host": host, "command": command})
@@ -902,18 +923,18 @@ async def _tool_remote_exec(client: httpx.AsyncClient, args: dict) -> str:
     # A refusal (422) is a normal outcome the model should adapt to, not a
     # hard failure — tell it plainly so it picks a read-only alternative.
     if resp.status_code == 422:
-        return (f"{detail}\nThat command was refused (read-only mode). Try a "
-                "read-only command instead, or tell the user it can't be done "
-                "without a change they'd need to approve.")
+        return failure(f"{detail.text}\nThat command was refused (read-only mode). Try a "
+                       "read-only command instead, or tell the user it can't be done "
+                       "without a change they'd need to approve.")
     return detail
 
 
-async def _tool_http_check(client: httpx.AsyncClient, args: dict) -> str:
+async def _tool_http_check(client: httpx.AsyncClient, args: dict) -> str | ToolResult:
     """Reachability probe (sprint M5). tool_service makes the request and
     never returns a body; this only formats the result."""
     url = (args.get("url") or "").strip()
     if not url:
-        return "[http_check error: url is required]"
+        return failure("[http_check error: url is required]")
     resp = await client.get(f"{TOOL_SERVICE_URL}/http_check", params={"url": url})
     if resp.status_code != 200:
         return _fail(f"http_check {url}", resp)
@@ -921,8 +942,8 @@ async def _tool_http_check(client: httpx.AsyncClient, args: dict) -> str:
     hops = "".join(f"\n  redirect: {h['url']} -> HTTP {h['status']} -> {h['location']}"
                    for h in r.get("redirects") or [])
     if not r.get("ok"):
-        return (f"[http_check {url}: FAILED ({r.get('cause', 'error')}) after "
-                f"{r.get('elapsed_ms')} ms: {r.get('error', 'unknown error')}]{hops}")
+        return failure(f"[http_check {url}: FAILED ({r.get('cause', 'error')}) after "
+                       f"{r.get('elapsed_ms')} ms: {r.get('error', 'unknown error')}]{hops}")
     hdrs = ", ".join(f"{k}: {v}" for k, v in (r.get("headers") or {}).items()) or "none"
     note = f"\n  note: {r['note']}" if r.get("note") else ""
     return (f"[http_check {url}: HTTP {r.get('status')} in {r.get('elapsed_ms')} ms; "
@@ -935,7 +956,7 @@ async def _tool_http_check(client: httpx.AsyncClient, args: dict) -> str:
 MM_UPDATE_REFUSAL = 'To update the magic mirror, say "update the magic mirror".'
 
 
-async def _tool_update_magicmirror(client: httpx.AsyncClient, args: dict) -> str:
+async def _tool_update_magicmirror(client: httpx.AsyncClient, args: dict) -> str | ToolResult:
     # The update runs only when the user's own words for this turn contain
     # the pinned sentence (routing.asks_for_mirror_update). origin.said is
     # set once per request by main._run_pipeline from the transport's user
@@ -956,7 +977,7 @@ async def _tool_update_magicmirror(client: httpx.AsyncClient, args: dict) -> str
         detail = resp.json().get("detail", "")
     except Exception:
         detail = resp.text[:200]
-    return (
+    return failure(
         f"[Could not update the magic mirror: {detail}]\n"
         "The update did NOT start — tell the user it failed and why. "
         "Do NOT claim the mirror is updating. Do NOT call update_magicmirror again."
@@ -969,7 +990,7 @@ NEWS_REFRESH_FAILED = "I couldn't fetch fresh news "
 NEWS_UNAVAILABLE = "The news brief isn't available right now — "
 
 
-async def _tool_news_brief(client: httpx.AsyncClient, args: dict) -> str:
+async def _tool_news_brief(client: httpx.AsyncClient, args: dict) -> str | ToolResult:
     """Terminal on the coordinator — the returned text is delivered to the
     user verbatim (both success and failure must read as finished prose,
     never as instructions to a model)."""
@@ -998,9 +1019,9 @@ async def _tool_news_brief(client: httpx.AsyncClient, args: dict) -> str:
             detail = resp.json().get("detail", "")
         except Exception:
             detail = resp.text[:200]
-        return (NEWS_UNAVAILABLE +
-                f"{detail or 'the generator has not produced one yet'}. "
-                "Ask me to research the news live if you need it sooner.")
+        return failure(NEWS_UNAVAILABLE +
+                       f"{detail or 'the generator has not produced one yet'}. "
+                       "Ask me to research the news live if you need it sooner.")
     d = resp.json()
     return (f"{refresh_note}{d['edition'].capitalize()} news brief, "
             f"generated {d['generated_at_local']}:\n\n{d['brief']}")
@@ -1032,16 +1053,19 @@ _HANDLERS = {
 }
 
 
-async def execute(name: str, args: dict) -> str:
-    """Execute a named tool and return a string result for LLM context."""
+async def execute(name: str, args: dict) -> ToolResult:
+    """Execute a named tool: its text for the model's context, and whether
+    it failed — as the handler reported it, or because it raised or does
+    not exist."""
     handler = _HANDLERS.get(name)
     if handler is None:
-        return f"[Unknown tool: {name}]"
+        return failure(f"[Unknown tool: {name}]")
     try:
         timeout = TOOL_TIMEOUTS.get(name, TOOL_TIMEOUT_DEFAULT)
         async with httpx.AsyncClient(timeout=timeout) as client:
-            return await handler(client, args)
+            out = await handler(client, args)
     except Exception as e:
         emit("tool_error", tool=name, error=str(e))
         logger.warning("Tool %s failed: %s", name, e)
-        return f"[Tool {name} error: {e}]"
+        return failure(f"[Tool {name} error: {e}]")
+    return out if isinstance(out, ToolResult) else ToolResult(out)

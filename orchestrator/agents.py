@@ -768,7 +768,10 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
                 # Stream ended with no tool_calls → final answer. Content already streamed.
                 last_round_text = "".join(round_content)
                 if not round_content:
+                    # "empty" tells run_delegated the text is a failure marker.
                     yield {"type": "token", "text": _empty_reply(agent, user_style)}
+                    yield {"type": "done", "model": agent.model, "ok": True, "empty": True}
+                    return
                 yield {"type": "done", "model": agent.model, "ok": True}
                 return
 
@@ -824,6 +827,10 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
                     continue
 
                 key = _args_key(fn_name, fn_args)
+                # failed: set by the code that produced the result (a tool
+                # handler via tools.execute, or the delegation below), never
+                # read off the text (M2 fix 2).
+                failed = False
                 if key in seen_calls:
                     result = f"[{fn_name} was already called with these exact arguments this turn; use the earlier result]"
                 else:
@@ -846,19 +853,17 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
                                 sub = AGENTS.get(fn_name[4:])
                                 if sub is None:
                                     result = f"[no such specialist: {fn_name[4:]}]"
+                                    failed = True
                                 else:
-                                    result, delegated_terminal = await run_delegated(
+                                    result, delegated_terminal, failed = await run_delegated(
                                         sub, fn_args.get("query") or task, [])
                             else:
-                                result = await tools.execute(fn_name, fn_args)
+                                outcome = await tools.execute(fn_name, fn_args)
+                                result, failed = outcome.text, outcome.failed
                     except Exception as e:
                         tool_span.end(level="ERROR", status_message=str(e)[:200])
                         raise
                     tool_span.end(output=result[:2000] if isinstance(result, str) else result)
-                    if errors.is_failed_tool_result(result):
-                        # Arms the speech-mount backstop for this turn
-                        # (errors.speech_backstop): the model may echo it.
-                        errors.note_failure(f"{fn_name}: {result[:200]}")
                     emit(
                         "tool_complete",
                         agent=agent.name,
@@ -907,11 +912,12 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
                             "above, or use a different tool if one fits better.]"
                         )
 
-                # Friendly style: the phrasing rule rides on the failed result
-                # itself, never on the system prompt, so successful requests
-                # see the same prompt in both styles. The result keeps its
-                # full detail (errors.FRIENDLY_TOOL_PHRASING).
-                if error_style == errors.FRIENDLY and errors.is_failed_tool_result(result):
+                # Friendly style: the phrasing rule rides on a result its code
+                # flagged as failed, never on the system prompt and never on a
+                # successful result, so successful requests see the same input
+                # in both styles. The result keeps its full detail
+                # (errors.FRIENDLY_TOOL_PHRASING).
+                if error_style == errors.FRIENDLY and failed:
                     result += "\n\n" + errors.FRIENDLY_TOOL_PHRASING
 
                 messages.append({
@@ -995,21 +1001,29 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
         last_round_text = "".join(final_content)
         if not final_content:
             yield {"type": "token", "text": _empty_reply(agent, user_style)}
-        yield {"type": "done", "model": agent.model, "ok": True}
+            yield {"type": "done", "model": agent.model, "ok": True, "empty": True}
+        else:
+            yield {"type": "done", "model": agent.model, "ok": True}
     finally:
         # Covers normal returns, error returns above, and client disconnects
         # (GeneratorExit) — _Obs.end() is idempotent via the .ended flag.
         agent_span.end(output=last_round_text or None)
 
 
-async def run_delegated(agent: AgentConfig, task: str, context: list[dict]) -> tuple[str, bool]:
-    """Run a specialist for a delegating agent: (text, ended_on_terminal_tool).
+async def run_delegated(agent: AgentConfig, task: str,
+                        context: list[dict]) -> tuple[str, bool, bool]:
+    """Run a specialist for a delegating agent:
+    (text, ended_on_terminal_tool, failed).
 
-    The flag is how a terminal result (spoken verbatim by the specialist)
-    survives the hop back to the coordinator without a synthesis round."""
+    The terminal flag is how a terminal result (spoken verbatim by the
+    specialist) survives the hop back to the coordinator without a
+    synthesis round. failed is True when the specialist produced no answer
+    — it errored before any text, or returned nothing — so the delegating
+    loop treats the text as a failed tool result (M2 fix 2)."""
     text = ""
     error: str | None = None
     terminal = False
+    empty = False
     async for ev in run_stream(agent, task, context, delegated=True):
         t = ev.get("type")
         if t == "token":
@@ -1019,17 +1033,19 @@ async def run_delegated(agent: AgentConfig, task: str, context: list[dict]) -> t
             text = text[:-ev["chars"]] if ev["chars"] <= len(text) else ""
         elif t == "error":
             error = ev["message"]
-        elif t == "done" and ev.get("terminal"):
-            terminal = True
+        elif t == "done":
+            terminal = terminal or bool(ev.get("terminal"))
+            empty = empty or bool(ev.get("empty"))
     if error and not text:
-        return error, False
-    text = text or error or f"[{agent.name} agent returned no response]"
-    return text, terminal and bool(text)
+        return error, False, True
+    if not text:
+        return f"[{agent.name} agent returned no response]", False, True
+    return text, terminal, empty
 
 
 async def run(agent: AgentConfig, task: str, context: list[dict]) -> str:
     """Non-streaming convenience wrapper — collects all tokens from run_stream."""
-    text, _ = await run_delegated(agent, task, context)
+    text, _, _ = await run_delegated(agent, task, context)
     return text
 
 

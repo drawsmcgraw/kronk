@@ -274,7 +274,7 @@ async def test_solar_detail_tool_formats_for_reasoning():
         async def get(self, *a, **kw): return Resp()
 
     with patch("tools.httpx.AsyncClient", return_value=Client()):
-        out = await tools.execute("solar_detail", {})
+        out = (await tools.execute("solar_detail", {})).text
     # the failing inverter, its ratio, bad_days, and trend history are all present
     assert "…003219" in out and "ratio 0.0" in out and "bad_days=2" in out
     assert "daily history" in out and "07-14" in out
@@ -313,7 +313,7 @@ async def test_solar_status_tool_summarizes():
 
     from unittest.mock import patch
     with patch("tools.httpx.AsyncClient", return_value=Client()):
-        out = await tools.execute("solar_status", {})
+        out = (await tools.execute("solar_status", {})).text
     assert "ISSUES" in out and "4.93 kW" in out
     assert "4 underperforming" in out
     assert "…003219" in out   # confirmed inverter named
@@ -336,7 +336,7 @@ async def test_healthy_summary():
         async def get(self, *a, **kw): return Resp()
 
     with patch("tools.httpx.AsyncClient", return_value=Client()):
-        out = await tools.execute("solar_status", {})
+        out = (await tools.execute("solar_status", {})).text
     assert "HEALTHY" in out and "5.4 kW" in out
 
 
@@ -451,7 +451,7 @@ async def test_solar_energy_tool_lifetime():
         async def get(self, *a, **kw): return Resp()
 
     with patch("tools.httpx.AsyncClient", return_value=Client()):
-        out = await tools.execute("solar_energy", {"period": "lifetime"})
+        out = (await tools.execute("solar_energy", {"period": "lifetime"})).text
     assert "LIFETIME" in out and "65649.8 kWh" in out
     assert "…003219" in out          # lowest-lifetime inverter named
 
@@ -475,7 +475,7 @@ async def test_solar_energy_tool_period_and_clamp_note():
         async def get(self, *a, **kw): return Resp()
 
     with patch("tools.httpx.AsyncClient", return_value=Client()):
-        out = await tools.execute("solar_energy", {"period": "month"})
+        out = (await tools.execute("solar_energy", {"period": "month"})).text
     assert "120.0 kWh" in out
     assert "tracking only began" in out and "2026-07-15" in out
 

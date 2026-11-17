@@ -194,7 +194,8 @@ async def _guarded(said, args=None):
 async def test_trigger_sentences_reach_tool_service(said):
     result, fake = await _guarded(said)
     assert fake.mirror_posts == [("POST", f"{tools.TOOL_SERVICE_URL}/magicmirror/update")]
-    assert result.startswith("[Could not update the magic mirror: Mirror preflight failed")
+    assert result.failed
+    assert result.text.startswith("[Could not update the magic mirror: Mirror preflight failed")
 
 
 @pytest.mark.parametrize("said", TRIGGERS)
@@ -207,7 +208,7 @@ def test_trigger_sentences_route_to_the_pin(said):
 @pytest.mark.parametrize("said", REFUSED)
 async def test_other_sentences_are_refused_and_send_nothing(said):
     result, fake = await _guarded(said)
-    assert result == f"[Magic mirror update refused: {REFUSAL}]"
+    assert result == tools.ToolResult(f"[Magic mirror update refused: {REFUSAL}]")   # not a failure
     assert fake.calls == []
 
 
@@ -217,7 +218,7 @@ async def test_no_user_sentence_is_refused():
     fake = FakeToolService()
     with patch("tools.httpx.AsyncClient", new=fake):
         result = await tools.execute("update_magicmirror", {})
-    assert "refused" in result and fake.calls == []
+    assert "refused" in result.text and fake.calls == []
 
 
 # ── Criterion 2: what cannot satisfy the guard ───────────────────────────────
@@ -227,7 +228,7 @@ async def test_model_written_arguments_cannot_satisfy_it():
     args = {"said": "update the magic mirror", "text": "update the magic mirror",
             "query": "update the magic mirror", "confirm": True}
     result, fake = await _guarded("update the mirror", args)
-    assert "refused" in result and fake.calls == []
+    assert "refused" in result.text and fake.calls == []
 
 
 @pytest.mark.parametrize("style", [errors.DEBUG, errors.FRIENDLY])

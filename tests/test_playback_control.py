@@ -244,7 +244,9 @@ async def test_tool_payload_carries_action_and_origin():
 @pytest.mark.asyncio
 async def test_tool_failure_tells_the_model_not_to_claim():
     c = _Client(status=409, body={"detail": "Nothing is playing on the Office speaker."})
-    out = await tools._tool_control_music(c, {"action": "pause"})
+    result = await tools._tool_control_music(c, {"action": "pause"})
+    assert result.failed
+    out = result.text
     assert out.startswith("[Could not control music: Nothing is playing on the Office speaker.]")
     assert "Do NOT claim it worked" in out
 
@@ -283,7 +285,7 @@ async def test_stop_through_coordinator_is_relayed_verbatim():
 
     async def fake_execute(name, args):
         assert (name, args) == ("control_music", {"action": "stop"})
-        return "[Music control: Paused on the Basement Theater speaker.]"
+        return agents.tools.ToolResult("[Music control: Paused on the Basement Theater speaker.]")
 
     with patch("agents.llm.stream", new=fake_stream), patch("agents.tools.execute", new=fake_execute):
         events = [ev async for ev in agents.run_stream(agents.COORDINATOR, "Stop!", [])]

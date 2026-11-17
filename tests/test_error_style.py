@@ -154,30 +154,6 @@ def test_failed_block_friendly_forbids_technical_identifiers():
 
 # ── the friendly phrasing rule rides on failed results, not the prompt ───────
 
-@pytest.mark.parametrize("result", [
-    "[Tool get_weather error: All connection attempts failed]",
-    "[home agent error: LiteLLM returned 500: boom]",
-    "[Weather lookup for Laurel, MD failed (HTTP 503): upstream down]",
-    "[Could not fetch https://x: tool service returned 500]",
-    "[Could not play music: The speaker may be powered off]",
-    "[Diagram generation failed: 500 boom]",
-])
-def test_failed_result_shapes_are_recognised(result):
-    assert errors.is_failed_tool_result(result)
-
-
-@pytest.mark.parametrize("result", [
-    "[Weather for Laurel, MD]\nSunny, 61°F",
-    "[Shopping list: eggs, milk]",
-    "[Music playing: Jazz on the Kitchen speaker]",
-    "[get_weather was already called with these exact arguments this turn; use the earlier result]",
-    "plain text",
-    None,
-])
-def test_successful_results_are_not_failures(result):
-    assert not errors.is_failed_tool_result(result)
-
-
 @pytest.mark.asyncio
 async def test_system_prompt_is_the_same_in_both_styles():
     """Successful requests see the same prompt on every mount: the friendly

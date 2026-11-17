@@ -294,12 +294,16 @@ async def test_tool_update_magicmirror_success_and_failure():
 
     try:
         with patch("tools.httpx.AsyncClient", return_value=Client(OkResp())):
-            result = await tools.execute("update_magicmirror", {})
+            outcome = await tools.execute("update_magicmirror", {})
+        result = outcome.text
+        assert not outcome.failed
         assert result.startswith("[Magic mirror update started: ")
         assert "backup" in result
 
         with patch("tools.httpx.AsyncClient", return_value=Client(FailResp())):
-            result = await tools.execute("update_magicmirror", {})
+            outcome = await tools.execute("update_magicmirror", {})
+        result = outcome.text
+        assert outcome.failed
         assert "Could not update the magic mirror" in result
         assert "could not reach the mirror" in result
         assert "Do NOT claim the mirror is updating" in result
@@ -354,11 +358,15 @@ async def test_remote_exec_tool_formats_output_and_refusal():
         async def post(self, *a, **kw): return self._r
 
     with patch("tools.httpx.AsyncClient", return_value=Client(OkResp())):
-        out = await tools.execute("remote_exec", {"command": "uptime -p"})
+        outcome = await tools.execute("remote_exec", {"command": "uptime -p"})
+    out = outcome.text
+    assert not outcome.failed
     assert "exit=0" in out and "up 3 days" in out
 
     with patch("tools.httpx.AsyncClient", return_value=Client(RefuseResp())):
-        out = await tools.execute("remote_exec", {"command": "sudo reboot"})
+        outcome = await tools.execute("remote_exec", {"command": "sudo reboot"})
+    out = outcome.text
+    assert outcome.failed
     assert "refused" in out.lower()
     assert "read-only" in out.lower()   # tells the model to adapt
 

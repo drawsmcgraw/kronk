@@ -476,7 +476,8 @@ async def test_delegated_terminal_failure_passes_through_verbatim():
 
     async def fake_execute(name, args):
         assert name == "play_music"
-        return f"[Could not play music: {MA_MSG}]\nPlayback FAILED — tell the user it failed and why."
+        return agents.tools.failure(
+            f"[Could not play music: {MA_MSG}]\nPlayback FAILED — tell the user it failed and why.")
 
     with patch("agents.llm.stream", new=_streams(coord, home)), \
          patch("agents.tools.execute", new=fake_execute):
@@ -494,7 +495,7 @@ async def test_delegated_terminal_success_passes_through_verbatim():
     coord, home = [], []
 
     async def fake_execute(name, args):
-        return "[Music playing: Glory Box by Portishead on the Kitchen speaker]"
+        return agents.tools.ToolResult("[Music playing: Glory Box by Portishead on the Kitchen speaker]")
 
     with patch("agents.llm.stream", new=_streams(coord, home)), \
          patch("agents.tools.execute", new=fake_execute):
@@ -541,11 +542,11 @@ async def test_run_delegated_reports_terminal_flag():
         yield {"usage": {}}
 
     async def fake_execute(name, args):
-        return "[Music playing: x on the Office speaker]"
+        return agents.tools.ToolResult("[Music playing: x on the Office speaker]")
 
     with patch("agents.llm.stream", new=fake_stream), patch("agents.tools.execute", new=fake_execute):
-        text, terminal = await agents.run_delegated(agents.AGENTS["home"], "play x", [])
-    assert terminal is True and text.startswith("Now playing x")
+        text, terminal, failed = await agents.run_delegated(agents.AGENTS["home"], "play x", [])
+    assert terminal is True and failed is False and text.startswith("Now playing x")
     # run() keeps its old contract
     with patch("agents.llm.stream", new=fake_stream), patch("agents.tools.execute", new=fake_execute):
         assert await agents.run(agents.AGENTS["home"], "play x", []) == text

@@ -68,7 +68,7 @@ def _leaky_then_answer(answer="Sunny, 72."):
 
 
 async def _fake_execute(name, args):
-    return "72F sunny"
+    return agents.tools.ToolResult("72F sunny")
 
 
 def _apply(events):
@@ -109,8 +109,8 @@ async def test_direct_answer_is_never_retracted():
 @pytest.mark.asyncio
 async def test_delegated_result_excludes_the_leak():
     with patch("agents.llm.stream", new=_leaky_then_answer()), patch("agents.tools.execute", new=_fake_execute):
-        text, terminal = await agents.run_delegated(agents.AGENTS["home"], "weather?", [])
-    assert text == "Sunny, 72." and terminal is False
+        text, terminal, failed = await agents.run_delegated(agents.AGENTS["home"], "weather?", [])
+    assert text == "Sunny, 72." and terminal is False and failed is False
 
 
 @pytest.mark.asyncio
@@ -130,7 +130,7 @@ async def test_terminal_passthrough_stays_clean_when_the_specialist_leaks():
         yield {"usage": {}}
 
     async def fake_execute(name, args):
-        return "[Music control: Paused on the Kitchen speaker.]"
+        return agents.tools.ToolResult("[Music control: Paused on the Kitchen speaker.]")
 
     with patch("agents.llm.stream", new=fake_stream), patch("agents.tools.execute", new=fake_execute):
         events = [ev async for ev in agents.run_stream(agents.COORDINATOR, "Pause.", [])]

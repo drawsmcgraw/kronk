@@ -273,7 +273,9 @@ async def test_tool_payload_and_speech():
 @pytest.mark.asyncio
 async def test_tool_failure_tells_the_model_not_to_claim():
     c = _Client(status=409, body={"detail": "That's not a Pandora station — I can only rate Pandora tracks."})
-    out = await tools._tool_rate_music(c, {"thumb": "down"})
+    result = await tools._tool_rate_music(c, {"thumb": "down"})
+    assert result.failed
+    out = result.text
     assert out.startswith("[Could not rate music: That's not a Pandora station")
     assert "Do NOT claim" in out
     assert agents._terminal_speech(out.split("\n")[0], tool="rate_music").startswith("I couldn't rate that. That's not a Pandora station")

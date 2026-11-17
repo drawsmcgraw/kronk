@@ -140,7 +140,9 @@ async def test_tool_carries_origin_and_speaks_verbatim():
 @pytest.mark.asyncio
 async def test_tool_failure_forbids_guessing():
     c = _Client(status=503, body={"detail": "the Kitchen speaker is unavailable."})
-    out = await tools._tool_now_playing(c, {})
+    result = await tools._tool_now_playing(c, {})
+    assert result.failed
+    out = result.text
     assert "Do NOT guess" in out
     assert agents._terminal_speech(out, tool="now_playing") == "I couldn't tell. the Kitchen speaker is unavailable."
 

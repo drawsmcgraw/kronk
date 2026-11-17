@@ -81,9 +81,10 @@ def _load_state() -> str | None:
     return None
 
 
-# Backward-compat alias for tests that mock orchestrator.main._execute_tool
+# Backward-compat alias for tests that mock orchestrator.main._execute_tool:
+# the result's text (tools.execute also says whether it failed).
 async def _execute_tool(name: str, args: dict) -> str:
-    return await tools.execute(name, args)
+    return (await tools.execute(name, args)).text
 
 
 # ── HTML routes ──────────────────────────────────────────────────────────────
@@ -506,8 +507,6 @@ async def _run_pipeline(
             yield {"type": "token", "text": err}
 
         finally:
-            if pipeline_error:
-                errors.note_failure(pipeline_error)
             origin.voice.reset(voice_token)
             origin.said.reset(said_token)
             telemetry.end_pipeline(
@@ -678,21 +677,13 @@ async def _kronk_pipeline_tokens(text: str, model: str, context: list[dict] | No
         yield {"type": "token", "text": "Done — fresh start."}
         return
 
-    # The turn's failures (errors.note_failure), for the speech mount's
-    # backstop: passed on as one closing "outcome" event, which every
-    # consumer but the speech path ignores.
-    turn_token = errors.begin_turn()
-    try:
-        with origin.scope(req_origin):
-            async for ev in _run_pipeline(
-                text, context or [], said=said, voice=voice,
-                transport="shim", pipeline_name="pipeline.shim",
-            ):
-                if ev["type"] in ("token", "retract"):
-                    yield ev
-        yield {"type": "outcome", "failures": errors.turn_failures()}
-    finally:
-        errors.end_turn(turn_token)
+    with origin.scope(req_origin):
+        async for ev in _run_pipeline(
+            text, context or [], said=said, voice=voice,
+            transport="shim", pipeline_name="pipeline.shim",
+        ):
+            if ev["type"] in ("token", "retract"):
+                yield ev
 
 
 def _openai_chunk(rid: str, model: str, delta: dict, finish_reason: str | None = None) -> str:
@@ -878,32 +869,19 @@ async def ollama_show():
     }
 
 
-async def _ollama_collect_turn(text: str, model: str,
-                               context: list[dict] | None,
-                               req_origin: origin.Origin | None = None,
-                               said: str | None = None,
-                               voice: bool = False) -> tuple[str, list[str]]:
-    """Run the pipeline to completion: (full reply text, the turn's
-    failures). Tool-round text is retracted (nothing has been sent yet, so
-    retracts are honoured exactly)."""
+async def _ollama_collect(text: str, model: str,
+                          context: list[dict] | None,
+                          req_origin: origin.Origin | None = None,
+                          said: str | None = None, voice: bool = False) -> str:
+    """Run the pipeline to completion and return the full reply text —
+    with tool-round text retracted (this is the speech path; nothing has
+    been sent yet, so retracts are honoured exactly)."""
     reply = ""
-    failures: list[str] = []
     async for ev in _kronk_pipeline_tokens(text, model, context, req_origin, said, voice):
         if ev["type"] == "token":
             reply += ev["text"]
         elif ev["type"] == "retract":
             reply = reply[:-ev["chars"]] if ev["chars"] <= len(reply) else ""
-        elif ev["type"] == "outcome":
-            failures = ev["failures"]
-    return reply, failures
-
-
-async def _ollama_collect(text: str, model: str,
-                          context: list[dict] | None,
-                          req_origin: origin.Origin | None = None,
-                          said: str | None = None, voice: bool = False) -> str:
-    """Run the pipeline to completion and return the full reply text."""
-    reply, _ = await _ollama_collect_turn(text, model, context, req_origin, said, voice)
     return reply
 
 
@@ -949,12 +927,8 @@ async def _ollama_chat_impl(req: _OllamaChatRequest, voice: bool):
     req_origin = origin.from_messages(req.messages)
 
     if voice:
-        reply, failures = await _ollama_collect_turn(
-            text, model, context, req_origin, said, voice)
-        # Last check before the speaker: a failed turn whose text still
-        # carries one of the code's own debug shapes is replaced by the
-        # generic friendly sentence (errors.speech_backstop; M2 fix 1).
-        full = errors.speech_backstop(render.to_speech(reply), failures)
+        full = render.to_speech(
+            await _ollama_collect(text, model, context, req_origin, said, voice))
         if req.stream:
             return StreamingResponse(
                 _ollama_single_chunk_stream(full, text, model),

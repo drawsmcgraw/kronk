@@ -3,9 +3,10 @@
 The class under test: text the code writes for a failure reaches the
 speaker through a path that skips the error style. Every such path now
 leaves through errors.failure_text (friendly sentence on the speech mount,
-today's exact text elsewhere), and errors.speech_backstop is the last check
-on a failed spoken turn. Findings 1-3 and observations 4-6 of
-docs/sprint/M2-e2e.md; report docs/sprint/M2-fix1.md.
+today's exact text elsewhere). Findings 1-3 and observations 4-6 of
+docs/sprint/M2-e2e.md; report docs/sprint/M2-fix1.md. The speech backstop
+fix 1 added was removed in fix 2 (docs/sprint/M2-fix2.md); whether a tool
+result failed is tested in tests/test_tool_failure_flag.py.
 
 Unit tests only: tool_service and the model are stubbed, and the
 no_network fixture fails any real lookup or connection.
@@ -22,7 +23,7 @@ import httpx
 import pytest
 
 from tests.test_error_style import (  # noqa: F401  (fixtures used by name)
-    DeadToolService, _call, _no_style_env, _offered, _route, app, ask,
+    _TECHNICAL, DeadToolService, _call, _no_style_env, _offered, _route, app, ask,
     assert_speakable,
 )
 
@@ -36,7 +37,7 @@ pytestmark = pytest.mark.usefixtures("no_network")
 ORCH = pathlib.Path(__file__).resolve().parent.parent / "orchestrator"
 VOICE = "/voice/api/chat"
 
-# A tool_service detail carrying every debug shape the backstop knows.
+# A tool_service detail carrying a key path, an errno, a private address and a port.
 POISON = ("Mirror preflight failed: SSH key not found at /keys/kronk-mm-update "
           "— mount ./secrets/mm; [Errno -3] at http://10.0.0.5:8080/x")
 
@@ -203,7 +204,7 @@ def test_empty_model_reply_elsewhere_is_debug_unchanged(app, path):
 def test_delegated_empty_reply_reaches_the_coordinator_as_today(app, path, friendly):
     """A delegated specialist's empty reply is model-facing: the coordinator
     sees the same marker on every mount (the friendly rule rides on it on
-    the speech mount, like any failed tool result)."""
+    the speech mount, because run_delegated reports it as failed)."""
     seen = {}
 
     async def stream(messages, model, tools=None):
@@ -238,28 +239,9 @@ def test_terminal_tool_argument_refusal_says_what_failed():
         "play_music error: query is required"
 
 
-# ── Observation 5: failed-result shapes ───────────────────────────────────────
-
-@pytest.mark.parametrize("result", [
-    "[Hot tub status unknown: no data]",
-    "[Hot tub status unavailable]",
-    "[Solar energy — today] no figure available: inverter offline. Tell the user plainly.",
-    "[Unknown tool: frobnicate]",
-    "[play_music error: query is required]",
-    "[home agent returned no response]",
-    "[no such specialist: plumbing]",
-])
-def test_more_failed_result_shapes_are_recognised(result):
-    assert errors.is_failed_tool_result(result)
-
-
-@pytest.mark.parametrize("result", [
-    "[Hot tub ONLINE]\nTemperature: 101°F",
-    "[Solar energy — TODAY] 12.5 kWh produced from a to b. Give the user the kWh.",
-    "[Shopping list is empty]",
-])
-def test_more_successful_results_are_not_failures(result):
-    assert not errors.is_failed_tool_result(result)
+# Observation 5 (failure shapes the text match missed): whether a result
+# failed is now flagged by its handler; tests/test_tool_failure_flag.py
+# covers every failure path.
 
 
 # ── Observation 6, survivor M12: a successful tool result is untouched ───────
@@ -288,7 +270,7 @@ def test_successful_tool_result_reaches_the_model_unchanged(app, path):
 # ── Observation 6, survivor M03: the signal is reset after the run ────────────
 
 @pytest.mark.asyncio
-async def test_voice_signal_and_turn_record_are_reset_after_the_run():
+async def test_voice_signal_is_reset_after_the_run():
     """Driven in this test's own context (not through HTTP, where every
     request has a fresh context), so a missing reset shows."""
     import orchestrator.main as orch
@@ -308,8 +290,7 @@ async def test_voice_signal_and_turn_record_are_reset_after_the_run():
         events = [ev async for ev in orch._kronk_pipeline_tokens(
             "hi", "m", [], None, "hi", True)]
         assert origin.voice.get() is False
-        assert errors._turn.get() is None
-        assert events[-1] == {"type": "outcome", "failures": []}
+        assert events == [{"type": "token", "text": "ok"}]
         [ev async for ev in orch._run_pipeline(
             "hi", [], said="hi", voice=True, transport="shim", pipeline_name="p")]
         assert origin.voice.get() is False
@@ -390,74 +371,21 @@ def test_every_terminal_tool_failure_is_speakable_on_voice(tool, service):
     said = origin.said.set("update the magic mirror")   # lets the mirror update run
     try:
         with patch("tools.httpx.AsyncClient", new=client):
-            result = asyncio.run(tools.execute(tool, args))
+            result = asyncio.run(tools.execute(tool, args)).text
     finally:
         origin.said.reset(said)
     spoken = agents._terminal_speech(result, errors.FRIENDLY, tool=tool)
     if _OWN_SENTENCE.match(result):
         assert spoken == agents._terminal_speech(result, errors.DEBUG, tool=tool)
         return
-    assert errors.debug_shape(spoken) is None, (result, spoken)
+    assert not _TECHNICAL.search(spoken), (result, spoken)
     assert len(spoken) <= 200, spoken
 
 
-# ── The backstop ─────────────────────────────────────────────────────────────
-
-@pytest.mark.parametrize("text,shape", [
-    ("[Tool get_weather error: boom]", "[Tool get_weather error"),
-    ("[home agent error: LiteLLM returned 500]", "[home agent error"),
-    ("[coordinator agent returned no response].", "[coordinator agent returned no response"),
-    ("I got [Errno -3] Temporary failure in name resolution.", "Errno"),
-    ("Traceback (most recent call last): File x", "Traceback (most recent call last)"),
-    ("It raised ConnectError.", "ConnectError"),
-    ("Try http://tool_service-dev:8103/news.", "http://tool_service-dev:8103"),
-    ("The key at /keys/kronk-mm-update is missing.", "/keys/"),
-    ("Check /data/hottub/state.json.", "/data/"),
-])
-def test_debug_shapes_are_recognised(text, shape):
-    assert errors.debug_shape(text) == shape
-
-
-@pytest.mark.parametrize("text", [
-    "Paris.",
-    "It's 5:30 PM and 61 degrees.",
-    "Now playing Glory Box by Portishead on the Office speaker.",
-    "The weather service isn't answering right now.",
-    "See example.com for details.",
-])
-def test_plain_sentences_have_no_debug_shape(text):
-    assert errors.debug_shape(text) is None
-
-
-def test_backstop_replaces_a_failed_turns_debug_text_and_records_it(caplog):
-    caplog.set_level(logging.INFO)
-    span = MagicMock()
-    with patch("errors.telemetry.current", return_value=span):
-        out = errors.speech_backstop("I got [Errno -3] Temporary failure.",
-                                     ["get_weather: [Tool get_weather error: …]"])
-    assert out == "Sorry — something went wrong on my end. I've noted the details."
-    assert "speech_backstop" in caplog.text and "[Errno -3]" in caplog.text
-    attrs = span.set.call_args.kwargs
-    assert attrs["kronk.speech_backstop"] is True
-    assert attrs["kronk.speech_backstop.original"] == "I got [Errno -3] Temporary failure."
-
-
-@pytest.mark.parametrize("text", [
-    "[Tool x error: [Errno -3]] at http://h:8080 /keys/k Traceback (most recent call last)",
-    "Paris.",
-])
-def test_backstop_never_touches_a_turn_without_a_failure(text):
-    assert errors.speech_backstop(text, []) == text
-
-
-def test_backstop_is_off_when_the_operator_asks_for_debug_on_voice(monkeypatch):
-    monkeypatch.setenv("ERROR_STYLE_VOICE", "debug")
-    text = "[Tool get_weather error: [Errno -3]]"
-    assert errors.speech_backstop(text, ["x"]) == text
-
+# ── Model-written answers are spoken as written ──────────────────────────────
 
 def _echo_model(echo):
-    """get_weather fails; the model parrots the failure into its answer."""
+    """get_weather fails; the model answers with `echo`."""
     async def stream(messages, model, tools=None):
         if not [m for m in messages if m.get("role") == "tool"]:
             yield _call("get_weather", {})
@@ -467,38 +395,21 @@ def _echo_model(echo):
     return patch("agents.llm.stream", new=stream)
 
 
-def test_model_echoing_debug_text_on_a_failed_voice_turn_is_replaced(app):
-    echo = "The lookup failed with [Errno -3] Temporary failure in name resolution."
-    with _route("home"), _echo_model(echo), patch("tools.httpx.AsyncClient", new=DeadToolService()):
-        voice = ask(app, VOICE, "what's the weather")
-        api = ask(app, "/api/chat", "what's the weather")
-    assert voice == "Sorry — something went wrong on my end. I've noted the details."
-    assert api == echo                                        # debug mounts untouched
-
-
 def test_model_echoing_a_failure_in_plain_words_is_kept(app):
     plain = "The weather service isn't answering right now."
     with _route("home"), _echo_model(plain), patch("tools.httpx.AsyncClient", new=DeadToolService()):
         assert ask(app, VOICE, "what's the weather") == plain
 
 
-def test_backstop_never_touches_a_successful_voice_answer(app):
+def test_a_successful_voice_answer_is_spoken_as_written(app):
     """A successful turn whose answer happens to carry debug-looking text
     is spoken as the model wrote it (after the speech render)."""
     answer = "Kronk's tool service listens on http://tool_service:8103 and reads /data/state.json."
-    seen_failures = []
-    real = errors.speech_backstop
-
-    def spy(text, failures):
-        seen_failures.append(list(failures))
-        return real(text, failures)
 
     async def stream(messages, model, tools=None):
         yield {"token": answer}
         yield {"usage": {}}
 
-    with _route("direct"), patch("agents.llm.stream", new=stream), \
-         patch("orchestrator.main.errors.speech_backstop", new=spy):
+    with _route("direct"), patch("agents.llm.stream", new=stream):
         out = ask(app, VOICE, "where does the tool service listen")
-    assert seen_failures == [[]]
     assert out == answer

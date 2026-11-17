@@ -232,7 +232,7 @@ async def test_run_stream_tool_then_synthesis_streams_tokens():
             yield {"usage": {"prompt_tokens": 9, "completion_tokens": 3}}
 
     async def fake_execute(name, args):
-        return "Kronk runs on one machine."
+        return agents.tools.ToolResult("Kronk runs on one machine.")
 
     agent = _loop_agent()
     with patch("agents.llm.stream", new=fake_stream), \
@@ -341,7 +341,7 @@ async def test_news_brief_is_terminal_and_verbatim_on_coordinator():
 
     async def fake_execute(name, args):
         assert name == "news_brief"
-        return BRIEF
+        return agents.tools.ToolResult(BRIEF)
 
     with patch("agents.llm.stream", new=fake_stream), \
          patch("agents.tools.execute", new=fake_execute):
@@ -449,7 +449,7 @@ async def test_repeated_tool_calls_get_stop_nudge():
             yield {"usage": {}}
 
     async def fake_execute(name, args):
-        return "[Web search results for '...'] some links"
+        return agents.tools.ToolResult("[Web search results for '...'] some links")
 
     agent = agents.AGENTS["research"]
     with patch("agents.llm.stream", new=fake_stream), \
@@ -822,7 +822,9 @@ async def test_tool_failure_surfaces_service_detail():
         async def get(self, *a, **kw): return FakeResp()
 
     with patch("tools.httpx.AsyncClient", return_value=FakeClient()):
-        result = await tools.execute("web_search", {"query": "anything"})
+        outcome = await tools.execute("web_search", {"query": "anything"})
+    result = outcome.text
+    assert outcome.failed
     assert "HTTP 503" in result
     assert "upstream exploded" in result
     assert result != "[Web search failed]"
@@ -845,7 +847,9 @@ async def test_shopping_list_clear_verifies_instead_of_assuming():
         async def delete(self, *a, **kw): return FakeResp()
 
     with patch("tools.httpx.AsyncClient", return_value=FakeClient()):
-        result = await tools.execute("shopping_list_clear", {})
+        outcome = await tools.execute("shopping_list_clear", {})
+    result = outcome.text
+    assert outcome.failed
     assert "cleared" not in result.lower()
     assert "HTTP 500" in result
     assert "disk full" in result
@@ -997,7 +1001,7 @@ async def test_forced_synthesis_scrubs_leaked_tool_syntax():
             yield {"usage": {}}
 
     async def fake_execute(name, args):
-        return "partial data"
+        return agents.tools.ToolResult("partial data")
 
     agent = _loop_agent()
     with patch("agents.llm.stream", new=fake_stream), \

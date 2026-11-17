@@ -342,10 +342,12 @@ def test_tool_formats_success_with_redirects_and_headers():
 
 
 def test_tool_formats_failure_with_its_cause():
+    import tools
     text, _ = _tool({"url": f"http://{NAS}/", "ok": False, "cause": "connection_refused",
                      "elapsed_ms": 3, "error": "connection refused",
                      "redirects": [], "final_url": f"http://{NAS}/"})
-    assert text == f"[http_check http://{NAS}/: FAILED (connection_refused) after 3 ms: connection refused]"
+    assert text == tools.failure(
+        f"[http_check http://{NAS}/: FAILED (connection_refused) after 3 ms: connection refused]")
 
 
 def test_tool_shows_a_redirect_that_was_not_followed():
@@ -359,7 +361,8 @@ def test_tool_shows_a_redirect_that_was_not_followed():
 
 def test_tool_requires_a_url():
     import tools
-    assert asyncio.run(tools._tool_http_check(None, {})) == "[http_check error: url is required]"
+    assert asyncio.run(tools._tool_http_check(None, {})) == \
+        tools.failure("[http_check error: url is required]")
 
 
 # ── B13: only devops, and the M4 loop check still holds ─────────────────────

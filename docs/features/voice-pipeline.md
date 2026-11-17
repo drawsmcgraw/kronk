@@ -63,10 +63,10 @@ spoken as one short plain sentence (`ERROR_STYLE_VOICE`, default
 `friendly`); the other mounts keep debug wording (`ERROR_STYLE`, default
 `debug`). Set `ERROR_STYLE_VOICE=debug` to hear full detail on a speaker.
 The sentences and their debug twins are in `docs/features/verbose-errors.md`.
-Every code-written failure leaves through `errors.failure_text`, and a
-failed spoken turn whose final text still carries a debug shape is replaced
-by the generic sentence before it reaches the speaker
-(`errors.speech_backstop`, M2 fix 1; same doc).
+Every code-written failure leaves through `errors.failure_text`. A tool
+result counts as failed only when the code that produced it says so
+(`tools.ToolResult.failed`); model-written answers are spoken as written
+(M2 fix 2; same doc).
 Later voice-only behaviour (sentence streaming, M8; M14) reads the same
 value rather than adding a second flag.
 
