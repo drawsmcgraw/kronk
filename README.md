@@ -42,7 +42,8 @@ voice pipeline calls — flows through the same pipeline:
 Agent → model assignments come from env vars in `docker-compose.yml`
 (`COORDINATOR_MODEL`, `RESEARCH_AGENT_MODEL`, …), so model swaps don't need code
 edits. Details: [`docs/features/coordinator-default-routing.md`](docs/features/coordinator-default-routing.md). The `AGENTS` dict in `orchestrator/agents.py` is
-the single source of truth for agents, their tools, and the router prompt.
+the single source of truth for agents and their tools; their prompts and the
+loop's tuning live in `config/` (see "Prompts and tuning" below).
 
 ### Service map
 
@@ -87,7 +88,7 @@ run_stream(agent, task, context)
 │
 ├─ build messages = [system, user]
 │
-├─ LOOP  round_idx in range(MAX_TOOL_ROUNDS)
+├─ LOOP  round_idx in range(agent.max_rounds)   (config/tuning.yaml)
 │  │
 │  ├─ llm.stream(messages, model, tool_defs) — consume streamed chunks:
 │  │     {"token"}      → yield to user immediately (live stream); buffer it
@@ -206,7 +207,8 @@ fails until `llama-talkie` is started; `/services` shows it red.
 
 ### Agents
 
-The `AGENTS` dict in `orchestrator/agents.py` is authoritative.
+The `AGENTS` dict in `orchestrator/agents.py` is authoritative for agents and
+their tools. Each agent's system prompt is `config/prompts/<name>.md`.
 
 | Agent | Model | Tools | Purpose |
 |---|---|---|---|
@@ -243,6 +245,35 @@ agent turn. Structural guardrail — small
 models otherwise re-call the tool or contradict its result. The tool verifies
 the player actually reaches `playing` before reporting success (MA queues
 requests async, so a 200 from HA alone proves nothing).
+
+### Prompts and tuning (`config/`)
+
+Prompts and tuning values are plain files in `config/`, bind-mounted
+read-only at `/config` into the orchestrator, `tool_service` and both dev
+services (sprint M21 step 1):
+
+- `config/prompts/<name>.md` — the system prompt of every agent and the
+  coordinator. A `<!-- … -->` header says what it is for and is stripped;
+  the rest is sent byte for byte. `{{max_rounds}}` is the agent's round
+  budget.
+- `config/tuning.yaml` (orchestrator) — round budgets, the repeat-call
+  nudge, the weather-context age, per-tool HTTP timeouts.
+- `config/music.yaml` (`tool_service`) — the playback verify window and the
+  music resolver's thresholds.
+
+Every key carries a comment. Each service validates its files against a
+strict schema (`config_loader.py` in each): unknown keys, wrong types,
+out-of-range numbers, a missing or empty prompt are errors naming the file
+and line. An invalid file never takes effect: at startup the service runs
+on built-in defaults (the values before the move); after a bad reload the
+last good values stay. The error is logged and shown on `/services`.
+Precedence: `WEATHER_CTX_MAX_AGE_S` (the one pre-existing env var for a moved
+value) > file > built-in default. Reload with `POST /config/reload` on each
+service — host and compose network only, never through nginx:
+`scripts/config_reload.sh dev|prod`. No secrets in `config/` (a test scans
+it). Routing regexes stay in `routing.py`; model assignments stay env vars;
+llama unit flags and `litellm/config.yaml` are unchanged. Details:
+[`docs/features/config-directory.md`](docs/features/config-directory.md).
 
 ### Error handling
 
@@ -317,6 +348,9 @@ because it runs with `network_mode: host`.
 - **nginx config change:** `docker compose restart nginx` — the config is
   volume-mounted and `nginx -s reload` won't pick it up.
 - **`litellm/config.yaml`:** bind-mounted and hot-editable; no rebuild needed.
+- **`config/` (prompts, tuning):** bind-mounted; edit the file, then
+  `scripts/config_reload.sh dev` (or `prod`). The answer lists what changed,
+  or the errors with file and line and the values kept. No rebuild.
 
 > **Volume safety:** never run `docker compose -f docker-compose.ha.yml down -v`
 > — the `-v` flag wipes `kronk_ha-config` and you lose every HA integration,

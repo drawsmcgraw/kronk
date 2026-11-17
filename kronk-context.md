@@ -97,7 +97,7 @@ User (browser)
 
 ## Agents
 
-Defined in `orchestrator/agents.py` (`AGENTS` dict — single source of truth). Router prompt, valid-route set, and `/api/agents` roster are all derived from it.
+Defined in `orchestrator/agents.py` (`AGENTS` dict — single source of truth). Router prompt, valid-route set, and `/api/agents` roster are all derived from it. Each agent's system prompt is a plain file, `config/prompts/<name>.md`; round budgets and tool timeouts are in `config/tuning.yaml`, music thresholds in `config/music.yaml` (reloaded with `POST /config/reload`).
 
 | Agent | Tools | Default model |
 |---|---|---|

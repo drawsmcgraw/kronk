@@ -14,7 +14,8 @@ llama.cpp models, all on one machine (AMD Ryzen AI 375, Radeon 8060S iGPU,
    feature idea, open item, or deferral belongs there (it also defines the
    docs lifecycle: plan doc → build → `docs/features/` doc → blog topic).
 3. **`orchestrator/agents.py`** — the `AGENTS` dict is the single source of
-   truth for agents, their tools, and the router prompt.
+   truth for agents and their tools. Their prompts and tuning values live
+   in `config/` (`docs/features/config-directory.md`).
 4. **`orchestrator/tools.py`** — tool definitions + dispatch.
 5. **`orchestrator/main.py`** — the pipeline entrypoints: `/message` (chat UI,
    SSE), `/v1/chat/completions` (OpenAI shim), `/api/chat` (Ollama shim — this
@@ -94,10 +95,10 @@ before proceeding.
 7. **Fail loud, specific, and traceable.** Every user-facing failure carries
    the most specific cause available and is findable in telemetry in one
    step. "An unexpected error occurred" is itself a bug.
-8. **One source of truth per fact.** `AGENTS` dict for agents, `ROADMAP.md`
-   for plans, env vars for wiring. Duplicated facts drift, and drifted docs
-   lie — the "verify, don't trust the docs" section above exists because of
-   this.
+8. **One source of truth per fact.** `AGENTS` dict for agents, `config/`
+   for prompts and tuning, `ROADMAP.md` for plans, env vars for wiring.
+   Duplicated facts drift, and drifted docs lie — the "verify, don't trust
+   the docs" section above exists because of this.
 9. **Single-variable changes.** One change, one test, then the next.
    *(Receipt: the Whisper model ladder — small → medium → large-v3-turbo,
    each step isolating one failure mode.)*
