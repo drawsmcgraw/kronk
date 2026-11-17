@@ -25,7 +25,7 @@ How sentences are counted (the rules, all of them):
    e. the next token starts with a lowercase letter. Whisper starts every
       sentence with a capital, and the music blueprint appends its room
       after the spoken full stop: "Play Hotel Costas Radio. in the
-      Kitchen" is one request (13 such requests reached production
+      Kitchen" is one request (10 such requests reached production
       between 2026-09-14 and 2026-11-17). Also "Panic! at the Disco".
    A "." with no space after it is inside a token and never counts
    ("98.6", "7.30", "music.youtube.com").

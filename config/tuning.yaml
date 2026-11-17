@@ -76,7 +76,8 @@ transcript_gate:
   # trailing full stop, initials, "Mr.", "No. 5", an ellipsis and a full
   # stop before a lowercase word do not count): orchestrator/transcript_gate.py.
   # Every multi-sentence request a fast-path rule took in the data was
-  # trailing speech or a request with context. 1 to 20, or null.
+  # trailing speech or a request spread over several sentences. 1 to 20,
+  # or null.
   max_sentences: 1
   # More words than this is messy. The longest one-sentence request a
   # fast-path rule took in the data had 19 words (typed; spoken, 16). Above
