@@ -51,6 +51,8 @@ TEMPO = "http://127.0.0.1:3200"
 DEV_SERVICE = "kronk-voice-tracer-dev"
 DEV_PIPELINES = ("kronk-dev",)
 DAY_S = 86400
+SEARCH_LIMIT = 5000       # traces per Tempo search
+MIN_WINDOW_S = 60         # a search window is halved while it returns SEARCH_LIMIT traces, down to this
 
 # The voice.run attributes the listing reads (Tempo select()).
 ATTRS = (
@@ -145,18 +147,41 @@ def is_dev(a: dict, dev_pipelines=DEV_PIPELINES) -> bool:
     return a.get("_service") == DEV_SERVICE or a.get("ha.pipeline_name") in dev_pipelines
 
 
+def _search(tempo: str, t: float, t2: float, get_json, truncated: list) -> list[dict]:
+    """voice.run rows for [t, t2]. A search that returns SEARCH_LIMIT traces
+    may have dropped some (dev replays can fill a day): the window is halved
+    and searched again, down to MIN_WINDOW_S; a window that small still at
+    the limit is reported on stderr and in `truncated`, never dropped
+    silently (M12 fix 1, F9)."""
+    qs = urllib.parse.urlencode({"q": search_query(), "start": int(t), "end": int(t2) + 1,
+                                 "limit": SEARCH_LIMIT, "spss": 3})
+    payload = get_json(f"{tempo}/api/search?{qs}")
+    if len((payload or {}).get("traces") or []) >= SEARCH_LIMIT:
+        if t2 - t > MIN_WINDOW_S:
+            mid = t + (t2 - t) / 2
+            return _search(tempo, t, mid, get_json, truncated) + _search(tempo, mid, t2, get_json, truncated)
+        truncated.append((t, t2))
+        print(f"voice_transcripts: WARNING: Tempo returned its limit of {SEARCH_LIMIT} traces for "
+              f"{dt.datetime.fromtimestamp(t).isoformat(timespec='seconds')} to "
+              f"{dt.datetime.fromtimestamp(t2).isoformat(timespec='seconds')}; runs in that window may be "
+              "missing", file=sys.stderr)
+    return rows_from_search(payload)
+
+
 def fetch_runs(since: float, until: float, tempo: str = TEMPO, include_dev: bool = False,
-               get_json=http_get_json, dev_pipelines=DEV_PIPELINES, enrich: bool = True) -> list[dict]:
+               get_json=http_get_json, dev_pipelines=DEV_PIPELINES, enrich: bool = True,
+               truncated: list | None = None) -> list[dict]:
     """Every voice.run in [since, until], one Tempo search per day (search
-    results are capped per query), deduplicated by run id, oldest first."""
+    results are capped per query; a full one is split, _search),
+    deduplicated by run id, oldest first. Windows where the cap was still
+    hit are appended to `truncated`."""
     tempo = require_loopback(tempo)
+    truncated = truncated if truncated is not None else []
     seen, runs = set(), []
     t = since
     while t < until:
         t2 = min(t + DAY_S, until)
-        qs = urllib.parse.urlencode({"q": search_query(), "start": int(t), "end": int(t2) + 1,
-                                     "limit": 5000, "spss": 3})
-        for a in rows_from_search(get_json(f"{tempo}/api/search?{qs}")):
+        for a in _search(tempo, t, t2, get_json, truncated):
             rid = a.get("ha.pipeline_run_id") or a["_trace_id"]
             if rid in seen or not (since <= a["_start_s"] <= until):
                 continue
@@ -238,7 +263,8 @@ def main(argv=None, now: float | None = None, get_json=http_get_json, stdout=Non
     try:
         out = refuse_repo_path(args.out) if args.out else None
         since, until = parse_when(args.since, now), parse_when(args.until, now)
-        runs = fetch_runs(since, until, args.tempo, args.include_dev, get_json)
+        truncated: list = []
+        runs = fetch_runs(since, until, args.tempo, args.include_dev, get_json, truncated=truncated)
     except Refused as e:
         print(f"voice_transcripts: REFUSED: {e}", file=sys.stderr)
         return 2
@@ -253,6 +279,10 @@ def main(argv=None, now: float | None = None, get_json=http_get_json, stdout=Non
     marked = sum(1 for r in rows if r["wrong_action"])
     print(f"voice_transcripts: {len(rows)} runs, {marked} marked wrong-action"
           + (f" -> {out}" if out else ""), file=sys.stderr)
+    if truncated:
+        print(f"voice_transcripts: {len(truncated)} window(s) hit Tempo's search limit (above); the "
+              "listing may be missing runs", file=sys.stderr)
+        return 3
     return 0
 
 

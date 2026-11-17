@@ -712,7 +712,10 @@ def require_text_logs(target: dict) -> None:
     dev pair. Refuse, rather than report every row as unmatched."""
     for c in (target["orchestrator"], target["tool_service"]):
         env = docker("inspect", "-f", "{{range .Config.Env}}{{println .}}{{end}}", c).splitlines()
-        if "TELEMETRY_RECORD_TEXT=true" not in env:
+        # the services read the value with .lower() == "true"; the last
+        # assignment wins, as in a process environment
+        vals = [line.split("=", 1)[1] for line in env if line.startswith("TELEMETRY_RECORD_TEXT=")]
+        if not vals or vals[-1].lower() != "true":
             raise Refused(f"{c} has TELEMETRY_RECORD_TEXT off; the replay matches requests by the "
                           "text in its event log (docker-compose.yml sets it on for the dev pair)")
 

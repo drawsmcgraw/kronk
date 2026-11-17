@@ -136,7 +136,8 @@ def prod_in_flight() -> list[str]:
     evs = container_events(PROD_CONTAINER, now - 120)
     started = {e["rid"]: e for e in evs if e.get("event") == "request" and e.get("ts", 0) > now - 90}
     done = {e["rid"] for e in evs if e.get("event") in ("request_complete", "request_ended")}
-    return [f"{rid}: {e.get('text_preview', '')[:40]!r}" for rid, e in started.items() if rid not in done]
+    # text_preview is null with TELEMETRY_RECORD_TEXT off (sprint M12)
+    return [f"{rid}: {(e.get('text_preview') or '')[:40]!r}" for rid, e in started.items() if rid not in done]
 
 
 def wait_for_quiet_production(max_wait_s: float = 600) -> None:
