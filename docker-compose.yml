@@ -93,6 +93,12 @@ services:
       # has no origin (the web UI). Must be an MA entity (platform
       # music_assistant, not the native Sonos/Cast one).
       - MUSIC_DEFAULT_PLAYER=media_player.home_assistant_voice_0ac919_pe_01
+      # M11 shadow mode (docs/features/voice-music-control.md, "Shadow
+      # mode"): every /music request also runs the new music decision on the
+      # user's sentence and logs a comparison to ./data/music_shadow.jsonl;
+      # nothing it decides is played. Off unless set; the sprint coordinator
+      # turns it on at M11's promotion by uncommenting the next line.
+      # - MUSIC_SHADOW=1
       # Operator-only push alerts (e.g. a voice thumbs up that failed after
       # the household already heard "Thumbs up"). Same phone as the scripts.
       - HA_NOTIFY_SERVICE=notify/mobile_app_drew_pixel_11_pro
@@ -322,6 +328,11 @@ services:
       - MUSIC_TASTE_FILE=/shared/music_taste.yaml
       - MUSIC_TASTE_DB=/shared/music_taste.db
       - MUSIC_TASTE_ENABLED=0
+      # M11 shadow mode, on for dev: the comparison log is
+      # data/dev/music_shadow.jsonl (./data/dev is /data here). The model
+      # question of POST /music/say goes to LiteLLM on the host.
+      - MUSIC_SHADOW=1
+      - MUSIC_MODEL_URL=http://host.docker.internal:8002/v1
       - NEWS_FILE=/shared/news_brief.json
       - NEWS_ENABLED=0
       - HA_NOTIFY_SERVICE=notify/mobile_app_drew_pixel_11_pro

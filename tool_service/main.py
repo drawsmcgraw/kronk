@@ -10,6 +10,7 @@ import subprocess
 import time
 import uuid
 from contextlib import asynccontextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -31,6 +32,7 @@ try:
     from . import config_loader
     from . import music_decide
     from . import music_resolve
+    from . import music_shadow
     from . import netguard
     from . import news
     from . import ops
@@ -41,6 +43,7 @@ except ImportError:
     import config_loader
     import music_decide
     import music_resolve
+    import music_shadow
     import netguard
     import news
     import ops
@@ -137,6 +140,9 @@ async def lifespan(app: FastAPI):
         logger.warning("weather cache: could not load persisted copy: %s", e)
     if MUSIC_DRY_RUN:
         logger.warning("MUSIC_DRY_RUN is on: music requests resolve but nothing is sent to a player or MA")
+    if music_shadow.ENABLED:
+        logger.warning("MUSIC_SHADOW is on: every /music request also runs the M11 decision and logs "
+                       "a comparison to %s; nothing it decides is played", music_shadow.LOG_PATH)
     task = asyncio.create_task(_weather_refresh_loop())
     # Solar monitoring is optional — only wire it up when a serial is
     # configured (keeps it out of the way in tests / unconfigured installs).
@@ -1435,8 +1441,40 @@ def _now_playing_key(state: dict) -> tuple:
     return (state.get("state"), attrs.get("media_content_id"), attrs.get("media_title"))
 
 
+# What the live path sent to Music Assistant for the current /music request
+# (service data and targets of its last play attempt), for the M11 shadow
+# record. Written by _play_verified, read by play_music; nothing else.
+_LIVE_SENT: ContextVar[dict | None] = ContextVar("kronk_live_sent", default=None)
+
+
 @app.post("/music")
 async def play_music(req: MusicRequest):
+    """The live music path. With MUSIC_SHADOW on (sprint M11), the M11
+    decision runs on the user's sentence after the live answer exists and
+    only logs a comparison (music_shadow.py); the answer is the same."""
+    if not music_shadow.ENABLED:
+        return await _play_music_live(req)
+    sent: dict = {}
+    token = _LIVE_SENT.set(sent)
+    t0 = time.monotonic()
+    try:
+        result = await _play_music_live(req)
+    except HTTPException as e:
+        music_shadow.schedule(req.model_dump(), None, e.detail, sent, (time.monotonic() - t0) * 1000,
+                              _shadow_decide)
+        raise
+    finally:
+        _LIVE_SENT.reset(token)
+    music_shadow.schedule(req.model_dump(), result, None, sent, (time.monotonic() - t0) * 1000, _shadow_decide)
+    return result
+
+
+async def _shadow_decide(sentence: str, origin_device: str | None, origin_area: str | None) -> "Decided":
+    """The only thing shadow mode can call: decide_sentence, model never asked."""
+    return await decide_sentence(sentence, origin_device, origin_area, ask_model=False)
+
+
+async def _play_music_live(req: MusicRequest):
     if not HA_TOKEN:
         raise HTTPException(status_code=500, detail="HA_TOKEN not configured")
     if not req.query.strip():
@@ -1708,6 +1746,8 @@ async def _play_verified(client: httpx.AsyncClient, headers: dict, entities: lis
                          service_data: dict) -> tuple[tuple[str, dict] | None, str | None]:
     """play_media, then poll until a target plays something new.
     Returns ((entity, state) or None, HA's failure message or None)."""
+    if (sent := _LIVE_SENT.get()) is not None:
+        sent.update(service_data=dict(service_data), entities=list(entities))
     with telemetry.span("music.play_verified", **{"music.media_type": service_data.get("media_type"),
                                                   "music.targets": len(entities)}) as sp:
         started, failure = await _play_verified_inner(client, headers, entities, service_data)
