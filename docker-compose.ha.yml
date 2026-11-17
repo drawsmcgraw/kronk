@@ -10,9 +10,22 @@
 # already exists, do not create or destroy it." All HA state — admin account,
 # integrations, helpers, automations, voice pipeline, TTS cache — lives here.
 #
+# Voice recordings (sprint M12): HA's assist_pipeline debug_recording_dir
+# (ha/configuration.yaml) is /voice_recordings, the host directory
+# /home/drew/kronk-voice-recordings. Create it before the first `up`
+# (mkdir -p ~/kronk-voice-recordings); compose refuses to start HA without
+# it rather than let Docker create it root-owned. HA runs as root, so the
+# files it writes are root-owned, mode 644: readable by the operator and the
+# labelling script, removable only through the container or sudo.
+#
 # Operations:
 #   bring up:   docker compose -f docker-compose.ha.yml up -d
+#   recreate:   docker compose -f docker-compose.ha.yml up -d homeassistant
+#               (needed once for any change to this file; it is an HA restart)
 #   restart:    docker compose -f docker-compose.ha.yml restart homeassistant
+#               (clean shutdown within stop_grace_period; before the container
+#               was recreated with it, Docker killed HA after 10 s:
+#               docs/incidents/INCIDENT_2026-11-15_ha_restart_sigkill.md)
 #   logs:       journalctl CONTAINER_NAME=homeassistant -f
 #   tear down:  docker compose -f docker-compose.ha.yml down       (volume kept)
 #               docker compose -f docker-compose.ha.yml down -v    (volume WIPED — don't)
@@ -34,8 +47,18 @@ services:
     volumes:
       - ha-config:/config
       - /etc/localtime:/etc/localtime:ro
+      # Voice recordings (sprint M12), outside the config volume and the repo.
+      - type: bind
+        source: /home/drew/kronk-voice-recordings
+        target: /voice_recordings
+        bind:
+          create_host_path: false
     environment:
       - TZ=America/New_York
+    # HA needs more than Docker's default 10 s to shut down cleanly; a
+    # SIGKILL loses restore-state and the recorder's last writes
+    # (INCIDENT_2026-11-15_ha_restart_sigkill.md).
+    stop_grace_period: 2m
     restart: unless-stopped
 
 volumes:

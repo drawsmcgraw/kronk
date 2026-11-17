@@ -117,6 +117,8 @@ services:
       # carry the orchestrator's traceparent, so a tool call and its MA/HA
       # internals are one trace. TELEMETRY_ENABLED=false → no-ops.
       - TELEMETRY_ENABLED=${TELEMETRY_ENABLED:-true}
+      # Text in logs and spans (music queries, said, search URLs): sprint M12.
+      - TELEMETRY_RECORD_TEXT=${TELEMETRY_RECORD_TEXT:-false}
       - OTEL_SERVICE_NAME=kronk-tool-service
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4318
       - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
@@ -253,8 +255,10 @@ services:
       # OpenTelemetry tracing → Tempo (stack: docker-compose.telemetry.yml,
       # reached by service name over the shared kronk network). Set
       # TELEMETRY_ENABLED=false to switch all instrumentation to no-ops.
-      # TELEMETRY_RECORD_TEXT=true adds prompt/answer previews to spans
-      # (off: privacy; the kronk.events log keeps its previews either way).
+      # TELEMETRY_RECORD_TEXT=true adds what was said and answered to spans
+      # and logs (off: no span attribute or log line carries it, the
+      # kronk.events previews included, since sprint M12). Production sets
+      # it in .env (docs/features/telemetry.md, "Text").
       - TELEMETRY_ENABLED=${TELEMETRY_ENABLED:-true}
       - TELEMETRY_RECORD_TEXT=${TELEMETRY_RECORD_TEXT:-false}
       - OTEL_SERVICE_NAME=kronk-orchestrator
@@ -356,6 +360,10 @@ services:
       - OPS_HOSTS=/ops/hosts.json
       - ANNOUNCE_SATELLITE=assist_satellite.satellite1_d8d1bc_assist_satellite
       - TELEMETRY_ENABLED=${TELEMETRY_ENABLED:-true}
+      # Text on for the dev pair (sprint M12): dev traces carry what was
+      # said, and the M10 replay matches requests by their logged text.
+      # Overrides .env.dev, which is read first (env_file).
+      - TELEMETRY_RECORD_TEXT=true
       - OTEL_SERVICE_NAME=kronk-tool-service-dev
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4318
       - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
@@ -393,6 +401,8 @@ services:
       # Model locks (sprint M9): server, or pipeline to roll back.
       - MODEL_LOCK=server
       - TELEMETRY_ENABLED=${TELEMETRY_ENABLED:-true}
+      # Text on for the dev pair (sprint M12); see tool_service-dev.
+      - TELEMETRY_RECORD_TEXT=true
       - OTEL_SERVICE_NAME=kronk-orchestrator-dev
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4318
       - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf

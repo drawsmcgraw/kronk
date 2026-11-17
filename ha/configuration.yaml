@@ -2,11 +2,14 @@
 #
 # Source of truth for the live file /config/configuration.yaml in the
 # kronk_ha-config volume (same pattern as ha/rest_command.yaml).
-# Install (takes an HA restart; check first):
+# Install (takes an HA restart; check first). Full runbook with checks and
+# undo: docs/sprint/M12-build.md (production runbook).
 #   docker cp homeassistant:/config/configuration.yaml ~/backups/ha/configuration.yaml.$(date +%F)
 #   docker cp ha/configuration.yaml homeassistant:/config/configuration.yaml
 #   curl -X POST -H "Authorization: Bearer $HA_TOKEN" http://localhost:8123/api/config/core/check_config
-#   docker compose -f docker-compose.ha.yml restart homeassistant
+#   docker compose -f docker-compose.ha.yml up -d homeassistant   # recreate: compose changes too
+# A plain restart (`docker compose ... restart`) is a SIGKILL after 10 s until
+# the container is recreated with stop_grace_period (INCIDENT_2026-11-15).
 
 # Loads default set of integrations. Do not remove.
 default_config:
@@ -24,8 +27,16 @@ scene: !include scenes.yaml
 # file reload without a restart (rest_command.reload).
 rest_command: !include rest_command.yaml
 
-# Voice audio capture, switched OFF. Sprint item M12 turns it on by
-# uncommenting the two lines below and restarting HA; it may pick another
-# directory. While these stay commented, HA writes no pipeline audio.
-# assist_pipeline:
-#   debug_recording_dir: /config/voice_recordings
+# Voice audio capture, switched ON for two weeks (sprint M12; Drew,
+# 2026-11-11). HA writes each satellite run's speech audio to
+# /voice_recordings/<device_id>/<pipeline>/<monotonic ns>/01_stt-*.wav
+# (16 kHz 16-bit mono). /voice_recordings is the host directory
+# /home/drew/kronk-voice-recordings, bind-mounted in docker-compose.ha.yml:
+# outside the HA config volume, so HA's own backups do not carry it and the
+# labelling script reads it without entering the container. Every puck,
+# household and guests alike. Turning it off: comment the two lines below
+# again, install, check_config, one HA restart
+# (docs/features/voice-capture.md). The daily end-date reminder is
+# systemd/kronk-voice-capture-check.*.
+assist_pipeline:
+  debug_recording_dir: /voice_recordings
