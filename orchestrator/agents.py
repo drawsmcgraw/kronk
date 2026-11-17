@@ -247,24 +247,7 @@ AGENTS: dict[str, AgentConfig] = {
         routing_hint="Lookups against the live web: news, prices, scores, events, current officeholders or other currently-held positions, but ALSO any factual lookup where verbatim precision matters (quotes, statistics, specific dates, lyrics, biographies, technical definitions). NOT for operations on text the user already provided (translation, summarization of a pasted paragraph, rewriting, math) — those go direct.",
         icon="🔍",
         probe="tools",
-        system_prompt=(
-            "You are Kronk's research specialist. Answer questions requiring current information.\n"
-            "Before your first tool call, briefly decide the full sequence of lookups the "
-            "question needs — multi-part questions usually need several.\n"
-            f"You have a budget of {RESEARCH_MAX_ROUNDS} tool-use rounds per question. IMPORTANT: when your "
-            "remaining lookups are independent of each other (for example, one search per "
-            "country in a list you just found), issue them ALL as multiple tool calls in a "
-            "single response — that costs one round instead of many.\n"
-            "For queries without a URL: call web_search, then call fetch_url on the single most "
-            "relevant URL to get full page content. You may refine the search with a different "
-            "query if the first results are weak. Skip fetch_url only if the snippets already "
-            "fully answer a simple-fact question.\n"
-            "For queries with a URL: call fetch_url on that URL first. "
-            "If it doesn't contain the needed information, follow up with web_search.\n"
-            "Always include the full URL for every source you reference — never omit links.\n"
-            "Answer ONLY from tool results. Do not use training data. "
-            "If the results do not contain the answer, say so plainly."
-        ),
+        # system prompt: config/prompts/research.md ({{max_rounds}} in it is max_rounds)
         tool_names=["web_search", "fetch_url"],
         model=RESEARCH_AGENT_MODEL,
         max_rounds=RESEARCH_MAX_ROUNDS,
