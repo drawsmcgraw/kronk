@@ -65,11 +65,14 @@ _NUMBER_ABBREVIATIONS = frozenset({"no"})
 
 _WORD = re.compile(r"[^\W_]")                  # a letter or a digit
 _CLOSERS = "\"')]}”’»"                         # closing quotes and brackets
-_OPENERS = "\"'([{“‘«"                         # opening quotes and brackets
+OPENERS = _OPENERS = "\"'([{“‘«"               # opening quotes and brackets
 _INITIALS = re.compile(r"(?:[^\W\d_]\.)+")     # J.  R.E.M.  a.m.
 
 
-def _ends_sentence(token: str, next_token: str) -> bool:
+def ends_sentence(token: str, next_token: str) -> bool:
+    """Whether `token` ends a sentence, given the token after it (rule 3
+    above). Shared with speech_stream.split_units (sprint M8), which cuts a
+    spoken reply into sentences with the same rules."""
     core = token.rstrip(_CLOSERS)
     if not core or core[-1] not in ".?!…":
         return False
@@ -111,7 +114,7 @@ def count_sentences(text: str | None) -> int:
         word_after[i] = seen
         seen = seen or has_word[i]
     return 1 + sum(1 for i in range(len(tokens) - 1)
-                   if word_after[i] and _ends_sentence(tokens[i], tokens[i + 1]))
+                   if word_after[i] and ends_sentence(tokens[i], tokens[i + 1]))
 
 
 @dataclass(frozen=True)
