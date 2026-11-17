@@ -1,0 +1,13 @@
+# Fires kronk-voice-capture-check.service daily at 09:00 local. Persistent:
+# a day the box was off runs at the next boot. Remove after capture is off
+# (Operations block in the .service file).
+[Unit]
+Description=Kronk — daily voice audio capture end-date check (M12)
+
+[Timer]
+OnCalendar=*-*-* 09:00
+Persistent=true
+RandomizedDelaySec=5m
+
+[Install]
+WantedBy=timers.target

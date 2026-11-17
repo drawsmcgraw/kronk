@@ -1,0 +1,33 @@
+# Daily check after the two-week voice audio capture (sprint M12): from the
+# end date on, while Home Assistant still records pipeline audio, pushes one
+# HA mobile-app reminder a day to turn it off. Reads only: never restarts or
+# changes HA, never deletes a recording. Fired by
+# kronk-voice-capture-check.timer. Docs: docs/features/voice-capture.md.
+#
+# The end date is set here once, at install: capture start plus 14 days.
+#
+# Operations:
+#   install:  END=$(date -d '+14 days' +%F)      # run on the day capture starts
+#             sed "s/@END_DATE@/$END/" systemd/kronk-voice-capture-check.service \
+#                 > ~/.config/systemd/user/kronk-voice-capture-check.service
+#             cp systemd/kronk-voice-capture-check.timer ~/.config/systemd/user/
+#             systemctl --user daemon-reload
+#             systemctl --user enable --now kronk-voice-capture-check.timer
+#   check:    systemctl --user cat kronk-voice-capture-check.service | grep VOICE_CAPTURE_END
+#             systemctl --user list-timers kronk-voice-capture-check.timer
+#   run now:  systemctl --user start kronk-voice-capture-check.service
+#   log:      journalctl --user -u kronk-voice-capture-check.service -n 20
+#   remove:   systemctl --user disable --now kronk-voice-capture-check.timer
+#             rm ~/.config/systemd/user/kronk-voice-capture-check.{service,timer}
+#             systemctl --user daemon-reload
+[Unit]
+Description=Kronk — voice audio capture end-date check (M12)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 %h/git-repos/drawsmcgraw/kronk/scripts/voice_capture_check.py
+Environment=KRONK_REPO_DIR=%h/git-repos/drawsmcgraw/kronk
+Environment=VOICE_CAPTURE_END=@END_DATE@
+Environment=VOICE_RECORDINGS_DIR=%h/kronk-voice-recordings
+# ~/.local/state/kronk-voice-capture: the date of the last push (one a day)
+StateDirectory=kronk-voice-capture
