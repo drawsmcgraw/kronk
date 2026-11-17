@@ -337,3 +337,25 @@ def test_regex_accepts_what_its_frozen_copy_accepts(name):
     diff = [r["text"] for r in PIN_ROWS
             if bool(live.search(r["text"])) != bool(frozen.search(r["text"]))]
     assert not diff, f"{name} differs from 7c83f36 on: {diff[:10]}"
+
+
+# ── 4. The table itself (O12, added with the refactor) ───────────────────────
+
+def test_rules_table_is_the_fifteen_outcomes_in_order():
+    assert [r.name for r in routing.RULES] == ORDER
+    assert {r.name: r.route for r in routing.RULES} == ROUTES
+
+
+def test_decision_events_keep_their_shape(caplog):
+    """A pinned rule logs route_shortcut {rule, route}; the default logs
+    route {text_preview, route, rule}, as before the table."""
+    caplog.set_level("INFO", logger="kronk.events")
+    asyncio.run(routing._classify_inner("what's the weather like"))
+    asyncio.run(routing._classify_inner("hello there"))
+    evs = [json.loads(r.getMessage()) for r in caplog.records if r.name == "kronk.events"]
+    short, default = evs[-2], evs[-1]
+    assert {k: short[k] for k in ("event", "rule", "route")} == {
+        "event": "route_shortcut", "rule": "weather", "route": "home"}
+    assert set(short) - {"ts", "rid", "trace_id"} == {"event", "rule", "route"}
+    assert {k: default[k] for k in ("event", "text_preview", "route", "rule")} == {
+        "event": "route", "text_preview": "hello there", "route": "direct", "rule": "default"}

@@ -11,6 +11,8 @@ household entity, an explicit user-stated method, or domain vocabulary
 with context.
 """
 import re
+from dataclasses import dataclass
+from typing import Callable
 
 import telemetry
 from events import emit
@@ -236,6 +238,65 @@ _NOW_PLAYING_RE = re.compile(
 )
 
 
+# ── The rules table (review item O12, sprint M7) ─────────────────────────────
+#
+# Routing is this ordered table: the first rule whose matcher accepts the
+# text decides the route. `default` is last and accepts everything — no LLM
+# classifier: everything unmatched goes to the coordinator, which answers
+# directly or delegates via its ask_* tools. Structural routing (tenet 5): a
+# 4B model can't pick the wrong specialist if specialists aren't on its menu.
+#
+# Matchers look the patterns up when called, not when the table is built,
+# so a test that swaps a pattern (tests/test_mm_update_pin.py) is followed.
+# The order and every outcome are pinned by tests/test_routing_pin.py; no
+# rule is added, removed, reordered or widened without captured data
+# showing the same failure several times (stopping rule, Drew 2026-11-11).
+
+@dataclass(frozen=True)
+class Rule:
+    name: str                      # the `rule` in events, spans and the corpus
+    route: str                     # an agent name, or "direct" (the coordinator)
+    match: Callable[[str], object]  # truthy when the rule applies
+
+
+@dataclass(frozen=True)
+class Decision:
+    route: str
+    rule: str
+
+
+RULES: tuple[Rule, ...] = (
+    # Talkie first: it takes priority over all other routing.
+    Rule("talkie_explicit", "talkie", lambda t: _TALKIE_PHRASES.search(t)),
+    Rule("direct_override", "direct", lambda t: _DIRECT_OVERRIDE.search(t)),
+    Rule("music_url",       "home",     lambda t: _MUSIC_URL_RE.search(t)),
+    Rule("url",             "research", lambda t: _URL_RE.search(t)),
+    Rule("search_phrase",   "research", lambda t: _SEARCH_PHRASES.search(t)),
+    Rule("weather",         "home",     lambda t: _WEATHER_RE.search(t)),
+    Rule("playback",        "home",     lambda t: _PLAYBACK_RE.search(t)),
+    Rule("now_playing",     "home",     lambda t: _NOW_PLAYING_RE.search(t)),
+    Rule("rate",            "home",     lambda t: _RATE_RE.search(t)),
+    Rule("music_another",   "home",     lambda t: _ANOTHER_RE.search(t)),
+    Rule("taste",           "home",     lambda t: _TASTE_RE.search(t)),
+    Rule("music",           "home",     lambda t: _MUSIC_RE.search(t)),
+    # The magic mirror: the pinned update sentence is home's fast terminal
+    # tool; anything else about the mirror is devops' remote_exec loop.
+    Rule("mm_update",       "home",
+         lambda t: _MM_RE.search(t) and asks_for_mirror_update(t)),
+    Rule("mm_ops",          "devops",   lambda t: _MM_RE.search(t)),
+    Rule("default",         "direct",   lambda t: True),
+)
+
+
+def decide(text: str) -> Decision:
+    """The routing decision for `text`: the first rule in RULES that
+    accepts it. Pure: no event, no span (classify() records those)."""
+    for rule in RULES:
+        if rule.match(text):
+            return Decision(rule.route, rule.name)
+    raise AssertionError("unreachable: the default rule accepts everything")
+
+
 async def classify(text: str, prior_history: list[dict]) -> str:
     """Return a route: a shortcut-pinned specialist, else "direct" (the
     coordinator).
@@ -254,53 +315,12 @@ async def classify(text: str, prior_history: list[dict]) -> str:
 
 
 async def _classify_inner(text: str) -> tuple[str, str]:
-    """Returns (route, rule) where rule names the deciding mechanism."""
-    if _TALKIE_PHRASES.search(text):
-        emit("route_shortcut", rule="talkie_explicit", route="talkie")
-        return "talkie", "talkie_explicit"
-    if _DIRECT_OVERRIDE.search(text):
-        emit("route_shortcut", rule="direct_override", route="direct")
-        return "direct", "direct_override"
-    if _MUSIC_URL_RE.search(text):
-        emit("route_shortcut", rule="music_url", route="home")
-        return "home", "music_url"
-    if _URL_RE.search(text):
-        emit("route_shortcut", rule="url", route="research")
-        return "research", "url"
-    if _SEARCH_PHRASES.search(text):
-        emit("route_shortcut", rule="search_phrase", route="research")
-        return "research", "search_phrase"
-    if _WEATHER_RE.search(text):
-        emit("route_shortcut", rule="weather", route="home")
-        return "home", "weather"
-    if _PLAYBACK_RE.search(text):
-        emit("route_shortcut", rule="playback", route="home")
-        return "home", "playback"
-    if _NOW_PLAYING_RE.search(text):
-        emit("route_shortcut", rule="now_playing", route="home")
-        return "home", "now_playing"
-    if _RATE_RE.search(text):
-        emit("route_shortcut", rule="rate", route="home")
-        return "home", "rate"
-    if _ANOTHER_RE.search(text):
-        emit("route_shortcut", rule="music_another", route="home")
-        return "home", "music_another"
-    if _TASTE_RE.search(text):
-        emit("route_shortcut", rule="taste", route="home")
-        return "home", "taste"
-    if _MUSIC_RE.search(text):
-        emit("route_shortcut", rule="music", route="home")
-        return "home", "music"
-    if _MM_RE.search(text):
-        if asks_for_mirror_update(text):
-            emit("route_shortcut", rule="mm_update", route="home")
-            return "home", "mm_update"       # fast terminal tool
-        emit("route_shortcut", rule="mm_ops", route="devops")
-        return "devops", "mm_ops"            # remote_exec diagnostics loop
-
-    # No LLM classifier: everything unmatched goes to the coordinator, which
-    # answers directly or delegates via its ask_* tools. Structural routing
-    # (tenet 5): a 4B model can't pick the wrong specialist if specialists
-    # aren't on its menu.
-    emit("route", text_preview=text[:60], route="direct", rule="default")
-    return "direct", "default"
+    """Returns (route, rule) where rule names the deciding mechanism, and
+    logs the decision: `route_shortcut` for a pinned rule, `route` for the
+    default."""
+    d = decide(text)
+    if d.rule == "default":
+        emit("route", text_preview=text[:60], route=d.route, rule=d.rule)
+    else:
+        emit("route_shortcut", rule=d.rule, route=d.route)
+    return d.route, d.rule
