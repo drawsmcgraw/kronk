@@ -342,8 +342,14 @@ Assistant commands, HA service calls, the playback-verify wait) over W3C
 read by `voice_tracer` and linked to Kronk's trace by satellite device and
 time window. Storage is Grafana Tempo, UI is Grafana at `http://kronk:3000`
 (four provisioned dashboards: Overview, Stages, Slowest requests, Music).
-`TELEMETRY_ENABLED=false` turns every span into a no-op. See
-[`docs/features/telemetry.md`](docs/features/telemetry.md) and
+`TELEMETRY_ENABLED=false` turns every span into a no-op. Traces hold what was
+said and answered only with `TELEMETRY_RECORD_TEXT=true` (production turns it
+on for sprint M12; the dev pair has it on); with it off, no span attribute or
+log line carries the words. Grafana needs no login, so on the LAN transcripts
+are readable by anyone, guests included. Since M12 every puck also records
+audio for two weeks, and `voice_tracer` marks voice runs the user corrected
+within 60 s: [`docs/features/voice-capture.md`](docs/features/voice-capture.md).
+See [`docs/features/telemetry.md`](docs/features/telemetry.md) and
 [`docs/TELEMETRY_GUIDE.md`](docs/TELEMETRY_GUIDE.md).
 
 ---

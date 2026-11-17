@@ -47,6 +47,24 @@ Every interaction is one trace, end to end:
   `music.*`, `voice.*`, `bp.*`. No prompt, answer or transcript text unless
   `TELEMETRY_RECORD_TEXT=true`. The transport label (webui / openai / ollama /
   voice) is derived from the server span's `http.route`.
+- **Text** (sprint M12, `docs/features/voice-capture.md`): one switch,
+  `TELEMETRY_RECORD_TEXT`, in all three services. On: `voice.transcript` and
+  `voice.speech` on `voice.run`, `kronk.input` / `kronk.output` on Kronk's
+  spans, previews in `kronk.events`, music queries in tool_service's log,
+  URL query strings on HTTP spans and in httpx/uvicorn log lines. Off: none
+  of those carries words (lengths stay; query strings read `?<query>`),
+  except the failure detail behind a friendly spoken error, which the
+  spoken sentence promises is logged. Kept 90 days in Tempo; container logs
+  are journald, bounded by size (about 44 days on 2026-11-17), not time.
+  Grafana is viewable without a login (Drew's decision), so transcripts are
+  readable on the LAN. Dev pair: on, by compose. Production: `.env`.
+- **Wrong-action mark** (M12): voice_tracer sets `voice.corrected_by`
+  (not_that / rate_down / stop / near_repeat), `voice.corrected_after_s` and
+  `voice.corrected_by_run_id` on a satellite run the same puck corrected
+  within 60 s, and copies Kronk's `kronk.rule`, `kronk.direct_action` and
+  `kronk.tools` onto `voice.run`. Query and definitions:
+  `docs/features/voice-capture.md`. `scripts/voice_transcripts.py` lists
+  runs with all of it, dev excluded.
 - **voice_tracer** (`voice_tracer/`, kronk stack): subscribes to
   `state_changed`; when a satellite returns to idle or the blueprint
   automation finishes it fetches the new runs (`assist_pipeline/pipeline_debug/*`,
@@ -71,7 +89,10 @@ Every interaction is one trace, end to end:
 
 - **Search lag.** Trace-by-id is immediate; search and dashboards see a
   trace 30–90 s after ingest (live-store `max_block_duration` 30 s). Voice
-  traces land ~2 min after the utterance because of the join wait.
+  traces land ~2 min after the utterance because of the join wait; since
+  M12 a satellite's voice run is also held for its 60 s correction window
+  (plus 90 s grace), so 3–4 min. Never more than 12 min: the ingestion
+  slack below.
 - **Ingestion slack — never emit spans older than it.** A span ingested
   more than `ingestion_time_range_slack` (set to 15 m on all three WALs in
   `telemetry/tempo.yaml`; Tempo default 2 m) away from its own timestamp

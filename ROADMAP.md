@@ -59,7 +59,10 @@ Conventions:
   then bench candidates against them one at a time (Parakeet TDT via
   sherpa-onnx on CPU, already supported by the installed
   `wyoming-faster-whisper` 3.1.0; distil-large-v3.5; VAD filter). Switch only
-  on fewer command-form errors at no worse p95 latency.
+  on fewer command-form errors at no worse p95 latency. Capture built in
+  sprint M12 (`docs/features/voice-capture.md`): transcripts in traces, two
+  weeks of puck audio, a wrong-action mark, the labelling sheet; the
+  recordings and the ~200 hand labels are what the bench runs on.
 - **SearXNG stays healthy** — search must not silently degrade (a lapsed pin
   made every search junk for a month). Built 2026-10-05: weekly
   `kronk-searxng-canary.timer` and `docs/runbooks/searxng-bump.md`. Hand-run

@@ -82,9 +82,15 @@ voice_tracer (`kronk-voice-tracer`), from Home Assistant's own records:
 | `blueprint.run` | One run of the music blueprint automation | `bp.trigger_id`, `bp.outcome` (played / handed_to_kronk / failed / finished), `bp.target`, `bp.media_type`, `ha.pipeline_run_id` + link |
 | `ha.music_assistant.play_media`, `ha.media_player.shuffle_set`, `bp.wait`, `bp.handoff_kronk` | Blueprint steps, timed from HA's trace | `bp.path`, `bp.alias` |
 
-No prompt, answer or transcript text is on any span unless
-`TELEMETRY_RECORD_TEXT=true` on the containers; `kronk.events` keeps its
-80-char previews either way.
+No prompt, answer or transcript text is on any span, and none in any log
+line (the `kronk.events` previews included, since sprint M12), unless
+`TELEMETRY_RECORD_TEXT=true` on the containers. The dev pair has it on;
+production sets it in `.env`. Stores and retention:
+`docs/features/voice-capture.md`.
+
+Wrong-action marks (M12), production pucks:
+`{ name = "voice.run" && resource.service.name = "kronk-voice-tracer" && span.ha.pipeline_name != "kronk-dev" && span.voice.corrected_by != nil }`.
+A listing without TraceQL: `scripts/voice_transcripts.py --since 7d`.
 
 ## TraceQL cheat sheet
 

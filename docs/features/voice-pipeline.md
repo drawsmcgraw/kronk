@@ -20,6 +20,16 @@ Voice PE (wake word, mic/speaker)
   → audio back to the Voice PE
 ```
 
+**What is kept** (sprint M12, `voice-capture.md`): with
+`TELEMETRY_RECORD_TEXT=true`, each run's transcript and Kronk's reply are in
+its trace for 90 days, readable in Grafana without a login. For two weeks
+from the M12 install, every puck's speech audio is recorded to
+`/home/drew/kronk-voice-recordings` (household and guests alike); a daily
+reminder (`kronk-voice-capture-check.timer`) asks Drew to turn it off from
+the end date on. `voice_tracer` marks a run the same puck corrected within
+60 s ("not that", thumbs down, stop, the same request again). Turning each
+part off: `voice-capture.md`, "Turning each part off".
+
 Key design decisions (full rationale in the build journal):
 
 - **HA is a device broker, nothing more.** Kronk stays the brain; HA talks to
