@@ -114,7 +114,10 @@ second attempt could repeat a half-applied action.
   trailing "in the <room>", which the music blueprint appends. That room is
   passed as `player`, as the home prompt has the model pass it. Its group is
   a lazy `[\w' -]{1,40}?`, so "not that in the office please" passes
-  "office please"; tool_service then answers that it knows no such speaker.
+  "office please"; tool_service's substring room match still resolves that to
+  the Office speaker. An unknown room ("in the garage please") is answered
+  with "I don't know a speaker or room called 'garage please'" and the list
+  of rooms (M7 end-to-end test, finding F1).
   This spelling is not in the corpus or the eval set.
 - **`mm_update` is not anchored.** The pinned sentence may sit inside a
   longer utterance ("okay, update the magic mirror please"). The rest of
