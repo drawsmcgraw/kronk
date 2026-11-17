@@ -1,6 +1,6 @@
 # Feature: public-only page fetches, and `http_check` for the LAN
 
-**Built:** 2026-11-16 on branch `refactor` (sprint item M5; not yet promoted to production) · **Plan:** `../../Kronk evaluation findings and implementation plan.md`, section "M5. Block private addresses in fetch_url" · **Criteria:** `../sprint/M5-criteria.md` · **Build report:** `../sprint/M5-build.md` · **Change 1 (allow-list dropped):** `../sprint/M5-change1.md`
+**Built:** 2026-11-16 on branch `refactor` (sprint item M5; promoted to production 2026-11-17 UTC as tag `sprint-M5`) · **Plan:** `../../Kronk evaluation findings and implementation plan.md`, section "M5. Block private addresses in fetch_url" · **Criteria:** `../sprint/M5-criteria.md` · **Build report:** `../sprint/M5-build.md` · **Change 1 (allow-list dropped):** `../sprint/M5-change1.md`
 
 ## What it does
 
