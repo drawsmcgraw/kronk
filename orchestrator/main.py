@@ -82,10 +82,11 @@ WEBUI_SESSION = "webui"
 # Uploaded file contexts — injected as system messages on every request
 file_contexts: list[dict] = []
 
-# One request's model phases at a time (sprint M9 step 1). Routing, the
-# weather and local context, and direct dispatch run before it is taken;
-# see _run_pipeline. Each llama.cpp server runs 4 slots with the full
-# context each, so this is a choice, not a server limit.
+# The pipeline-wide lock, used only with MODEL_LOCK=pipeline (rollback):
+# one request's model phases at a time. By default each model server has
+# its own lock, held for one generation inside llm.stream (sprint M9 step 2;
+# model_lock.py). Each llama.cpp server runs 4 slots with the full context
+# each, so neither lock is a server limit; they are a scheduling choice.
 _llm_lock = asyncio.Lock()
 
 TOKEN_WARNING_THRESHOLD = 2000
@@ -422,12 +423,16 @@ async def _run_pipeline(
                     yield ev
                 return
 
-            # ── The model lock (sprint M9 step 1) ─────────────────────────
+            # ── The model lock (sprint M9) ────────────────────────────────
             # Everything above needs no model: routing, the weather and
-            # local context, direct dispatch. Only the model phases below
-            # wait for another request's. The wait is a `lock.wait` span
-            # and a `model_lock` event (model_lock.held).
-            await held.enter_async_context(model_lock.held(_llm_lock, "pipeline"))
+            # local context, direct dispatch (step 1). By default nothing is
+            # held here: each generation takes its model server's lock in
+            # llm.stream (step 2), so tool calls hold no lock. With
+            # MODEL_LOCK=pipeline the request's model phases below hold the
+            # pipeline-wide lock, as before step 2. Either wait is a
+            # `lock.wait` span and a `model_lock` event (model_lock.held).
+            if model_lock.mode() == "pipeline":
+                await held.enter_async_context(model_lock.held(_llm_lock, "pipeline"))
 
             # ── Phase 2: specialist agent (if routed to one) ──────────────
             if agent_name in agents.AGENTS:

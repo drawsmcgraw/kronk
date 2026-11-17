@@ -7,12 +7,33 @@ from typing import AsyncIterator
 
 import httpx
 
+import model_lock
+
 logger = logging.getLogger(__name__)
 
 LLM_SERVICE_URL = os.getenv("LLM_SERVICE_URL", "http://localhost:8002")
 
 
 async def stream(
+    messages: list[dict],
+    model: str,
+    tools: list[dict] | None = None,
+) -> AsyncIterator[dict]:
+    """Streaming chat completion, holding the model server's lock for the
+    whole generation (sprint M9 step 2; model_lock). Yields what
+    _stream_body yields. With MODEL_LOCK=pipeline (rollback) no lock is
+    taken here: main._run_pipeline holds the pipeline-wide one instead."""
+    if model_lock.mode() == "pipeline":
+        async for chunk in _stream_body(messages, model, tools):
+            yield chunk
+        return
+    name, lock = model_lock.for_model(model)
+    async with model_lock.held(lock, name):
+        async for chunk in _stream_body(messages, model, tools):
+            yield chunk
+
+
+async def _stream_body(
     messages: list[dict],
     model: str,
     tools: list[dict] | None = None,

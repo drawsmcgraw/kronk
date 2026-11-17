@@ -336,7 +336,10 @@ def test_raising_direct_call_is_spoken_not_retried(client):
 # ── Criterion 9: outside _llm_lock ───────────────────────────────────────────
 
 @pytest.mark.asyncio
-async def test_direct_request_does_not_wait_for_the_model_lock():
+async def test_direct_request_does_not_wait_for_the_model_lock(monkeypatch):
+    # The pipeline-wide lock exists only with MODEL_LOCK=pipeline since M9
+    # step 2; tests/test_m9_lock.py covers the per-server locks.
+    monkeypatch.setenv("MODEL_LOCK", "pipeline")
     import orchestrator.main as orch
 
     async def collect(text):

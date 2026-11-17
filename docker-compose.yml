@@ -241,6 +241,10 @@ services:
       # (docs/sprint/M8-e2e.md, S1). Change it by commit, tag and
       # scripts/deploy_tag.sh. Hold and spoken-reply line: config/voice.yaml.
       - VOICE_STREAM=off
+      # Model locks (sprint M9; docs/features/model-locks.md): server holds
+      # one lock per llama.cpp server for one generation; pipeline restores
+      # the pre-M9 lock (one request's model phases at a time) for rollback.
+      - MODEL_LOCK=server
       # OpenTelemetry tracing → Tempo (stack: docker-compose.telemetry.yml,
       # reached by service name over the shared kronk network). Set
       # TELEMETRY_ENABLED=false to switch all instrumentation to no-ops.
@@ -381,6 +385,8 @@ services:
       # Sentence streaming on the speech mount (sprint M8), on for the dev
       # path; production's value is in the orchestrator service above.
       - VOICE_STREAM=on
+      # Model locks (sprint M9): server, or pipeline to roll back.
+      - MODEL_LOCK=server
       - TELEMETRY_ENABLED=${TELEMETRY_ENABLED:-true}
       - OTEL_SERVICE_NAME=kronk-orchestrator-dev
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4318
