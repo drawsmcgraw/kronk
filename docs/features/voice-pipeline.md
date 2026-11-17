@@ -39,8 +39,13 @@ Key design decisions (full rationale in the build journal):
 ## The "ask Kronk to" lead-in (sprint M19)
 
 **Say it plainly for the fast path; start with "ask Kronk to" and the model
-handles it.** HA takes no lead-in sentence locally (checked read-only on all
-three satellites, 2026-11-17), so "Okay Nabu, ask Kronk to find some deep
+handles it.** Plainly means one short sentence: a second sentence (trailing
+speech the satellite kept listening to) or more than 20 words sends the
+request to the coordinator whole, by the messy-transcript gate (sprint M14,
+[`messy-transcript-gate.md`](messy-transcript-gate.md)).
+
+HA takes no lead-in sentence locally (checked read-only on all three
+satellites, 2026-11-17), so "Okay Nabu, ask Kronk to find some deep
 house music and play it" reaches Kronk, where the first routing rule cuts
 off "ask Kronk to" and hands the rest to the coordinator, past every
 shortcut and direct dispatch. Slower by design: one or two model hops,
@@ -78,8 +83,9 @@ Every code-written failure leaves through `errors.failure_text`. A tool
 result counts as failed only when the code that produced it says so
 (`tools.ToolResult.failed`); model-written answers are spoken as written
 (M2 fix 2; same doc).
-Later voice-only behaviour (sentence streaming, M8; M14) reads the same
-value rather than adding a second flag.
+Later voice-only behaviour (sentence streaming, M8) reads the same
+value rather than adding a second flag. The M14 gate does not read it: it
+applies on every mount (`messy-transcript-gate.md`).
 
 ## Gotchas (learned the hard way)
 

@@ -12,7 +12,9 @@ It holds no health or financial data (those features were removed
 **Machine:** Framework desktop — AMD Ryzen AI 375 (hostname `kronk`), Radeon
 8060S integrated GPU (GFX1151), 122 GB RAM.
 
-**Last updated:** 2026-11-17 — "ask Kronk to …" skips every routing
+**Last updated:** 2026-11-17 — a request with more than one sentence or
+more than 20 words skips the routing shortcuts and goes to the coordinator
+whole (sprint M14, the messy-transcript gate). "ask Kronk to …" skips every routing
 shortcut and goes to the model (sprint M19). Routing is an ordered rules
 table, and five pinned commands run their tool directly with no model call
 (sprint M7).
@@ -31,7 +33,7 @@ in [`docs/HISTORY.md`](docs/HISTORY.md).
 Every message — chat UI, OpenAI shim, or the Ollama shim that Home Assistant's
 voice pipeline calls — flows through the same pipeline:
 
-1. **Routing** (`orchestrator/routing.py`) — an ordered table of 16 rules
+1. **Routing** (`orchestrator/routing.py`) — an ordered table of 17 rules
    (`routing.RULES`): narrow deterministic shortcuts pin a message to a
    specialist (a named household entity, an explicit method, or domain
    vocabulary with context); the last rule, `default`, sends everything else
@@ -50,6 +52,14 @@ voice pipeline calls — flows through the same pipeline:
    for the fast path; start with "ask Kronk to" and the model handles it.**
    The words live in `config/lead_in.yaml`
    ([`docs/features/lead-in.md`](docs/features/lead-in.md)).
+   **The messy-transcript gate:** the `messy` rule, right after the lead-in,
+   Talkie, `direct_override` and the two typed-link rules, sends a message
+   with more than one sentence or more than 20 words to the coordinator with
+   the whole text, past every other shortcut and direct dispatch (trailing
+   speech after "Play Anime Pop Radio." is the case it is for). "Plainly"
+   means one short sentence. Nothing is trimmed. Limits in
+   `config/tuning.yaml` (`transcript_gate`)
+   ([`docs/features/messy-transcript-gate.md`](docs/features/messy-transcript-gate.md)).
 2. **Coordinator** — `gemma-4-e4b` answers directly or delegates through its
    `ask_<agent>` tools, and delivers the pre-generated `news_brief` verbatim.
 3. **Specialist** — the chosen agent runs the unified streaming tool-calling
@@ -277,7 +287,8 @@ services (sprint M21 step 1):
   the rest is sent byte for byte. `{{max_rounds}}` is the agent's round
   budget.
 - `config/tuning.yaml` (orchestrator) — round budgets, the repeat-call
-  nudge, the weather-context age, per-tool HTTP timeouts.
+  nudge, the weather-context age, per-tool HTTP timeouts, the
+  messy-transcript gate's limits (sprint M14).
 - `config/lead_in.yaml` (orchestrator) — the words of the "ask Kronk to"
   lead-in: verb, name (and any mis-heard spelling captured data shows),
   leading fillers (sprint M19).

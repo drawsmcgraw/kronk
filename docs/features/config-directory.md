@@ -15,7 +15,7 @@ the models are told and how the loop is tuned:
 | File | Read by | Holds |
 |---|---|---|
 | `config/prompts/<name>.md` | orchestrator | The system prompt of each agent in `agents.AGENTS` (research, home, assistant, coding, talkie, devops) and of the coordinator |
-| `config/tuning.yaml` | orchestrator | Round budgets per agent, the repeat-call nudge threshold, the weather-context age, per-tool HTTP timeouts |
+| `config/tuning.yaml` | orchestrator | Round budgets per agent, the repeat-call nudge threshold, the weather-context age, per-tool HTTP timeouts; since M14 the messy-transcript gate's `max_sentences` and `max_words` (`docs/features/messy-transcript-gate.md`) |
 | `config/lead_in.yaml` | orchestrator | The words of the "ask Kronk to" lead-in: verbs, names, leading fillers (sprint M19, `docs/features/lead-in.md`) |
 | `config/music.yaml` | tool_service | The playback verify window and the music resolver's thresholds and bonuses |
 

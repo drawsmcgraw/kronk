@@ -167,6 +167,17 @@ Found while testing:
 - One `run_tests.sh` run reported 3 errors that two immediate reruns did not
   reproduce (811 passed); error text was not captured.
 
+## Follow-up (2026-11-17, sprint M14 step 1)
+
+The messy-transcript gate (`docs/features/messy-transcript-gate.md`): a
+transcript with more than one sentence or more than 20 words now skips the
+routing shortcuts, so when the catch-all hands this transcript to Kronk it
+goes to the coordinator, not the `music` rule. Dev, dry-run: 10 of 10 runs
+reached `play_music` for the Pandora station Anime Pop Radio through
+`ask_home`, 3.3 to 8.5 s. Fix 3 (finished-speaking detection) is still not
+applied: M14's one-satellite trial waits for two weeks of M12 data. HA's
+side (fix 1, the catch-all) is unchanged.
+
 ## What would have caught it sooner
 
 - Any trace that a voice request was handled by HA's built-in media intent

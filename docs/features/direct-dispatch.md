@@ -34,7 +34,12 @@ return values and log the decision as before.
 Since sprint M19 a `lead_in` rule comes first ("ask Kronk to …", route
 `direct`, no direct call): it skips every rule below, so none of the five
 direct calls runs for a request that starts with the lead-in
-(`docs/features/lead-in.md`). The numbers below are M7's.
+(`docs/features/lead-in.md`). Since sprint M14 the `messy` rule follows
+`url` (rule 6 of 17): a request with more than one sentence or more than 20
+words goes to the coordinator, so none of the five direct calls runs for it
+either; "Update the magic mirror. And play some jazz." reaches the update
+only through the model (`docs/features/messy-transcript-gate.md`). The
+numbers below are M7's.
 
 | # | Rule | Route | Direct call |
 |---|---|---|---|

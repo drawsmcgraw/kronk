@@ -19,6 +19,11 @@
 > "ask Kronk to <request>" skips every other rule and gives the coordinator
 > the request without the lead-in. See `lead-in.md`.
 
+> **Update 2026-11-17 (sprint M14):** a 17th rule, `messy`, after `url`:
+> a message with more than one sentence or more than 20 words goes to the
+> coordinator whole, past every later shortcut. See
+> `messy-transcript-gate.md`.
+
 ## What it does
 
 When the phase-1 router (gemma-3-4b) sends an ambiguous query down the

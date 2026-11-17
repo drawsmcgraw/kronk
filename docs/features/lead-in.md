@@ -23,6 +23,12 @@ It guarantees where the request goes, not that the model gets it right. It
 is the slow path by design: the coordinator, plus one specialist when it
 delegates.
 
+"Plainly" means one short sentence. Since sprint M14 a request with a
+second sentence, or more than 20 words, goes to the coordinator too, lead-in
+or not (`messy-transcript-gate.md`). The lead-in stays ahead of that gate:
+"Ask Kronk to play jazz. That's all." is a lead-in, and the coordinator gets
+"play jazz. That's all."
+
 ## How it works
 
 ### The rule

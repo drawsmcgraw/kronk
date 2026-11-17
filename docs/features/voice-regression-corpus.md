@@ -50,11 +50,11 @@ rule needs the same failure captured several times (Drew's stopping rule,
 
 | Field | Meaning |
 |---|---|
-| `id` | Stable slug, lowercase and dashes. Never renamed or reused; new rows get new ids. Prefixes: `plan-`, `inc-`, `eval-`, `m4b-`, `m11-`, `m17-`, `m19-` by source. |
+| `id` | Stable slug, lowercase and dashes. Never renamed or reused; new rows get new ids. Prefixes: `plan-`, `inc-`, `eval-`, `m4b-`, `m11-`, `m14-`, `m17-`, `m19-` by source. |
 | `text` | As transcribed: case, punctuation and STT spacing kept (`" Stop!"` with its leading space is its own row). |
 | `origin.area` / `origin.device` | The satellite that heard it: `kitchen_pe` (Kitchen), `office_sat1` (Office), `basement_pe` (Basement Theater). `area: null` when not recorded; the replay then uses the office Satellite1. |
 | `expect.tier` | `ha_local` (HA answers before Kronk is asked) or `kronk`. With `ha_local`, `expect.ha` says how: `{"source": "trigger", "trigger": "radio"}` (the Kronk music blueprint; `trigger` is the blueprint trigger id, given only where it matters) or `{"source": "builtin", "intent": "HassMediaPause"}`. |
-| `expect.route`, `expect.rule` | Where `routing._classify_inner` should send the text if it reaches Kronk (spoken or typed). One of the 16 rules (`lead_in` since M19); the rule must belong to the route. Lead-in rows (tag `lead-in`) expect `direct/lead_in` and the tool the model should end up calling. |
+| `expect.route`, `expect.rule` | Where `routing._classify_inner` should send the text if it reaches Kronk (spoken or typed). One of the 17 rules (`lead_in` since M19, `messy` since M14); the rule must belong to the route. Lead-in rows (tag `lead-in`) expect `direct/lead_in` and the tool the model should end up calling. |
 | `expect.tool` | The Kronk tool that should end up running: `play_music`, `control_music`, `now_playing`, `rate_music`, `news_brief`, `update_magicmirror`, or `null` when no existing tool can do it (then the live replay checks that no music tool claims it). |
 | `expect.action`, `expect.thumb` | `control_music` action (`pause`, `resume`, `next`, `volume_up`, …; "stop" is sent as `pause` since sprint M7) and `rate_music` thumb. |
 | `expect.direct` | `true` exactly on rows whose rule is `playback`, `now_playing`, `rate`, `music_another` or `mm_update`: Kronk runs the tool itself with no model call (`docs/features/direct-dispatch.md`). Absent on every other row; the schema test enforces both. |
