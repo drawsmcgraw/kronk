@@ -8,6 +8,7 @@ from typing import AsyncIterator
 import httpx
 
 import model_lock
+import telemetry
 
 logger = logging.getLogger(__name__)
 
@@ -134,9 +135,10 @@ async def _stream_body(
             except json.JSONDecodeError:
                 # Recover with empty args, but leave a trace — a tool called
                 # with {} "mysteriously" usually starts here.
+                # The fragment is what the model wrote: text (M12 fix 1, F5).
                 logger.warning(
-                    "tool-call arguments were not valid JSON for %s; using {}. Fragment: %.200s",
-                    entry["function"]["name"], args_str,
+                    "tool-call arguments were not valid JSON for %s; using {}. Fragment (%d chars): %s",
+                    entry["function"]["name"], len(args_str), telemetry.text(args_str, 200),
                 )
                 args = {}
             finalized.append({
@@ -188,8 +190,8 @@ async def complete(messages: list[dict], tools: list[dict], model: str) -> dict:
                 args = json.loads(args)
             except Exception:
                 logger.warning(
-                    "tool-call arguments were not valid JSON for %s; using {}. Fragment: %.200s",
-                    fn.get("name", "?"), args,
+                    "tool-call arguments were not valid JSON for %s; using {}. Fragment (%d chars): %s",
+                    fn.get("name", "?"), len(args), telemetry.text(args, 200),
                 )
                 args = {}
         tool_calls.append({

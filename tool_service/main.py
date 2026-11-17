@@ -909,7 +909,8 @@ async def _ha_call_service(websockets, domain: str, service: str, service_data: 
                     return
                 err = resp.get("error") or {}
                 message = (err.get("message") or "").strip() or f"{domain}.{service} failed ({err.get('code', 'unknown')})."
-                logger.warning("HA %s.%s failed: code=%s message=%s", domain, service, err.get("code"), message)
+                logger.warning("HA %s.%s failed: code=%s kind=%s message=%s", domain, service, err.get("code"),
+                               failure_kind(message), telemetry.text(message, 300))
                 raise HAServiceError(message)
     except HAServiceError:
         raise
@@ -1236,6 +1237,24 @@ def _dry_run_result(action: str, label: str, entities: list[str], detail: str, *
 # HA's music_assistant integration found nothing by that name; raised before
 # it calls MA, so no playback can follow (media_player.py, async_play_media).
 _RESOLVE_MISS_RE = re.compile(r"Could not resolve .* to playable media item")
+
+
+def failure_kind(message: str | None) -> str | None:
+    """A fixed-vocabulary name for an HA / MA play failure, for spans and
+    log lines with TELEMETRY_RECORD_TEXT off. HA's own message can quote the
+    media id, which on a literal play is the spoken name, so the message is
+    text; the kind is not (M12 fix 1, F4)."""
+    if not message:
+        return None
+    if _RESOLVE_MISS_RE.search(message):
+        return "resolve_miss"
+    if message.startswith("Home Assistant is unreachable"):
+        return "ha_unreachable"
+    if message.startswith("Home Assistant websocket"):
+        return "ha_websocket"
+    if message.startswith("Home Assistant rejected the token"):
+        return "ha_auth"
+    return "ha_error"
 
 # One template call answers everything the resolver needs: every MA player
 # with name / area / state / player type / its MA device key ('up' + MAC —
@@ -1757,7 +1776,8 @@ async def _play_verified(client: httpx.AsyncClient, headers: dict, entities: lis
                                     "started_after_failure" if started else
                                     "resolve_miss" if failure and _RESOLVE_MISS_RE.search(failure) else
                                     "failed" if failure else "no_start"),
-                  "music.failure": (failure or "")[:200] or None})
+                  "music.failure_kind": failure_kind(failure),
+                  "music.failure": telemetry.text(failure or None, 200)})
         return started, failure
 
 
@@ -1796,7 +1816,8 @@ async def _play_verified_inner(client, headers, entities, service_data):
                 continue
             if _now_playing_key(state) != before[entity]:
                 if failure:
-                    logger.warning("play_media reported failure but %s started playing: %s", entity, failure)
+                    logger.warning("play_media reported failure but %s started playing: %s: %s", entity,
+                                   failure_kind(failure), telemetry.text(failure, 300))
                 return (entity, state), failure
             same_item = same_item or state
         if asyncio.get_event_loop().time() >= deadline:
@@ -1866,8 +1887,10 @@ async def _genre_plan_inner(nq, forced, area, readonly=False):
     finally:
         if con:
             con.close()
-    logger.info("genre request %r -> terms %s rule %r: %d picks, first %s", telemetry.text(nq.text, 120), terms, rule,
-                len(picks), picks[:4])
+    # terms are parsed from the request (and rule is the household's stated
+    # taste): text, like the request itself (M12 fix 1, F2)
+    logger.info("genre request %r -> terms %s rule %r: %d picks, first %s", telemetry.text(nq.text, 120),
+                telemetry.text(terms, 200), telemetry.text(rule, 120), len(picks), picks[:4])
     if not picks:
         return None
     return {"phrase": want, "picks": picks, "start": 0}
@@ -1912,7 +1935,8 @@ async def _play_genre(client: httpx.AsyncClient, headers: dict, entities: list[s
             await _shuffle_before_play(client, headers, entities, True)
         started, failure = await _play_verified(client, headers, entities, pick.play_data())
         if started is None:
-            logger.warning("genre pick %s did not start: %s", pick, failure)
+            logger.warning("genre pick %s did not start: %s: %s", pick,
+                           failure_kind(failure) or "no_start", telemetry.text(failure, 300))
             failures.append(_failure_sentence(failure) if failure else _no_start_sentence(label))
             continue
         entity, state = started
