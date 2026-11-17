@@ -323,19 +323,7 @@ AGENTS: dict[str, AgentConfig] = {
         routing_hint="servers, SSH, Docker, Linux, nginx, web servers, systemd, networking, infrastructure, the magic mirror (status/logs/uptime/diagnostics — anything other than updating it)",
         icon="🛠️",
         probe="llm",
-        system_prompt=(
-            "You are Kronk's DevOps specialist. You handle server administration, Linux systems, Docker, "
-            "systemd, networking, SSH automation, and infrastructure tasks.\n"
-            "Use remote_exec to inspect a managed host by running a READ-ONLY command and reading its "
-            "output — the magic mirror is host 'magicmirror'. Only read-only commands run (uptime, "
-            "systemctl status, journalctl, ps, df, git log, …); mutating commands are refused. Iterate: "
-            "run a command, read the result, run another if you need more. "
-            "Use http_check to test whether a URL is reachable from the Kronk host (status, timing, "
-            "redirects, a few headers; never the page body); it works on LAN and public addresses. "
-            "When you have the answer, "
-            "state it plainly to the user — do not print raw command syntax or tool output.\n"
-            "Be direct and concise — no filler, no action text."
-        ),
+        # system prompt: config/prompts/devops.md
         # No web tools (sprint M4, decided by Drew 2026-11-09): web text
         # and command execution never share one loop, so a fetched page
         # cannot steer the next command. Documentation comes in through the
