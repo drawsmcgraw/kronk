@@ -1,0 +1,574 @@
+{
+ "rows": [
+  {
+   "shape": "voice_buffered",
+   "text": "play some jazz in the office, drop 0",
+   "drop_s": 2.45,
+   "end": "request_ended",
+   "reason": "client_gone",
+   "ended_at": 2.45,
+   "tools_sent": [],
+   "tool_call": 0,
+   "tool_complete": 0,
+   "tool_error_events": [],
+   "tool_service_posts": []
+  },
+  {
+   "shape": "voice_buffered",
+   "text": "play some jazz in the office, drop 1",
+   "drop_s": 2.47,
+   "end": "request_ended",
+   "reason": "client_gone",
+   "ended_at": 2.47,
+   "tools_sent": [],
+   "tool_call": 0,
+   "tool_complete": 0,
+   "tool_error_events": [],
+   "tool_service_posts": []
+  },
+  {
+   "shape": "voice_buffered",
+   "text": "play some jazz in the office, drop 2",
+   "drop_s": 2.49,
+   "end": "request_complete",
+   "reason": null,
+   "ended_at": 2.32,
+   "tools_sent": null,
+   "tool_call": 1,
+   "tool_complete": 1,
+   "tool_error_events": [],
+   "tool_service_posts": [
+    "INFO:     172.18.0.6:40342 - \"POST /music HTTP/1.1\" 200 OK"
+   ]
+  },
+  {
+   "shape": "voice_buffered",
+   "text": "play some jazz in the office, drop 3",
+   "drop_s": 2.51,
+   "end": "request_ended",
+   "reason": "client_gone",
+   "ended_at": 2.51,
+   "tools_sent": [],
+   "tool_call": 0,
+   "tool_complete": 0,
+   "tool_error_events": [],
+   "tool_service_posts": []
+  },
+  {
+   "shape": "voice_buffered",
+   "text": "play some jazz in the office, drop 4",
+   "drop_s": 2.53,
+   "end": "request_ended",
+   "reason": "client_gone",
+   "ended_at": 2.53,
+   "tools_sent": [],
+   "tool_call": 0,
+   "tool_complete": 0,
+   "tool_error_events": [],
+   "tool_service_posts": []
+  },
+  {
+   "shape": "voice_buffered",
+   "text": "play some jazz in the office, drop 5",
+   "drop_s": 2.55,
+   "end": "request_ended",
+   "reason": "client_gone",
+   "ended_at": 2.55,
+   "tools_sent": [],
+   "tool_call": 0,
+   "tool_complete": 0,
+   "tool_error_events": [],
+   "tool_service_posts": []
+  },
+  {
+   "shape": "voice_buffered",
+   "text": "play some jazz in the office, drop 6",
+   "drop_s": 2.57,
+   "end": "request_ended",
+   "reason": "client_gone",
+   "ended_at": 2.57,
+   "tools_sent": [],
+   "tool_call": 0,
+   "tool_complete": 0,
+   "tool_error_events": [],
+   "tool_service_posts": []
+  },
+  {
+   "shape": "voice_buffered",
+   "text": "play some jazz in the office, drop 7",
+   "drop_s": 2.59,
+   "end": "request_ended",
+   "reason": "client_gone",
+   "ended_at": 2.59,
+   "tools_sent": [],
+   "tool_call": 0,
+   "tool_complete": 0,
+   "tool_error_events": [],
+   "tool_service_posts": []
+  },
+  {
+   "shape": "voice_buffered",
+   "text": "play some jazz in the office, drop 8",
+   "drop_s": 2.61,
+   "end": "request_ended",
+   "reason": "client_gone",
+   "ended_at": 2.61,
+   "tools_sent": [],
+   "tool_call": 0,
+   "tool_complete": 0,
+   "tool_error_events": [],
+   "tool_service_posts": []
+  },
+  {
+   "shape": "voice_buffered",
+   "text": "play some jazz in the office, drop 9",
+   "drop_s": 2.63,
+   "end": "request_ended",
+   "reason": "client_gone",
+   "ended_at": 2.63,
+   "tools_sent": [],
+   "tool_call": 0,
+   "tool_complete": 0,
+   "tool_error_events": [],
+   "tool_service_posts": []
+  },
+  {
+   "shape": "voice_buffered",
+   "text": "play some jazz in the office, drop 10",
+   "drop_s": 2.65,
+   "end": "request_ended",
+   "reason": "client_gone",
+   "ended_at": 2.65,
+   "tools_sent": [],
+   "tool_call": 0,
+   "tool_complete": 0,
+   "tool_error_events": [],
+   "tool_service_posts": []
+  },
+  {
+   "shape": "voice_buffered",
+   "text": "play some jazz in the office, drop 11",
+   "drop_s": 2.67,
+   "end": "request_ended",
+   "reason": "client_gone",
+   "ended_at": 2.69,
+   "tools_sent": [
+    "play_music"
+   ],
+   "tool_call": 1,
+   "tool_complete": 0,
+   "tool_error_events": [],
+   "tool_service_posts": []
+  },
+  {
+   "shape": "voice_buffered",
+   "text": "play some jazz in the office, drop 12",
+   "drop_s": 2.69,
+   "end": "request_ended",
+   "reason": "client_gone",
+   "ended_at": 2.69,
+   "tools_sent": [],
+   "tool_call": 0,
+   "tool_complete": 0,
+   "tool_error_events": [],
+   "tool_service_posts": []
+  },
+  {
+   "shape": "voice_buffered",
+   "text": "play some jazz in the office, drop 13",
+   "drop_s": 2.71,
+   "end": "request_ended",
+   "reason": "client_gone",
+   "ended_at": 2.71,
+   "tools_sent": [],
+   "tool_call": 0,
+   "tool_complete": 0,
+   "tool_error_events": [],
+   "tool_service_posts": []
+  },
+  {
+   "shape": "voice_buffered",
+   "text": "play some jazz in the office, drop 14",
+   "drop_s": 2.73,
+   "end": "request_ended",
+   "reason": "client_gone",
+   "ended_at": 2.73,
+   "tools_sent": [],
+   "tool_call": 0,
+   "tool_complete": 0,
+   "tool_error_events": [],
+   "tool_service_posts": []
+  },
+  {
+   "shape": "voice_buffered",
+   "text": "play some jazz in the office, drop 15",
+   "drop_s": 2.75,
+   "end": "request_complete",
+   "reason": null,
+   "ended_at": 2.72,
+   "tools_sent": null,
+   "tool_call": 1,
+   "tool_complete": 1,
+   "tool_error_events": [],
+   "tool_service_posts": [
+    "INFO:     172.18.0.6:35340 - \"POST /music HTTP/1.1\" 200 OK"
+   ]
+  },
+  {
+   "shape": "voice_buffered",
+   "text": "play some jazz in the office, drop 16",
+   "drop_s": 2.77,
+   "end": "request_complete",
+   "reason": null,
+   "ended_at": 2.72,
+   "tools_sent": null,
+   "tool_call": 1,
+   "tool_complete": 1,
+   "tool_error_events": [],
+   "tool_service_posts": [
+    "INFO:     172.18.0.6:35372 - \"POST /music HTTP/1.1\" 200 OK"
+   ]
+  },
+  {
+   "shape": "voice_buffered",
+   "text": "play some jazz in the office, drop 17",
+   "drop_s": 2.79,
+   "end": "request_ended",
+   "reason": "client_gone",
+   "ended_at": 2.79,
+   "tools_sent": [],
+   "tool_call": 0,
+   "tool_complete": 0,
+   "tool_error_events": [],
+   "tool_service_posts": []
+  },
+  {
+   "shape": "voice_buffered",
+   "text": "play some jazz in the office, drop 18",
+   "drop_s": 2.81,
+   "end": "request_complete",
+   "reason": null,
+   "ended_at": 2.71,
+   "tools_sent": null,
+   "tool_call": 1,
+   "tool_complete": 1,
+   "tool_error_events": [],
+   "tool_service_posts": [
+    "INFO:     172.18.0.6:49338 - \"POST /music HTTP/1.1\" 200 OK"
+   ]
+  },
+  {
+   "shape": "voice_buffered",
+   "text": "play some jazz in the office, drop 19",
+   "drop_s": 2.83,
+   "end": "request_ended",
+   "reason": "client_gone",
+   "ended_at": 2.83,
+   "tools_sent": [],
+   "tool_call": 0,
+   "tool_complete": 0,
+   "tool_error_events": [],
+   "tool_service_posts": []
+  },
+  {
+   "shape": "voice_buffered",
+   "text": "play some jazz in the office, drop 20",
+   "drop_s": 2.85,
+   "end": "request_complete",
+   "reason": null,
+   "ended_at": 2.59,
+   "tools_sent": null,
+   "tool_call": 1,
+   "tool_complete": 1,
+   "tool_error_events": [],
+   "tool_service_posts": [
+    "INFO:     172.18.0.6:46118 - \"POST /music HTTP/1.1\" 200 OK"
+   ]
+  },
+  {
+   "shape": "voice_buffered",
+   "text": "play some jazz in the office, drop 21",
+   "drop_s": 2.87,
+   "end": "request_complete",
+   "reason": null,
+   "ended_at": 2.79,
+   "tools_sent": null,
+   "tool_call": 1,
+   "tool_complete": 1,
+   "tool_error_events": [],
+   "tool_service_posts": [
+    "INFO:     172.18.0.6:46130 - \"POST /music HTTP/1.1\" 200 OK"
+   ]
+  },
+  {
+   "shape": "voice_buffered",
+   "text": "play some jazz in the office, drop 22",
+   "drop_s": 2.89,
+   "end": "request_ended",
+   "reason": "client_gone",
+   "ended_at": 2.89,
+   "tools_sent": [],
+   "tool_call": 0,
+   "tool_complete": 0,
+   "tool_error_events": [],
+   "tool_service_posts": []
+  },
+  {
+   "shape": "voice_buffered",
+   "text": "play some jazz in the office, drop 23",
+   "drop_s": 2.91,
+   "end": "request_complete",
+   "reason": null,
+   "ended_at": 2.75,
+   "tools_sent": null,
+   "tool_call": 1,
+   "tool_complete": 1,
+   "tool_error_events": [],
+   "tool_service_posts": [
+    "INFO:     172.18.0.6:38142 - \"POST /music HTTP/1.1\" 200 OK"
+   ]
+  },
+  {
+   "shape": "voice_buffered",
+   "text": "pause",
+   "drop_s": 0.002,
+   "end": "request_ended",
+   "reason": "client_gone",
+   "ended_at": 0.01,
+   "tools_sent": [
+    "control_music"
+   ],
+   "tool_call": 1,
+   "tool_complete": 0,
+   "tool_error_events": [],
+   "tool_service_posts": []
+  },
+  {
+   "shape": "voice_buffered",
+   "text": "pause",
+   "drop_s": 0.004,
+   "end": "request_ended",
+   "reason": "client_gone",
+   "ended_at": 0.0,
+   "tools_sent": [
+    "control_music"
+   ],
+   "tool_call": 1,
+   "tool_complete": 0,
+   "tool_error_events": [],
+   "tool_service_posts": []
+  },
+  {
+   "shape": "voice_buffered",
+   "text": "pause",
+   "drop_s": 0.006,
+   "end": "request_ended",
+   "reason": "client_gone",
+   "ended_at": 0.01,
+   "tools_sent": [
+    "control_music"
+   ],
+   "tool_call": 1,
+   "tool_complete": 0,
+   "tool_error_events": [],
+   "tool_service_posts": []
+  },
+  {
+   "shape": "voice_buffered",
+   "text": "pause",
+   "drop_s": 0.008,
+   "end": "request_ended",
+   "reason": "client_gone",
+   "ended_at": 0.01,
+   "tools_sent": [
+    "control_music"
+   ],
+   "tool_call": 1,
+   "tool_complete": 0,
+   "tool_error_events": [],
+   "tool_service_posts": []
+  },
+  {
+   "shape": "voice_buffered",
+   "text": "pause",
+   "drop_s": 0.01,
+   "end": "request_ended",
+   "reason": "client_gone",
+   "ended_at": 0.01,
+   "tools_sent": [
+    "control_music"
+   ],
+   "tool_call": 1,
+   "tool_complete": 0,
+   "tool_error_events": [],
+   "tool_service_posts": []
+  },
+  {
+   "shape": "voice_buffered",
+   "text": "pause",
+   "drop_s": 0.012,
+   "end": "request_ended",
+   "reason": "client_gone",
+   "ended_at": 0.01,
+   "tools_sent": [
+    "control_music"
+   ],
+   "tool_call": 1,
+   "tool_complete": 0,
+   "tool_error_events": [],
+   "tool_service_posts": []
+  },
+  {
+   "shape": "voice_buffered",
+   "text": "pause",
+   "drop_s": 0.014,
+   "end": "request_ended",
+   "reason": "client_gone",
+   "ended_at": 0.01,
+   "tools_sent": [
+    "control_music"
+   ],
+   "tool_call": 1,
+   "tool_complete": 0,
+   "tool_error_events": [],
+   "tool_service_posts": []
+  },
+  {
+   "shape": "voice_buffered",
+   "text": "pause",
+   "drop_s": 0.016,
+   "end": "request_ended",
+   "reason": "client_gone",
+   "ended_at": 0.01,
+   "tools_sent": [
+    "control_music"
+   ],
+   "tool_call": 1,
+   "tool_complete": 0,
+   "tool_error_events": [],
+   "tool_service_posts": [
+    "INFO:     172.18.0.6:55736 - \"POST /music/control HTTP/1.1\" 200 OK"
+   ]
+  },
+  {
+   "shape": "voice_buffered",
+   "text": "pause",
+   "drop_s": 0.018,
+   "end": "request_ended",
+   "reason": "client_gone",
+   "ended_at": 0.02,
+   "tools_sent": [
+    "control_music"
+   ],
+   "tool_call": 1,
+   "tool_complete": 0,
+   "tool_error_events": [],
+   "tool_service_posts": []
+  },
+  {
+   "shape": "voice_buffered",
+   "text": "pause",
+   "drop_s": 0.02,
+   "end": "request_complete",
+   "reason": null,
+   "ended_at": 0.02,
+   "tools_sent": null,
+   "tool_call": 1,
+   "tool_complete": 1,
+   "tool_error_events": [],
+   "tool_service_posts": [
+    "INFO:     172.18.0.6:55748 - \"POST /music/control HTTP/1.1\" 200 OK"
+   ]
+  },
+  {
+   "shape": "voice_buffered",
+   "text": "pause",
+   "drop_s": 0.022,
+   "end": "request_complete",
+   "reason": null,
+   "ended_at": 0.01,
+   "tools_sent": null,
+   "tool_call": 1,
+   "tool_complete": 1,
+   "tool_error_events": [],
+   "tool_service_posts": [
+    "INFO:     172.18.0.6:55760 - \"POST /music/control HTTP/1.1\" 200 OK"
+   ]
+  },
+  {
+   "shape": "voice_buffered",
+   "text": "pause",
+   "drop_s": 0.024,
+   "end": "request_complete",
+   "reason": null,
+   "ended_at": 0.01,
+   "tools_sent": null,
+   "tool_call": 1,
+   "tool_complete": 1,
+   "tool_error_events": [],
+   "tool_service_posts": [
+    "INFO:     172.18.0.6:55774 - \"POST /music/control HTTP/1.1\" 200 OK"
+   ]
+  },
+  {
+   "shape": "voice_buffered",
+   "text": "pause",
+   "drop_s": 0.026,
+   "end": "request_complete",
+   "reason": null,
+   "ended_at": 0.01,
+   "tools_sent": null,
+   "tool_call": 1,
+   "tool_complete": 1,
+   "tool_error_events": [],
+   "tool_service_posts": [
+    "INFO:     172.18.0.6:37048 - \"POST /music/control HTTP/1.1\" 200 OK"
+   ]
+  },
+  {
+   "shape": "voice_buffered",
+   "text": "pause",
+   "drop_s": 0.028,
+   "end": "request_complete",
+   "reason": null,
+   "ended_at": 0.02,
+   "tools_sent": null,
+   "tool_call": 1,
+   "tool_complete": 1,
+   "tool_error_events": [],
+   "tool_service_posts": [
+    "INFO:     172.18.0.6:37058 - \"POST /music/control HTTP/1.1\" 200 OK"
+   ]
+  },
+  {
+   "shape": "voice_buffered",
+   "text": "pause",
+   "drop_s": 0.03,
+   "end": "request_complete",
+   "reason": null,
+   "ended_at": 0.01,
+   "tools_sent": null,
+   "tool_call": 1,
+   "tool_complete": 1,
+   "tool_error_events": [],
+   "tool_service_posts": [
+    "INFO:     172.18.0.6:37072 - \"POST /music/control HTTP/1.1\" 200 OK"
+   ]
+  },
+  {
+   "shape": "voice_buffered",
+   "text": "pause",
+   "drop_s": 0.032,
+   "end": "request_complete",
+   "reason": null,
+   "ended_at": 0.02,
+   "tools_sent": null,
+   "tool_call": 1,
+   "tool_complete": 1,
+   "tool_error_events": [],
+   "tool_service_posts": [
+    "INFO:     172.18.0.6:37076 - \"POST /music/control HTTP/1.1\" 200 OK"
+   ]
+  }
+ ]
+}

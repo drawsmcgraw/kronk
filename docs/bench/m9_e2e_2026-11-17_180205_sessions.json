@@ -1,0 +1,303 @@
+{
+ "rounds": [
+  [
+   {
+    "text": "what is the capital of Peru? round 0",
+    "session": "m9e2e-shared-1794938497",
+    "status": 200,
+    "s": 5.32,
+    "done": true,
+    "reply": "Lima"
+   },
+   {
+    "text": "what is the capital of Kenya? round 0",
+    "session": "m9e2e-shared-1794938497",
+    "status": 200,
+    "s": 4.4,
+    "done": true,
+    "reply": "Nairobi."
+   },
+   {
+    "text": "what is the capital of Japan? round 0",
+    "session": "m9e2e-shared-1794938497",
+    "status": 200,
+    "s": 3.62,
+    "done": true,
+    "reply": "Tokyo"
+   },
+   {
+    "text": "what is the capital of Canada? round 0",
+    "session": "m9e2e-shared-1794938497",
+    "status": 200,
+    "s": 1.75,
+    "done": true,
+    "reply": "Ottawa"
+   },
+   {
+    "text": "what is the capital of Egypt? round 0",
+    "session": "m9e2e-shared-1794938497",
+    "status": 200,
+    "s": 5.22,
+    "done": true,
+    "reply": "The capital of Egypt is Cairo."
+   },
+   {
+    "text": "what is the capital of Norway? round 0",
+    "session": "m9e2e-shared-1794938497",
+    "status": 200,
+    "s": 1.88,
+    "done": true,
+    "reply": "Oslo"
+   },
+   {
+    "text": "name one river in Brazil, round 0",
+    "session": "m9e2e-own-1794938497-0",
+    "status": 200,
+    "s": 3.78,
+    "done": true,
+    "reply": "Paran\u00e1 River."
+   },
+   {
+    "text": "name one river in India, round 0",
+    "session": "m9e2e-own-1794938497-1",
+    "status": 200,
+    "s": 4.27,
+    "done": true,
+    "reply": "The Ganges."
+   }
+  ],
+  [
+   {
+    "text": "what is the capital of Peru? round 1",
+    "session": "m9e2e-shared-1794938497",
+    "status": 200,
+    "s": 0.32,
+    "done": true,
+    "reply": "Lima."
+   },
+   {
+    "text": "what is the capital of Kenya? round 1",
+    "session": "m9e2e-shared-1794938497",
+    "status": 200,
+    "s": 1.47,
+    "done": true,
+    "reply": "Nairobi."
+   },
+   {
+    "text": "what is the capital of Japan? round 1",
+    "session": "m9e2e-shared-1794938497",
+    "status": 200,
+    "s": 3.57,
+    "done": true,
+    "reply": "The capital of Japan is Tokyo."
+   },
+   {
+    "text": "what is the capital of Canada? round 1",
+    "session": "m9e2e-shared-1794938497",
+    "status": 200,
+    "s": 8.25,
+    "done": true,
+    "reply": "The capital of Canada is Ottawa."
+   },
+   {
+    "text": "what is the capital of Egypt? round 1",
+    "session": "m9e2e-shared-1794938497",
+    "status": 200,
+    "s": 4.95,
+    "done": true,
+    "reply": "The capital of Egypt is Cairo."
+   },
+   {
+    "text": "what is the capital of Norway? round 1",
+    "session": "m9e2e-shared-1794938497",
+    "status": 200,
+    "s": 7.33,
+    "done": true,
+    "reply": "Oslo"
+   },
+   {
+    "text": "name one river in Brazil, round 1",
+    "session": "m9e2e-own-1794938497-0",
+    "status": 200,
+    "s": 5.29,
+    "done": true,
+    "reply": "Amazon River."
+   },
+   {
+    "text": "name one river in India, round 1",
+    "session": "m9e2e-own-1794938497-1",
+    "status": 200,
+    "s": 5.13,
+    "done": true,
+    "reply": "The Brahmaputra."
+   }
+  ],
+  [
+   {
+    "text": "what is the capital of Peru? round 2",
+    "session": "m9e2e-shared-1794938497",
+    "status": 200,
+    "s": 0.5,
+    "done": true,
+    "reply": "Lima."
+   },
+   {
+    "text": "what is the capital of Kenya? round 2",
+    "session": "m9e2e-shared-1794938497",
+    "status": 200,
+    "s": 0.36,
+    "done": true,
+    "reply": "Nairobi."
+   },
+   {
+    "text": "what is the capital of Japan? round 2",
+    "session": "m9e2e-shared-1794938497",
+    "status": 200,
+    "s": 3.28,
+    "done": true,
+    "reply": "The capital of Japan is Tokyo."
+   },
+   {
+    "text": "what is the capital of Canada? round 2",
+    "session": "m9e2e-shared-1794938497",
+    "status": 200,
+    "s": 3.11,
+    "done": true,
+    "reply": "The capital of Canada is Ottawa."
+   },
+   {
+    "text": "what is the capital of Egypt? round 2",
+    "session": "m9e2e-shared-1794938497",
+    "status": 200,
+    "s": 2.94,
+    "done": true,
+    "reply": "The capital of Egypt is Cairo."
+   },
+   {
+    "text": "what is the capital of Norway? round 2",
+    "session": "m9e2e-shared-1794938497",
+    "status": 200,
+    "s": 3.86,
+    "done": true,
+    "reply": "Oslo"
+   },
+   {
+    "text": "name one river in Brazil, round 2",
+    "session": "m9e2e-own-1794938497-0",
+    "status": 200,
+    "s": 4.06,
+    "done": true,
+    "reply": "S\u00e3o Francisco River."
+   },
+   {
+    "text": "name one river in India, round 2",
+    "session": "m9e2e-own-1794938497-1",
+    "status": 200,
+    "s": 3.5,
+    "done": true,
+    "reply": "The Yamuna."
+   }
+  ]
+ ],
+ "checks": [
+  {
+   "session": "m9e2e-shared-1794938497",
+   "stored": 36,
+   "order": [
+    "what is the capital of Canada? round 0",
+    "what is the capital of Norway? round 0",
+    "what is the capital of Japan? round 0",
+    "what is the capital of Kenya? round 0",
+    "what is the capital of Egypt? round 0",
+    "what is the capital of Peru? round 0",
+    "what is the capital of Peru? round 1",
+    "what is the capital of Kenya? round 1",
+    "what is the capital of Japan? round 1",
+    "what is the capital of Egypt? round 1",
+    "what is the capital of Norway? round 1",
+    "what is the capital of Canada? round 1",
+    "what is the capital of Kenya? round 2",
+    "what is the capital of Peru? round 2",
+    "what is the capital of Egypt? round 2",
+    "what is the capital of Canada? round 2",
+    "what is the capital of Japan? round 2",
+    "what is the capital of Norway? round 2"
+   ],
+   "problems": []
+  },
+  {
+   "session": "m9e2e-own-1794938497-0",
+   "stored": 6,
+   "order": [
+    "name one river in Brazil, round 0",
+    "name one river in Brazil, round 1",
+    "name one river in Brazil, round 2"
+   ],
+   "problems": []
+  },
+  {
+   "session": "m9e2e-own-1794938497-1",
+   "stored": 6,
+   "order": [
+    "name one river in India, round 0",
+    "name one river in India, round 1",
+    "name one river in India, round 2"
+   ],
+   "problems": []
+  }
+ ],
+ "follow_up_on_shared": {
+  "text": "which of those capitals did I ask about first?",
+  "session": "m9e2e-shared-1794938497",
+  "status": 200,
+  "s": 0.57,
+  "done": true,
+  "reply": "You first asked about Ottawa, the capital of Canada."
+ },
+ "delete_during": {
+  "history_before": 40,
+  "before_first": [
+   {
+    "role": "user",
+    "content": "pause the music please"
+   },
+   {
+    "role": "assistant",
+    "content": "The Office speaker is already paused."
+   }
+  ],
+  "delete_status": 200,
+  "delete_body": "{\"status\":\"cleared\"}",
+  "delete_at_s": 1.52,
+  "request": {
+   "text": "write a 150 word story about a fox, delete-during check",
+   "session": null,
+   "status": 200,
+   "s": 6.23,
+   "done": true,
+   "reply": "Flick, a russet fox, padded silently through the golden underbrush of the autumn woods. His tail, a brush of burnt orange, twitched with caution as the air grew crisp and smelled of damp earth. He was hunting, the subtle shift in the wind carrying the scent of small, unsuspecting prey. \n\nSuddenly, a flash of movement caught his eye near the mossy creek bank. A plump field mouse darted across the fallen leaves. Flick lowered himself, his muscles coiled springs of grace and instinct. Just as he prepared to pounce, a loud, unexpected crack echoed through the woods\u2014a branch snapping under a larger creature. \n\nThe mouse froze. Flick hesitated, his hunter's focus momentarily broken. The forest held its breath. After a long silence, the mouse scurried deeper into its hole, and Flick, sensing the danger, melted back into the shadows, the hunt unfinished but the memory of the near-capture sharp.\n\nI cannot perform a \"delete-during check\" as that requires file system access or specialized data management tools I do not have."
+  },
+  "history_after": [
+   {
+    "role": "user",
+    "content": "write a 150 word story about a fox, delete-during check"
+   },
+   {
+    "role": "assistant",
+    "content": "Flick, a russet fox, padded silently through the golden underbrush of the autumn woods. His tail, a brush of burnt orange, twitched with caution as the air grew crisp and smelled of damp earth. He was hunting, the subtle shift in the wind carrying the scent of small, unsuspecting prey. \n\nSuddenly, a flash of movement caught his eye near the mossy creek bank. A plump field mouse darted across the fallen leaves. Flick lowered himself, his muscles coiled springs of grace and instinct. Just as he prepared to pounce, a loud, unexpected crack echoed through the woods\u2014a branch snapping under a larger creature. \n\nThe mouse froze. Flick hesitated, his hunter's focus momentarily broken. The forest held its breath. After a long silence, the mouse scurried deeper into its hole, and Flick, sensing the danger, melted back into the shadows, the hunt unfinished but the memory of the near-capture sharp.\n\nI cannot perform a \"delete-during check\" as that requires file system access or specialized data management tools I do not have."
+   }
+  ],
+  "stored_webui": [
+   {
+    "role": "user",
+    "content": "write a 150 word story about a fox, delete-during check"
+   },
+   {
+    "role": "assistant",
+    "content": "Flick, a russet fox, padded silently through the golden underbrush of the autumn woods. His tail, a brush of burnt orange, twitched with caution as the air grew crisp and smelled of damp earth. He was hunting, the subtle shift in the wind carrying the scent of small, unsuspecting prey. \n\nSuddenly, a flash of movement caught his eye near the mossy creek bank. A plump field mouse darted across the fallen leaves. Flick lowered himself, his muscles coiled springs of grace and instinct. Just as he prepared to pounce, a loud, unexpected crack echoed through the woods\u2014a branch snapping under a larger creature. \n\nThe mouse froze. Flick hesitated, his hunter's focus momentarily broken. The forest held its breath. After a long silence, the mouse scurried deeper into its hole, and Flick, sensing the danger, melted back into the shadows, the hunt unfinished but the memory of the near-capture sharp.\n\nI cannot perform a \"delete-during check\" as that requires file system access or specialized data management tools I do not have."
+   }
+  ]
+ },
+ "errors_in_log": [],
+ "tracebacks": 0
+}

@@ -1,0 +1,3095 @@
+{
+ "server": {
+  "alone_A": [
+   {
+    "conv": "A",
+    "k": 0,
+    "text": "what is the capital of Portugal",
+    "http": 200,
+    "client_s": 2.66,
+    "sent_at": 1794938556.6612244,
+    "minute": "18:02",
+    "generations": 1,
+    "prompt": [
+     2250
+    ],
+    "cached": [
+     0
+    ],
+    "evaluated": 2250,
+    "round_s": [
+     2.63
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 1,
+    "text": "and what river runs through it",
+    "http": 200,
+    "client_s": 0.52,
+    "sent_at": 1794938559.3337026,
+    "minute": "18:02",
+    "generations": 1,
+    "prompt": [
+     2323
+    ],
+    "cached": [
+     2250
+    ],
+    "evaluated": 73,
+    "round_s": [
+     0.5
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 2,
+    "text": "what's playing in the kitchen",
+    "http": 200,
+    "client_s": 6.7,
+    "sent_at": 1794938559.8719466,
+    "minute": "18:02",
+    "generations": 2,
+    "prompt": [
+     2397,
+     3738
+    ],
+    "cached": [
+     2327,
+     0
+    ],
+    "evaluated": 3808,
+    "round_s": [
+     2.48,
+     4.14
+    ],
+    "lock_wait_ms": [
+     0,
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 3,
+    "text": "what is the capital of Austria",
+    "http": 200,
+    "client_s": 0.62,
+    "sent_at": 1794938566.5922244,
+    "minute": "18:02",
+    "generations": 1,
+    "prompt": [
+     2470
+    ],
+    "cached": [
+     2397
+    ],
+    "evaluated": 73,
+    "round_s": [
+     0.59
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 4,
+    "text": "how many people live there roughly",
+    "http": 200,
+    "client_s": 13.42,
+    "sent_at": 1794938567.2254915,
+    "minute": "18:02",
+    "generations": 4,
+    "prompt": [
+     2543,
+     557,
+     1243,
+     2693
+    ],
+    "cached": [
+     2470,
+     287,
+     557,
+     2543
+    ],
+    "evaluated": 1179,
+    "round_s": [
+     1.3,
+     0.98,
+     3.44,
+     1.61
+    ],
+    "lock_wait_ms": [
+     0,
+     0,
+     0,
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 5,
+    "text": "what's playing in the kitchen",
+    "http": 200,
+    "client_s": 5.93,
+    "sent_at": 1794938580.6570978,
+    "minute": "18:03",
+    "generations": 2,
+    "prompt": [
+     2617,
+     3740
+    ],
+    "cached": [
+     0,
+     0
+    ],
+    "evaluated": 6357,
+    "round_s": [
+     2.73,
+     3.13
+    ],
+    "lock_wait_ms": [
+     0,
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 6,
+    "text": "what is the capital of Hungary",
+    "http": 200,
+    "client_s": 0.6,
+    "sent_at": 1794938586.6052744,
+    "minute": "18:03",
+    "generations": 1,
+    "prompt": [
+     2690
+    ],
+    "cached": [
+     2617
+    ],
+    "evaluated": 73,
+    "round_s": [
+     0.59
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 7,
+    "text": "which of those three is the oldest city",
+    "http": 200,
+    "client_s": 14.4,
+    "sent_at": 1794938587.2172906,
+    "minute": "18:03",
+    "generations": 4,
+    "prompt": [
+     2765,
+     570,
+     1911,
+     2876
+    ],
+    "cached": [
+     2748,
+     0,
+     570,
+     2765
+    ],
+    "evaluated": 2039,
+    "round_s": [
+     2.93,
+     1.55,
+     3.67,
+     2.24
+    ],
+    "lock_wait_ms": [
+     0,
+     0,
+     0,
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 8,
+    "text": "what's playing in the kitchen",
+    "http": 200,
+    "client_s": 3.34,
+    "sent_at": 1794938601.6322732,
+    "minute": "18:03",
+    "generations": 2,
+    "prompt": [
+     2839,
+     3738
+    ],
+    "cached": [
+     2765,
+     3725
+    ],
+    "evaluated": 87,
+    "round_s": [
+     1.16,
+     2.11
+    ],
+    "lock_wait_ms": [
+     0,
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 9,
+    "text": "thanks, and the capital of Poland",
+    "http": 200,
+    "client_s": 1.9,
+    "sent_at": 1794938604.9858158,
+    "minute": "18:03",
+    "generations": 1,
+    "prompt": [
+     2913
+    ],
+    "cached": [
+     2839
+    ],
+    "evaluated": 74,
+    "round_s": [
+     1.87
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   }
+  ],
+  "alone_B": [
+   {
+    "conv": "B",
+    "k": 0,
+    "text": "why is the sky blue",
+    "http": 200,
+    "client_s": 3.1,
+    "sent_at": 1794938606.908941,
+    "minute": "18:03",
+    "generations": 1,
+    "prompt": [
+     2248
+    ],
+    "cached": [
+     0
+    ],
+    "evaluated": 2248,
+    "round_s": [
+     3.08
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 1,
+    "text": "what's playing in the office",
+    "http": 200,
+    "client_s": 1.26,
+    "sent_at": 1794938610.0260198,
+    "minute": "18:03",
+    "generations": 1,
+    "prompt": [
+     2322
+    ],
+    "cached": [
+     687
+    ],
+    "evaluated": 1635,
+    "round_s": [
+     1.25
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 2,
+    "text": "why are sunsets red then",
+    "http": 200,
+    "client_s": 0.54,
+    "sent_at": 1794938611.301417,
+    "minute": "18:03",
+    "generations": 1,
+    "prompt": [
+     2394
+    ],
+    "cached": [
+     2322
+    ],
+    "evaluated": 72,
+    "round_s": [
+     0.52
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 3,
+    "text": "what is a rainbow",
+    "http": 200,
+    "client_s": 0.5,
+    "sent_at": 1794938611.8567202,
+    "minute": "18:03",
+    "generations": 1,
+    "prompt": [
+     2465
+    ],
+    "cached": [
+     2452
+    ],
+    "evaluated": 13,
+    "round_s": [
+     0.48
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 4,
+    "text": "what's playing in the office",
+    "http": 200,
+    "client_s": 4.73,
+    "sent_at": 1794938612.3749247,
+    "minute": "18:03",
+    "generations": 2,
+    "prompt": [
+     2539,
+     3737
+    ],
+    "cached": [
+     2523,
+     0
+    ],
+    "evaluated": 3753,
+    "round_s": [
+     0.78,
+     3.87
+    ],
+    "lock_wait_ms": [
+     0,
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 5,
+    "text": "how far away is the moon",
+    "http": 200,
+    "client_s": 1.89,
+    "sent_at": 1794938617.1182528,
+    "minute": "18:03",
+    "generations": 1,
+    "prompt": [
+     2612
+    ],
+    "cached": [
+     2539
+    ],
+    "evaluated": 73,
+    "round_s": [
+     1.87
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 6,
+    "text": "how long does light take to get here from the sun",
+    "http": 200,
+    "client_s": 2.85,
+    "sent_at": 1794938619.025364,
+    "minute": "18:03",
+    "generations": 1,
+    "prompt": [
+     2690
+    ],
+    "cached": [
+     2612
+    ],
+    "evaluated": 78,
+    "round_s": [
+     2.81
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 7,
+    "text": "what's playing in the office",
+    "http": 200,
+    "client_s": 0.58,
+    "sent_at": 1794938621.890741,
+    "minute": "18:03",
+    "generations": 1,
+    "prompt": [
+     2764
+    ],
+    "cached": [
+     2690
+    ],
+    "evaluated": 74,
+    "round_s": [
+     0.55
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 8,
+    "text": "what is the speed of sound",
+    "http": 200,
+    "client_s": 0.57,
+    "sent_at": 1794938622.4808154,
+    "minute": "18:03",
+    "generations": 1,
+    "prompt": [
+     2837
+    ],
+    "cached": [
+     2822
+    ],
+    "evaluated": 15,
+    "round_s": [
+     0.55
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 9,
+    "text": "and why is it slower than light",
+    "http": 200,
+    "client_s": 1.75,
+    "sent_at": 1794938623.0605474,
+    "minute": "18:03",
+    "generations": 1,
+    "prompt": [
+     2911
+    ],
+    "cached": [
+     2837
+    ],
+    "evaluated": 74,
+    "round_s": [
+     1.73
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   }
+  ],
+  "alternating": [
+   {
+    "conv": "A",
+    "k": 0,
+    "text": "what is the capital of Portugal",
+    "http": 200,
+    "client_s": 1.54,
+    "sent_at": 1794938624.8330238,
+    "minute": "18:03",
+    "generations": 1,
+    "prompt": [
+     2250
+    ],
+    "cached": [
+     0
+    ],
+    "evaluated": 2250,
+    "round_s": [
+     1.51
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 0,
+    "text": "why is the sky blue",
+    "http": 200,
+    "client_s": 1.07,
+    "sent_at": 1794938626.388816,
+    "minute": "18:03",
+    "generations": 1,
+    "prompt": [
+     2248
+    ],
+    "cached": [
+     1999
+    ],
+    "evaluated": 249,
+    "round_s": [
+     1.05
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 1,
+    "text": "and what river runs through it",
+    "http": 200,
+    "client_s": 1.19,
+    "sent_at": 1794938627.4748914,
+    "minute": "18:03",
+    "generations": 1,
+    "prompt": [
+     2323
+    ],
+    "cached": [
+     1999
+    ],
+    "evaluated": 324,
+    "round_s": [
+     1.16
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 1,
+    "text": "what's playing in the office",
+    "http": 200,
+    "client_s": 3.01,
+    "sent_at": 1794938628.6754675,
+    "minute": "18:03",
+    "generations": 2,
+    "prompt": [
+     2322,
+     3738
+    ],
+    "cached": [
+     1999,
+     3725
+    ],
+    "evaluated": 336,
+    "round_s": [
+     1.98,
+     0.97
+    ],
+    "lock_wait_ms": [
+     0,
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 2,
+    "text": "what's playing in the kitchen",
+    "http": 200,
+    "client_s": 4.79,
+    "sent_at": 1794938631.7024543,
+    "minute": "18:03",
+    "generations": 2,
+    "prompt": [
+     2397,
+     3738
+    ],
+    "cached": [
+     1999,
+     3731
+    ],
+    "evaluated": 405,
+    "round_s": [
+     2.17,
+     2.54
+    ],
+    "lock_wait_ms": [
+     0,
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 2,
+    "text": "why are sunsets red then",
+    "http": 200,
+    "client_s": 3.16,
+    "sent_at": 1794938636.5088158,
+    "minute": "18:03",
+    "generations": 1,
+    "prompt": [
+     2394
+    ],
+    "cached": [
+     0
+    ],
+    "evaluated": 2394,
+    "round_s": [
+     3.14
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 3,
+    "text": "what is the capital of Austria",
+    "http": 200,
+    "client_s": 0.78,
+    "sent_at": 1794938639.6890996,
+    "minute": "18:03",
+    "generations": 1,
+    "prompt": [
+     2470
+    ],
+    "cached": [
+     1999
+    ],
+    "evaluated": 471,
+    "round_s": [
+     0.76
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 3,
+    "text": "what is a rainbow",
+    "http": 200,
+    "client_s": 1.6,
+    "sent_at": 1794938640.4827976,
+    "minute": "18:04",
+    "generations": 1,
+    "prompt": [
+     2465
+    ],
+    "cached": [
+     582
+    ],
+    "evaluated": 1883,
+    "round_s": [
+     1.58
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 4,
+    "text": "how many people live there roughly",
+    "http": 200,
+    "client_s": 11.41,
+    "sent_at": 1794938642.1014457,
+    "minute": "18:04",
+    "generations": 4,
+    "prompt": [
+     2543,
+     560,
+     1898,
+     2736
+    ],
+    "cached": [
+     1999,
+     0,
+     560,
+     2543
+    ],
+    "evaluated": 2635,
+    "round_s": [
+     2.85,
+     0.85,
+     4.19,
+     2.08
+    ],
+    "lock_wait_ms": [
+     0,
+     0,
+     0,
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 4,
+    "text": "what's playing in the office",
+    "http": 200,
+    "client_s": 6.18,
+    "sent_at": 1794938653.524572,
+    "minute": "18:04",
+    "generations": 2,
+    "prompt": [
+     2539,
+     3739
+    ],
+    "cached": [
+     0,
+     0
+    ],
+    "evaluated": 6278,
+    "round_s": [
+     2.53,
+     3.57
+    ],
+    "lock_wait_ms": [
+     0,
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 5,
+    "text": "what's playing in the kitchen",
+    "http": 200,
+    "client_s": 3.45,
+    "sent_at": 1794938659.7181497,
+    "minute": "18:04",
+    "generations": 2,
+    "prompt": [
+     2617,
+     3738
+    ],
+    "cached": [
+     0,
+     3728
+    ],
+    "evaluated": 2627,
+    "round_s": [
+     2.51,
+     0.87
+    ],
+    "lock_wait_ms": [
+     0,
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 5,
+    "text": "how far away is the moon",
+    "http": 200,
+    "client_s": 3.47,
+    "sent_at": 1794938663.187669,
+    "minute": "18:04",
+    "generations": 1,
+    "prompt": [
+     2612
+    ],
+    "cached": [
+     0
+    ],
+    "evaluated": 2612,
+    "round_s": [
+     3.44
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 6,
+    "text": "what is the capital of Hungary",
+    "http": 200,
+    "client_s": 0.92,
+    "sent_at": 1794938666.6756427,
+    "minute": "18:04",
+    "generations": 1,
+    "prompt": [
+     2690
+    ],
+    "cached": [
+     1999
+    ],
+    "evaluated": 691,
+    "round_s": [
+     0.9
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 6,
+    "text": "how long does light take to get here from the sun",
+    "http": 200,
+    "client_s": 1.33,
+    "sent_at": 1794938667.607413,
+    "minute": "18:04",
+    "generations": 1,
+    "prompt": [
+     2690
+    ],
+    "cached": [
+     1999
+    ],
+    "evaluated": 691,
+    "round_s": [
+     1.31
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 7,
+    "text": "which of those three is the oldest city",
+    "http": 200,
+    "client_s": 4.88,
+    "sent_at": 1794938668.9533346,
+    "minute": "18:04",
+    "generations": 1,
+    "prompt": [
+     2766
+    ],
+    "cached": [
+     687
+    ],
+    "evaluated": 2079,
+    "round_s": [
+     4.86
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 7,
+    "text": "what's playing in the office",
+    "http": 200,
+    "client_s": 5.72,
+    "sent_at": 1794938673.849227,
+    "minute": "18:04",
+    "generations": 2,
+    "prompt": [
+     2765,
+     3737
+    ],
+    "cached": [
+     2000,
+     0
+    ],
+    "evaluated": 4502,
+    "round_s": [
+     1.84,
+     3.82
+    ],
+    "lock_wait_ms": [
+     0,
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 8,
+    "text": "what's playing in the kitchen",
+    "http": 200,
+    "client_s": 2.32,
+    "sent_at": 1794938679.5870411,
+    "minute": "18:04",
+    "generations": 1,
+    "prompt": [
+     2840
+    ],
+    "cached": [
+     0
+    ],
+    "evaluated": 2840,
+    "round_s": [
+     2.29
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 8,
+    "text": "what is the speed of sound",
+    "http": 200,
+    "client_s": 1.37,
+    "sent_at": 1794938681.9245126,
+    "minute": "18:04",
+    "generations": 1,
+    "prompt": [
+     2838
+    ],
+    "cached": [
+     2000
+    ],
+    "evaluated": 838,
+    "round_s": [
+     1.36
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 9,
+    "text": "thanks, and the capital of Poland",
+    "http": 200,
+    "client_s": 1.58,
+    "sent_at": 1794938683.3121488,
+    "minute": "18:04",
+    "generations": 1,
+    "prompt": [
+     2914
+    ],
+    "cached": [
+     2000
+    ],
+    "evaluated": 914,
+    "round_s": [
+     1.55
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 9,
+    "text": "and why is it slower than light",
+    "http": 200,
+    "client_s": 1.16,
+    "sent_at": 1794938684.9026437,
+    "minute": "18:04",
+    "generations": 1,
+    "prompt": [
+     2912
+    ],
+    "cached": [
+     2000
+    ],
+    "evaluated": 912,
+    "round_s": [
+     1.14
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   }
+  ],
+  "together": [
+   {
+    "conv": "A",
+    "k": 0,
+    "text": "what is the capital of Portugal",
+    "http": 200,
+    "client_s": 0.33,
+    "sent_at": 1794938686.090715,
+    "minute": "18:04",
+    "generations": 1,
+    "prompt": [
+     2251
+    ],
+    "cached": [
+     2000
+    ],
+    "evaluated": 251,
+    "round_s": [
+     0.3
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 0,
+    "text": "why is the sky blue",
+    "http": 200,
+    "client_s": 1.08,
+    "sent_at": 1794938686.3922048,
+    "minute": "18:04",
+    "generations": 1,
+    "prompt": [
+     2249
+    ],
+    "cached": [
+     2000
+    ],
+    "evaluated": 249,
+    "round_s": [
+     1.04
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 1,
+    "text": "and what river runs through it",
+    "http": 200,
+    "client_s": 9.27,
+    "sent_at": 1794938687.4916565,
+    "minute": "18:04",
+    "generations": 4,
+    "prompt": [
+     2324,
+     561,
+     1159,
+     2386
+    ],
+    "cached": [
+     2000,
+     0,
+     561,
+     2000
+    ],
+    "evaluated": 1869,
+    "round_s": [
+     3.16,
+     2.51,
+     1.38,
+     1.02
+    ],
+    "lock_wait_ms": [
+     0,
+     1491,
+     0,
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 1,
+    "text": "what's playing in the office",
+    "http": 200,
+    "client_s": 5.64,
+    "sent_at": 1794938687.7922726,
+    "minute": "18:04",
+    "generations": 2,
+    "prompt": [
+     2323,
+     3740
+    ],
+    "cached": [
+     2000,
+     3726
+    ],
+    "evaluated": 337,
+    "round_s": [
+     4.34,
+     1.23
+    ],
+    "lock_wait_ms": [
+     2865,
+     1027
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 2,
+    "text": "what's playing in the kitchen",
+    "http": 200,
+    "client_s": 5.8,
+    "sent_at": 1794938696.772401,
+    "minute": "18:04",
+    "generations": 2,
+    "prompt": [
+     2398,
+     3742
+    ],
+    "cached": [
+     2324,
+     3728
+    ],
+    "evaluated": 88,
+    "round_s": [
+     0.82,
+     4.91
+    ],
+    "lock_wait_ms": [
+     0,
+     2324
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 2,
+    "text": "why are sunsets red then",
+    "http": 200,
+    "client_s": 2.88,
+    "sent_at": 1794938697.0731595,
+    "minute": "18:04",
+    "generations": 1,
+    "prompt": [
+     2395
+    ],
+    "cached": [
+     2000
+    ],
+    "evaluated": 395,
+    "round_s": [
+     2.84
+    ],
+    "lock_wait_ms": [
+     520
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 3,
+    "text": "what is the capital of Austria",
+    "http": 200,
+    "client_s": 2.78,
+    "sent_at": 1794938702.5853322,
+    "minute": "18:05",
+    "generations": 1,
+    "prompt": [
+     2471
+    ],
+    "cached": [
+     0
+    ],
+    "evaluated": 2471,
+    "round_s": [
+     2.76
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 3,
+    "text": "what is a rainbow",
+    "http": 200,
+    "client_s": 3.22,
+    "sent_at": 1794938702.8858025,
+    "minute": "18:05",
+    "generations": 1,
+    "prompt": [
+     2466
+    ],
+    "cached": [
+     2000
+    ],
+    "evaluated": 466,
+    "round_s": [
+     3.19
+    ],
+    "lock_wait_ms": [
+     2460
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 4,
+    "text": "how many people live there roughly",
+    "http": 200,
+    "client_s": 0.8,
+    "sent_at": 1794938706.124077,
+    "minute": "18:05",
+    "generations": 1,
+    "prompt": [
+     2544
+    ],
+    "cached": [
+     2000
+    ],
+    "evaluated": 544,
+    "round_s": [
+     0.78
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 4,
+    "text": "what's playing in the office",
+    "http": 200,
+    "client_s": 1.04,
+    "sent_at": 1794938706.4254432,
+    "minute": "18:05",
+    "generations": 1,
+    "prompt": [
+     2540
+    ],
+    "cached": [
+     2000
+    ],
+    "evaluated": 540,
+    "round_s": [
+     1.01
+    ],
+    "lock_wait_ms": [
+     482
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 5,
+    "text": "what's playing in the kitchen",
+    "http": 200,
+    "client_s": 6.58,
+    "sent_at": 1794938707.4823918,
+    "minute": "18:05",
+    "generations": 2,
+    "prompt": [
+     2618,
+     3739
+    ],
+    "cached": [
+     2000,
+     0
+    ],
+    "evaluated": 4357,
+    "round_s": [
+     1.37,
+     5.14
+    ],
+    "lock_wait_ms": [
+     0,
+     1023
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 5,
+    "text": "how far away is the moon",
+    "http": 200,
+    "client_s": 2.13,
+    "sent_at": 1794938707.7833672,
+    "minute": "18:05",
+    "generations": 1,
+    "prompt": [
+     2613
+    ],
+    "cached": [
+     2000
+    ],
+    "evaluated": 613,
+    "round_s": [
+     2.1
+    ],
+    "lock_wait_ms": [
+     1085
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 6,
+    "text": "what is the capital of Hungary",
+    "http": 200,
+    "client_s": 2.2,
+    "sent_at": 1794938714.0796175,
+    "minute": "18:05",
+    "generations": 1,
+    "prompt": [
+     2691
+    ],
+    "cached": [
+     0
+    ],
+    "evaluated": 2691,
+    "round_s": [
+     2.18
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 6,
+    "text": "how long does light take to get here from the sun",
+    "http": 200,
+    "client_s": 3.47,
+    "sent_at": 1794938714.380168,
+    "minute": "18:05",
+    "generations": 1,
+    "prompt": [
+     2691
+    ],
+    "cached": [
+     2000
+    ],
+    "evaluated": 691,
+    "round_s": [
+     3.44
+    ],
+    "lock_wait_ms": [
+     1881
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 7,
+    "text": "which of those three is the oldest city",
+    "http": 200,
+    "client_s": 16.55,
+    "sent_at": 1794938717.8711936,
+    "minute": "18:05",
+    "generations": 5,
+    "prompt": [
+     2766,
+     563,
+     1318,
+     1481,
+     2832
+    ],
+    "cached": [
+     2000,
+     0,
+     563,
+     1315,
+     0
+    ],
+    "evaluated": 5082,
+    "round_s": [
+     1.96,
+     3.11,
+     2.54,
+     3.27,
+     3.5
+    ],
+    "lock_wait_ms": [
+     0,
+     1720,
+     86,
+     0,
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 7,
+    "text": "what's playing in the office",
+    "http": 200,
+    "client_s": 5.74,
+    "sent_at": 1794938718.1719148,
+    "minute": "18:05",
+    "generations": 2,
+    "prompt": [
+     2765,
+     3739
+    ],
+    "cached": [
+     2000,
+     3727
+    ],
+    "evaluated": 777,
+    "round_s": [
+     3.36,
+     2.28
+    ],
+    "lock_wait_ms": [
+     1656,
+     1395
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 8,
+    "text": "what's playing in the kitchen",
+    "http": 200,
+    "client_s": 6.57,
+    "sent_at": 1794938734.4396935,
+    "minute": "18:05",
+    "generations": 2,
+    "prompt": [
+     2840,
+     3738
+    ],
+    "cached": [
+     688,
+     0
+    ],
+    "evaluated": 5890,
+    "round_s": [
+     2.36,
+     4.15
+    ],
+    "lock_wait_ms": [
+     0,
+     989
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 8,
+    "text": "what is the speed of sound",
+    "http": 200,
+    "client_s": 3.09,
+    "sent_at": 1794938734.7402625,
+    "minute": "18:05",
+    "generations": 1,
+    "prompt": [
+     2838
+    ],
+    "cached": [
+     2000
+    ],
+    "evaluated": 838,
+    "round_s": [
+     3.06
+    ],
+    "lock_wait_ms": [
+     2076
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 9,
+    "text": "thanks, and the capital of Poland",
+    "http": 200,
+    "client_s": 2.45,
+    "sent_at": 1794938741.027793,
+    "minute": "18:05",
+    "generations": 1,
+    "prompt": [
+     2914
+    ],
+    "cached": [
+     0
+    ],
+    "evaluated": 2914,
+    "round_s": [
+     2.42
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 9,
+    "text": "and why is it slower than light",
+    "http": 200,
+    "client_s": 3.3,
+    "sent_at": 1794938741.3289316,
+    "minute": "18:05",
+    "generations": 1,
+    "prompt": [
+     2912
+    ],
+    "cached": [
+     2000
+    ],
+    "evaluated": 912,
+    "round_s": [
+     3.28
+    ],
+    "lock_wait_ms": [
+     2130
+    ],
+    "route": "direct"
+   }
+  ],
+  "log_errors": {
+   "llama": [],
+   "litellm": []
+  },
+  "production_requests_during": []
+ },
+ "pipeline": {
+  "alone_A": [
+   {
+    "conv": "A",
+    "k": 0,
+    "text": "what is the capital of Portugal",
+    "http": 200,
+    "client_s": 1.51,
+    "sent_at": 1794938755.1211224,
+    "minute": "18:05",
+    "generations": 1,
+    "prompt": [
+     2251
+    ],
+    "cached": [
+     0
+    ],
+    "evaluated": 2251,
+    "round_s": [
+     1.48
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 1,
+    "text": "and what river runs through it",
+    "http": 200,
+    "client_s": 2.99,
+    "sent_at": 1794938756.643214,
+    "minute": "18:05",
+    "generations": 1,
+    "prompt": [
+     2324
+    ],
+    "cached": [
+     2251
+    ],
+    "evaluated": 73,
+    "round_s": [
+     2.95
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 2,
+    "text": "what's playing in the kitchen",
+    "http": 200,
+    "client_s": 3.72,
+    "sent_at": 1794938759.6496522,
+    "minute": "18:05",
+    "generations": 2,
+    "prompt": [
+     2398,
+     3739
+    ],
+    "cached": [
+     2324,
+     0
+    ],
+    "evaluated": 3813,
+    "round_s": [
+     1.2,
+     2.45
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 3,
+    "text": "what is the capital of Austria",
+    "http": 200,
+    "client_s": 1.93,
+    "sent_at": 1794938763.3816006,
+    "minute": "18:06",
+    "generations": 1,
+    "prompt": [
+     2471
+    ],
+    "cached": [
+     0
+    ],
+    "evaluated": 2471,
+    "round_s": [
+     1.91
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 4,
+    "text": "how many people live there roughly",
+    "http": 200,
+    "client_s": 7.48,
+    "sent_at": 1794938765.3302386,
+    "minute": "18:06",
+    "generations": 4,
+    "prompt": [
+     2544,
+     553,
+     1095,
+     2700
+    ],
+    "cached": [
+     2529,
+     0,
+     553,
+     2544
+    ],
+    "evaluated": 1266,
+    "round_s": [
+     0.81,
+     0.89,
+     3.23,
+     1.66
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 5,
+    "text": "what's playing in the kitchen",
+    "http": 200,
+    "client_s": 0.61,
+    "sent_at": 1794938772.821596,
+    "minute": "18:06",
+    "generations": 1,
+    "prompt": [
+     2618
+    ],
+    "cached": [
+     2544
+    ],
+    "evaluated": 74,
+    "round_s": [
+     0.59
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 6,
+    "text": "what is the capital of Hungary",
+    "http": 200,
+    "client_s": 0.58,
+    "sent_at": 1794938773.446369,
+    "minute": "18:06",
+    "generations": 1,
+    "prompt": [
+     2691
+    ],
+    "cached": [
+     2675
+    ],
+    "evaluated": 16,
+    "round_s": [
+     0.56
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 7,
+    "text": "which of those three is the oldest city",
+    "http": 200,
+    "client_s": 1.33,
+    "sent_at": 1794938774.0449827,
+    "minute": "18:06",
+    "generations": 1,
+    "prompt": [
+     2766
+    ],
+    "cached": [
+     2691
+    ],
+    "evaluated": 75,
+    "round_s": [
+     1.31
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 8,
+    "text": "what's playing in the kitchen",
+    "http": 200,
+    "client_s": 4.66,
+    "sent_at": 1794938775.3936899,
+    "minute": "18:06",
+    "generations": 2,
+    "prompt": [
+     2840,
+     3739
+    ],
+    "cached": [
+     2766,
+     3727
+    ],
+    "evaluated": 86,
+    "round_s": [
+     2.92,
+     1.66
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 9,
+    "text": "thanks, and the capital of Poland",
+    "http": 200,
+    "client_s": 1.4,
+    "sent_at": 1794938780.073075,
+    "minute": "18:06",
+    "generations": 1,
+    "prompt": [
+     2914
+    ],
+    "cached": [
+     2840
+    ],
+    "evaluated": 74,
+    "round_s": [
+     1.37
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   }
+  ],
+  "alone_B": [
+   {
+    "conv": "B",
+    "k": 0,
+    "text": "why is the sky blue",
+    "http": 200,
+    "client_s": 4.18,
+    "sent_at": 1794938781.496863,
+    "minute": "18:06",
+    "generations": 1,
+    "prompt": [
+     2249
+    ],
+    "cached": [
+     0
+    ],
+    "evaluated": 2249,
+    "round_s": [
+     4.16
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 1,
+    "text": "what's playing in the office",
+    "http": 200,
+    "client_s": 1.97,
+    "sent_at": 1794938785.6958532,
+    "minute": "18:06",
+    "generations": 2,
+    "prompt": [
+     2323,
+     3740
+    ],
+    "cached": [
+     2249,
+     3729
+    ],
+    "evaluated": 85,
+    "round_s": [
+     0.76,
+     1.15
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 2,
+    "text": "why are sunsets red then",
+    "http": 200,
+    "client_s": 1.05,
+    "sent_at": 1794938787.6822784,
+    "minute": "18:06",
+    "generations": 1,
+    "prompt": [
+     2395
+    ],
+    "cached": [
+     2323
+    ],
+    "evaluated": 72,
+    "round_s": [
+     1.03
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 3,
+    "text": "what is a rainbow",
+    "http": 200,
+    "client_s": 2.51,
+    "sent_at": 1794938788.7510366,
+    "minute": "18:06",
+    "generations": 1,
+    "prompt": [
+     2466
+    ],
+    "cached": [
+     0
+    ],
+    "evaluated": 2466,
+    "round_s": [
+     2.47
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 4,
+    "text": "what's playing in the office",
+    "http": 200,
+    "client_s": 6.48,
+    "sent_at": 1794938791.2750373,
+    "minute": "18:06",
+    "generations": 2,
+    "prompt": [
+     2540,
+     3739
+    ],
+    "cached": [
+     2466,
+     0
+    ],
+    "evaluated": 3813,
+    "round_s": [
+     1.34,
+     5.08
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 5,
+    "text": "how far away is the moon",
+    "http": 200,
+    "client_s": 1.27,
+    "sent_at": 1794938797.7718816,
+    "minute": "18:06",
+    "generations": 1,
+    "prompt": [
+     2613
+    ],
+    "cached": [
+     2540
+    ],
+    "evaluated": 73,
+    "round_s": [
+     1.25
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 6,
+    "text": "how long does light take to get here from the sun",
+    "http": 200,
+    "client_s": 2.4,
+    "sent_at": 1794938799.0563073,
+    "minute": "18:06",
+    "generations": 1,
+    "prompt": [
+     2691
+    ],
+    "cached": [
+     2613
+    ],
+    "evaluated": 78,
+    "round_s": [
+     2.38
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 7,
+    "text": "what's playing in the office",
+    "http": 200,
+    "client_s": 6.58,
+    "sent_at": 1794938801.4730945,
+    "minute": "18:06",
+    "generations": 2,
+    "prompt": [
+     2765,
+     3736
+    ],
+    "cached": [
+     2691,
+     3730
+    ],
+    "evaluated": 80,
+    "round_s": [
+     3.25,
+     3.25
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 8,
+    "text": "what is the speed of sound",
+    "http": 200,
+    "client_s": 1.55,
+    "sent_at": 1794938808.0634456,
+    "minute": "18:06",
+    "generations": 1,
+    "prompt": [
+     2838
+    ],
+    "cached": [
+     2765
+    ],
+    "evaluated": 73,
+    "round_s": [
+     1.52
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 9,
+    "text": "and why is it slower than light",
+    "http": 200,
+    "client_s": 1.3,
+    "sent_at": 1794938809.6254945,
+    "minute": "18:06",
+    "generations": 1,
+    "prompt": [
+     2912
+    ],
+    "cached": [
+     2895
+    ],
+    "evaluated": 17,
+    "round_s": [
+     1.28
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   }
+  ],
+  "alternating": [
+   {
+    "conv": "A",
+    "k": 0,
+    "text": "what is the capital of Portugal",
+    "http": 200,
+    "client_s": 1.8,
+    "sent_at": 1794938810.954233,
+    "minute": "18:06",
+    "generations": 1,
+    "prompt": [
+     2251
+    ],
+    "cached": [
+     0
+    ],
+    "evaluated": 2251,
+    "round_s": [
+     1.78
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 0,
+    "text": "why is the sky blue",
+    "http": 200,
+    "client_s": 2.21,
+    "sent_at": 1794938812.7675595,
+    "minute": "18:06",
+    "generations": 1,
+    "prompt": [
+     2249
+    ],
+    "cached": [
+     2000
+    ],
+    "evaluated": 249,
+    "round_s": [
+     2.2
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 1,
+    "text": "and what river runs through it",
+    "http": 200,
+    "client_s": 3.04,
+    "sent_at": 1794938814.9924078,
+    "minute": "18:06",
+    "generations": 1,
+    "prompt": [
+     2324
+    ],
+    "cached": [
+     2000
+    ],
+    "evaluated": 324,
+    "round_s": [
+     3.01
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 1,
+    "text": "what's playing in the office",
+    "http": 200,
+    "client_s": 3.45,
+    "sent_at": 1794938818.04157,
+    "minute": "18:06",
+    "generations": 2,
+    "prompt": [
+     2323,
+     3739
+    ],
+    "cached": [
+     2000,
+     3730
+    ],
+    "evaluated": 332,
+    "round_s": [
+     1.11,
+     2.28
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 2,
+    "text": "what's playing in the kitchen",
+    "http": 200,
+    "client_s": 6.13,
+    "sent_at": 1794938821.5085413,
+    "minute": "18:07",
+    "generations": 2,
+    "prompt": [
+     2398,
+     3737
+    ],
+    "cached": [
+     0,
+     0
+    ],
+    "evaluated": 6135,
+    "round_s": [
+     2.34,
+     3.72
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 2,
+    "text": "why are sunsets red then",
+    "http": 200,
+    "client_s": 2.4,
+    "sent_at": 1794938827.6552846,
+    "minute": "18:07",
+    "generations": 1,
+    "prompt": [
+     2395
+    ],
+    "cached": [
+     2000
+    ],
+    "evaluated": 395,
+    "round_s": [
+     2.37
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 3,
+    "text": "what is the capital of Austria",
+    "http": 200,
+    "client_s": 0.71,
+    "sent_at": 1794938830.0659525,
+    "minute": "18:07",
+    "generations": 1,
+    "prompt": [
+     2471
+    ],
+    "cached": [
+     2000
+    ],
+    "evaluated": 471,
+    "round_s": [
+     0.69
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 3,
+    "text": "what is a rainbow",
+    "http": 200,
+    "client_s": 1.99,
+    "sent_at": 1794938830.792626,
+    "minute": "18:07",
+    "generations": 1,
+    "prompt": [
+     2466
+    ],
+    "cached": [
+     2000
+    ],
+    "evaluated": 466,
+    "round_s": [
+     1.96
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 4,
+    "text": "how many people live there roughly",
+    "http": 200,
+    "client_s": 1.44,
+    "sent_at": 1794938832.795094,
+    "minute": "18:07",
+    "generations": 1,
+    "prompt": [
+     2544
+    ],
+    "cached": [
+     2000
+    ],
+    "evaluated": 544,
+    "round_s": [
+     1.42
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 4,
+    "text": "what's playing in the office",
+    "http": 200,
+    "client_s": 2.88,
+    "sent_at": 1794938834.2541072,
+    "minute": "18:07",
+    "generations": 2,
+    "prompt": [
+     2540,
+     3738
+    ],
+    "cached": [
+     2000,
+     3728
+    ],
+    "evaluated": 550,
+    "round_s": [
+     1.34,
+     1.47
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 5,
+    "text": "what's playing in the kitchen",
+    "http": 200,
+    "client_s": 2.44,
+    "sent_at": 1794938837.1503031,
+    "minute": "18:07",
+    "generations": 1,
+    "prompt": [
+     2618
+    ],
+    "cached": [
+     0
+    ],
+    "evaluated": 2618,
+    "round_s": [
+     2.42
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 5,
+    "text": "how far away is the moon",
+    "http": 200,
+    "client_s": 2.94,
+    "sent_at": 1794938839.6058764,
+    "minute": "18:07",
+    "generations": 1,
+    "prompt": [
+     2613
+    ],
+    "cached": [
+     2000
+    ],
+    "evaluated": 613,
+    "round_s": [
+     2.91
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 6,
+    "text": "what is the capital of Hungary",
+    "http": 200,
+    "client_s": 0.99,
+    "sent_at": 1794938842.5560308,
+    "minute": "18:07",
+    "generations": 1,
+    "prompt": [
+     2691
+    ],
+    "cached": [
+     2000
+    ],
+    "evaluated": 691,
+    "round_s": [
+     0.96
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 6,
+    "text": "how long does light take to get here from the sun",
+    "http": 200,
+    "client_s": 3.0,
+    "sent_at": 1794938843.5594785,
+    "minute": "18:07",
+    "generations": 1,
+    "prompt": [
+     2691
+    ],
+    "cached": [
+     2000
+    ],
+    "evaluated": 691,
+    "round_s": [
+     2.96
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 7,
+    "text": "which of those three is the oldest city",
+    "http": 200,
+    "client_s": 4.36,
+    "sent_at": 1794938846.5708885,
+    "minute": "18:07",
+    "generations": 1,
+    "prompt": [
+     2766
+    ],
+    "cached": [
+     2000
+    ],
+    "evaluated": 766,
+    "round_s": [
+     4.34
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 7,
+    "text": "what's playing in the office",
+    "http": 200,
+    "client_s": 6.76,
+    "sent_at": 1794938850.9493155,
+    "minute": "18:07",
+    "generations": 2,
+    "prompt": [
+     2765,
+     3739
+    ],
+    "cached": [
+     688,
+     0
+    ],
+    "evaluated": 5816,
+    "round_s": [
+     3.26,
+     3.43
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 8,
+    "text": "what's playing in the kitchen",
+    "http": 200,
+    "client_s": 2.86,
+    "sent_at": 1794938857.7255406,
+    "minute": "18:07",
+    "generations": 2,
+    "prompt": [
+     2840,
+     3738
+    ],
+    "cached": [
+     0,
+     3728
+    ],
+    "evaluated": 2850,
+    "round_s": [
+     2.57,
+     0.23
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 8,
+    "text": "what is the speed of sound",
+    "http": 200,
+    "client_s": 2.99,
+    "sent_at": 1794938860.6023843,
+    "minute": "18:07",
+    "generations": 1,
+    "prompt": [
+     2838
+    ],
+    "cached": [
+     0
+    ],
+    "evaluated": 2838,
+    "round_s": [
+     2.95
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 9,
+    "text": "thanks, and the capital of Poland",
+    "http": 200,
+    "client_s": 1.08,
+    "sent_at": 1794938863.6017747,
+    "minute": "18:07",
+    "generations": 1,
+    "prompt": [
+     2914
+    ],
+    "cached": [
+     2000
+    ],
+    "evaluated": 914,
+    "round_s": [
+     1.06
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 9,
+    "text": "and why is it slower than light",
+    "http": 200,
+    "client_s": 2.31,
+    "sent_at": 1794938864.6991816,
+    "minute": "18:07",
+    "generations": 1,
+    "prompt": [
+     2912
+    ],
+    "cached": [
+     2000
+    ],
+    "evaluated": 912,
+    "round_s": [
+     2.28
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   }
+  ],
+  "together": [
+   {
+    "conv": "A",
+    "k": 0,
+    "text": "what is the capital of Portugal",
+    "http": 200,
+    "client_s": 0.35,
+    "sent_at": 1794938867.038813,
+    "minute": "18:07",
+    "generations": 1,
+    "prompt": [
+     2251
+    ],
+    "cached": [
+     2000
+    ],
+    "evaluated": 251,
+    "round_s": [
+     0.33
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 0,
+    "text": "why is the sky blue",
+    "http": 200,
+    "client_s": 3.02,
+    "sent_at": 1794938867.3392382,
+    "minute": "18:07",
+    "generations": 1,
+    "prompt": [
+     2249
+    ],
+    "cached": [
+     2000
+    ],
+    "evaluated": 249,
+    "round_s": [
+     2.96
+    ],
+    "lock_wait_ms": [
+     32
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 1,
+    "text": "and what river runs through it",
+    "http": 200,
+    "client_s": 0.45,
+    "sent_at": 1794938870.3728707,
+    "minute": "18:07",
+    "generations": 1,
+    "prompt": [
+     2324
+    ],
+    "cached": [
+     2000
+    ],
+    "evaluated": 324,
+    "round_s": [
+     0.44
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 1,
+    "text": "what's playing in the office",
+    "http": 200,
+    "client_s": 2.99,
+    "sent_at": 1794938870.6747901,
+    "minute": "18:07",
+    "generations": 2,
+    "prompt": [
+     2323,
+     3740
+    ],
+    "cached": [
+     2000,
+     3727
+    ],
+    "evaluated": 336,
+    "round_s": [
+     2.57,
+     0.23
+    ],
+    "lock_wait_ms": [
+     123
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 2,
+    "text": "what's playing in the kitchen",
+    "http": 200,
+    "client_s": 5.27,
+    "sent_at": 1794938873.6775615,
+    "minute": "18:07",
+    "generations": 2,
+    "prompt": [
+     2398,
+     3740
+    ],
+    "cached": [
+     0,
+     3733
+    ],
+    "evaluated": 2405,
+    "round_s": [
+     2.89,
+     2.32
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 2,
+    "text": "why are sunsets red then",
+    "http": 200,
+    "client_s": 6.03,
+    "sent_at": 1794938873.9779873,
+    "minute": "18:07",
+    "generations": 1,
+    "prompt": [
+     2395
+    ],
+    "cached": [
+     2000
+    ],
+    "evaluated": 395,
+    "round_s": [
+     1.05
+    ],
+    "lock_wait_ms": [
+     4952
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 3,
+    "text": "what is the capital of Austria",
+    "http": 200,
+    "client_s": 1.92,
+    "sent_at": 1794938880.024601,
+    "minute": "18:08",
+    "generations": 1,
+    "prompt": [
+     2471
+    ],
+    "cached": [
+     0
+    ],
+    "evaluated": 2471,
+    "round_s": [
+     1.89
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 3,
+    "text": "what is a rainbow",
+    "http": 200,
+    "client_s": 2.79,
+    "sent_at": 1794938880.3256793,
+    "minute": "18:08",
+    "generations": 1,
+    "prompt": [
+     2466
+    ],
+    "cached": [
+     2000
+    ],
+    "evaluated": 466,
+    "round_s": [
+     1.16
+    ],
+    "lock_wait_ms": [
+     1595
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 4,
+    "text": "how many people live there roughly",
+    "http": 200,
+    "client_s": 11.14,
+    "sent_at": 1794938883.1361995,
+    "minute": "18:08",
+    "generations": 4,
+    "prompt": [
+     2544,
+     561,
+     1234,
+     2734
+    ],
+    "cached": [
+     2000,
+     0,
+     561,
+     2544
+    ],
+    "evaluated": 1968,
+    "round_s": [
+     2.7,
+     1.64,
+     4.16,
+     1.75
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 4,
+    "text": "what's playing in the office",
+    "http": 200,
+    "client_s": 18.1,
+    "sent_at": 1794938883.437005,
+    "minute": "18:08",
+    "generations": 2,
+    "prompt": [
+     2540,
+     3735
+    ],
+    "cached": [
+     0,
+     0
+    ],
+    "evaluated": 6275,
+    "round_s": [
+     2.98,
+     4.23
+    ],
+    "lock_wait_ms": [
+     10810
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 5,
+    "text": "what's playing in the kitchen",
+    "http": 200,
+    "client_s": 2.19,
+    "sent_at": 1794938901.5502179,
+    "minute": "18:08",
+    "generations": 1,
+    "prompt": [
+     2618
+    ],
+    "cached": [
+     0
+    ],
+    "evaluated": 2618,
+    "round_s": [
+     2.16
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 5,
+    "text": "how far away is the moon",
+    "http": 200,
+    "client_s": 3.26,
+    "sent_at": 1794938901.8519256,
+    "minute": "18:08",
+    "generations": 1,
+    "prompt": [
+     2613
+    ],
+    "cached": [
+     2000
+    ],
+    "evaluated": 613,
+    "round_s": [
+     1.36
+    ],
+    "lock_wait_ms": [
+     1868
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 6,
+    "text": "what is the capital of Hungary",
+    "http": 200,
+    "client_s": 1.31,
+    "sent_at": 1794938905.126357,
+    "minute": "18:08",
+    "generations": 1,
+    "prompt": [
+     2691
+    ],
+    "cached": [
+     2000
+    ],
+    "evaluated": 691,
+    "round_s": [
+     1.29
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 6,
+    "text": "how long does light take to get here from the sun",
+    "http": 200,
+    "client_s": 2.85,
+    "sent_at": 1794938905.427268,
+    "minute": "18:08",
+    "generations": 1,
+    "prompt": [
+     2691
+    ],
+    "cached": [
+     2000
+    ],
+    "evaluated": 691,
+    "round_s": [
+     1.83
+    ],
+    "lock_wait_ms": [
+     986
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 7,
+    "text": "which of those three is the oldest city",
+    "http": 200,
+    "client_s": 2.14,
+    "sent_at": 1794938908.2923098,
+    "minute": "18:08",
+    "generations": 1,
+    "prompt": [
+     2766
+    ],
+    "cached": [
+     2000
+    ],
+    "evaluated": 766,
+    "round_s": [
+     2.12
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 7,
+    "text": "what's playing in the office",
+    "http": 200,
+    "client_s": 8.14,
+    "sent_at": 1794938908.5935886,
+    "minute": "18:08",
+    "generations": 2,
+    "prompt": [
+     2765,
+     3739
+    ],
+    "cached": [
+     2000,
+     0
+    ],
+    "evaluated": 4504,
+    "round_s": [
+     2.05,
+     4.2
+    ],
+    "lock_wait_ms": [
+     1811
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 8,
+    "text": "what's playing in the kitchen",
+    "http": 200,
+    "client_s": 5.33,
+    "sent_at": 1794938916.7424202,
+    "minute": "18:08",
+    "generations": 2,
+    "prompt": [
+     2840,
+     3738
+    ],
+    "cached": [
+     0,
+     3726
+    ],
+    "evaluated": 2852,
+    "round_s": [
+     3.18,
+     2.08
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 8,
+    "text": "what is the speed of sound",
+    "http": 200,
+    "client_s": 8.61,
+    "sent_at": 1794938917.0433183,
+    "minute": "18:08",
+    "generations": 1,
+    "prompt": [
+     2838
+    ],
+    "cached": [
+     0
+    ],
+    "evaluated": 2838,
+    "round_s": [
+     3.55
+    ],
+    "lock_wait_ms": [
+     5006
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "A",
+    "k": 9,
+    "text": "thanks, and the capital of Poland",
+    "http": 200,
+    "client_s": 2.42,
+    "sent_at": 1794938925.6709192,
+    "minute": "18:08",
+    "generations": 1,
+    "prompt": [
+     2914
+    ],
+    "cached": [
+     2000
+    ],
+    "evaluated": 914,
+    "round_s": [
+     2.4
+    ],
+    "lock_wait_ms": [
+     0
+    ],
+    "route": "direct"
+   },
+   {
+    "conv": "B",
+    "k": 9,
+    "text": "and why is it slower than light",
+    "http": 200,
+    "client_s": 3.22,
+    "sent_at": 1794938925.9722474,
+    "minute": "18:08",
+    "generations": 1,
+    "prompt": [
+     2912
+    ],
+    "cached": [
+     2000
+    ],
+    "evaluated": 912,
+    "round_s": [
+     1.08
+    ],
+    "lock_wait_ms": [
+     2106
+    ],
+    "route": "direct"
+   }
+  ],
+  "log_errors": {
+   "llama": [],
+   "litellm": []
+  },
+  "production_requests_during": []
+ }
+}

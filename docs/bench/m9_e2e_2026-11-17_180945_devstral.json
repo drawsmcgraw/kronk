@@ -1,0 +1,483 @@
+{
+ "coding": {
+  "mount": "display",
+  "text": "ask the coding agent to write a python function that returns the nth fibonacci number with a short docstring, and show me the code",
+  "stream": false,
+  "status": 200,
+  "client_s": 19.155,
+  "sent_at": 1794938963.8531125,
+  "end": {
+   "ts": 1794938983.008,
+   "rid": "0d842660",
+   "event": "request_complete",
+   "route": "direct",
+   "duration_s": 19.15,
+   "trace_id": "9dd0913a83187164fd755f741305bd7a"
+  },
+  "trace_id": "9dd0913a83187164fd755f741305bd7a",
+  "rounds": [
+   {
+    "agent": "coordinator",
+    "phase": "plan_1",
+    "duration_s": 2.35,
+    "prompt_tokens": 2032,
+    "cached_tokens": 0,
+    "completion_tokens": 135,
+    "ts": 1794938966.214
+   },
+   {
+    "agent": "coding",
+    "phase": "synthesis",
+    "duration_s": 12.94,
+    "prompt_tokens": 417,
+    "cached_tokens": 0,
+    "completion_tokens": 142,
+    "ts": 1794938979.156
+   },
+   {
+    "agent": "coordinator",
+    "phase": "synthesis",
+    "duration_s": 3.81,
+    "prompt_tokens": 2233,
+    "cached_tokens": 2000,
+    "completion_tokens": 237,
+    "ts": 1794938982.996
+   }
+  ],
+  "locks": [
+   {
+    "lock": "127.0.0.1:11438",
+    "priority": "display",
+    "wait_ms": 0,
+    "acquired": null,
+    "ts": 1794938963.871
+   },
+   {
+    "lock": "127.0.0.1:11440",
+    "priority": "display",
+    "wait_ms": 0,
+    "acquired": null,
+    "ts": 1794938966.217
+   },
+   {
+    "lock": "127.0.0.1:11438",
+    "priority": "display",
+    "wait_ms": 1697,
+    "acquired": null,
+    "ts": 1794938980.879
+   }
+  ],
+  "tools": [
+   {
+    "event": "tool_call",
+    "tool": "ask_coding",
+    "duration_s": null,
+    "failed": null,
+    "ts": 1794938966.217
+   },
+   {
+    "event": "tool_complete",
+    "tool": "ask_coding",
+    "duration_s": 12.96,
+    "failed": null,
+    "ts": 1794938979.181
+   }
+  ],
+  "events": [
+   "request",
+   "route_shortcut",
+   "model_lock",
+   "agent_round",
+   "tool_call",
+   "model_lock",
+   "agent_round",
+   "tool_complete",
+   "model_lock",
+   "agent_round",
+   "request_complete"
+  ],
+  "body_tail": " a, b = 0, 1\\n    for _ in range(2, n + 1):\\n        a, b = b, a + b\\n    return b\\n```\"},\"done\":true,\"done_reason\":\"stop\",\"total_duration\":0,\"load_duration\":0,\"prompt_eval_count\":32,\"eval_count\":120}",
+  "raw": {
+   "shape": "api_chat",
+   "text": "ask the coding agent to write a python function that returns the nth fibonacci number with a short docstring, and show me the code",
+   "sent_at": 1794938963.8541296,
+   "dropped_after_s": null,
+   "client_s": 19.155,
+   "bytes": 891,
+   "status": 200,
+   "tail": " a, b = 0, 1\\n    for _ in range(2, n + 1):\\n        a, b = b, a + b\\n    return b\\n```\"},\"done\":true,\"done_reason\":\"stop\",\"total_duration\":0,\"load_duration\":0,\"prompt_eval_count\":32,\"eval_count\":120}",
+   "head": "HTTP/1.1 200 OK\r\nServer: nginx/1.29.8\r\nDate: Tue, 17 Nov 2026 18:09:43 GMT\r\nContent-Type: application/json\r\nContent-Leng"
+  }
+ },
+ "side": [
+  {
+   "mount": "voice",
+   "text": "what is the capital of Sweden, side 1",
+   "stream": false,
+   "status": 200,
+   "client_s": 4.259,
+   "sent_at": 1794938965.8533323,
+   "end": {
+    "ts": 1794938970.111,
+    "rid": "eda8e27d",
+    "event": "request_complete",
+    "route": "direct",
+    "duration_s": 4.25,
+    "trace_id": "9fcf92aa51e06072a1c0c0bf9819e85e"
+   },
+   "trace_id": "9fcf92aa51e06072a1c0c0bf9819e85e",
+   "rounds": [
+    {
+     "agent": "coordinator",
+     "phase": "synthesis",
+     "duration_s": 4.23,
+     "prompt_tokens": 2062,
+     "cached_tokens": 1330,
+     "completion_tokens": 55,
+     "ts": 1794938970.099
+    }
+   ],
+   "locks": [
+    {
+     "lock": "127.0.0.1:11438",
+     "priority": "voice",
+     "wait_ms": 353,
+     "acquired": null,
+     "ts": 1794938966.221
+    }
+   ],
+   "tools": [],
+   "events": [
+    "request",
+    "origin",
+    "route",
+    "model_lock",
+    "agent_round",
+    "request_complete"
+   ],
+   "body_tail": "0.000000000Z\",\"message\":{\"role\":\"assistant\",\"content\":\"The capital of Sweden is Stockholm.\"},\"done\":true,\"done_reason\":\"stop\",\"total_duration\":0,\"load_duration\":0,\"prompt_eval_count\":9,\"eval_count\":8}",
+   "raw": {
+    "shape": "voice_buffered",
+    "text": "what is the capital of Sweden, side 1",
+    "sent_at": 1794938965.8536282,
+    "dropped_after_s": null,
+    "client_s": 4.259,
+    "bytes": 410,
+    "status": 200,
+    "tail": "0.000000000Z\",\"message\":{\"role\":\"assistant\",\"content\":\"The capital of Sweden is Stockholm.\"},\"done\":true,\"done_reason\":\"stop\",\"total_duration\":0,\"load_duration\":0,\"prompt_eval_count\":9,\"eval_count\":8}",
+    "head": "HTTP/1.1 200 OK\r\nServer: nginx/1.29.8\r\nDate: Tue, 17 Nov 2026 18:09:30 GMT\r\nContent-Type: application/json\r\nContent-Leng"
+   }
+  },
+  {
+   "mount": "voice",
+   "text": "what is the capital of Sweden, side 2",
+   "stream": false,
+   "status": 200,
+   "client_s": 2.572,
+   "sent_at": 1794938970.4320915,
+   "end": {
+    "ts": 1794938973.003,
+    "rid": "292b45ff",
+    "event": "request_complete",
+    "route": "direct",
+    "duration_s": 2.57,
+    "trace_id": "d2dacb3c02e209484187036c58c52979"
+   },
+   "trace_id": "d2dacb3c02e209484187036c58c52979",
+   "rounds": [
+    {
+     "agent": "coordinator",
+     "phase": "synthesis",
+     "duration_s": 2.54,
+     "prompt_tokens": 2062,
+     "cached_tokens": 688,
+     "completion_tokens": 8,
+     "ts": 1794938972.991
+    }
+   ],
+   "locks": [
+    {
+     "lock": "127.0.0.1:11438",
+     "priority": "voice",
+     "wait_ms": 0,
+     "acquired": null,
+     "ts": 1794938970.447
+    }
+   ],
+   "tools": [],
+   "events": [
+    "request",
+    "origin",
+    "route",
+    "model_lock",
+    "agent_round",
+    "request_complete"
+   ],
+   "body_tail": "3.000000000Z\",\"message\":{\"role\":\"assistant\",\"content\":\"The capital of Sweden is Stockholm.\"},\"done\":true,\"done_reason\":\"stop\",\"total_duration\":0,\"load_duration\":0,\"prompt_eval_count\":9,\"eval_count\":8}",
+   "raw": {
+    "shape": "voice_buffered",
+    "text": "what is the capital of Sweden, side 2",
+    "sent_at": 1794938970.4326274,
+    "dropped_after_s": null,
+    "client_s": 2.572,
+    "bytes": 410,
+    "status": 200,
+    "tail": "3.000000000Z\",\"message\":{\"role\":\"assistant\",\"content\":\"The capital of Sweden is Stockholm.\"},\"done\":true,\"done_reason\":\"stop\",\"total_duration\":0,\"load_duration\":0,\"prompt_eval_count\":9,\"eval_count\":8}",
+    "head": "HTTP/1.1 200 OK\r\nServer: nginx/1.29.8\r\nDate: Tue, 17 Nov 2026 18:09:33 GMT\r\nContent-Type: application/json\r\nContent-Leng"
+   }
+  },
+  {
+   "mount": "voice",
+   "text": "what is the capital of Sweden, side 3",
+   "stream": false,
+   "status": 200,
+   "client_s": 2.182,
+   "sent_at": 1794938973.3239734,
+   "end": {
+    "ts": 1794938975.505,
+    "rid": "9bea6212",
+    "event": "request_complete",
+    "route": "direct",
+    "duration_s": 2.18,
+    "trace_id": "509045daeba70cc86884882ae18aca67"
+   },
+   "trace_id": "509045daeba70cc86884882ae18aca67",
+   "rounds": [
+    {
+     "agent": "coordinator",
+     "phase": "synthesis",
+     "duration_s": 2.16,
+     "prompt_tokens": 2062,
+     "cached_tokens": 2056,
+     "completion_tokens": 43,
+     "ts": 1794938975.494
+    }
+   ],
+   "locks": [
+    {
+     "lock": "127.0.0.1:11438",
+     "priority": "voice",
+     "wait_ms": 0,
+     "acquired": null,
+     "ts": 1794938973.338
+    }
+   ],
+   "tools": [],
+   "events": [
+    "request",
+    "origin",
+    "route",
+    "model_lock",
+    "agent_round",
+    "request_complete"
+   ],
+   "body_tail": "5.000000000Z\",\"message\":{\"role\":\"assistant\",\"content\":\"The capital of Sweden is Stockholm.\"},\"done\":true,\"done_reason\":\"stop\",\"total_duration\":0,\"load_duration\":0,\"prompt_eval_count\":9,\"eval_count\":8}",
+   "raw": {
+    "shape": "voice_buffered",
+    "text": "what is the capital of Sweden, side 3",
+    "sent_at": 1794938973.3244398,
+    "dropped_after_s": null,
+    "client_s": 2.182,
+    "bytes": 410,
+    "status": 200,
+    "tail": "5.000000000Z\",\"message\":{\"role\":\"assistant\",\"content\":\"The capital of Sweden is Stockholm.\"},\"done\":true,\"done_reason\":\"stop\",\"total_duration\":0,\"load_duration\":0,\"prompt_eval_count\":9,\"eval_count\":8}",
+    "head": "HTTP/1.1 200 OK\r\nServer: nginx/1.29.8\r\nDate: Tue, 17 Nov 2026 18:09:35 GMT\r\nContent-Type: application/json\r\nContent-Leng"
+   }
+  },
+  {
+   "mount": "voice",
+   "text": "what is the capital of Sweden, side 4",
+   "stream": false,
+   "status": 200,
+   "client_s": 5.054,
+   "sent_at": 1794938975.825216,
+   "end": {
+    "ts": 1794938980.878,
+    "rid": "dc578745",
+    "event": "request_complete",
+    "route": "direct",
+    "duration_s": 5.05,
+    "trace_id": "47f9fc846dd6e068892227bd4fc24102"
+   },
+   "trace_id": "47f9fc846dd6e068892227bd4fc24102",
+   "rounds": [
+    {
+     "agent": "coordinator",
+     "phase": "synthesis",
+     "duration_s": 5.03,
+     "prompt_tokens": 2062,
+     "cached_tokens": 2056,
+     "completion_tokens": 267,
+     "ts": 1794938980.866
+    }
+   ],
+   "locks": [
+    {
+     "lock": "127.0.0.1:11438",
+     "priority": "voice",
+     "wait_ms": 0,
+     "acquired": null,
+     "ts": 1794938975.839
+    }
+   ],
+   "tools": [],
+   "events": [
+    "request",
+    "origin",
+    "route",
+    "model_lock",
+    "agent_round",
+    "request_complete"
+   ],
+   "body_tail": "0.000000000Z\",\"message\":{\"role\":\"assistant\",\"content\":\"The capital of Sweden is Stockholm.\"},\"done\":true,\"done_reason\":\"stop\",\"total_duration\":0,\"load_duration\":0,\"prompt_eval_count\":9,\"eval_count\":8}",
+   "raw": {
+    "shape": "voice_buffered",
+    "text": "what is the capital of Sweden, side 4",
+    "sent_at": 1794938975.8256,
+    "dropped_after_s": null,
+    "client_s": 5.054,
+    "bytes": 410,
+    "status": 200,
+    "tail": "0.000000000Z\",\"message\":{\"role\":\"assistant\",\"content\":\"The capital of Sweden is Stockholm.\"},\"done\":true,\"done_reason\":\"stop\",\"total_duration\":0,\"load_duration\":0,\"prompt_eval_count\":9,\"eval_count\":8}",
+    "head": "HTTP/1.1 200 OK\r\nServer: nginx/1.29.8\r\nDate: Tue, 17 Nov 2026 18:09:40 GMT\r\nContent-Type: application/json\r\nContent-Leng"
+   }
+  },
+  {
+   "mount": "voice",
+   "text": "what is the capital of Sweden, side 5",
+   "stream": false,
+   "status": 200,
+   "client_s": 4.064,
+   "sent_at": 1794938981.194297,
+   "end": {
+    "ts": 1794938985.258,
+    "rid": "bb40f882",
+    "event": "request_complete",
+    "route": "direct",
+    "duration_s": 4.06,
+    "trace_id": "c403cb4f5d10841ad2e4588841a8065d"
+   },
+   "trace_id": "c403cb4f5d10841ad2e4588841a8065d",
+   "rounds": [
+    {
+     "agent": "coordinator",
+     "phase": "synthesis",
+     "duration_s": 4.04,
+     "prompt_tokens": 2062,
+     "cached_tokens": 2056,
+     "completion_tokens": 267,
+     "ts": 1794938985.246
+    }
+   ],
+   "locks": [
+    {
+     "lock": "127.0.0.1:11438",
+     "priority": "voice",
+     "wait_ms": 1803,
+     "acquired": null,
+     "ts": 1794938983.009
+    }
+   ],
+   "tools": [],
+   "events": [
+    "request",
+    "origin",
+    "route",
+    "model_lock",
+    "agent_round",
+    "request_complete"
+   ],
+   "body_tail": "5.000000000Z\",\"message\":{\"role\":\"assistant\",\"content\":\"The capital of Sweden is Stockholm.\"},\"done\":true,\"done_reason\":\"stop\",\"total_duration\":0,\"load_duration\":0,\"prompt_eval_count\":9,\"eval_count\":8}",
+   "raw": {
+    "shape": "voice_buffered",
+    "text": "what is the capital of Sweden, side 5",
+    "sent_at": 1794938981.1946044,
+    "dropped_after_s": null,
+    "client_s": 4.064,
+    "bytes": 410,
+    "status": 200,
+    "tail": "5.000000000Z\",\"message\":{\"role\":\"assistant\",\"content\":\"The capital of Sweden is Stockholm.\"},\"done\":true,\"done_reason\":\"stop\",\"total_duration\":0,\"load_duration\":0,\"prompt_eval_count\":9,\"eval_count\":8}",
+    "head": "HTTP/1.1 200 OK\r\nServer: nginx/1.29.8\r\nDate: Tue, 17 Nov 2026 18:09:45 GMT\r\nContent-Type: application/json\r\nContent-Leng"
+   }
+  }
+ ],
+ "holds": [
+  {
+   "lock": "127.0.0.1:11438",
+   "class": "display",
+   "rid": "0d842660",
+   "text": "ask the coding agent to write a python function that returns the nth fibonacci n",
+   "grant": 1794938963.871,
+   "end": 1794938966.214,
+   "wait_ms": 0
+  },
+  {
+   "lock": "127.0.0.1:11440",
+   "class": "display",
+   "rid": "0d842660",
+   "text": "ask the coding agent to write a python function that returns the nth fibonacci n",
+   "grant": 1794938966.217,
+   "end": 1794938979.156,
+   "wait_ms": 0
+  },
+  {
+   "lock": "127.0.0.1:11438",
+   "class": "voice",
+   "rid": "eda8e27d",
+   "text": "what is the capital of Sweden, side 1",
+   "grant": 1794938966.221,
+   "end": 1794938970.099,
+   "wait_ms": 353
+  },
+  {
+   "lock": "127.0.0.1:11438",
+   "class": "voice",
+   "rid": "292b45ff",
+   "text": "what is the capital of Sweden, side 2",
+   "grant": 1794938970.447,
+   "end": 1794938972.991,
+   "wait_ms": 0
+  },
+  {
+   "lock": "127.0.0.1:11438",
+   "class": "voice",
+   "rid": "9bea6212",
+   "text": "what is the capital of Sweden, side 3",
+   "grant": 1794938973.338,
+   "end": 1794938975.494,
+   "wait_ms": 0
+  },
+  {
+   "lock": "127.0.0.1:11438",
+   "class": "voice",
+   "rid": "dc578745",
+   "text": "what is the capital of Sweden, side 4",
+   "grant": 1794938975.839,
+   "end": 1794938980.866,
+   "wait_ms": 0
+  },
+  {
+   "lock": "127.0.0.1:11438",
+   "class": "display",
+   "rid": "0d842660",
+   "text": "ask the coding agent to write a python function that returns the nth fibonacci n",
+   "grant": 1794938980.879,
+   "end": 1794938982.996,
+   "wait_ms": 1697
+  },
+  {
+   "lock": "127.0.0.1:11438",
+   "class": "voice",
+   "rid": "bb40f882",
+   "text": "what is the capital of Sweden, side 5",
+   "grant": 1794938983.009,
+   "end": 1794938985.246,
+   "wait_ms": 1803
+  }
+ ],
+ "overlaps_same_lock": [],
+ "log_errors": {
+  "llama": [],
+  "litellm": []
+ }
+}

@@ -1,0 +1,609 @@
+{
+ "server": {
+  "research": {
+   "mount": "display",
+   "text": "search the web for the height of the five tallest buildings in the world, then search for the year each one opened, then search for the architect of each one, and compare them all in detail, case server",
+   "stream": false,
+   "status": 200,
+   "client_s": 40.668,
+   "sent_at": 1794939919.954202,
+   "end": {
+    "ts": 1794939960.623,
+    "rid": "97d55ebe",
+    "event": "request_complete",
+    "route": "direct",
+    "duration_s": 40.67,
+    "trace_id": "ea95ffa3969db1924eec60a19a1c1015"
+   },
+   "trace_id": "ea95ffa3969db1924eec60a19a1c1015",
+   "rounds": [
+    {
+     "agent": "coordinator",
+     "phase": "plan_1",
+     "duration_s": 3.94,
+     "prompt_tokens": 2047,
+     "cached_tokens": 582,
+     "completion_tokens": 315,
+     "ts": 1794939923.902
+    },
+    {
+     "agent": "research",
+     "phase": "plan_1",
+     "duration_s": 6.01,
+     "prompt_tokens": 592,
+     "cached_tokens": 0,
+     "completion_tokens": 208,
+     "ts": 1794939929.927
+    },
+    {
+     "agent": "research",
+     "phase": "plan_2",
+     "duration_s": 3.36,
+     "prompt_tokens": 1161,
+     "cached_tokens": 592,
+     "completion_tokens": 213,
+     "ts": 1794939934.341
+    },
+    {
+     "agent": "research",
+     "phase": "plan_3",
+     "duration_s": 6.69,
+     "prompt_tokens": 6571,
+     "cached_tokens": 1158,
+     "completion_tokens": 294,
+     "ts": 1794939941.304
+    },
+    {
+     "agent": "research",
+     "phase": "synthesis",
+     "duration_s": 12.22,
+     "prompt_tokens": 7240,
+     "cached_tokens": 6568,
+     "completion_tokens": 1081,
+     "ts": 1794939955.111
+    },
+    {
+     "agent": "coordinator",
+     "phase": "synthesis",
+     "duration_s": 5.49,
+     "prompt_tokens": 2942,
+     "cached_tokens": 2047,
+     "completion_tokens": 466,
+     "ts": 1794939960.611
+    }
+   ],
+   "locks": [
+    {
+     "lock": "127.0.0.1:11438",
+     "priority": "display",
+     "wait_ms": 0,
+     "acquired": null,
+     "ts": 1794939919.967
+    },
+    {
+     "lock": "127.0.0.1:11438",
+     "priority": "display",
+     "wait_ms": 3597,
+     "acquired": null,
+     "ts": 1794939927.512
+    },
+    {
+     "lock": "127.0.0.1:11438",
+     "priority": "display",
+     "wait_ms": 474,
+     "acquired": null,
+     "ts": 1794939931.453
+    },
+    {
+     "lock": "127.0.0.1:11438",
+     "priority": "display",
+     "wait_ms": 0,
+     "acquired": null,
+     "ts": 1794939934.611
+    },
+    {
+     "lock": "127.0.0.1:11438",
+     "priority": "display",
+     "wait_ms": 0,
+     "acquired": null,
+     "ts": 1794939942.89
+    },
+    {
+     "lock": "127.0.0.1:11438",
+     "priority": "display",
+     "wait_ms": 0,
+     "acquired": null,
+     "ts": 1794939955.124
+    }
+   ],
+   "tools": [
+    {
+     "event": "tool_call",
+     "tool": "ask_research",
+     "duration_s": null,
+     "failed": null,
+     "ts": 1794939923.915
+    },
+    {
+     "event": "tool_call",
+     "tool": "web_search",
+     "duration_s": null,
+     "failed": null,
+     "ts": 1794939929.952
+    },
+    {
+     "event": "tool_complete",
+     "tool": "web_search",
+     "duration_s": 1.03,
+     "failed": null,
+     "ts": 1794939930.978
+    },
+    {
+     "event": "tool_call",
+     "tool": "fetch_url",
+     "duration_s": null,
+     "failed": null,
+     "ts": 1794939934.353
+    },
+    {
+     "event": "tool_complete",
+     "tool": "fetch_url",
+     "duration_s": 0.26,
+     "failed": null,
+     "ts": 1794939934.611
+    },
+    {
+     "event": "tool_call",
+     "tool": "web_search",
+     "duration_s": null,
+     "failed": null,
+     "ts": 1794939941.315
+    },
+    {
+     "event": "tool_complete",
+     "tool": "web_search",
+     "duration_s": 1.57,
+     "failed": null,
+     "ts": 1794939942.89
+    },
+    {
+     "event": "tool_complete",
+     "tool": "ask_research",
+     "duration_s": 31.21,
+     "failed": null,
+     "ts": 1794939955.124
+    }
+   ],
+   "events": [
+    "request",
+    "route_shortcut",
+    "model_lock",
+    "agent_round",
+    "tool_call",
+    "model_lock",
+    "agent_round",
+    "tool_call",
+    "tool_complete",
+    "model_lock",
+    "agent_round",
+    "tool_call",
+    "tool_complete",
+    "model_lock",
+    "agent_round",
+    "tool_call",
+    "tool_complete",
+    "model_lock",
+    "agent_round",
+    "tool_complete",
+    "model_lock",
+    "agent_round",
+    "request_complete"
+   ],
+   "body_tail": "Mecca Royal Clock Tower), East Asia (Shanghai Tower), and Southeast Asia (Merdeka 118).\"},\"done\":true,\"done_reason\":\"stop\",\"total_duration\":0,\"load_duration\":0,\"prompt_eval_count\":50,\"eval_count\":315}",
+   "raw": {
+    "shape": "api_chat",
+    "text": "search the web for the height of the five tallest buildings in the world, then search for the year each one opened, then search for the architect of each one, and compare them all in detail, case server",
+    "sent_at": 1794939919.9553847,
+    "dropped_after_s": null,
+    "client_s": 40.668,
+    "bytes": 1656,
+    "status": 200,
+    "tail": "Mecca Royal Clock Tower), East Asia (Shanghai Tower), and Southeast Asia (Merdeka 118).\"},\"done\":true,\"done_reason\":\"stop\",\"total_duration\":0,\"load_duration\":0,\"prompt_eval_count\":50,\"eval_count\":315}",
+    "head": "HTTP/1.1 200 OK\r\nServer: nginx/1.29.8\r\nDate: Tue, 17 Nov 2026 18:26:00 GMT\r\nContent-Type: application/json\r\nContent-Leng"
+   }
+  },
+  "voice": {
+   "mount": "voice",
+   "text": "what's the weather like",
+   "stream": false,
+   "status": 200,
+   "client_s": 10.498,
+   "sent_at": 1794939920.954961,
+   "end": {
+    "ts": 1794939931.452,
+    "rid": "4b6d70b0",
+    "event": "request_complete",
+    "route": "home",
+    "duration_s": 10.49,
+    "trace_id": "91aba03d431021154e8c5ea16247239a"
+   },
+   "trace_id": "91aba03d431021154e8c5ea16247239a",
+   "rounds": [
+    {
+     "agent": "home",
+     "phase": "plan_1",
+     "duration_s": 6.52,
+     "prompt_tokens": 3926,
+     "cached_tokens": 0,
+     "completion_tokens": 126,
+     "ts": 1794939927.496
+    },
+    {
+     "agent": "home",
+     "phase": "synthesis",
+     "duration_s": 3.18,
+     "prompt_tokens": 4546,
+     "cached_tokens": 3926,
+     "completion_tokens": 91,
+     "ts": 1794939931.44
+    }
+   ],
+   "locks": [
+    {
+     "lock": "127.0.0.1:11438",
+     "priority": "voice",
+     "wait_ms": 2940,
+     "acquired": null,
+     "ts": 1794939923.915
+    },
+    {
+     "lock": "127.0.0.1:11438",
+     "priority": "voice",
+     "wait_ms": 1693,
+     "acquired": null,
+     "ts": 1794939929.957
+    }
+   ],
+   "tools": [
+    {
+     "event": "tool_call",
+     "tool": "get_weather",
+     "duration_s": null,
+     "failed": null,
+     "ts": 1794939927.508
+    },
+    {
+     "event": "tool_complete",
+     "tool": "get_weather",
+     "duration_s": 0.76,
+     "failed": null,
+     "ts": 1794939928.264
+    }
+   ],
+   "events": [
+    "request",
+    "origin",
+    "route_shortcut",
+    "model_lock",
+    "agent_round",
+    "tool_call",
+    "tool_complete",
+    "model_lock",
+    "agent_round",
+    "agent_complete",
+    "request_complete"
+   ],
+   "body_tail": "3 mph. Expect the high to reach 60\u00b0F today before it cools down to around 36\u00b0F tonight.\"},\"done\":true,\"done_reason\":\"stop\",\"total_duration\":0,\"load_duration\":0,\"prompt_eval_count\":5,\"eval_count\":39}",
+   "raw": {
+    "shape": "voice_buffered",
+    "text": "what's the weather like",
+    "sent_at": 1794939920.9553947,
+    "dropped_after_s": null,
+    "client_s": 10.498,
+    "bytes": 538,
+    "status": 200,
+    "tail": "3 mph. Expect the high to reach 60\u00b0F today before it cools down to around 36\u00b0F tonight.\"},\"done\":true,\"done_reason\":\"stop\",\"total_duration\":0,\"load_duration\":0,\"prompt_eval_count\":5,\"eval_count\":39}",
+    "head": "HTTP/1.1 200 OK\r\nServer: nginx/1.29.8\r\nDate: Tue, 17 Nov 2026 18:25:31 GMT\r\nContent-Type: application/json\r\nContent-Leng"
+   }
+  }
+ },
+ "pipeline": {
+  "research": {
+   "mount": "display",
+   "text": "search the web for the height of the five tallest buildings in the world, then search for the year each one opened, then search for the architect of each one, and compare them all in detail, case pipeline",
+   "stream": false,
+   "status": 200,
+   "client_s": 41.867,
+   "sent_at": 1794939969.9445944,
+   "end": {
+    "ts": 1794940011.811,
+    "rid": "962b8614",
+    "event": "request_complete",
+    "route": "direct",
+    "duration_s": 41.86,
+    "trace_id": "5a7b7aa9f2d12209ac40e72586d6b99d"
+   },
+   "trace_id": "5a7b7aa9f2d12209ac40e72586d6b99d",
+   "rounds": [
+    {
+     "agent": "coordinator",
+     "phase": "plan_1",
+     "duration_s": 4.36,
+     "prompt_tokens": 2047,
+     "cached_tokens": 0,
+     "completion_tokens": 296,
+     "ts": 1794939974.315
+    },
+    {
+     "agent": "research",
+     "phase": "plan_1",
+     "duration_s": 1.97,
+     "prompt_tokens": 592,
+     "cached_tokens": 0,
+     "completion_tokens": 190,
+     "ts": 1794939976.307
+    },
+    {
+     "agent": "research",
+     "phase": "plan_2",
+     "duration_s": 2.85,
+     "prompt_tokens": 1188,
+     "cached_tokens": 592,
+     "completion_tokens": 288,
+     "ts": 1794939979.903
+    },
+    {
+     "agent": "research",
+     "phase": "plan_3",
+     "duration_s": 6.02,
+     "prompt_tokens": 6598,
+     "cached_tokens": 1185,
+     "completion_tokens": 274,
+     "ts": 1794939986.19
+    },
+    {
+     "agent": "research",
+     "phase": "plan_4",
+     "duration_s": 3.96,
+     "prompt_tokens": 7183,
+     "cached_tokens": 6595,
+     "completion_tokens": 357,
+     "ts": 1794939991.149
+    },
+    {
+     "agent": "research",
+     "phase": "synthesis",
+     "duration_s": 13.08,
+     "prompt_tokens": 8124,
+     "cached_tokens": 7180,
+     "completion_tokens": 1118,
+     "ts": 1794940008.744
+    },
+    {
+     "agent": "coordinator",
+     "phase": "synthesis",
+     "duration_s": 3.03,
+     "prompt_tokens": 2979,
+     "cached_tokens": 2047,
+     "completion_tokens": 144,
+     "ts": 1794940011.786
+    }
+   ],
+   "locks": [
+    {
+     "lock": "pipeline",
+     "priority": "display",
+     "wait_ms": 0,
+     "acquired": null,
+     "ts": 1794939969.956
+    }
+   ],
+   "tools": [
+    {
+     "event": "tool_call",
+     "tool": "ask_research",
+     "duration_s": null,
+     "failed": null,
+     "ts": 1794939974.34
+    },
+    {
+     "event": "tool_call",
+     "tool": "web_search",
+     "duration_s": null,
+     "failed": null,
+     "ts": 1794939976.319
+    },
+    {
+     "event": "tool_complete",
+     "tool": "web_search",
+     "duration_s": 0.73,
+     "failed": null,
+     "ts": 1794939977.053
+    },
+    {
+     "event": "tool_call",
+     "tool": "fetch_url",
+     "duration_s": null,
+     "failed": null,
+     "ts": 1794939979.915
+    },
+    {
+     "event": "tool_complete",
+     "tool": "fetch_url",
+     "duration_s": 0.25,
+     "failed": null,
+     "ts": 1794939980.165
+    },
+    {
+     "event": "tool_call",
+     "tool": "web_search",
+     "duration_s": null,
+     "failed": null,
+     "ts": 1794939986.202
+    },
+    {
+     "event": "tool_complete",
+     "tool": "web_search",
+     "duration_s": 0.99,
+     "failed": null,
+     "ts": 1794939987.193
+    },
+    {
+     "event": "tool_call",
+     "tool": "web_search",
+     "duration_s": null,
+     "failed": null,
+     "ts": 1794939991.174
+    },
+    {
+     "event": "tool_complete",
+     "tool": "web_search",
+     "duration_s": 0.8,
+     "failed": null,
+     "ts": 1794939991.973
+    },
+    {
+     "event": "tool_call",
+     "tool": "web_search",
+     "duration_s": null,
+     "failed": null,
+     "ts": 1794939991.973
+    },
+    {
+     "event": "tool_complete",
+     "tool": "web_search",
+     "duration_s": 1.08,
+     "failed": null,
+     "ts": 1794939993.048
+    },
+    {
+     "event": "tool_call",
+     "tool": "web_search",
+     "duration_s": null,
+     "failed": null,
+     "ts": 1794939993.048
+    },
+    {
+     "event": "tool_complete",
+     "tool": "web_search",
+     "duration_s": 1.22,
+     "failed": null,
+     "ts": 1794939994.268
+    },
+    {
+     "event": "tool_call",
+     "tool": "web_search",
+     "duration_s": null,
+     "failed": null,
+     "ts": 1794939994.268
+    },
+    {
+     "event": "tool_complete",
+     "tool": "web_search",
+     "duration_s": 1.39,
+     "failed": null,
+     "ts": 1794939995.66
+    },
+    {
+     "event": "tool_complete",
+     "tool": "ask_research",
+     "duration_s": 34.42,
+     "failed": null,
+     "ts": 1794940008.756
+    }
+   ],
+   "events": [
+    "request",
+    "route_shortcut",
+    "model_lock",
+    "agent_round",
+    "tool_call",
+    "agent_round",
+    "tool_call",
+    "tool_complete",
+    "agent_round",
+    "tool_call",
+    "tool_complete",
+    "agent_round",
+    "tool_call",
+    "tool_complete",
+    "agent_round",
+    "tool_call",
+    "tool_complete",
+    "tool_call",
+    "tool_complete",
+    "tool_call",
+    "tool_complete",
+    "tool_call",
+    "tool_complete",
+    "agent_round",
+    "tool_complete",
+    "agent_round",
+    "agent_empty_reply",
+    "request_complete"
+   ],
+   "body_tail": "0000Z\",\"message\":{\"role\":\"assistant\",\"content\":\"[coordinator agent returned no response]\"},\"done\":true,\"done_reason\":\"stop\",\"total_duration\":0,\"load_duration\":0,\"prompt_eval_count\":51,\"eval_count\":10}",
+   "raw": {
+    "shape": "api_chat",
+    "text": "search the web for the height of the five tallest buildings in the world, then search for the year each one opened, then search for the architect of each one, and compare them all in detail, case pipeline",
+    "sent_at": 1794939969.944781,
+    "dropped_after_s": null,
+    "client_s": 41.867,
+    "bytes": 417,
+    "status": 200,
+    "tail": "0000Z\",\"message\":{\"role\":\"assistant\",\"content\":\"[coordinator agent returned no response]\"},\"done\":true,\"done_reason\":\"stop\",\"total_duration\":0,\"load_duration\":0,\"prompt_eval_count\":51,\"eval_count\":10}",
+    "head": "HTTP/1.1 200 OK\r\nServer: nginx/1.29.8\r\nDate: Tue, 17 Nov 2026 18:26:51 GMT\r\nContent-Type: application/json\r\nContent-Leng"
+   }
+  },
+  "voice": {
+   "mount": "voice",
+   "text": "what's the weather like",
+   "stream": false,
+   "status": 200,
+   "client_s": 25.005,
+   "sent_at": 1794939970.945579,
+   "end": {
+    "ts": 1794939995.949,
+    "rid": "6c45c95e",
+    "event": "request_ended",
+    "reason": "deadline",
+    "route": "home",
+    "tools_sent": [],
+    "duration_s": 25.0,
+    "trace_id": "7756ceb7a525caca00cb8f294ab08642"
+   },
+   "trace_id": "7756ceb7a525caca00cb8f294ab08642",
+   "rounds": [],
+   "locks": [
+    {
+     "lock": "pipeline",
+     "priority": "voice",
+     "wait_ms": 24992,
+     "acquired": false,
+     "ts": 1794939995.949
+    }
+   ],
+   "tools": [],
+   "events": [
+    "request",
+    "origin",
+    "route_shortcut",
+    "model_lock",
+    "request_ended",
+    "failure_spoken_friendly"
+   ],
+   "body_tail": "{\"role\":\"assistant\",\"content\":\"Sorry, that took too long, so I stopped. Please try again.\"},\"done\":true,\"done_reason\":\"stop\",\"total_duration\":0,\"load_duration\":0,\"prompt_eval_count\":5,\"eval_count\":14}",
+   "raw": {
+    "shape": "voice_buffered",
+    "text": "what's the weather like",
+    "sent_at": 1794939970.9459183,
+    "dropped_after_s": null,
+    "client_s": 25.005,
+    "bytes": 434,
+    "status": 200,
+    "tail": "{\"role\":\"assistant\",\"content\":\"Sorry, that took too long, so I stopped. Please try again.\"},\"done\":true,\"done_reason\":\"stop\",\"total_duration\":0,\"load_duration\":0,\"prompt_eval_count\":5,\"eval_count\":14}",
+    "head": "HTTP/1.1 200 OK\r\nServer: nginx/1.29.8\r\nDate: Tue, 17 Nov 2026 18:26:35 GMT\r\nContent-Type: application/json\r\nContent-Leng"
+   }
+  }
+ }
+}

@@ -1,0 +1,357 @@
+{
+ "requests": [
+  {
+   "mount": "voice",
+   "text": "what's the weather like",
+   "sent_at": 1794939044.3077471,
+   "client_s": 5.774,
+   "http": 200,
+   "reply": "It is currently 56\u00b0F and sunny with a light breeze from the northwest. Tonight is expected to be clear with a low around 36\u00b0F.",
+   "ev": {
+    "rid": "8b9e8ae2",
+    "trace_id": "1b7a4d990ac11e9348e70d4ab2f644ce",
+    "route": "home",
+    "server_s": 5.77,
+    "ended": "complete",
+    "rounds": [
+     {
+      "agent": "home",
+      "phase": "plan_1",
+      "s": 3.55,
+      "prompt": 3926,
+      "cached": 0,
+      "completion": 112
+     },
+     {
+      "agent": "home",
+      "phase": "synthesis",
+      "s": 1.46,
+      "prompt": 4546,
+      "cached": 3926,
+      "completion": 88
+     }
+    ],
+    "lock_waits": [
+     {
+      "lock": "pipeline",
+      "class": "voice",
+      "wait_ms": 0
+     }
+    ]
+   }
+  },
+  {
+   "mount": "voice",
+   "text": "what is the capital of Spain",
+   "sent_at": 1794939044.3080873,
+   "client_s": 7.13,
+   "http": 200,
+   "reply": "The capital of Spain is Madrid.",
+   "ev": {
+    "rid": "794853a2",
+    "trace_id": "a3a010a745cb9de15437586ebb4802d9",
+    "route": "direct",
+    "server_s": 7.12,
+    "ended": "complete",
+    "rounds": [
+     {
+      "agent": "coordinator",
+      "phase": "synthesis",
+      "s": 1.34,
+      "prompt": 2058,
+      "cached": 0,
+      "completion": 8
+     }
+    ],
+    "lock_waits": [
+     {
+      "lock": "pipeline",
+      "class": "voice",
+      "wait_ms": 5731
+     }
+    ]
+   }
+  },
+  {
+   "mount": "voice",
+   "text": "what's playing in the office",
+   "sent_at": 1794939044.3085942,
+   "client_s": 13.56,
+   "http": 200,
+   "reply": "Nothing is playing on the Office speaker.",
+   "ev": {
+    "rid": "f6497975",
+    "trace_id": "01ecddbfa3c7b942e148fe14324ce301",
+    "route": "direct",
+    "server_s": 13.55,
+    "ended": "complete",
+    "rounds": [
+     {
+      "agent": "coordinator",
+      "phase": "plan_1",
+      "s": 1.46,
+      "prompt": 2059,
+      "cached": 2048,
+      "completion": 171
+     },
+     {
+      "agent": "home",
+      "phase": "plan_1",
+      "s": 4.91,
+      "prompt": 3740,
+      "cached": 0,
+      "completion": 275
+     }
+    ],
+    "lock_waits": [
+     {
+      "lock": "pipeline",
+      "class": "voice",
+      "wait_ms": 7087
+     }
+    ]
+   }
+  },
+  {
+   "mount": "voice",
+   "text": "what song is this",
+   "sent_at": 1794939044.308774,
+   "client_s": 0.049,
+   "http": 200,
+   "reply": "Nothing is playing on the Office speaker.",
+   "ev": {
+    "rid": "a235a44f",
+    "trace_id": "27f9987079df98020f533c3a3f848b66",
+    "route": "home",
+    "server_s": 0.03,
+    "ended": "complete",
+    "rounds": [],
+    "lock_waits": []
+   }
+  },
+  {
+   "mount": "display",
+   "text": "what is the capital of Italy",
+   "sent_at": 1794939044.3090737,
+   "client_s": 15.21,
+   "http": 200,
+   "reply": "The capital of Italy is Rome.",
+   "ev": {
+    "rid": "1bd1a491",
+    "trace_id": "f586a74a8097e7c0fcde182e5669f1b5",
+    "route": "direct",
+    "server_s": 15.19,
+    "ended": "complete",
+    "rounds": [
+     {
+      "agent": "coordinator",
+      "phase": "synthesis",
+      "s": 1.64,
+      "prompt": 2011,
+      "cached": 2001,
+      "completion": 171
+     }
+    ],
+    "lock_waits": [
+     {
+      "lock": "pipeline",
+      "class": "display",
+      "wait_ms": 13516
+     }
+    ]
+   }
+  },
+  {
+   "mount": "display",
+   "text": "what is the weather going to be like tomorrow",
+   "sent_at": 1794939044.3092768,
+   "client_s": 30.013,
+   "http": 200,
+   "reply": "Tomorrow, Wednesday, will be sunny with a high near 64 degrees and a light west wind around 3 mph.",
+   "ev": {
+    "rid": "f054a439",
+    "trace_id": "4beaf9bf3ffb6c7422d9f19a7990309b",
+    "route": "home",
+    "server_s": 29.99,
+    "ended": "complete",
+    "rounds": [
+     {
+      "agent": "home",
+      "phase": "plan_1",
+      "s": 5.0,
+      "prompt": 3929,
+      "cached": 988,
+      "completion": 277
+     },
+     {
+      "agent": "home",
+      "phase": "synthesis",
+      "s": 1.31,
+      "prompt": 4558,
+      "cached": 3929,
+      "completion": 79
+     }
+    ],
+    "lock_waits": [
+     {
+      "lock": "pipeline",
+      "class": "display",
+      "wait_ms": 23045
+     }
+    ]
+   }
+  },
+  {
+   "mount": "display",
+   "text": "search the web for how tall the statue of liberty is",
+   "sent_at": 1794939044.3094094,
+   "client_s": 36.697,
+   "http": 200,
+   "reply": "The height of the Statue of Liberty can vary depending on how it is measured:\n\n*   **Statue Alone:** The statue itself is approximately **151 feet tall** (or 46.05 meters) from its base to the torch.\n*   **Total Height:** Including the pedestal and the tip of the torch, the total height of the monum",
+   "ev": {
+    "rid": "a8894954",
+    "trace_id": "a9ab67f2ba19556ac964b9aef681af42",
+    "route": "research",
+    "server_s": 36.67,
+    "ended": "complete",
+    "rounds": [
+     {
+      "agent": "research",
+      "phase": "plan_1",
+      "s": 0.96,
+      "prompt": 750,
+      "cached": 0,
+      "completion": 59
+     },
+     {
+      "agent": "research",
+      "phase": "synthesis",
+      "s": 3.73,
+      "prompt": 1424,
+      "cached": 750,
+      "completion": 287
+     }
+    ],
+    "lock_waits": [
+     {
+      "lock": "pipeline",
+      "class": "display",
+      "wait_ms": 29969
+     }
+    ]
+   }
+  },
+  {
+   "mount": "display",
+   "text": "what's playing in the kitchen",
+   "sent_at": 1794939044.3095827,
+   "client_s": 23.089,
+   "http": 200,
+   "reply": "Nothing is playing on the Kitchen speaker.",
+   "ev": {
+    "rid": "f0ce5896",
+    "trace_id": "5170e2fc58f1583045c5655050cacd5d",
+    "route": "direct",
+    "server_s": 23.06,
+    "ended": "complete",
+    "rounds": [
+     {
+      "agent": "coordinator",
+      "phase": "plan_1",
+      "s": 2.65,
+      "prompt": 2012,
+      "cached": 2001,
+      "completion": 279
+     },
+     {
+      "agent": "home",
+      "phase": "plan_1",
+      "s": 5.19,
+      "prompt": 3737,
+      "cached": 0,
+      "completion": 267
+     }
+    ],
+    "lock_waits": [
+     {
+      "lock": "pipeline",
+      "class": "display",
+      "wait_ms": 15166
+     }
+    ]
+   }
+  }
+ ],
+ "log_errors": {
+  "llama": [],
+  "litellm": []
+ },
+ "holds": [
+  {
+   "lock": "pipeline",
+   "class": "voice",
+   "rid": "8b9e8ae2",
+   "text": "what's the weather like",
+   "grant": 1794939044.346,
+   "end": 1794939050.081,
+   "wait_ms": 0
+  },
+  {
+   "lock": "pipeline",
+   "class": "voice",
+   "rid": "794853a2",
+   "text": "what is the capital of Spain",
+   "grant": 1794939050.081,
+   "end": 1794939051.437,
+   "wait_ms": 5731
+  },
+  {
+   "lock": "pipeline",
+   "class": "voice",
+   "rid": "f6497975",
+   "text": "what's playing in the office",
+   "grant": 1794939051.438,
+   "end": 1794939057.867,
+   "wait_ms": 7087
+  },
+  {
+   "lock": "pipeline",
+   "class": "display",
+   "rid": "1bd1a491",
+   "text": "what is the capital of Italy",
+   "grant": 1794939057.868,
+   "end": 1794939059.518,
+   "wait_ms": 13516
+  },
+  {
+   "lock": "pipeline",
+   "class": "display",
+   "rid": "f0ce5896",
+   "text": "what's playing in the kitchen",
+   "grant": 1794939059.519,
+   "end": 1794939067.398,
+   "wait_ms": 15166
+  },
+  {
+   "lock": "pipeline",
+   "class": "display",
+   "rid": "f054a439",
+   "text": "what is the weather going to be like tomorrow",
+   "grant": 1794939067.398,
+   "end": 1794939074.321,
+   "wait_ms": 23045
+  },
+  {
+   "lock": "pipeline",
+   "class": "display",
+   "rid": "a8894954",
+   "text": "search the web for how tall the statue of liberty is",
+   "grant": 1794939074.322,
+   "end": 1794939081.005,
+   "wait_ms": 29969
+  }
+ ],
+ "overlaps_same_lock": [],
+ "overlapping_any": 0,
+ "mode": "pipeline"
+}

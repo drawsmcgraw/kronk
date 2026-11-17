@@ -1,0 +1,195 @@
+{
+ "mount": "voice",
+ "text": "search the web for the height of the five tallest buildings in the world, then search for the year each one opened, then search for the architect of each one, and compare them all in detail",
+ "stream": false,
+ "status": 200,
+ "client_s": 25.006,
+ "sent_at": 1794938994.527513,
+ "end": {
+  "ts": 1794939019.533,
+  "rid": "30b31f17",
+  "event": "request_ended",
+  "reason": "deadline",
+  "route": "direct",
+  "tools_sent": [
+   "web_search",
+   "fetch_url"
+  ],
+  "duration_s": 25.0,
+  "trace_id": "374aa49388d3859572093906bfb8a31e"
+ },
+ "trace_id": "374aa49388d3859572093906bfb8a31e",
+ "rounds": [
+  {
+   "agent": "coordinator",
+   "phase": "plan_1",
+   "duration_s": 2.33,
+   "prompt_tokens": 2091,
+   "cached_tokens": 2047,
+   "completion_tokens": 245,
+   "ts": 1794938996.865
+  },
+  {
+   "agent": "research",
+   "phase": "plan_1",
+   "duration_s": 2.25,
+   "prompt_tokens": 584,
+   "cached_tokens": 0,
+   "completion_tokens": 199,
+   "ts": 1794938999.127
+  },
+  {
+   "agent": "research",
+   "phase": "plan_2",
+   "duration_s": 3.07,
+   "prompt_tokens": 1251,
+   "cached_tokens": 584,
+   "completion_tokens": 288,
+   "ts": 1794939003.082
+  },
+  {
+   "agent": "research",
+   "phase": "synthesis",
+   "duration_s": 14.1,
+   "prompt_tokens": 6661,
+   "cached_tokens": 1248,
+   "completion_tokens": 929,
+   "ts": 1794939017.455
+  }
+ ],
+ "locks": [
+  {
+   "lock": "127.0.0.1:11438",
+   "priority": "voice",
+   "wait_ms": 0,
+   "acquired": null,
+   "ts": 1794938994.54
+  },
+  {
+   "lock": "127.0.0.1:11438",
+   "priority": "voice",
+   "wait_ms": 0,
+   "acquired": null,
+   "ts": 1794938996.878
+  },
+  {
+   "lock": "127.0.0.1:11438",
+   "priority": "voice",
+   "wait_ms": 0,
+   "acquired": null,
+   "ts": 1794939000.009
+  },
+  {
+   "lock": "127.0.0.1:11438",
+   "priority": "voice",
+   "wait_ms": 0,
+   "acquired": null,
+   "ts": 1794939003.351
+  },
+  {
+   "lock": "127.0.0.1:11438",
+   "priority": "voice",
+   "wait_ms": 0,
+   "acquired": null,
+   "ts": 1794939017.467
+  }
+ ],
+ "tools": [
+  {
+   "event": "tool_call",
+   "tool": "ask_research",
+   "duration_s": null,
+   "failed": null,
+   "ts": 1794938996.877
+  },
+  {
+   "event": "tool_call",
+   "tool": "web_search",
+   "duration_s": null,
+   "failed": null,
+   "ts": 1794938999.139
+  },
+  {
+   "event": "tool_complete",
+   "tool": "web_search",
+   "duration_s": 0.87,
+   "failed": null,
+   "ts": 1794939000.008
+  },
+  {
+   "event": "tool_call",
+   "tool": "fetch_url",
+   "duration_s": null,
+   "failed": null,
+   "ts": 1794939003.094
+  },
+  {
+   "event": "tool_complete",
+   "tool": "fetch_url",
+   "duration_s": 0.26,
+   "failed": null,
+   "ts": 1794939003.35
+  },
+  {
+   "event": "tool_complete",
+   "tool": "ask_research",
+   "duration_s": 20.59,
+   "failed": null,
+   "ts": 1794939017.467
+  }
+ ],
+ "events": [
+  "request",
+  "origin",
+  "route_shortcut",
+  "model_lock",
+  "agent_round",
+  "tool_call",
+  "model_lock",
+  "agent_round",
+  "tool_call",
+  "tool_complete",
+  "model_lock",
+  "agent_round",
+  "tool_call",
+  "tool_complete",
+  "model_lock",
+  "agent_round",
+  "tool_complete",
+  "model_lock",
+  "request_ended",
+  "failure_spoken_friendly"
+ ],
+ "body_tail": "\"role\":\"assistant\",\"content\":\"Sorry, that took too long, so I stopped. Please try again.\"},\"done\":true,\"done_reason\":\"stop\",\"total_duration\":0,\"load_duration\":0,\"prompt_eval_count\":47,\"eval_count\":14}",
+ "raw": {
+  "shape": "voice_buffered",
+  "text": "search the web for the height of the five tallest buildings in the world, then search for the year each one opened, then search for the architect of each one, and compare them all in detail",
+  "sent_at": 1794938994.5283515,
+  "dropped_after_s": null,
+  "client_s": 25.006,
+  "bytes": 435,
+  "status": 200,
+  "tail": "\"role\":\"assistant\",\"content\":\"Sorry, that took too long, so I stopped. Please try again.\"},\"done\":true,\"done_reason\":\"stop\",\"total_duration\":0,\"load_duration\":0,\"prompt_eval_count\":47,\"eval_count\":14}",
+  "head": "HTTP/1.1 200 OK\r\nServer: nginx/1.29.8\r\nDate: Tue, 17 Nov 2026 18:10:19 GMT\r\nContent-Type: application/json\r\nContent-Leng"
+ },
+ "trace_root": {
+  "name": "pipeline.shim",
+  "status": {
+   "message": "deadline: the request passed its voice deadline",
+   "code": "STATUS_CODE_ERROR"
+  },
+  "attrs": {
+   "kronk.rid": "30b31f17",
+   "kronk.transport": "voice",
+   "kronk.http_route": "/voice/api/chat",
+   "kronk.input_chars": "189",
+   "kronk.origin.device_id": "m9e2e_fake_office",
+   "kronk.origin.area": "Office",
+   "kronk.voice": true,
+   "kronk.ended": "deadline",
+   "kronk.route": "direct",
+   "kronk.output_chars": "93",
+   "kronk.error": true
+  }
+ }
+}
