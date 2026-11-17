@@ -48,9 +48,10 @@ them with fixtures written from the tree before the move.
   text alike, so what they disagree on is refused before either sees the
   text: control characters other than newline and tab (U+0085 included),
   U+2028 and U+2029, lone surrogates, U+FFFE and U+FFFF, each named with
-  its line and byte offset (`config/tuning.yaml:12: control character
-  U+001B at byte 431 is not allowed in a YAML file`; a CRLF line end counts
-  as one byte). An empty key (`? ` alone) is an error, and tool_service
+  its line and byte offset (an ESC after `max_age_s: 7200`:
+  `config/tuning.yaml:32: control character U+001B at byte 1627 is not
+  allowed in a YAML file (only newline and tab)`; a CRLF line end counts as
+  one byte). An empty key (`? ` alone) is an error, and tool_service
   runs ruamel's scanner in YAML 1.1 mode so `{a?b: 1}` is refused by both.
   A shared table and 2,000 generated texts run through both loaders in
   the tests; both accept or both refuse, with the same data and lines
