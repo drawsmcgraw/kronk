@@ -12,7 +12,9 @@ It holds no health or financial data (those features were removed
 **Machine:** Framework desktop — AMD Ryzen AI 375 (hostname `kronk`), Radeon
 8060S integrated GPU (GFX1151), 122 GB RAM.
 
-**Last updated:** 2026-11-16 — hot tub monitor kept: its removal (sprint
+**Last updated:** 2026-11-17 — routing is an ordered rules table, and five
+pinned commands run their tool directly with no model call (sprint M7).
+2026-11-16 — hot tub monitor kept: its removal (sprint
 M1b) was reversed. 2026-11-15 — health, finance and retirement features
 removed (sprint M1). 2026-11-04 — inventory, routing and stacks brought in
 line with the running system. Older benchmarks and the Ollama-era model history live
@@ -27,11 +29,18 @@ in [`docs/HISTORY.md`](docs/HISTORY.md).
 Every message — chat UI, OpenAI shim, or the Ollama shim that Home Assistant's
 voice pipeline calls — flows through the same pipeline:
 
-1. **Routing** (`orchestrator/routing.py`) — narrow deterministic shortcuts pin
-   a message to a specialist (a named household entity, an explicit method, or
-   domain vocabulary with context). Everything else goes to the coordinator.
-   The `gemma-3-4b` LLM classifier was removed 2026-08-18; a shortcut miss now
-   costs one coordinator hop, never a wrong lane.
+1. **Routing** (`orchestrator/routing.py`) — an ordered table of 15 rules
+   (`routing.RULES`): narrow deterministic shortcuts pin a message to a
+   specialist (a named household entity, an explicit method, or domain
+   vocabulary with context); the last rule, `default`, sends everything else
+   to the coordinator. The `gemma-3-4b` LLM classifier was removed 2026-08-18;
+   a shortcut miss now costs one coordinator hop, never a wrong lane.
+   **Direct dispatch:** for five rules whose match fixes the whole tool call
+   (`playback`, `now_playing`, `rate`, `music_another`, `mm_update` — "pause",
+   "what song is this", "thumbs up", "not that", "update the magic mirror")
+   the pipeline runs that tool itself, with no model call and without waiting
+   for the model lock, and speaks the result the way the home agent would
+   ([`docs/features/direct-dispatch.md`](docs/features/direct-dispatch.md)).
 2. **Coordinator** — `gemma-4-e4b` answers directly or delegates through its
    `ask_<agent>` tools, and delivers the pre-generated `news_brief` verbatim.
 3. **Specialist** — the chosen agent runs the unified streaming tool-calling
@@ -241,7 +250,9 @@ file), `update_magicmirror`, `remote_exec`, `http_check`, `get_kronk_context`,
 
 The music tools and `update_magicmirror` are **terminal tools**
 (`AgentConfig.terminal_tools`): the result is spoken verbatim and ends the
-agent turn. Structural guardrail — small
+agent turn. For the five direct-dispatch rules the same tools run with no
+agent at all (routing step 1 above), through the same `tools.execute` and
+the same spoken sentence. Structural guardrail — small
 models otherwise re-call the tool or contradict its result. The tool verifies
 the player actually reaches `playing` before reporting success (MA queues
 requests async, so a 200 from HA alone proves nothing).

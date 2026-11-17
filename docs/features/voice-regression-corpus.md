@@ -56,7 +56,8 @@ rule needs the same failure captured several times (Drew's stopping rule,
 | `expect.tier` | `ha_local` (HA answers before Kronk is asked) or `kronk`. With `ha_local`, `expect.ha` says how: `{"source": "trigger", "trigger": "radio"}` (the Kronk music blueprint; `trigger` is the blueprint trigger id, given only where it matters) or `{"source": "builtin", "intent": "HassMediaPause"}`. |
 | `expect.route`, `expect.rule` | Where `routing._classify_inner` should send the text if it reaches Kronk (spoken or typed). One of the 15 rules; the rule must belong to the route. |
 | `expect.tool` | The Kronk tool that should end up running: `play_music`, `control_music`, `now_playing`, `rate_music`, `news_brief`, `update_magicmirror`, or `null` when no existing tool can do it (then the live replay checks that no music tool claims it). |
-| `expect.action`, `expect.thumb` | `control_music` action (`stop`, `pause`, `next`, …) and `rate_music` thumb. |
+| `expect.action`, `expect.thumb` | `control_music` action (`pause`, `resume`, `next`, `volume_up`, …; "stop" is sent as `pause` since sprint M7) and `rate_music` thumb. |
+| `expect.direct` | `true` exactly on rows whose rule is `playback`, `now_playing`, `rate`, `music_another` or `mm_update`: Kronk runs the tool itself with no model call (`docs/features/direct-dispatch.md`). Absent on every other row; the schema test enforces both. |
 | `expect.kind`, `media_type`, `name`, `artist`, `provider`, `shuffle` | What `play_music` should be asked for: `kind` `named`/`genre`; `media_type` one of the tool's types or `null` for a style; `provider` `pandora` / `youtube_music` / `nas` only when the sentence implies one. These are what M11's parser asserts. |
 | `expect.player` | `origin` (the speaker that heard it), `area:<Area>`, `entity:media_player.<id>`, or `unknown:<words>` for a name no player has. |
 | `source` | The incident doc, bench file or plan section the row came from. Paths are checked to exist. |
@@ -88,6 +89,10 @@ What "expected" means, decided once so rows stay consistent:
   the marker in that commit. A changed route fails with the row id and the
   text: `corpus row plan-stop-bang: 'Stop!' routed home/playback, expected
   home/now_playing`.
+- direct call (sprint M7): a row with `expect.direct` gets
+  `routing.decide`'s direct call for its tool, with its `action`, `thumb`
+  and `kind`; every other row gets none. A row that expects the direct path
+  and carries `xfail.routing` is a strict xfail here too.
 
 **M11 hook.** The bottom of `tests/test_voice_corpus.py` imports
 `tool_service.music_resolve.parse_request` if it exists and then asserts,
@@ -122,8 +127,9 @@ are skipped against production, where `MUSIC_DRY_RUN` does not cover the
 mirror and the pinned row would start a real update.
 
 A row is executed only when it would reach Kronk. Then the replay checks
-tier, rule, tool, and (from tool_service's `music dry run:` line) the action
-and the target speaker. `xfail.routing` or `xfail.live` makes a failed row
+tier, rule, tool, for `expect.direct` rows that the orchestrator logged the
+tool call with `direct: true` (no model ran), and (from tool_service's
+`music dry run:` line) the action and the target speaker. `xfail.routing` or `xfail.live` makes a failed row
 `xfail`; a marked row that passes is `xpass` and is reported, not fatal (the
 model varies run to run).
 

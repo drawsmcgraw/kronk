@@ -9,6 +9,12 @@
 > `coordinator-default-routing.md`. The "known remaining gap" below
 > (specialist dead-ends) is that design's deferred Phase 2.
 
+> **Update 2026-11-17 (sprint M7):** `routing.py` is now an ordered rules
+> table (`routing.RULES`, 15 rules), and five of them (`playback`,
+> `now_playing`, `rate`, `music_another`, `mm_update`) run their tool
+> directly with no model call and outside the model lock. See
+> `direct-dispatch.md`.
+
 ## What it does
 
 When the phase-1 router (gemma-3-4b) sends an ambiguous query down the

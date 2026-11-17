@@ -9,6 +9,10 @@ ask_* tools. A shortcut miss costs seconds (one coordinator hop), never a
 wrong lane — so shortcuts are precision-first: they pin only on a named
 household entity, an explicit user-stated method, or domain vocabulary
 with context.
+
+Since sprint M7 the rules are an ordered table (RULES, below), and five of
+them carry a direct tool call that the pipeline runs with no model at all —
+docs/features/direct-dispatch.md.
 """
 import re
 from dataclasses import dataclass
