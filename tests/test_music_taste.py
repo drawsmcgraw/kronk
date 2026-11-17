@@ -313,7 +313,7 @@ def genre_env(music_env, tmp_path):
     with patch.object(taste, "TASTE_DB", dbp), patch.object(taste, "TASTE", tf), \
          patch.object(ts, "_watch_pick", new=no_watch), \
          patch.object(taste, "RANDOM", FirstPick), patch.object(ts, "ma_command", new=fake_ma), \
-         patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 5):
+         patch.object(ts.config_loader.current().music.verify, "timeout_s", 5):
         music_env.db = dbp
         yield music_env
 
@@ -377,7 +377,7 @@ def test_not_that_with_nothing_picked(genre_env):
 def test_a_pick_that_wont_start_falls_to_the_next(genre_env):
     genre_env.fail = "Playback failed: no tracks"
     genre_env.fail_if = lambda d: d["media_id"] == "library://artist/ps"
-    with patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 0.2):
+    with patch.object(ts.config_loader.current().music.verify, "timeout_s", 0.2):
         r = _post(query="deep house", kind="genre")
     assert r.status_code == 200 and r.json()["pick"]["label"] == "DEEP HOUSE Radio"
 

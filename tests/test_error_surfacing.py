@@ -185,7 +185,7 @@ def music_env():
          patch.object(ts, "ma_command", new=fake_ma), \
          patch.object(ts, "HA_TOKEN", "t"), \
          patch.object(ts, "MUSIC_DEFAULT_PLAYER", "media_player.kitchen_ma"), \
-         patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 0):
+         patch.object(ts.config_loader.current().music.verify, "timeout_s", 0):
         yield env
 
 
@@ -222,7 +222,7 @@ def test_music_failed_call_but_player_plays_is_success(music_env):
     """MA has failed the call and played anyway (2026-09-04, 'put on some jazz')."""
     music_env.fail = MA_MSG
     music_env.plays_anyway = True
-    with patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 5):
+    with patch.object(ts.config_loader.current().music.verify, "timeout_s", 5):
         resp = TestClient(ts.app).post("/music", json={"query": "jazz"})
     assert resp.status_code == 200
     assert resp.json()["status"] == "playing" and resp.json()["title"] == "new: jazz"
@@ -230,7 +230,7 @@ def test_music_failed_call_but_player_plays_is_success(music_env):
 
 def test_music_success_path_unchanged(music_env):
     FakeHA.playing = True
-    with patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 5):
+    with patch.object(ts.config_loader.current().music.verify, "timeout_s", 5):
         resp = TestClient(ts.app).post("/music", json={"query": "Portishead"})
     assert resp.status_code == 200 and resp.json()["player"] == "the Kitchen speaker"
 
@@ -242,7 +242,7 @@ def test_music_failed_call_with_old_music_still_playing_is_a_failure(music_env):
     playing; the old check saw `playing` and spoke the old track as the new."""
     FakeHA.playing, FakeHA.title = True, "All Kinds Of Time"
     music_env.fail = "Could not resolve ['deep house chill music'] to playable media item"
-    with patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 0.2):
+    with patch.object(ts.config_loader.current().music.verify, "timeout_s", 0.2):
         resp = TestClient(ts.app).post("/music", json={"query": "deep house chill music"})
     assert resp.status_code == 502
     assert resp.json()["detail"] == "Playback failed: Could not resolve deep house chill music to playable media item"
@@ -250,14 +250,14 @@ def test_music_failed_call_with_old_music_still_playing_is_a_failure(music_env):
 
 def test_music_success_reports_the_new_track_not_the_old_one(music_env):
     FakeHA.playing, FakeHA.title = True, "All Kinds Of Time"
-    with patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 5):
+    with patch.object(ts.config_loader.current().music.verify, "timeout_s", 5):
         resp = TestClient(ts.app).post("/music", json={"query": "Portishead"})
     assert resp.status_code == 200 and resp.json()["title"] == "new: Portishead"
 
 
 def test_music_asking_for_what_is_already_playing_succeeds_at_the_deadline(music_env):
     FakeHA.playing, FakeHA.title = True, "new: jazz"      # the call "replays" the same item
-    with patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 0.2):
+    with patch.object(ts.config_loader.current().music.verify, "timeout_s", 0.2):
         resp = TestClient(ts.app).post("/music", json={"query": "jazz"})
     assert resp.status_code == 200 and resp.json()["title"] == "new: jazz"
 
@@ -267,7 +267,7 @@ def test_music_unresolved_with_media_type_is_not_blindly_retried(music_env):
     FakeHA.playing, FakeHA.title = True, "All Kinds Of Time"
     music_env.fail = "Could not resolve ['deep house chill music'] to playable media item"
     music_env.fail_if = lambda data: "media_type" in data
-    with patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 0.2):
+    with patch.object(ts.config_loader.current().music.verify, "timeout_s", 0.2):
         resp = TestClient(ts.app).post("/music", json={"query": "deep house chill music",
                                                        "media_type": "radio"})
     assert resp.status_code == 502
@@ -290,7 +290,7 @@ def test_music_resolve_miss_fails_without_the_verify_poll(music_env):
     async def counting_sleep(secs):
         polls.append(secs)
 
-    with patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 5), \
+    with patch.object(ts.config_loader.current().music.verify, "timeout_s", 5), \
          patch.object(ts.asyncio, "sleep", new=counting_sleep):
         resp = TestClient(ts.app).post("/music", json={"query": "zxqv radio", "media_type": "radio"})
     assert resp.status_code == 502
@@ -306,7 +306,7 @@ def test_music_other_failure_still_polls(music_env):
     async def counting_sleep(secs):
         polls.append(secs)
 
-    with patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 0), \
+    with patch.object(ts.config_loader.current().music.verify, "timeout_s", 0), \
          patch.object(ts.asyncio, "sleep", new=counting_sleep):
         resp = TestClient(ts.app).post("/music", json={"query": "jazz"})
     assert resp.status_code == 502
@@ -325,7 +325,7 @@ LIBRARY_STATION = {"item_id": "251", "provider": "library", "name": "Santana Rad
 
 def test_music_radio_names_a_new_pandora_station_and_plays_it_by_uri(music_env):
     music_env.station_item = SEED_ITEM
-    with patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 5):
+    with patch.object(ts.config_loader.current().music.verify, "timeout_s", 5):
         resp = TestClient(ts.app).post("/music", json={"query": "Orbital radio", "media_type": "radio"})
     assert resp.status_code == 200
     assert resp.json()["station"] == {"name": "Orbital Radio", "created": True}
@@ -335,7 +335,7 @@ def test_music_radio_names_a_new_pandora_station_and_plays_it_by_uri(music_env):
 
 def test_music_radio_names_an_existing_pandora_station(music_env):
     music_env.station_item = LIBRARY_STATION
-    with patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 5):
+    with patch.object(ts.config_loader.current().music.verify, "timeout_s", 5):
         resp = TestClient(ts.app).post("/music", json={"query": "Santana radio", "media_type": "radio"})
     assert resp.json()["station"] == {"name": "Santana Radio", "created": False}
     assert music_env.calls[0][2]["media_id"] == "library://radio/251"
@@ -345,7 +345,7 @@ def test_music_radio_from_another_provider_has_no_station(music_env):
     music_env.station_item = {"item_id": "s123", "provider": "tunein", "name": "KEXP",
                               "uri": "tunein://radio/s123",
                               "provider_mappings": [{"provider_domain": "tunein"}]}
-    with patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 5):
+    with patch.object(ts.config_loader.current().music.verify, "timeout_s", 5):
         resp = TestClient(ts.app).post("/music", json={"query": "KEXP", "media_type": "radio"})
     assert "station" not in resp.json()
     assert music_env.calls[0][2]["media_id"] == "KEXP"
@@ -353,7 +353,7 @@ def test_music_radio_from_another_provider_has_no_station(music_env):
 
 def test_music_station_lookup_failure_plays_by_name(music_env):
     music_env.station_item = ts.MAError("Music Assistant is unreachable (OSError).")
-    with patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 5):
+    with patch.object(ts.config_loader.current().music.verify, "timeout_s", 5):
         resp = TestClient(ts.app).post("/music", json={"query": "Orbital radio", "media_type": "radio"})
     assert resp.status_code == 200 and "station" not in resp.json()
     assert music_env.calls[0][2]["media_id"] == "Orbital radio"
@@ -369,7 +369,7 @@ def test_music_failed_new_station_play_claims_no_station(music_env):
 
 
 def test_music_non_radio_requests_skip_the_station_lookup(music_env):
-    with patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 5):
+    with patch.object(ts.config_loader.current().music.verify, "timeout_s", 5):
         TestClient(ts.app).post("/music", json={"query": "Orbital", "media_type": "artist"})
     # No station lookup. (A named request does search since the resolver,
     # MUSIC_TASTE_AGENT_PLAN step 2 — that is not a station lookup.)
@@ -387,7 +387,7 @@ def test_music_unresolved_without_media_type_is_not_retried(music_env):
 
 def test_music_shuffle_requested_sets_the_player_and_reports_it(music_env):
     FakeHA.playing = True
-    with patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 5):
+    with patch.object(ts.config_loader.current().music.verify, "timeout_s", 5):
         resp = TestClient(ts.app).post("/music", json={"query": "Video Games Pretty Songs",
                                                        "media_type": "playlist", "shuffle": True})
     assert resp.status_code == 200
@@ -413,7 +413,7 @@ def test_music_shuffle_refused_before_play_is_retried_after(music_env):
         return await fake(domain, service, service_data, target)
     fake = ts.ha_call_service
     with patch.object(ts, "ha_call_service", new=dynamic_until_played), \
-         patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 5):
+         patch.object(ts.config_loader.current().music.verify, "timeout_s", 5):
         resp = TestClient(ts.app).post("/music", json={"query": "Video Games Pretty Songs",
                                                        "media_type": "playlist", "shuffle": True})
     assert resp.status_code == 200 and resp.json()["shuffle"] is True
@@ -423,7 +423,7 @@ def test_music_shuffle_refused_before_play_is_retried_after(music_env):
 def test_music_without_shuffle_turns_a_shuffling_player_off(music_env):
     FakeHA.playing = True
     FakeHA.shuffle = True                                     # left on by an earlier request
-    with patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 5):
+    with patch.object(ts.config_loader.current().music.verify, "timeout_s", 5):
         resp = TestClient(ts.app).post("/music", json={"query": "Daisies of the Galaxy", "media_type": "album"})
     assert resp.status_code == 200
     assert resp.json()["shuffle"] is False
@@ -433,7 +433,7 @@ def test_music_without_shuffle_turns_a_shuffling_player_off(music_env):
 
 def test_music_no_shuffle_call_when_the_player_already_matches(music_env):
     FakeHA.playing = True
-    with patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 5):
+    with patch.object(ts.config_loader.current().music.verify, "timeout_s", 5):
         resp = TestClient(ts.app).post("/music", json={"query": "jazz"})
     assert resp.status_code == 200 and resp.json()["shuffle"] is False
     assert [sv for _, sv, _, _ in music_env.calls] == ["play_media"]

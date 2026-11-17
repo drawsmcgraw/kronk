@@ -90,7 +90,7 @@ def env():
          patch.object(ts, "ma_command", new=fake_ma), \
          patch.object(ts, "HA_TOKEN", "t"), \
          patch.object(ts, "MUSIC_DEFAULT_PLAYER", KITCHEN["entity_id"]), \
-         patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 3):
+         patch.object(ts.config_loader.current().music.verify, "timeout_s", 3):
         yield e
 
 

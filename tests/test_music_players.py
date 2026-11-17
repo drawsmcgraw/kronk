@@ -309,7 +309,7 @@ def test_route_unreadable_player_list_is_specific(ha):
 
 def test_route_playback_never_starting_names_the_target(ha):
     ha.playing_entity = "media_player.nothing"
-    with patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 0):
+    with patch.object(ts.config_loader.current().music.verify, "timeout_s", 0):
         resp = TestClient(ts.app).post("/music", json={"query": "Aerosmith", "player": "kitchen"})
     assert resp.status_code == 502
     assert "did not start on the Kitchen speaker" in resp.json()["detail"]

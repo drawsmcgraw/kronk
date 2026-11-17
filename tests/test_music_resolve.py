@@ -55,7 +55,7 @@ def test_normalize_splits_by_at_the_last_by():
 
 def test_play_sends_the_query_without_the_provider_hint(music_env):
     FakeHA.playing = False
-    with patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 5):
+    with patch.object(ts.config_loader.current().music.verify, "timeout_s", 5):
         resp = TestClient(ts.app).post("/music", json={"query": "Hotel Costes 3 from Atlas", "media_type": "album"})
     assert resp.status_code == 200, resp.text
     _, _, data, _ = music_env.calls[0]
@@ -63,7 +63,7 @@ def test_play_sends_the_query_without_the_provider_hint(music_env):
 
 
 def test_play_a_pasted_link_by_uri(music_env):
-    with patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 5):
+    with patch.object(ts.config_loader.current().music.verify, "timeout_s", 5):
         resp = TestClient(ts.app).post("/music", json={
             "query": "https://music.youtube.com/playlist?list=OLAK5uy_mR95WuMRvxqS1RiPym7_tb4Xwj4BzTCtU"})
     assert resp.status_code == 200, resp.text
@@ -165,7 +165,7 @@ def search_env(music_env):
 
 def test_play_resolves_a_misspelled_album_by_uri(search_env):
     search_env.search = {"Ulrich Schnauss": SCHNAUSS_WORKS}
-    with patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 5):
+    with patch.object(ts.config_loader.current().music.verify, "timeout_s", 5):
         resp = TestClient(ts.app).post("/music", json={"query": "Destiny Waving by Ulrich Schnauss on YouTube Music",
                                                        "media_type": "album"})
     assert resp.status_code == 200, resp.text
@@ -180,7 +180,7 @@ def test_play_resolves_a_misspelled_album_by_uri(search_env):
 
 def test_play_confident_first_stage_skips_the_artist_search(search_env):
     search_env.search = {"Far Away Trains Passing By by Ulrich Schnauss": SCHNAUSS_WORKS}
-    with patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 5):
+    with patch.object(ts.config_loader.current().music.verify, "timeout_s", 5):
         TestClient(ts.app).post("/music", json={"query": "Far Away Trains Passing By by Ulrich Schnauss",
                                                 "media_type": "album"})
     assert search_env.calls[0][2]["media_id"] == "library://album/1372"
@@ -212,7 +212,7 @@ def test_play_playlist_not_in_the_library_plays_nothing(search_env):
 def test_play_ma_unreachable_falls_back_to_the_literal_play(search_env):
     async def down(command, _timeout=20, **args):
         raise ts.MAError("Music Assistant is unreachable (OSError).")
-    with patch.object(ts, "ma_command", new=down), patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 5):
+    with patch.object(ts, "ma_command", new=down), patch.object(ts.config_loader.current().music.verify, "timeout_s", 5):
         resp = TestClient(ts.app).post("/music", json={"query": "Portishead"})
     assert resp.status_code == 200
     assert search_env.calls[0][2] == {"media_id": "Portishead"}
@@ -291,7 +291,7 @@ def test_word_coverage_ignores_and_but_not_content_words():
 def test_play_radio_miss_by_name_resolves_the_station(search_env):
     search_env.station_item = None                     # item_by_name: no exact match
     search_env.search = {"90s, 2000's and today's hits": HITS_STATION}
-    with patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 5):
+    with patch.object(ts.config_loader.current().music.verify, "timeout_s", 5):
         resp = TestClient(ts.app).post("/music", json={"query": "90s, 2000's and today's hits",
                                                        "media_type": "radio", "player": "kitchen"})
     assert resp.status_code == 200, resp.text
@@ -303,7 +303,7 @@ def test_play_radio_miss_by_name_resolves_the_station(search_env):
 def test_play_radio_exact_station_skips_the_search(search_env):
     search_env.station_item = {"name": "Woodstock Radio", "uri": "library://radio/9", "item_id": "9",
                                "provider": "library", "provider_mappings": [{"provider_domain": "pandora"}]}
-    with patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 5):
+    with patch.object(ts.config_loader.current().music.verify, "timeout_s", 5):
         TestClient(ts.app).post("/music", json={"query": "Woodstock", "media_type": "radio"})
     assert search_env.searches == []
     assert search_env.calls[0][2]["media_id"] == "library://radio/9"
@@ -328,7 +328,7 @@ def test_play_radio_scores_the_library_stations_when_search_finds_none(search_en
             return HITS_STATION["radio"]
         return await inner(command, _timeout=_timeout, **args)
 
-    with patch.object(ts, "ma_command", new=with_library), patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 5):
+    with patch.object(ts, "ma_command", new=with_library), patch.object(ts.config_loader.current().music.verify, "timeout_s", 5):
         resp = TestClient(ts.app).post("/music", json={"query": "90s, 2000's and today's hits from Pandora",
                                                        "media_type": "radio"})
     assert resp.status_code == 200, resp.text
@@ -404,7 +404,7 @@ def test_play_sentence_says_radio_when_the_model_did_not(search_env):
     # typeless "90s and 2000s" had played a YouTube album.
     search_env.station_item = None
     search_env.search = {"90s and 2000s": {"albums": [_album("90s/2000s Girly Pop Icons", ["Various Artists"], "ytmusic://album/G")]}}
-    with _with_library(search_env), patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 5):
+    with _with_library(search_env), patch.object(ts.config_loader.current().music.verify, "timeout_s", 5):
         resp = TestClient(ts.app).post("/music", json={
             "query": "90s and 2000s", "kind": "named",
             "said": "Play ninety's two thousands and today's hits radio on the basement voice pe ma"})
@@ -414,7 +414,7 @@ def test_play_sentence_says_radio_when_the_model_did_not(search_env):
 
 def test_play_station_lookup_uses_the_name_from_the_sentence(search_env):
     search_env.station_item = None
-    with _with_library(search_env), patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 5):
+    with _with_library(search_env), patch.object(ts.config_loader.current().music.verify, "timeout_s", 5):
         TestClient(ts.app).post("/music", json={"query": "90s", "media_type": "radio",
                                                "said": "play 90s, 2000s, today's hits radio"})
     lookups = [a["name"] for c, a in search_env.ma_calls if c == "music/item_by_name"]
@@ -430,7 +430,7 @@ def test_play_song_with_radio_in_its_title_is_not_forced_to_radio(search_env):
 
 def test_play_sentence_naming_a_station_overrides_kind_genre(search_env):
     search_env.station_item = None
-    with _with_library(search_env), patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 5):
+    with _with_library(search_env), patch.object(ts.config_loader.current().music.verify, "timeout_s", 5):
         resp = TestClient(ts.app).post("/music", json={
             "query": "90s", "kind": "genre",
             "said": "Play ninety's two thousands and today's hits radio on the basement voice pe ma"})
@@ -459,7 +459,7 @@ def test_play_playlist_misheard_name_scores_the_library_playlists(search_env):
             return library
         return await inner(command, _timeout=_timeout, **args)
 
-    with patch.object(ts, "ma_command", new=with_library), patch.object(ts, "MUSIC_VERIFY_TIMEOUT_S", 5):
+    with patch.object(ts, "ma_command", new=with_library), patch.object(ts.config_loader.current().music.verify, "timeout_s", 5):
         resp = TestClient(ts.app).post("/music", json={"query": "Hotel Costas", "media_type": "playlist"})
     assert resp.status_code == 200, resp.text
     assert search_env.calls[0][2] == {"media_id": "library://playlist/49", "media_type": "playlist"}

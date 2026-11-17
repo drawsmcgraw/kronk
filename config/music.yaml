@@ -1,0 +1,19 @@
+# Music playback tuning, read by tool_service (sprint M21 step 1;
+# docs/features/config-directory.md).
+#
+# Read by tool_service/config_loader.py at startup and on POST /config/reload
+# (scripts/config_reload.sh). Schema: the Music model in that module. An
+# unknown key, a wrong type ("8" is not 8) or an out-of-range number rejects
+# the whole file, with its line, on /services; the values in effect stay as
+# they were. A key left out takes its built-in default, which is the value
+# written here.
+
+# Checking that a command took effect (tenet 6: verify the effect, not the
+# status code).
+verify:
+  # Seconds tool_service polls a player for the state a command should
+  # produce (`playing` after play, paused after pause, a new track after a
+  # skip) before it reports failure. The spoken failure names this number.
+  # Keep it below the orchestrator's tool_timeouts for the music tools
+  # (tuning.yaml). More than 0, at most 60.
+  timeout_s: 8

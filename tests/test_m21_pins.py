@@ -280,7 +280,7 @@ def effective_values() -> dict:
     timeouts = tools.config_loader.current().tuning.tool_timeouts
     v["tools.timeout_s"] = {n: timeouts.for_tool(n) for n in names}
     v["tools.timeout_default_s"] = timeouts.default_s
-    v["tool_service.music_verify_timeout_s"] = ts.MUSIC_VERIFY_TIMEOUT_S
+    v["tool_service.music_verify_timeout_s"] = ts.config_loader.current().music.verify.timeout_s
     v["tool_service.resolve_hint_min_score"] = ts.RESOLVE_HINT_MIN_SCORE
     v["music_resolve.play_min_score"] = mr.PLAY_MIN_SCORE
     v["music_resolve.coverage_min"] = mr.COVERAGE_MIN
@@ -334,11 +334,14 @@ def test_builtin_defaults_render_the_pinned_prompts_and_values(tmp_path, monkeyp
     """With config/ unreadable the services run on the built-in defaults
     (criterion 8), and those are today's values too."""
     import config_loader
+    from tool_service import config_loader as ts_config
     good = os.environ["KRONK_CONFIG_DIR"]
     monkeypatch.setenv("KRONK_CONFIG_DIR", str(tmp_path / "missing"))
     config_loader.start()
+    ts_config.start()
     try:
         assert config_loader.current().source == "defaults"
+        assert ts_config.current().source == "defaults"
         prompts, menus = render_prompts(tmp_path)
         assert prompts == _load("prompts.json")
         assert menus == _load("menus.json")
@@ -346,6 +349,7 @@ def test_builtin_defaults_render_the_pinned_prompts_and_values(tmp_path, monkeyp
     finally:
         monkeypatch.setenv("KRONK_CONFIG_DIR", good)
         config_loader.start()
+        ts_config.start()
 
 
 # ── writer (once, before the move) ───────────────────────────────────────────

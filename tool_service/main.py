@@ -20,12 +20,14 @@ import websockets.exceptions
 import trafilatura
 from bs4 import BeautifulSoup
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 # Dual-compat: flat layout in the container (import x), package import in
 # tests (from . import x). The relative form also avoids the repo-root ops/
 # registry dir shadowing the ops module on the test sys.path.
 try:
+    from . import config_loader
     from . import music_resolve
     from . import netguard
     from . import news
@@ -34,6 +36,7 @@ try:
     from . import taste
     from . import telemetry
 except ImportError:
+    import config_loader
     import music_resolve
     import netguard
     import news
@@ -1192,7 +1195,11 @@ HA_TOKEN = os.getenv("HA_TOKEN", "")
 # request names no speaker/room and has no origin (the web UI).
 MUSIC_DEFAULT_PLAYER = os.getenv("MUSIC_DEFAULT_PLAYER", "")
 
-MUSIC_VERIFY_TIMEOUT_S = 8   # how long to wait for a player to reach `playing`
+# How long to wait for a player to reach the state a command should produce:
+# config/music.yaml verify.timeout_s, read at use (sprint M21).
+def _verify_timeout_s() -> int | float:
+    return config_loader.current().music.verify.timeout_s
+
 
 # Music dry run (sprint M17, M10 step 5). On: every music request is
 # resolved exactly as usual (players, search, scoring, genre picks, station
@@ -1657,7 +1664,7 @@ def _failure_sentence(failure: str) -> str:
 
 def _no_start_sentence(label: str) -> str:
     return ("Music Assistant accepted the request but playback did not start "
-            f"on {label} within {MUSIC_VERIFY_TIMEOUT_S}s — the music "
+            f"on {label} within {_verify_timeout_s()}s — the music "
             "provider may need re-authentication in Music Assistant.")
 
 
@@ -1722,9 +1729,9 @@ async def _play_verified_inner(client, headers, entities, service_data):
     # (asked for what is already playing) is accepted at the deadline.
     # A resolve miss skips the poll: HA raises it before it calls MA's
     # play_media, so nothing can start, and the poll only added
-    # MUSIC_VERIFY_TIMEOUT_S to every "no such radio"
+    # the verify timeout to every "no such radio"
     # (INVESTIGATION_2026-10-21_radio_miss_latency.md).
-    deadline = asyncio.get_event_loop().time() + MUSIC_VERIFY_TIMEOUT_S
+    deadline = asyncio.get_event_loop().time() + _verify_timeout_s()
     same_item: dict | None = None
     while not (failure and _RESOLVE_MISS_RE.search(failure)):
         await asyncio.sleep(1)
@@ -2302,7 +2309,7 @@ async def control_music(req: MusicControlRequest):
             raise HTTPException(status_code=502, detail=str(e))
 
         # Verify the effect, not the status code (tenet 6).
-        deadline = asyncio.get_event_loop().time() + MUSIC_VERIFY_TIMEOUT_S
+        deadline = asyncio.get_event_loop().time() + _verify_timeout_s()
         while asyncio.get_event_loop().time() < deadline:
             await asyncio.sleep(1)
             states = [await _state(e) for e in entities]
@@ -2329,7 +2336,7 @@ async def control_music(req: MusicControlRequest):
     raise HTTPException(
         status_code=502,
         detail=f"Home Assistant accepted the request but {label} did not {action.replace('_', ' ')} "
-               f"within {MUSIC_VERIFY_TIMEOUT_S}s.",
+               f"within {_verify_timeout_s()}s.",
     )
 
 
@@ -2463,7 +2470,7 @@ async def rate_music(req: MusicRateRequest):
         skipped = None
         try:
             await ha_call_service("media_player", "media_next_track", {}, target={"entity_id": [entity]})
-            deadline = asyncio.get_event_loop().time() + MUSIC_VERIFY_TIMEOUT_S
+            deadline = asyncio.get_event_loop().time() + _verify_timeout_s()
             while asyncio.get_event_loop().time() < deadline:
                 await asyncio.sleep(1)
                 now = (await _state(entity)).get("attributes", {}) or {}
@@ -2535,6 +2542,23 @@ async def now_playing(req: NowPlayingRequest):
             "title": attrs.get("media_title"), "artist": attrs.get("media_artist"),
             "album": attrs.get("media_album_name"), "content_id": attrs.get("media_content_id"),
         }
+
+
+# ── config/ (sprint M21 step 1) ──────────────────────────────────────────────
+# Host and compose network only: the port is bound to 127.0.0.1 and nginx
+# proxies nothing but /api/solar/ to this service.
+
+@app.post("/config/reload")
+async def config_reload():
+    """Re-read config/. 200 with what changed, or 422 with the errors (file
+    and line) and the last good values still in effect."""
+    result = config_loader.reload()
+    return JSONResponse(result, status_code=200 if result["ok"] else 422)
+
+
+@app.get("/config/status")
+async def config_status():
+    return config_loader.status()
 
 
 @app.get("/health")
