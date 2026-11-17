@@ -252,7 +252,8 @@ class _Obs:
     def end(self, output=None, usage: dict | None = None,
             level: str | None = None, status_message: str | None = None,
             metadata: dict | None = None):
-        """End the span. usage: {"input": n, "output": m} token counts."""
+        """End the span. usage: {"input": n, "output": m, "cached": k} token
+        counts (cached: prompt tokens the server took from its cache)."""
         if self.ended:
             return
         self.ended = True
@@ -261,7 +262,9 @@ class _Obs:
                 self.set(**{f"kronk.{k}": v for k, v in metadata.items()})
             if usage:
                 self.set(**{"gen_ai.usage.input_tokens": usage.get("input"),
-                            "gen_ai.usage.output_tokens": usage.get("output")})
+                            "gen_ai.usage.output_tokens": usage.get("output"),
+                            # llama.cpp's cached share of the prompt (M9)
+                            "kronk.cached_tokens": usage.get("cached")})
             if self._completion_start is not None:
                 start_ns = getattr(self._raw, "start_time", None)
                 if start_ns:

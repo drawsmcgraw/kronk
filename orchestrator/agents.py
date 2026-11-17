@@ -509,6 +509,25 @@ def kronk_facts() -> str:
     )
 
 
+def _cached_tokens(usage: dict) -> int | None:
+    """Prompt tokens llama.cpp took from its cache for this generation, as
+    LiteLLM passes them through (usage.prompt_tokens_details.cached_tokens;
+    prompt_tokens minus this is what the server evaluated). None when the
+    server did not say (sprint M9: cache reuse is measured per generation)."""
+    details = usage.get("prompt_tokens_details") or {}
+    n = details.get("cached_tokens") if isinstance(details, dict) else None
+    return n if isinstance(n, int) else None
+
+
+def _usage(usage: dict) -> dict:
+    """Token counts for a generation span: input, output, cached."""
+    return {
+        "input":  usage.get("prompt_tokens", 0),
+        "output": usage.get("completion_tokens", 0),
+        "cached": _cached_tokens(usage),
+    }
+
+
 def _empty_reply(agent: "AgentConfig", style: str) -> str:
     """The model streamed no token and no tool call: say so (M2 fix 1)."""
     emit("agent_empty_reply", agent=agent.name, model=agent.model)
@@ -635,10 +654,7 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
                     "content":    "".join(round_content),
                     "tool_calls": [tc["function"]["name"] for tc in round_tool_calls],
                 },
-                usage={
-                    "input":  last_usage.get("prompt_tokens", 0),
-                    "output": last_usage.get("completion_tokens", 0),
-                },
+                usage=_usage(last_usage),
                 metadata={"phase": phase},
             )
             emit(
@@ -647,6 +663,8 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
                 model=agent.model,
                 phase=phase,
                 duration_s=round(time.monotonic() - t_llm, 2),
+                prompt_tokens=last_usage.get("prompt_tokens"),
+                cached_tokens=_cached_tokens(last_usage),
             )
             metrics.record(
                 agent=agent.name,
@@ -871,10 +889,7 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
 
         gen.end(
             output=final_text,
-            usage={
-                "input":  last_usage.get("prompt_tokens", 0),
-                "output": last_usage.get("completion_tokens", 0),
-            },
+            usage=_usage(last_usage),
         )
         emit(
             "agent_round",
@@ -882,6 +897,8 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
             model=agent.model,
             phase="synthesis_forced",
             duration_s=round(time.monotonic() - t_llm, 2),
+            prompt_tokens=last_usage.get("prompt_tokens"),
+            cached_tokens=_cached_tokens(last_usage),
         )
         metrics.record(
             agent=agent.name,
