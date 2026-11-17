@@ -63,6 +63,7 @@ def test_request_verbs_and_lead_ins(text, verb):
     ("play K-pop radio", "radio", "radio", "K-pop"),
     ("put on the radio station Zorblax Fnordwave", "radio", "radio station", "Zorblax Fnordwave"),
     ("Start an orbital radio station on YouTube Music.", "radio", "radio station", "orbital"),
+    ("play the station Trip Hop Radio", "radio", "station", "Trip Hop Radio"),
 ])
 def test_type_words(text, type_, word, name):
     p = parse(text)

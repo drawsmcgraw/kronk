@@ -28,6 +28,7 @@ from pydantic import BaseModel
 # registry dir shadowing the ops module on the test sys.path.
 try:
     from . import config_loader
+    from . import music_decide
     from . import music_resolve
     from . import netguard
     from . import news
@@ -37,6 +38,7 @@ try:
     from . import telemetry
 except ImportError:
     import config_loader
+    import music_decide
     import music_resolve
     import netguard
     import news
@@ -1764,29 +1766,31 @@ PICK_MEMORY_S = 3 * 3600        # how long "not that" can refer back to a pick
 _LAST_PICKS: dict[tuple, dict] = {}
 
 
-def _taste_con():
+def _taste_con(readonly: bool = False):
     try:
-        return taste.db()
+        return taste.db_readonly() if readonly else taste.db()
     except (OSError, sqlite3.Error) as e:
         logger.warning("taste db unavailable, picking without it: %s", e)
         return None
 
 
-async def _genre_plan(nq: "music_resolve.Query", forced: bool, area: str | None) -> dict | None:
+async def _genre_plan(nq: "music_resolve.Query", forced: bool, area: str | None,
+                      readonly: bool = False) -> dict | None:
     """The ranked picks for a genre request, or None when the request isn't
     a genre (and wasn't declared one) or nothing fits — the caller then
-    treats it as a named request."""
+    treats it as a named request. `readonly` (the M11 decision order) opens
+    the taste DB read-only and never creates the taste file."""
     with telemetry.span("music.genre_plan", **{"music.forced": forced}) as sp:
-        plan = await _genre_plan_inner(nq, forced, area)
+        plan = await _genre_plan_inner(nq, forced, area, readonly)
         sp.set(**{"music.picks": len(plan["picks"]) if plan else 0,
                   "music.outcome": "picks" if plan else "not_a_genre"})
         return plan
 
 
-async def _genre_plan_inner(nq, forced, area):
-    taste_doc = taste.TASTE.load()
+async def _genre_plan_inner(nq, forced, area, readonly=False):
+    taste_doc = taste.TASTE.load(create=not readonly)
     phrase = taste.genre_phrase(nq.text)
-    con = _taste_con()
+    con = _taste_con(readonly)
     try:
         if phrase and not forced:
             known = taste.is_genre(phrase, con, taste_doc) if con else phrase in taste.BUILTIN_GENRES
@@ -1988,7 +1992,7 @@ RESOLVE_SEARCH_TIMEOUT_S = 8
 
 async def _ma_search(text: str, media_types: list[str], limit: int) -> dict | None:
     try:
-        r = await ma_command("music/search", _timeout=RESOLVE_SEARCH_TIMEOUT_S,
+        r = await ma_read("music/search", _timeout=RESOLVE_SEARCH_TIMEOUT_S,
                              search_query=text, media_types=media_types, limit=limit)
     except MAError as e:
         logger.warning("music search for %r failed: %s", text, e)
@@ -2033,7 +2037,7 @@ async def _library_items(media_type: str) -> dict | None:
     guessing which words MA will match."""
     command, key = _LIBRARY_SCORED[media_type]
     try:
-        items = await ma_command(command, limit=RESOLVE_RADIO_LIBRARY_LIMIT)
+        items = await ma_read(command, limit=RESOLVE_RADIO_LIBRARY_LIMIT)
     except MAError as e:
         logger.warning("library %s listing failed: %s", media_type, e)
         return None
@@ -2059,38 +2063,135 @@ async def _resolve_named(nq: "music_resolve.Query", media_type: str | None,
 
 
 async def _resolve_named_inner(nq, media_type, also):
-    types = [media_type] if media_type in RESOLVE_TYPES + ["radio"] else RESOLVE_TYPES
-    variants = [nq.text] + ([nq.name] if nq.artist and nq.name and nq.name != nq.text else [])
-    also = also or []
-    variants += [q.text for q in also]
-    # MA's search is literal: "90s" finds what "ninety's" can't
-    variants += [d.text for q in (nq, *also) if (d := q.digits()) is not None]
-    variants = list(dict.fromkeys(variants))
-    results = await asyncio.gather(*(_search_each(v, types, RESOLVE_SEARCH_LIMIT) for v in variants))
-    if media_type in _LIBRARY_SCORED:
-        results.append(await _library_items(media_type))
-    if all(r is None for r in results):
+    r = await music_resolve.resolve_named(
+        nq, media_type, also, search_each=_search_each, library_items=_library_items,
+        library_scored=_LIBRARY_SCORED, all_types=RESOLVE_TYPES,
+        search_limit=RESOLVE_SEARCH_LIMIT, artist_limit=RESOLVE_ARTIST_LIMIT)
+    if not r.searched:
         return None, None, 1, 0
-    cands: dict[str, music_resolve.Candidate] = {}
-    for r in results:
-        for c in music_resolve.candidates_from_search(r):
-            cands.setdefault(c.uri, c)
-    typed = media_type if media_type in types else None
-    ranked = music_resolve.rank(list(cands.values()), nq, typed, also)
-    stage = 1
-    if nq.artist and (not ranked or ranked[0].score < music_resolve.policy().play_min_score):
-        stage = 2
-        works = [t for t in types if t in ("album", "track")] or ["album", "track"]
-        for c in music_resolve.candidates_from_search(await _search_each(nq.artist, works, RESOLVE_ARTIST_LIMIT)):
-            cands.setdefault(c.uri, c)
-        ranked = music_resolve.rank(list(cands.values()), nq, typed, also)
-    best = ranked[0] if ranked else None
-    winner = best if best and best.score >= music_resolve.policy().play_min_score else None
+    best, winner = r.best, r.winner
     logger.info("music resolve %r [%s] stage %d, %d candidates -> %s",
-                nq.text, media_type, stage, len(cands),
+                nq.text, media_type, r.stage, r.n,
                 f"{best.media_type} {best.name!r} by {best.artist!r} {best.uri} ({best.score:.2f})"
                 + ("" if winner else " BELOW THRESHOLD") if best else "nothing")
-    return winner, best, stage, len(cands)
+    return winner, best, r.stage, r.n
+
+
+# ── M11: what the decision order may read, and its one model question ──────
+# music_decide.decide() gets a ReadOnlyMusic and nothing else: Music
+# Assistant through ma_read (read commands only), the taste store opened
+# read-only, and one constrained question to the model. No method here
+# calls Home Assistant's services, play_media, a transport command or a
+# rating. POST /music/say plays the decision's outcome; shadow mode
+# (music_shadow.py) only logs it.
+
+_LIBRARY_COMMAND = {"artist": "music/artists/library_items", "album": "music/albums/library_items",
+                    "track": "music/tracks/library_items", "playlist": "music/playlists/library_items",
+                    "radio": "music/radios/library_items"}
+_RESULT_KEY = {"artist": "artists", "album": "albums", "track": "tracks", "playlist": "playlists",
+               "radio": "radio"}
+EXACT_LOOKUP_LIMIT = 25
+
+# The model question (plan M11 step 6). tool_service calls LiteLLM directly,
+# as news.py and taste.py already do (operator decision 2026-08-24): there is
+# no model client in tool_service and the orchestrator has no internal
+# endpoint for it. This bypasses the orchestrator's _llm_lock; see
+# docs/sprint/M11-build.md for why that is safe. Shadow mode never asks.
+MUSIC_MODEL_URL = os.getenv("MUSIC_MODEL_URL", "http://host.docker.internal:8002/v1")
+_MODEL_SYSTEM = ("You classify a music request. Answer whether the words name a style of music "
+                 "(a genre, mood or kind of music) or a named item (an artist, album, song, "
+                 "playlist or station). Reply with JSON only.")
+_MODEL_SCHEMA = {"type": "json_schema", "json_schema": {"name": "reading", "strict": True, "schema": {
+    "type": "object", "properties": {"reading": {"type": "string", "enum": ["style", "named"]}},
+    "required": ["reading"], "additionalProperties": False}}}
+
+
+async def ask_style_or_named(sentence: str, words: str) -> tuple[str | None, dict]:
+    """("style" | "named", {}) or (None, {"error": ...}). Never raises. The
+    model answers one of two words; it never writes play arguments."""
+    m = config_loader.current().music.decision.model
+    body = {"model": m.model, "temperature": 0, "max_tokens": 1500 if m.thinking else 32,
+            "messages": [{"role": "system", "content": _MODEL_SYSTEM},
+                         {"role": "user", "content": f'Request: "{sentence.strip()}". '
+                                                     f'Is "{words}" a style or a named item?'}],
+            "response_format": _MODEL_SCHEMA}
+    if not m.thinking:
+        body["chat_template_kwargs"] = {"enable_thinking": False}
+    with telemetry.span("music.model_question", **{"music.model": m.model,
+                                                   "music.thinking": m.thinking}) as sp:
+        try:
+            async with httpx.AsyncClient(timeout=m.timeout_s) as client:
+                resp = await asyncio.wait_for(client.post(f"{MUSIC_MODEL_URL}/chat/completions", json=body),
+                                              timeout=m.timeout_s)
+            resp.raise_for_status()
+            content = ((resp.json().get("choices") or [{}])[0].get("message") or {}).get("content") or ""
+            answer = json.loads(content).get("reading")
+        except asyncio.TimeoutError:
+            sp.set(**{"music.outcome": "timeout"})
+            return None, {"error": f"no answer within {m.timeout_s}s"}
+        except (httpx.HTTPError, ValueError, AttributeError) as e:
+            sp.set(**{"music.outcome": "error"})
+            return None, {"error": f"{type(e).__name__}: {str(e)[:120]}"}
+        if answer not in ("style", "named"):
+            sp.set(**{"music.outcome": "off_values"})
+            return None, {"error": f"answered outside the two values: {str(answer)[:40]!r}"}
+        sp.set(**{"music.outcome": answer})
+        return answer, {}
+
+
+class ReadOnlyMusic(music_decide.Reads):
+    """The Reads music_decide.decide() gets in production: lookups only."""
+    resolve_kwargs = {"library_scored": _LIBRARY_SCORED, "all_types": RESOLVE_TYPES,
+                      "search_limit": RESOLVE_SEARCH_LIMIT, "artist_limit": RESOLVE_ARTIST_LIMIT}
+
+    def __init__(self, area: str | None = None):
+        self.area = area
+
+    async def library_exact(self, media_type, name, artist=None):
+        try:
+            items = await ma_read(_LIBRARY_COMMAND[media_type], _timeout=RESOLVE_SEARCH_TIMEOUT_S,
+                                  search=name, limit=EXACT_LOOKUP_LIMIT)
+        except MAError as e:
+            logger.info("library lookup %s %r failed: %s", media_type, name, e)
+            return None
+        if isinstance(items, dict):
+            items = items.get("items")
+        want = music_resolve.fold(name)
+        for it in items if isinstance(items, list) else []:
+            if not isinstance(it, dict) or music_resolve.fold(it.get("name")) != want:
+                continue
+            c = music_resolve.candidates_from_search({_RESULT_KEY[media_type]: [it]})
+            if c and (not artist or any(music_resolve.fold(a) == music_resolve.fold(artist)
+                                        for a in c[0].artists)):
+                return c[0]
+        return None
+
+    async def search_each(self, text, types, limit):
+        return await _search_each(text, types, limit)
+
+    async def library_items(self, media_type):
+        return await _library_items(media_type)
+
+    async def station(self, name):
+        return await _pandora_station(name)
+
+    def genre_known(self, words):
+        phrase = taste.genre_phrase(words)
+        if not phrase:
+            return False
+        con = _taste_con(readonly=True)
+        try:
+            return taste.is_genre(phrase, con, taste.TASTE.load(create=False)) if con \
+                else phrase in taste.BUILTIN_GENRES
+        finally:
+            if con:
+                con.close()
+
+    async def genre_plan(self, words):
+        return await _genre_plan(music_resolve.normalize(words), forced=True, area=self.area, readonly=True)
+
+    async def ask_model(self, sentence, words):
+        return await ask_style_or_named(sentence, words)
 
 
 # ── Household taste: the told half (MUSIC_TASTE_AGENT_PLAN step 3) ───────────
@@ -2184,6 +2285,24 @@ async def ma_command(command: str, _timeout: float = 20, **args) -> object:
         return await _ma_command(command, _timeout, args)
 
 
+# Music Assistant commands that only read (sprint M11). The resolver's search,
+# library listings and station lookup go through ma_read, and so does
+# everything the M11 decision order and its shadow can ask: a command outside
+# this set is refused before anything is sent.
+MA_READ_COMMANDS = frozenset({
+    "music/search", "music/item_by_name",
+    "music/radios/library_items", "music/playlists/library_items",
+    "music/albums/library_items", "music/artists/library_items", "music/tracks/library_items",
+})
+
+
+async def ma_read(command: str, _timeout: float = 20, **args) -> object:
+    """ma_command for a read-only command; any other command raises MAError."""
+    if command not in MA_READ_COMMANDS:
+        raise MAError(f"refused: {command} is not a read command")
+    return await ma_command(command, _timeout=_timeout, **args)
+
+
 async def _ma_command(command: str, _timeout: float, args: dict) -> object:
     url = MA_URL.replace("http://", "ws://", 1).replace("https://", "wss://", 1).rstrip("/") + "/ws"
     try:
@@ -2226,7 +2345,7 @@ async def _pandora_station(query: str) -> dict | None:
     """
     with telemetry.span("music.pandora_station") as sp:
         try:
-            item = await ma_command("music/item_by_name", _timeout=MA_STATION_LOOKUP_TIMEOUT_S,
+            item = await ma_read("music/item_by_name", _timeout=MA_STATION_LOOKUP_TIMEOUT_S,
                                     name=query, media_type="radio")
         except MAError as e:
             logger.warning("station lookup for %r failed: %s", query, e)

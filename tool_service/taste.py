@@ -151,11 +151,13 @@ class TasteFile:
             self.path.write_text(DEFAULT_TASTE)
             logger.info("taste file created with defaults at %s", self.path)
 
-    def load(self) -> dict:
-        """Current taste. Cheap when the file hasn't changed."""
+    def load(self, create: bool = True) -> dict:
+        """Current taste. Cheap when the file hasn't changed. `create=False`
+        (the M11 decision order) never writes the default file."""
         with self._lock:
             try:
-                self._ensure()
+                if create:
+                    self._ensure()
                 mtime = self.path.stat().st_mtime
             except OSError as e:
                 self.error = f"can't read {self.path}: {e}"
@@ -300,6 +302,21 @@ def db(path: Path | None = None) -> sqlite3.Connection:
     con = sqlite3.connect(path)
     con.row_factory = sqlite3.Row
     con.executescript(_SCHEMA)
+    return con
+
+
+def db_readonly(path: Path | None = None) -> sqlite3.Connection:
+    """The taste DB opened read-only (sprint M11: the decision order and its
+    shadow read the genre vocabulary and never write). Raises sqlite3.Error
+    when the file or its tables are missing; nothing is created."""
+    path = Path(path or TASTE_DB)
+    con = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+    con.row_factory = sqlite3.Row
+    try:
+        con.execute("SELECT 1 FROM artists LIMIT 1")
+    except sqlite3.Error:
+        con.close()
+        raise
     return con
 
 

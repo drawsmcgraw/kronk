@@ -182,10 +182,55 @@ class Parser(_Strict):
         return v
 
 
+# The decision order's steps (music_decide.py), in their fixed order. The
+# model step is placed among them by Decision.order.
+DECISION_STEPS = ("markers", "genre_list", "named", "cross_type", "other_reading")
+ProviderDomain = Literal["filesystem_local", "ytmusic", "pandora", "spotify", "library"]
+
+
+def _providers() -> list[str]:
+    return ["filesystem_local", "ytmusic"]
+
+
+class ProviderOrder(_Strict):
+    """Which provider wins among strong candidates, per media type (Drew,
+    2026-11-11 and 11-14). A provider the sentence names goes first."""
+    artist: list[ProviderDomain] = Field(default_factory=_providers, max_length=5)
+    album: list[ProviderDomain] = Field(default_factory=_providers, max_length=5)
+    track: list[ProviderDomain] = Field(default_factory=_providers, max_length=5)
+    playlist: list[ProviderDomain] = Field(default_factory=_providers, max_length=5)
+    radio: list[ProviderDomain] = Field(default_factory=lambda: ["pandora"], max_length=5)
+
+
+class ModelStep(_Strict):
+    """The one model question: style or named item."""
+    enabled: bool = True
+    model: str = Field("gemma-4-e4b", min_length=1, max_length=64)
+    thinking: bool = False
+    timeout_s: int | float = Field(4, gt=0, le=30)
+
+
+class Decision(_Strict):
+    """music_decide.decide() (sprint M11): style or named item, and what plays."""
+    order: list[str] = Field(default_factory=lambda: [*DECISION_STEPS[:5], "model"])
+    strong_min_score: float = Field(0.75, **_SCORE)
+    provider_order: ProviderOrder = Field(default_factory=ProviderOrder)
+    model: ModelStep = Field(default_factory=ModelStep)
+
+    @field_validator("order")
+    @classmethod
+    def _order(cls, v):
+        if v.count("model") != 1 or [s for s in v if s != "model"] != list(DECISION_STEPS):
+            raise ValueError(f"must be {', '.join(DECISION_STEPS)} in that order, with model "
+                             "placed once anywhere among them")
+        return v
+
+
 class Music(_Strict):
     verify: Verify = Field(default_factory=Verify)
     resolver: Resolver = Field(default_factory=Resolver)
     parser: Parser = Field(default_factory=Parser)
+    decision: Decision = Field(default_factory=Decision)
 
 
 @dataclass

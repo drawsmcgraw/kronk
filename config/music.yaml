@@ -75,3 +75,48 @@ parser:
   # dirt") that matches no real name exactly still matches one this similar
   # (0 to 1). Only the right-hand end of the sentence is read for a room.
   room_min_score: 0.85
+
+# The decision order (sprint M11: POST /music/say and its shadow,
+# music_decide.py; docs/features/voice-music-control.md). Not used by the
+# live /music path.
+decision:
+  # The steps, in order. markers: a type word or a style word decides the
+  # reading. genre_list: an unmarked request that is a known genre is a
+  # style. named: search and score as a named item. cross_type: a typed
+  # request with no strong match looks for the name as another type.
+  # other_reading: an unknown style is retried as a name, a name with no
+  # strong match as a style if the genre list knows it. model: one question
+  # to the model, style or named, when the steps before it left it unclear.
+  # The first five keep this order; model may move anywhere among them
+  # (Drew, 2026-11-11: earlier as the model gets faster).
+  order: [markers, genre_list, named, cross_type, other_reading, model]
+  # A candidate at least this good is a strong match: it plays. Below it,
+  # the next step runs. 0 to 1.
+  strong_min_score: 0.75
+  # Among strong candidates of the same type, the first provider listed
+  # wins; the score breaks ties. A provider named in the sentence goes
+  # first. filesystem_local is the NAS library, ytmusic YouTube Music.
+  provider_order:
+    # An artist: the NAS first, then YouTube Music (Drew, 2026-11-14).
+    artist: [filesystem_local, ytmusic]
+    # An album: the NAS first, then YouTube Music (Drew, 2026-11-11).
+    album: [filesystem_local, ytmusic]
+    # A song: the NAS first, then YouTube Music.
+    track: [filesystem_local, ytmusic]
+    # A playlist: the NAS first, then YouTube Music.
+    playlist: [filesystem_local, ytmusic]
+    # A station: Pandora.
+    radio: [pandora]
+  # The model question. Its answer only picks the branch; the words still
+  # come from the sentence.
+  model:
+    # false skips the question; the rules' own reading stands.
+    enabled: true
+    # The LiteLLM model name.
+    model: gemma-4-e4b
+    # Reasoning before the answer. Off: 0.3 s against 1.5 to 2.5 s, the
+    # same answer on 20 of 20 test requests (2026-11-17).
+    thinking: false
+    # Seconds before the question is given up and the rules' reading
+    # stands. More than 0, at most 30.
+    timeout_s: 4

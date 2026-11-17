@@ -17,6 +17,7 @@ verify). Scoring is stdlib difflib on folded strings — no phonetic
 library; the space-collapsed comparison is what catches split/merged
 words ("kurudorfmeister" vs "kruderdorfmeister").
 """
+import asyncio
 import re
 import unicodedata
 from dataclasses import dataclass, field
@@ -334,6 +335,88 @@ def rank(cands: list[Candidate], q: Query, media_type: str | None = None,
 # stays under 0.4.
 
 
+# ── resolving a named request (search, score, choose) ───────────────────────
+# The body of main._resolve_named since sprint M11, so the live /music path
+# and the M11 decision order share it. The I/O is passed in: main hands over
+# its Music Assistant search and library listing. With no `types` and no
+# `provider_order` it does exactly what /music did before (pinned:
+# tests/test_music_live_pin.py).
+
+@dataclass
+class Resolution:
+    winner: "Candidate | None"        # what to play, or None
+    best: "Candidate | None"          # the top score, strong or not
+    stage: int                        # 2 when "X by Y" also listed Y's works
+    n: int                            # candidates scored
+    ranked: list = field(default_factory=list)
+    searched: bool = True             # False: Music Assistant could not be searched
+
+
+def prefer_provider(ranked: list[Candidate], threshold: float,
+                    order: list[str] | dict[str, list[str]]) -> "Candidate | None":
+    """The M11 provider policy (Drew, 2026-11-11 and 11-14): among the
+    candidates that pass `threshold`, and of the same media type as the best
+    of them, the one whose provider comes first in `order`; the score breaks
+    ties. A preference, never a filter, and only above the threshold: a poor
+    NAS match never beats a good YouTube Music match."""
+    strong = [c for c in ranked if c.score >= threshold]
+    if not strong:
+        return None
+    pool = [c for c in strong if c.media_type == strong[0].media_type]
+    if isinstance(order, dict):                 # per media type (config decision.provider_order)
+        order = order.get(pool[0].media_type) or []
+
+    def place(c: Candidate) -> int:
+        return next((i for i, p in enumerate(order) if p in c.providers), len(order))
+    return min(pool, key=lambda c: (place(c), -c.score))
+
+
+async def resolve_named(nq: Query, media_type: str | None, also: list[Query] | None = None, *,
+                        search_each, library_items, library_scored, all_types: list[str],
+                        search_limit: int, artist_limit: int, types: list[str] | None = None,
+                        provider_order: list[str] | dict | None = None, strong_min: float | None = None,
+                        ) -> Resolution:
+    """Search, score, choose. `types` (M11's retry across types) searches
+    those types untyped; `provider_order` (M11) chooses with
+    prefer_provider() above `strong_min` instead of taking the top score
+    above resolver.play_min_score."""
+    retry_types = types is not None
+    if not retry_types:
+        types = [media_type] if media_type in all_types + ["radio"] else all_types
+    variants = [nq.text] + ([nq.name] if nq.artist and nq.name and nq.name != nq.text else [])
+    also = also or []
+    variants += [q.text for q in also]
+    # MA's search is literal: "90s" finds what "ninety's" can't
+    variants += [d.text for q in (nq, *also) if (d := q.digits()) is not None]
+    variants = list(dict.fromkeys(variants))
+    results = await asyncio.gather(*(search_each(v, types, search_limit) for v in variants))
+    for t in ([t for t in types if t in library_scored] if retry_types
+              else ([media_type] if media_type in library_scored else [])):
+        results.append(await library_items(t))
+    if all(r is None for r in results):
+        return Resolution(None, None, 1, 0, [], searched=False)
+    cands: dict[str, Candidate] = {}
+    for r in results:
+        for c in candidates_from_search(r):
+            cands.setdefault(c.uri, c)
+    typed = None if retry_types else (media_type if media_type in types else None)
+    ranked = rank(list(cands.values()), nq, typed, also)
+    stage = 1
+    if nq.artist and (not ranked or ranked[0].score < policy().play_min_score):
+        stage = 2
+        works = [t for t in types if t in ("album", "track")] or ["album", "track"]
+        for c in candidates_from_search(await search_each(nq.artist, works, artist_limit)):
+            cands.setdefault(c.uri, c)
+        ranked = rank(list(cands.values()), nq, typed, also)
+    best = ranked[0] if ranked else None
+    if provider_order is None:
+        winner = best if best and best.score >= policy().play_min_score else None
+    else:
+        winner = prefer_provider(ranked, strong_min if strong_min is not None else policy().play_min_score,
+                                 provider_order)
+    return Resolution(winner, best, stage, len(cands), ranked)
+
+
 # ── the sentence parser (sprint M11) ─────────────────────────────────────────
 # POST /music/say reads the user's own sentence instead of a model's
 # arguments. parse_sentence() is pure: the sentence, the real player and
@@ -485,11 +568,11 @@ def _type_word(text: str, type_words: dict[str, str]):
     lead = re.match(rf"^(?:(?:the|my|a|an)\s+)?(?P<w>radio\s+station|{alt})\b[\s,:]*(?P<rest>.+)$", text, re.I)
     if lead and lead.group("rest").strip(_TAIL_PUNCT):
         w = lead.group("w").lower()
-        return ("radio" if w.startswith("radio") else type_words[w]), w, lead.group("rest")
+        return ("radio" if w.startswith("radio") else type_words[w]), w, lead.group("rest"), "lead"
     trail = re.match(rf"^(?P<rest>.+?)[\s,]+(?P<w>radio\s+station|{alt})$", text, re.I)
     if trail and trail.group("rest").strip(_TAIL_PUNCT):
         w = trail.group("w").lower()
-        return ("radio" if w.startswith("radio") else type_words[w]), w, trail.group("rest")
+        return ("radio" if w.startswith("radio") else type_words[w]), w, trail.group("rest"), "trail"
     return None
 
 
@@ -549,10 +632,11 @@ def parse_sentence(sentence: str, players: list[dict] | None = None,
     if (im := _IN_PROVIDER_RE.match(rest)):
         p.provider = p.provider or _provider_of(im.group("prov"))
         rest = rest[im.end():]
+    lead_type = False
     if (tw := _type_word(rest, w.type_words)):
-        p.type, p.type_word, rest = tw[0], tw[1], tw[2]
+        p.type, p.type_word, rest, lead_type = tw[0], tw[1], tw[2], tw[3] == "lead"
     rest = _strip_tail(re.sub(r"^(?:(?:a|an|my)\s+)", "", rest.strip(), flags=re.I))
-    if p.radio_name and p.type in (None, "radio"):
+    if p.radio_name and p.type in (None, "radio") and not lead_type:
         # The station the sentence names (radio_name, the live path's own
         # reading): it stops at a full stop, so trailing speech is not part
         # of the name ("Play Anime Pop Radio. That's probably about it ...").
