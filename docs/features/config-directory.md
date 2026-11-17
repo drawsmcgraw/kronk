@@ -44,7 +44,18 @@ them with fixtures written from the tree before the move.
   `7_200`, `yes`, `on`, `.inf`) reach the schema as strings and a numeric
   field rejects them. Quoted scalars are always strings. Anchors,
   aliases, merge keys (`<<`) and explicit tags (`!!int`) are errors;
-  config files need none of them.
+  config files need none of them. The two libraries do not tokenise every
+  text alike, so what they disagree on is refused before either sees the
+  text: control characters other than newline and tab (U+0085 included),
+  U+2028 and U+2029, lone surrogates, U+FFFE and U+FFFF, each named with
+  its line and byte offset (`config/tuning.yaml:12: control character
+  U+001B at byte 431 is not allowed in a YAML file`; a CRLF line end counts
+  as one byte). An empty key (`? ` alone) is an error, and tool_service
+  runs ruamel's scanner in YAML 1.1 mode so `{a?b: 1}` is refused by both.
+  A shared table and 2,000 generated texts run through both loaders in
+  the tests; both accept or both refuse, with the same data and lines
+  when accepted. A YAML error the library cannot place says `line
+  unknown`.
 - **Bounds.** Each file is checked with `lstat` before a byte is read: it
   must be a regular file (not a directory, pipe or device), no path
   component under `config/` may be a symlink, and it must be at most
@@ -58,7 +69,26 @@ them with fixtures written from the tree before the move.
 - **No file takes a load down.** Any exception at all while loading a
   file (a parser `RecursionError`, a `MemoryError`, a library bug) becomes
   a config error for that file. `start()` never raises; `reload()` always
-  answers 200 or 422, never 500.
+  returns.
+- **Every answer can be encoded.** A file name, key, value or parser
+  message can hold text JSON cannot carry (a name that is not UTF-8
+  decodes to lone surrogates; so does a `"\uD800"` key). Each `Problem`
+  passes its file and message through `config_files.safe()` when it is
+  built: lone surrogates, control and format characters are escaped
+  visibly (`config/caf\udce9.yaml`) and the length is capped; key names
+  are cut to 80 characters like values. As a second layer, both services'
+  `POST /config/reload` and status endpoints check the answer encodes and,
+  if not, answer JSON saying the config status could not be rendered (and,
+  for a reload, whether it took effect), never a bare 500. So the reload
+  endpoint answers 200 or 422.
+- **A file saved while it is read.** An editor that saves in place
+  truncates and then writes. Each file's size and mtime are compared
+  before and after the read, and with the number of bytes read; if they
+  differ the file is read once more, and a second change is the error
+  `file changed during read`. A read that falls wholly inside the moment
+  between the truncate and the first write sees a steady empty file and
+  loads it (with the warning `all defaults (file has no keys)`); only an
+  atomic write (write a new file, rename it into place) closes that.
 - **Schema.** pydantic models with `extra="forbid"` and `strict=True`:
   an unknown key, a wrong type (`"8"` is not `8`, `true` is not `1`) and a
   number outside its bounds are errors. Round budgets and per-tool

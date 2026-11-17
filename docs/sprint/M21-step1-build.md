@@ -384,3 +384,51 @@ was found half moved, so none is moved in this round.
 as before: criterion 1 names the orchestrator, tool_service, compose,
 LiteLLM, the llama units and the taste data, and none of those directories
 holds a value the two loaders read.
+
+## Addendum, fix round 2 (2026-11-17): the two classes still without a row (criterion 1)
+
+Added by the fix agent for `docs/sprint/M21-step1-e2e2.md` finding 2. The
+tables above are left as written. A row may group values that share a
+location and an outcome; every value of the two classes is covered by a
+row below. No value moved.
+
+### Tool-result sentences the model reads back
+
+Found by search of `orchestrator/tools.py` (every `return failure(…)`,
+`_fail(…)`, `ToolResult(…)` and string-returning handler) and of
+`tool_service/` (the sentence helpers, every `HTTPException(detail=…)`,
+and the result text each endpoint returns).
+
+| What | Where | Outcome |
+|---|---|---|
+| The failure framing every handler shares: `failure(text)` and `_fail(action, resp)` → `[<action> failed (HTTP <code>): <detail>]` | `orchestrator/tools.py:505-524` | **Left where it is**: the bracketed prefix is how `errors.py` and the loop recognise a failed tool result (`ToolResult.failed`, M2/M3); the detail is tool_service's own sentence, passed through. Pinned by the M2 tests |
+| Handler results and failures for weather, web search, fetch, the four shopping-list tools (`_fail` with each action name; `[Could not fetch <url>: …]`) | `orchestrator/tools.py:527-607` | **Left**: built per call from the live result in the handler that made the call; the action name is the only static part |
+| `get_kronk_context` and `generate_diagram` results (`[Could not read context file: …]`, `[Diagram generation failed: …]`) | `orchestrator/tools.py:610-631` | **Left**: same reason |
+| Solar status, detail and energy results (`[Solar energy — <period>] no figure available: …`) | `orchestrator/tools.py:634-713` | **Left**: each formats live inverter figures; the sentence and the figures are one string |
+| Hot tub results (`[Hot tub status unknown: …]`, `[Hot tub status unavailable]`) | `orchestrator/tools.py:716-736` | **Left**: same reason |
+| Music results and argument errors: `play_music`, `control_music`, `rate_music`, `remember_music_preference`, `now_playing` (`[play_music error: query is required]` and the failure texts at `:795`, `:822`, `:849`, `:868`, `:891`) | `orchestrator/tools.py:739-894` | **Left**: the result lines are tool_service's, prefix-coupled to `agents._terminal_speech` (row in the main table); the argument errors are guardrails written with the check that raises them (tenet 5) |
+| `remote_exec` and `http_check` results (`… That command was refused (read-only mode). Try a …`, `[http_check <url>: FAILED (<cause>) after …]`) | `orchestrator/tools.py:897-940` | **Left**: safety-path text (M5), written with the check |
+| `MM_UPDATE_REFUSAL` and the magic-mirror update results | `orchestrator/tools.py:943-973` | **Left**: fixed text that tells the user the exact sentence `routing._MM_UPDATE_RE` accepts, and `agents.py:171` speaks it by its prefix; the two must change together (M4b). Pinned by `tests/test_spoken_failures.py` |
+| `NEWS_REFRESH_FAILED`, `NEWS_UNAVAILABLE` and the news brief result | `orchestrator/tools.py:976-1040` | **Left**: `agents.py:107-112` matches the result by these prefixes to choose `errors.FRIENDLY_NEWS_*`; prefix and match are one contract. Pinned by `tests/test_spoken_failures.py` |
+| `[Unknown tool: <name>]`, `[Tool <name> error: <exception>]` | `orchestrator/tools.py:1043-1058` | **Left**: dispatch guardrails (tenet 5) |
+| `_not_found_sentence`, `_failure_sentence`, `_no_start_sentence` (the resolver's "closest I found" sentence, a playback failure, "did not start") | `tool_service/main.py:1598-1671`; used at `:1519`, `:1572-1573`, `:1862` | **Left**: each names the most specific cause from the live result (tenet 7), and the "closest I found" threshold and the verify window they name are already in `config/music.yaml`. The wording is pinned by `tests/test_music_resolve.py`, `tests/test_music_players.py` and `tests/test_error_style.py` |
+| `HTTPException` details, 60 sites (missing token, bad argument, upstream failure, refused host or command); the orchestrator passes each through `_fail` | `tool_service/main.py:265-2539` (the sites: 265, 283, 292, 390, 410, 416, 424, 450, 687, 711, 713, 716, 731, 741, 754, 784, 797, 1097, 1102, 1105, 1119, 1127, 1131, 1141, 1162, 1335, 1346, 1354, 1379, 1396, 1399, 1413, 1416, 1424, 1440, 1442, 1456, 1519, 1572, 1573, 1826, 1837, 1901, 2119, 2121, 2137, 2263, 2266, 2280, 2290, 2312, 2339, 2424, 2427, 2444, 2449, 2468, 2526, 2534, 2539) | **Left**: each detail is the cause at the point it is known (tenet 7); there is no static sentence to move without splitting it from its cause |
+| Result text of the music endpoints: `/music`, `/music/voice`, `/music/taste*`, `/music/control`, `/music/rate`, `/music/now_playing` (the lines `agents._terminal_speech` maps to speech) | `tool_service/main.py:1437-1596`, `:1641-2105`, `:2108-2258`, `:2260-2404`, `:2406-2521`, `:2523-2547` | **Left**: prefix-coupled to `_terminal_speech` (row in the main table); M11 reworks the music path and owns any change to them |
+| Result text of the other endpoints: weather, search, fetch and `http_check` (with `netguard.py`'s refusal reasons), shopping list, diagram, solar (with `solar.py`), news (with `news.py`), hot tub, `/ops/exec` (with `ops.py`'s refusal reasons), magic mirror | `tool_service/main.py:377-1165`; `netguard.py`, `solar.py`, `news.py`, `ops.py` | **Left**: built per call from live data; the refusal reasons are the safety bounds' own explanations (M4, M5), written with the check |
+
+### Wiring and on/off env vars in `docker-compose.yml`
+
+Every name set under an `environment:` block in `docker-compose.yml` (42
+names), by group. The rows above that already named some of them are
+noted.
+
+| What | Where | Outcome |
+|---|---|---|
+| Service addresses: `HA_URL`, `MA_URL`, `SEARXNG_URL`, `LLM_SERVICE_URL`, `TOOL_SERVICE_URL`, `TEMPO_URL`, `OTEL_EXPORTER_OTLP_ENDPOINT` | `docker-compose.yml:69`, `:77`, `:81`, `:115`, `:163`, `:165`, `:169`, `:210-211`, `:238`, `:310`, `:313`, `:315`, `:332`, `:360-361`, `:364` | **Left where it is**: wiring that differs between production and dev (the dev services point at each other), which is what compose is for; not tuning |
+| Telemetry: `TELEMETRY_ENABLED`, `TELEMETRY_RECORD_TEXT`, `OTEL_SERVICE_NAME`, `OTEL_EXPORTER_OTLP_PROTOCOL`, `OTEL_BSP_SCHEDULE_DELAY` | `docker-compose.yml:113-117`, `:166-170`, `:235-240`, `:330-334`, `:362-366` | **Left**: named here; the "telemetry vars" of the main table. On/off and exporter settings per service, set differently for dev |
+| Magic mirror and ops wiring: `MM_SSH_TARGET`, `MM_SSH_KEY`, `MM_SCRIPT`, `OPS_HOSTS` | `docker-compose.yml:103-106`, `:328` | **Left**: which host, which key, which forced command, which registry (M4, M5); safety wiring, and dev deliberately has no `MM_*` |
+| Data paths: `SOLAR_HOST`, `SOLAR_DB`, `MUSIC_TASTE_DB`, `MUSIC_TASTE_FILE`, `NEWS_FILE` | `docker-compose.yml:86`, `:317`, `:320`, `:322-323`, `:325` | **Left**: where each service keeps its data; dev points them at `data/dev/` |
+| On/off switches: `MUSIC_TASTE_ENABLED`, `SOLAR_POLL_ENABLED`, `NEWS_ENABLED` | `docker-compose.yml:321`, `:324`, `:326` (dev only) | **Left**: they keep dev from running production's background jobs (the nightly taste build, the inverter poll, the news editions) against shared hardware; a deployment choice, not tuning |
+| `VOICE_TRACER_AUTOMATIONS` | `docker-compose.yml:171` | **Left**: which HA automations the voice tracer follows; wiring |
+| Already in the main table: `COORDINATOR_MODEL`, `RESEARCH_AGENT_MODEL`, `CODING_AGENT_MODEL`, `DEVOPS_AGENT_MODEL`, `TALKIE_MODEL`, `ROUTER_MODEL`, `ERROR_STYLE`, `LOCATION`, `HISTORY_MAX_MESSAGES`; secrets `HA_TOKEN`, `MA_TOKEN`, `SOLAR_SERIAL` | `docker-compose.yml:78`, `:82`, `:87`, `:164`, `:212-218`, `:226`, `:229`, `:314`, `:316`, `:318` | **Left**, for the reasons in those rows |
+| Already in the fix-round-1 addendum: `WEATHER_REFRESH_SEC`, `MUSIC_DEFAULT_PLAYER`, `HOME_LOCATION`, `ANNOUNCE_SATELLITE`, `HA_NOTIFY_SERVICE` | `docker-compose.yml:72-73`, `:95`, `:98`, `:109`, `:311-312`, `:327`, `:329` | **Left**, for the reasons in those rows |
