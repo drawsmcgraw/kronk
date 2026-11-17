@@ -27,6 +27,9 @@ Rules:
     with the warning "all defaults (file has no keys)".
   - Stray files under config/ are reported once, by the orchestrator,
     which scans the whole directory.
+  - Every Problem's file and message and every "changed" line passes
+    through config_files.safe() when it is built (fix round 2), so the
+    status and the reload answer can always be encoded.
   - The models are not frozen so tests can patch a value with
     patch.object(config_loader.current().music.verify, "timeout_s", 0);
     code never assigns to them.
@@ -65,6 +68,12 @@ class Problem:
     file: str            # relative to the config directory
     line: int | None     # 1-based; None when the problem is the whole file
     message: str
+
+    def __post_init__(self):
+        # Made safe at construction (config_files.safe): nothing that cannot
+        # be encoded as JSON or written to a log can exist in a Problem.
+        object.__setattr__(self, "file", config_files.safe(self.file, config_files.MAX_MESSAGE))
+        object.__setattr__(self, "message", config_files.safe(self.message, config_files.MAX_MESSAGE))
 
     @property
     def path(self) -> str:
@@ -145,20 +154,35 @@ def defaults() -> Config:
 
 # ── parsing ──────────────────────────────────────────────────────────────────
 
+def _yaml() -> YAML:
+    """ruamel, tokenising as YAML 1.1 like PyYAML in the orchestrator (fix
+    round 2). Only the scanner and parser are used, never ruamel's resolver,
+    so the version changes no value; it makes ruamel refuse a `?` inside a
+    plain scalar in [ ] or { } as PyYAML does ("{a?b: 1}")."""
+    y = YAML(typ="safe", pure=True)
+    y.version = (1, 1)
+    return y
+
+
 def parse_yaml(text: str, rel: str) -> tuple[dict, dict[tuple, int]]:
     """(data, key path -> 1-based line), in the dialect of
     config_files.build (the orchestrator reads tuning.yaml the same way)."""
     try:
-        return config_files.build(YAML(typ="safe", pure=True).parse(text))
+        config_files.check_yaml_text(text)
+        return config_files.build(_yaml().parse(text))
     except config_files.FileError as e:
         raise ConfigInvalid([Problem(rel, e.line, e.message)])
     except MarkedYAMLError as e:
         mark = e.problem_mark or e.context_mark
-        why = e.problem or str(e)
-        raise ConfigInvalid([Problem(rel, mark.line + 1 if mark else None,
-                                     f"not valid YAML: {config_files.shorten(str(why))}")])
+        why = config_files.shorten(str(e.problem or e))
+        if mark:
+            raise ConfigInvalid([Problem(rel, mark.line + 1, f"not valid YAML: {why}")])
+        raise ConfigInvalid([Problem(rel, None, f"not valid YAML: {why}; line unknown")])
     except YAMLError as e:
-        raise ConfigInvalid([Problem(rel, None, f"not valid YAML: {config_files.shorten(str(e))}")])
+        raise ConfigInvalid([Problem(rel, None, f"not valid YAML: {config_files.shorten(str(e))}; "
+                                                "line unknown")])
+    except Exception as e:              # e.g. ValueError from a "\UFFFFFFFF" escape
+        raise ConfigInvalid([Problem(rel, None, config_files.unparsable(e))])
 
 
 def validate(model: type[BaseModel], data: dict, lines: dict[tuple, int], rel: str):
@@ -177,7 +201,7 @@ def validate(model: type[BaseModel], data: dict, lines: dict[tuple, int], rel: s
                 if loc[:i] in lines:
                     line = lines[loc[:i]]
                     break
-            name = ".".join(loc) or "(top level)"
+            name = config_files.safe(".".join(loc)) or "(top level)"    # a key is shortened like a value
             if err["type"] == "extra_forbidden":
                 msg = f"{name}: unknown key"
             else:
@@ -242,7 +266,9 @@ def _flatten(cfg: Config) -> dict[str, object]:
 
 def _changes(old: Config, new: Config) -> list[str]:
     a, b = _flatten(old), _flatten(new)
-    return [f"{k}: {a.get(k)!r} -> {b.get(k)!r}" for k in sorted(set(a) | set(b)) if a.get(k) != b.get(k)]
+    return [config_files.safe(f"{k}: {config_files.quote(a.get(k))} -> {config_files.quote(b.get(k))}",
+                              config_files.MAX_MESSAGE)
+            for k in sorted(set(a) | set(b)) if a.get(k) != b.get(k)]
 
 
 def _report(problems: list[Problem], when: str, effect: str) -> None:
@@ -305,5 +331,6 @@ def reload() -> dict:
 
 def status() -> dict:
     cfg = current()
-    return {"service": "tool_service", "dir": str(config_dir()), "source": cfg.source,
+    return {"service": "tool_service", "dir": config_files.safe(config_dir(), config_files.MAX_MESSAGE),
+            "source": cfg.source,
             "loaded_at": cfg.loaded_at, "files": cfg.digests, **_status}

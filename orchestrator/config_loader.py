@@ -34,6 +34,10 @@ Rules:
   - Warnings, not errors: a YAML file with no keys (every value at its
     default) and an entry under config/ that no service reads. They are on
     /api/config and in the reload answer; the load still succeeds.
+  - Every Problem's file and message, every "changed" line and every env
+    value shown passes through config_files.safe() when it is built (fix
+    round 2): a file name that is not UTF-8 or a "\\uD800" key must not
+    make the status unencodable.
 """
 import hashlib
 import logging
@@ -81,6 +85,12 @@ class Problem:
     file: str            # relative to the config directory, e.g. "prompts/home.md"
     line: int | None     # 1-based; None when the problem is the whole file
     message: str
+
+    def __post_init__(self):
+        # Made safe at construction (config_files.safe): nothing that cannot
+        # be encoded as JSON or written to a log can exist in a Problem.
+        object.__setattr__(self, "file", config_files.safe(self.file, config_files.MAX_MESSAGE))
+        object.__setattr__(self, "message", config_files.safe(self.message, config_files.MAX_MESSAGE))
 
     @property
     def path(self) -> str:
@@ -215,7 +225,7 @@ def _apply_env(tuning: "Tuning") -> tuple["Tuning", dict[str, str], list["Proble
         node[path[-1]] = value
         try:
             tuning = validate(Tuning, data, {}, where)
-            env[var] = raw
+            env[var] = config_files.safe(raw)
         except ConfigInvalid as e:
             problems += [Problem(where, None, p.message) for p in e.problems]
     return tuning, env, problems
@@ -284,14 +294,18 @@ def parse_yaml(text: str, rel: str) -> tuple[dict, dict[tuple, int]]:
     no anchors, aliases, merge keys or tags, bounded nesting, duplicate keys
     are errors, and scalars resolved the same way as in tool_service."""
     try:
+        config_files.check_yaml_text(text)
         return config_files.build(yaml.parse(text, Loader=yaml.SafeLoader))
     except config_files.FileError as e:
         raise ConfigInvalid([Problem(rel, e.line, e.message)])
     except yaml.YAMLError as e:
-        mark = getattr(e, "problem_mark", None)
-        why = getattr(e, "problem", None) or str(e)
-        raise ConfigInvalid([Problem(rel, mark.line + 1 if mark else None,
-                                     f"not valid YAML: {config_files.shorten(str(why))}")])
+        mark = getattr(e, "problem_mark", None) or getattr(e, "context_mark", None)
+        why = config_files.shorten(str(getattr(e, "problem", None) or e))
+        if mark:
+            raise ConfigInvalid([Problem(rel, mark.line + 1, f"not valid YAML: {why}")])
+        raise ConfigInvalid([Problem(rel, None, f"not valid YAML: {why}; line unknown")])
+    except Exception as e:              # e.g. ValueError from a "\UFFFFFFFF" escape
+        raise ConfigInvalid([Problem(rel, None, config_files.unparsable(e))])
 
 
 def validate(model: type[BaseModel], data: dict, lines: dict[tuple, int], rel: str):
@@ -307,7 +321,7 @@ def validate(model: type[BaseModel], data: dict, lines: dict[tuple, int], rel: s
                 if loc[:i] in lines:
                     line = lines[loc[:i]]
                     break
-            name = ".".join(loc) or "(top level)"
+            name = config_files.safe(".".join(loc)) or "(top level)"    # a key is shortened like a value
             if err["type"] == "extra_forbidden":
                 msg = f"{name}: unknown key"
             else:
@@ -434,9 +448,10 @@ def _changes(old: Config, new: Config) -> list[str]:
     for k in sorted(set(a) | set(b)):
         if a.get(k) != b.get(k):
             if k.startswith("prompts/"):
-                out.append(f"{k}: changed ({len(a.get(k) or '')} -> {len(b.get(k) or '')} chars)")
+                line = f"{k}: changed ({len(a.get(k) or '')} -> {len(b.get(k) or '')} chars)"
             else:
-                out.append(f"{k}: {a.get(k)!r} -> {b.get(k)!r}")
+                line = f"{k}: {config_files.quote(a.get(k))} -> {config_files.quote(b.get(k))}"
+            out.append(config_files.safe(line, config_files.MAX_MESSAGE))
     return out
 
 
@@ -519,7 +534,7 @@ def status() -> dict:
     cfg = current()
     return {
         "service": "orchestrator",
-        "dir": str(config_dir()),
+        "dir": config_files.safe(config_dir(), config_files.MAX_MESSAGE),
         "source": cfg.source,
         "loaded_at": cfg.loaded_at,
         "files": cfg.digests,

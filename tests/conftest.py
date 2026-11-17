@@ -7,13 +7,17 @@ import each other by bare name (`import agents`) and have no cross-service
 collisions. (A per-service sys.path-juggling fixture once poisoned
 sys.modules across test files; don't bring one back.)
 """
+import atexit
 import os
+import shutil
 import sys
 import tempfile
 
 # Household taste store (tool_service/taste.py) — never the container's
 # /data paths from a test run. Read at import, so set before any import.
+# Removed when the run ends (M21 fix round 2: every run left one behind).
 _TASTE_TMP = tempfile.mkdtemp(prefix="kronk-taste-")
+atexit.register(shutil.rmtree, _TASTE_TMP, ignore_errors=True)
 os.environ.setdefault("MUSIC_TASTE_DB", os.path.join(_TASTE_TMP, "music_taste.db"))
 os.environ.setdefault("MUSIC_TASTE_FILE", os.path.join(_TASTE_TMP, "music_taste.yaml"))
 

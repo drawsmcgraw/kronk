@@ -12,6 +12,7 @@ import httpx
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 
+import config_files
 import config_loader
 import tools
 
@@ -30,7 +31,9 @@ async def config_reload(request: Request):
     """Re-read config/. 200 with what changed, or 422 with the errors (file
     and line) and the last good values still in effect."""
     refuse_if_proxied(request, "/config/reload")
-    result = config_loader.reload()
+    # render_reload: if the answer cannot be encoded, a JSON answer that
+    # says so, never a bare 500 (fix round 2).
+    result = config_files.render_reload(config_loader.reload())
     return JSONResponse(result, status_code=200 if result["ok"] else 422)
 
 
@@ -47,4 +50,8 @@ async def config_status():
         tool = {"service": "tool_service", "ok": False, "event": "status",
                 "errors": [{"file": None, "line": None,
                             "message": f"tool_service config status unavailable: {e}"}]}
-    return {"services": [config_loader.status(), tool]}
+    # Each part is checked on its own (config_files.render_status), so one
+    # that cannot be encoded shows as a sentence on /services and the other
+    # service's status still shows.
+    return {"services": [config_files.render_status(config_loader.status(), "orchestrator"),
+                         config_files.render_status(tool, "tool_service")]}

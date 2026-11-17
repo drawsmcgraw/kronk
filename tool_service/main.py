@@ -2555,13 +2555,15 @@ async def now_playing(req: NowPlayingRequest):
 async def config_reload():
     """Re-read config/. 200 with what changed, or 422 with the errors (file
     and line) and the last good values still in effect."""
-    result = config_loader.reload()
+    # render_reload / render_status: if the answer cannot be encoded, a JSON
+    # answer that says so, never a bare 500 (fix round 2).
+    result = config_loader.config_files.render_reload(config_loader.reload())
     return JSONResponse(result, status_code=200 if result["ok"] else 422)
 
 
 @app.get("/config/status")
 async def config_status():
-    return config_loader.status()
+    return config_loader.config_files.render_status(config_loader.status(), "tool_service")
 
 
 @app.get("/health")

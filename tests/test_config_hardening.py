@@ -302,9 +302,12 @@ def test_a_pipe_in_place_of_the_file_does_not_block(svc):
         fd = os.open(svc.yaml_path, os.O_WRONLY | os.O_NONBLOCK)
         os.close(fd)
 
-    errs = _bounded(lambda: _problems(svc.loader, svc.dir), 2, unblock)
-    assert errs == [(svc.yaml_file, None, "is not a regular file; config files must be "
-                                          "regular files inside the config directory")]
+    try:
+        errs = _bounded(lambda: _problems(svc.loader, svc.dir), 2, unblock)
+        assert errs == [(svc.yaml_file, None, "is not a regular file; config files must be "
+                                              "regular files inside the config directory")]
+    finally:
+        svc.yaml_path.unlink()      # no FIFO left on disk (e2e2 observation 9)
 
 
 def test_a_directory_in_place_of_the_file_is_an_error(svc):
