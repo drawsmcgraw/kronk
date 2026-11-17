@@ -7,6 +7,7 @@ from dataclasses import dataclass
 import httpx
 
 import config_loader
+import run_state
 from events import emit
 import origin
 import routing
@@ -1040,6 +1041,17 @@ _HANDLERS = {
 }
 
 
+# Tools that change nothing anywhere (sprint M9 step 4). A request stopped
+# at its voice deadline after calling any other tool says the request may
+# still go through (errors.deadline_text); a tool missing from this set is
+# treated as one that acts, which is the safe side.
+READ_ONLY_TOOLS = frozenset({
+    "get_weather", "web_search", "fetch_url", "shopping_list_view",
+    "get_kronk_context", "query_hottub", "solar_status", "solar_detail",
+    "solar_energy", "now_playing", "http_check", "news_brief",
+})
+
+
 async def execute(name: str, args: dict) -> ToolResult:
     """Execute a named tool: its text for the model's context, and whether
     it failed — as the handler reported it, or because it raised or does
@@ -1047,6 +1059,9 @@ async def execute(name: str, args: dict) -> ToolResult:
     handler = _HANDLERS.get(name)
     if handler is None:
         return failure(f"[Unknown tool: {name}]")
+    # Recorded before the call: if the request is stopped while the call is
+    # in flight, the call may still take effect (run_state, sprint M9).
+    run_state.note_tool_sent(name)
     try:
         timeout = config_loader.current().tuning.tool_timeouts.for_tool(name)
         async with httpx.AsyncClient(timeout=timeout) as client:

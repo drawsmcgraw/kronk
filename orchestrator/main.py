@@ -4,7 +4,7 @@ import json
 import logging
 import os
 import time
-from contextlib import AsyncExitStack, asynccontextmanager
+from contextlib import AsyncExitStack, aclosing, asynccontextmanager
 from pathlib import Path
 
 import httpx
@@ -15,6 +15,7 @@ from pydantic import BaseModel
 from pypdf import PdfReader
 
 import agents
+import client_watch
 import config_api
 import config_loader
 import errors
@@ -23,12 +24,13 @@ import metrics
 import model_lock
 import origin
 import routing
+import run_state
 import servers
 import sessions
 import speech_stream
 import telemetry
 import tools
-from events import emit, new_request_id
+from events import current_request_id, emit, new_request_id
 from llm import LLM_SERVICE_URL
 from tools import TOOL_DEFINITIONS  # re-exported for tests/backward-compat
 
@@ -65,6 +67,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Kronk Orchestrator", lifespan=lifespan)
 telemetry.instrument_app(app)   # server spans + httpx traceparent; no-op when off
+# A chat request whose client disconnects is cancelled (sprint M9 step 4).
+app.add_middleware(client_watch.ClientWatch)
 
 COORDINATOR_MODEL = agents.COORDINATOR_MODEL
 STATE_FILE        = Path("/data/kronk_state.md")
@@ -329,6 +333,7 @@ async def _run_pipeline(
     stages: list[dict] = []
     agent_name = "?"  # set by routing; referenced in the finally block
     pipeline_error: str | None = None  # marks the trace ERROR in the finally
+    ended: str | None = None  # stopped early: deadline | client_gone | cancelled
     # How failures are RENDERED for this request (debug|friendly), keyed on
     # the speech mount, not the transport. Capture (logs, trace) always
     # keeps full detail — see errors.py.
@@ -416,11 +421,12 @@ async def _run_pipeline(
             # action. tools.execute never raises; anything else that does
             # is caught by the last-resort guard below.
             if direct is not None:
-                async for ev in _direct_dispatch(direct, agent_name, error_style,
-                                                 stages, t_request):
-                    if ev["type"] == "token":
-                        assistant_reply.append(ev["text"])
-                    yield ev
+                async with aclosing(_direct_dispatch(direct, agent_name, error_style,
+                                                     stages, t_request)) as dispatch:
+                    async for ev in dispatch:
+                        if ev["type"] == "token":
+                            assistant_reply.append(ev["text"])
+                        yield ev
                 return
 
             # ── The model lock (sprint M9) ────────────────────────────────
@@ -448,30 +454,31 @@ async def _run_pipeline(
                 stage_sent = False
                 reply_mark = len(assistant_reply)
 
-                async for ev in agents.run_stream(agent_cfg, model_text, list(history[-5:]),
-                                                  error_style=error_style,
-                                                  allow_escalation=True):
-                    etype = ev.get("type")
-                    if etype == "narration":
-                        yield {"type": "narration", "text": ev["text"]}
-                    elif etype == "token":
-                        if not stage_sent:
-                            yield _stage("generating")
-                            yield {"type": "narration", "text": ""}
-                            stage_sent = True
-                        if agent_first_token_t is None:
-                            agent_first_token_t = time.monotonic()
-                        assistant_reply.append(ev["text"])
-                        yield {"type": "token", "text": ev["text"]}
-                    elif etype == "retract":
-                        _trim_reply(assistant_reply, ev["chars"])
-                        yield {"type": "retract", "chars": ev["chars"]}
-                    elif etype == "escalated":
-                        agent_escalation = ev["note"]
-                    elif etype == "error":
-                        agent_error = ev["message"]
-                    elif etype == "done":
-                        agent_model_used = ev.get("model", agent_model_used)
+                async with aclosing(agents.run_stream(agent_cfg, model_text, list(history[-5:]),
+                                                      error_style=error_style,
+                                                      allow_escalation=True)) as run:
+                    async for ev in run:
+                        etype = ev.get("type")
+                        if etype == "narration":
+                            yield {"type": "narration", "text": ev["text"]}
+                        elif etype == "token":
+                            if not stage_sent:
+                                yield _stage("generating")
+                                yield {"type": "narration", "text": ""}
+                                stage_sent = True
+                            if agent_first_token_t is None:
+                                agent_first_token_t = time.monotonic()
+                            assistant_reply.append(ev["text"])
+                            yield {"type": "token", "text": ev["text"]}
+                        elif etype == "retract":
+                            _trim_reply(assistant_reply, ev["chars"])
+                            yield {"type": "retract", "chars": ev["chars"]}
+                        elif etype == "escalated":
+                            agent_escalation = ev["note"]
+                        elif etype == "error":
+                            agent_error = ev["message"]
+                        elif etype == "done":
+                            agent_model_used = ev.get("model", agent_model_used)
 
                 agent_ok = agent_error is None and agent_escalation is None
                 t_end = time.monotonic()
@@ -545,39 +552,40 @@ async def _run_pipeline(
 
             first_token = True
             t_first_token: float | None = None
-            async for ev in agents.run_stream(
-                agents.COORDINATOR,
-                model_text,
-                [],  # no embedded context — history goes in as real messages
-                system_extra="\n\n".join(coordinator_extra) or None,
-                history_messages=history,
-                error_style=error_style,
-            ):
-                etype = ev.get("type")
-                if etype == "narration":
-                    yield {"type": "narration", "text": ev["text"]}
-                elif etype == "delegating":
-                    # Structured delegation signal from the loop → the UI's
-                    # stage log (regression fix: the Aug-18 routing collapse
-                    # moved delegation inside run_stream, which had no stage
-                    # vocabulary, and the "thinking" indicators went dark).
-                    yield _stage(f"fetching_delegate_{ev['agent']}")
-                elif etype == "token":
-                    if first_token:
-                        t_first_token = time.monotonic()
-                        yield _stage("generating")
-                        yield {"type": "narration", "text": ""}
-                        first_token = False
-                    assistant_reply.append(ev["text"])
-                    yield {"type": "token", "text": ev["text"]}
-                elif etype == "retract":
-                    _trim_reply(assistant_reply, ev["chars"])
-                    yield {"type": "retract", "chars": ev["chars"]}
-                elif etype == "error":
-                    pipeline_error = f"coordinator: {ev['message'][:200]}"
-                    msg = errors.render("llm", ev["message"], rid, error_style)
-                    assistant_reply.append(msg)
-                    yield {"type": "token", "text": msg}
+            async with aclosing(agents.run_stream(
+                    agents.COORDINATOR,
+                    model_text,
+                    [],  # no embedded context — history goes in as real messages
+                    system_extra="\n\n".join(coordinator_extra) or None,
+                    history_messages=history,
+                    error_style=error_style,
+                )) as run:
+                async for ev in run:
+                    etype = ev.get("type")
+                    if etype == "narration":
+                        yield {"type": "narration", "text": ev["text"]}
+                    elif etype == "delegating":
+                        # Structured delegation signal from the loop → the UI's
+                        # stage log (regression fix: the Aug-18 routing collapse
+                        # moved delegation inside run_stream, which had no stage
+                        # vocabulary, and the "thinking" indicators went dark).
+                        yield _stage(f"fetching_delegate_{ev['agent']}")
+                    elif etype == "token":
+                        if first_token:
+                            t_first_token = time.monotonic()
+                            yield _stage("generating")
+                            yield {"type": "narration", "text": ""}
+                            first_token = False
+                        assistant_reply.append(ev["text"])
+                        yield {"type": "token", "text": ev["text"]}
+                    elif etype == "retract":
+                        _trim_reply(assistant_reply, ev["chars"])
+                        yield {"type": "retract", "chars": ev["chars"]}
+                    elif etype == "error":
+                        pipeline_error = f"coordinator: {ev['message'][:200]}"
+                        msg = errors.render("llm", ev["message"], rid, error_style)
+                        assistant_reply.append(msg)
+                        yield {"type": "token", "text": msg}
 
             t_done = time.monotonic()
             timing: dict = {"model": agents.COORDINATOR.model}
@@ -589,6 +597,21 @@ async def _run_pipeline(
             yield {"type": "timing", "data": timing}
             emit("request_complete", route=agent_name,
                  duration_s=round(time.monotonic() - t_request, 2))
+
+        except (asyncio.CancelledError, GeneratorExit):
+            # Stopped from outside (sprint M9 step 4): the voice deadline,
+            # the client going away, or the consumer closing the stream.
+            # Nothing is retried; a tool call already sent stays sent. The
+            # finally below closes the trace (and the exit stack releases
+            # any lock) as for any other end.
+            ended = _why_stopped()
+            telemetry.root().set(**{"kronk.ended": ended})
+            if ended == run_state.DEADLINE:
+                pipeline_error = "deadline: the request passed its voice deadline"
+            emit("request_ended", reason=ended, route=agent_name,
+                 tools_sent=list((run_state.current.get() or run_state.Run()).tools_sent),
+                 duration_s=round(time.monotonic() - t_request, 2))
+            raise
 
         except Exception as e:
             # Last-resort guard: without it an unexpected raise kills the
@@ -612,10 +635,63 @@ async def _run_pipeline(
                 status_message=pipeline_error,
             )
             # Persist the exchange only when an answer was produced —
-            # a failed turn leaves the stored conversation untouched.
-            if session_id and assistant_reply:
+            # a failed turn leaves the stored conversation untouched, and
+            # so does a turn stopped part way (deadline, client gone).
+            if session_id and assistant_reply and ended is None:
                 sessions.append(session_id, "user", text)
                 sessions.append(session_id, "assistant", "".join(assistant_reply))
+
+
+def _why_stopped() -> str:
+    """Why a pipeline was cancelled or closed: the voice deadline, the
+    client disconnecting (client_watch), or neither (`cancelled`)."""
+    run = run_state.current.get()
+    if run is None:
+        return run_state.CANCELLED
+    if run.ended:
+        return run.ended
+    if run.client_gone:
+        return run_state.CLIENT_GONE
+    if run.deadline_at is not None and asyncio.get_running_loop().time() >= run.deadline_at:
+        return run_state.DEADLINE
+    return run_state.CANCELLED
+
+
+async def _with_deadline(events, seconds: float):
+    """A speech-mount request's pipeline events, stopped at its deadline
+    (sprint M9 step 4; config/voice.yaml deadline_s).
+
+    Events pass through until `seconds` after the request started. Then the
+    pipeline is stopped: cancelled at the await it is in (a generation, the
+    model lock, a tool call) if it is running, closed if it is between
+    events. Its finally blocks close the trace and release any lock; a tool
+    call already sent is neither retried nor undone. The last event is
+    {"type": "deadline", "text": <one sentence>} (errors.deadline_text),
+    which the speech writers send in place of anything not yet sent."""
+    run = run_state.ensure()
+    loop = asyncio.get_running_loop()
+    run.deadline_at = loop.time() + seconds
+    stopped = False
+    try:
+        while True:
+            if loop.time() >= run.deadline_at:
+                run.ended, stopped = run_state.DEADLINE, True
+                break
+            try:
+                async with asyncio.timeout_at(run.deadline_at):
+                    ev = await events.__anext__()
+            except StopAsyncIteration:
+                return
+            except TimeoutError:
+                run.ended, stopped = run_state.DEADLINE, True
+                break
+            yield ev
+    finally:
+        await events.aclose()
+    if stopped:
+        text = errors.deadline_text(run.tools_sent, tools.READ_ONLY_TOOLS, seconds,
+                                    current_request_id(), errors.current_style())
+        yield {"type": "deadline", "text": text}
 
 
 async def _direct_dispatch(call: routing.DirectCall, route: str, error_style: str,
@@ -636,6 +712,9 @@ async def _direct_dispatch(call: routing.DirectCall, route: str, error_style: st
     try:
         with tool_span.current():   # tool_service joins via traceparent
             outcome = await tools.execute(name, args)
+    except (asyncio.CancelledError, GeneratorExit):
+        tool_span.end(status_message="stopped: the request ended (deadline or client gone)")
+        raise
     except Exception as e:
         tool_span.end(level="ERROR", status_message=str(e)[:200])
         raise
@@ -666,24 +745,25 @@ async def message(req: MessageRequest):
         # Capped, boundary-aligned window — prompt order stays append-only
         # so llama.cpp's prompt cache (--swa-full) reuses the prefix.
         history = sessions.window(session_id)
-        async for ev in _run_pipeline(
-            req.text, history, said=req.text, voice=False,
-            transport="webui", pipeline_name="pipeline.message",
-            session_id=session_id, include_local_context=True,
-        ):
-            etype = ev["type"]
-            if etype == "stage":
-                yield f"data: {json.dumps({'stage': ev['name'], 'stage_label': ev['label']})}\n\n"
-            elif etype == "narration":
-                yield f"data: {json.dumps({'narration': ev['text']})}\n\n"
-            elif etype == "token":
-                yield f"data: {json.dumps({'token': ev['text']})}\n\n"
-            elif etype == "retract":
-                # The UI trims the last N streamed chars from the bubble and
-                # parks them in the stage log (tool-round text, see agents.py).
-                yield f"data: {json.dumps({'retract': ev['chars']})}\n\n"
-            elif etype == "timing":
-                yield f"data: {json.dumps({'timing': ev['data']})}\n\n"
+        async with aclosing(_run_pipeline(
+                req.text, history, said=req.text, voice=False,
+                transport="webui", pipeline_name="pipeline.message",
+                session_id=session_id, include_local_context=True,
+            )) as events:
+            async for ev in events:
+                etype = ev["type"]
+                if etype == "stage":
+                    yield f"data: {json.dumps({'stage': ev['name'], 'stage_label': ev['label']})}\n\n"
+                elif etype == "narration":
+                    yield f"data: {json.dumps({'narration': ev['text']})}\n\n"
+                elif etype == "token":
+                    yield f"data: {json.dumps({'token': ev['text']})}\n\n"
+                elif etype == "retract":
+                    # The UI trims the last N streamed chars from the bubble and
+                    # parks them in the stage log (tool-round text, see agents.py).
+                    yield f"data: {json.dumps({'retract': ev['chars']})}\n\n"
+                elif etype == "timing":
+                    yield f"data: {json.dumps({'timing': ev['data']})}\n\n"
         yield "data: [DONE]\n\n"
 
     return StreamingResponse(stream(), media_type="text/event-stream")
@@ -809,12 +889,24 @@ async def _kronk_pipeline_tokens(text: str, model: str, context: list[dict] | No
         return
 
     with origin.scope(req_origin):
-        async for ev in _run_pipeline(
+        events = _run_pipeline(
             text, context or [], said=said, voice=voice,
             transport="shim", pipeline_name="pipeline.shim",
-        ):
-            if ev["type"] in ("token", "retract"):
-                yield ev
+        )
+        # The speech mount's deadline (sprint M9 step 4). origin.voice is
+        # set inside the pipeline, so the style for the sentence is set
+        # here from the same `voice` value for the wrapper's last event.
+        seconds = config_loader.current().voice.deadline_s if voice else None
+        if seconds:
+            events = _with_deadline(events, seconds)
+        voice_token = origin.voice.set(voice)
+        try:
+            async for ev in events:
+                if ev["type"] in ("token", "retract", "deadline"):
+                    yield ev
+        finally:
+            await events.aclose()
+            origin.voice.reset(voice_token)
 
 
 def _openai_chunk(rid: str, model: str, delta: dict, finish_reason: str | None = None) -> str:
@@ -833,10 +925,11 @@ async def _openai_pipeline_stream(text: str, model: str, rid: str,
                                   said: str | None = None):
     """OpenAI Chat Completions SSE framing around the core pipeline."""
     yield _openai_chunk(rid, model, {"role": "assistant", "content": ""})
-    async for ev in _kronk_pipeline_tokens(text, model, context, said=said):
-        if ev["type"] != "token":
-            continue        # SSE can't retract already-sent text; see agents.py
-        yield _openai_chunk(rid, model, {"content": ev["text"]})
+    async with aclosing(_kronk_pipeline_tokens(text, model, context, said=said)) as events:
+        async for ev in events:
+            if ev["type"] != "token":
+                continue        # SSE can't retract already-sent text; see agents.py
+            yield _openai_chunk(rid, model, {"content": ev["text"]})
     yield _openai_chunk(rid, model, {}, finish_reason="stop")
     yield "data: [DONE]\n\n"
 
@@ -849,16 +942,17 @@ async def _ollama_pipeline_stream(text: str, model: str,
     client can't take back text already sent, so `retract` events are
     dropped here (the buffered speech path in _ollama_collect honours them)."""
     created = time.strftime("%Y-%m-%dT%H:%M:%S.000000000Z", time.gmtime())
-    async for ev in _kronk_pipeline_tokens(text, model, context, req_origin, said, voice):
-        if ev["type"] != "token":
-            continue
-        chunk = {
-            "model":      model,
-            "created_at": created,
-            "message":    {"role": "assistant", "content": ev["text"]},
-            "done":       False,
-        }
-        yield json.dumps(chunk) + "\n"
+    async with aclosing(_kronk_pipeline_tokens(text, model, context, req_origin, said, voice)) as events:
+        async for ev in events:
+            if ev["type"] != "token":
+                continue
+            chunk = {
+                "model":      model,
+                "created_at": created,
+                "message":    {"role": "assistant", "content": ev["text"]},
+                "done":       False,
+            }
+            yield json.dumps(chunk) + "\n"
     # Terminal chunk — Ollama protocol requires done=true with stats.
     final = {
         "model":      model,
@@ -1008,11 +1102,14 @@ async def _ollama_collect(text: str, model: str,
     with tool-round text retracted (this is the speech path; nothing has
     been sent yet, so retracts are honoured exactly)."""
     reply = ""
-    async for ev in _kronk_pipeline_tokens(text, model, context, req_origin, said, voice):
-        if ev["type"] == "token":
-            reply += ev["text"]
-        elif ev["type"] == "retract":
-            reply = reply[:-ev["chars"]] if ev["chars"] <= len(reply) else ""
+    async with aclosing(_kronk_pipeline_tokens(text, model, context, req_origin, said, voice)) as events:
+        async for ev in events:
+            if ev["type"] == "token":
+                reply += ev["text"]
+            elif ev["type"] == "retract":
+                reply = reply[:-ev["chars"]] if ev["chars"] <= len(reply) else ""
+            elif ev["type"] == "deadline":
+                reply = ev["text"]      # nothing was sent yet: the sentence alone
     return reply
 
 
@@ -1093,6 +1190,7 @@ async def _ollama_speech_stream(text: str, model: str, context: list[dict] | Non
     # last chunk. The pipeline is always run to its end, so it finishes its
     # trace and releases _llm_lock as it would for the buffered path.
     fallback: str | None = None
+    deadline: str | None = None   # the deadline sentence (sprint M9 step 4)
     sent: list[str] = []
     pipeline = _kronk_pipeline_tokens(text, model, context, req_origin, said, True)
     try:
@@ -1101,6 +1199,9 @@ async def _ollama_speech_stream(text: str, model: str, context: list[dict] | Non
                 root, trace_id = telemetry.root(), telemetry.current_trace_id()
                 root.set(**{"kronk.voice_stream": True})
             out: list[str] = []
+            if ev["type"] == "deadline":
+                deadline = ev["text"]
+                continue
             if fallback is not None:
                 if ev["type"] == "token":
                     fallback += ev["text"]
@@ -1129,14 +1230,18 @@ async def _ollama_speech_stream(text: str, model: str, context: list[dict] | Non
                 yield _ndjson_chunk(model, created, chunk)
     finally:
         await pipeline.aclose()
-    if fallback is None:
+    if deadline is not None:
+        # Held text was never spoken and is dropped; what was sent stays.
+        buf.pending, fallback = "", None
+        out = [(" " if sent else "") + deadline]
+    elif fallback is None:
         try:
             out = buf.finish()
         except Exception as e:
             logger.exception("voice stream buffer failed at the end")
             error = f"{type(e).__name__}: {e}"
             fallback, buf.pending = buf.pending, ""
-    if fallback is not None:
+    if deadline is None and fallback is not None:
         last = render.to_speech(fallback)
         out = [(" " if sent and last else "") + last] if last else []
     for chunk in out:

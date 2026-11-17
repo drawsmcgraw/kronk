@@ -30,3 +30,16 @@ stream:
   # on the trace (span voice_stream, kronk.retract_unhonoured_chars): raise
   # this if those show up. More hold means later first audio. 1 to 5.
   hold_sentences: 1
+
+# Total time a spoken request may take, in seconds, from the moment it
+# reaches Kronk (sprint M9; docs/features/model-locks.md). HA's Ollama client
+# has no timeout of its own, so without this a stuck request leaves the puck
+# waiting with nothing said. When it passes, the work is stopped (the model
+# lock is released, nothing is retried) and one sentence is spoken instead.
+# If a tool that changes something (music, a rating, the shopping list, the
+# mirror) was already called, the sentence says it may still go through;
+# otherwise it says Kronk stopped. Set from Tempo on 2026-11-17: the slowest
+# production voice request in nine days took 17.4 s (n = 54, p95 11.7 s),
+# the slowest replay row 13.1 s; CLAUDE.md tenet 12 puts the worst tolerable
+# case at 15 to 25 s. 5 to 120, or null for no deadline.
+deadline_s: 25

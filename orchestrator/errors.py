@@ -171,6 +171,30 @@ FRIENDLY_NEWS_UNAVAILABLE = (
 FRIENDLY_NEWS_REFRESH_FAILED = (
     "I couldn't fetch fresh news, so here's the latest brief I have."
 )
+# The voice deadline (sprint M9 step 4; config/voice.yaml deadline_s). The
+# sentence depends on what the request had already sent: once a tool that
+# changes something was called, the request may still take effect, so the
+# sentence never says it did not happen (tools.READ_ONLY_TOOLS lists the
+# tools that change nothing; any other tool counts as acting).
+FRIENDLY_DEADLINE = "Sorry, that took too long, so I stopped. Please try again."
+FRIENDLY_DEADLINE_SENT = (
+    "That's taking too long to confirm. I've already sent the request, "
+    "so it may still go through."
+)
+
+
+def deadline_text(tools_sent: list[str], read_only, seconds: float, rid: str,
+                  style: str) -> str:
+    """What a request stopped at its deadline says, in `style`."""
+    acting = [t for t in tools_sent if t not in read_only]
+    friendly = FRIENDLY_DEADLINE_SENT if acting else FRIENDLY_DEADLINE
+    debug = (f"Error: the request passed its {seconds:g} s deadline and was stopped "
+             f"(tool calls sent: {', '.join(tools_sent) or 'none'}"
+             + (f"; may still take effect: {', '.join(acting)}" if acting else "")
+             + f") [rid {rid}]")
+    return failure_text(debug, style, friendly)
+
+
 # The model streamed no token and no tool call.
 FRIENDLY_EMPTY_REPLY = (
     "Sorry — my language model didn't come up with an answer. Try asking again."

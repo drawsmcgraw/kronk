@@ -271,6 +271,9 @@ class Voice(_Strict):
     # the coordinator's system_extra when origin.voice is set.
     spoken_reply: SpokenLine | None = SPOKEN_REPLY_DEFAULT
     stream: VoiceStream = Field(default_factory=VoiceStream)
+    # Total seconds a speech-mount request may run (sprint M9 step 4;
+    # main._with_deadline). None switches the deadline off. Read per request.
+    deadline_s: int | None = Field(25, ge=5, le=120)
 
 
 # Env vars that set a value before the move keep working, and win over the

@@ -3,11 +3,13 @@
 The `AGENTS` dict is the single source of truth: the router prompt, the
 valid-route set, and the /api/agents roster are all derived from it.
 """
+import asyncio
 import json
 import logging
 import os
 import re
 import time
+from contextlib import aclosing
 from dataclasses import dataclass, field
 
 import httpx
@@ -628,18 +630,22 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
 
             try:
                 with gen.current():   # the LLM HTTP call hangs under this round
-                    async for chunk in llm.stream(messages, agent.model, agent_tool_defs):
-                        if "token" in chunk:
-                            gen.first_token()
-                            round_content.append(chunk["token"])
-                            yield {"type": "token", "text": chunk["token"]}
-                        elif "tool_calls" in chunk:
-                            # NOTE: llm.stream yields tool_calls once at end-of-stream,
-                            # so this is NOT a first-token signal — don't mark TTFT here
-                            # or pure-tool rounds report TTFT ≈ full round duration.
-                            round_tool_calls = chunk["tool_calls"]
-                        elif "usage" in chunk:
-                            last_usage = chunk["usage"]
+                    async with aclosing(llm.stream(messages, agent.model, agent_tool_defs)) as chunks:
+                        async for chunk in chunks:
+                            if "token" in chunk:
+                                gen.first_token()
+                                round_content.append(chunk["token"])
+                                yield {"type": "token", "text": chunk["token"]}
+                            elif "tool_calls" in chunk:
+                                # NOTE: llm.stream yields tool_calls once at end-of-stream,
+                                # so this is NOT a first-token signal — don't mark TTFT here
+                                # or pure-tool rounds report TTFT ≈ full round duration.
+                                round_tool_calls = chunk["tool_calls"]
+                            elif "usage" in chunk:
+                                last_usage = chunk["usage"]
+            except (asyncio.CancelledError, GeneratorExit):
+                gen.end(status_message="stopped: the request ended (deadline or client gone)")   # sprint M9: close it, then go
+                raise
             except Exception as e:
                 gen.end(level="ERROR", status_message=str(e)[:200])
                 emit("agent_llm_error", agent=agent.name, model=agent.model, error=str(e))
@@ -771,6 +777,9 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
                             else:
                                 outcome = await tools.execute(fn_name, fn_args)
                                 result, failed = outcome.text, outcome.failed
+                    except (asyncio.CancelledError, GeneratorExit):
+                        tool_span.end(status_message="stopped: the request ended (deadline or client gone)")
+                        raise
                     except Exception as e:
                         tool_span.end(level="ERROR", status_message=str(e)[:200])
                         raise
@@ -862,12 +871,16 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
         )
         try:
             with gen.current():
-                async for chunk in llm.stream(messages, agent.model, tools=None):
-                    if "token" in chunk:
-                        gen.first_token()
-                        final_content.append(chunk["token"])
-                    elif "usage" in chunk:
-                        last_usage = chunk["usage"]
+                async with aclosing(llm.stream(messages, agent.model, tools=None)) as chunks:
+                    async for chunk in chunks:
+                        if "token" in chunk:
+                            gen.first_token()
+                            final_content.append(chunk["token"])
+                        elif "usage" in chunk:
+                            last_usage = chunk["usage"]
+        except (asyncio.CancelledError, GeneratorExit):
+            gen.end(status_message="stopped: the request ended (deadline or client gone)")
+            raise
         except Exception as e:
             gen.end(level="ERROR", status_message=str(e)[:200])
             emit("agent_llm_error", agent=agent.name, model=agent.model, error=str(e))
@@ -936,18 +949,19 @@ async def run_delegated(agent: AgentConfig, task: str,
     error: str | None = None
     terminal = False
     empty = False
-    async for ev in run_stream(agent, task, context, delegated=True):
-        t = ev.get("type")
-        if t == "token":
-            text += ev["text"]
-        elif t == "retract":
-            # tool-round content (usually leaked thinking) — never the answer
-            text = text[:-ev["chars"]] if ev["chars"] <= len(text) else ""
-        elif t == "error":
-            error = ev["message"]
-        elif t == "done":
-            terminal = terminal or bool(ev.get("terminal"))
-            empty = empty or bool(ev.get("empty"))
+    async with aclosing(run_stream(agent, task, context, delegated=True)) as run:
+        async for ev in run:
+            t = ev.get("type")
+            if t == "token":
+                text += ev["text"]
+            elif t == "retract":
+                # tool-round content (usually leaked thinking) — never the answer
+                text = text[:-ev["chars"]] if ev["chars"] <= len(text) else ""
+            elif t == "error":
+                error = ev["message"]
+            elif t == "done":
+                terminal = terminal or bool(ev.get("terminal"))
+                empty = empty or bool(ev.get("empty"))
     if error and not text:
         return error, False, True
     if not text:
