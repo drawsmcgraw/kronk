@@ -353,16 +353,21 @@ class Resolution:
 
 
 def prefer_provider(ranked: list[Candidate], threshold: float,
-                    order: list[str] | dict[str, list[str]]) -> "Candidate | None":
-    """The M11 provider policy (Drew, 2026-11-11 and 11-14): among the
-    candidates that pass `threshold`, and of the same media type as the best
-    of them, the one whose provider comes first in `order`; the score breaks
-    ties. A preference, never a filter, and only above the threshold: a poor
-    NAS match never beats a good YouTube Music match."""
+                    order: list[str] | dict[str, list[str]], prefer_min: float | None = None,
+                    ) -> "Candidate | None":
+    """The M11 provider policy (Drew, 2026-11-11 and 11-14). Nothing below
+    `threshold` plays. Among the candidates that pass `prefer_min` (a good
+    match, not merely a strong one) and are of the best one's media type,
+    the one whose provider comes first in `order` wins; the score breaks
+    ties. When none passes `prefer_min`, the top score wins. A preference,
+    never a filter: a poor NAS match never beats a good YouTube Music match."""
     strong = [c for c in ranked if c.score >= threshold]
     if not strong:
         return None
-    pool = [c for c in strong if c.media_type == strong[0].media_type]
+    floor = threshold if prefer_min is None else max(threshold, prefer_min)
+    pool = [c for c in strong if c.media_type == strong[0].media_type and c.score >= floor]
+    if not pool:
+        return strong[0]
     if isinstance(order, dict):                 # per media type (config decision.provider_order)
         order = order.get(pool[0].media_type) or []
 
@@ -375,7 +380,7 @@ async def resolve_named(nq: Query, media_type: str | None, also: list[Query] | N
                         search_each, library_items, library_scored, all_types: list[str],
                         search_limit: int, artist_limit: int, types: list[str] | None = None,
                         provider_order: list[str] | dict | None = None, strong_min: float | None = None,
-                        ) -> Resolution:
+                        prefer_min: float | None = None) -> Resolution:
     """Search, score, choose. `types` (M11's retry across types) searches
     those types untyped; `provider_order` (M11) chooses with
     prefer_provider() above `strong_min` instead of taking the top score
@@ -413,7 +418,7 @@ async def resolve_named(nq: Query, media_type: str | None, also: list[Query] | N
         winner = best if best and best.score >= policy().play_min_score else None
     else:
         winner = prefer_provider(ranked, strong_min if strong_min is not None else policy().play_min_score,
-                                 provider_order)
+                                 provider_order, prefer_min)
     return Resolution(winner, best, stage, len(cands), ranked)
 
 

@@ -229,7 +229,12 @@ async def _resolve(st: State, name: str, artist: str | None, media_type: str | N
         exact = await _exact(st, name, artist, [media_type] if media_type else EXACT_ORDER)
         if exact:
             return exact, None, "exact"
-    nq = music_resolve.normalize(name, artist)
+    # The query text keeps "X by Y" whole, as /music's does (the model's
+    # query carries it): scored against the title alone, a stranger's
+    # "DESTINY WAVE" passed for "Destiny Waving by Ulrich Schnauss" (M11
+    # dev check, 2026-11-17); with the artist in the text it falls below
+    # the line and the artist's own works are searched (stage 2).
+    nq = music_resolve.normalize(f"{name} by {artist}" if artist else name)
     nq.provider = nq.provider or st.p.provider
     also = [music_resolve.normalize(f"{name} Radio")] if media_type == "radio" and \
         not name.lower().endswith(" radio") else []
@@ -242,7 +247,8 @@ async def _resolve(st: State, name: str, artist: str | None, media_type: str | N
     order = _order(st.pol, st.p)
     res = await music_resolve.resolve_named(
         nq, media_type, also, search_each=search_each, library_items=st.reads.library_items,
-        types=types, provider_order=order, strong_min=st.pol.strong_min_score, **st.reads.resolve_kwargs)
+        types=types, provider_order=order, strong_min=st.pol.strong_min_score,
+        prefer_min=st.pol.provider_min_score, **st.reads.resolve_kwargs)
     for c in res.ranked[:5]:
         st.candidates.append({"via": "search", **_cand(c)})
     st.keep_best(res.best)
@@ -311,6 +317,17 @@ async def step_genre_list(st: State) -> None:
         await finish_style(st, "genre_list")
 
 
+def weak_title(st: State, c, text: str) -> bool:
+    """An unmarked request ("play italian") matched only part of a name
+    ("Italian Lesson No. 3"): a strong score from the prefix rule, not a
+    match of the whole name. Rule 7's weak title: it never decides alone;
+    the model question does, and without it the named reading stands."""
+    p = st.p
+    if p.type or p.by_generic or p.style_marker or p.artist:
+        return False
+    return music_resolve.similarity(text, c.name) < st.pol.title_min_score
+
+
 async def step_named(st: State) -> None:
     """(3) Not a style: the resolver, as a named item."""
     if st.reading == "style":
@@ -318,6 +335,9 @@ async def step_named(st: State) -> None:
     p = st.p
     st.named_tried = True
     winner, res, via = await _resolve(st, p.name or p.words, p.artist, p.type)
+    if winner and weak_title(st, winner, p.name or p.words):
+        st.title_only = winner
+        return st.note("named", via=via, strong=True, weak_title=_cand(winner))
     st.note("named", via=via, strong=bool(winner), best=_cand(st.best) if st.best else None)
     if winner:
         await finish_named(st, winner, "named", via)
@@ -443,10 +463,14 @@ async def decide(p: "music_resolve.Parsed", reads: Reads, *, ask_model: bool = T
                 if st.outcome:
                     break
             if not st.outcome:
-                if st.title_only is not None:
+                if st.title_only is not None and st.reading == "style":
                     # (7) A weak or lone title match never beats a style reading.
                     st.note("rule7", title=_cand(st.title_only))
                     await finish_style(st, "rule7")
+                elif st.title_only is not None:
+                    # An unmarked request whose only match is a weak title,
+                    # and no model answer: the named reading stands, as on /music.
+                    await finish_named(st, st.title_only, "named", "search")
                 elif st.reading == "style":
                     await finish_style(st, st.reading_by or "markers")
                 else:

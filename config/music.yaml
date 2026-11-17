@@ -93,9 +93,21 @@ decision:
   # A candidate at least this good is a strong match: it plays. Below it,
   # the next step runs. 0 to 1.
   strong_min_score: 0.75
-  # Among strong candidates of the same type, the first provider listed
-  # wins; the score breaks ties. A provider named in the sentence goes
-  # first. filesystem_local is the NAS library, ytmusic YouTube Music.
+  # A request with no type word, style word or artist ("play italian") that
+  # matches only part of a name ("Italian Lesson No. 3") is a weak title:
+  # unless the whole name is at least this similar, it does not decide on
+  # its own; the model question does (rule 7). 0 to 1.
+  title_min_score: 0.9
+  # The provider order below applies only among candidates at least this
+  # good, so a poor NAS match never beats a good YouTube Music match: below
+  # it, the top score wins. On the corpus (2026-11-17) the item asked for
+  # scored 0.98 or more and the near misses 0.77 to 0.95. 0 to 1.2 (scores
+  # carry small bonuses above 1).
+  provider_min_score: 0.95
+  # Among candidates of the same type that pass provider_min_score, the
+  # first provider listed wins; the score breaks ties. A provider named in
+  # the sentence goes first. filesystem_local is the NAS library, ytmusic
+  # YouTube Music.
   provider_order:
     # An artist: the NAS first, then YouTube Music (Drew, 2026-11-14).
     artist: [filesystem_local, ytmusic]

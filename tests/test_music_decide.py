@@ -176,8 +176,9 @@ def test_provider_policy_prefers_the_nas_among_strong_candidates():
     r = StubReads(items=[YTM_ALBUM, NAS_ALBUM], genres=GENRES)
     o, t = run("play the album Blue Lines by Massive Attack", r)
     assert (o.candidate.uri, o.provider) == ("filesystem_local://album/bl", "filesystem_local")
-    # one search for the one type and one query; never one per provider
-    assert r.searches == [("Blue Lines", ("album",))] and t["searches"] == 1
+    # one search per query variant ("X by Y" and X) for the one type; never one per provider
+    assert r.searches == [("Blue Lines by Massive Attack", ("album",)), ("Blue Lines", ("album",))]
+    assert t["searches"] == 2
 
 
 def test_a_poor_nas_match_never_beats_a_good_youtube_match():
@@ -186,14 +187,16 @@ def test_a_poor_nas_match_never_beats_a_good_youtube_match():
     o, t = run("play the album Blue Lines by Massive Attack", r)
     assert o.candidate.uri == "ytmusic://album/bl"
     scores = {c["uri"]: c["score"] for c in t["candidates"]}
-    assert scores["filesystem_local://album/boot"] < config_loader.current().music.decision.strong_min_score
+    d = config_loader.current().music.decision
+    # strong enough to play on its own, not good enough to win on provider
+    assert d.strong_min_score <= scores["filesystem_local://album/boot"] < d.provider_min_score
 
 
 def test_a_provider_named_in_the_sentence_goes_first():
     r = StubReads(items=[YTM_ALBUM, NAS_ALBUM], genres=GENRES)
     o, _ = run("play the album Blue Lines by Massive Attack on YouTube Music", r)
     assert (o.candidate.uri, o.provider) == ("ytmusic://album/bl", "ytmusic")
-    assert r.searches == [("Blue Lines", ("album",))]
+    assert len(r.searches) == 2
 
 
 def test_radio_prefers_pandora():
@@ -202,6 +205,21 @@ def test_radio_prefers_pandora():
     r = StubReads(items=[ytm, pan], genres=GENRES)
     o, _ = run("play the station Trip Hop Radio", r)
     assert (o.candidate.uri, o.station["uri"]) == ("pandora://radio/th", "pandora://radio/th")
+
+
+def test_prefer_provider_unit():
+    def c(name, score, prov, mt="album"):
+        x = mr.Candidate(uri=f"{prov}://{mt}/{name}", media_type=mt, name=name, providers={prov})
+        x.score = score
+        return x
+    nas_good, ytm_good, nas_poor = c("a", 0.97, "filesystem_local"), c("b", 1.0, "ytmusic"), c("c", 0.8, "filesystem_local")
+    order = ["filesystem_local", "ytmusic"]
+    assert mr.prefer_provider([ytm_good, nas_good], 0.75, order, 0.95) is nas_good
+    assert mr.prefer_provider([ytm_good, nas_poor], 0.75, order, 0.95) is ytm_good
+    assert mr.prefer_provider([nas_poor], 0.75, order, 0.95) is nas_poor           # strong, plays
+    assert mr.prefer_provider([c("d", 0.7, "ytmusic")], 0.75, order, 0.95) is None
+    assert mr.prefer_provider([ytm_good, c("e", 0.99, "filesystem_local", "track")], 0.75,
+                              {"album": order}, 0.95) is ytm_good                 # same type only
 
 
 def test_the_provider_order_is_read_from_config():
@@ -395,3 +413,41 @@ def test_the_decision_is_a_span_and_a_log_event(spans, caplog):
     rec = [r for r in caplog.records if r.getMessage().startswith("music decision ")][-1]
     body = json.loads(rec.getMessage()[len("music decision "):])
     assert body["outcome"]["decided_by"] == "named" and body["candidates"] and "steps" in body
+
+
+# ── found on dev, 2026-11-17 ─────────────────────────────────────────────────
+
+def test_x_by_y_is_scored_with_the_artist_in_the_text():
+    """'Destiny Waving by Ulrich Schnauss' picked a stranger's 'DESTINY WAVE'
+    when the query text was the title alone; /music keeps 'X by Y' whole."""
+    stranger = item("DESTINY WAVE", "album", ("ytmusic",), "PEAKY TRIANGLE", library=False)
+    right = item("Destiny Waiving", "album", ("ytmusic",), "Ulrich Schnauss", library=False)
+    r = StubReads(items=[stranger, right], genres=GENRES)
+    o, t = run("play the album Destiny Waving by Ulrich Schnauss", r)
+    assert (o.name, o.artist) == ("Destiny Waiving", "Ulrich Schnauss")
+    assert r.searches[0] == ("Destiny Waving by Ulrich Schnauss", ("album",))
+
+
+LESSON = item("Italian Lesson No. 3", "track", ("filesystem_local",), "Space Ghost")
+
+
+def test_a_weak_title_on_an_unmarked_request_goes_to_the_model():
+    r = StubReads(library=[LESSON], genres=GENRES, model="style")
+    o, t = run("play italian", r)
+    assert (o.kind, o.name, o.decided_by) == ("genre", "italian", "model") and r.model_calls == ["italian"]
+    assert [s for s in t["steps"] if s["step"] == "named"][0]["weak_title"]["name"] == "Italian Lesson No. 3"
+
+
+def test_a_weak_title_without_a_model_answer_keeps_the_named_reading():
+    """No model (down, or shadow): what /music does today stands."""
+    o, t = run("play italian", StubReads(library=[LESSON], genres=GENRES, model=None))
+    assert (o.kind, o.name, o.decided_by) == ("named", "Italian Lesson No. 3", "named")
+    o, t = run("play italian", StubReads(library=[LESSON], genres=GENRES, model="named"), ask_model=False)
+    assert o.name == "Italian Lesson No. 3" and t["model"]["would_ask"] is True
+
+
+def test_a_whole_name_is_not_a_weak_title():
+    o, _ = run("play Burning Down the House",
+               StubReads(items=[item("Burning Down The House", "track", ("ytmusic",), "Talking Heads", library=False)],
+                         genres=GENRES, model="style"))
+    assert (o.kind, o.decided_by) == ("named", "named")

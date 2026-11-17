@@ -1,6 +1,6 @@
 {
 "meta": {
-"recorded": "2026-11-17T11:58:02Z",
+"recorded": "2026-11-17T12:09:31Z",
 "rows": 160,
 "paths": [
 "live",
@@ -4893,6 +4893,13 @@
 "playlists": [],
 "radio": []
 },
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"album\"], \"search_query\": \"Destiny Waving by Ulrich Schnauss\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
 "[\"music/search\", {\"limit\": 10, \"media_types\": [\"album\"], \"search_query\": \"Destiny Waving\"}]": {
 "artists": [],
 "albums": [
@@ -5058,6 +5065,184 @@
 "artists": [
 {
 "name": "Nomadic Echoes"
+}
+]
+}
+],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"album\"], \"search_query\": \"Don't stop me now by queen\"}]": {
+"artists": [],
+"albums": [
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_9hHD965Z9xx",
+"name": "Greatest Hits",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_9hHD965Z9xx",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Queen"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_m2xZZHGzRl1",
+"name": "Bohemian Rhapsody (The Original Soundtrack)",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_m2xZZHGzRl1",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Queen"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_FAumMKRy4h1",
+"name": "Don't Stop Me Now (Queen)",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_FAumMKRy4h1",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Josephine Alexandra"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_0gLIztl8Zyl",
+"name": "Don't Stop Me Now Karaoke Originally Performed By QUEEN",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_0gLIztl8Zyl",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "歌っちゃ王"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_ZUi8yUzYtXc",
+"name": "Don't Stop Me Now (In the Style of Queen)",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_ZUi8yUzYtXc",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "ProSource Karaoke"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_X0KISCs1Ecm",
+"name": "Don't Stop Me Now",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_X0KISCs1Ecm",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Singer's Best"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_ID0BVbjWxHk",
+"name": "Don't Stop Me Now (Cover)",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_ID0BVbjWxHk",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Karolina Protsenko"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_c5dtRy3bdrt",
+"name": "Don't Stop Me Now",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_c5dtRy3bdrt",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Singer's Best"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_yA9krHhDNWg",
+"name": "Don't Stop Me Now",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_yA9krHhDNWg",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Connection Max"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_ck7Ej1dyXGV",
+"name": "Don't Stop Me Now (Originally Performed By Queen)",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_ck7Ej1dyXGV",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Clara Oaks"
 }
 ]
 }
@@ -5695,6 +5880,179 @@
 "artists": [
 {
 "name": "Stéphane Pompougnac"
+}
+]
+}
+],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"album\"], \"search_query\": \"Mambo No. 5 by Lou Bega\"}]": {
+"artists": [],
+"albums": [
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_Jd9qXn8X4lL",
+"name": "A Little Bit of Mambo",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_Jd9qXn8X4lL",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Lou Bega"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_Po9IWiTSKDH",
+"name": "Lou Bega",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_Po9IWiTSKDH",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Micha_R"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_x8aZh5VjjiL",
+"name": "Mambo No. 5 - A Tribute to Lou Bega",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_x8aZh5VjjiL",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Ameritz Tribute Standards"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_uL5pRcYYmaY",
+"name": "Mambo No. 5 (A Little Bit Of...)",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_uL5pRcYYmaY",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Lou Bega"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_2RwsrMvI1Cp",
+"name": "Mambo No.5",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_2RwsrMvI1Cp",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Lou Bega"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_97KfCvr24mK",
+"name": "The Karaoke Channel - Sing Mambo No. 5 Like Lou Bega",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_97KfCvr24mK",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "The Karaoke Channel"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_hL8EIYE4jnX",
+"name": "Mambo No.5 (Dance Instruction)",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_hL8EIYE4jnX",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Lou Bega"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_JD7iGw3uk4d",
+"name": "Mambo No. 5 (A Little Bit of...)",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_JD7iGw3uk4d",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Lou Bega"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_8OrVHfncQyD",
+"name": "Mambo No 5 (In the Style of Lou Bega)",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_8OrVHfncQyD",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Ameritz Karaoke World"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_YPHYKJQMeY2",
+"name": "Mambo No. 5 (Originally Performed by Lou Bega)",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_YPHYKJQMeY2",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
 }
 ]
 }
@@ -7319,6 +7677,38 @@
 "playlists": [],
 "radio": []
 },
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"album\"], \"search_query\": \"lunchlady land by adam sandler in the kitchen, use the home agent to do this\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"album\"], \"search_query\": \"lunchlady land by adam sandler\"}]": {
+"artists": [],
+"albums": [
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_SYsZHP9Kv5b",
+"name": "They're All Gonna Laugh at You!",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_SYsZHP9Kv5b",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Adam Sandler"
+}
+]
+}
+],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
 "[\"music/search\", {\"limit\": 10, \"media_types\": [\"album\"], \"search_query\": \"lunchlady land\"}]": {
 "artists": [],
 "albums": [
@@ -7688,6 +8078,62 @@
 "playlists": [],
 "radio": []
 },
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"artist\"], \"search_query\": \"Don't stop me now by queen\"}]": {
+"artists": [
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCEPMVbUzImPl4p8k4LkGevA",
+"name": "Queen",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCEPMVbUzImPl4p8k4LkGevA",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCjymketYSQefUpvDHpPB1_w",
+"name": "Freddie Mercury",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCjymketYSQefUpvDHpPB1_w",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCJ1RE28IbvSoOw6P1wq0zFg",
+"name": "Marc Martel",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCJ1RE28IbvSoOw6P1wq0zFg",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCV45MtUoUU4y2o41vReqskQ",
+"name": "Peter Bence",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCV45MtUoUU4y2o41vReqskQ",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+}
+],
+"albums": [],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
 "[\"music/search\", {\"limit\": 10, \"media_types\": [\"artist\"], \"search_query\": \"Don't stop me now\"}]": {
 "artists": [
 {
@@ -7988,6 +8434,50 @@
 "media_type": "artist",
 "provider": "ytmusic--kGmHoQDn",
 "item_id": "UCDBMi4q_deERbc8j9tb7t2Q",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+}
+],
+"albums": [],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"artist\"], \"search_query\": \"Mambo No. 5 by Lou Bega\"}]": {
+"artists": [
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCBPq41ddDpRAeSxrYS0faNA",
+"name": "Lou Bega",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCBPq41ddDpRAeSxrYS0faNA",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UC_TU8ycSWbSVbaI30_tU1LA",
+"name": "Perez Prado",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UC_TU8ycSWbSVbaI30_tU1LA",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCiRPcAXZmGmDlYNcGdyIZ8A",
+"name": "Mambo king",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCiRPcAXZmGmDlYNcGdyIZ8A",
 "provider_mappings": [
 {
 "provider_domain": "ytmusic"
@@ -8831,6 +9321,33 @@
 "playlists": [],
 "radio": []
 },
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"artist\"], \"search_query\": \"lunchlady land by adam sandler in the kitchen, use the home agent to do this\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"artist\"], \"search_query\": \"lunchlady land by adam sandler\"}]": {
+"artists": [
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCfqL8pMuvC_M9vq7LdUqD1Q",
+"name": "Adam Sandler",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCfqL8pMuvC_M9vq7LdUqD1Q",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+}
+],
+"albums": [],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
 "[\"music/search\", {\"limit\": 10, \"media_types\": [\"artist\"], \"search_query\": \"lunchlady land\"}]": {
 "artists": [
 {
@@ -9047,6 +9564,134 @@
 "albums": [],
 "tracks": [],
 "playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"playlist\"], \"search_query\": \"Don't stop me now by queen\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [],
+"playlists": [
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLxfrIKK-s2Zdvr9RbXFTkTNvZtcdKfwsQ",
+"name": "Queen - Don't Stop Me Now (Official Video)",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLxfrIKK-s2Zdvr9RbXFTkTNvZtcdKfwsQ",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLRapl1xNFDTXP6qm8pgaCTIpN9CFI08tB",
+"name": "Queen - Don’t stop me now",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLRapl1xNFDTXP6qm8pgaCTIpN9CFI08tB",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLGhXif4sVJdDklMGZ0YVhfG-UejfkzbSL",
+"name": "Queen dont stop me now",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLGhXif4sVJdDklMGZ0YVhfG-UejfkzbSL",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPL2tMgWgIvcWl20MKCUVraDMVnA5KsEuqR",
+"name": "Don't Stop Me Now - 500 Million Views",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPL2tMgWgIvcWl20MKCUVraDMVnA5KsEuqR",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPL41-YR7K2saMuvtyErMRdY1pBuQkI45gB",
+"name": "Mix - Queen - Don't Stop Me Now (Official Video) (Copy)",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPL41-YR7K2saMuvtyErMRdY1pBuQkI45gB",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLz27dLa5kwOkE0p7aKkKdOs6FeUTW4kyv",
+"name": "Don't Stop Me Now - Arr Oliver Gies",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLz27dLa5kwOkE0p7aKkKdOs6FeUTW4kyv",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLWYBel3_zLBE_iyIy70-Ez-NOapkVruat",
+"name": "Queen don't stop me now vidéo officielle",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLWYBel3_zLBE_iyIy70-Ez-NOapkVruat",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLJH_TJMB8-I4",
+"name": "queen",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLJH_TJMB8-I4",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLBEdNhyPjXoAxjtxMzk_1lsprcnpwQNCD",
+"name": "Don’t Stop Me Now - Queen",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLBEdNhyPjXoAxjtxMzk_1lsprcnpwQNCD",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLcHvlaU0i-reZCAIZzS6bb5mKk33XctvN",
+"name": "Don't Stop Me Now - Remastered 2011 – Queen",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLcHvlaU0i-reZCAIZzS6bb5mKk33XctvN",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+}
+],
 "radio": []
 },
 "[\"music/search\", {\"limit\": 10, \"media_types\": [\"playlist\"], \"search_query\": \"Don't stop me now\"}]": {
@@ -9296,6 +9941,134 @@
 "media_type": "playlist",
 "provider": "ytmusic--kGmHoQDn",
 "item_id": "VLPLoeCT-uXIQ9ADN_CyGj_VO3KykNNTYBFQ",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+}
+],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"playlist\"], \"search_query\": \"Mambo No. 5 by Lou Bega\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [],
+"playlists": [
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPL4CB3DDD24E6A3B1D",
+"name": "Lou Bega",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPL4CB3DDD24E6A3B1D",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLATieKc9YDFZCHUJeYLyxoFYjhFZkhyAD",
+"name": "Lou Bega -His Most Popular Songs",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLATieKc9YDFZCHUJeYLyxoFYjhFZkhyAD",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLbjn5cBLoaLDyFGurkw0oHJDDqD1KWXrm",
+"name": "Lou Bega",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLbjn5cBLoaLDyFGurkw0oHJDDqD1KWXrm",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLVgiGNNaxvb8EJjQV9-hDHMw-l3W645jB",
+"name": "Lou Bega",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLVgiGNNaxvb8EJjQV9-hDHMw-l3W645jB",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLIeEb73_ldomaFK57d91Twhb5p2eTbrjY",
+"name": "LOU BEGA",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLIeEb73_ldomaFK57d91Twhb5p2eTbrjY",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLeRFKtJs7RRg",
+"name": "LOU BEGA GREATEST HITS 🎯💯🎯",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLeRFKtJs7RRg",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLFG4ZfjdixGqoOfFCmznxDfDFe5ahH1_m",
+"name": "lou bega",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLFG4ZfjdixGqoOfFCmznxDfDFe5ahH1_m",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLxJ7brI7RNfhW-OLWQLZq80bwRDpdhK3C",
+"name": "Lou Bega",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLxJ7brI7RNfhW-OLWQLZq80bwRDpdhK3C",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLyjrJPlaL4oacoXWxI0z1n1XneIPJWHWp",
+"name": "Lou Bega",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLyjrJPlaL4oacoXWxI0z1n1XneIPJWHWp",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLLIADSPdBAwNK3zFk86gsrspnPaqdosPW",
+"name": "Lou Bega",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLLIADSPdBAwNK3zFk86gsrspnPaqdosPW",
 "provider_mappings": [
 {
 "provider_domain": "ytmusic"
@@ -10672,6 +11445,141 @@
 ],
 "radio": []
 },
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"playlist\"], \"search_query\": \"lunchlady land by adam sandler in the kitchen, use the home agent to do this\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"playlist\"], \"search_query\": \"lunchlady land by adam sandler\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [],
+"playlists": [
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPL-ZzVSSefe6qgMegxDksp0zM1c2eH9pwL",
+"name": "Adam Sandler and gang",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPL-ZzVSSefe6qgMegxDksp0zM1c2eH9pwL",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPL3gKhIgpj3pLCW0rLdwiC7ZKdX4qOv1LU",
+"name": "Adam Sandler",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPL3gKhIgpj3pLCW0rLdwiC7ZKdX4qOv1LU",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLwvYjUoUzzU1F44f5YLk3aDaGrhp7Vl8B",
+"name": "Adam Sandler",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLwvYjUoUzzU1F44f5YLk3aDaGrhp7Vl8B",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPL4NiFDAJPZWtRbZnq6dflXWpzMlcP9TLi",
+"name": "Adam Sandler",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPL4NiFDAJPZWtRbZnq6dflXWpzMlcP9TLi",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLBBE8D7355938D049",
+"name": "Adam Sandler",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLBBE8D7355938D049",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPL7cc8CjW16_FLrLNKsHEC95tbWuqZmHMx",
+"name": "Adam Sandler",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPL7cc8CjW16_FLrLNKsHEC95tbWuqZmHMx",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPL4fLJLePKtFAjxi6OKXFPSJGvKYFmCD_M",
+"name": "Adam Sandler",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPL4fLJLePKtFAjxi6OKXFPSJGvKYFmCD_M",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLFgbnyjifUYM33ilwhKhJIrDnB_7QXXeh",
+"name": "Adam sandler",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLFgbnyjifUYM33ilwhKhJIrDnB_7QXXeh",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLf71avfUxADwGJR4mWlO0R0tS6svkFjbB",
+"name": "Adam Sandler",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLf71avfUxADwGJR4mWlO0R0tS6svkFjbB",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLfrAsyJDscN63xpyyAsdx_QO-n3EG9p5J",
+"name": "Adam Sandler music mix",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLfrAsyJDscN63xpyyAsdx_QO-n3EG9p5J",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+}
+],
+"radio": []
+},
 "[\"music/search\", {\"limit\": 10, \"media_types\": [\"playlist\"], \"search_query\": \"lunchlady land\"}]": {
 "artists": [],
 "albums": [],
@@ -11390,6 +12298,86 @@
 "media_type": "radio",
 "provider": "pandora",
 "item_id": "seed:AR:9415096",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+}
+]
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"radio\"], \"search_query\": \"it\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [],
+"playlists": [],
+"radio": [
+{
+"uri": "library://radio/263",
+"name": "90s, 2000s, Today's Hits Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "263",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "pandora://radio/seed:TR:147468321",
+"name": "It Radio",
+"media_type": "radio",
+"provider": "pandora",
+"item_id": "seed:TR:147468321",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/265",
+"name": "City Pop Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "265",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/294",
+"name": "Orbital Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "294",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/303",
+"name": "Pitbull Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "303",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/287",
+"name": "Workout Hits Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "287",
 "provider_mappings": [
 {
 "provider_domain": "pandora"
@@ -12693,6 +13681,167 @@
 "artists": [
 {
 "name": "Ozzy Osbourne"
+}
+]
+}
+],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"track\"], \"search_query\": \"Don't stop me now by queen\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [
+{
+"uri": "ytmusic--kGmHoQDn://track/1UjLFMg18cY",
+"name": "Don't Stop Me Now",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "1UjLFMg18cY",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Queen"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/_IL77qFKgRw",
+"name": "Love of My Life",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "_IL77qFKgRw",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Queen"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/TUug2E45B9k",
+"name": "Don't Stop Me Now",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "TUug2E45B9k",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "The Royal Philharmonic Orchestra"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/2JIDfJHh4Wo",
+"name": "Don't Stop Me Now",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "2JIDfJHh4Wo",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Bohemian Rhapsody"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/Jd5PFiJDQOs",
+"name": "Don't Stop Me Now",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "Jd5PFiJDQOs",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Queen Machine"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/0Ppgim7ah90",
+"name": "Don't Stop Me Now",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "0Ppgim7ah90",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "The Mariachis"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/cOF2q0utytE",
+"name": "Don't Stop Me Now",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "cOF2q0utytE",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "McAuley Schenker Group"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/r2F95UpvHcw",
+"name": "Don't Stop Me Now",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "r2F95UpvHcw",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Lullaby Baby Trio"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/FsuAlIFO4b0",
+"name": "Don't Stop Me Now",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "FsuAlIFO4b0",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Easy Karaoke Players"
 }
 ]
 }
@@ -15438,6 +16587,362 @@
 "playlists": [],
 "radio": []
 },
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"track\"], \"search_query\": \"lunchlady land by adam sandler in the kitchen, use the home agent to do this\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [
+{
+"uri": "ytmusic--kGmHoQDn://track/HsqyxsogrvA",
+"name": "Lunchlady Land",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "HsqyxsogrvA",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Adam Sandler"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/AqngwJ0nK0g",
+"name": "Do It for Your Mama",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "AqngwJ0nK0g",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Adam Sandler"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/5Ly1dyo4kuQ",
+"name": "The Psychotic Legend of Uncle Donnie",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "5Ly1dyo4kuQ",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Adam Sandler"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/-47H99gKlo4",
+"name": "The Goat",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "-47H99gKlo4",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Adam Sandler"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/lvAoTSsMkBY",
+"name": "The Thanksgiving Song",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "lvAoTSsMkBY",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Adam Sandler"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/U6Ik96iiUic",
+"name": "The Boss and the Secretary",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "U6Ik96iiUic",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Adam Sandler"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/devPDian1wA",
+"name": "Dip Doodle",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "devPDian1wA",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Adam Sandler"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/K1jyjSRYIuU",
+"name": "Oh Mom...",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "K1jyjSRYIuU",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Adam Sandler"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/srq09I_6Eow",
+"name": "The Longest Pee",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "srq09I_6Eow",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Adam Sandler"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/URAGTsqspNM",
+"name": "Food Innuendo Guy",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "URAGTsqspNM",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Adam Sandler"
+}
+]
+}
+],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"track\"], \"search_query\": \"lunchlady land by adam sandler\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [
+{
+"uri": "ytmusic--kGmHoQDn://track/HsqyxsogrvA",
+"name": "Lunchlady Land",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "HsqyxsogrvA",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Adam Sandler"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/5F0EBd9lm64",
+"name": "The Buffoon and the Dean of Admissions",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "5F0EBd9lm64",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Adam Sandler"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/-47H99gKlo4",
+"name": "The Goat",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "-47H99gKlo4",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Adam Sandler"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/lvAoTSsMkBY",
+"name": "The Thanksgiving Song",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "lvAoTSsMkBY",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Adam Sandler"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/K1jyjSRYIuU",
+"name": "Oh Mom...",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "K1jyjSRYIuU",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Adam Sandler"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/WJKPuD_A_P0",
+"name": "The Excited Southerner at a Job Interview",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "WJKPuD_A_P0",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Adam Sandler"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/AxHEED36Djs",
+"name": "Ice Cream Lady",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "AxHEED36Djs",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Adam Sandler"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/AqZCep-wjSs",
+"name": "Stan the Man",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "AqZCep-wjSs",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Adam Sandler"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/BW0dE1xADvM",
+"name": "The Excited Southerner Proposes to a Woman",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "BW0dE1xADvM",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Adam Sandler"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/ertX70-kvGQ",
+"name": "The Beating of a High School Bus Driver",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "ertX70-kvGQ",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Adam Sandler"
+}
+]
+}
+],
+"playlists": [],
+"radio": []
+},
 "[\"music/search\", {\"limit\": 10, \"media_types\": [\"track\"], \"search_query\": \"lunchlady land\"}]": {
 "artists": [],
 "albums": [],
@@ -15969,6 +17474,913 @@
 ]
 }
 ],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 50, \"media_types\": [\"album\"], \"search_query\": \"Ulrich Schnauss\"}]": {
+"artists": [],
+"albums": [
+{
+"uri": "library://album/1370",
+"name": "Ulrich Schnauss And Jonas Munk",
+"media_type": "album",
+"provider": "library",
+"item_id": "1370",
+"provider_mappings": [
+{
+"provider_domain": "filesystem_local"
+}
+],
+"artists": [
+{
+"name": "Ulrich Schnauss and Jonas Munk"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_k5ajXIrmA37",
+"name": "Far Away Trains Passing By",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_k5ajXIrmA37",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Ulrich Schnauss"
+}
+]
+},
+{
+"uri": "library://album/1372",
+"name": "Far Away Trains Passing By",
+"media_type": "album",
+"provider": "library",
+"item_id": "1372",
+"provider_mappings": [
+{
+"provider_domain": "filesystem_local"
+}
+],
+"artists": [
+{
+"name": "Ulrich Schnauss"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_mCPgm5930gv",
+"name": "A Strangely Isolated Place",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_mCPgm5930gv",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Ulrich Schnauss"
+}
+]
+},
+{
+"uri": "library://album/254",
+"name": "A Long Way To Fall",
+"media_type": "album",
+"provider": "library",
+"item_id": "254",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+},
+{
+"provider_domain": "filesystem_local"
+}
+],
+"artists": [
+{
+"name": "Ulrich Schnauss"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_iAsvDlSQrEn",
+"name": "Goodbye",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_iAsvDlSQrEn",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Ulrich Schnauss"
+}
+]
+},
+{
+"uri": "library://album/1371",
+"name": "A Strangely Isolated Place",
+"media_type": "album",
+"provider": "library",
+"item_id": "1371",
+"provider_mappings": [
+{
+"provider_domain": "filesystem_local"
+}
+],
+"artists": [
+{
+"name": "Ulrich Schnauss"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_5U7KEMFAfRP",
+"name": "Underrated Silence",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_5U7KEMFAfRP",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Ulrich Schnauss"
+},
+{
+"name": "Mark Peters"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_fnwnSNUCH4R",
+"name": "Now Is A Timeless Present - A Retrospective",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_fnwnSNUCH4R",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Ulrich Schnauss"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_8AqAYz862uT",
+"name": "No Further Ahead Than Tomorrow",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_8AqAYz862uT",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Ulrich Schnauss"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_9dOOFTOgwaJ",
+"name": "Eight Fragments Of An Illusion",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_9dOOFTOgwaJ",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Ulrich Schnauss"
+},
+{
+"name": "Jonas Munk"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_fwb3Yb7Psur",
+"name": "Hindsight Is 20/20",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_fwb3Yb7Psur",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Ulrich Schnauss"
+},
+{
+"name": "Mark Peters"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_HDB26rHMA0o",
+"name": "Ulrich Schnauss and Jonas Munk",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_HDB26rHMA0o",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Ulrich Schnauss"
+},
+{
+"name": "Jonas Munk"
+},
+{
+"name": "Pedigree Cuts"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_98ZT24p5Pv3",
+"name": "A Long Way To Fall - Rebound",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_98ZT24p5Pv3",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Ulrich Schnauss"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_Clel3Zumx4I",
+"name": "77 EP",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_Clel3Zumx4I",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Ulrich Schnauss"
+},
+{
+"name": "ASC"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_pTv0WMA81kT",
+"name": "Recollections of Memory",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_pTv0WMA81kT",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "A Shoreline Dream"
+},
+{
+"name": "Ulrich Schnauss"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_ppHdYEIiXmh",
+"name": "The Extremist EP",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_ppHdYEIiXmh",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Ulrich Schnauss"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_0IRHCEMitZK",
+"name": "…Passing By",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_0IRHCEMitZK",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Ulrich Schnauss"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_TD7ESyI2nKG",
+"name": "Asteroid 2467",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_TD7ESyI2nKG",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Ulrich Schnauss"
+},
+{
+"name": "Jonas Munk"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_41YfYt82w8v",
+"name": "A Long Way To Fall",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_41YfYt82w8v",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Ulrich Schnauss"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_3EtYdVN0D6e",
+"name": "Tomorrow Is Another Day",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_3EtYdVN0D6e",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Ulrich Schnauss"
+},
+{
+"name": "Mark Peters"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_x2wxDKFnXMu",
+"name": "Faint Lights In The Distance",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_x2wxDKFnXMu",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Ulrich Schnauss"
+},
+{
+"name": "Jonas Munk"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_C8czoBeAkKC",
+"name": "Nanocluster, Vol .1 (EP3)",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_C8czoBeAkKC",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Immersion"
+},
+{
+"name": "Ulrich Schnauss"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_1tM5YWMM6WL",
+"name": "neverChanger",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_1tM5YWMM6WL",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "A Shoreline Dream"
+},
+{
+"name": "Ulrich Schnauss"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_U8XTEacwFDv",
+"name": "Stars EP",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_U8XTEacwFDv",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Ulrich Schnauss"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_r7Pomx2gFjq",
+"name": "Ships Will Sail",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_r7Pomx2gFjq",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Ulrich Schnauss"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_DeydzybHSfB",
+"name": "Passage",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_DeydzybHSfB",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Ulrich Schnauss"
+},
+{
+"name": "Jonas Munk"
+},
+{
+"name": "Pedigree Cuts"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_GyJdWN4xfTi",
+"name": "Skylarks",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_GyJdWN4xfTi",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Immersion"
+},
+{
+"name": "Ulrich Schnauss"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_FZkLnRytAxt",
+"name": "Destiny Waiving",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_FZkLnRytAxt",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Ulrich Schnauss"
+},
+{
+"name": "Mark Peters"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_RmArutTXXO5",
+"name": "Polyphonication",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_RmArutTXXO5",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Beroshima"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_sKokS13dUsM",
+"name": "Ode de Ulrich Schnauss",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_sKokS13dUsM",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Keoki Trask"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_DFvjUnH3kTI",
+"name": "Occasional Magic",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_DFvjUnH3kTI",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Yppah"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_QbfeLI4qfXC",
+"name": "Speak in Capitals",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_QbfeLI4qfXC",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Ulrich Schnauss"
+},
+{
+"name": "Mark Peters"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_BXjpCRFqxzm",
+"name": "Destiny Waiving Köln Versionen EP",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_BXjpCRFqxzm",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Ulrich Schnauss"
+},
+{
+"name": "Mark Peters"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_gKpeA58zDjX",
+"name": "Snöflingor",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_gKpeA58zDjX",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Seba"
+},
+{
+"name": "Ulrich Schnauss"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_fcfGdUq9WXS",
+"name": "Southern Mind",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_fcfGdUq9WXS",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Lowtide"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_4TesEtLHNOs",
+"name": "Nocturne",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_4TesEtLHNOs",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Anne Lovett"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_yeQz7IkQWMz",
+"name": "Synthwaves",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_yeQz7IkQWMz",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Thorsten Quaeschning"
+},
+{
+"name": "Ulrich Schnauss"
+},
+{
+"name": "Pedigree Cuts"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_Td0Jx4ELRPn",
+"name": "Ulrich Schnauss/Isan remixes",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_Td0Jx4ELRPn",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Televise"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_9RXdEvVZ4pf",
+"name": "Eye of The Beholder",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_9RXdEvVZ4pf",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Kriece presents Shamatha"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_J6ukBN9bRdE",
+"name": "Just Like You / Play with Fire",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_J6ukBN9bRdE",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Naibu"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_Nm1fP7Q49Ep",
+"name": "Polykur",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_Nm1fP7Q49Ep",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Hair"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_MnuYuScnCRc",
+"name": "Missing Deadlines",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_MnuYuScnCRc",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Various Artists"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_gMXnVBQwMDv",
+"name": "Breaking Bricks, Vol. 1",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_gMXnVBQwMDv",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Extrawelt"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_McFPLDfzx4f",
+"name": "pseudepigrapha",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_McFPLDfzx4f",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "matryoshka"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_T1qbp77Eg8B",
+"name": "Mute the Birds",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_T1qbp77Eg8B",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Pia Fraus"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_aZANb0z9ZPj",
+"name": "To the Sea",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_aZANb0z9ZPj",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Mint Julep"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_fgsSXAP2jKw",
+"name": "Helios Remixed",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_fgsSXAP2jKw",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Helios"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_IS8c3CYzKEt",
+"name": "Caught a Black Rabbit",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_IS8c3CYzKEt",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Phoria"
+}
+]
+}
+],
+"tracks": [],
 "playlists": [],
 "radio": []
 },

@@ -214,6 +214,8 @@ class Decision(_Strict):
     """music_decide.decide() (sprint M11): style or named item, and what plays."""
     order: list[str] = Field(default_factory=lambda: [*DECISION_STEPS[:5], "model"])
     strong_min_score: float = Field(0.75, **_SCORE)
+    title_min_score: float = Field(0.9, **_SCORE)
+    provider_min_score: float = Field(0.95, ge=0.0, le=1.2)
     provider_order: ProviderOrder = Field(default_factory=ProviderOrder)
     model: ModelStep = Field(default_factory=ModelStep)
 
