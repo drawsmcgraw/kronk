@@ -7,12 +7,18 @@ Decisions made deliberately — revisit only if the stated assumption breaks:
 - **Splitting tool_service into per-domain services** — imperfect cohesion,
   but at single-operator scale container sprawl costs more than it buys.
 - **SQLite connection pooling** (orchestrator metrics/sessions) — per-call
-  connects measure as negligible while `_llm_lock` serialises the pipeline.
+  connects measure as negligible next to a generation. (Until sprint M9
+  `_llm_lock` serialised the pipeline; requests now run concurrently and
+  session writes take their own lock, `sessions.append_exchange`.)
 - **events.py schema enforcement** — ceremony without payoff at this size.
 - **Removing `_execute_tool` / per-request `model` field** — kept as
   documented API/test tolerances.
-- **`_llm_lock` serialisation** — intentional: one GPU, one llama.cpp slot
-  budget. The lock is the scheduler.
+- **`_llm_lock` serialisation** — superseded 2026-11-17 (sprint M9). The
+  assumption broke: a household and guests on several pucks, and each
+  llama.cpp server runs 4 slots with the full context each. Now one
+  priority lock per model server, held for one generation, voice first
+  (`docs/features/model-locks.md`); `MODEL_LOCK=pipeline` restores the old
+  lock for rollback.
 
 ## Open Issues
 

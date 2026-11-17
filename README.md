@@ -12,7 +12,10 @@ It holds no health or financial data (those features were removed
 **Machine:** Framework desktop — AMD Ryzen AI 375 (hostname `kronk`), Radeon
 8060S integrated GPU (GFX1151), 122 GB RAM.
 
-**Last updated:** 2026-11-17 — a request with more than one sentence or
+**Last updated:** 2026-11-17 — one request no longer blocks another: each
+llama.cpp server has its own lock, held for one generation, voice served
+first; voice requests stop at 25 s with one sentence; a dropped client
+cancels its request (sprint M9). Before that: a request with more than one sentence or
 more than 20 words skips the routing shortcuts and goes to the coordinator
 whole (sprint M14, the messy-transcript gate). "ask Kronk to …" skips every routing
 shortcut and goes to the model (sprint M19). Routing is an ordered rules
@@ -506,6 +509,17 @@ the host can reach, LAN or public. It has no host allow-list; that was the
 operator's decision (2026-11-16). Some LAN devices change state on a plain
 GET (a relay toggled by URL), and `http_check` can touch any address on the
 LAN.
+
+**Model locks: one per server, one generation at a time (sprint M9).** Each
+llama.cpp server has a priority lock that `llm.stream` holds for one
+generation; tool calls and other servers' work hold nothing, and waiting
+voice requests go before display ones (a display request is overtaken at
+most `config/tuning.yaml` `model_lock.max_overtakes` times). Routing and
+direct dispatch take no lock. Voice requests stop at `config/voice.yaml`
+`deadline_s` (25 s) with one spoken sentence that never denies an action
+already sent, and a client that disconnects cancels its request. Rollback:
+`MODEL_LOCK=pipeline`. Before M9 one lock wrapped every request's whole
+pipeline ([`docs/features/model-locks.md`](docs/features/model-locks.md)).
 
 **Hallucination guardrails — three layers, order matters.** (1) A system-prompt
 standing rule ("never fabricate real-time info"). (2) Directive failure messages

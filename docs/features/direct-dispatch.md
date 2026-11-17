@@ -70,8 +70,9 @@ pre-M7 pattern over 6415 utterances.
 
 ### The pipeline branch
 
-`main._run_pipeline` calls `routing.decide(text)` before it takes
-`_llm_lock`. With a direct call it does not take the lock, skips the
+`main._run_pipeline` calls `routing.decide(text)` before any model lock
+(since sprint M9 the locks are per model server and taken only inside a
+generation, `docs/features/model-locks.md`). A direct call takes no lock, skips the
 coordinator's weather, shared-state and file context, routes through
 `routing.classify` as usual (same `routing.decide` span, same event), then
 `main._direct_dispatch`:

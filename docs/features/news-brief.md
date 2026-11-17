@@ -35,7 +35,8 @@ tool_service logs matched exactly).
   `/data/news_feeds.json`. Per-feed failures skip and are recorded in
   the edition (`failed_sources`).
 - **One summarize call** direct to LiteLLM (`NEWS_MODEL`, default
-  gemma-4-e4b) — bypasses `_llm_lock`, so a refresh can contend with a
+  gemma-4-e4b) — bypasses the orchestrator's model locks (`_llm_lock`
+  before sprint M9, the per-server locks after), so a refresh can contend with a
   live query for ~20 s, three times a day (accepted, plan decision 4).
 - **Terminal delivery:** `news_brief` is the coordinator's first service
   tool and it is terminal — the tool's text streams to the user with no

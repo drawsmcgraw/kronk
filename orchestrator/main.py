@@ -1188,7 +1188,7 @@ async def _ollama_speech_stream(text: str, model: str, context: list[dict] | Non
     # Set if the buffer itself fails (a bug): from then on the rest of the
     # reply is collected as the buffered path collects it and sent as one
     # last chunk. The pipeline is always run to its end, so it finishes its
-    # trace and releases _llm_lock as it would for the buffered path.
+    # trace and releases its model lock as it would for the buffered path.
     fallback: str | None = None
     deadline: str | None = None   # the deadline sentence (sprint M9 step 4)
     sent: list[str] = []

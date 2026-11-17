@@ -145,8 +145,13 @@ streaming `/voice/api/chat` request gets its reply as it is generated
   fails mid-reply ends with its friendly sentence as the last content and
   one `done` record. If the buffer itself raises (a bug), the rest of the
   reply is collected as the buffered path collects it and leaves as one
-  last chunk; the pipeline always runs to its end and releases
-  `_llm_lock`.
+  last chunk; the pipeline always runs to its end and releases its model
+  lock (since sprint M9 a per-server lock held for one generation).
+- **Deadline and disconnects (sprint M9).** A speech-mount request stops at
+  `config/voice.yaml` `deadline_s` (25 s) with one spoken sentence; on the
+  streamed path what was sent stays and held text is dropped. A client that
+  disconnects cancels its request on every route
+  (`docs/features/model-locks.md`).
 - **Unchanged:** `stream: false` on the voice mount (one JSON object),
   the display mounts (`/api/chat`, `/v1/chat/completions`, `/message`),
   and the whole buffered path when the switch is off.
