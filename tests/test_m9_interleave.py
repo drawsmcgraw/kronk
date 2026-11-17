@@ -335,6 +335,10 @@ def test_every_route_sends_the_bytes_it_sent_before_m9(app, monkeypatch):
     before = json.loads(FIXTURE.read_text())
     assert set(now) == set(before)
     differ = [k for k in before if now[k] != before[k]]
+    if differ:
+        import difflib
+        k = differ[0]
+        print("\n".join(difflib.unified_diff(before[k].splitlines(), now[k].splitlines(), lineterm="", n=0)))
     assert differ == [], differ[:5]
 
 

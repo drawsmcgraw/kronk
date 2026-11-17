@@ -124,6 +124,8 @@ _NORMALISE = [
     (re.compile(r'chatcmpl-[0-9a-f]+'), 'chatcmpl-ID'),
     (re.compile(r'\[rid [0-9a-f]+\]'), '[rid R]'),
     (re.compile(r'"(ttft_s|generation_s|s)": ?[0-9.]+'), r'"\1": 0'),
+    # COORDINATOR_MODEL is read at import; another test may set it first
+    (re.compile(r'"model": ?"[^"]*"'), '"model": "M"'),
 ]
 
 
