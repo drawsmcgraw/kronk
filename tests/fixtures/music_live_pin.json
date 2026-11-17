@@ -1,0 +1,4551 @@
+{
+ "plan-anime-pop-radio-wet": {
+  "request": {
+   "query": "Anime Pop Radio",
+   "said": "Play Anime Pop Radio. That's probably about it. Everything is pretty wet.",
+   "media_type": "radio",
+   "kind": "named",
+   "origin_area": "Kitchen",
+   "origin_device": "e0949788663255952ce7778975527882"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Kitchen speaker",
+   "targets": [
+    "media_player.home_assistant_voice_0ac919_pe_01"
+   ],
+   "detail": "Dry run: would play the Pandora station Anime Pop Radio on the Kitchen speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://radio/253",
+    "media_type": "radio"
+   },
+   "shuffle": false,
+   "station": {
+    "name": "Anime Pop Radio",
+    "created": false
+   }
+  },
+  "ma_reads": [
+   [
+    "music/item_by_name",
+    {
+     "name": "Anime Pop",
+     "media_type": "radio"
+    }
+   ]
+  ]
+ },
+ "inc-1108-anime-pop-transcript": {
+  "request": {
+   "query": "Anime Pop Radio",
+   "said": " Play Anime Pop Radio.  That's probably about it. Everything is pretty wet.  I just needed to make some space.",
+   "media_type": "radio",
+   "kind": "named",
+   "origin_area": "Kitchen",
+   "origin_device": "e0949788663255952ce7778975527882"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Kitchen speaker",
+   "targets": [
+    "media_player.home_assistant_voice_0ac919_pe_01"
+   ],
+   "detail": "Dry run: would play the Pandora station Anime Pop Radio on the Kitchen speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://radio/253",
+    "media_type": "radio"
+   },
+   "shuffle": false,
+   "station": {
+    "name": "Anime Pop Radio",
+    "created": false
+   }
+  },
+  "ma_reads": [
+   [
+    "music/item_by_name",
+    {
+     "name": "Anime Pop",
+     "media_type": "radio"
+    }
+   ]
+  ]
+ },
+ "inc-1108-anime-pop-wet-basement": {
+  "request": {
+   "query": "Anime Pop Radio",
+   "said": "Play Anime Pop Radio. That's probably about it. Everything is pretty wet, put it on the basement voice pe ma.",
+   "media_type": "radio",
+   "kind": "named",
+   "player": "basement voice pe ma",
+   "origin_area": "Basement Theater",
+   "origin_device": "1b6bd3b03f90e52f08dd98dca41eac82"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the basement voice pe ma speaker",
+   "targets": [
+    "media_player.home_assistant_voice_0ab117"
+   ],
+   "detail": "Dry run: would play the Pandora station Anime Pop Radio on the basement voice pe ma speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://radio/253",
+    "media_type": "radio"
+   },
+   "shuffle": false,
+   "station": {
+    "name": "Anime Pop Radio",
+    "created": false
+   }
+  },
+  "ma_reads": [
+   [
+    "music/item_by_name",
+    {
+     "name": "Anime Pop",
+     "media_type": "radio"
+    }
+   ]
+  ]
+ },
+ "inc-1108-mushroom-jazz-basement": {
+  "request": {
+   "query": "Mushroom Jazz Radio",
+   "said": "Play Mushroom Jazz radio on the basement voice pe ma",
+   "media_type": "radio",
+   "kind": "named",
+   "player": "basement voice pe ma",
+   "origin_area": "Basement Theater",
+   "origin_device": "1b6bd3b03f90e52f08dd98dca41eac82"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the basement voice pe ma speaker",
+   "targets": [
+    "media_player.home_assistant_voice_0ab117"
+   ],
+   "detail": "Dry run: would play the Pandora station Mushroom Jazz Radio on the basement voice pe ma speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://radio/258",
+    "media_type": "radio"
+   },
+   "shuffle": false,
+   "station": {
+    "name": "Mushroom Jazz Radio",
+    "created": false
+   }
+  },
+  "ma_reads": [
+   [
+    "music/item_by_name",
+    {
+     "name": "Mushroom Jazz",
+     "media_type": "radio"
+    }
+   ]
+  ]
+ },
+ "inc-1108-artist-portishead-basement": {
+  "request": {
+   "query": "Portishead",
+   "said": "Play the artist Portishead on the basement voice pe ma",
+   "media_type": "artist",
+   "kind": "named",
+   "player": "basement voice pe ma",
+   "origin_area": "Basement Theater",
+   "origin_device": "1b6bd3b03f90e52f08dd98dca41eac82"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the basement voice pe ma speaker",
+   "targets": [
+    "media_player.home_assistant_voice_0ab117"
+   ],
+   "detail": "Dry run: would play the artist Portishead on the basement voice pe ma speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://artist/1251",
+    "media_type": "artist"
+   },
+   "shuffle": false,
+   "resolved": {
+    "name": "Portishead",
+    "artist": null,
+    "media_type": "artist"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "Portishead",
+     "media_types": [
+      "artist"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ },
+ "plan-orbital-station-youtube": {
+  "request": {
+   "query": "Orbital",
+   "said": "Start an orbital radio station on YouTube Music.",
+   "media_type": "radio",
+   "kind": "named",
+   "origin_area": "Kitchen",
+   "origin_device": "e0949788663255952ce7778975527882"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Kitchen speaker",
+   "targets": [
+    "media_player.home_assistant_voice_0ac919_pe_01"
+   ],
+   "detail": "Dry run: would play the radio Orbital Radio on the Kitchen speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://radio/294",
+    "media_type": "radio"
+   },
+   "shuffle": false,
+   "resolved": {
+    "name": "Orbital Radio",
+    "artist": null,
+    "media_type": "radio"
+   },
+   "station": {
+    "name": "Orbital Radio",
+    "created": false
+   }
+  },
+  "ma_reads": [
+   [
+    "music/item_by_name",
+    {
+     "name": "an orbital",
+     "media_type": "radio"
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "Orbital",
+     "media_types": [
+      "radio"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "an orbital",
+     "media_types": [
+      "radio"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/radios/library_items",
+    {
+     "limit": 500
+    }
+   ]
+  ]
+ },
+ "inc-1004-tell-kronk-orbital": {
+  "request": {
+   "query": "Orbital",
+   "said": "Tell Kronk to start an orbital radio to play on YouTube music.",
+   "media_type": "radio",
+   "kind": "named",
+   "origin_area": "Kitchen",
+   "origin_device": "e0949788663255952ce7778975527882"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Kitchen speaker",
+   "targets": [
+    "media_player.home_assistant_voice_0ac919_pe_01"
+   ],
+   "detail": "Dry run: would play the Pandora station Orbital Radio on the Kitchen speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://radio/294",
+    "media_type": "radio"
+   },
+   "shuffle": false,
+   "station": {
+    "name": "Orbital Radio",
+    "created": false
+   }
+  },
+  "ma_reads": [
+   [
+    "music/item_by_name",
+    {
+     "name": "Orbital",
+     "media_type": "radio"
+    }
+   ]
+  ]
+ },
+ "inc-1004-play-orbital-radio": {
+  "request": {
+   "query": "Orbital Radio",
+   "said": "Play orbital radio.",
+   "media_type": "radio",
+   "kind": "named",
+   "origin_area": "Kitchen",
+   "origin_device": "e0949788663255952ce7778975527882"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Kitchen speaker",
+   "targets": [
+    "media_player.home_assistant_voice_0ac919_pe_01"
+   ],
+   "detail": "Dry run: would play the Pandora station Orbital Radio on the Kitchen speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://radio/294",
+    "media_type": "radio"
+   },
+   "shuffle": false,
+   "station": {
+    "name": "Orbital Radio",
+    "created": false
+   }
+  },
+  "ma_reads": [
+   [
+    "music/item_by_name",
+    {
+     "name": "orbital",
+     "media_type": "radio"
+    }
+   ]
+  ]
+ },
+ "plan-like-massive-attack-radio": {
+  "request": {
+   "query": "Massive Attack Radio",
+   "said": "Like massive attack radio",
+   "media_type": "radio",
+   "kind": "named",
+   "origin_area": "Kitchen",
+   "origin_device": "e0949788663255952ce7778975527882"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Kitchen speaker",
+   "targets": [
+    "media_player.home_assistant_voice_0ac919_pe_01"
+   ],
+   "detail": "Dry run: would play the Pandora station Massive Attack Radio on the Kitchen speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://radio/256",
+    "media_type": "radio"
+   },
+   "shuffle": false,
+   "station": {
+    "name": "Massive Attack Radio",
+    "created": false
+   }
+  },
+  "ma_reads": [
+   [
+    "music/item_by_name",
+    {
+     "name": "Massive Attack Radio",
+     "media_type": "radio"
+    }
+   ]
+  ]
+ },
+ "inc-1004-well-play-orbital": {
+  "request": {
+   "query": "Orbital Radio",
+   "said": "We'll play Orbital Radio.",
+   "media_type": "radio",
+   "kind": "named",
+   "origin_area": "Kitchen",
+   "origin_device": "e0949788663255952ce7778975527882"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Kitchen speaker",
+   "targets": [
+    "media_player.home_assistant_voice_0ac919_pe_01"
+   ],
+   "detail": "Dry run: would play the Pandora station Orbital Radio on the Kitchen speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://radio/294",
+    "media_type": "radio"
+   },
+   "shuffle": false,
+   "station": {
+    "name": "Orbital Radio",
+    "created": false
+   }
+  },
+  "ma_reads": [
+   [
+    "music/item_by_name",
+    {
+     "name": "Orbital Radio",
+     "media_type": "radio"
+    }
+   ]
+  ]
+ },
+ "inc-1004-french-dinner-pandora": {
+  "request": {
+   "query": "French Dinner Radio",
+   "said": "Play French Dinner Radio on Pandora.",
+   "media_type": "radio",
+   "kind": "named",
+   "origin_area": "Kitchen",
+   "origin_device": "e0949788663255952ce7778975527882"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Kitchen speaker",
+   "targets": [
+    "media_player.home_assistant_voice_0ac919_pe_01"
+   ],
+   "detail": "Dry run: would play the Pandora station French Dinner Radio on the Kitchen speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://radio/269",
+    "media_type": "radio"
+   },
+   "shuffle": false,
+   "station": {
+    "name": "French Dinner Radio",
+    "created": false
+   }
+  },
+  "ma_reads": [
+   [
+    "music/item_by_name",
+    {
+     "name": "French Dinner",
+     "media_type": "radio"
+    }
+   ]
+  ]
+ },
+ "inc-1004-french-dinner": {
+  "request": {
+   "query": "French Dinner Radio",
+   "said": "Play French Dinner Radio.",
+   "media_type": "radio",
+   "kind": "named",
+   "origin_area": "Kitchen",
+   "origin_device": "e0949788663255952ce7778975527882"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Kitchen speaker",
+   "targets": [
+    "media_player.home_assistant_voice_0ac919_pe_01"
+   ],
+   "detail": "Dry run: would play the Pandora station French Dinner Radio on the Kitchen speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://radio/269",
+    "media_type": "radio"
+   },
+   "shuffle": false,
+   "station": {
+    "name": "French Dinner Radio",
+    "created": false
+   }
+  },
+  "ma_reads": [
+   [
+    "music/item_by_name",
+    {
+     "name": "French Dinner",
+     "media_type": "radio"
+    }
+   ]
+  ]
+ },
+ "inc-1004-french-cafe-pandora": {
+  "request": {
+   "query": "French Cafe Radio",
+   "said": "Play French Cafe Radio on Pandora.",
+   "media_type": "radio",
+   "kind": "named",
+   "origin_area": "Kitchen",
+   "origin_device": "e0949788663255952ce7778975527882"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Kitchen speaker",
+   "targets": [
+    "media_player.home_assistant_voice_0ac919_pe_01"
+   ],
+   "detail": "Dry run: would play the Pandora station French Cafe Radio on the Kitchen speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://radio/296",
+    "media_type": "radio"
+   },
+   "shuffle": false,
+   "station": {
+    "name": "French Cafe Radio",
+    "created": false
+   }
+  },
+  "ma_reads": [
+   [
+    "music/item_by_name",
+    {
+     "name": "French Cafe",
+     "media_type": "radio"
+    }
+   ]
+  ]
+ },
+ "plan-girl-with-the-sun": {
+  "request": {
+   "query": "The Girl with the Sun in Her Head by Orbital",
+   "said": "play The Girl with the Sun in Her Head by Orbital",
+   "media_type": "track",
+   "kind": "named"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play the track The Girl With The Sun In Her Head by Orbital on the Office speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://track/1520",
+    "media_type": "track"
+   },
+   "shuffle": false,
+   "resolved": {
+    "name": "The Girl With The Sun In Her Head",
+    "artist": "Orbital",
+    "media_type": "track"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "The Girl with the Sun in Her Head by Orbital",
+     "media_types": [
+      "track"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "The Girl with the Sun in Her Head",
+     "media_types": [
+      "track"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ },
+ "plan-shuffle-anime-bangers": {
+  "request": {
+   "query": "anime bangers",
+   "said": "shuffle my YouTube playlist anime bangers",
+   "media_type": "playlist",
+   "kind": "named",
+   "shuffle": true
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play the playlist anime bangers on the Office speaker, shuffled. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://playlist/13",
+    "media_type": "playlist"
+   },
+   "shuffle": true,
+   "resolved": {
+    "name": "anime bangers",
+    "artist": null,
+    "media_type": "playlist"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "anime bangers",
+     "media_types": [
+      "playlist"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/playlists/library_items",
+    {
+     "limit": 500
+    }
+   ]
+  ]
+ },
+ "plan-put-on-some-jazz": {
+  "request": {
+   "query": "jazz",
+   "said": "put on some jazz",
+   "kind": "genre"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play Mushroom Jazz Radio, for jazz, on the Office speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://radio/258",
+    "media_type": "radio"
+   },
+   "pick": {
+    "label": "Mushroom Jazz Radio",
+    "phrase": "jazz",
+    "kind": "station"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "jazz",
+     "media_types": [
+      "playlist"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "jazz",
+     "media_types": [
+      "radio"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ },
+ "plan-ninetys-two-thousands": {
+  "request": {
+   "query": "90s, 2000s, Today's Hits Radio",
+   "said": "Play ninety's two thousands and today's hits radio on the basement voice pe ma",
+   "media_type": "radio",
+   "kind": "named",
+   "player": "basement voice pe ma",
+   "origin_area": "Basement Theater",
+   "origin_device": "1b6bd3b03f90e52f08dd98dca41eac82"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the basement voice pe ma speaker",
+   "targets": [
+    "media_player.home_assistant_voice_0ab117"
+   ],
+   "detail": "Dry run: would play the radio 90s, 2000s, Today's Hits Radio on the basement voice pe ma speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://radio/263",
+    "media_type": "radio"
+   },
+   "shuffle": false,
+   "resolved": {
+    "name": "90s, 2000s, Today's Hits Radio",
+    "artist": null,
+    "media_type": "radio"
+   },
+   "station": {
+    "name": "90s, 2000s, Today's Hits Radio",
+    "created": false
+   }
+  },
+  "ma_reads": [
+   [
+    "music/item_by_name",
+    {
+     "name": "ninety's two thousands and today's hits",
+     "media_type": "radio"
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "90s, 2000s, Today's Hits Radio",
+     "media_types": [
+      "radio"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "ninety's two thousands and today's hits",
+     "media_types": [
+      "radio"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "90s 2000s and today's hits",
+     "media_types": [
+      "radio"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/radios/library_items",
+    {
+     "limit": 500
+    }
+   ]
+  ]
+ },
+ "inc-0915-daisies-album-eels-ytm": {
+  "request": {
+   "query": "Daisies of the Galaxy by Eels",
+   "said": "Play the album Daisies of the Galaxy by Eels on YouTube Music.",
+   "media_type": "album",
+   "kind": "named",
+   "origin_area": "Kitchen",
+   "origin_device": "e0949788663255952ce7778975527882"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Kitchen speaker",
+   "targets": [
+    "media_player.home_assistant_voice_0ac919_pe_01"
+   ],
+   "detail": "Dry run: would play the album Daisies of the Galaxy by Eels on the Kitchen speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://album/557",
+    "media_type": "album"
+   },
+   "shuffle": false,
+   "resolved": {
+    "name": "Daisies of the Galaxy",
+    "artist": "Eels",
+    "media_type": "album"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "Daisies of the Galaxy by Eels",
+     "media_types": [
+      "album"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "Daisies of the Galaxy",
+     "media_types": [
+      "album"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ },
+ "inc-0930-search-deep-house-ytm": {
+  "request": {
+   "query": "deep house chill",
+   "said": "Search for some deep house chill music on YouTube Music",
+   "kind": "genre",
+   "origin_area": "Kitchen",
+   "origin_device": "e0949788663255952ce7778975527882"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Kitchen speaker",
+   "targets": [
+    "media_player.home_assistant_voice_0ac919_pe_01"
+   ],
+   "detail": "Dry run: would play Deep House Radio, for deep house chill, on the Kitchen speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://radio/280",
+    "media_type": "radio"
+   },
+   "pick": {
+    "label": "Deep House Radio",
+    "phrase": "deep house chill",
+    "kind": "station"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "deep house",
+     "media_types": [
+      "playlist"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "deep house",
+     "media_types": [
+      "radio"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "downtempo",
+     "media_types": [
+      "playlist"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "downtempo",
+     "media_types": [
+      "radio"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ },
+ "inc-1019-destiny-waving": {
+  "request": {
+   "query": "Destiny Waiving by Ulrich Schnauss",
+   "said": "Play the album Destiny Waving by Ulrich Schnauss",
+   "media_type": "album",
+   "kind": "named"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play the album Destiny Waiving by Ulrich Schnauss and Mark Peters on the Office speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "ytmusic--kGmHoQDn://album/MPREb_FZkLnRytAxt",
+    "media_type": "album"
+   },
+   "shuffle": false,
+   "resolved": {
+    "name": "Destiny Waiving",
+    "artist": "Ulrich Schnauss and Mark Peters",
+    "media_type": "album"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "Destiny Waiving by Ulrich Schnauss",
+     "media_types": [
+      "album"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "Destiny Waiving",
+     "media_types": [
+      "album"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ },
+ "inc-1019-destiny-waving-ytm-kitchen": {
+  "request": {
+   "query": "Destiny Waiving by Ulrich Schnauss",
+   "said": "Play the album Destiny Waving by Ulrich Schnauss from YouTube music, in the kitchen",
+   "media_type": "album",
+   "kind": "named",
+   "player": "kitchen"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Kitchen speaker",
+   "targets": [
+    "media_player.home_assistant_voice_0ac919_pe_01"
+   ],
+   "detail": "Dry run: would play the album Destiny Waiving by Ulrich Schnauss and Mark Peters on the Kitchen speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "ytmusic--kGmHoQDn://album/MPREb_FZkLnRytAxt",
+    "media_type": "album"
+   },
+   "shuffle": false,
+   "resolved": {
+    "name": "Destiny Waiving",
+    "artist": "Ulrich Schnauss and Mark Peters",
+    "media_type": "album"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "Destiny Waiving by Ulrich Schnauss",
+     "media_types": [
+      "album"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "Destiny Waiving",
+     "media_types": [
+      "album"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ },
+ "inc-1017-hotel-costes-albums-atlas": {
+  "request": {
+   "query": "Hotel Costes",
+   "said": "Play hotel costes albums from Atlas, on the kitchen",
+   "media_type": "album",
+   "kind": "named",
+   "player": "kitchen"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Kitchen speaker",
+   "targets": [
+    "media_player.home_assistant_voice_0ac919_pe_01"
+   ],
+   "detail": "Dry run: would play the album Hôtel Costes by Various Artists on the Kitchen speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "ytmusic--kGmHoQDn://album/MPREb_hESvVPVLT1l",
+    "media_type": "album"
+   },
+   "shuffle": false,
+   "resolved": {
+    "name": "Hôtel Costes",
+    "artist": "Various Artists",
+    "media_type": "album"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "Hotel Costes",
+     "media_types": [
+      "album"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ },
+ "inc-1017-pay-the-album-hotel-costes-3": {
+  "request": {
+   "query": "Hotel Costes 3",
+   "said": "Pay the album \"hotel costes 3\" from Atlas, on the kitchen",
+   "media_type": "album",
+   "kind": "named",
+   "player": "kitchen"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Kitchen speaker",
+   "targets": [
+    "media_player.home_assistant_voice_0ac919_pe_01"
+   ],
+   "detail": "Dry run: would play the album Hôtel Costes 3 - Etage 3 by Hôtel Costes on the Kitchen speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "ytmusic--kGmHoQDn://album/MPREb_wt5bvurCWyn",
+    "media_type": "album"
+   },
+   "shuffle": false,
+   "resolved": {
+    "name": "Hôtel Costes 3 - Etage 3",
+    "artist": "Hôtel Costes",
+    "media_type": "album"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "Hotel Costes 3",
+     "media_types": [
+      "album"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ },
+ "inc-1019-ytm-link": {
+  "request": {
+   "query": "Destiny Waiving",
+   "said": "It's this album on YouTube music https://music.youtube.com/playlist?list=OLAK5uy…",
+   "media_type": "album",
+   "kind": "named"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play the album Destiny Waiving by Ulrich Schnauss and Mark Peters on the Office speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "ytmusic--kGmHoQDn://album/MPREb_FZkLnRytAxt",
+    "media_type": "album"
+   },
+   "shuffle": false,
+   "resolved": {
+    "name": "Destiny Waiving",
+    "artist": "Ulrich Schnauss and Mark Peters",
+    "media_type": "album"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "Destiny Waiving",
+     "media_types": [
+      "album"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ },
+ "inc-1021-ninetys-no-verb": {
+  "request": {
+   "query": "90s, 2000s, Today's Hits Radio",
+   "said": "90s, 2000s, and today's hits radio",
+   "media_type": "radio",
+   "kind": "named",
+   "origin_area": "Office",
+   "origin_device": "ac6dd1f1c8cf1d229cda0f42224a2013"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play the Pandora station 90s, 2000s, Today's Hits Radio on the Office speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://radio/263",
+    "media_type": "radio"
+   },
+   "shuffle": false,
+   "station": {
+    "name": "90s, 2000s, Today's Hits Radio",
+    "created": false
+   }
+  },
+  "ma_reads": [
+   [
+    "music/item_by_name",
+    {
+     "name": "90s, 2000s, Today's Hits Radio",
+     "media_type": "radio"
+    }
+   ]
+  ]
+ },
+ "inc-1021-ninetys-from-pandora": {
+  "request": {
+   "query": "90s, 2000s, Today's Hits Radio",
+   "said": "Play 90s, 2000s, Today's Hits, radio from Pandora.",
+   "media_type": "radio",
+   "kind": "named",
+   "origin_area": "Office",
+   "origin_device": "ac6dd1f1c8cf1d229cda0f42224a2013"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play the Pandora station 90s, 2000s, Today's Hits Radio on the Office speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://radio/263",
+    "media_type": "radio"
+   },
+   "shuffle": false,
+   "station": {
+    "name": "90s, 2000s, Today's Hits Radio",
+    "created": false
+   }
+  },
+  "ma_reads": [
+   [
+    "music/item_by_name",
+    {
+     "name": "90s, 2000s, Today's Hits",
+     "media_type": "radio"
+    }
+   ]
+  ]
+ },
+ "inc-1021-woodstock-from-pandora": {
+  "request": {
+   "query": "Woodstock Radio",
+   "said": "Play Woodstock Radio from Pandora.",
+   "media_type": "radio",
+   "kind": "named",
+   "origin_area": "Office",
+   "origin_device": "ac6dd1f1c8cf1d229cda0f42224a2013"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play the Pandora station Sounds of Woodstock Radio on the Office speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://radio/264",
+    "media_type": "radio"
+   },
+   "shuffle": false,
+   "station": {
+    "name": "Sounds of Woodstock Radio",
+    "created": false
+   }
+  },
+  "ma_reads": [
+   [
+    "music/item_by_name",
+    {
+     "name": "Woodstock",
+     "media_type": "radio"
+    }
+   ]
+  ]
+ },
+ "inc-1021-shuffle-old-man-sings-basement": {
+  "request": {
+   "query": "Old Man Sings",
+   "said": "shuffle the playlist old man sings on the basement voice pe ma",
+   "media_type": "playlist",
+   "kind": "named",
+   "shuffle": true,
+   "player": "basement voice pe ma",
+   "origin_area": "Basement Theater",
+   "origin_device": "1b6bd3b03f90e52f08dd98dca41eac82"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the basement voice pe ma speaker",
+   "targets": [
+    "media_player.home_assistant_voice_0ab117"
+   ],
+   "detail": "Dry run: would play the playlist old man sings on the basement voice pe ma speaker, shuffled. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://playlist/12",
+    "media_type": "playlist"
+   },
+   "shuffle": true,
+   "resolved": {
+    "name": "old man sings",
+    "artist": null,
+    "media_type": "playlist"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "Old Man Sings",
+     "media_types": [
+      "playlist"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/playlists/library_items",
+    {
+     "limit": 500
+    }
+   ]
+  ]
+ },
+ "inc-1025-ninetys-quoted-kitchen": {
+  "request": {
+   "query": "90s, 2000s, Today's Hits Radio",
+   "said": "Play \"90s, 2000's and today's hits\" radio from Pandora, in the kitchen",
+   "media_type": "radio",
+   "kind": "named",
+   "player": "kitchen"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Kitchen speaker",
+   "targets": [
+    "media_player.home_assistant_voice_0ac919_pe_01"
+   ],
+   "detail": "Dry run: would play the radio 90s, 2000s, Today's Hits Radio on the Kitchen speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://radio/263",
+    "media_type": "radio"
+   },
+   "shuffle": false,
+   "resolved": {
+    "name": "90s, 2000s, Today's Hits Radio",
+    "artist": null,
+    "media_type": "radio"
+   },
+   "station": {
+    "name": "90s, 2000s, Today's Hits Radio",
+    "created": false
+   }
+  },
+  "ma_reads": [
+   [
+    "music/item_by_name",
+    {
+     "name": "\"90s, 2000's and today's hits\"",
+     "media_type": "radio"
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "90s, 2000s, Today's Hits Radio",
+     "media_types": [
+      "radio"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "\"90s, 2000's and today's hits\"",
+     "media_types": [
+      "radio"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/radios/library_items",
+    {
+     "limit": 500
+    }
+   ]
+  ]
+ },
+ "m17-play-some-jazz-office": {
+  "request": {
+   "query": "jazz",
+   "said": "play some jazz in the office",
+   "kind": "genre",
+   "player": "office",
+   "origin_area": "Office",
+   "origin_device": "ac6dd1f1c8cf1d229cda0f42224a2013"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play Mushroom Jazz Radio, for jazz, on the Office speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://radio/258",
+    "media_type": "radio"
+   },
+   "pick": {
+    "label": "Mushroom Jazz Radio",
+    "phrase": "jazz",
+    "kind": "station"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "jazz",
+     "media_types": [
+      "playlist"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "jazz",
+     "media_types": [
+      "radio"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ },
+ "m11-some-deep-house-chill": {
+  "request": {
+   "query": "deep house chill",
+   "said": "play some deep house chill music",
+   "kind": "genre"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play Deep House Radio, for deep house chill, on the Office speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://radio/280",
+    "media_type": "radio"
+   },
+   "pick": {
+    "label": "Deep House Radio",
+    "phrase": "deep house chill",
+    "kind": "station"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "deep house",
+     "media_types": [
+      "playlist"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "deep house",
+     "media_types": [
+      "radio"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "downtempo",
+     "media_types": [
+      "playlist"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "downtempo",
+     "media_types": [
+      "radio"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ },
+ "m11-italian-music": {
+  "request": {
+   "query": "italian",
+   "said": "play italian music",
+   "kind": "genre"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play italian cooking music, for italian, on the Office speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "ytmusic--kGmHoQDn://playlist/VLPLeffkdQ-r0eBWwi1VqZHDkgcVidR1TJUU",
+    "media_type": "playlist"
+   },
+   "pick": {
+    "label": "italian cooking music",
+    "phrase": "italian",
+    "kind": "playlist"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "italian",
+     "media_types": [
+      "playlist"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "italian",
+     "media_types": [
+      "radio"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ },
+ "m11-deep-house": {
+  "request": {
+   "query": "deep house",
+   "said": "play deep house",
+   "kind": "genre"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play Deep House Radio, for deep house, on the Office speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://radio/280",
+    "media_type": "radio"
+   },
+   "pick": {
+    "label": "Deep House Radio",
+    "phrase": "deep house",
+    "kind": "station"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "deep house",
+     "media_types": [
+      "playlist"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "deep house",
+     "media_types": [
+      "radio"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ },
+ "m11-portishead": {
+  "request": {
+   "query": "Portishead",
+   "said": "play Portishead",
+   "media_type": "artist",
+   "kind": "named"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play the artist Portishead on the Office speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://artist/1251",
+    "media_type": "artist"
+   },
+   "shuffle": false,
+   "resolved": {
+    "name": "Portishead",
+    "artist": null,
+    "media_type": "artist"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "Portishead",
+     "media_types": [
+      "artist"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ },
+ "eval-play-top-pink-floyd-songs-on-the": {
+  "request": {
+   "query": "Pink Floyd",
+   "said": "Play top Pink Floyd songs on the Sonos Move Derp speaker.",
+   "media_type": "artist",
+   "kind": "named",
+   "player": "Sonos Move Derp"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Sonos Move Derp speaker",
+   "targets": [
+    "media_player.sonos_move_derp_2"
+   ],
+   "detail": "Dry run: would play the artist Pink Floyd on the Sonos Move Derp speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://artist/81",
+    "media_type": "artist"
+   },
+   "shuffle": false,
+   "resolved": {
+    "name": "Pink Floyd",
+    "artist": null,
+    "media_type": "artist"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "Pink Floyd",
+     "media_types": [
+      "artist"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ },
+ "eval-play-k-pop-radio-on-sonos-move": {
+  "request": {
+   "query": "K-pop Radio",
+   "said": "Play K-pop radio on Sonos Move Dirt.",
+   "media_type": "radio",
+   "kind": "named",
+   "player": "Sonos Move Derp"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Sonos Move Derp speaker",
+   "targets": [
+    "media_player.sonos_move_derp_2"
+   ],
+   "detail": "Dry run: would play the Pandora station K-Pop Radio, made new on the Sonos Move Derp speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "pandora://radio/seed:AR:8435939",
+    "media_type": "radio"
+   },
+   "shuffle": false,
+   "station": {
+    "name": "K-Pop Radio",
+    "created": true
+   }
+  },
+  "ma_reads": [
+   [
+    "music/item_by_name",
+    {
+     "name": "K-pop",
+     "media_type": "radio"
+    }
+   ]
+  ]
+ },
+ "eval-shuffle-the-anime-bangers-playlist-on-sonos": {
+  "request": {
+   "query": "anime bangers",
+   "said": "Shuffle the anime bangers playlist on Sonos Move Derp.",
+   "media_type": "playlist",
+   "kind": "named",
+   "shuffle": true,
+   "player": "Sonos Move Derp"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Sonos Move Derp speaker",
+   "targets": [
+    "media_player.sonos_move_derp_2"
+   ],
+   "detail": "Dry run: would play the playlist anime bangers on the Sonos Move Derp speaker, shuffled. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://playlist/13",
+    "media_type": "playlist"
+   },
+   "shuffle": true,
+   "resolved": {
+    "name": "anime bangers",
+    "artist": null,
+    "media_type": "playlist"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "anime bangers",
+     "media_types": [
+      "playlist"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/playlists/library_items",
+    {
+     "limit": 500
+    }
+   ]
+  ]
+ },
+ "eval-play-music-by-pink-floyd": {
+  "request": {
+   "query": "Pink Floyd",
+   "said": "play music by pink floyd",
+   "media_type": "artist",
+   "kind": "named"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play the artist Pink Floyd on the Office speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://artist/81",
+    "media_type": "artist"
+   },
+   "shuffle": false,
+   "resolved": {
+    "name": "Pink Floyd",
+    "artist": null,
+    "media_type": "artist"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "Pink Floyd",
+     "media_types": [
+      "artist"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ },
+ "eval-play-pink-floyd-on-sonos-move": {
+  "request": {
+   "query": "Pink Floyd",
+   "said": "play pink floyd on sonos move",
+   "media_type": "artist",
+   "kind": "named",
+   "player": "Sonos Move Derp"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Sonos Move Derp speaker",
+   "targets": [
+    "media_player.sonos_move_derp_2"
+   ],
+   "detail": "Dry run: would play the artist Pink Floyd on the Sonos Move Derp speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://artist/81",
+    "media_type": "artist"
+   },
+   "shuffle": false,
+   "resolved": {
+    "name": "Pink Floyd",
+    "artist": null,
+    "media_type": "artist"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "Pink Floyd",
+     "media_types": [
+      "artist"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ },
+ "eval-play-some-jazz-on-the-sonos-move": {
+  "request": {
+   "query": "jazz",
+   "said": "play some jazz on the sonos move",
+   "kind": "genre",
+   "player": "Sonos Move Derp"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Sonos Move Derp speaker",
+   "targets": [
+    "media_player.sonos_move_derp_2"
+   ],
+   "detail": "Dry run: would play Mushroom Jazz Radio, for jazz, on the Sonos Move Derp speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://radio/258",
+    "media_type": "radio"
+   },
+   "pick": {
+    "label": "Mushroom Jazz Radio",
+    "phrase": "jazz",
+    "kind": "station"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "jazz",
+     "media_types": [
+      "playlist"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "jazz",
+     "media_types": [
+      "radio"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ },
+ "eval-play-the-beatles-in-the-kitchen": {
+  "request": {
+   "query": "The Beatles",
+   "said": "play the beatles in the kitchen",
+   "media_type": "artist",
+   "kind": "named",
+   "player": "kitchen"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Kitchen speaker",
+   "targets": [
+    "media_player.home_assistant_voice_0ac919_pe_01"
+   ],
+   "detail": "Dry run: would play the artist The Beatles on the Kitchen speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://artist/77",
+    "media_type": "artist"
+   },
+   "shuffle": false,
+   "resolved": {
+    "name": "The Beatles",
+    "artist": null,
+    "media_type": "artist"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "The Beatles",
+     "media_types": [
+      "artist"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ },
+ "eval-put-on-some-mellow-pink-floyd-in": {
+  "request": {
+   "query": "Pink Floyd",
+   "said": "put on some mellow pink floyd in the kitchen",
+   "media_type": "artist",
+   "kind": "named",
+   "player": "kitchen"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Kitchen speaker",
+   "targets": [
+    "media_player.home_assistant_voice_0ac919_pe_01"
+   ],
+   "detail": "Dry run: would play the artist Pink Floyd on the Kitchen speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://artist/81",
+    "media_type": "artist"
+   },
+   "shuffle": false,
+   "resolved": {
+    "name": "Pink Floyd",
+    "artist": null,
+    "media_type": "artist"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "Pink Floyd",
+     "media_types": [
+      "artist"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ },
+ "eval-play-albuquerque-by-weird-al-yankovic": {
+  "request": {
+   "query": "Albuquerque by Weird Al Yankovic",
+   "said": "Play Albuquerque by Weird Al Yankovic.",
+   "media_type": "track",
+   "kind": "named"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play the track Albuquerque by Weird Al Yankovic on the Office speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://track/14251",
+    "media_type": "track"
+   },
+   "shuffle": false,
+   "resolved": {
+    "name": "Albuquerque",
+    "artist": "Weird Al Yankovic",
+    "media_type": "track"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "Albuquerque by Weird Al Yankovic",
+     "media_types": [
+      "track"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "Albuquerque",
+     "media_types": [
+      "track"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ },
+ "eval-play-top-songs-by-weird-al-yankovic": {
+  "request": {
+   "query": "Weird Al Yankovic",
+   "said": "Play Top Songs by Weird Al Yankovic on Sonos Move Dirt.",
+   "media_type": "artist",
+   "kind": "named",
+   "player": "Sonos Move Derp"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Sonos Move Derp speaker",
+   "targets": [
+    "media_player.sonos_move_derp_2"
+   ],
+   "detail": "Dry run: would play the artist Weird Al Yankovic on the Sonos Move Derp speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://artist/1115",
+    "media_type": "artist"
+   },
+   "shuffle": false,
+   "resolved": {
+    "name": "Weird Al Yankovic",
+    "artist": null,
+    "media_type": "artist"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "Weird Al Yankovic",
+     "media_types": [
+      "artist"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ },
+ "eval-play-journey-on-the-sonos": {
+  "request": {
+   "query": "Journey",
+   "said": "play journey on the sonos",
+   "media_type": "artist",
+   "kind": "named",
+   "player": "Sonos Move Derp"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Sonos Move Derp speaker",
+   "targets": [
+    "media_player.sonos_move_derp_2"
+   ],
+   "detail": "Dry run: would play the artist Journey on the Sonos Move Derp speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://artist/1341",
+    "media_type": "artist"
+   },
+   "shuffle": false,
+   "resolved": {
+    "name": "Journey",
+    "artist": null,
+    "media_type": "artist"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "Journey",
+     "media_types": [
+      "artist"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ },
+ "eval-play-pink-floyd-on-the-blue-group": {
+  "request": {
+   "query": "Pink Floyd",
+   "said": "play pink floyd on the blue group",
+   "media_type": "artist",
+   "kind": "named",
+   "player": "blue group"
+  },
+  "status": 400,
+  "answer": {
+   "detail": "I don't know a speaker or room called 'blue group'. Speakers: Cameron’s MacBook Pro, Living Room Sony Bravia, SHIELD, Sonos Move Derp, Upper Shield, basement voice pe ma, kitchen voice pe ma, satellite 1 ma. Rooms with a speaker: Kitchen, Office."
+  },
+  "ma_reads": []
+ },
+ "eval-play-pink-floyd-on-the-sonos-move": {
+  "request": {
+   "query": "Pink Floyd",
+   "said": "play pink floyd on the sonos move",
+   "media_type": "artist",
+   "kind": "named",
+   "player": "Sonos Move Derp"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Sonos Move Derp speaker",
+   "targets": [
+    "media_player.sonos_move_derp_2"
+   ],
+   "detail": "Dry run: would play the artist Pink Floyd on the Sonos Move Derp speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://artist/81",
+    "media_type": "artist"
+   },
+   "shuffle": false,
+   "resolved": {
+    "name": "Pink Floyd",
+    "artist": null,
+    "media_type": "artist"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "Pink Floyd",
+     "media_types": [
+      "artist"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ },
+ "eval-play-don-t-stop-me-now-by": {
+  "request": {
+   "query": "Don't Stop Me Now by Queen",
+   "said": "play \"Don't stop me now\" by queen on the Satellite 1",
+   "media_type": "track",
+   "kind": "named",
+   "player": "satellite 1 ma"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the satellite 1 ma speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play the track Don't Stop Me Now by Queen on the satellite 1 ma speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "ytmusic--kGmHoQDn://track/1UjLFMg18cY",
+    "media_type": "track"
+   },
+   "shuffle": false,
+   "resolved": {
+    "name": "Don't Stop Me Now",
+    "artist": "Queen",
+    "media_type": "track"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "Don't Stop Me Now by Queen",
+     "media_types": [
+      "track"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "Don't Stop Me Now",
+     "media_types": [
+      "track"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ },
+ "eval-play-the-artist-aerosmith-in-the-office": {
+  "request": {
+   "query": "Aerosmith",
+   "said": "Play the artist Aerosmith in the office",
+   "media_type": "artist",
+   "kind": "named",
+   "player": "office"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play the artist Aerosmith on the Office speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://artist/268",
+    "media_type": "artist"
+   },
+   "shuffle": false,
+   "resolved": {
+    "name": "Aerosmith",
+    "artist": null,
+    "media_type": "artist"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "Aerosmith",
+     "media_types": [
+      "artist"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ },
+ "eval-play-toys-in-the-attic-by-aerosmith": {
+  "request": {
+   "query": "Toys in the Attic by Aerosmith",
+   "said": "Play toys in the attic by aerosmith",
+   "media_type": "album",
+   "kind": "named"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play the album Toys In The Attic by Aerosmith on the Office speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "ytmusic--kGmHoQDn://album/MPREb_VOMghHjJRyh",
+    "media_type": "album"
+   },
+   "shuffle": false,
+   "resolved": {
+    "name": "Toys In The Attic",
+    "artist": "Aerosmith",
+    "media_type": "album"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "Toys in the Attic by Aerosmith",
+     "media_types": [
+      "album"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "Toys in the Attic",
+     "media_types": [
+      "album"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ },
+ "eval-played-the-album-toys-in-the-attic": {
+  "request": {
+   "query": "Toys in the Attic",
+   "said": "Played the album Toys in the Attic.",
+   "media_type": "album",
+   "kind": "named"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play the album Toys In The Attic by Aerosmith on the Office speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "ytmusic--kGmHoQDn://album/MPREb_VOMghHjJRyh",
+    "media_type": "album"
+   },
+   "shuffle": false,
+   "resolved": {
+    "name": "Toys In The Attic",
+    "artist": "Aerosmith",
+    "media_type": "album"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "Toys in the Attic",
+     "media_types": [
+      "album"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ },
+ "eval-shuffle-my-youtube-music-playlist-anime-bankers": {
+  "request": {
+   "query": "anime bangers",
+   "said": "Shuffle my YouTube music playlist, Anime Bankers.",
+   "media_type": "playlist",
+   "kind": "named",
+   "shuffle": true
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play the playlist anime bangers on the Office speaker, shuffled. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://playlist/13",
+    "media_type": "playlist"
+   },
+   "shuffle": true,
+   "resolved": {
+    "name": "anime bangers",
+    "artist": null,
+    "media_type": "playlist"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "anime bangers",
+     "media_types": [
+      "playlist"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/playlists/library_items",
+    {
+     "limit": 500
+    }
+   ]
+  ]
+ },
+ "eval-shuffle-my-youtube-playlist-old-man-video": {
+  "request": {
+   "query": "Old Man Video Games",
+   "said": "Shuffle my YouTube playlist, Old Man Video Games.",
+   "media_type": "playlist",
+   "kind": "named",
+   "shuffle": true
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play the playlist Old man video games on the Office speaker, shuffled. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "ytmusic--kGmHoQDn://playlist/VLPL0aUO9VyzQxd96o-H3aJjfBsIyRch37F8",
+    "media_type": "playlist"
+   },
+   "shuffle": true,
+   "resolved": {
+    "name": "Old man video games",
+    "artist": null,
+    "media_type": "playlist"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "Old Man Video Games",
+     "media_types": [
+      "playlist"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/playlists/library_items",
+    {
+     "limit": 500
+    }
+   ]
+  ]
+ },
+ "eval-shuffle-my-youtube-playlist-anime-bangers": {
+  "request": {
+   "query": "anime bangers",
+   "said": "Shuffle my YouTube playlist, anime bangers.",
+   "media_type": "playlist",
+   "kind": "named",
+   "shuffle": true
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play the playlist anime bangers on the Office speaker, shuffled. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://playlist/13",
+    "media_type": "playlist"
+   },
+   "shuffle": true,
+   "resolved": {
+    "name": "anime bangers",
+    "artist": null,
+    "media_type": "playlist"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "anime bangers",
+     "media_types": [
+      "playlist"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/playlists/library_items",
+    {
+     "limit": 500
+    }
+   ]
+  ]
+ },
+ "eval-shuffle-the-youtube-music-playlist-anime-bangers": {
+  "request": {
+   "query": "anime bangers",
+   "said": "Shuffle the YouTube music playlist, anime bangers.",
+   "media_type": "playlist",
+   "kind": "named",
+   "shuffle": true
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play the playlist anime bangers on the Office speaker, shuffled. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://playlist/13",
+    "media_type": "playlist"
+   },
+   "shuffle": true,
+   "resolved": {
+    "name": "anime bangers",
+    "artist": null,
+    "media_type": "playlist"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "anime bangers",
+     "media_types": [
+      "playlist"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/playlists/library_items",
+    {
+     "limit": 500
+    }
+   ]
+  ]
+ },
+ "eval-play-some-aerosmith-please": {
+  "request": {
+   "query": "Aerosmith",
+   "said": "play some aerosmith please",
+   "media_type": "artist",
+   "kind": "named"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play the artist Aerosmith on the Office speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://artist/268",
+    "media_type": "artist"
+   },
+   "shuffle": false,
+   "resolved": {
+    "name": "Aerosmith",
+    "artist": null,
+    "media_type": "artist"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "Aerosmith",
+     "media_types": [
+      "artist"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ },
+ "eval-put-on-some-aerosmith": {
+  "request": {
+   "query": "Aerosmith",
+   "said": "put on some aerosmith",
+   "media_type": "artist",
+   "kind": "named"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play the artist Aerosmith on the Office speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://artist/268",
+    "media_type": "artist"
+   },
+   "shuffle": false,
+   "resolved": {
+    "name": "Aerosmith",
+    "artist": null,
+    "media_type": "artist"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "Aerosmith",
+     "media_types": [
+      "artist"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ },
+ "eval-oh-play-portishead-radio": {
+  "request": {
+   "query": "Portishead Radio",
+   "said": "Oh, play Portishead Radio.",
+   "media_type": "radio",
+   "kind": "named"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play the Pandora station Portishead Radio on the Office speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://radio/284",
+    "media_type": "radio"
+   },
+   "shuffle": false,
+   "station": {
+    "name": "Portishead Radio",
+    "created": false
+   }
+  },
+  "ma_reads": [
+   [
+    "music/item_by_name",
+    {
+     "name": "Portishead Radio",
+     "media_type": "radio"
+    }
+   ]
+  ]
+ },
+ "eval-put-on-the-radio-station-zorblax-fnordwave": {
+  "request": {
+   "query": "Zorblax Fnordwave Nonexistent",
+   "said": "put on the radio station Zorblax Fnordwave Nonexistent",
+   "media_type": "radio",
+   "kind": "named"
+  },
+  "status": 502,
+  "answer": {
+   "detail": "I couldn't find a station called Zorblax Fnordwave Nonexistent in Music Assistant."
+  },
+  "ma_reads": [
+   [
+    "music/item_by_name",
+    {
+     "name": "Zorblax Fnordwave Nonexistent",
+     "media_type": "radio"
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "Zorblax Fnordwave Nonexistent",
+     "media_types": [
+      "radio"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/radios/library_items",
+    {
+     "limit": 500
+    }
+   ]
+  ]
+ },
+ "eval-i-have-to-play-the-radio-station": {
+  "request": {
+   "query": "German Soundscape Radio",
+   "said": "I have to play the radio station, German Soundscape Radio.",
+   "media_type": "radio",
+   "kind": "named"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play the Pandora station German Soundscape Radio on the Office speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://radio/255",
+    "media_type": "radio"
+   },
+   "shuffle": false,
+   "station": {
+    "name": "German Soundscape Radio",
+    "created": false
+   }
+  },
+  "ma_reads": [
+   [
+    "music/item_by_name",
+    {
+     "name": "German Soundscape Radio",
+     "media_type": "radio"
+    }
+   ]
+  ]
+ },
+ "eval-play-groove-armada-radio-from-pandora-in": {
+  "request": {
+   "query": "Groove Armada Radio",
+   "said": "play \"groove armada\" radio from pandora in the kitchen",
+   "media_type": "radio",
+   "kind": "named",
+   "player": "kitchen"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Kitchen speaker",
+   "targets": [
+    "media_player.home_assistant_voice_0ac919_pe_01"
+   ],
+   "detail": "Dry run: would play the Pandora station Groove Armada Radio on the Kitchen speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://radio/302",
+    "media_type": "radio"
+   },
+   "shuffle": false,
+   "station": {
+    "name": "Groove Armada Radio",
+    "created": false
+   }
+  },
+  "ma_reads": [
+   [
+    "music/item_by_name",
+    {
+     "name": "\"groove armada\"",
+     "media_type": "radio"
+    }
+   ]
+  ]
+ },
+ "eval-play-the-albo-daisies-of-the-galaxy": {
+  "request": {
+   "query": "Daisies of the Galaxy by Eels",
+   "said": "Play the Albo Daisies of the Galaxy.",
+   "media_type": "album",
+   "kind": "named"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play the album Daisies of the Galaxy by Eels on the Office speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://album/557",
+    "media_type": "album"
+   },
+   "shuffle": false,
+   "resolved": {
+    "name": "Daisies of the Galaxy",
+    "artist": "Eels",
+    "media_type": "album"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "Daisies of the Galaxy by Eels",
+     "media_types": [
+      "album"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "Daisies of the Galaxy",
+     "media_types": [
+      "album"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ },
+ "eval-shuffle-my-youtube-playlist-video-game-pretty": {
+  "request": {
+   "query": "video game pretty songs",
+   "said": "Shuffle my YouTube playlist, video game pretty songs.",
+   "media_type": "playlist",
+   "kind": "named",
+   "shuffle": true
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play the playlist video game pretty songs on the Office speaker, shuffled. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://playlist/8",
+    "media_type": "playlist"
+   },
+   "shuffle": true,
+   "resolved": {
+    "name": "video game pretty songs",
+    "artist": null,
+    "media_type": "playlist"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "video game pretty songs",
+     "media_types": [
+      "playlist"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/playlists/library_items",
+    {
+     "limit": 500
+    }
+   ]
+  ]
+ },
+ "eval-shuffle-the-youtube-playlist-old-man-video": {
+  "request": {
+   "query": "Old Man Video Games",
+   "said": "Shuffle the YouTube Playlist Old Man Video Games.",
+   "media_type": "playlist",
+   "kind": "named",
+   "shuffle": true
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play the playlist Old man video games on the Office speaker, shuffled. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "ytmusic--kGmHoQDn://playlist/VLPL0aUO9VyzQxd96o-H3aJjfBsIyRch37F8",
+    "media_type": "playlist"
+   },
+   "shuffle": true,
+   "resolved": {
+    "name": "Old man video games",
+    "artist": null,
+    "media_type": "playlist"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "Old Man Video Games",
+     "media_types": [
+      "playlist"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/playlists/library_items",
+    {
+     "limit": 500
+    }
+   ]
+  ]
+ },
+ "eval-i-shuffled-my-youtube-playlist-old-man": {
+  "request": {
+   "query": "Old Man Video Games",
+   "said": "I shuffled my YouTube playlist, Old Man Video Games.",
+   "media_type": "playlist",
+   "kind": "named",
+   "shuffle": true
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play the playlist Old man video games on the Office speaker, shuffled. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "ytmusic--kGmHoQDn://playlist/VLPL0aUO9VyzQxd96o-H3aJjfBsIyRch37F8",
+    "media_type": "playlist"
+   },
+   "shuffle": true,
+   "resolved": {
+    "name": "Old man video games",
+    "artist": null,
+    "media_type": "playlist"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "Old Man Video Games",
+     "media_types": [
+      "playlist"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/playlists/library_items",
+    {
+     "limit": 500
+    }
+   ]
+  ]
+ },
+ "eval-j-envoie-my-youtube-playlist-video-game": {
+  "request": {
+   "query": "Video Game Pretty Songs",
+   "said": "J'envoie my YouTube playlist, Video Game Pretty Songs.",
+   "media_type": "playlist",
+   "kind": "named"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play the playlist video game pretty songs on the Office speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://playlist/8",
+    "media_type": "playlist"
+   },
+   "shuffle": false,
+   "resolved": {
+    "name": "video game pretty songs",
+    "artist": null,
+    "media_type": "playlist"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "Video Game Pretty Songs",
+     "media_types": [
+      "playlist"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/playlists/library_items",
+    {
+     "limit": 500
+    }
+   ]
+  ]
+ },
+ "eval-play-deep-chill-house-radio-from-pandora": {
+  "request": {
+   "query": "Deep Chill House Radio",
+   "said": "Play deep chill house radio from Pandora in the kitchen",
+   "media_type": "radio",
+   "kind": "named",
+   "player": "kitchen"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Kitchen speaker",
+   "targets": [
+    "media_player.home_assistant_voice_0ac919_pe_01"
+   ],
+   "detail": "Dry run: would play the Pandora station Deep Chill House Radio, made new on the Kitchen speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "pandora://radio/seed:AR:1499861",
+    "media_type": "radio"
+   },
+   "shuffle": false,
+   "station": {
+    "name": "Deep Chill House Radio",
+    "created": true
+   }
+  },
+  "ma_reads": [
+   [
+    "music/item_by_name",
+    {
+     "name": "deep chill house",
+     "media_type": "radio"
+    }
+   ]
+  ]
+ },
+ "eval-clay-thief-recreperation-radio-on-pandora": {
+  "request": {
+   "query": "Thievery Corporation Radio",
+   "said": "Clay Thief Recreperation Radio on Pandora.",
+   "media_type": "radio",
+   "kind": "named"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play the Pandora station Thievery Corporation Radio on the Office speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://radio/293",
+    "media_type": "radio"
+   },
+   "shuffle": false,
+   "station": {
+    "name": "Thievery Corporation Radio",
+    "created": false
+   }
+  },
+  "ma_reads": [
+   [
+    "music/item_by_name",
+    {
+     "name": "Thievery Corporation Radio",
+     "media_type": "radio"
+    }
+   ]
+  ]
+ },
+ "eval-look-for-some-good-deep-house-chill": {
+  "request": {
+   "query": "deep house chill",
+   "said": "Look for some good deep house chill music on YouTube music and start a radio based on that.",
+   "media_type": "radio",
+   "kind": "genre"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play Deep House Radio, for deep house chill, on the Office speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://radio/280",
+    "media_type": "radio"
+   },
+   "pick": {
+    "label": "Deep House Radio",
+    "phrase": "deep house chill",
+    "kind": "station"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "deep house",
+     "media_types": [
+      "playlist"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "deep house",
+     "media_types": [
+      "radio"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "downtempo",
+     "media_types": [
+      "playlist"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "downtempo",
+     "media_types": [
+      "radio"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ },
+ "eval-search-youtube-music-for-some-deep-chill": {
+  "request": {
+   "query": "deep chill house",
+   "said": "Search YouTube Music for some deep, chill house music and play that.",
+   "kind": "genre"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play Deep House Radio, for deep chill house, on the Office speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://radio/280",
+    "media_type": "radio"
+   },
+   "pick": {
+    "label": "Deep House Radio",
+    "phrase": "deep chill house",
+    "kind": "station"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "deep house",
+     "media_types": [
+      "playlist"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "deep house",
+     "media_types": [
+      "radio"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "downtempo",
+     "media_types": [
+      "playlist"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "downtempo",
+     "media_types": [
+      "radio"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ },
+ "eval-play-lunchlady-land-by-adam-sandler-in": {
+  "request": {
+   "query": "Lunchlady Land by Adam Sandler",
+   "said": "play \"lunchlady land\" by adam sandler in the kitchen",
+   "media_type": "track",
+   "kind": "named",
+   "player": "kitchen"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Kitchen speaker",
+   "targets": [
+    "media_player.home_assistant_voice_0ac919_pe_01"
+   ],
+   "detail": "Dry run: would play the track Lunchlady Land by Adam Sandler on the Kitchen speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "ytmusic--kGmHoQDn://track/HsqyxsogrvA",
+    "media_type": "track"
+   },
+   "shuffle": false,
+   "resolved": {
+    "name": "Lunchlady Land",
+    "artist": "Adam Sandler",
+    "media_type": "track"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "Lunchlady Land by Adam Sandler",
+     "media_types": [
+      "track"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "Lunchlady Land",
+     "media_types": [
+      "track"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ },
+ "eval-play-lunchlady-land-by-adam-sandler-in-2": {
+  "request": {
+   "query": "Lunchlady Land by Adam Sandler",
+   "said": "play \"lunchlady land\" by adam sandler in the kitchen, use the home agent to do this",
+   "media_type": "track",
+   "kind": "named",
+   "player": "kitchen"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Kitchen speaker",
+   "targets": [
+    "media_player.home_assistant_voice_0ac919_pe_01"
+   ],
+   "detail": "Dry run: would play the track Lunchlady Land by Adam Sandler on the Kitchen speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "ytmusic--kGmHoQDn://track/HsqyxsogrvA",
+    "media_type": "track"
+   },
+   "shuffle": false,
+   "resolved": {
+    "name": "Lunchlady Land",
+    "artist": "Adam Sandler",
+    "media_type": "track"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "Lunchlady Land by Adam Sandler",
+     "media_types": [
+      "track"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "Lunchlady Land",
+     "media_types": [
+      "track"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ },
+ "eval-play-the-song-lunchlady-land-by-adam": {
+  "request": {
+   "query": "Lunchlady Land by Adam Sandler",
+   "said": "play the song  \"lunchlady land\" by adam sandler in the kitchen",
+   "media_type": "track",
+   "kind": "named",
+   "player": "kitchen"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Kitchen speaker",
+   "targets": [
+    "media_player.home_assistant_voice_0ac919_pe_01"
+   ],
+   "detail": "Dry run: would play the track Lunchlady Land by Adam Sandler on the Kitchen speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "ytmusic--kGmHoQDn://track/HsqyxsogrvA",
+    "media_type": "track"
+   },
+   "shuffle": false,
+   "resolved": {
+    "name": "Lunchlady Land",
+    "artist": "Adam Sandler",
+    "media_type": "track"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "Lunchlady Land by Adam Sandler",
+     "media_types": [
+      "track"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "Lunchlady Land",
+     "media_types": [
+      "track"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ },
+ "eval-i-hope-you-play-anime-pop-radio": {
+  "request": {
+   "query": "Anime Pop Radio",
+   "said": "I hope you play Anime Pop Radio from Pandora.",
+   "media_type": "radio",
+   "kind": "named"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play the Pandora station Anime Pop Radio on the Office speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://radio/253",
+    "media_type": "radio"
+   },
+   "shuffle": false,
+   "station": {
+    "name": "Anime Pop Radio",
+    "created": false
+   }
+  },
+  "ma_reads": [
+   [
+    "music/item_by_name",
+    {
+     "name": "Anime Pop Radio",
+     "media_type": "radio"
+    }
+   ]
+  ]
+ },
+ "eval-we-play-justin-johnson-radio-on-pandora": {
+  "request": {
+   "query": "Justin Johnson Radio",
+   "said": "We play Justin Johnson Radio on Pandora.",
+   "media_type": "radio",
+   "kind": "named"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play the Pandora station Justin Johnson Radio on the Office speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://radio/252",
+    "media_type": "radio"
+   },
+   "shuffle": false,
+   "station": {
+    "name": "Justin Johnson Radio",
+    "created": false
+   }
+  },
+  "ma_reads": [
+   [
+    "music/item_by_name",
+    {
+     "name": "Justin Johnson Radio",
+     "media_type": "radio"
+    }
+   ]
+  ]
+ },
+ "eval-start-a-zzqx-florbent-radio-station-on": {
+  "request": {
+   "query": "zzqx florbent",
+   "said": "Start a zzqx florbent radio station on YouTube Music.",
+   "media_type": "radio",
+   "kind": "named"
+  },
+  "status": 502,
+  "answer": {
+   "detail": "I couldn't find a station called zzqx florbent in Music Assistant."
+  },
+  "ma_reads": [
+   [
+    "music/item_by_name",
+    {
+     "name": "a zzqx florbent",
+     "media_type": "radio"
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "zzqx florbent",
+     "media_types": [
+      "radio"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "a zzqx florbent",
+     "media_types": [
+      "radio"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/radios/library_items",
+    {
+     "limit": 500
+    }
+   ]
+  ]
+ },
+ "inc-1101-ask-kronk-groove-armada-radio": {
+  "request": {
+   "query": "Groove Armada Radio",
+   "said": " Ask Kronk to play Groove Armada Radio on Pandora.",
+   "media_type": "radio",
+   "kind": "named",
+   "origin_area": "Kitchen",
+   "origin_device": "e0949788663255952ce7778975527882"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Kitchen speaker",
+   "targets": [
+    "media_player.home_assistant_voice_0ac919_pe_01"
+   ],
+   "detail": "Dry run: would play the Pandora station Groove Armada Radio on the Kitchen speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://radio/302",
+    "media_type": "radio"
+   },
+   "shuffle": false,
+   "station": {
+    "name": "Groove Armada Radio",
+    "created": false
+   }
+  },
+  "ma_reads": [
+   [
+    "music/item_by_name",
+    {
+     "name": "Groove Armada Radio",
+     "media_type": "radio"
+    }
+   ]
+  ]
+ },
+ "inc-1107-ask-kronk-ask-home-french-dinner": {
+  "request": {
+   "query": "French Dinner Radio",
+   "said": " Ask Kronk to ask the home agent to play French Dinner Radio from Pandora.",
+   "media_type": "radio",
+   "kind": "named",
+   "origin_area": "Kitchen",
+   "origin_device": "e0949788663255952ce7778975527882"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Kitchen speaker",
+   "targets": [
+    "media_player.home_assistant_voice_0ac919_pe_01"
+   ],
+   "detail": "Dry run: would play the Pandora station French Dinner Radio on the Kitchen speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://radio/269",
+    "media_type": "radio"
+   },
+   "shuffle": false,
+   "station": {
+    "name": "French Dinner Radio",
+    "created": false
+   }
+  },
+  "ma_reads": [
+   [
+    "music/item_by_name",
+    {
+     "name": "French Dinner Radio",
+     "media_type": "radio"
+    }
+   ]
+  ]
+ },
+ "m19-find-deep-house-and-play-it": {
+  "request": {
+   "query": "deep house",
+   "said": "ask Kronk to find some deep house music and play it",
+   "kind": "genre",
+   "origin_area": "Office",
+   "origin_device": "ac6dd1f1c8cf1d229cda0f42224a2013"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play Deep House Radio, for deep house, on the Office speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://radio/280",
+    "media_type": "radio"
+   },
+   "pick": {
+    "label": "Deep House Radio",
+    "phrase": "deep house",
+    "kind": "station"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "deep house",
+     "media_types": [
+      "playlist"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "deep house",
+     "media_types": [
+      "radio"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ },
+ "m19-ask-kronk-to-play-some-jazz": {
+  "request": {
+   "query": "jazz",
+   "said": "ask Kronk to play some jazz",
+   "kind": "genre",
+   "origin_area": "Office",
+   "origin_device": "ac6dd1f1c8cf1d229cda0f42224a2013"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play Mushroom Jazz Radio, for jazz, on the Office speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://radio/258",
+    "media_type": "radio"
+   },
+   "pick": {
+    "label": "Mushroom Jazz Radio",
+    "phrase": "jazz",
+    "kind": "station"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "jazz",
+     "media_types": [
+      "playlist"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "jazz",
+     "media_types": [
+      "radio"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ },
+ "m19-ask-kronk-play-jazz-in-the-office": {
+  "request": {
+   "query": "jazz",
+   "said": "ask Kronk to play jazz in the office",
+   "kind": "genre",
+   "player": "office",
+   "origin_area": "Kitchen",
+   "origin_device": "e0949788663255952ce7778975527882"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play Mushroom Jazz Radio, for jazz, on the Office speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://radio/258",
+    "media_type": "radio"
+   },
+   "pick": {
+    "label": "Mushroom Jazz Radio",
+    "phrase": "jazz",
+    "kind": "station"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "jazz",
+     "media_types": [
+      "playlist"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "jazz",
+     "media_types": [
+      "radio"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ },
+ "m14-over-word-limit": {
+  "request": {
+   "query": "Anime Pop Radio",
+   "said": "Play Anime Pop Radio that's probably about it everything is pretty wet I just needed to make some space okay so yeah",
+   "media_type": "radio",
+   "kind": "named",
+   "origin_area": "Kitchen",
+   "origin_device": "e0949788663255952ce7778975527882"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Kitchen speaker",
+   "targets": [
+    "media_player.home_assistant_voice_0ac919_pe_01"
+   ],
+   "detail": "Dry run: would play the Pandora station Anime Pop Radio on the Kitchen speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://radio/253",
+    "media_type": "radio"
+   },
+   "shuffle": false,
+   "station": {
+    "name": "Anime Pop Radio",
+    "created": false
+   }
+  },
+  "ma_reads": [
+   [
+    "music/item_by_name",
+    {
+     "name": "Anime Pop Radio",
+     "media_type": "radio"
+    }
+   ]
+  ]
+ },
+ "m14-lookalike-mr-brightside": {
+  "request": {
+   "query": "Mr. Brightside by The Killers",
+   "said": "Play Mr. Brightside",
+   "media_type": "track",
+   "kind": "named",
+   "origin_area": "Office",
+   "origin_device": "ac6dd1f1c8cf1d229cda0f42224a2013"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play the track Mr. Brightside by The Killers on the Office speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "ytmusic--kGmHoQDn://track/m2zUrruKjDQ",
+    "media_type": "track"
+   },
+   "shuffle": false,
+   "resolved": {
+    "name": "Mr. Brightside",
+    "artist": "The Killers",
+    "media_type": "track"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "Mr. Brightside by The Killers",
+     "media_types": [
+      "track"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "Mr. Brightside",
+     "media_types": [
+      "track"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ },
+ "m14-lookalike-st-vincent-radio": {
+  "request": {
+   "query": "St. Vincent Radio",
+   "said": "Play St. Vincent radio",
+   "media_type": "radio",
+   "kind": "named",
+   "origin_area": "Office",
+   "origin_device": "ac6dd1f1c8cf1d229cda0f42224a2013"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play the Pandora station St. Vincent Radio, made new on the Office speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "pandora://radio/seed:AR:234976",
+    "media_type": "radio"
+   },
+   "shuffle": false,
+   "station": {
+    "name": "St. Vincent Radio",
+    "created": true
+   }
+  },
+  "ma_reads": [
+   [
+    "music/item_by_name",
+    {
+     "name": "St. Vincent",
+     "media_type": "radio"
+    }
+   ]
+  ]
+ },
+ "m14-lookalike-rem": {
+  "request": {
+   "query": "R.E.M.",
+   "said": "Play R.E.M.",
+   "media_type": "artist",
+   "kind": "named",
+   "origin_area": "Office",
+   "origin_device": "ac6dd1f1c8cf1d229cda0f42224a2013"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play the artist R.E.M. on the Office speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "ytmusic--kGmHoQDn://artist/UCZQMYjqm_j5mBVTfPcCy3FA",
+    "media_type": "artist"
+   },
+   "shuffle": false,
+   "resolved": {
+    "name": "R.E.M.",
+    "artist": null,
+    "media_type": "artist"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "R.E.M.",
+     "media_types": [
+      "artist"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ },
+ "m14-lookalike-dr-dre": {
+  "request": {
+   "query": "Dr. Dre",
+   "said": "play Dr. Dre",
+   "media_type": "artist",
+   "kind": "named",
+   "origin_area": "Office",
+   "origin_device": "ac6dd1f1c8cf1d229cda0f42224a2013"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play the artist Dr. Dre on the Office speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "ytmusic--kGmHoQDn://artist/UC1g7JmTw4Gv8W9YINg3M1FA",
+    "media_type": "artist"
+   },
+   "shuffle": false,
+   "resolved": {
+    "name": "Dr. Dre",
+    "artist": null,
+    "media_type": "artist"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "Dr. Dre",
+     "media_types": [
+      "artist"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ },
+ "m14-lookalike-u2": {
+  "request": {
+   "query": "U2",
+   "said": "Play U2.",
+   "media_type": "artist",
+   "kind": "named",
+   "origin_area": "Office",
+   "origin_device": "ac6dd1f1c8cf1d229cda0f42224a2013"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play the artist U2 on the Office speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://artist/782",
+    "media_type": "artist"
+   },
+   "shuffle": false,
+   "resolved": {
+    "name": "U2",
+    "artist": null,
+    "media_type": "artist"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "U2",
+     "media_types": [
+      "artist"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ },
+ "m14-lookalike-mambo-no-5": {
+  "request": {
+   "query": "Mambo No. 5 by Lou Bega",
+   "said": "Play Mambo No. 5 by Lou Bega",
+   "media_type": "track",
+   "kind": "named",
+   "origin_area": "Office",
+   "origin_device": "ac6dd1f1c8cf1d229cda0f42224a2013"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play the track Mambo No. 5 (a Little Bit of...) by Lou Bega on the Office speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "ytmusic--kGmHoQDn://track/RUBvqz3ozv8",
+    "media_type": "track"
+   },
+   "shuffle": false,
+   "resolved": {
+    "name": "Mambo No. 5 (a Little Bit of...)",
+    "artist": "Lou Bega",
+    "media_type": "track"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "Mambo No. 5 by Lou Bega",
+     "media_types": [
+      "track"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "Mambo No. 5",
+     "media_types": [
+      "track"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ },
+ "m14-lookalike-blueprint-room-suffix": {
+  "request": {
+   "query": "Hotel Costas Radio",
+   "said": "Play Hotel Costas Radio. in the Kitchen",
+   "media_type": "radio",
+   "kind": "named",
+   "origin_area": "Kitchen",
+   "origin_device": "e0949788663255952ce7778975527882"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Kitchen speaker",
+   "targets": [
+    "media_player.home_assistant_voice_0ac919_pe_01"
+   ],
+   "detail": "Dry run: would play the radio Hotel Costes Radio on the Kitchen speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://radio/274",
+    "media_type": "radio"
+   },
+   "shuffle": false,
+   "resolved": {
+    "name": "Hotel Costes Radio",
+    "artist": null,
+    "media_type": "radio"
+   },
+   "station": {
+    "name": "Hotel Costes Radio",
+    "created": false
+   }
+  },
+  "ma_reads": [
+   [
+    "music/item_by_name",
+    {
+     "name": "Hotel Costas",
+     "media_type": "radio"
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "Hotel Costas Radio",
+     "media_types": [
+      "radio"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "Hotel Costas",
+     "media_types": [
+      "radio"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/radios/library_items",
+    {
+     "limit": 500
+    }
+   ]
+  ]
+ },
+ "m14-lookalike-ellipsis": {
+  "request": {
+   "query": "Anime Pop Radio",
+   "said": "Play... Anime Pop Radio",
+   "media_type": "radio",
+   "kind": "named",
+   "origin_area": "Office",
+   "origin_device": "ac6dd1f1c8cf1d229cda0f42224a2013"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play the Pandora station Anime Pop Radio on the Office speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://radio/253",
+    "media_type": "radio"
+   },
+   "shuffle": false,
+   "station": {
+    "name": "Anime Pop Radio",
+    "created": false
+   }
+  },
+  "ma_reads": [
+   [
+    "music/item_by_name",
+    {
+     "name": "Anime Pop Radio",
+     "media_type": "radio"
+    }
+   ]
+  ]
+ },
+ "m14-lookalike-panic-at-the-disco": {
+  "request": {
+   "query": "Panic! at the Disco",
+   "said": "Play Panic! at the Disco",
+   "media_type": "artist",
+   "kind": "named",
+   "origin_area": "Office",
+   "origin_device": "ac6dd1f1c8cf1d229cda0f42224a2013"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play the artist Panic! At The Disco on the Office speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "ytmusic--kGmHoQDn://artist/UC5J__UU0Y7ZAVluolcIjrbw",
+    "media_type": "artist"
+   },
+   "shuffle": false,
+   "resolved": {
+    "name": "Panic! At The Disco",
+    "artist": null,
+    "media_type": "artist"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "Panic! at the Disco",
+     "media_types": [
+      "artist"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ },
+ "m11-jazz-music-style": {
+  "request": {
+   "query": "jazz",
+   "said": "play jazz music",
+   "kind": "genre"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play Mushroom Jazz Radio, for jazz, on the Office speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://radio/258",
+    "media_type": "radio"
+   },
+   "pick": {
+    "label": "Mushroom Jazz Radio",
+    "phrase": "jazz",
+    "kind": "station"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "jazz",
+     "media_types": [
+      "playlist"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "jazz",
+     "media_types": [
+      "radio"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ },
+ "m11-the-song-jazz-music": {
+  "request": {
+   "query": "Jazz Music by De-Phazz",
+   "said": "play the song Jazz Music",
+   "media_type": "track",
+   "kind": "named"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play the track Jazz Music by De-Phazz on the Office speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://track/8698",
+    "media_type": "track"
+   },
+   "shuffle": false,
+   "resolved": {
+    "name": "Jazz Music",
+    "artist": "De-Phazz",
+    "media_type": "track"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "Jazz Music by De-Phazz",
+     "media_types": [
+      "track"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "Jazz Music",
+     "media_types": [
+      "track"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ },
+ "m11-burning-down-the-house": {
+  "request": {
+   "query": "Burning Down the House by Talking Heads",
+   "said": "play Burning Down the House",
+   "media_type": "track",
+   "kind": "named"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play the track Burning Down The House by Talking Heads on the Office speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://track/13021",
+    "media_type": "track"
+   },
+   "shuffle": false,
+   "resolved": {
+    "name": "Burning Down The House",
+    "artist": "Talking Heads",
+    "media_type": "track"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "Burning Down the House by Talking Heads",
+     "media_types": [
+      "track"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "Burning Down the House",
+     "media_types": [
+      "track"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ },
+ "m11-girl-with-the-sun-in-the-office": {
+  "request": {
+   "query": "The Girl with the Sun in Her Head by Orbital",
+   "said": "play The Girl with the Sun in Her Head by Orbital in the office",
+   "media_type": "track",
+   "kind": "named",
+   "player": "office",
+   "origin_area": "Kitchen",
+   "origin_device": "e0949788663255952ce7778975527882"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play the track The Girl With The Sun In Her Head by Orbital on the Office speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://track/1520",
+    "media_type": "track"
+   },
+   "shuffle": false,
+   "resolved": {
+    "name": "The Girl With The Sun In Her Head",
+    "artist": "Orbital",
+    "media_type": "track"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "The Girl with the Sun in Her Head by Orbital",
+     "media_types": [
+      "track"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "The Girl with the Sun in Her Head",
+     "media_types": [
+      "track"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ },
+ "m11-toys-in-the-attic-in-the-kitchen": {
+  "request": {
+   "query": "Toys in the Attic by Aerosmith",
+   "said": "play Toys in the Attic by Aerosmith in the kitchen",
+   "media_type": "album",
+   "kind": "named",
+   "player": "kitchen",
+   "origin_area": "Office",
+   "origin_device": "ac6dd1f1c8cf1d229cda0f42224a2013"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Kitchen speaker",
+   "targets": [
+    "media_player.home_assistant_voice_0ac919_pe_01"
+   ],
+   "detail": "Dry run: would play the album Toys In The Attic by Aerosmith on the Kitchen speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "ytmusic--kGmHoQDn://album/MPREb_VOMghHjJRyh",
+    "media_type": "album"
+   },
+   "shuffle": false,
+   "resolved": {
+    "name": "Toys In The Attic",
+    "artist": "Aerosmith",
+    "media_type": "album"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "Toys in the Attic by Aerosmith",
+     "media_types": [
+      "album"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "Toys in the Attic",
+     "media_types": [
+      "album"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ },
+ "m11-handcuffed-in-mississippi-radio": {
+  "request": {
+   "query": "Handcuffed To A Fence In Mississippi Radio",
+   "said": "Play Handcuffed To A Fence In Mississippi Radio",
+   "media_type": "radio",
+   "kind": "named",
+   "origin_area": "Office",
+   "origin_device": "ac6dd1f1c8cf1d229cda0f42224a2013"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Office speaker",
+   "targets": [
+    "media_player.satellite1_d8d1bc"
+   ],
+   "detail": "Dry run: would play the Pandora station Handcuffed To A Fence In Mississippi Radio on the Office speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://radio/285",
+    "media_type": "radio"
+   },
+   "shuffle": false,
+   "station": {
+    "name": "Handcuffed To A Fence In Mississippi Radio",
+    "created": false
+   }
+  },
+  "ma_reads": [
+   [
+    "music/item_by_name",
+    {
+     "name": "Handcuffed To A Fence In Mississippi",
+     "media_type": "radio"
+    }
+   ]
+  ]
+ },
+ "m11-some-jazz-on-the-basement-player": {
+  "request": {
+   "query": "jazz",
+   "said": "play some jazz on the basement voice pe ma",
+   "kind": "genre",
+   "player": "basement voice pe ma",
+   "origin_area": "Office",
+   "origin_device": "ac6dd1f1c8cf1d229cda0f42224a2013"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the basement voice pe ma speaker",
+   "targets": [
+    "media_player.home_assistant_voice_0ab117"
+   ],
+   "detail": "Dry run: would play Mushroom Jazz Radio, for jazz, on the basement voice pe ma speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://radio/258",
+    "media_type": "radio"
+   },
+   "pick": {
+    "label": "Mushroom Jazz Radio",
+    "phrase": "jazz",
+    "kind": "station"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "jazz",
+     "media_types": [
+      "playlist"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "jazz",
+     "media_types": [
+      "radio"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
+ }
+}

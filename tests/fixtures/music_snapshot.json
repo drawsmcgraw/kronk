@@ -1,0 +1,6999 @@
+{
+"meta": {
+"recorded": "2026-11-17T11:36:26Z",
+"rows": 100,
+"paths": [
+"live"
+]
+},
+"players": [
+{
+"entity_id": "media_player.shield_2",
+"name": "SHIELD",
+"area": null,
+"state": "idle",
+"type": "player",
+"device_key": "up00044b82ea7c"
+},
+{
+"entity_id": "media_player.upper_shield_2",
+"name": "Upper Shield",
+"area": null,
+"state": "idle",
+"type": "player",
+"device_key": "up48b02d03024d"
+},
+{
+"entity_id": "media_player.living_room_sony_bravia",
+"name": "Living Room Sony Bravia",
+"area": null,
+"state": "idle",
+"type": "player",
+"device_key": "up945330938fcb"
+},
+{
+"entity_id": "media_player.home_assistant_voice_0ac919_pe_01",
+"name": "kitchen voice pe ma",
+"area": "Kitchen",
+"state": "idle",
+"type": "player",
+"device_key": "up20f83b0ac919"
+},
+{
+"entity_id": "media_player.satellite1_d8d1bc",
+"name": "satellite 1 ma",
+"area": "Office",
+"state": "idle",
+"type": "player",
+"device_key": "up14c19fd8d1bc"
+},
+{
+"entity_id": "media_player.home_assistant_voice_0ab117",
+"name": "basement voice pe ma",
+"area": null,
+"state": "idle",
+"type": "player",
+"device_key": "up20f83b0ab117"
+},
+{
+"entity_id": "media_player.camerons_macbook_pro",
+"name": "Cameron’s MacBook Pro",
+"area": null,
+"state": "unavailable",
+"type": null,
+"device_key": "up04f3ddc2"
+},
+{
+"entity_id": "media_player.sonos_move_derp_2",
+"name": "Sonos Move Derp",
+"area": null,
+"state": "off",
+"type": "player",
+"device_key": "RINCON_F0F6C157FD4801400"
+}
+],
+"genres": [
+"a cappella",
+"acid jazz",
+"acid rock",
+"acoustic",
+"acoustic rock",
+"adult contemporary",
+"adventure",
+"afro house",
+"afro soul",
+"afrobeat",
+"afrobeats",
+"alt country",
+"alternative",
+"alternative country",
+"alternative dance",
+"alternative metal",
+"alternative pop",
+"alternative rock",
+"ambient",
+"ambient dub",
+"ambient pop",
+"ambient techno",
+"americana",
+"animation",
+"anime music",
+"anime soundtrack",
+"anti-folk",
+"aor",
+"arena rock",
+"art pop",
+"art punk",
+"art rock",
+"avant-garde",
+"avant-garde jazz",
+"avant-garde pop",
+"ballad",
+"baroque",
+"baroque pop",
+"bass music",
+"batuque",
+"beat music",
+"bebop",
+"bhajan",
+"bhangra",
+"big band",
+"big beat",
+"black metal",
+"blue-eyed soul",
+"bluegrass",
+"bluegrass gospel",
+"blues",
+"blues rock",
+"bolero",
+"boogie rock",
+"bop",
+"bossa nova",
+"boy band",
+"breakbeat",
+"breaks",
+"british folk rock",
+"british rhythm & blues",
+"britpop",
+"bubblegum pop",
+"cape jazz",
+"cartoon",
+"cartoon music",
+"celtic",
+"celtic punk",
+"celtic rock",
+"chamber folk",
+"chamber music",
+"chanson",
+"chant",
+"chicago soul",
+"children",
+"children's music",
+"chill",
+"chill out",
+"chillout",
+"chopper",
+"choral",
+"choral music",
+"christmas music",
+"classic pop",
+"classic rock",
+"classical",
+"classical crossover",
+"classical music",
+"club",
+"cocktail nation",
+"coladeira",
+"comedy",
+"comedy rock",
+"composer",
+"contemporary classical",
+"contemporary country",
+"contemporary folk",
+"contemporary jazz",
+"contemporary r&b",
+"country",
+"country pop",
+"country rock",
+"cover songs",
+"cumbia",
+"curated",
+"dance",
+"dance-pop",
+"dance-punk",
+"dance-rock",
+"dancehall",
+"dark cabaret",
+"deep house",
+"deep soul",
+"desert rock",
+"devotional",
+"dirty south",
+"disco",
+"dixieland",
+"doo wop",
+"doo-wop",
+"downtempo",
+"dream pop",
+"drum & bass",
+"drum and bass",
+"dub",
+"dubstep",
+"easy listening",
+"edm",
+"electro",
+"electro swing",
+"electro-industrial",
+"electroclash",
+"electronic",
+"electronica",
+"electropop",
+"electrotango",
+"experimental",
+"experimental rock",
+"film score",
+"flamenco",
+"folk",
+"folk pop",
+"folk punk",
+"folk rock",
+"folktronica",
+"french electro",
+"french pop",
+"funk",
+"funk rock",
+"fusion",
+"future bass",
+"g-funk",
+"gangsta rap",
+"garage",
+"garage rock",
+"glam metal",
+"glam punk",
+"glam rock",
+"gospel",
+"goth",
+"gothic",
+"gothic metal",
+"gothic rock",
+"grebo",
+"groove metal",
+"grunge",
+"guitarist",
+"hard rock",
+"hard techno",
+"hardcore",
+"hardcore hip hop",
+"hardcore punk",
+"heartland rock",
+"heavy metal",
+"heavy psych",
+"hip hop",
+"hip-hop",
+"holiday",
+"honky tonk",
+"horrorcore",
+"house",
+"idm",
+"illbient",
+"indian classical",
+"indie",
+"indie electronic",
+"indie folk",
+"indie pop",
+"indie rock",
+"industrial",
+"industrial metal",
+"industrial rock",
+"instrumental",
+"instrumental hip hop",
+"j-pop",
+"j-rock",
+"jam band",
+"jangle pop",
+"jazz",
+"jazz blues",
+"jazz fusion",
+"jazz pop",
+"jazz rock",
+"jazz-funk",
+"jungle",
+"k-pop",
+"kirtan",
+"krautrock",
+"kwaitoo",
+"latin",
+"latin jazz",
+"latin pop",
+"latin rock",
+"latin soul",
+"leftfield",
+"lo-fi",
+"lounge",
+"madchester",
+"mambo",
+"mandinga",
+"mashup",
+"mbaqanga",
+"medieval",
+"meditation",
+"meditation music",
+"meditative",
+"melodic house",
+"metal",
+"military music",
+"minimal synth",
+"mod",
+"modern classical",
+"modinha",
+"morna",
+"mpb",
+"musical",
+"musical theatre",
+"nashville sound",
+"neo soul",
+"neo-psychedelia",
+"neoclassical",
+"neoclassical new age",
+"neofolk",
+"nerdcore",
+"new age",
+"new orleans r&b",
+"new wave",
+"norteño",
+"nu jazz",
+"nu metal",
+"old-time",
+"opera",
+"orchestral",
+"ost",
+"outlaw country",
+"phunk",
+"pianist",
+"piano blues",
+"pigfuck",
+"plunderphonics",
+"pop",
+"pop punk",
+"pop rap",
+"pop rock",
+"pop soul",
+"pop-punk",
+"pop-rock",
+"post-bop",
+"post-britpop",
+"post-grunge",
+"post-hardcore",
+"post-punk",
+"post-rock",
+"power pop",
+"pre-60s",
+"progressive house",
+"progressive metal",
+"progressive pop",
+"progressive rock",
+"protest music",
+"proto-punk",
+"psy trance",
+"psychedelic",
+"psychedelic folk",
+"psychedelic pop",
+"psychedelic rock",
+"pub rock",
+"punk",
+"punk rock",
+"r&b",
+"rap",
+"rap metal",
+"rap rock",
+"rapcore",
+"rave",
+"reggae",
+"reggae rock",
+"reggae-pop",
+"remix",
+"rhythm and blues",
+"rock",
+"rock & roll",
+"rock and roll",
+"rock opera",
+"rockabilly",
+"rocksteady",
+"romantic",
+"roots",
+"roots reggae",
+"roots rock",
+"salsa",
+"samba",
+"sampledelia",
+"shibuya-kei",
+"shoegaze",
+"singer songwriter",
+"singer-songwriter",
+"ska",
+"ska punk",
+"skacore",
+"skate punk",
+"smooth jazz",
+"soft rock",
+"sophisti-pop",
+"soul",
+"soul blues",
+"soundtrack",
+"southern hip hop",
+"southern rock",
+"southern soul",
+"space rock",
+"stoner metal",
+"stoner rock",
+"street punk",
+"sunshine pop",
+"surf",
+"surf punk",
+"surf rock",
+"swing",
+"symphonic",
+"synth pop",
+"synth-pop",
+"synthpop",
+"synthwave",
+"tango",
+"tech house",
+"techno",
+"technopop",
+"teen pop",
+"tex-mex",
+"theatre",
+"theatrical",
+"third wave ska",
+"traditional",
+"traditional country",
+"traditional irish",
+"traditional pop",
+"trance",
+"trap",
+"trip hop",
+"turntablism",
+"twee pop",
+"unknown",
+"vaudeville",
+"video game music",
+"video game soundtrack",
+"violin",
+"vocal jazz",
+"vocal surf",
+"world fusion",
+"world music",
+"world/ethnic",
+"worldbeat",
+"yacht rock",
+"zydeco"
+],
+"taste": "# Kronk's household music taste. Edit freely — Kronk re-reads this file\n# whenever it changes. Kronk also writes here when you tell it things:\n#   \"we love Ulrich Schnauss\"            → love\n#   \"never play Nickelback\"              → never\n#   \"forget that we love X\"              → removed from love/never\n#   \"when I say chill I mean deep house\" → genres\n# Anything here beats what Kronk learns from listening.\n# Docs: docs/features/music-taste.md\n\n# Artists, albums, or genres the household loves. Favored when Kronk picks.\nlove: []\n\n# Never chosen when Kronk picks. Asking for one by name still plays it.\nnever: []\n\n# What a genre word means in this house. Asking for the word makes Kronk\n# pick from these genres.\ngenres:\n  chill:\n    - deep house\n    - downtempo\n\n# Standing rules for \"play some music\" when no genre is named. The first\n# rule that matches wins. All conditions optional:\n#   days: [mon, tue, wed, thu, fri, sat, sun]\n#   hours: \"07-11\"        (local time, start inclusive, end exclusive)\n#   room: Kitchen         (the room of the speaker that will play)\n# Example:\n#   - {days: [sat, sun], hours: \"07-11\", room: Kitchen, play: jazz}\nrules: []\n",
+"ma": {
+"[\"music/item_by_name\", {\"media_type\": \"radio\", \"name\": \"90s, 2000s, Today's Hits Radio\"}]": {
+"uri": "library://radio/263",
+"name": "90s, 2000s, Today's Hits Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "263",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+"[\"music/item_by_name\", {\"media_type\": \"radio\", \"name\": \"90s, 2000s, Today's Hits\"}]": {
+"uri": "library://radio/263",
+"name": "90s, 2000s, Today's Hits Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "263",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+"[\"music/item_by_name\", {\"media_type\": \"radio\", \"name\": \"Anime Pop Radio\"}]": {
+"uri": "library://radio/253",
+"name": "Anime Pop Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "253",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+"[\"music/item_by_name\", {\"media_type\": \"radio\", \"name\": \"Anime Pop\"}]": {
+"uri": "library://radio/253",
+"name": "Anime Pop Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "253",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+"[\"music/item_by_name\", {\"media_type\": \"radio\", \"name\": \"French Cafe\"}]": {
+"uri": "library://radio/296",
+"name": "French Cafe Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "296",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+"[\"music/item_by_name\", {\"media_type\": \"radio\", \"name\": \"French Dinner Radio\"}]": {
+"uri": "library://radio/269",
+"name": "French Dinner Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "269",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+"[\"music/item_by_name\", {\"media_type\": \"radio\", \"name\": \"French Dinner\"}]": {
+"uri": "library://radio/269",
+"name": "French Dinner Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "269",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+"[\"music/item_by_name\", {\"media_type\": \"radio\", \"name\": \"German Soundscape Radio\"}]": {
+"uri": "library://radio/255",
+"name": "German Soundscape Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "255",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+"[\"music/item_by_name\", {\"media_type\": \"radio\", \"name\": \"Groove Armada Radio\"}]": {
+"uri": "library://radio/302",
+"name": "Groove Armada Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "302",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+"[\"music/item_by_name\", {\"media_type\": \"radio\", \"name\": \"Handcuffed To A Fence In Mississippi\"}]": {
+"uri": "library://radio/285",
+"name": "Handcuffed To A Fence In Mississippi Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "285",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+"[\"music/item_by_name\", {\"media_type\": \"radio\", \"name\": \"Hotel Costas\"}]": null,
+"[\"music/item_by_name\", {\"media_type\": \"radio\", \"name\": \"Justin Johnson Radio\"}]": {
+"uri": "library://radio/252",
+"name": "Justin Johnson Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "252",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+"[\"music/item_by_name\", {\"media_type\": \"radio\", \"name\": \"K-pop\"}]": {
+"uri": "pandora://radio/seed:AR:8435939",
+"name": "K-Pop Radio",
+"media_type": "radio",
+"provider": "pandora",
+"item_id": "seed:AR:8435939",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+"[\"music/item_by_name\", {\"media_type\": \"radio\", \"name\": \"Massive Attack Radio\"}]": {
+"uri": "library://radio/256",
+"name": "Massive Attack Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "256",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+"[\"music/item_by_name\", {\"media_type\": \"radio\", \"name\": \"Mushroom Jazz\"}]": {
+"uri": "library://radio/258",
+"name": "Mushroom Jazz Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "258",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+"[\"music/item_by_name\", {\"media_type\": \"radio\", \"name\": \"Orbital Radio\"}]": {
+"uri": "library://radio/294",
+"name": "Orbital Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "294",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+"[\"music/item_by_name\", {\"media_type\": \"radio\", \"name\": \"Orbital\"}]": {
+"uri": "library://radio/294",
+"name": "Orbital Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "294",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+"[\"music/item_by_name\", {\"media_type\": \"radio\", \"name\": \"Portishead Radio\"}]": {
+"uri": "library://radio/284",
+"name": "Portishead Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "284",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+"[\"music/item_by_name\", {\"media_type\": \"radio\", \"name\": \"St. Vincent\"}]": {
+"uri": "pandora://radio/seed:AR:234976",
+"name": "St. Vincent Radio",
+"media_type": "radio",
+"provider": "pandora",
+"item_id": "seed:AR:234976",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+"[\"music/item_by_name\", {\"media_type\": \"radio\", \"name\": \"Thievery Corporation Radio\"}]": {
+"uri": "library://radio/293",
+"name": "Thievery Corporation Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "293",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+"[\"music/item_by_name\", {\"media_type\": \"radio\", \"name\": \"Woodstock\"}]": {
+"uri": "library://radio/264",
+"name": "Sounds of Woodstock Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "264",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+"[\"music/item_by_name\", {\"media_type\": \"radio\", \"name\": \"Zorblax Fnordwave Nonexistent\"}]": null,
+"[\"music/item_by_name\", {\"media_type\": \"radio\", \"name\": \"\\\"90s, 2000's and today's hits\\\"\"}]": null,
+"[\"music/item_by_name\", {\"media_type\": \"radio\", \"name\": \"\\\"groove armada\\\"\"}]": {
+"uri": "library://radio/302",
+"name": "Groove Armada Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "302",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+"[\"music/item_by_name\", {\"media_type\": \"radio\", \"name\": \"a zzqx florbent\"}]": null,
+"[\"music/item_by_name\", {\"media_type\": \"radio\", \"name\": \"an orbital\"}]": null,
+"[\"music/item_by_name\", {\"media_type\": \"radio\", \"name\": \"deep chill house\"}]": {
+"uri": "pandora://radio/seed:AR:1499861",
+"name": "Deep Chill House Radio",
+"media_type": "radio",
+"provider": "pandora",
+"item_id": "seed:AR:1499861",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+"[\"music/item_by_name\", {\"media_type\": \"radio\", \"name\": \"ninety's two thousands and today's hits\"}]": null,
+"[\"music/item_by_name\", {\"media_type\": \"radio\", \"name\": \"orbital\"}]": {
+"uri": "library://radio/294",
+"name": "Orbital Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "294",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+"[\"music/playlists/library_items\", {\"limit\": 500}]": [
+{
+"uri": "library://playlist/42",
+"name": "000 Metroid Prime & Fusion Original Soundtracks",
+"media_type": "playlist",
+"provider": "library",
+"item_id": "42",
+"provider_mappings": [
+{
+"provider_domain": "filesystem_local"
+}
+]
+},
+{
+"uri": "library://playlist/45",
+"name": "000-va-101_christmas_songs-4cd-2008-gti",
+"media_type": "playlist",
+"provider": "library",
+"item_id": "45",
+"provider_mappings": [
+{
+"provider_domain": "filesystem_local"
+}
+]
+},
+{
+"uri": "library://playlist/41",
+"name": "00. Nancy Sinatra - Kill Bill (Volume One)",
+"media_type": "playlist",
+"provider": "library",
+"item_id": "41",
+"provider_mappings": [
+{
+"provider_domain": "filesystem_local"
+}
+]
+},
+{
+"uri": "library://playlist/4",
+"name": "500 Random tracks (from library)",
+"media_type": "playlist",
+"provider": "library",
+"item_id": "4",
+"provider_mappings": [
+{
+"provider_domain": "builtin"
+}
+]
+},
+{
+"uri": "library://playlist/1",
+"name": "All favorited tracks",
+"media_type": "playlist",
+"provider": "library",
+"item_id": "1",
+"provider_mappings": [
+{
+"provider_domain": "builtin"
+}
+]
+},
+{
+"uri": "library://playlist/13",
+"name": "anime bangers",
+"media_type": "playlist",
+"provider": "library",
+"item_id": "13",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "library://playlist/49",
+"name": "Hotel Costes",
+"media_type": "playlist",
+"provider": "library",
+"item_id": "49",
+"provider_mappings": [
+{
+"provider_domain": "builtin"
+}
+]
+},
+{
+"uri": "library://playlist/11",
+"name": "House but around the world",
+"media_type": "playlist",
+"provider": "library",
+"item_id": "11",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "library://playlist/48",
+"name": "Infinite Mix (favorites)",
+"media_type": "playlist",
+"provider": "library",
+"item_id": "48",
+"provider_mappings": [
+{
+"provider_domain": "builtin"
+}
+]
+},
+{
+"uri": "library://playlist/47",
+"name": "Infinite Mix (library)",
+"media_type": "playlist",
+"provider": "library",
+"item_id": "47",
+"provider_mappings": [
+{
+"provider_domain": "builtin"
+}
+]
+},
+{
+"uri": "library://playlist/7",
+"name": "Liked Music (YouTube Music)",
+"media_type": "playlist",
+"provider": "library",
+"item_id": "7",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "library://playlist/44",
+"name": "The Matrix Soundtrack",
+"media_type": "playlist",
+"provider": "library",
+"item_id": "44",
+"provider_mappings": [
+{
+"provider_domain": "filesystem_local"
+}
+]
+},
+{
+"uri": "library://playlist/12",
+"name": "old man sings",
+"media_type": "playlist",
+"provider": "library",
+"item_id": "12",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "library://playlist/40",
+"name": "Ozone - DiscO-Zone - PlayList",
+"media_type": "playlist",
+"provider": "library",
+"item_id": "40",
+"provider_mappings": [
+{
+"provider_domain": "filesystem_local"
+}
+]
+},
+{
+"uri": "library://playlist/3",
+"name": "Random Album (from library)",
+"media_type": "playlist",
+"provider": "library",
+"item_id": "3",
+"provider_mappings": [
+{
+"provider_domain": "builtin"
+}
+]
+},
+{
+"uri": "library://playlist/2",
+"name": "Random Artist (from library)",
+"media_type": "playlist",
+"provider": "library",
+"item_id": "2",
+"provider_mappings": [
+{
+"provider_domain": "builtin"
+}
+]
+},
+{
+"uri": "library://playlist/6",
+"name": "Recently added tracks",
+"media_type": "playlist",
+"provider": "library",
+"item_id": "6",
+"provider_mappings": [
+{
+"provider_domain": "builtin"
+}
+]
+},
+{
+"uri": "library://playlist/5",
+"name": "Recently played tracks",
+"media_type": "playlist",
+"provider": "library",
+"item_id": "5",
+"provider_mappings": [
+{
+"provider_domain": "builtin"
+}
+]
+},
+{
+"uri": "library://playlist/43",
+"name": "Tales of Symphonia Original Soundtrack",
+"media_type": "playlist",
+"provider": "library",
+"item_id": "43",
+"provider_mappings": [
+{
+"provider_domain": "filesystem_local"
+}
+]
+},
+{
+"uri": "library://playlist/46",
+"name": "va-101_christmas_songs-4cd-2008-gti",
+"media_type": "playlist",
+"provider": "library",
+"item_id": "46",
+"provider_mappings": [
+{
+"provider_domain": "filesystem_local"
+}
+]
+},
+{
+"uri": "library://playlist/8",
+"name": "video game pretty songs",
+"media_type": "playlist",
+"provider": "library",
+"item_id": "8",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+}
+],
+"[\"music/radios/library_items\", {\"limit\": 500}]": [
+{
+"uri": "library://radio/263",
+"name": "90s, 2000s, Today's Hits Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "263",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/297",
+"name": "90s Alternative Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "297",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/288",
+"name": "Andy Grammer Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "288",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/253",
+"name": "Anime Pop Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "253",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/272",
+"name": "The Avalanches Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "272",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/299",
+"name": "Backyard Barbecue Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "299",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/266",
+"name": "Bob Marley Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "266",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/290",
+"name": "Bottom Of The River Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "290",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/265",
+"name": "City Pop Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "265",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/289",
+"name": "Coffee House Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "289",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/298",
+"name": "Cracker Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "298",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/280",
+"name": "Deep House Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "280",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/278",
+"name": "Downtempo Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "278",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/281",
+"name": "Drip Fed Fred Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "281",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/292",
+"name": "Eels Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "292",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/275",
+"name": "Fila Brazillia Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "275",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/296",
+"name": "French Cafe Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "296",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/269",
+"name": "French Dinner Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "269",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/255",
+"name": "German Soundscape Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "255",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/302",
+"name": "Groove Armada Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "302",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/285",
+"name": "Handcuffed To A Fence In Mississippi Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "285",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/279",
+"name": "Honey, I'm Good Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "279",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/274",
+"name": "Hotel Costes Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "274",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/270",
+"name": "Irish Pub Rock Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "270",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/300",
+"name": "Joey Pecoraro Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "300",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/252",
+"name": "Justin Johnson Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "252",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/306",
+"name": "Kruder & Dorfmeister Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "306",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/276",
+"name": "Kyle Kinane Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "276",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/273",
+"name": "Lo-Fi Chill Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "273",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/256",
+"name": "Massive Attack Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "256",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/295",
+"name": "Moby Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "295",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/258",
+"name": "Mushroom Jazz Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "258",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/277",
+"name": "Nujabes Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "277",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/294",
+"name": "Orbital Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "294",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/254",
+"name": "Parov Stelar Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "254",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/283",
+"name": "Pink Floyd Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "283",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/303",
+"name": "Pitbull Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "303",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/284",
+"name": "Portishead Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "284",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/286",
+"name": "Ramones Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "286",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/251",
+"name": "Santana Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "251",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/301",
+"name": "Soulfood Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "301",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/264",
+"name": "Sounds of Woodstock Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "264",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/271",
+"name": "They Might Be Giants Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "271",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/293",
+"name": "Thievery Corporation Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "293",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/305",
+"name": "Tosca Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "305",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/282",
+"name": "Trip Hop Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "282",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/267",
+"name": "Weezer Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "267",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/291",
+"name": "Wilco Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "291",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/262",
+"name": "WOODSTOCK Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "262",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "library://radio/287",
+"name": "Workout Hits Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "287",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+}
+],
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"album\"], \"search_query\": \"Daisies of the Galaxy by Eels\"}]": {
+"artists": [],
+"albums": [
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_35ASTy2b6RF",
+"name": "Daisies Of The Galaxy",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_35ASTy2b6RF",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "EELS"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_XZIFjk2DEkK",
+"name": "Oh What A Beautiful Morning",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_XZIFjk2DEkK",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "EELS"
+}
+]
+}
+],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"album\"], \"search_query\": \"Daisies of the Galaxy\"}]": {
+"artists": [],
+"albums": [
+{
+"uri": "library://album/557",
+"name": "Daisies of the Galaxy",
+"media_type": "album",
+"provider": "library",
+"item_id": "557",
+"provider_mappings": [
+{
+"provider_domain": "filesystem_local"
+}
+],
+"artists": [
+{
+"name": "Eels"
+}
+]
+},
+{
+"uri": "library://album/760",
+"name": "Daisies of the Galaxy",
+"media_type": "album",
+"provider": "library",
+"item_id": "760",
+"provider_mappings": [
+{
+"provider_domain": "filesystem_local"
+}
+],
+"artists": [
+{
+"name": "Eels"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_35ASTy2b6RF",
+"name": "Daisies Of The Galaxy",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_35ASTy2b6RF",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "EELS"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_XZIFjk2DEkK",
+"name": "Oh What A Beautiful Morning",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_XZIFjk2DEkK",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "EELS"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_2STiNrbqxQK",
+"name": "Galaxy",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_2STiNrbqxQK",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Cushion Caroms"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_1i8z6Ocym7v",
+"name": "Jacksonville One",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_1i8z6Ocym7v",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Marvin J. Galaxy"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_nFCRIBMqRe9",
+"name": "Daisies",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_nFCRIBMqRe9",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Black Gryph0n, Baasik"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_MzIuhXp8lM1",
+"name": "Sunshower",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_MzIuhXp8lM1",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Lazy Daisies"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_lTvyOmkYFs7",
+"name": "Wild Daisies",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_lTvyOmkYFs7",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "LoPass"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_UZ5Sm09QZj4",
+"name": "TechnoWizard",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_UZ5Sm09QZj4",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Various Artists"
+}
+]
+}
+],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"album\"], \"search_query\": \"Destiny Waiving by Ulrich Schnauss\"}]": {
+"artists": [],
+"albums": [
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_FZkLnRytAxt",
+"name": "Destiny Waiving",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_FZkLnRytAxt",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Ulrich Schnauss"
+},
+{
+"name": "Mark Peters"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_BXjpCRFqxzm",
+"name": "Destiny Waiving Köln Versionen EP",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_BXjpCRFqxzm",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Ulrich Schnauss"
+},
+{
+"name": "Mark Peters"
+}
+]
+}
+],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"album\"], \"search_query\": \"Destiny Waiving\"}]": {
+"artists": [],
+"albums": [
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_FZkLnRytAxt",
+"name": "Destiny Waiving",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_FZkLnRytAxt",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Ulrich Schnauss"
+},
+{
+"name": "Mark Peters"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_BXjpCRFqxzm",
+"name": "Destiny Waiving Köln Versionen EP",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_BXjpCRFqxzm",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Ulrich Schnauss"
+},
+{
+"name": "Mark Peters"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_56AhS5WcL7b",
+"name": "Stellar Beat Chronicles",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_56AhS5WcL7b",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Christophe Gauthier"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_HVNbMW2Zfrj",
+"name": "Stretch Vibes, Vol. 12",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_HVNbMW2Zfrj",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Various Artists"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_CxxYoeePCIi",
+"name": "Waving Back",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_CxxYoeePCIi",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Tainsus"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_ILxit37oFVr",
+"name": "Neni",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_ILxit37oFVr",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Solitary Depression"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_7ElRA4jBxdt",
+"name": "Tik Tok Shake",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_7ElRA4jBxdt",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Kertasy"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_8zVCy4NNF1t",
+"name": "To Freestyle To",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_8zVCy4NNF1t",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Type Beat"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_Gtl9x2xnIQR",
+"name": "Black Angels",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_Gtl9x2xnIQR",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Alex Angel"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_Cw24H0b3spR",
+"name": "Just Jim",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_Cw24H0b3spR",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "CityPiss"
+}
+]
+}
+],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"album\"], \"search_query\": \"Hotel Costes 3\"}]": {
+"artists": [],
+"albums": [
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_wt5bvurCWyn",
+"name": "Hôtel Costes 3 - Etage 3",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_wt5bvurCWyn",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Hôtel Costes"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_5ZY4jGNfSoc",
+"name": "Hotel Paradise del Mar, Vol.3 (Chill Out Lounge Café At Ibiza Buddha Sunset Bar Club)",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_5ZY4jGNfSoc",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Various Artists"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_hESvVPVLT1l",
+"name": "Hôtel Costes",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_hESvVPVLT1l",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Various Artists"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_6PqDaFFJE1L",
+"name": "Hôtel Costes 6",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_6PqDaFFJE1L",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Hôtel Costes"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_eGL69jTqFCN",
+"name": "Summer's Over",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_eGL69jTqFCN",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "JAYLIEN"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_bIBr3OOtq9G",
+"name": "Youtube (Youtube Ragi Exklusiv Tracks, Vol.3)",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_bIBr3OOtq9G",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_ycgaAPVMjIn",
+"name": "Soulshine",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_ycgaAPVMjIn",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "DJ Cam"
+}
+]
+}
+],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"album\"], \"search_query\": \"Hotel Costes\"}]": {
+"artists": [],
+"albums": [
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_hESvVPVLT1l",
+"name": "Hôtel Costes",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_hESvVPVLT1l",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Various Artists"
+}
+]
+},
+{
+"uri": "library://album/1509",
+"name": "Hôtel Costes: 1999–2007, The Anniversary Boxset",
+"media_type": "album",
+"provider": "library",
+"item_id": "1509",
+"provider_mappings": [
+{
+"provider_domain": "filesystem_local"
+}
+],
+"artists": [
+{
+"name": "Aphrodelics"
+}
+]
+},
+{
+"uri": "library://album/857",
+"name": "Hôtel Costes X - by Stéphane Pompougnac",
+"media_type": "album",
+"provider": "library",
+"item_id": "857",
+"provider_mappings": [
+{
+"provider_domain": "filesystem_local"
+}
+],
+"artists": [
+{
+"name": "Various Artists"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_oRlCSfWZXEQ",
+"name": "Hôtel Costes Best of",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_oRlCSfWZXEQ",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Hôtel Costes"
+}
+]
+},
+{
+"uri": "library://album/1510",
+"name": "Hôtel Costes: 1999–2007, The Anniversary Boxset",
+"media_type": "album",
+"provider": "library",
+"item_id": "1510",
+"provider_mappings": [
+{
+"provider_domain": "filesystem_local"
+}
+],
+"artists": [
+{
+"name": "Seven Dub"
+}
+]
+},
+{
+"uri": "library://album/858",
+"name": "Hôtel Costes A Decade by Stéphane Pompougnac",
+"media_type": "album",
+"provider": "library",
+"item_id": "858",
+"provider_mappings": [
+{
+"provider_domain": "filesystem_local"
+}
+],
+"artists": [
+{
+"name": "I:Cube"
+}
+]
+},
+{
+"uri": "library://album/1511",
+"name": "Hôtel Costes: 1999–2007, The Anniversary Boxset",
+"media_type": "album",
+"provider": "library",
+"item_id": "1511",
+"provider_mappings": [
+{
+"provider_domain": "filesystem_local"
+}
+],
+"artists": [
+{
+"name": "Charles Schillings"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_uMzO3yxSLVx",
+"name": "Hôtel Costes A Decade",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_uMzO3yxSLVx",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Hôtel Costes"
+}
+]
+},
+{
+"uri": "library://album/1512",
+"name": "Hôtel Costes: 1999–2007, The Anniversary Boxset",
+"media_type": "album",
+"provider": "library",
+"item_id": "1512",
+"provider_mappings": [
+{
+"provider_domain": "filesystem_local"
+}
+],
+"artists": [
+{
+"name": "Stéphane Pompougnac"
+}
+]
+}
+],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"album\"], \"search_query\": \"Toys in the Attic by Aerosmith\"}]": {
+"artists": [],
+"albums": [
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_VOMghHjJRyh",
+"name": "Toys In The Attic",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_VOMghHjJRyh",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_frBTvyWHZm9",
+"name": "Greatest Hits",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_frBTvyWHZm9",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_qJUaRq83XHi",
+"name": "The Karaoke Channel - Sing Toys in the Attic Like Aerosmith",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_qJUaRq83XHi",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "The Karaoke Channel"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_vUEeimM4xpl",
+"name": "Rocks",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_vUEeimM4xpl",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_Cf2ecVCLOkC",
+"name": "Aerosmith Medley: Pink / Walk This Way / Dream On / Janie's Got a Gun / Sweet Emotion / Fine / Love in a Elevator / Big Ten Inch Record / Toys in the Attic / Angel / Dude Looks Like a Lady / I Don't Wanna Miss a Thing",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_Cf2ecVCLOkC",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Silver"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_xtzxdm2mi3K",
+"name": "Get A Grip Tour",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_xtzxdm2mi3K",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_A3ZKPcW1Nfo",
+"name": "Classics Live II",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_A3ZKPcW1Nfo",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_5HIwBBDtV1m",
+"name": "Aerosmith",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_5HIwBBDtV1m",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_LoRE1lZGjZf",
+"name": "Get Your Wings",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_LoRE1lZGjZf",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_KS6id8XlC18",
+"name": "Pump",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_KS6id8XlC18",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+}
+],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"album\"], \"search_query\": \"Toys in the Attic\"}]": {
+"artists": [],
+"albums": [
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_VOMghHjJRyh",
+"name": "Toys In The Attic",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_VOMghHjJRyh",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_S0WSDzIlPhv",
+"name": "Toys in the Attic",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_S0WSDzIlPhv",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Moonalice"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_X6WaVFwkDTT",
+"name": "Toys In The Attic",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_X6WaVFwkDTT",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Treehouse"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_4aHeXllZFxA",
+"name": "Toys in the Attic",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_4aHeXllZFxA",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Icez Reggae"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_QieKHBjCbsJ",
+"name": "Toys in the Attic",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_QieKHBjCbsJ",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Band of Rain"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_OtZcd6m73rP",
+"name": "Toys in the Attic",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_OtZcd6m73rP",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Kau Tau"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_bB6s48ngA6k",
+"name": "Toys In The Attic",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_bB6s48ngA6k",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "MUTE"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_riDqdQxpoZZ",
+"name": "Toys In The Attic",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_riDqdQxpoZZ",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "EPayne"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_zrKLn6j7WYh",
+"name": "Toys in the Attic",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_zrKLn6j7WYh",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Martin Chung"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_frBTvyWHZm9",
+"name": "Greatest Hits",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_frBTvyWHZm9",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+}
+],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"artist\"], \"search_query\": \"Aerosmith\"}]": {
+"artists": [
+{
+"uri": "library://artist/268",
+"name": "Aerosmith",
+"media_type": "artist",
+"provider": "library",
+"item_id": "268",
+"provider_mappings": [
+{
+"provider_domain": "filesystem_local"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCYuinPfuhK_rSlrJXvZQrng",
+"name": "Aerosmith",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCYuinPfuhK_rSlrJXvZQrng",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCSLbbBoUqpin6BE34whSOvA",
+"name": "Guns N' Roses",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCSLbbBoUqpin6BE34whSOvA",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCkPXJdQaDMR7bbWN7pEcDwA",
+"name": "Steven Tyler",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCkPXJdQaDMR7bbWN7pEcDwA",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCZ1zPzqwelYI7RpNPf68zqA",
+"name": "Run D.M.C.",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCZ1zPzqwelYI7RpNPf68zqA",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCedvOgsKFzcK3hA5taf3KoQ",
+"name": "Eminem",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCedvOgsKFzcK3hA5taf3KoQ",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCaBBy7s4ma-xGRnFNtQBgrw",
+"name": "The Joe Perry Project",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCaBBy7s4ma-xGRnFNtQBgrw",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+}
+],
+"albums": [],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"artist\"], \"search_query\": \"Dr. Dre\"}]": {
+"artists": [
+{
+"uri": "ytmusic--kGmHoQDn://artist/UC1g7JmTw4Gv8W9YINg3M1FA",
+"name": "Dr. Dre",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UC1g7JmTw4Gv8W9YINg3M1FA",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCOcnYBwT1jb6EHlS0cwhNkA",
+"name": "50 Cent",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCOcnYBwT1jb6EHlS0cwhNkA",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCedvOgsKFzcK3hA5taf3KoQ",
+"name": "Eminem",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCedvOgsKFzcK3hA5taf3KoQ",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCprAFmT0C6O4X0ToEXpeFTQ",
+"name": "Kendrick Lamar",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCprAFmT0C6O4X0ToEXpeFTQ",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCZ4DZXWEzXbeUgHv1-MTvEg",
+"name": "N.W.A.",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCZ4DZXWEzXbeUgHv1-MTvEg",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCZdzqPEgPx4u2o-cFzuOPeQ",
+"name": "Eazy-E",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCZdzqPEgPx4u2o-cFzuOPeQ",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UC7xz_YipuZtypOuVALNzeog",
+"name": "Snoop Dogg",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UC7xz_YipuZtypOuVALNzeog",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCA9eJHcx3lkhyaln9ZHs90Q",
+"name": "Ice Cube",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCA9eJHcx3lkhyaln9ZHs90Q",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCsHpJSV1Dfx-ZNMIx2frzZA",
+"name": "Doctor Dré",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCsHpJSV1Dfx-ZNMIx2frzZA",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCsFmv-3BnX18T5VHN1wR8ig",
+"name": "Made famous by Dr. Dre",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCsFmv-3BnX18T5VHN1wR8ig",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+}
+],
+"albums": [],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"artist\"], \"search_query\": \"Journey\"}]": {
+"artists": [
+{
+"uri": "library://artist/1341",
+"name": "Journey",
+"media_type": "artist",
+"provider": "library",
+"item_id": "1341",
+"provider_mappings": [
+{
+"provider_domain": "filesystem_local"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCPKnuPciHDB8qw-wyBVQo9A",
+"name": "Journey",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCPKnuPciHDB8qw-wyBVQo9A",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCFls460nJMRko3FCHy6nY7A",
+"name": "JOURNEY",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCFls460nJMRko3FCHy6nY7A",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCU4DQzhF_GvSpA4rHkx2SKw",
+"name": "Journey",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCU4DQzhF_GvSpA4rHkx2SKw",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UC7l4OGZs-67Qfd6CQjxuQ5Q",
+"name": "Journey",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UC7l4OGZs-67Qfd6CQjxuQ5Q",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "library://artist/538",
+"name": "Journey (Featuring Lead Vocals by Steve Augeri)",
+"media_type": "artist",
+"provider": "library",
+"item_id": "538",
+"provider_mappings": [
+{
+"provider_domain": "filesystem_local"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCc_NOosBrecERf45OkNEiVg",
+"name": "Hev's Journey",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCc_NOosBrecERf45OkNEiVg",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UC1yEZaVbWqAdKveI5MvPuXg",
+"name": "The Cast Of Journey To Bethlehem",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UC1yEZaVbWqAdKveI5MvPuXg",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCuF_wNnVsaqGUWAh3IZQLeA",
+"name": "Music Travel Love",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCuF_wNnVsaqGUWAh3IZQLeA",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCDBMi4q_deERbc8j9tb7t2Q",
+"name": "KOOL HEARTS JOURNEY",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCDBMi4q_deERbc8j9tb7t2Q",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+}
+],
+"albums": [],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"artist\"], \"search_query\": \"Panic! at the Disco\"}]": {
+"artists": [
+{
+"uri": "ytmusic--kGmHoQDn://artist/UC5J__UU0Y7ZAVluolcIjrbw",
+"name": "Panic! At The Disco",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UC5J__UU0Y7ZAVluolcIjrbw",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCqWCZ939j77crLv8fjDFbSA",
+"name": "Nicole Row",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCqWCZ939j77crLv8fjDFbSA",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+}
+],
+"albums": [],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"artist\"], \"search_query\": \"Pink Floyd\"}]": {
+"artists": [
+{
+"uri": "library://artist/81",
+"name": "Pink Floyd",
+"media_type": "artist",
+"provider": "library",
+"item_id": "81",
+"provider_mappings": [
+{
+"provider_domain": "filesystem_local"
+},
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "library://artist/1248",
+"name": "Pink Floyd by LPO",
+"media_type": "artist",
+"provider": "library",
+"item_id": "1248",
+"provider_mappings": [
+{
+"provider_domain": "filesystem_local"
+}
+]
+}
+],
+"albums": [],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"artist\"], \"search_query\": \"Portishead\"}]": {
+"artists": [
+{
+"uri": "library://artist/1251",
+"name": "Portishead",
+"media_type": "artist",
+"provider": "library",
+"item_id": "1251",
+"provider_mappings": [
+{
+"provider_domain": "filesystem_local"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCweAx0TIRdAylp6G1nviqbQ",
+"name": "Portishead",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCweAx0TIRdAylp6G1nviqbQ",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCr1uxon7aFztw_dnrau0TDA",
+"name": "Massive Attack",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCr1uxon7aFztw_dnrau0TDA",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCaSt_IkuGhFkxOktydRbU0w",
+"name": "Beth Gibbons",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCaSt_IkuGhFkxOktydRbU0w",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UC23e1LhccX0wh7I8bq4JGrw",
+"name": "Adrian Utley",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UC23e1LhccX0wh7I8bq4JGrw",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UC5whZGOKBTLLjjqZtodI5Lw",
+"name": "Geoff Barrow",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UC5whZGOKBTLLjjqZtodI5Lw",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+}
+],
+"albums": [],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"artist\"], \"search_query\": \"R.E.M.\"}]": {
+"artists": [
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCZQMYjqm_j5mBVTfPcCy3FA",
+"name": "R.E.M.",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCZQMYjqm_j5mBVTfPcCy3FA",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCw0RSPUp12UE-NnDNNDbBnQ",
+"name": "REM",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCw0RSPUp12UE-NnDNNDbBnQ",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "library://artist/939",
+"name": "ClÃ©mentine / Les Champs ElysÃ©es (StÃ©phane Pompougnac Remix)",
+"media_type": "artist",
+"provider": "library",
+"item_id": "939",
+"provider_mappings": [
+{
+"provider_domain": "filesystem_local"
+}
+]
+},
+{
+"uri": "library://artist/936",
+"name": "Limbo Experience / Illusion (Rollercone Remix)",
+"media_type": "artist",
+"provider": "library",
+"item_id": "936",
+"provider_mappings": [
+{
+"provider_domain": "filesystem_local"
+}
+]
+},
+{
+"uri": "library://artist/1631",
+"name": "Deva Premal And Miten",
+"media_type": "artist",
+"provider": "library",
+"item_id": "1631",
+"provider_mappings": [
+{
+"provider_domain": "filesystem_local"
+}
+]
+},
+{
+"uri": "library://artist/937",
+"name": "Janice hosted by BSG / Voodoo Bliss (Aaron Bingle's Azure Mix)",
+"media_type": "artist",
+"provider": "library",
+"item_id": "937",
+"provider_mappings": [
+{
+"provider_domain": "filesystem_local"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UC-vfU4oUliALXm2QLC5zO_g",
+"name": "Rem the lone ranger",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UC-vfU4oUliALXm2QLC5zO_g",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+}
+],
+"albums": [],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"artist\"], \"search_query\": \"The Beatles\"}]": {
+"artists": [
+{
+"uri": "library://artist/77",
+"name": "The Beatles",
+"media_type": "artist",
+"provider": "library",
+"item_id": "77",
+"provider_mappings": [
+{
+"provider_domain": "filesystem_local"
+},
+{
+"provider_domain": "ytmusic"
+}
+]
+}
+],
+"albums": [],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"artist\"], \"search_query\": \"U2\"}]": {
+"artists": [
+{
+"uri": "library://artist/782",
+"name": "U2",
+"media_type": "artist",
+"provider": "library",
+"item_id": "782",
+"provider_mappings": [
+{
+"provider_domain": "filesystem_local"
+},
+{
+"provider_domain": "ytmusic"
+}
+]
+}
+],
+"albums": [],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"artist\"], \"search_query\": \"Weird Al Yankovic\"}]": {
+"artists": [
+{
+"uri": "library://artist/1115",
+"name": "Weird Al Yankovic",
+"media_type": "artist",
+"provider": "library",
+"item_id": "1115",
+"provider_mappings": [
+{
+"provider_domain": "filesystem_local"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCa4LILjjT1YCeo5Xg9rQTMQ",
+"name": "Weird Al Yankovic",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCa4LILjjT1YCeo5Xg9rQTMQ",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCSulA9ZqYNyYcvPfyGH4LGg",
+"name": "Jim \"Kimo\" West",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCSulA9ZqYNyYcvPfyGH4LGg",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+}
+],
+"albums": [],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"playlist\"], \"search_query\": \"Old Man Sings\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [],
+"playlists": [
+{
+"uri": "library://playlist/12",
+"name": "old man sings",
+"media_type": "playlist",
+"provider": "library",
+"item_id": "12",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+}
+],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"playlist\"], \"search_query\": \"Old Man Video Games\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [],
+"playlists": [
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPL0aUO9VyzQxd96o-H3aJjfBsIyRch37F8",
+"name": "Old man video games",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPL0aUO9VyzQxd96o-H3aJjfBsIyRch37F8",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLwlKwnMKgU7yUC8i5_8xG4d7eKe4vNQvI",
+"name": "Worst Video Game Songs of All Time",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLwlKwnMKgU7yUC8i5_8xG4d7eKe4vNQvI",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLRLkYMVt9aTL7PIuwnBOXdY1YqZUjnbOa",
+"name": "Video Games",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLRLkYMVt9aTL7PIuwnBOXdY1YqZUjnbOa",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLJCXrsW_esBlb1BYfeNhY4kJQuNYoDpF_",
+"name": "My TOP 150 - Video Game Soundtracks",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLJCXrsW_esBlb1BYfeNhY4kJQuNYoDpF_",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLoByGUIh1JORjnbcia7JVb20NXJowrSPe",
+"name": "Mega Man and Old Video Games",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLoByGUIh1JORjnbcia7JVb20NXJowrSPe",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLZ8LpEQF2l9Sa3PK_6gRDsc7qGZmlzRpm",
+"name": "Old man vibes",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLZ8LpEQF2l9Sa3PK_6gRDsc7qGZmlzRpm",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLbxcFcIJVTDvHM-29ZY93cFaDbTACk-zK",
+"name": "VIDEO GAME TRAP REMIXES",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLbxcFcIJVTDvHM-29ZY93cFaDbTACk-zK",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLwqJAVMviA5tumrvCQpsjYUEGRdR4v_fe",
+"name": "VIDEO GAME SAMPLES",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLwqJAVMviA5tumrvCQpsjYUEGRdR4v_fe",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLrnb8c3hFJatjyJ-wFMuFGANNoo7-LZsG",
+"name": "Best Video Game Music",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLrnb8c3hFJatjyJ-wFMuFGANNoo7-LZsG",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPL73pwlUd080kQmHF6i-9jL4btJ1AX4LC7",
+"name": "90s Video Game Music",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPL73pwlUd080kQmHF6i-9jL4btJ1AX4LC7",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+}
+],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"playlist\"], \"search_query\": \"Video Game Pretty Songs\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [],
+"playlists": [
+{
+"uri": "library://playlist/8",
+"name": "video game pretty songs",
+"media_type": "playlist",
+"provider": "library",
+"item_id": "8",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+}
+],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"playlist\"], \"search_query\": \"anime bangers\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [],
+"playlists": [
+{
+"uri": "library://playlist/13",
+"name": "anime bangers",
+"media_type": "playlist",
+"provider": "library",
+"item_id": "13",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+}
+],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"playlist\"], \"search_query\": \"deep house\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [],
+"playlists": [
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLSr_oFUba1jvgGaKhqcnEajazLQy-qydV",
+"name": "Deep House 2026",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLSr_oFUba1jvgGaKhqcnEajazLQy-qydV",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPL4ZpOBNnoWOtLDVwAjDKPg6fvPa-gfOa4",
+"name": "2012 - 2014 Deep House",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPL4ZpOBNnoWOtLDVwAjDKPg6fvPa-gfOa4",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPL_6gSBf51DEq4CM8Dxz6AIUMJeOqifIkn",
+"name": "Deep House & Chillout 2026 | Focus Music Mix for Work, Study & Productivity",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPL_6gSBf51DEq4CM8Dxz6AIUMJeOqifIkn",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLA48F36E561B24615",
+"name": "Deep House 2012",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLA48F36E561B24615",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLO0_oBaIGJkm7ohDYFGCQnGXAZfebFygC",
+"name": "90s soulful deep house",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLO0_oBaIGJkm7ohDYFGCQnGXAZfebFygC",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLg0cM5zrKwwIQ-sRz0Jq47yUBih_rEG9t",
+"name": "Sunset Sessions | Deep House Mix 2026 | Upbeat Aperitivo Vibes",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLg0cM5zrKwwIQ-sRz0Jq47yUBih_rEG9t",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLIkKWejznyIGas_I0g8u7LVUpel_PtoBJ",
+"name": "DEEP HOUSE REGGAE 2026",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLIkKWejznyIGas_I0g8u7LVUpel_PtoBJ",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLB2_dugUYT2pTXSAgHTrnduQV4rFWTsHx",
+"name": "Deep House Mixes",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLB2_dugUYT2pTXSAgHTrnduQV4rFWTsHx",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLCKcRG3NFFYkxmI8hc-SUztKN8XY2apUm",
+"name": "Deep House Therapy // Soulful House Sessions",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLCKcRG3NFFYkxmI8hc-SUztKN8XY2apUm",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLeZo-g7MgUlFYIWJWRo8Hdk6OSQdpDn5g",
+"name": "Deep House - dance music to workout, game & party to by dance fruits",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLeZo-g7MgUlFYIWJWRo8Hdk6OSQdpDn5g",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+}
+],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"playlist\"], \"search_query\": \"downtempo\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [],
+"playlists": [
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLTz7VfC_3dnV2KnBY9B3VcnsLGpehqYAq",
+"name": "acid jazz, downtempo, ambient dub",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLTz7VfC_3dnV2KnBY9B3VcnsLGpehqYAq",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLx_UzEETR7OtXcXNP3C9zq3ef4NIO2oWD",
+"name": "Downtempo Essentials",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLx_UzEETR7OtXcXNP3C9zq3ef4NIO2oWD",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLYkB2GLfxxJcleXAzNz0qZH_mOtIQrhvS",
+"name": "Downtempo | Deep & Atmospheric Chill Music",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLYkB2GLfxxJcleXAzNz0qZH_mOtIQrhvS",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLXy0SqcEcqQz8ONlAh97-L_csSoeRVTwJ",
+"name": "trip hop/ambient/downtempo 90s/2000s",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLXy0SqcEcqQz8ONlAh97-L_csSoeRVTwJ",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLcM4ZwI542Co146AHagFZuYMnw437loMq",
+"name": "⏩ 1990s Trip Hop | Lofi Classics | 90s | Triphop Playlist & Mix of Classic Downtempo Tunes ⏪",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLcM4ZwI542Co146AHagFZuYMnw437loMq",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPL2svs2ulMy7uC85zFv85e3DinfGOPy1VS",
+"name": "Downtempo deathcore  mix",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPL2svs2ulMy7uC85zFv85e3DinfGOPy1VS",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPL_b64CPVKPiN_J3LkUnu9_DoKK2SSZDdE",
+"name": "Balearic Waves 🌊 Chillout & Downtempo Music",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPL_b64CPVKPiN_J3LkUnu9_DoKK2SSZDdE",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPL1TIFGuPCKFJGz5MMDY0dcMAxomlq9BZc",
+"name": "DOWNTEMPO DEATHCORE BRUTAL SLAMS",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPL1TIFGuPCKFJGz5MMDY0dcMAxomlq9BZc",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLCqLn9N4PRIRj72PI2RkeOxDkMImQB5rS",
+"name": "Latin Downtempo",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLCqLn9N4PRIRj72PI2RkeOxDkMImQB5rS",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLwA37iDNhKqWiZx7N5PrCcuY5xH3L5pYz",
+"name": "Downtempo dnb",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLwA37iDNhKqWiZx7N5PrCcuY5xH3L5pYz",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+}
+],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"playlist\"], \"search_query\": \"italian\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [],
+"playlists": [
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLeffkdQ-r0eBWwi1VqZHDkgcVidR1TJUU",
+"name": "italian cooking music",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLeffkdQ-r0eBWwi1VqZHDkgcVidR1TJUU",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLDf94jp-w2nTMh9tUBbtW9QGrgy5xA2BD",
+"name": "Italian cooking music",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLDf94jp-w2nTMh9tUBbtW9QGrgy5xA2BD",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLscbe1HLfAPcb2MYx96Jk83Xzwn2P_FPK",
+"name": "ITALIAN GREATEST HITS",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLscbe1HLfAPcb2MYx96Jk83Xzwn2P_FPK",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPL4eGzAjNX7YrJ7RFlhEVQWAf1nmlhjnED",
+"name": "Italian Vibes & Mediterranean Music",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPL4eGzAjNX7YrJ7RFlhEVQWAf1nmlhjnED",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLflB1g9uIEJsM5s1c6Men8YYZlEsSjDEV",
+"name": "Top Italian Hits of All Time",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLflB1g9uIEJsM5s1c6Men8YYZlEsSjDEV",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLrC4cVutPOw_QJjt8GGTkeAl062AIhy5R",
+"name": "Italian Summer Songs 2026 - Best Italian Summer Music 2026 - Italian Summer Hits 2026",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLrC4cVutPOw_QJjt8GGTkeAl062AIhy5R",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLEEALf18HY4w",
+"name": "Italian Viking",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLEEALf18HY4w",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPL0ntjOS9gL3XiLvgChF459LzkDBIalYEm",
+"name": "Italian Vibes & Mediterranean Music",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPL0ntjOS9gL3XiLvgChF459LzkDBIalYEm",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLmM-TRzBOiDfKYxZsfm5cq_s_Prg5lrtM",
+"name": "Italian songs with Italian and English translations",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLmM-TRzBOiDfKYxZsfm5cq_s_Prg5lrtM",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLloxRkIwt8TNNE2f3U_hMskWEaY38pr1s",
+"name": "Italian Café by Putumayo",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLloxRkIwt8TNNE2f3U_hMskWEaY38pr1s",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+}
+],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"playlist\"], \"search_query\": \"jazz\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [],
+"playlists": [
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLV8JEVXS4su7_R87iyEjNZ-_qHtjbbUvB",
+"name": "25 Greatest Jazz Songs",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLV8JEVXS4su7_R87iyEjNZ-_qHtjbbUvB",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPL968yEAV0YEZnDmZTVbVMJm9PskiW5EYd",
+"name": "モダンJAZZ名曲",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPL968yEAV0YEZnDmZTVbVMJm9PskiW5EYd",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLXRChqovg_5UWLFPVXIDCsqBUOm3SKwEE",
+"name": "🎺～Swingy Jazz   乗りの良いスタンダードジャズ",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLXRChqovg_5UWLFPVXIDCsqBUOm3SKwEE",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLWQ7zGySPPMmixa6biSadAGLHPOvHvKPQ",
+"name": "Jazz Legends Music Collection : Louis Armstrong, Frank Sinatra, Nina Simone, Miles Davis, Nat King Cole, Ray Charles, Glenn Miller, Louis Prima, ...",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLWQ7zGySPPMmixa6biSadAGLHPOvHvKPQ",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPL8F6B0753B2CCA128",
+"name": "Top 100+ Jazz Classics Playlist | Best Jazz Music of All Time",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPL8F6B0753B2CCA128",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLVZJ4OQIe9iNE4un9yGkU4woca3HO5IjR",
+"name": "Spring Jazz 2025",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLVZJ4OQIe9iNE4un9yGkU4woca3HO5IjR",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLEz_mLoNZMeQBBNPjR03BIHDTb_xHA-BZ",
+"name": "Blue Note: The Finest In Jazz Since 1939",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLEz_mLoNZMeQBBNPjR03BIHDTb_xHA-BZ",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPL-4U2d6ASRHmDr1n25hr1B2dZzkvJcUHM",
+"name": "Dinner Jazz Music",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPL-4U2d6ASRHmDr1n25hr1B2dZzkvJcUHM",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLgFr7aeHevcQPGguwJdr6i7OH1ssRtJuV",
+"name": "Autumn Jazz Music Playlist",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLgFr7aeHevcQPGguwJdr6i7OH1ssRtJuV",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLtJz7e7kDkaP67S6s78ztAjjx4JbouTa-",
+"name": "Jazz Fusion 2026 - Best Jazz Fusion 2026 Song",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLtJz7e7kDkaP67S6s78ztAjjx4JbouTa-",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+}
+],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"playlist\"], \"search_query\": \"video game pretty songs\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [],
+"playlists": [
+{
+"uri": "library://playlist/8",
+"name": "video game pretty songs",
+"media_type": "playlist",
+"provider": "library",
+"item_id": "8",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+}
+],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"radio\"], \"search_query\": \"90s 2000s and today's hits\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"radio\"], \"search_query\": \"90s, 2000s, Today's Hits Radio\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [],
+"playlists": [],
+"radio": [
+{
+"uri": "library://radio/263",
+"name": "90s, 2000s, Today's Hits Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "263",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+}
+]
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"radio\"], \"search_query\": \"Hotel Costas Radio\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"radio\"], \"search_query\": \"Hotel Costas\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"radio\"], \"search_query\": \"Orbital\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [],
+"playlists": [],
+"radio": [
+{
+"uri": "library://radio/294",
+"name": "Orbital Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "294",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+}
+]
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"radio\"], \"search_query\": \"Zorblax Fnordwave Nonexistent\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"radio\"], \"search_query\": \"\\\"90s, 2000's and today's hits\\\"\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"radio\"], \"search_query\": \"a zzqx florbent\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"radio\"], \"search_query\": \"an orbital\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"radio\"], \"search_query\": \"deep house\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [],
+"playlists": [],
+"radio": [
+{
+"uri": "library://radio/280",
+"name": "Deep House Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "280",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "pandora://radio/seed:TR:114269409",
+"name": "Deep House Radio",
+"media_type": "radio",
+"provider": "pandora",
+"item_id": "seed:TR:114269409",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+}
+]
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"radio\"], \"search_query\": \"downtempo\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [],
+"playlists": [],
+"radio": [
+{
+"uri": "library://radio/278",
+"name": "Downtempo Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "278",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "pandora://radio/seed:AR:9415096",
+"name": "Downtempo Radio",
+"media_type": "radio",
+"provider": "pandora",
+"item_id": "seed:AR:9415096",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+}
+]
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"radio\"], \"search_query\": \"italian\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [],
+"playlists": [],
+"radio": [
+{
+"uri": "pandora://radio/seed:TR:35332644",
+"name": "Italian Radio",
+"media_type": "radio",
+"provider": "pandora",
+"item_id": "seed:TR:35332644",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+}
+]
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"radio\"], \"search_query\": \"jazz\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [],
+"playlists": [],
+"radio": [
+{
+"uri": "library://radio/258",
+"name": "Mushroom Jazz Radio",
+"media_type": "radio",
+"provider": "library",
+"item_id": "258",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+},
+{
+"uri": "pandora://radio/seed:GE:515",
+"name": "Jazz Radio",
+"media_type": "radio",
+"provider": "pandora",
+"item_id": "seed:GE:515",
+"provider_mappings": [
+{
+"provider_domain": "pandora"
+}
+]
+}
+]
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"radio\"], \"search_query\": \"ninety's two thousands and today's hits\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"radio\"], \"search_query\": \"zzqx florbent\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"track\"], \"search_query\": \"Albuquerque by Weird Al Yankovic\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [
+{
+"uri": "ytmusic--kGmHoQDn://track/ooI3u4uzEss",
+"name": "Albuquerque",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "ooI3u4uzEss",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "\"Weird Al\" Yankovic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/TqKaVDo9cjs",
+"name": "NOW That's What I Call Polka!",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "TqKaVDo9cjs",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "\"Weird Al\" Yankovic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/v67c9psD1Xw",
+"name": "Tacky",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "v67c9psD1Xw",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "\"Weird Al\" Yankovic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/3-Tp8mjIMbg",
+"name": "Dare to Be Stupid",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "3-Tp8mjIMbg",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "\"Weird Al\" Yankovic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/Wg_4b-1aWKg",
+"name": "Your Horoscope for Today",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "Wg_4b-1aWKg",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "\"Weird Al\" Yankovic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/aKbe-SUIOzs",
+"name": "Amish Paradise (Parody of \"Gangsta's Paradise\" by Coolio)",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "aKbe-SUIOzs",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "\"Weird Al\" Yankovic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/do5vXn_Rap4",
+"name": "(This Song's Just) Six Words Long",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "do5vXn_Rap4",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "\"Weird Al\" Yankovic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/ncBVU02buZM",
+"name": "The Saga Begins (Lyrical Adaption of \"American Pie\")",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "ncBVU02buZM",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "\"Weird Al\" Yankovic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/Uh-alkmzjqg",
+"name": "Handy",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "Uh-alkmzjqg",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "\"Weird Al\" Yankovic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/FZvgT4pVC_w",
+"name": "Jackson Park Express",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "FZvgT4pVC_w",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "\"Weird Al\" Yankovic"
+}
+]
+}
+],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"track\"], \"search_query\": \"Albuquerque\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [
+{
+"uri": "library://track/14251",
+"name": "Albuquerque",
+"media_type": "track",
+"provider": "library",
+"item_id": "14251",
+"provider_mappings": [
+{
+"provider_domain": "filesystem_local"
+}
+],
+"artists": [
+{
+"name": "Weird Al Yankovic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/ooI3u4uzEss",
+"name": "Albuquerque",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "ooI3u4uzEss",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "\"Weird Al\" Yankovic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/aKFygsDcDgw",
+"name": "Albuquerque",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "aKFygsDcDgw",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Vampirate Odessa"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/GwnFCri0zD0",
+"name": "Albuquerque",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "GwnFCri0zD0",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Neil Young"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/V705O8EkbZ4",
+"name": "Albuquerque",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "V705O8EkbZ4",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "El Gringo"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/Ek9bqg_chXM",
+"name": "Sua Presença",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "Ek9bqg_chXM",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Ivonaldo Albuquerque"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/SzSD49fVYko",
+"name": "Salmo 133",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "SzSD49fVYko",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Ivonaldo Albuquerque"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/XPOs121EIZ0",
+"name": "Jeová",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "XPOs121EIZ0",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Ivonaldo Albuquerque"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/cpllKnnlXwA",
+"name": "Jubiloso",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "cpllKnnlXwA",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Ivonaldo Albuquerque"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/GqWFM7TVQC4",
+"name": "Finitude, in Quiet",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "GqWFM7TVQC4",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Gabriel Albuquerqüe"
+}
+]
+}
+],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"track\"], \"search_query\": \"Burning Down the House by Talking Heads\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [
+{
+"uri": "ytmusic--kGmHoQDn://track/bgJ-hyzl6jg",
+"name": "Burning Down the House",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "bgJ-hyzl6jg",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Talking Heads"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/qKFn66dzdz0",
+"name": "I Zimbra",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "qKFn66dzdz0",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Talking Heads"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/jeBIMwxYBsU",
+"name": "Psycho Killer",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "jeBIMwxYBsU",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Burning Down The House"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/Lotl7IdXfcM",
+"name": "Burning Down the House",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "Lotl7IdXfcM",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Talking Heads"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/EJ9QJ1JA1N8",
+"name": "Love Goes to a Building on Fire",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "EJ9QJ1JA1N8",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Talking Heads"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/WymDCo0dkSY",
+"name": "Burning Down The House",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "WymDCo0dkSY",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Talking Heads"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/rx2_iHftARo",
+"name": "Slippery People",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "rx2_iHftARo",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Talking Heads"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/5H9s79yF9Z0",
+"name": "Burning down the house",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "5H9s79yF9Z0",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Sweet Little Band"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/Sc6FL2eccsM",
+"name": "Burning Down the House",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "Sc6FL2eccsM",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Paramore"
+}
+]
+}
+],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"track\"], \"search_query\": \"Burning Down the House\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [
+{
+"uri": "library://track/11611",
+"name": "Burning Down the House",
+"media_type": "track",
+"provider": "library",
+"item_id": "11611",
+"provider_mappings": [
+{
+"provider_domain": "filesystem_local"
+}
+],
+"artists": [
+{
+"name": "[unknown]"
+}
+]
+},
+{
+"uri": "library://track/13021",
+"name": "Burning Down The House",
+"media_type": "track",
+"provider": "library",
+"item_id": "13021",
+"provider_mappings": [
+{
+"provider_domain": "filesystem_local"
+}
+],
+"artists": [
+{
+"name": "Talking Heads"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/bgJ-hyzl6jg",
+"name": "Burning Down the House",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "bgJ-hyzl6jg",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Talking Heads"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/Sc6FL2eccsM",
+"name": "Burning Down the House",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "Sc6FL2eccsM",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Paramore"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/Lotl7IdXfcM",
+"name": "Burning Down the House",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "Lotl7IdXfcM",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Talking Heads"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/_chPBoR8IQw",
+"name": "Burning Down the House",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "_chPBoR8IQw",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "The Insurgency"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/sZdPGfU41Dc",
+"name": "Burning Down The House",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "sZdPGfU41Dc",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Slydub"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/ivs89RcEFFw",
+"name": "Burning Down the House",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "ivs89RcEFFw",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Ugly Kids Club"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/XPCVj6McKss",
+"name": "Bring Down the House",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "XPCVj6McKss",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Dean Brody"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/zFPnqenGCRs",
+"name": "I'll Burn This Bitch Down",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "zFPnqenGCRs",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Unbound Music"
+}
+]
+}
+],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"track\"], \"search_query\": \"Don't Stop Me Now by Queen\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [
+{
+"uri": "ytmusic--kGmHoQDn://track/1UjLFMg18cY",
+"name": "Don't Stop Me Now",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "1UjLFMg18cY",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Queen"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/5yO6GGIoNoc",
+"name": "Don't Stop Me Now",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "5yO6GGIoNoc",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "TBOX"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/Jd5PFiJDQOs",
+"name": "Don't Stop Me Now",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "Jd5PFiJDQOs",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Queen Machine"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/_IL77qFKgRw",
+"name": "Love of My Life",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "_IL77qFKgRw",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Queen"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/TUug2E45B9k",
+"name": "Don't Stop Me Now",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "TUug2E45B9k",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "The Royal Philharmonic Orchestra"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/2JIDfJHh4Wo",
+"name": "Don't Stop Me Now",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "2JIDfJHh4Wo",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Bohemian Rhapsody"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/2crb8Xw2AO4",
+"name": "Don't Stop Me Now",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "2crb8Xw2AO4",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Y-Studs A Cappella"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/0Ppgim7ah90",
+"name": "Don't Stop Me Now",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "0Ppgim7ah90",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "The Mariachis"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/qa46JjM3YU4",
+"name": "Don't Stop Me Now [Originally Performed By Queen]",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "qa46JjM3YU4",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Zoom Karaoke"
+}
+]
+}
+],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"track\"], \"search_query\": \"Don't Stop Me Now\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [
+{
+"uri": "ytmusic--kGmHoQDn://track/1UjLFMg18cY",
+"name": "Don't Stop Me Now",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "1UjLFMg18cY",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Queen"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/lGstGfL5x0A",
+"name": "Don't Stop Me Now",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "lGstGfL5x0A",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "TheRealSullyG"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/3l3p5qy9cqw",
+"name": "Don't Stop Me Now",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "3l3p5qy9cqw",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Avalon Black"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/QeLC0f-BZLg",
+"name": "Don’t Stop Me Now",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "QeLC0f-BZLg",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "University of South Carolina Marching Band"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/q6406jSCY8E",
+"name": "Don't Stop Me Now",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "q6406jSCY8E",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "VDVM"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/9FkkOhsBHB4",
+"name": "Can't Stop Me",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "9FkkOhsBHB4",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Jadakiss"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/AiiknOxoXak",
+"name": "dontstopme! (demo)",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "AiiknOxoXak",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "ISOxo"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/C75J03JXz24",
+"name": "Don't Stop The Music",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "C75J03JXz24",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Rihanna"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/amECw7omTXg",
+"name": "Stop Me Now",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "amECw7omTXg",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Melo Nada"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/2nX6qGeyaGM",
+"name": "I Don't Wanna Stop",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "2nX6qGeyaGM",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Ozzy Osbourne"
+}
+]
+}
+],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"track\"], \"search_query\": \"Jazz Music by De-Phazz\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [
+{
+"uri": "ytmusic--kGmHoQDn://track/8Wa6yblVtYY",
+"name": "Jazz Music",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "8Wa6yblVtYY",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "De-Phazz"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/dwC1qblhJhI",
+"name": "Jazz Music",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "dwC1qblhJhI",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "De-Phazz"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/WY5fLN2qVFk",
+"name": "No Jive",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "WY5fLN2qVFk",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "De-Phazz"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/Kaq5V6GOe20",
+"name": "Rag'n'Jazz",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "Kaq5V6GOe20",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "De-Phazz"
+},
+{
+"name": "Pit Baumgartner"
+},
+{
+"name": "Oli Rubow"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/ho_g9dDeHFA",
+"name": "No Jive",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "ho_g9dDeHFA",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "De-Phazz"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/6CaVsYmS9v4",
+"name": "The Mambo Craze",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "6CaVsYmS9v4",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "De-Phazz"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/R2BTKHjlLVU",
+"name": "The Mambo Craze",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "R2BTKHjlLVU",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "De-Phazz"
+},
+{
+"name": "The Radio Bigband Frankfurt"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/s7sKoHTVVtE",
+"name": "How High the Hat",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "s7sKoHTVVtE",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "De-Phazz"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/62loWY3B2N0",
+"name": "Jim the Jin",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "62loWY3B2N0",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "De-Phazz"
+},
+{
+"name": "The Radio Bigband Frankfurt"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/6KzsUlddgVM",
+"name": "Belle de jour",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "6KzsUlddgVM",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "De-Phazz"
+},
+{
+"name": "The Radio Bigband Frankfurt"
+}
+]
+}
+],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"track\"], \"search_query\": \"Jazz Music\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [
+{
+"uri": "library://track/8698",
+"name": "Jazz Music",
+"media_type": "track",
+"provider": "library",
+"item_id": "8698",
+"provider_mappings": [
+{
+"provider_domain": "filesystem_local"
+}
+],
+"artists": [
+{
+"name": "De-Phazz"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/gYvpcFlKCg8",
+"name": "Jazz Cafe Music – Coffee Shop Ambience for Work & Study",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "gYvpcFlKCg8",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Rainy Jazz Club"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/FdTtOmuQNnM",
+"name": "Relaxing Jazz for old souls",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "FdTtOmuQNnM",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Relaxing Music"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/rP2I-Rr1aRQ",
+"name": "R&B Soul Jazz _ Smooth & Relaxing Songs for a Cozy Mood, Vol. 02",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "rP2I-Rr1aRQ",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Silent Waves M"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/rn1T2kMS7Qk",
+"name": "R&B Soul Jazz _ Smooth & Relaxing Cozy Seoul Soul",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "rn1T2kMS7Qk",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Silent Waves M"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/tujyFTUrP5E",
+"name": "Relaxing Jazz Coffee Music – Cafe Ambience & Rain Sounds",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "tujyFTUrP5E",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Rainy Jazz Club"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/54l0kpue7gM",
+"name": "Blue Suit Blues – Chicago Blues, Jazz for Late Night Relax Blues",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "54l0kpue7gM",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Blues Chicago"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/b9GQwCmyhtI",
+"name": "Beautiful Rainy Autumn Jazz | Cozy Café Music for Relax, Study & Work",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "b9GQwCmyhtI",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Nico Vale"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/tj4zjjNp1sc",
+"name": "Pure Chill",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "tj4zjjNp1sc",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Paul Hardcastle"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/_tCkdr0-Yjk",
+"name": "Coffee Shop Music – Relaxing Jazz Cafe Bass Instrumental",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "_tCkdr0-Yjk",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Jazz Instrumental Relax"
+}
+]
+}
+],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"track\"], \"search_query\": \"Lunchlady Land by Adam Sandler\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [
+{
+"uri": "ytmusic--kGmHoQDn://track/HsqyxsogrvA",
+"name": "Lunchlady Land",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "HsqyxsogrvA",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Adam Sandler"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/5F0EBd9lm64",
+"name": "The Buffoon and the Dean of Admissions",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "5F0EBd9lm64",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Adam Sandler"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/-47H99gKlo4",
+"name": "The Goat",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "-47H99gKlo4",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Adam Sandler"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/lvAoTSsMkBY",
+"name": "The Thanksgiving Song",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "lvAoTSsMkBY",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Adam Sandler"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/K1jyjSRYIuU",
+"name": "Oh Mom...",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "K1jyjSRYIuU",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Adam Sandler"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/WJKPuD_A_P0",
+"name": "The Excited Southerner at a Job Interview",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "WJKPuD_A_P0",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Adam Sandler"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/AxHEED36Djs",
+"name": "Ice Cream Lady",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "AxHEED36Djs",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Adam Sandler"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/AqZCep-wjSs",
+"name": "Stan the Man",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "AqZCep-wjSs",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Adam Sandler"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/ertX70-kvGQ",
+"name": "The Beating of a High School Bus Driver",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "ertX70-kvGQ",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Adam Sandler"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/BW0dE1xADvM",
+"name": "The Excited Southerner Proposes to a Woman",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "BW0dE1xADvM",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Adam Sandler"
+}
+]
+}
+],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"track\"], \"search_query\": \"Lunchlady Land\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [
+{
+"uri": "ytmusic--kGmHoQDn://track/HsqyxsogrvA",
+"name": "Lunchlady Land",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "HsqyxsogrvA",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Adam Sandler"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/lvAoTSsMkBY",
+"name": "The Thanksgiving Song",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "lvAoTSsMkBY",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Adam Sandler"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/9m1TGE9PJRs",
+"name": "The Chanukah Song",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "9m1TGE9PJRs",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Adam Sandler"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/IPpmb2ZNnJM",
+"name": "Back Of The Line",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "IPpmb2ZNnJM",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "The Tasteful Lunch Lady"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/8zFJGFHQwZg",
+"name": "I Will Nourish You",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "8zFJGFHQwZg",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "The Tasteful Lunch Lady"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/srq09I_6Eow",
+"name": "The Longest Pee",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "srq09I_6Eow",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Adam Sandler"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/vM5XUPjW-fQ",
+"name": "Ode to My Car",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "vM5XUPjW-fQ",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Adam Sandler"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/o2D0ghsYJ6s",
+"name": "Farley",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "o2D0ghsYJ6s",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Adam Sandler"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/UIim61b38dQ",
+"name": "Moyda",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UIim61b38dQ",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Adam Sandler"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/N4n99PQz1MA",
+"name": "Lunch Lady Land",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "N4n99PQz1MA",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Klass of 97"
+}
+]
+}
+],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"track\"], \"search_query\": \"Mambo No. 5 by Lou Bega\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [
+{
+"uri": "ytmusic--kGmHoQDn://track/RUBvqz3ozv8",
+"name": "Mambo No. 5 (a Little Bit of...)",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "RUBvqz3ozv8",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Lou Bega"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/DVFjOiG9HGw",
+"name": "Mambo No. 5 (A Little Bit Of...) [From \"Iron Man 3\"]",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "DVFjOiG9HGw",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Lou Bega"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/BKPg3o1F9pU",
+"name": "Mambo No. 5 (A Little Bit Of...) [From \"Iron Man 3\"]",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "BKPg3o1F9pU",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Lou Bega"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/wKf_daesjuU",
+"name": "Mambo No. 5 (A Little Bit Of...) [Re-Recorded]",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "wKf_daesjuU",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Lou Bega"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/PFqxHwKi8hg",
+"name": "Mambo No. 5 (A Little Bit Of...) [Re-Recorded]",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "PFqxHwKi8hg",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Lou Bega"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/_vEWxJMcQEc",
+"name": "Mambo No. 5 (A Little Bit Of...) [Re-Recorded]",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "_vEWxJMcQEc",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Lou Bega"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/HPPt9lMKKLI",
+"name": "Mambo No.5 (A Little Bit Of..) [Re-Recorded]",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "HPPt9lMKKLI",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Lou Bega"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/yVtOzCA8S0w",
+"name": "Mambo No. 5 (made famous by Lou Bega)",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "yVtOzCA8S0w",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "DJ Cardio"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/UOdFQnIs-8A",
+"name": "Mambo No. 5 (A Little Bit Of...) [Re-Recorded]",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UOdFQnIs-8A",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Lou Bega"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/DJS-rw9QH5A",
+"name": "Mambo No. 5 (A Little Bit Of...) [Re-Recorded] [From \"Iron Man 3\"]",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "DJS-rw9QH5A",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Lou Bega"
+}
+]
+}
+],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"track\"], \"search_query\": \"Mambo No. 5\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [
+{
+"uri": "ytmusic--kGmHoQDn://track/pSDOMsigouY",
+"name": "Mambo No. 5",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "pSDOMsigouY",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Pérez Prado"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/0mup6pp4DUw",
+"name": "Mambo No. 5",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "0mup6pp4DUw",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Summer Cem"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/ErWIeyJN1uE",
+"name": "Mambo No. 5",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "ErWIeyJN1uE",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Pérez Prado"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/tmPDBbndyZ0",
+"name": "Mambo No. 5",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "tmPDBbndyZ0",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Pérez Prado y Su Orquesta"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/RUBvqz3ozv8",
+"name": "Mambo No. 5 (a Little Bit of...)",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "RUBvqz3ozv8",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Lou Bega"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/FsYoopccheM",
+"name": "Mambo N. 5",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "FsYoopccheM",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Studio Sound Group"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/R_FV2JCwUoc",
+"name": "Mambo No. 5 (A Little Bit Of...) [From \"Iron Man 3\"]",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "R_FV2JCwUoc",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Lou Bega"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/w-d3Tx6_qk0",
+"name": "Mambo No. 8",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "w-d3Tx6_qk0",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Alfredo El Pulpo Y Sus Teclados"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/i43dNjO9MCE",
+"name": "Mambo N=°8",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "i43dNjO9MCE",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Various Artists - Azzurra Music"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/paowWVzyjH0",
+"name": "Mambo No. 5 (a Little Bit...)",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "paowWVzyjH0",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Keith Orlando"
+}
+]
+}
+],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"track\"], \"search_query\": \"Mr. Brightside by The Killers\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [
+{
+"uri": "ytmusic--kGmHoQDn://track/m2zUrruKjDQ",
+"name": "Mr. Brightside",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "m2zUrruKjDQ",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "The Killers"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/u37FcnAiYo4",
+"name": "Mr. Brightside",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "u37FcnAiYo4",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "ZYRRA"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/om_eofxS0PM",
+"name": "Mr. Brightside",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "om_eofxS0PM",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "The Whiskey Brothers"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/zFXavxarXmc",
+"name": "Mr. Brightside",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "zFXavxarXmc",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Manchester String Quartet"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/AVd85nLHaUg",
+"name": "Mr Brightside",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "AVd85nLHaUg",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Relaxing Piano Covers"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/KmjjvdhAhEw",
+"name": "Mr. Brightside",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "KmjjvdhAhEw",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Cutt"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/jimJfy3Uqx8",
+"name": "Mr. Brightside (The Killers Cover)",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "jimJfy3Uqx8",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "The Smallest One"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/8fOzJ6XbDVM",
+"name": "Mr. Brightside",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "8fOzJ6XbDVM",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Singer's Best"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/_dNqyplZvZ0",
+"name": "Mr. Brightside (Made Popular By The Killers)",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "_dNqyplZvZ0",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Party Tyme Karaoke"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/AVJnMbPZOK8",
+"name": "Mr. Brightside",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "AVJnMbPZOK8",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Leo Stannard"
+},
+{
+"name": "Janet Devlin"
+}
+]
+}
+],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"track\"], \"search_query\": \"Mr. Brightside\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [
+{
+"uri": "ytmusic--kGmHoQDn://track/m2zUrruKjDQ",
+"name": "Mr. Brightside",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "m2zUrruKjDQ",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "The Killers"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/IatH77IgpKg",
+"name": "Mr. Brightside",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "IatH77IgpKg",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Jonathan Young"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/fkYV-F0icy8",
+"name": "Mr. Brightside",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "fkYV-F0icy8",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Sydney Rose"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/MblXh0HdiKg",
+"name": "Mr. Brightside",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MblXh0HdiKg",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "sedward"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/j95YnoMw-WU",
+"name": "Mr Brightside",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "j95YnoMw-WU",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Esquire & Petch"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/b0m8dBdPs1M",
+"name": "Mr. Brightside",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "b0m8dBdPs1M",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Power Music Workout"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/BYEKhcIHW18",
+"name": "Mr. Brightside",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "BYEKhcIHW18",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Charlotte Campbell"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/YO1S-n7etG0",
+"name": "Mr Brightside 2k11",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "YO1S-n7etG0",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Thirteen Army"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/_C7x47ljusI",
+"name": "mr. brightside (rmx)",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "_C7x47ljusI",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "heffy"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/9vypWrNwOsU",
+"name": "Mr.Brightside",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "9vypWrNwOsU",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "POLO PERKS <3 <3 <3"
+}
+]
+}
+],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"track\"], \"search_query\": \"The Girl with the Sun in Her Head by Orbital\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [
+{
+"uri": "ytmusic--kGmHoQDn://track/o5b8NpdySNo",
+"name": "The Girl With The Sun In Her Head",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "o5b8NpdySNo",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Orbital"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/SoVJagJCKxY",
+"name": "The Girl with the Sun in Her Head",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "SoVJagJCKxY",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Orbital"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/azMwafo1ylk",
+"name": "The Girl With the Sun In Her Head",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "azMwafo1ylk",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Orbital"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/pnkRcf8KiSo",
+"name": "The Girl with the Sun in Her Head",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "pnkRcf8KiSo",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Orbital"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/EHj6MbmaKKs",
+"name": "The Girl with the Sun in Her Hair",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "EHj6MbmaKKs",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "John Barry Orchestra"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/Np_NsRgb4Eg",
+"name": "HALCYON + ON + ON",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "Np_NsRgb4Eg",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Orbital"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/mX97tGeOd2w",
+"name": "Desert Storm",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "mX97tGeOd2w",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Orbital"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/4gz5vbA9zK0",
+"name": "Petrol",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "4gz5vbA9zK0",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Orbital"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/cD3l2kbD9CA",
+"name": "The Box",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "cD3l2kbD9CA",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Orbital"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/pKY3emCtaik",
+"name": "Are We Here?",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "pKY3emCtaik",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Orbital"
+}
+]
+}
+],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"track\"], \"search_query\": \"The Girl with the Sun in Her Head\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [
+{
+"uri": "library://track/1520",
+"name": "The Girl With The Sun In Her Head",
+"media_type": "track",
+"provider": "library",
+"item_id": "1520",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+},
+{
+"provider_domain": "filesystem_local"
+}
+],
+"artists": [
+{
+"name": "Orbital"
+}
+]
+},
+{
+"uri": "library://track/10869",
+"name": "the girl with the sun in her head",
+"media_type": "track",
+"provider": "library",
+"item_id": "10869",
+"provider_mappings": [
+{
+"provider_domain": "filesystem_local"
+}
+],
+"artists": [
+{
+"name": "Orbital"
+}
+]
+}
+],
+"playlists": [],
+"radio": []
+}
+}
+}
