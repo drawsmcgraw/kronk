@@ -240,3 +240,166 @@ async def test_plan_unmatched_routes_to_coordinator(text):
     route, rule = await routing._classify_inner(text)
     assert route == "direct"
     assert rule == "default"
+
+
+# ── Direct dispatch (sprint M7): utterance → (tool, args) ───────────────────
+# Five rules fix the whole tool call from the match's named groups; the
+# pipeline runs it with no model call. The words are the plan's table
+# (M7, "Scope"); the "regex extra" lines are spellings today's regexes
+# already accepted that the table does not list, with what they map to.
+
+PB = "control_music"
+DIRECT_TABLE = [
+    # playback → control_music
+    ("stop", PB, {"action": "pause"}),
+    ("Stop!", PB, {"action": "pause"}),
+    (" Stop!", PB, {"action": "pause"}),
+    ("stop the music", PB, {"action": "pause"}),
+    ("pause", PB, {"action": "pause"}),
+    ("Pause.", PB, {"action": "pause"}),
+    ("please pause the music", PB, {"action": "pause"}),
+    ("pause it please", PB, {"action": "pause"}),
+    ("shut up", PB, {"action": "pause"}),
+    ("resume", PB, {"action": "resume"}),
+    ("Resume the music.", PB, {"action": "resume"}),
+    ("unpause", PB, {"action": "resume"}),
+    ("skip", PB, {"action": "next"}),
+    ("Skip!", PB, {"action": "next"}),
+    ("skip this song", PB, {"action": "next"}),
+    ("next", PB, {"action": "next"}),
+    ("next track", PB, {"action": "next"}),             # regex extra
+    ("skip the song", PB, {"action": "next"}),          # regex extra
+    ("louder", PB, {"action": "volume_up"}),
+    ("turn it up", PB, {"action": "volume_up"}),
+    ("turn that up", PB, {"action": "volume_up"}),      # regex extra
+    ("turn the music up", PB, {"action": "volume_up"}), # regex extra
+    ("turn the volume up", PB, {"action": "volume_up"}),  # regex extra
+    ("volume up", PB, {"action": "volume_up"}),
+    ("quieter", PB, {"action": "volume_down"}),
+    ("Turn it down.", PB, {"action": "volume_down"}),
+    ("turn the volume down", PB, {"action": "volume_down"}),  # regex extra
+    ("volume down", PB, {"action": "volume_down"}),
+    # now_playing → now_playing, no arguments
+    ("what song is this", "now_playing", {}),
+    ("What's playing?", "now_playing", {}),
+    ("Who is this?", "now_playing", {}),
+    ("who sings this song", "now_playing", {}),
+    ("what am I listening to", "now_playing", {}),
+    # rate → rate_music
+    ("thumbs up", "rate_music", {"thumb": "up"}),
+    ("Thumbs up.", "rate_music", {"thumb": "up"}),
+    ("thumbs up on this song", "rate_music", {"thumb": "up"}),
+    ("thumb up", "rate_music", {"thumb": "up"}),           # regex extra
+    ("I like this song", "rate_music", {"thumb": "up"}),
+    ("love this one", "rate_music", {"thumb": "up"}),
+    ("upvote", "rate_music", {"thumb": "up"}),
+    ("up vote this song", "rate_music", {"thumb": "up"}),  # regex extra
+    ("more like this", "rate_music", {"thumb": "up"}),
+    ("kronk, more like this song please", "rate_music", {"thumb": "up"}),
+    ("thumbs down", "rate_music", {"thumb": "down"}),
+    ("Thumbs down.", "rate_music", {"thumb": "down"}),
+    ("I hate this song", "rate_music", {"thumb": "down"}),
+    ("dislike this track", "rate_music", {"thumb": "down"}),
+    ("I don't like this song", "rate_music", {"thumb": "down"}),
+    ("never play this again", "rate_music", {"thumb": "down"}),
+    ("never play this song again", "rate_music", {"thumb": "down"}),
+    ("don't play that one again", "rate_music", {"thumb": "down"}),  # regex extra
+    ("downvote", "rate_music", {"thumb": "down"}),
+    ("less like this", "rate_music", {"thumb": "down"}),
+    # music_another → play_music kind another; a named room is the player
+    ("not that", "play_music", {"query": "another", "kind": "another"}),
+    ("no, not this one", "play_music", {"query": "another", "kind": "another"}),
+    ("play something else", "play_music", {"query": "another", "kind": "another"}),
+    ("try something different", "play_music", {"query": "another", "kind": "another"}),
+    ("a different song please", "play_music", {"query": "another", "kind": "another"}),
+    ("not that in the office", "play_music",
+     {"query": "another", "kind": "another", "player": "office"}),
+    ("something else in the Basement Theater.", "play_music",
+     {"query": "another", "kind": "another", "player": "Basement Theater"}),
+    ("not that on the Satellite1 speaker", "play_music",
+     {"query": "another", "kind": "another", "player": "Satellite1 speaker"}),
+    # mm_update → update_magicmirror, no arguments (its own guard still runs)
+    ("update the magic mirror", "update_magicmirror", {}),
+    ("Update the magicmirror", "update_magicmirror", {}),
+    ("Okay, update the magic mirror please", "update_magicmirror", {}),
+]
+
+DIRECT_RULES = {"playback", "now_playing", "rate", "music_another", "mm_update"}
+
+
+@pytest.mark.parametrize("text,tool,args", DIRECT_TABLE, ids=[t for t, _, _ in DIRECT_TABLE])
+def test_direct_call_from_the_match(text, tool, args):
+    d = routing.decide(text)
+    assert d.route == "home" and d.rule in DIRECT_RULES, d
+    assert d.direct == (tool, args)
+
+
+@pytest.mark.parametrize("text,rule", [
+    # documented negatives (plan M7 Verify; _PLAYBACK_RE's comment)
+    ("stop the timer", "default"),
+    ("pause my subscription", "default"),
+    ("what is the next holiday", "default"),
+    # a named room keeps the request on the model path (plan M7 Tradeoff)
+    ("pause the music in the office", "default"),
+    ("skip this song in the kitchen", "default"),
+    ("what's playing in the kitchen", "default"),
+    ("thumbs up in the office", "default"),
+    # rules outside M7's scope never dispatch directly
+    ("play another one", "music"),          # not _ANOTHER_RE; see M7-build.md
+    ("play some jazz", "music"),
+    ("never play nickelback", "taste"),
+    ("what's the weather like", "weather"),
+    ("look up the magic mirror", "search_phrase"),
+    ("update magic mirror", "mm_ops"),
+    ("what's the uptime of the magic mirror", "mm_ops"),
+    ("I like this", "default"),
+    ("hello", "default"),
+])
+def test_no_direct_call_off_the_five_rules(text, rule):
+    d = routing.decide(text)
+    assert d.rule == rule and d.direct is None, d
+
+
+def test_exactly_the_five_rules_carry_a_direct_call():
+    assert {r.name for r in routing.RULES if r.direct} == DIRECT_RULES
+
+
+def test_every_pinned_utterance_decides_with_a_direct_call_iff_in_scope():
+    """Over the 6415-utterance routing pin: decide() never raises (one
+    action group per match), and a direct call exists exactly for the five
+    rules."""
+    import json
+    from pathlib import Path
+    pin = Path(__file__).resolve().parent / "fixtures" / "routing_pin.jsonl"
+    for line in pin.read_text().splitlines():
+        row = json.loads(line)
+        d = routing.decide(row["text"])
+        assert (d.route, d.rule) == (row["route"], row["rule"]), row
+        assert (d.direct is not None) == (d.rule in DIRECT_RULES), row
+
+
+def test_direct_tools_are_home_terminal_tools():
+    """The direct call runs a tool the home agent holds and ends the turn
+    on, so the direct path and the agent path end the same way."""
+    import agents
+    home = agents.AGENTS["home"]
+    for text, tool, _ in DIRECT_TABLE:
+        assert tool in home.terminal_tools, tool
+        assert tool in {d["function"]["name"] for d in home.tool_defs()}, tool
+
+
+def test_direct_args_are_fresh_per_call():
+    a, b = routing.decide("not that").direct, routing.decide("not that").direct
+    a[1]["player"] = "x"
+    assert "player" not in b[1]
+
+
+@pytest.mark.asyncio
+async def test_direct_decision_event_carries_direct_true(caplog):
+    import json
+    caplog.set_level("INFO", logger="kronk.events")
+    assert await routing.classify("pause", []) == "home"
+    ev = [json.loads(r.getMessage()) for r in caplog.records if r.name == "kronk.events"][-1]
+    assert {k: ev[k] for k in ("event", "rule", "route", "direct", "tool")} == {
+        "event": "route_shortcut", "rule": "playback", "route": "home",
+        "direct": True, "tool": "control_music"}

@@ -134,16 +134,26 @@ def asks_for_mirror_update(text: str | None) -> bool:
 # bare "Stop!" with "Stop what?" (INVESTIGATION_2026-09-10_voice_stop).
 # Anchored start-to-end on purpose: "stop the timer", "pause my
 # subscription", "what is the next holiday" must not match.
+# Sprint M7: the match also fixes control_music's action, so the rule calls
+# the tool directly (RULES below). Each branch carries one named group;
+# _PLAYBACK_ACTIONS maps it to the action. "stop" means pause (the home
+# prompt's rule and tool_service's: pause keeps the queue for "resume").
 _PLAYBACK_RE = re.compile(
     r"^\W*(?:please\s+)?(?:"
-    r"(?:stop|pause|resume|unpause|skip|next|shut\s+up)"
+    r"(?:(?P<pause>stop|pause|shut\s+up)|(?P<resume>resume|unpause)|(?P<next>skip|next))"
     r"(?:\s+(?:the|this|that|my)?\s*(?:music|song|track|it|playback|playing))?"
-    r"|(?:skip|next)\s+(?:this\s+|the\s+)?(?:song|track)"
-    r"|turn\s+(?:it|that|the\s+(?:music|volume))\s+(?:up|down)"
-    r"|louder|quieter|volume\s+(?:up|down)"
+    r"|(?P<next_track>skip|next)\s+(?:this\s+|the\s+)?(?:song|track)"
+    r"|turn\s+(?:it|that|the\s+(?:music|volume))\s+(?:(?P<turn_up>up)|(?P<turn_down>down))"
+    r"|(?P<louder>louder)|(?P<quieter>quieter)"
+    r"|volume\s+(?:(?P<volume_up>up)|(?P<volume_down>down))"
     r")(?:\s+please)?\W*$",
     re.IGNORECASE,
 )
+_PLAYBACK_ACTIONS = {
+    "pause": "pause", "resume": "resume", "next": "next", "next_track": "next",
+    "turn_up": "volume_up", "louder": "volume_up", "volume_up": "volume_up",
+    "turn_down": "volume_down", "quieter": "volume_down", "volume_down": "volume_down",
+}
 
 # Music requests pin to the home agent, which owns play_music. Added
 # 2026-10-05 after the coordinator answered blueprint misses itself with no
@@ -179,16 +189,25 @@ _MUSIC_RE = re.compile(
 # (2026-10-06, MA_LOCAL_PANDORA_FEATURES_PLAN). Anchored; the whole utterance
 # is the verdict. "I like this" alone is left to the coordinator — too
 # ambiguous without "song"/"one"/"track".
+# Sprint M7: the named group that matched fixes rate_music's thumb
+# (_RATE_THUMBS), so the rule calls the tool directly.
 _RATE_RE = re.compile(
     r"^\W*(?:please\s+|kronk,?\s+)*(?:"
-    r"thumbs?\s*(?:up|down)(?:\s+(?:on|for|to)?\s*(?:this|that|the)?\s*(?:song|track|one|station|it))?"
-    r"|(?:i\s+)?(?:like|love|hate|dislike|don'?t\s+like)\s+(?:this|that)\s+(?:song|track|one|tune)"
-    r"|(?:never|don'?t)\s+play\s+(?:this|that)(?:\s+(?:song|track|one))?\s+again"
-    r"|(?:up|down)\s*vote(?:\s+(?:this|that)(?:\s+(?:song|track|one))?)?"
-    r"|(?:more|less)\s+like\s+(?:this|that)(?:\s+(?:song|track|one))?"
+    r"thumbs?\s*(?:(?P<thumbs_up>up)|(?P<thumbs_down>down))"
+    r"(?:\s+(?:on|for|to)?\s*(?:this|that|the)?\s*(?:song|track|one|station|it))?"
+    r"|(?:i\s+)?(?:(?P<like>like|love)|(?P<dislike>hate|dislike|don'?t\s+like))"
+    r"\s+(?:this|that)\s+(?:song|track|one|tune)"
+    r"|(?P<never_again>(?:never|don'?t)\s+play\s+(?:this|that)(?:\s+(?:song|track|one))?\s+again)"
+    r"|(?:(?P<upvote>up)|(?P<downvote>down))\s*vote(?:\s+(?:this|that)(?:\s+(?:song|track|one))?)?"
+    r"|(?:(?P<more>more)|(?P<less>less))\s+like\s+(?:this|that)(?:\s+(?:song|track|one))?"
     r")(?:\s+please)?\W*$",
     re.IGNORECASE,
 )
+_RATE_THUMBS = {
+    "thumbs_up": "up", "like": "up", "upvote": "up", "more": "up",
+    "thumbs_down": "down", "dislike": "down", "never_again": "down", "downvote": "down",
+    "less": "down",
+}
 
 # "Not that" after Kronk picked a genre plays the next pick (MUSIC_TASTE_
 # AGENT_PLAN step 5). Anchored: the whole utterance is the rejection.
@@ -198,8 +217,9 @@ _ANOTHER_RE = re.compile(
     r"|(?:play\s+|try\s+|put\s+on\s+)?something\s+(?:else|different)"
     r"|(?:play\s+|try\s+)?(?:a\s+)?different\s+(?:one|song|station|music|genre|artist)"
     r")(?:\s+please)?"
-    # the music blueprint appends the satellite's room (KRONK change 9)
-    r"(?:\s+(?:in|on)\s+the\s+[\w' -]{1,40}?)?\W*$",
+    # the music blueprint appends the satellite's room (KRONK change 9);
+    # the `room` group is passed on as play_music's player (sprint M7)
+    r"(?:\s+(?:in|on)\s+the\s+(?P<room>[\w' -]{1,40}?))?\W*$",
     re.IGNORECASE,
 )
 
@@ -252,17 +272,46 @@ _NOW_PLAYING_RE = re.compile(
 # rule is added, removed, reordered or widened without captured data
 # showing the same failure several times (stopping rule, Drew 2026-11-11).
 
+#
+# Direct dispatch (sprint M7). For five rules the match alone fixes the tool
+# call, so `direct` builds (tool_name, args) from the match's named groups
+# and the pipeline runs that tool with no model call
+# (main._run_pipeline, docs/features/agents-as-tools-routing.md). Every
+# other rule has direct=None and goes to its agent as before.
+
+DirectCall = tuple[str, dict]
+
+
 @dataclass(frozen=True)
 class Rule:
     name: str                      # the `rule` in events, spans and the corpus
     route: str                     # an agent name, or "direct" (the coordinator)
     match: Callable[[str], object]  # truthy when the rule applies
+    direct: Callable[[object], DirectCall] | None = None   # match -> the tool call
 
 
 @dataclass(frozen=True)
 class Decision:
     route: str
     rule: str
+    direct: DirectCall | None = None   # (tool_name, args) to run without a model
+
+
+def _group(m: re.Match, table: dict[str, str]) -> str:
+    """The value for the one named group of `table` that took part in m."""
+    hit = [table[k] for k, v in m.groupdict().items() if v is not None and k in table]
+    if len(hit) != 1:
+        raise AssertionError(f"expected one action group in {m.re.pattern[:40]!r}: {m.groupdict()}")
+    return hit[0]
+
+
+def _another_call(m: re.Match) -> DirectCall:
+    # query "another" per the tool definition; a room the user (or the
+    # blueprint) named is the player, as the home prompt has the model pass it.
+    args = {"query": "another", "kind": "another"}
+    if m.group("room"):
+        args["player"] = m.group("room")
+    return "play_music", args
 
 
 RULES: tuple[Rule, ...] = (
@@ -273,16 +322,23 @@ RULES: tuple[Rule, ...] = (
     Rule("url",             "research", lambda t: _URL_RE.search(t)),
     Rule("search_phrase",   "research", lambda t: _SEARCH_PHRASES.search(t)),
     Rule("weather",         "home",     lambda t: _WEATHER_RE.search(t)),
-    Rule("playback",        "home",     lambda t: _PLAYBACK_RE.search(t)),
-    Rule("now_playing",     "home",     lambda t: _NOW_PLAYING_RE.search(t)),
-    Rule("rate",            "home",     lambda t: _RATE_RE.search(t)),
-    Rule("music_another",   "home",     lambda t: _ANOTHER_RE.search(t)),
+    Rule("playback",        "home",     lambda t: _PLAYBACK_RE.search(t),
+         direct=lambda m: ("control_music", {"action": _group(m, _PLAYBACK_ACTIONS)})),
+    Rule("now_playing",     "home",     lambda t: _NOW_PLAYING_RE.search(t),
+         direct=lambda m: ("now_playing", {})),
+    Rule("rate",            "home",     lambda t: _RATE_RE.search(t),
+         direct=lambda m: ("rate_music", {"thumb": _group(m, _RATE_THUMBS)})),
+    Rule("music_another",   "home",     lambda t: _ANOTHER_RE.search(t),
+         direct=_another_call),
     Rule("taste",           "home",     lambda t: _TASTE_RE.search(t)),
     Rule("music",           "home",     lambda t: _MUSIC_RE.search(t)),
     # The magic mirror: the pinned update sentence is home's fast terminal
     # tool; anything else about the mirror is devops' remote_exec loop.
+    # update_magicmirror's own guard (origin.said) still decides whether
+    # the update runs: the direct call goes through tools.execute.
     Rule("mm_update",       "home",
-         lambda t: _MM_RE.search(t) and asks_for_mirror_update(t)),
+         lambda t: _MM_RE.search(t) and asks_for_mirror_update(t),
+         direct=lambda m: ("update_magicmirror", {})),
     Rule("mm_ops",          "devops",   lambda t: _MM_RE.search(t)),
     Rule("default",         "direct",   lambda t: True),
 )
@@ -290,10 +346,12 @@ RULES: tuple[Rule, ...] = (
 
 def decide(text: str) -> Decision:
     """The routing decision for `text`: the first rule in RULES that
-    accepts it. Pure: no event, no span (classify() records those)."""
+    accepts it, with its direct call when it has one. Pure: no event, no
+    span (classify() records those), so the pipeline can call it before
+    taking the model lock."""
     for rule in RULES:
-        if rule.match(text):
-            return Decision(rule.route, rule.name)
+        if m := rule.match(text):
+            return Decision(rule.route, rule.name, rule.direct(m) if rule.direct else None)
     raise AssertionError("unreachable: the default rule accepts everything")
 
 
@@ -306,21 +364,32 @@ async def classify(text: str, prior_history: list[dict]) -> str:
     """
     span = telemetry.root().child_span("routing.decide", input=text[:200])
     try:
-        route, rule = await _classify_inner(text)
-        span.end(output=route, metadata={"rule": rule})
-        return route
+        d = _record(decide(text), text)
+        meta = {"rule": d.rule}
+        if d.direct:
+            meta["direct"] = d.direct[0]
+        span.end(output=d.route, metadata=meta)
+        return d.route
     except Exception as e:
         span.end(level="ERROR", status_message=str(e)[:200])
         raise
 
 
-async def _classify_inner(text: str) -> tuple[str, str]:
-    """Returns (route, rule) where rule names the deciding mechanism, and
-    logs the decision: `route_shortcut` for a pinned rule, `route` for the
+def _record(d: Decision, text: str) -> Decision:
+    """Log the decision: `route_shortcut` for a pinned rule (with
+    direct=true and the tool when it dispatches directly), `route` for the
     default."""
-    d = decide(text)
     if d.rule == "default":
         emit("route", text_preview=text[:60], route=d.route, rule=d.rule)
+    elif d.direct:
+        emit("route_shortcut", rule=d.rule, route=d.route, direct=True, tool=d.direct[0])
     else:
         emit("route_shortcut", rule=d.rule, route=d.route)
+    return d
+
+
+async def _classify_inner(text: str) -> tuple[str, str]:
+    """Returns (route, rule) where rule names the deciding mechanism, and
+    logs the decision."""
+    d = _record(decide(text), text)
     return d.route, d.rule
