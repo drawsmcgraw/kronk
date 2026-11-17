@@ -182,7 +182,8 @@ def _terminal_speech(result: str, style: str = errors.DEBUG,
     # tools.execute on a transport failure. Spoken raw, that's a stack trace
     # read aloud; log the internals, speak a clean sentence with the cause
     # kept short in debug and dropped in friendly (2026-07-05 review P1.4).
-    logger.warning("terminal tool result had no speech mapping: %r", result[:300])
+    logger.warning("terminal tool result had no speech mapping (%d chars): %r", len(result),
+                   telemetry.text(result, 300))
     if line.lower().startswith("tool ") and " error: " in line:
         cause = line.split(" error: ", 1)[1]
         return errors.failure_text(f"That didn't work — the tool failed with {cause[:120]}.",
@@ -707,7 +708,7 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
             retracted = "".join(round_content)
             if retracted:
                 emit("round_content_retracted", agent=agent.name,
-                     chars=len(retracted), preview=retracted[:160])
+                     chars=len(retracted), preview=telemetry.text(retracted, 160))
                 yield {"type": "retract", "chars": len(retracted), "preview": retracted[:160]}
             messages.append(_build_assistant_msg("".join(round_content), round_tool_calls))
 
@@ -722,7 +723,7 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
                     note = str(fn_args.get("note") or "").strip() or (
                         f"the {agent.name} specialist could not fully answer this"
                     )
-                    emit("escalate", agent=agent.name, note=note[:120])
+                    emit("escalate", agent=agent.name, note=telemetry.text(note, 120))
                     agent_span.end(output=f"[escalated] {note}")
                     yield {"type": "escalated", "note": note}
                     return
@@ -891,7 +892,7 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
 
         final_text = "".join(final_content)
         if re.search(r"<\|?/?tool_call|<start_of_function_call", final_text):
-            emit("tool_syntax_leak", agent=agent.name, fragment=final_text[:120])
+            emit("tool_syntax_leak", agent=agent.name, fragment=telemetry.text(final_text, 120))
             logger.warning("Agent '%s' leaked tool-call syntax in forced synthesis; scrubbed", agent.name)
             final_text = (
                 "I ran out of research steps before completing every lookup. "

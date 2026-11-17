@@ -115,7 +115,8 @@ def test_on_health_reports_it(dry):
     assert TestClient(ts.app).get("/health").json()["music_dry_run"] is True
 
 
-def test_on_marks_the_trace(music_env, dry):
+def test_on_marks_the_trace(music_env, dry, monkeypatch):
+    monkeypatch.setattr(telemetry, "RECORD_TEXT", True)     # music.media_id is text (M12)
     exp = InMemorySpanExporter()
     telemetry.enable_for_tests(exp)
     try:

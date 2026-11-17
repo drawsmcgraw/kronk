@@ -954,7 +954,7 @@ async def _tool_update_magicmirror(client: httpx.AsyncClient, args: dict) -> str
     # before any request leaves the orchestrator.
     said = origin.said.get()
     if not routing.asks_for_mirror_update(said):
-        emit("mm_update_refused", said=(said or "")[:80])
+        emit("mm_update_refused", said=telemetry.text(said or "", 80))
         telemetry.current().set(**{"kronk.mm_update.refused": True})
         return f"[Magic mirror update refused: {MM_UPDATE_REFUSAL}]"
     resp = await client.post(f"{TOOL_SERVICE_URL}/magicmirror/update")

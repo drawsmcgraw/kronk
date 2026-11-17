@@ -324,7 +324,7 @@ async def _run_pipeline(
 ):
     rid = new_request_id()
     t_request = time.monotonic()
-    emit("request", text_preview=text[:80], model=COORDINATOR_MODEL)
+    emit("request", text_preview=telemetry.text(text, 80), model=COORDINATOR_MODEL)
     if (o := origin.current.get()):
         # Findable in one step when music lands in the wrong room (tenet 7).
         emit("origin", device=o.device_id, area=o.area)
@@ -1217,7 +1217,7 @@ async def _ollama_speech_stream(text: str, model: str, context: list[dict] | Non
                         # Already spoken; cannot be taken back. Counted so
                         # the hold can be widened from data (voice.yaml).
                         emit("voice_stream_retract_unhonoured", chars=ev["chars"],
-                             unhonoured=lost, hold=hold, preview=ev.get("preview", "")[:160])
+                             unhonoured=lost, hold=hold, preview=telemetry.text(ev.get("preview", ""), 160))
             except Exception as e:
                 logger.exception("voice stream buffer failed after %d chunks; "
                                  "sending the rest as one chunk", len(sent))

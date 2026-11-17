@@ -31,6 +31,7 @@ Env (set on the container — see docker-compose.yml):
 import json
 import logging
 import os
+import re
 import time
 from contextlib import contextmanager, nullcontext
 from contextvars import ContextVar
@@ -118,8 +119,9 @@ def instrument_app(app) -> None:
             excluded_urls=os.getenv("TELEMETRY_EXCLUDED_URLS", _DEFAULT_EXCLUDED),
             # One ASGI receive/send span per SSE chunk is a span per token.
             exclude_spans=["receive", "send"],
+            server_request_hook=_strip_url_attrs,
         )
-        HTTPXClientInstrumentor().instrument(tracer_provider=_provider)
+        HTTPXClientInstrumentor().instrument(tracer_provider=_provider, request_hook=_strip_url_attrs)
     except Exception as e:
         logger.error("telemetry: auto-instrumentation failed: %s", e)
 
@@ -160,6 +162,80 @@ def _attr_value(v: Any):
 def _text_preview(v: Any) -> str:
     s = v if isinstance(v, str) else json.dumps(v, default=str)
     return s[:TEXT_PREVIEW_CHARS]
+
+
+# ── The text switch beyond span previews (sprint M12) ──────────────────────
+# With TELEMETRY_RECORD_TEXT off, no span attribute and no log line carries
+# words a person said or a model wrote. Three places did regardless:
+# event-log previews (text(), below, at each call site), URL query strings
+# on the auto-instrumented server and client spans (a web search's q=, a
+# fetched URL), and the same query strings in the httpx and uvicorn access
+# log lines. With the switch on, all three are kept as before.
+
+_QUERY_RE = re.compile(r"(?<=[\w/])\?[\w%.~+-]+=[^\s\"']*")
+_URL_ATTRS = ("http.target", "http.url", "url.full", "url.query")
+
+
+def text(value: Any, limit: int) -> str | None:
+    """A text field for a log line or event: the first `limit` characters
+    with TELEMETRY_RECORD_TEXT on, else None."""
+    if not RECORD_TEXT or value is None:
+        return None
+    return str(value)[:limit]
+
+
+def strip_query(s: str) -> str:
+    """A URL or log message with each query string replaced by ?<query>."""
+    return _QUERY_RE.sub("?<query>", s)
+
+
+def _strip_url_attrs(span, *_a) -> None:
+    """Request hook for the FastAPI and httpx instrumentations: drop the
+    query string from the URL attributes unless text recording is on."""
+    if RECORD_TEXT:
+        return
+    try:
+        attrs = getattr(span, "attributes", None) or {}
+        for k in _URL_ATTRS:
+            v = attrs.get(k)
+            if isinstance(v, str) and v:
+                if k == "url.query":
+                    span.set_attribute(k, "<query>")
+                elif "?" in v:
+                    span.set_attribute(k, v.split("?", 1)[0] + "?<query>")
+    except Exception as e:
+        logger.debug("telemetry: url strip failed: %s", e)
+
+
+class _NoQueryText(logging.Filter):
+    """Rewrites query strings out of a log record's arguments (httpx's
+    "HTTP Request: GET <url>", uvicorn's access line) unless text recording
+    is on. Arguments, not the message: uvicorn's formatter unpacks them."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        if RECORD_TEXT or not isinstance(record.args, tuple):
+            return True
+        record.args = tuple(_clean_arg(a) for a in record.args)
+        return True
+
+
+def _clean_arg(a):
+    if a is None or isinstance(a, (int, float)):
+        return a
+    s = str(a)
+    return strip_query(s) if "?" in s else a
+
+
+def install_log_filters() -> None:
+    """Attach the query-string filter to the httpx and uvicorn access
+    loggers. Idempotent. Runs at import, whether or not tracing is on."""
+    for name in ("httpx", "uvicorn.access"):
+        lg = logging.getLogger(name)
+        if not any(isinstance(f, _NoQueryText) for f in lg.filters):
+            lg.addFilter(_NoQueryText())
+
+
+install_log_filters()
 
 
 class _NoopObs:

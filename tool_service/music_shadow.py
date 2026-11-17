@@ -151,7 +151,7 @@ async def run(req: dict, result: dict | None, error: str | None, sent: dict, liv
                 record["new"] = new_summary(decided, (time.monotonic() - t0) * 1000)
                 record["agree"], record["why"] = compare(record["live"], record["new"])
     except Exception as e:                       # the shadow never surfaces a failure
-        logger.warning("music shadow failed for %r: %s", req.get("said"), e, exc_info=True)
+        logger.warning("music shadow failed for %r: %s", telemetry.text(req.get("said"), 120), e, exc_info=True)
         record["new"] = {**record.get("new", {}), "error": f"{type(e).__name__}: {str(e)[:200]}"}
     new = record.get("new") or {}
     with telemetry.span("music.shadow", **{

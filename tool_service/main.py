@@ -1228,8 +1228,9 @@ def _dry_run_result(action: str, label: str, entities: list[str], detail: str, *
     """The answer for a request MUSIC_DRY_RUN suppressed, with its trace mark."""
     with telemetry.span("music.dry_run", **{"music.dry_run": True, "music.action": action,
                                             "music.targets": entities,
-                                            "music.media_id": (extra.get("would_play") or {}).get("media_id")}):
-        logger.info("music dry run: %s on %s: %s", action, entities, detail)
+                                            "music.media_id": telemetry.text(
+                                                (extra.get("would_play") or {}).get("media_id"), 200)}):
+        logger.info("music dry run: %s on %s: %s", action, entities, telemetry.text(detail, 300))
     return {"status": "dry_run", "dry_run": True, "action": action, "player": label,
             "targets": entities, "detail": detail, **extra}
 # HA's music_assistant integration found nothing by that name; raised before
@@ -1498,7 +1499,7 @@ async def _play_music_live(req: MusicRequest):
             )
         entities = [t["entity_id"] for t in live]
         logger.info("music request query=%r media_type=%r player=%r shuffle=%r -> %s",
-                    req.query, req.media_type, req.player, req.shuffle, entities)
+                    telemetry.text(req.query, 120), req.media_type, req.player, req.shuffle, entities)
 
         # A radio request names the Pandora station it will play, and whether
         # this play creates it; the play then goes by that station's URI so
@@ -1523,7 +1524,7 @@ async def _play_music_live(req: MusicRequest):
                 said_q = music_resolve.normalize(said_station)
                 if (media_type or "").lower() != "radio" or kind == "genre":
                     logger.info("music: %r names a station; media_type %r kind %r -> radio",
-                                req.said, media_type, kind)
+                                telemetry.text(req.said, 120), media_type, kind)
                     media_type, kind = "radio", "named"
 
         # A genre or "not that" request: Kronk picks (MUSIC_TASTE_AGENT_PLAN
@@ -1565,8 +1566,8 @@ async def _play_music_live(req: MusicRequest):
             if media_type:
                 service_data["media_type"] = media_type
         if nq.provider or nq.uri:
-            logger.info("music query normalized %r -> %r (provider=%s)", req.query,
-                        service_data["media_id"], nq.provider)
+            logger.info("music query normalized %r -> %r (provider=%s)", telemetry.text(req.query, 120),
+                        telemetry.text(service_data["media_id"], 120), nq.provider)
         return await _play_named(client, headers, entities, label, service_data, bool(req.shuffle),
                                  resolved, station)
 
@@ -1694,7 +1695,8 @@ async def play_music_voice(req: MusicRequest):
     elif not q:
         req.query, req.kind = "music", req.kind or "genre"
     logger.info("voice handoff query=%r media_type=%r artist=%r kind=%r player=%r",
-                req.query, req.media_type, req.artist, req.kind, req.player)
+                telemetry.text(req.query, 120), req.media_type, telemetry.text(req.artist, 120),
+                req.kind, req.player)
     try:
         info = await play_music(req)
     except HTTPException as e:
@@ -1864,7 +1866,7 @@ async def _genre_plan_inner(nq, forced, area, readonly=False):
     finally:
         if con:
             con.close()
-    logger.info("genre request %r -> terms %s rule %r: %d picks, first %s", nq.text, terms, rule,
+    logger.info("genre request %r -> terms %s rule %r: %d picks, first %s", telemetry.text(nq.text, 120), terms, rule,
                 len(picks), picks[:4])
     if not picks:
         return None
@@ -1943,7 +1945,7 @@ async def _play_genre(client: httpx.AsyncClient, headers: dict, entities: list[s
                             "pick_id": pick_id, "ts": time.time(), "watch": None}
         if pick_id is not None:
             _LAST_PICKS[key]["watch"] = _watch_pick(entity, pick_id, pick, state)
-        logger.info("genre pick %r on %s: %s (%s)", plan["phrase"], entities, pick, pick.uri)
+        logger.info("genre pick %r on %s: %s (%s)", telemetry.text(plan["phrase"], 120), entities, pick, pick.uri)
         return {
             "status": "playing", "player": label,
             "artist": attrs.get("media_artist"), "title": attrs.get("media_title"),
@@ -2045,7 +2047,7 @@ async def _ma_search(text: str, media_types: list[str], limit: int) -> dict | No
         r = await ma_read("music/search", _timeout=RESOLVE_SEARCH_TIMEOUT_S,
                              search_query=text, media_types=media_types, limit=limit)
     except MAError as e:
-        logger.warning("music search for %r failed: %s", text, e)
+        logger.warning("music search for %r failed: %s", telemetry.text(text, 120), e)
         return None
     return r if isinstance(r, dict) else None
 
@@ -2121,7 +2123,7 @@ async def _resolve_named_inner(nq, media_type, also):
         return None, None, 1, 0
     best, winner = r.best, r.winner
     logger.info("music resolve %r [%s] stage %d, %d candidates -> %s",
-                nq.text, media_type, r.stage, r.n,
+                telemetry.text(nq.text, 120), media_type, r.stage, r.n,
                 f"{best.media_type} {best.name!r} by {best.artist!r} {best.uri} ({best.score:.2f})"
                 + ("" if winner else " BELOW THRESHOLD") if best else "nothing")
     return winner, best, r.stage, r.n
@@ -2202,7 +2204,7 @@ class ReadOnlyMusic(music_decide.Reads):
             items = await ma_read(_LIBRARY_COMMAND[media_type], _timeout=RESOLVE_SEARCH_TIMEOUT_S,
                                   search=name, limit=EXACT_LOOKUP_LIMIT)
         except MAError as e:
-            logger.info("library lookup %s %r failed: %s", media_type, name, e)
+            logger.info("library lookup %s %r failed: %s", media_type, telemetry.text(name, 120), e)
             return None
         if isinstance(items, dict):
             items = items.get("items")
@@ -2501,7 +2503,7 @@ async def _pandora_station(query: str) -> dict | None:
             item = await ma_read("music/item_by_name", _timeout=MA_STATION_LOOKUP_TIMEOUT_S,
                                     name=query, media_type="radio")
         except MAError as e:
-            logger.warning("station lookup for %r failed: %s", query, e)
+            logger.warning("station lookup for %r failed: %s", telemetry.text(query, 120), e)
             sp.set(outcome="ma_error")
             return None
         if not isinstance(item, dict) or not item.get("uri"):

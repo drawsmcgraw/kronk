@@ -450,7 +450,7 @@ def _record(d: Decision, text: str) -> Decision:
     direct=true and the tool when it dispatches directly), `route` for the
     default."""
     if d.rule == "default":
-        emit("route", text_preview=text[:60], route=d.route, rule=d.rule)
+        emit("route", text_preview=telemetry.text(text, 60), route=d.route, rule=d.rule)
     elif d.direct:
         emit("route_shortcut", rule=d.rule, route=d.route, direct=True, tool=d.direct[0])
     elif d.detail:

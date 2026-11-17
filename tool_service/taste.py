@@ -39,11 +39,17 @@ from ruamel.yaml import YAML
 from ruamel.yaml.error import YAMLError
 
 try:
-    from . import music_resolve
+    from . import music_resolve, telemetry
 except ImportError:
     import music_resolve
+    import telemetry
 
 logger = logging.getLogger("tool_service.taste")
+
+
+def _text(v):
+    """Stated taste quotes what was said: logged only with text recording on (M12)."""
+    return telemetry.text(v, 120)
 
 TASTE_FILE = Path(os.getenv("MUSIC_TASTE_FILE", "/data/music_taste.yaml"))
 
@@ -237,7 +243,7 @@ class TasteFile:
             tmp.write_text(buf.getvalue())
             os.replace(tmp, self.path)
             self._mtime = None                       # re-read on next load
-        logger.info("taste file: %s %r %s", action, value, meaning or "")
+        logger.info("taste file: %s %r %s", action, _text(value), _text(meaning or ""))
         return said
 
 

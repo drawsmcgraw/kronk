@@ -121,6 +121,8 @@ def failure_text(debug: str, style: str, friendly: str | None) -> str:
     """
     if style != FRIENDLY or friendly is None or friendly == debug:
         return debug
+    # Kept with TELEMETRY_RECORD_TEXT off (sprint M12): code-written failure
+    # detail, and the spoken sentence promises it is in the logs (tenet 7).
     emit("failure_spoken_friendly", debug=debug[:300], spoken=friendly)
     telemetry.current().set(**{"kronk.failure.debug_text": debug[:300],
                                "kronk.failure.spoken": friendly})

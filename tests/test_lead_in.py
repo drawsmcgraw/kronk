@@ -425,13 +425,16 @@ def test_clear_history_is_still_the_transport_intercept(client):
     assert reply == "Done — fresh start." and not model.seen["coordinator"]
 
 
-def test_pipeline_trace_names_the_rule(client, caplog):
+def test_pipeline_trace_names_the_rule(client, caplog, monkeypatch):
     """Criterion 7 through the pipeline: the request event keeps the
     utterance (the replay matches on it), the decision names lead_in, the
     root span's route is the coordinator's."""
     from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
     exporter = InMemorySpanExporter()
     telemetry.enable_for_tests(exporter)
+    # The request event keeps the text only with text recording on (M12),
+    # as on the dev pair the replay reads.
+    monkeypatch.setattr(telemetry, "RECORD_TEXT", True)
     caplog.set_level(logging.INFO, logger="kronk.events")
     model = scripted(home_call=("control_music", {"action": "pause"}))
     try:

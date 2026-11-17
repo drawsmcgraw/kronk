@@ -705,6 +705,18 @@ async def verify_devices(ha: HA, snap: dict):
             raise Refused(f"player {d['player']} for {key} not found in HA states")
 
 
+def require_text_logs(target: dict) -> None:
+    """The replay finds each row's request in the orchestrator's event log by
+    its text (kronk_evidence). Since sprint M12 that text is logged only
+    with TELEMETRY_RECORD_TEXT=true, which docker-compose.yml sets on the
+    dev pair. Refuse, rather than report every row as unmatched."""
+    for c in (target["orchestrator"], target["tool_service"]):
+        env = docker("inspect", "-f", "{{range .Config.Env}}{{println .}}{{end}}", c).splitlines()
+        if "TELEMETRY_RECORD_TEXT=true" not in env:
+            raise Refused(f"{c} has TELEMETRY_RECORD_TEXT off; the replay matches requests by the "
+                          "text in its event log (docker-compose.yml sets it on for the dev pair)")
+
+
 def select_rows(rows: list[dict], args) -> tuple[list[dict], int]:
     sel = rows
     if args.id:
@@ -734,6 +746,7 @@ async def replay(args) -> int:
     async with HA(token) as ha:
         target = await resolve_target(ha, token, args)
         ts = require_dry_run(target)
+        require_text_logs(target)
         result["meta"].update(target=target, tool_service_health=ts)
         before = player_snapshot(token)
         await verify_devices(ha, before)

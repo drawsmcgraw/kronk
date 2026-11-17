@@ -397,8 +397,9 @@ def spans():
     telemetry.ENABLED = False
 
 
-def test_the_decision_is_a_span_and_a_log_event(spans, caplog):
+def test_the_decision_is_a_span_and_a_log_event(spans, caplog, monkeypatch):
     from opentelemetry.trace import SpanKind
+    monkeypatch.setattr(telemetry, "RECORD_TEXT", True)     # the full line is the text-on shape (M12)
     caplog.set_level(logging.INFO, logger="tool_service.music_decide")
     with telemetry._tracer.start_as_current_span("POST /music/say", kind=SpanKind.SERVER):
         o, t = run("play the album Blue Lines by Massive Attack",

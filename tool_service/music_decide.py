@@ -504,6 +504,13 @@ async def decide(p: "music_resolve.Parsed", reads: Reads, *, ask_model: bool = T
                   "music.model_would_ask": bool(st.model.get("would_ask")),
                   "music.searches": st.searches,
                   "music.candidates": json.dumps(trace["candidates"][:5], ensure_ascii=False)[:1000]})
-    logger.info("music decision %s", json.dumps({"outcome": o.as_dict(), **trace}, ensure_ascii=False,
-                                                default=str)[:4000])
+    if telemetry.RECORD_TEXT:
+        logger.info("music decision %s", json.dumps({"outcome": o.as_dict(), **trace}, ensure_ascii=False,
+                                                    default=str)[:4000])
+    else:   # M12: names, phrases and the steps quote what was said; only the shape
+        logger.info("music decision %s", json.dumps({
+            "outcome": {k: getattr(o, k, None) for k in ("action", "reading", "reading_by", "decided_by",
+                                                         "kind", "media_type", "provider", "via")},
+            "searches": trace.get("searches"), "candidates": len(trace.get("candidates") or []),
+            "ms": trace.get("ms")}, default=str))
     return o, trace

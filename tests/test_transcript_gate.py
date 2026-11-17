@@ -526,10 +526,12 @@ def test_asks_to_clear_history():
     assert not routing.asks_to_clear_history(None)
 
 
-def test_pipeline_trace_says_why(client, caplog):
+def test_pipeline_trace_says_why(client, caplog, monkeypatch):
     """Criterion 10 through the pipeline: the route_shortcut event and the
     routing.decide span carry the rule, the half that fired and the numbers;
-    the request event and the trace input keep the transcript."""
+    the request event and the trace input keep the transcript (with text
+    recording on, as on the dev pair; M12)."""
+    monkeypatch.setattr(telemetry, "RECORD_TEXT", True)
     from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
     exporter = InMemorySpanExporter()
     telemetry.enable_for_tests(exporter)
@@ -554,7 +556,9 @@ def test_pipeline_trace_says_why(client, caplog):
     spans = exporter.get_finished_spans()
     decide = next(s for s in spans if s.name == "routing.decide")
     root = next(s for s in spans if s.name == "pipeline.shim")
-    assert {k: v for k, v in decide.attributes.items() if k.startswith("kronk.")} == {
+    assert decide.attributes["kronk.input"] == ANIME          # text on
+    assert {k: v for k, v in decide.attributes.items()
+            if k.startswith("kronk.") and k not in ("kronk.input", "kronk.output")} == {
         "kronk.rule": "messy", "kronk.messy_reason": "sentences", "kronk.messy_sentences": 3,
         "kronk.messy_words": 12, "kronk.messy_max_sentences": 1, "kronk.messy_max_words": 20,
         "kronk.output_chars": len("direct")}

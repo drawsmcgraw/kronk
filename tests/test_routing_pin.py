@@ -476,9 +476,11 @@ def test_rules_table_is_the_seventeen_outcomes_in_order():
     assert {r.name: r.route for r in routing.RULES} == ROUTES
 
 
-def test_decision_events_keep_their_shape(caplog):
+def test_decision_events_keep_their_shape(caplog, monkeypatch):
     """A pinned rule logs route_shortcut {rule, route}; the default logs
-    route {text_preview, route, rule}, as before the table."""
+    route {text_preview, route, rule}, as before the table. text_preview
+    holds the words only with TELEMETRY_RECORD_TEXT on (M12)."""
+    monkeypatch.setattr(routing.telemetry, "RECORD_TEXT", True)
     caplog.set_level("INFO", logger="kronk.events")
     asyncio.run(routing._classify_inner("what's the weather like"))
     asyncio.run(routing._classify_inner("hello there"))
