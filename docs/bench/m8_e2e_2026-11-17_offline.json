@@ -1,0 +1,3464 @@
+{
+ "about": "M8 e2e offline results: byte comparison of a7f4112 against HEAD through every route (item 2), my streamed-path inputs (item 5), the mutation check (item 9), the client-disconnect test on dev (item 5) and the Tempo voice-request summary (item 4).",
+ "byte_comparison": {
+  "responses_per_tree_and_switch": 488,
+  "a7f4112_vs_head_unset": 0,
+  "a7f4112_vs_head_off": 0,
+  "a7f4112_vs_head_off_spoken_reply_null": 0,
+  "a7f4112_vs_head_on_all_but_voice_streaming": 0,
+  "network_attempts": 0,
+  "head_on_vs_off_voice_streaming_text_differs": [
+   {
+    "case": "delegate_long_preamble|seed=None|voice:s",
+    "streamed": "First I check. Dry run: would play Bonobo, for chill, on Office. Nothing was sent to the speaker.",
+    "buffered": "Dry run: would play Bonobo, for chill, on Office. Nothing was sent to the speaker."
+   },
+   {
+    "case": "delegate_long_preamble|seed=None|voice:s:nostamp",
+    "streamed": "First I check. Dry run: would play Bonobo, for chill, on Office. Nothing was sent to the speaker.",
+    "buffered": "Dry run: would play Bonobo, for chill, on Office. Nothing was sent to the speaker."
+   },
+   {
+    "case": "delegate_long_preamble|seed=7|voice:s",
+    "streamed": "First I check. Dry run: would play Bonobo, for chill, on Office. Nothing was sent to the speaker.",
+    "buffered": "Dry run: would play Bonobo, for chill, on Office. Nothing was sent to the speaker."
+   },
+   {
+    "case": "delegate_long_preamble|seed=7|voice:s:nostamp",
+    "streamed": "First I check. Dry run: would play Bonobo, for chill, on Office. Nothing was sent to the speaker.",
+    "buffered": "Dry run: would play Bonobo, for chill, on Office. Nothing was sent to the speaker."
+   },
+   {
+    "case": "terminal_long_preamble|seed=None|voice:s",
+    "streamed": "First I check. Dry run: would play Bonobo, for chill, on Office. Nothing was sent to the speaker.",
+    "buffered": "Dry run: would play Bonobo, for chill, on Office. Nothing was sent to the speaker."
+   },
+   {
+    "case": "terminal_long_preamble|seed=None|voice:s:nostamp",
+    "streamed": "First I check. Dry run: would play Bonobo, for chill, on Office. Nothing was sent to the speaker.",
+    "buffered": "Dry run: would play Bonobo, for chill, on Office. Nothing was sent to the speaker."
+   },
+   {
+    "case": "terminal_long_preamble|seed=7|voice:s",
+    "streamed": "First I check. Dry run: would play Bonobo, for chill, on Office. Nothing was sent to the speaker.",
+    "buffered": "Dry run: would play Bonobo, for chill, on Office. Nothing was sent to the speaker."
+   },
+   {
+    "case": "terminal_long_preamble|seed=7|voice:s:nostamp",
+    "streamed": "First I check. Dry run: would play Bonobo, for chill, on Office. Nothing was sent to the speaker.",
+    "buffered": "Dry run: would play Bonobo, for chill, on Office. Nothing was sent to the speaker."
+   }
+  ],
+  "chunks_per_streamed_reply": {
+   "md:long_md|seed=None|voice:s": 5,
+   "md:long_md|seed=None|voice:s:nostamp": 5,
+   "md:long_md|seed=7|voice:s": 5,
+   "md:long_md|seed=7|voice:s:nostamp": 5,
+   "md:prose3|seed=None|voice:s": 3,
+   "md:prose3|seed=None|voice:s:nostamp": 3,
+   "md:prose3|seed=7|voice:s": 3,
+   "md:prose3|seed=7|voice:s:nostamp": 3,
+   "md:one|seed=None|voice:s": 1,
+   "md:one|seed=None|voice:s:nostamp": 1,
+   "md:one|seed=7|voice:s": 1,
+   "md:one|seed=7|voice:s:nostamp": 1,
+   "md:empty|seed=None|voice:s": 1,
+   "md:empty|seed=None|voice:s:nostamp": 1,
+   "md:empty|seed=7|voice:s": 1,
+   "md:empty|seed=7|voice:s:nostamp": 1,
+   "md:space|seed=None|voice:s": 1,
+   "md:space|seed=None|voice:s:nostamp": 1,
+   "md:space|seed=7|voice:s": 1,
+   "md:space|seed=7|voice:s:nostamp": 1,
+   "md:table|seed=None|voice:s": 3,
+   "md:table|seed=None|voice:s:nostamp": 3,
+   "md:table|seed=7|voice:s": 2,
+   "md:table|seed=7|voice:s:nostamp": 2,
+   "md:fence_open|seed=None|voice:s": 2,
+   "md:fence_open|seed=None|voice:s:nostamp": 2,
+   "md:fence_open|seed=7|voice:s": 2,
+   "md:fence_open|seed=7|voice:s:nostamp": 2,
+   "md:fence|seed=None|voice:s": 3,
+   "md:fence|seed=None|voice:s:nostamp": 3,
+   "md:fence|seed=7|voice:s": 3,
+   "md:fence|seed=7|voice:s:nostamp": 3,
+   "md:nested|seed=None|voice:s": 3,
+   "md:nested|seed=None|voice:s:nostamp": 3,
+   "md:nested|seed=7|voice:s": 3,
+   "md:nested|seed=7|voice:s:nostamp": 3,
+   "md:abbr|seed=None|voice:s": 3,
+   "md:abbr|seed=None|voice:s:nostamp": 3,
+   "md:abbr|seed=7|voice:s": 3,
+   "md:abbr|seed=7|voice:s:nostamp": 3,
+   "md:quote|seed=None|voice:s": 3,
+   "md:quote|seed=None|voice:s:nostamp": 3,
+   "md:quote|seed=7|voice:s": 3,
+   "md:quote|seed=7|voice:s:nostamp": 3,
+   "md:ellipsis|seed=None|voice:s": 2,
+   "md:ellipsis|seed=None|voice:s:nostamp": 2,
+   "md:ellipsis|seed=7|voice:s": 2,
+   "md:ellipsis|seed=7|voice:s:nostamp": 2,
+   "md:crlf|seed=None|voice:s": 3,
+   "md:crlf|seed=None|voice:s:nostamp": 3,
+   "md:crlf|seed=7|voice:s": 3,
+   "md:crlf|seed=7|voice:s:nostamp": 3,
+   "md:uni|seed=None|voice:s": 3,
+   "md:uni|seed=None|voice:s:nostamp": 3,
+   "md:uni|seed=7|voice:s": 3,
+   "md:uni|seed=7|voice:s:nostamp": 3,
+   "md:heading|seed=None|voice:s": 5,
+   "md:heading|seed=None|voice:s:nostamp": 5,
+   "md:heading|seed=7|voice:s": 5,
+   "md:heading|seed=7|voice:s:nostamp": 5,
+   "md:link|seed=None|voice:s": 2,
+   "md:link|seed=None|voice:s:nostamp": 2,
+   "md:link|seed=7|voice:s": 2,
+   "md:link|seed=7|voice:s:nostamp": 2,
+   "md:pipe|seed=None|voice:s": 2,
+   "md:pipe|seed=None|voice:s:nostamp": 2,
+   "md:pipe|seed=7|voice:s": 2,
+   "md:pipe|seed=7|voice:s:nostamp": 2,
+   "delegate|seed=None|voice:s": 2,
+   "delegate|seed=None|voice:s:nostamp": 2,
+   "delegate|seed=7|voice:s": 2,
+   "delegate|seed=7|voice:s:nostamp": 2,
+   "delegate_long_preamble|seed=None|voice:s": 2,
+   "delegate_long_preamble|seed=None|voice:s:nostamp": 2,
+   "delegate_long_preamble|seed=7|voice:s": 2,
+   "delegate_long_preamble|seed=7|voice:s:nostamp": 2,
+   "delegate_two_retracts|seed=None|voice:s": 2,
+   "delegate_two_retracts|seed=None|voice:s:nostamp": 2,
+   "delegate_two_retracts|seed=7|voice:s": 2,
+   "delegate_two_retracts|seed=7|voice:s:nostamp": 2,
+   "delegate_unknown_tool|seed=None|voice:s": 1,
+   "delegate_unknown_tool|seed=None|voice:s:nostamp": 1,
+   "delegate_unknown_tool|seed=7|voice:s": 1,
+   "delegate_unknown_tool|seed=7|voice:s:nostamp": 1,
+   "terminal_ok|seed=None|voice:s": 1,
+   "terminal_ok|seed=None|voice:s:nostamp": 1,
+   "terminal_ok_no_preamble|seed=None|voice:s": 1,
+   "terminal_ok_no_preamble|seed=None|voice:s:nostamp": 1,
+   "terminal_long_preamble|seed=None|voice:s": 2,
+   "terminal_long_preamble|seed=None|voice:s:nostamp": 2,
+   "terminal_long_preamble|seed=7|voice:s": 2,
+   "terminal_long_preamble|seed=7|voice:s:nostamp": 2,
+   "terminal_fail|seed=None|voice:s": 1,
+   "terminal_fail|seed=None|voice:s:nostamp": 1,
+   "terminal_down|seed=None|voice:s": 1,
+   "terminal_down|seed=None|voice:s:nostamp": 1,
+   "home_words|seed=None|voice:s": 2,
+   "home_words|seed=None|voice:s:nostamp": 2,
+   "home_fails_after_text|seed=None|voice:s": 3,
+   "home_fails_after_text|seed=None|voice:s:nostamp": 3,
+   "model_fail_first|seed=None|voice:s": 1,
+   "model_fail_first|seed=None|voice:s:nostamp": 1,
+   "model_fail_after_text|seed=None|voice:s": 3,
+   "model_fail_after_text|seed=None|voice:s:nostamp": 3,
+   "model_fail_after_tool|seed=None|voice:s": 2,
+   "model_fail_after_tool|seed=None|voice:s:nostamp": 2,
+   "direct_pause_ok|seed=None|voice:s": 1,
+   "direct_pause_ok|seed=None|voice:s:nostamp": 1,
+   "direct_pause_fail|seed=None|voice:s": 1,
+   "direct_pause_fail|seed=None|voice:s:nostamp": 1,
+   "direct_pause_down|seed=None|voice:s": 1,
+   "direct_pause_down|seed=None|voice:s:nostamp": 1,
+   "direct_song|seed=None|voice:s": 1,
+   "direct_song|seed=None|voice:s:nostamp": 1,
+   "direct_thumb|seed=None|voice:s": 1,
+   "direct_thumb|seed=None|voice:s:nostamp": 1,
+   "direct_not_that_fail|seed=None|voice:s": 1,
+   "direct_not_that_fail|seed=None|voice:s:nostamp": 1,
+   "direct_mirror|seed=None|voice:s": 1,
+   "direct_mirror|seed=None|voice:s:nostamp": 1,
+   "direct_mirror_fail|seed=None|voice:s": 1,
+   "direct_mirror_fail|seed=None|voice:s:nostamp": 1
+  }
+ },
+ "streamed_inputs": {
+  "inputs": 100,
+  "stream_runs": 6846,
+  "text_differences": [],
+  "chunk_problems": [],
+  "retract_cases": [
+   {
+    "case": "retract of zero, nothing before",
+    "hold": 1,
+    "tokens": "word",
+    "same": true,
+    "streamed": "Paused on the Office speaker.",
+    "buffered": "Paused on the Office speaker.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract of zero, nothing before",
+    "hold": 1,
+    "tokens": "char",
+    "same": true,
+    "streamed": "Paused on the Office speaker.",
+    "buffered": "Paused on the Office speaker.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract of zero, nothing before",
+    "hold": 2,
+    "tokens": "word",
+    "same": true,
+    "streamed": "Paused on the Office speaker.",
+    "buffered": "Paused on the Office speaker.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract of zero, nothing before",
+    "hold": 2,
+    "tokens": "char",
+    "same": true,
+    "streamed": "Paused on the Office speaker.",
+    "buffered": "Paused on the Office speaker.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract of zero, nothing before",
+    "hold": 3,
+    "tokens": "word",
+    "same": true,
+    "streamed": "Paused on the Office speaker.",
+    "buffered": "Paused on the Office speaker.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract of zero, nothing before",
+    "hold": 3,
+    "tokens": "char",
+    "same": true,
+    "streamed": "Paused on the Office speaker.",
+    "buffered": "Paused on the Office speaker.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract of zero after held text",
+    "hold": 1,
+    "tokens": "word",
+    "same": false,
+    "streamed": "One. Two. Three.",
+    "buffered": "Two. Three.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract of zero after held text",
+    "hold": 1,
+    "tokens": "char",
+    "same": false,
+    "streamed": "One. Two. Three.",
+    "buffered": "Two. Three.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract of zero after held text",
+    "hold": 2,
+    "tokens": "word",
+    "same": false,
+    "streamed": "One. Two. Three.",
+    "buffered": "Two. Three.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract of zero after held text",
+    "hold": 2,
+    "tokens": "char",
+    "same": false,
+    "streamed": "One. Two. Three.",
+    "buffered": "Two. Three.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract of zero after held text",
+    "hold": 3,
+    "tokens": "word",
+    "same": false,
+    "streamed": "One. Two. Three.",
+    "buffered": "Two. Three.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract of zero after held text",
+    "hold": 3,
+    "tokens": "char",
+    "same": false,
+    "streamed": "One. Two. Three.",
+    "buffered": "Two. Three.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract of zero after sent chunks",
+    "hold": 1,
+    "tokens": "word",
+    "same": false,
+    "streamed": "One. Two. Three. Four.",
+    "buffered": "Four.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract of zero after sent chunks",
+    "hold": 1,
+    "tokens": "char",
+    "same": false,
+    "streamed": "One. Two. Three. Four.",
+    "buffered": "Four.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract of zero after sent chunks",
+    "hold": 2,
+    "tokens": "word",
+    "same": false,
+    "streamed": "One. Two. Three. Four.",
+    "buffered": "Four.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract of zero after sent chunks",
+    "hold": 2,
+    "tokens": "char",
+    "same": false,
+    "streamed": "One. Two. Three. Four.",
+    "buffered": "Four.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract of zero after sent chunks",
+    "hold": 3,
+    "tokens": "word",
+    "same": false,
+    "streamed": "One. Two. Three. Four.",
+    "buffered": "Four.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract of zero after sent chunks",
+    "hold": 3,
+    "tokens": "char",
+    "same": false,
+    "streamed": "One. Two. Three. Four.",
+    "buffered": "Four.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract inside the hold",
+    "hold": 1,
+    "tokens": "word",
+    "same": true,
+    "streamed": "Paused on the Office speaker.",
+    "buffered": "Paused on the Office speaker.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract inside the hold",
+    "hold": 1,
+    "tokens": "char",
+    "same": true,
+    "streamed": "Paused on the Office speaker.",
+    "buffered": "Paused on the Office speaker.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract inside the hold",
+    "hold": 2,
+    "tokens": "word",
+    "same": true,
+    "streamed": "Paused on the Office speaker.",
+    "buffered": "Paused on the Office speaker.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract inside the hold",
+    "hold": 2,
+    "tokens": "char",
+    "same": true,
+    "streamed": "Paused on the Office speaker.",
+    "buffered": "Paused on the Office speaker.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract inside the hold",
+    "hold": 3,
+    "tokens": "word",
+    "same": true,
+    "streamed": "Paused on the Office speaker.",
+    "buffered": "Paused on the Office speaker.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract inside the hold",
+    "hold": 3,
+    "tokens": "char",
+    "same": true,
+    "streamed": "Paused on the Office speaker.",
+    "buffered": "Paused on the Office speaker.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract larger than everything (nothing sent)",
+    "hold": 1,
+    "tokens": "word",
+    "same": true,
+    "streamed": "Paused on the Office speaker.",
+    "buffered": "Paused on the Office speaker.",
+    "unhonoured": [
+     [
+      5000,
+      19,
+      4981
+     ]
+    ]
+   },
+   {
+    "case": "retract larger than everything (nothing sent)",
+    "hold": 1,
+    "tokens": "char",
+    "same": true,
+    "streamed": "Paused on the Office speaker.",
+    "buffered": "Paused on the Office speaker.",
+    "unhonoured": [
+     [
+      5000,
+      19,
+      4981
+     ]
+    ]
+   },
+   {
+    "case": "retract larger than everything (nothing sent)",
+    "hold": 2,
+    "tokens": "word",
+    "same": true,
+    "streamed": "Paused on the Office speaker.",
+    "buffered": "Paused on the Office speaker.",
+    "unhonoured": [
+     [
+      5000,
+      19,
+      4981
+     ]
+    ]
+   },
+   {
+    "case": "retract larger than everything (nothing sent)",
+    "hold": 2,
+    "tokens": "char",
+    "same": true,
+    "streamed": "Paused on the Office speaker.",
+    "buffered": "Paused on the Office speaker.",
+    "unhonoured": [
+     [
+      5000,
+      19,
+      4981
+     ]
+    ]
+   },
+   {
+    "case": "retract larger than everything (nothing sent)",
+    "hold": 3,
+    "tokens": "word",
+    "same": true,
+    "streamed": "Paused on the Office speaker.",
+    "buffered": "Paused on the Office speaker.",
+    "unhonoured": [
+     [
+      5000,
+      19,
+      4981
+     ]
+    ]
+   },
+   {
+    "case": "retract larger than everything (nothing sent)",
+    "hold": 3,
+    "tokens": "char",
+    "same": true,
+    "streamed": "Paused on the Office speaker.",
+    "buffered": "Paused on the Office speaker.",
+    "unhonoured": [
+     [
+      5000,
+      19,
+      4981
+     ]
+    ]
+   },
+   {
+    "case": "retract larger than everything (chunks sent)",
+    "hold": 1,
+    "tokens": "word",
+    "same": false,
+    "streamed": "First I check. Paused on the Office speaker.",
+    "buffered": "Paused on the Office speaker.",
+    "unhonoured": [
+     [
+      5000,
+      26,
+      4974
+     ]
+    ]
+   },
+   {
+    "case": "retract larger than everything (chunks sent)",
+    "hold": 1,
+    "tokens": "char",
+    "same": false,
+    "streamed": "First I check. Paused on the Office speaker.",
+    "buffered": "Paused on the Office speaker.",
+    "unhonoured": [
+     [
+      5000,
+      26,
+      4974
+     ]
+    ]
+   },
+   {
+    "case": "retract larger than everything (chunks sent)",
+    "hold": 2,
+    "tokens": "word",
+    "same": true,
+    "streamed": "Paused on the Office speaker.",
+    "buffered": "Paused on the Office speaker.",
+    "unhonoured": [
+     [
+      5000,
+      41,
+      4959
+     ]
+    ]
+   },
+   {
+    "case": "retract larger than everything (chunks sent)",
+    "hold": 2,
+    "tokens": "char",
+    "same": true,
+    "streamed": "Paused on the Office speaker.",
+    "buffered": "Paused on the Office speaker.",
+    "unhonoured": [
+     [
+      5000,
+      41,
+      4959
+     ]
+    ]
+   },
+   {
+    "case": "retract larger than everything (chunks sent)",
+    "hold": 3,
+    "tokens": "word",
+    "same": true,
+    "streamed": "Paused on the Office speaker.",
+    "buffered": "Paused on the Office speaker.",
+    "unhonoured": [
+     [
+      5000,
+      41,
+      4959
+     ]
+    ]
+   },
+   {
+    "case": "retract larger than everything (chunks sent)",
+    "hold": 3,
+    "tokens": "char",
+    "same": true,
+    "streamed": "Paused on the Office speaker.",
+    "buffered": "Paused on the Office speaker.",
+    "unhonoured": [
+     [
+      5000,
+      41,
+      4959
+     ]
+    ]
+   },
+   {
+    "case": "retract on an empty buffer",
+    "hold": 1,
+    "tokens": "word",
+    "same": true,
+    "streamed": "Paused on the Office speaker.",
+    "buffered": "Paused on the Office speaker.",
+    "unhonoured": [
+     [
+      40,
+      0,
+      40
+     ]
+    ]
+   },
+   {
+    "case": "retract on an empty buffer",
+    "hold": 1,
+    "tokens": "char",
+    "same": true,
+    "streamed": "Paused on the Office speaker.",
+    "buffered": "Paused on the Office speaker.",
+    "unhonoured": [
+     [
+      40,
+      0,
+      40
+     ]
+    ]
+   },
+   {
+    "case": "retract on an empty buffer",
+    "hold": 2,
+    "tokens": "word",
+    "same": true,
+    "streamed": "Paused on the Office speaker.",
+    "buffered": "Paused on the Office speaker.",
+    "unhonoured": [
+     [
+      40,
+      0,
+      40
+     ]
+    ]
+   },
+   {
+    "case": "retract on an empty buffer",
+    "hold": 2,
+    "tokens": "char",
+    "same": true,
+    "streamed": "Paused on the Office speaker.",
+    "buffered": "Paused on the Office speaker.",
+    "unhonoured": [
+     [
+      40,
+      0,
+      40
+     ]
+    ]
+   },
+   {
+    "case": "retract on an empty buffer",
+    "hold": 3,
+    "tokens": "word",
+    "same": true,
+    "streamed": "Paused on the Office speaker.",
+    "buffered": "Paused on the Office speaker.",
+    "unhonoured": [
+     [
+      40,
+      0,
+      40
+     ]
+    ]
+   },
+   {
+    "case": "retract on an empty buffer",
+    "hold": 3,
+    "tokens": "char",
+    "same": true,
+    "streamed": "Paused on the Office speaker.",
+    "buffered": "Paused on the Office speaker.",
+    "unhonoured": [
+     [
+      40,
+      0,
+      40
+     ]
+    ]
+   },
+   {
+    "case": "two retracts in a row, both held",
+    "hold": 1,
+    "tokens": "word",
+    "same": true,
+    "streamed": "Paused on the Office speaker.",
+    "buffered": "Paused on the Office speaker.",
+    "unhonoured": []
+   },
+   {
+    "case": "two retracts in a row, both held",
+    "hold": 1,
+    "tokens": "char",
+    "same": true,
+    "streamed": "Paused on the Office speaker.",
+    "buffered": "Paused on the Office speaker.",
+    "unhonoured": []
+   },
+   {
+    "case": "two retracts in a row, both held",
+    "hold": 2,
+    "tokens": "word",
+    "same": true,
+    "streamed": "Paused on the Office speaker.",
+    "buffered": "Paused on the Office speaker.",
+    "unhonoured": []
+   },
+   {
+    "case": "two retracts in a row, both held",
+    "hold": 2,
+    "tokens": "char",
+    "same": true,
+    "streamed": "Paused on the Office speaker.",
+    "buffered": "Paused on the Office speaker.",
+    "unhonoured": []
+   },
+   {
+    "case": "two retracts in a row, both held",
+    "hold": 3,
+    "tokens": "word",
+    "same": true,
+    "streamed": "Paused on the Office speaker.",
+    "buffered": "Paused on the Office speaker.",
+    "unhonoured": []
+   },
+   {
+    "case": "two retracts in a row, both held",
+    "hold": 3,
+    "tokens": "char",
+    "same": true,
+    "streamed": "Paused on the Office speaker.",
+    "buffered": "Paused on the Office speaker.",
+    "unhonoured": []
+   },
+   {
+    "case": "two retracts in a row, second past the hold",
+    "hold": 1,
+    "tokens": "word",
+    "same": false,
+    "streamed": "First I check. Paused on the Office speaker.",
+    "buffered": "Paused on the Office speaker.",
+    "unhonoured": [
+     [
+      41,
+      26,
+      15
+     ],
+     [
+      12,
+      0,
+      12
+     ]
+    ]
+   },
+   {
+    "case": "two retracts in a row, second past the hold",
+    "hold": 1,
+    "tokens": "char",
+    "same": false,
+    "streamed": "First I check. Paused on the Office speaker.",
+    "buffered": "Paused on the Office speaker.",
+    "unhonoured": [
+     [
+      41,
+      26,
+      15
+     ],
+     [
+      12,
+      0,
+      12
+     ]
+    ]
+   },
+   {
+    "case": "two retracts in a row, second past the hold",
+    "hold": 2,
+    "tokens": "word",
+    "same": true,
+    "streamed": "Paused on the Office speaker.",
+    "buffered": "Paused on the Office speaker.",
+    "unhonoured": [
+     [
+      12,
+      0,
+      12
+     ]
+    ]
+   },
+   {
+    "case": "two retracts in a row, second past the hold",
+    "hold": 2,
+    "tokens": "char",
+    "same": true,
+    "streamed": "Paused on the Office speaker.",
+    "buffered": "Paused on the Office speaker.",
+    "unhonoured": [
+     [
+      12,
+      0,
+      12
+     ]
+    ]
+   },
+   {
+    "case": "two retracts in a row, second past the hold",
+    "hold": 3,
+    "tokens": "word",
+    "same": true,
+    "streamed": "Paused on the Office speaker.",
+    "buffered": "Paused on the Office speaker.",
+    "unhonoured": [
+     [
+      12,
+      0,
+      12
+     ]
+    ]
+   },
+   {
+    "case": "two retracts in a row, second past the hold",
+    "hold": 3,
+    "tokens": "char",
+    "same": true,
+    "streamed": "Paused on the Office speaker.",
+    "buffered": "Paused on the Office speaker.",
+    "unhonoured": [
+     [
+      12,
+      0,
+      12
+     ]
+    ]
+   },
+   {
+    "case": "two tool rounds, each retracted",
+    "hold": 1,
+    "tokens": "word",
+    "same": true,
+    "streamed": "It is sunny today. Bring a hat. Or do not. Enjoy it.",
+    "buffered": "It is sunny today. Bring a hat. Or do not. Enjoy it.",
+    "unhonoured": []
+   },
+   {
+    "case": "two tool rounds, each retracted",
+    "hold": 1,
+    "tokens": "char",
+    "same": true,
+    "streamed": "It is sunny today. Bring a hat. Or do not. Enjoy it.",
+    "buffered": "It is sunny today. Bring a hat. Or do not. Enjoy it.",
+    "unhonoured": []
+   },
+   {
+    "case": "two tool rounds, each retracted",
+    "hold": 2,
+    "tokens": "word",
+    "same": true,
+    "streamed": "It is sunny today. Bring a hat. Or do not. Enjoy it.",
+    "buffered": "It is sunny today. Bring a hat. Or do not. Enjoy it.",
+    "unhonoured": []
+   },
+   {
+    "case": "two tool rounds, each retracted",
+    "hold": 2,
+    "tokens": "char",
+    "same": true,
+    "streamed": "It is sunny today. Bring a hat. Or do not. Enjoy it.",
+    "buffered": "It is sunny today. Bring a hat. Or do not. Enjoy it.",
+    "unhonoured": []
+   },
+   {
+    "case": "two tool rounds, each retracted",
+    "hold": 3,
+    "tokens": "word",
+    "same": true,
+    "streamed": "It is sunny today. Bring a hat. Or do not. Enjoy it.",
+    "buffered": "It is sunny today. Bring a hat. Or do not. Enjoy it.",
+    "unhonoured": []
+   },
+   {
+    "case": "two tool rounds, each retracted",
+    "hold": 3,
+    "tokens": "char",
+    "same": true,
+    "streamed": "It is sunny today. Bring a hat. Or do not. Enjoy it.",
+    "buffered": "It is sunny today. Bring a hat. Or do not. Enjoy it.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract after chunks were sent (3-sentence preamble)",
+    "hold": 1,
+    "tokens": "word",
+    "same": false,
+    "streamed": "First I check. Paused on the Office speaker.",
+    "buffered": "Paused on the Office speaker.",
+    "unhonoured": [
+     [
+      41,
+      26,
+      15
+     ]
+    ]
+   },
+   {
+    "case": "retract after chunks were sent (3-sentence preamble)",
+    "hold": 1,
+    "tokens": "char",
+    "same": false,
+    "streamed": "First I check. Paused on the Office speaker.",
+    "buffered": "Paused on the Office speaker.",
+    "unhonoured": [
+     [
+      41,
+      26,
+      15
+     ]
+    ]
+   },
+   {
+    "case": "retract after chunks were sent (3-sentence preamble)",
+    "hold": 2,
+    "tokens": "word",
+    "same": true,
+    "streamed": "Paused on the Office speaker.",
+    "buffered": "Paused on the Office speaker.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract after chunks were sent (3-sentence preamble)",
+    "hold": 2,
+    "tokens": "char",
+    "same": true,
+    "streamed": "Paused on the Office speaker.",
+    "buffered": "Paused on the Office speaker.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract after chunks were sent (3-sentence preamble)",
+    "hold": 3,
+    "tokens": "word",
+    "same": true,
+    "streamed": "Paused on the Office speaker.",
+    "buffered": "Paused on the Office speaker.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract after chunks were sent (3-sentence preamble)",
+    "hold": 3,
+    "tokens": "char",
+    "same": true,
+    "streamed": "Paused on the Office speaker.",
+    "buffered": "Paused on the Office speaker.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract of part of the held unit",
+    "hold": 1,
+    "tokens": "word",
+    "same": true,
+    "streamed": "One. Two. Three five. Six.",
+    "buffered": "One. Two. Three five. Six.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract of part of the held unit",
+    "hold": 1,
+    "tokens": "char",
+    "same": true,
+    "streamed": "One. Two. Three five. Six.",
+    "buffered": "One. Two. Three five. Six.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract of part of the held unit",
+    "hold": 2,
+    "tokens": "word",
+    "same": true,
+    "streamed": "One. Two. Three five. Six.",
+    "buffered": "One. Two. Three five. Six.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract of part of the held unit",
+    "hold": 2,
+    "tokens": "char",
+    "same": true,
+    "streamed": "One. Two. Three five. Six.",
+    "buffered": "One. Two. Three five. Six.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract of part of the held unit",
+    "hold": 3,
+    "tokens": "word",
+    "same": true,
+    "streamed": "One. Two. Three five. Six.",
+    "buffered": "One. Two. Three five. Six.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract of part of the held unit",
+    "hold": 3,
+    "tokens": "char",
+    "same": true,
+    "streamed": "One. Two. Three five. Six.",
+    "buffered": "One. Two. Three five. Six.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract that cuts into a sent unit",
+    "hold": 1,
+    "tokens": "word",
+    "same": true,
+    "streamed": "One. Two. Five. Six.",
+    "buffered": "One. Two.  Five. Six.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract that cuts into a sent unit",
+    "hold": 1,
+    "tokens": "char",
+    "same": true,
+    "streamed": "One. Two. Five. Six.",
+    "buffered": "One. Two.  Five. Six.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract that cuts into a sent unit",
+    "hold": 2,
+    "tokens": "word",
+    "same": true,
+    "streamed": "One. Two.  Five. Six.",
+    "buffered": "One. Two.  Five. Six.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract that cuts into a sent unit",
+    "hold": 2,
+    "tokens": "char",
+    "same": true,
+    "streamed": "One. Two.  Five. Six.",
+    "buffered": "One. Two.  Five. Six.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract that cuts into a sent unit",
+    "hold": 3,
+    "tokens": "word",
+    "same": true,
+    "streamed": "One. Two.  Five. Six.",
+    "buffered": "One. Two.  Five. Six.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract that cuts into a sent unit",
+    "hold": 3,
+    "tokens": "char",
+    "same": true,
+    "streamed": "One. Two.  Five. Six.",
+    "buffered": "One. Two.  Five. Six.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract inside an open list",
+    "hold": 1,
+    "tokens": "word",
+    "same": true,
+    "streamed": "Items:\na.\nc.\nDone. Ok.",
+    "buffered": "Items:\na.\nc.\nDone. Ok.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract inside an open list",
+    "hold": 1,
+    "tokens": "char",
+    "same": true,
+    "streamed": "Items:\na.\nc.\nDone. Ok.",
+    "buffered": "Items:\na.\nc.\nDone. Ok.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract inside an open list",
+    "hold": 2,
+    "tokens": "word",
+    "same": true,
+    "streamed": "Items:\na.\nc.\nDone. Ok.",
+    "buffered": "Items:\na.\nc.\nDone. Ok.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract inside an open list",
+    "hold": 2,
+    "tokens": "char",
+    "same": true,
+    "streamed": "Items:\na.\nc.\nDone. Ok.",
+    "buffered": "Items:\na.\nc.\nDone. Ok.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract inside an open list",
+    "hold": 3,
+    "tokens": "word",
+    "same": true,
+    "streamed": "Items:\na.\nc.\nDone. Ok.",
+    "buffered": "Items:\na.\nc.\nDone. Ok.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract inside an open list",
+    "hold": 3,
+    "tokens": "char",
+    "same": true,
+    "streamed": "Items:\na.\nc.\nDone. Ok.",
+    "buffered": "Items:\na.\nc.\nDone. Ok.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract inside an open fence",
+    "hold": 1,
+    "tokens": "word",
+    "same": true,
+    "streamed": "Code:\nz.\nDone. Ok.",
+    "buffered": "Code:\n\nz.\n\nDone. Ok.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract inside an open fence",
+    "hold": 1,
+    "tokens": "char",
+    "same": true,
+    "streamed": "Code:\nz.\nDone. Ok.",
+    "buffered": "Code:\n\nz.\n\nDone. Ok.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract inside an open fence",
+    "hold": 2,
+    "tokens": "word",
+    "same": true,
+    "streamed": "Code:\nz.\n\nDone. Ok.",
+    "buffered": "Code:\n\nz.\n\nDone. Ok.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract inside an open fence",
+    "hold": 2,
+    "tokens": "char",
+    "same": true,
+    "streamed": "Code:\nz.\n\nDone. Ok.",
+    "buffered": "Code:\n\nz.\n\nDone. Ok.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract inside an open fence",
+    "hold": 3,
+    "tokens": "word",
+    "same": true,
+    "streamed": "Code:\n\nz.\n\nDone. Ok.",
+    "buffered": "Code:\n\nz.\n\nDone. Ok.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract inside an open fence",
+    "hold": 3,
+    "tokens": "char",
+    "same": true,
+    "streamed": "Code:\n\nz.\n\nDone. Ok.",
+    "buffered": "Code:\n\nz.\n\nDone. Ok.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract then a long answer",
+    "hold": 1,
+    "tokens": "word",
+    "same": true,
+    "streamed": "It is sunny today. Bring a hat. Or do not. Enjoy it.",
+    "buffered": "It is sunny today. Bring a hat. Or do not. Enjoy it.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract then a long answer",
+    "hold": 1,
+    "tokens": "char",
+    "same": true,
+    "streamed": "It is sunny today. Bring a hat. Or do not. Enjoy it.",
+    "buffered": "It is sunny today. Bring a hat. Or do not. Enjoy it.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract then a long answer",
+    "hold": 2,
+    "tokens": "word",
+    "same": true,
+    "streamed": "It is sunny today. Bring a hat. Or do not. Enjoy it.",
+    "buffered": "It is sunny today. Bring a hat. Or do not. Enjoy it.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract then a long answer",
+    "hold": 2,
+    "tokens": "char",
+    "same": true,
+    "streamed": "It is sunny today. Bring a hat. Or do not. Enjoy it.",
+    "buffered": "It is sunny today. Bring a hat. Or do not. Enjoy it.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract then a long answer",
+    "hold": 3,
+    "tokens": "word",
+    "same": true,
+    "streamed": "It is sunny today. Bring a hat. Or do not. Enjoy it.",
+    "buffered": "It is sunny today. Bring a hat. Or do not. Enjoy it.",
+    "unhonoured": []
+   },
+   {
+    "case": "retract then a long answer",
+    "hold": 3,
+    "tokens": "char",
+    "same": true,
+    "streamed": "It is sunny today. Bring a hat. Or do not. Enjoy it.",
+    "buffered": "It is sunny today. Bring a hat. Or do not. Enjoy it.",
+    "unhonoured": []
+   },
+   {
+    "case": "answer, then a late preamble retracted",
+    "hold": 1,
+    "tokens": "word",
+    "same": true,
+    "streamed": "It is sunny today. Bring a hat. Or do not. Enjoy it. Last one.",
+    "buffered": "It is sunny today. Bring a hat. Or do not. Enjoy it. Last one.",
+    "unhonoured": []
+   },
+   {
+    "case": "answer, then a late preamble retracted",
+    "hold": 1,
+    "tokens": "char",
+    "same": true,
+    "streamed": "It is sunny today. Bring a hat. Or do not. Enjoy it. Last one.",
+    "buffered": "It is sunny today. Bring a hat. Or do not. Enjoy it. Last one.",
+    "unhonoured": []
+   },
+   {
+    "case": "answer, then a late preamble retracted",
+    "hold": 2,
+    "tokens": "word",
+    "same": true,
+    "streamed": "It is sunny today. Bring a hat. Or do not. Enjoy it. Last one.",
+    "buffered": "It is sunny today. Bring a hat. Or do not. Enjoy it. Last one.",
+    "unhonoured": []
+   },
+   {
+    "case": "answer, then a late preamble retracted",
+    "hold": 2,
+    "tokens": "char",
+    "same": true,
+    "streamed": "It is sunny today. Bring a hat. Or do not. Enjoy it. Last one.",
+    "buffered": "It is sunny today. Bring a hat. Or do not. Enjoy it. Last one.",
+    "unhonoured": []
+   },
+   {
+    "case": "answer, then a late preamble retracted",
+    "hold": 3,
+    "tokens": "word",
+    "same": true,
+    "streamed": "It is sunny today. Bring a hat. Or do not. Enjoy it. Last one.",
+    "buffered": "It is sunny today. Bring a hat. Or do not. Enjoy it. Last one.",
+    "unhonoured": []
+   },
+   {
+    "case": "answer, then a late preamble retracted",
+    "hold": 3,
+    "tokens": "char",
+    "same": true,
+    "streamed": "It is sunny today. Bring a hat. Or do not. Enjoy it. Last one.",
+    "buffered": "It is sunny today. Bring a hat. Or do not. Enjoy it. Last one.",
+    "unhonoured": []
+   }
+  ]
+ },
+ "mutation": {
+  "mutants": 354,
+  "by_status": {
+   "invalid": 10,
+   "killed": 277,
+   "killed (full suite)": 2,
+   "killed (timeout)": 6,
+   "survived": 59
+  },
+  "network_attempts": 0,
+  "survivors": [
+   {
+    "file": "orchestrator/speech_stream.py",
+    "line": 91,
+    "op": "or -> and",
+    "old": "if s[0] in \"|#>`\" or line[0] in \" \\t\":",
+    "new": "if s[0] in \"|#>`\" and line[0] in \" \\t\":",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 3.34s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 36.94s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/speech_stream.py",
+    "line": 105,
+    "op": "0 -> 1",
+    "old": "return text.rfind(\"\\n\", 0, m.start()) + 1 if m else None",
+    "new": "return text.rfind(\"\\n\", 1, m.start()) + 1 if m else None",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 4.79s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 43.92s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/speech_stream.py",
+    "line": 116,
+    "op": "return -> return None",
+    "old": "return False",
+    "new": "return None",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 3.61s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 33.53s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/speech_stream.py",
+    "line": 136,
+    "op": "0 -> 1",
+    "old": "unit_start = 0",
+    "new": "unit_start = 1",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 4.46s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 36.52s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/speech_stream.py",
+    "line": 173,
+    "op": "statement -> pass",
+    "old": "block = None",
+    "new": "pass",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 3.47s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 34.08s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/speech_stream.py",
+    "line": 254,
+    "op": "statement -> pass",
+    "old": "self.retracts += 1",
+    "new": "pass",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 3.99s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 33.62s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/speech_stream.py",
+    "line": 261,
+    "op": "statement -> pass",
+    "old": "self.retracted_held += dropped",
+    "new": "pass",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 3.28s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 39.31s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/speech_stream.py",
+    "line": 274,
+    "op": "statement -> pass",
+    "old": "self._gap += raw",
+    "new": "pass",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 4.22s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 37.74s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/speech_stream.py",
+    "line": 286,
+    "op": "return -> return None",
+    "old": "return \"\".join(self.chunks)",
+    "new": "return None",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 3.30s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 36.51s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/main.py",
+    "line": 1107,
+    "op": "statement -> pass",
+    "old": "fallback, buf.pending = buf.pending, \"\"",
+    "new": "pass",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 3.43s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 35.30s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/main.py",
+    "line": 1110,
+    "op": "- -> +",
+    "old": "first_ms = round((time.monotonic() - t0) * 1000)",
+    "new": "first_ms = round((time.monotonic() + t0) * 1000)",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 3.28s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 39.41s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/main.py",
+    "line": 1114,
+    "op": "statement -> pass",
+    "old": "await pipeline.aclose()",
+    "new": "pass",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 3.65s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 34.46s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/main.py",
+    "line": 1119,
+    "op": "statement -> pass",
+    "old": "logger.exception(\"voice stream buffer failed at the end\")",
+    "new": "pass",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 3.31s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 36.45s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/main.py",
+    "line": 1127,
+    "op": "- -> +",
+    "old": "first_ms = round((time.monotonic() - t0) * 1000)",
+    "new": "first_ms = round((time.monotonic() + t0) * 1000)",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 3.32s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 32.05s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/main.py",
+    "line": 1146,
+    "op": "- -> +",
+    "old": "\"done_ms\": round((time.monotonic() - t0) * 1000),",
+    "new": "\"done_ms\": round((time.monotonic() + t0) * 1000),",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 3.92s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 34.08s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/speech_stream.py",
+    "line": 152,
+    "op": ">= -> >",
+    "old": "complete = j >= 0",
+    "new": "complete = j > 0",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 3.55s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 41.92s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/speech_stream.py",
+    "line": 183,
+    "op": "statement -> pass",
+    "old": "i = after",
+    "new": "pass",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 6.50s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 37.89s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/speech_stream.py",
+    "line": 237,
+    "op": "0 -> 1",
+    "old": "self.retracts = 0",
+    "new": "self.retracts = 1",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 5.82s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 38.27s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/speech_stream.py",
+    "line": 245,
+    "op": "<= -> <",
+    "old": "if len(units) <= self.hold:",
+    "new": "if len(units) < self.hold:",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 3.34s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 35.18s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/speech_stream.py",
+    "line": 257,
+    "op": "+= -> -=",
+    "old": "self.retracted_held += chars",
+    "new": "self.retracted_held -= chars",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 6.94s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 32.91s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/speech_stream.py",
+    "line": 277,
+    "op": "statement -> pass",
+    "old": "self._gap = raw[len(raw.rstrip()):]",
+    "new": "pass",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 3.23s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 37.77s",
+    "network_attempt": false,
+    "detected_by_my_inputs": [
+     "fuzz: 0 text differences, 0 chunk problems, retract table changed",
+     "harness: 28 responses differ, e.g. md:long_md|seed=None|voice:s"
+    ]
+   },
+   {
+    "file": "orchestrator/main.py",
+    "line": 1045,
+    "op": "return -> return None",
+    "old": "return False",
+    "new": "return None",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 3.54s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 36.19s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/main.py",
+    "line": 1091,
+    "op": "<= -> <",
+    "old": "fallback = fallback[:-ev[\"chars\"]] if ev[\"chars\"] <= len(fallback) else \"\"",
+    "new": "fallback = fallback[:-ev[\"chars\"]] if ev[\"chars\"] < len(fallback) else \"\"",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 3.80s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 34.27s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/main.py",
+    "line": 1110,
+    "op": "statement -> pass",
+    "old": "first_ms = round((time.monotonic() - t0) * 1000)",
+    "new": "pass",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 5.68s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 38.70s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/main.py",
+    "line": 1120,
+    "op": "statement -> pass",
+    "old": "error = f\"{type(e).__name__}: {e}\"",
+    "new": "pass",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 3.30s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 35.06s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/main.py",
+    "line": 1127,
+    "op": "statement -> pass",
+    "old": "first_ms = round((time.monotonic() - t0) * 1000)",
+    "new": "pass",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 3.40s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 39.52s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/speech_stream.py",
+    "line": 80,
+    "op": "return -> return None",
+    "old": "return \"line\"",
+    "new": "return None",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 3.52s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 37.87s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/speech_stream.py",
+    "line": 90,
+    "op": "False -> True",
+    "old": "return False",
+    "new": "return True",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 4.21s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 44.03s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/speech_stream.py",
+    "line": 92,
+    "op": "True -> False",
+    "old": "return True",
+    "new": "return False",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 3.35s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 35.98s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/speech_stream.py",
+    "line": 114,
+    "op": "return -> return None",
+    "old": "return False",
+    "new": "return None",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 4.41s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 36.42s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/speech_stream.py",
+    "line": 141,
+    "op": "False -> True",
+    "old": "return False",
+    "new": "return True",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 4.21s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 38.18s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/speech_stream.py",
+    "line": 143,
+    "op": "False -> True",
+    "old": "return False                                    # rule 4",
+    "new": "return True                                    # rule 4",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 3.76s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 34.18s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/speech_stream.py",
+    "line": 146,
+    "op": "True -> False",
+    "old": "return True",
+    "new": "return False",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 3.44s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 40.00s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/speech_stream.py",
+    "line": 152,
+    "op": "0 -> 1",
+    "old": "complete = j >= 0",
+    "new": "complete = j >= 1",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 3.77s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 35.04s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/speech_stream.py",
+    "line": 190,
+    "op": "or -> and",
+    "old": "whole = done or b.end() < len(line)",
+    "new": "whole = done and b.end() < len(line)",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 3.25s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 35.11s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/speech_stream.py",
+    "line": 254,
+    "op": "+= -> -=",
+    "old": "self.retracts += 1",
+    "new": "self.retracts -= 1",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 3.53s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 32.30s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/speech_stream.py",
+    "line": 257,
+    "op": "statement -> pass",
+    "old": "self.retracted_held += chars",
+    "new": "pass",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 5.31s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 32.66s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/main.py",
+    "line": 1091,
+    "op": "statement -> pass",
+    "old": "fallback = fallback[:-ev[\"chars\"]] if ev[\"chars\"] <= len(fallback) else \"\"",
+    "new": "pass",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 3.22s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 38.41s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/main.py",
+    "line": 1109,
+    "op": "is None -> is not None",
+    "old": "if first_ms is None:",
+    "new": "if first_ms is not None:",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 5.20s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 31.92s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/main.py",
+    "line": 1121,
+    "op": "statement -> pass",
+    "old": "fallback, buf.pending = buf.pending, \"\"",
+    "new": "pass",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 3.16s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 31.28s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/main.py",
+    "line": 1124,
+    "op": "and -> or",
+    "old": "out = [(\" \" if sent and last else \"\") + last] if last else []",
+    "new": "out = [(\" \" if sent or last else \"\") + last] if last else []",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 3.16s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 31.53s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/main.py",
+    "line": 1126,
+    "op": "is None -> is not None",
+    "old": "if first_ms is None:",
+    "new": "if first_ms is not None:",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 3.19s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 31.53s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/main.py",
+    "line": 1132,
+    "op": "statement -> pass",
+    "old": "yield _ndjson_chunk(model, created, \"\")",
+    "new": "pass",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 3.10s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 31.24s",
+    "network_attempt": false,
+    "detected_by_my_inputs": [
+     "harness: 4 responses differ, e.g. md:space|seed=None|voice:s"
+    ]
+   },
+   {
+    "file": "orchestrator/main.py",
+    "line": 1205,
+    "op": "0 -> 1",
+    "old": "\"total_duration\":    0,",
+    "new": "\"total_duration\":    1,",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 3.21s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 31.91s",
+    "network_attempt": false,
+    "detected_by_my_inputs": [
+     "harness: 122 responses differ, e.g. md:long_md|seed=None|voice:n"
+    ]
+   },
+   {
+    "file": "orchestrator/speech_stream.py",
+    "line": 90,
+    "op": "return -> return None",
+    "old": "return False",
+    "new": "return None",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 3.49s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 37.18s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/speech_stream.py",
+    "line": 92,
+    "op": "return -> return None",
+    "old": "return True",
+    "new": "return None",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 4.47s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 43.75s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/speech_stream.py",
+    "line": 141,
+    "op": "return -> return None",
+    "old": "return False",
+    "new": "return None",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 3.20s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 34.98s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/speech_stream.py",
+    "line": 143,
+    "op": "return -> return None",
+    "old": "return False                                    # rule 4",
+    "new": "return None",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 3.51s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 35.33s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/speech_stream.py",
+    "line": 146,
+    "op": "return -> return None",
+    "old": "return True",
+    "new": "return None",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 3.49s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 39.70s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/speech_stream.py",
+    "line": 231,
+    "op": "1 -> 2",
+    "old": "def __init__(self, hold: int = 1):",
+    "new": "def __init__(self, hold: int = 2):",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 3.16s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 35.99s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/speech_stream.py",
+    "line": 238,
+    "op": "0 -> 1",
+    "old": "self.retracted_held = 0      # characters dropped while still held",
+    "new": "self.retracted_held = 1      # characters dropped while still held",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 3.30s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 34.77s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/speech_stream.py",
+    "line": 254,
+    "op": "1 -> 2",
+    "old": "self.retracts += 1",
+    "new": "self.retracts += 2",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 5.56s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 38.19s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/speech_stream.py",
+    "line": 261,
+    "op": "+= -> -=",
+    "old": "self.retracted_held += dropped",
+    "new": "self.retracted_held -= dropped",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 3.36s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 36.32s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/main.py",
+    "line": 1042,
+    "op": "and -> or",
+    "old": "if v not in _VOICE_STREAM_OFF and raw not in _voice_stream_warned:",
+    "new": "if v not in _VOICE_STREAM_OFF or raw not in _voice_stream_warned:",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 3.53s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 34.46s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/main.py",
+    "line": 1090,
+    "op": "== -> !=",
+    "old": "elif ev[\"type\"] == \"retract\":",
+    "new": "elif ev[\"type\"] != \"retract\":",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 4.25s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 37.45s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/main.py",
+    "line": 1106,
+    "op": "statement -> pass",
+    "old": "error = f\"{type(e).__name__}: {e}\"",
+    "new": "pass",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 3.68s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 33.03s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/main.py",
+    "line": 1109,
+    "op": "negate condition",
+    "old": "if first_ms is None:",
+    "new": "if not (first_ms is None):",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 4.63s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 32.39s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/main.py",
+    "line": 1126,
+    "op": "negate condition",
+    "old": "if first_ms is None:",
+    "new": "if not (first_ms is None):",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 3.19s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 35.19s",
+    "network_attempt": false,
+    "detected_by_my_inputs": []
+   },
+   {
+    "file": "orchestrator/main.py",
+    "line": 1206,
+    "op": "0 -> 1",
+    "old": "\"load_duration\":     0,",
+    "new": "\"load_duration\":     1,",
+    "status": "survived",
+    "tail": "340 passed, 6 warnings in 3.17s",
+    "full_tail": "4435 passed, 3 skipped, 53 xfailed, 6 warnings in 33.37s",
+    "network_attempt": false,
+    "detected_by_my_inputs": [
+     "harness: 122 responses differ, e.g. md:long_md|seed=None|voice:n"
+    ]
+   }
+  ]
+ },
+ "disconnect": {
+  "drop after the first chunk": {
+   "dropped_at_s": 4.47,
+   "received_before_drop": ": \"gemma-4-e4b\", \"created_at\": \"2026-11-17T15:24:27.000000000Z\", \"message\": {\"role\": \"assistant\", \"content\": \"When a virus enters the body, the innate immune system first detects it, triggering inflammation and involving cells like macrophages to engulf and destroy the pathogen.\"}, \"done\": false}\n\r\n",
+   "next_request": {
+    "status": 200,
+    "lines": 3,
+    "done_records": 1,
+    "last_is_done": true,
+    "first_s": 0.54,
+    "total_s": 0.89
+   },
+   "next_text": "The sky appears blue due to Rayleigh scattering. Sunlight is composed of all colors of the spectrum, but the Earth's atmosphere is mostly composed of nitrogen a",
+   "dropped_request_log": [
+    {
+     "rid": "a6a4d5d6",
+     "trace": "0e36d32503cb65f09aa4c8726d6ba2ed",
+     "events": [
+      [
+       0.0,
+       "request",
+       null,
+       null
+      ],
+      [
+       0.0,
+       "origin",
+       null,
+       null
+      ],
+      [
+       0.01,
+       "route",
+       null,
+       null
+      ]
+     ]
+    }
+   ],
+   "next_request_log": [
+    {
+     "rid": "1ac1d161",
+     "trace": "d4888109b73ec18ba8ce182309222cc9",
+     "events": [
+      [
+       0.0,
+       "request",
+       null,
+       null
+      ],
+      [
+       0.0,
+       "origin",
+       null,
+       null
+      ],
+      [
+       0.01,
+       "route",
+       null,
+       null
+      ],
+      [
+       0.88,
+       "agent_round",
+       0.87,
+       null
+      ],
+      [
+       0.89,
+       "request_complete",
+       0.89,
+       null
+      ],
+      [
+       0.89,
+       "voice_stream",
+       null,
+       null
+      ]
+     ]
+    }
+   ],
+   "errors_in_log": []
+  },
+  "drop 0.4 s after sending (before any chunk)": {
+   "dropped_at_s": 0.4,
+   "received_before_drop": "",
+   "next_request": {
+    "status": 200,
+    "lines": 2,
+    "done_records": 1,
+    "last_is_done": true,
+    "first_s": 1.62,
+    "total_s": 1.62
+   },
+   "next_text": "The sky appears blue because of a phenomenon called Rayleigh scattering. Sunlight contains all colors of the rainbow, but the atmosphere scatters the shorter, b",
+   "dropped_request_log": [
+    {
+     "rid": "a0c546a7",
+     "trace": "2f1984994d99d1fec66a1a4c4499521e",
+     "events": [
+      [
+       0.0,
+       "request",
+       null,
+       null
+      ],
+      [
+       0.0,
+       "origin",
+       null,
+       null
+      ],
+      [
+       0.01,
+       "route",
+       null,
+       null
+      ]
+     ]
+    }
+   ],
+   "next_request_log": [
+    {
+     "rid": "c946f722",
+     "trace": "b35e2e9360d275ad567fc82a7ba67bac",
+     "events": [
+      [
+       0.0,
+       "request",
+       null,
+       null
+      ],
+      [
+       0.0,
+       "origin",
+       null,
+       null
+      ],
+      [
+       0.01,
+       "route",
+       null,
+       null
+      ],
+      [
+       1.59,
+       "agent_round",
+       1.58,
+       null
+      ],
+      [
+       1.61,
+       "request_complete",
+       1.61,
+       null
+      ],
+      [
+       1.61,
+       "voice_stream",
+       null,
+       null
+      ]
+     ]
+    }
+   ],
+   "errors_in_log": []
+  },
+  "drop 1.5 s after sending": {
+   "dropped_at_s": 1.5,
+   "received_before_drop": "",
+   "next_request": {
+    "status": 200,
+    "lines": 3,
+    "done_records": 1,
+    "last_is_done": true,
+    "first_s": 1.32,
+    "total_s": 1.56
+   },
+   "next_text": "The sky is blue because of a phenomenon called Rayleigh scattering. Sunlight contains all colors of the rainbow, but blue light travels in shorter wavelengths t",
+   "dropped_request_log": [
+    {
+     "rid": "11d5f9c8",
+     "trace": "58d0d6f266cc9c6e7fbcd2b42e12d09b",
+     "events": [
+      [
+       0.0,
+       "request",
+       null,
+       null
+      ],
+      [
+       0.0,
+       "origin",
+       null,
+       null
+      ],
+      [
+       0.01,
+       "route",
+       null,
+       null
+      ]
+     ]
+    }
+   ],
+   "next_request_log": [
+    {
+     "rid": "5d425d12",
+     "trace": "cc393700fb12da46fc697e99449cc6f9",
+     "events": [
+      [
+       0.0,
+       "request",
+       null,
+       null
+      ],
+      [
+       0.0,
+       "origin",
+       null,
+       null
+      ],
+      [
+       0.01,
+       "route",
+       null,
+       null
+      ],
+      [
+       1.55,
+       "agent_round",
+       1.53,
+       null
+      ],
+      [
+       1.56,
+       "request_complete",
+       1.56,
+       null
+      ],
+      [
+       1.56,
+       "voice_stream",
+       null,
+       null
+      ]
+     ]
+    }
+   ],
+   "errors_in_log": []
+  },
+  "two at once": {
+   "a": {
+    "status": 200,
+    "lines": 5,
+    "done_records": 1,
+    "last_is_done": true,
+    "first_s": 1.21,
+    "total_s": 1.95,
+    "text": "The immune system uses a multi-layered defense to combat viruses. The innate immune system provides the first line of defense, where cells like macrophages engulf and destroy infected cells, and natur"
+   },
+   "b": {
+    "status": 200,
+    "lines": 3,
+    "done_records": 1,
+    "last_is_done": true,
+    "first_s": 3.25,
+    "total_s": 3.51,
+    "text": "Vaccines work by training the immune system to recognize and fight specific pathogens. They introduce a harmless component of a germ, such as weakened or inactive parts, so the body can create antibod"
+   },
+   "log_a": [
+    {
+     "rid": "d4cf0d29",
+     "trace": "8b72e390542ee7fb5f28c01a3563dc78",
+     "events": [
+      [
+       0.0,
+       "request",
+       null,
+       null
+      ],
+      [
+       0.0,
+       "origin",
+       null,
+       null
+      ],
+      [
+       0.01,
+       "route",
+       null,
+       null
+      ],
+      [
+       1.95,
+       "agent_round",
+       1.94,
+       null
+      ],
+      [
+       1.95,
+       "request_complete",
+       1.95,
+       null
+      ],
+      [
+       1.95,
+       "voice_stream",
+       null,
+       null
+      ]
+     ]
+    }
+   ],
+   "log_b": [
+    {
+     "rid": "29e3e701",
+     "trace": "f764f65cc92fc5bcc037d3ffe057bf25",
+     "events": [
+      [
+       0.0,
+       "request",
+       null,
+       null
+      ],
+      [
+       0.0,
+       "origin",
+       null,
+       null
+      ],
+      [
+       1.95,
+       "route",
+       null,
+       null
+      ],
+      [
+       3.48,
+       "agent_round",
+       1.53,
+       null
+      ],
+      [
+       3.5,
+       "request_complete",
+       3.5,
+       null
+      ],
+      [
+       3.5,
+       "voice_stream",
+       null,
+       null
+      ]
+     ]
+    }
+   ],
+   "errors_in_log": []
+  }
+ },
+ "tempo": {
+  "kronk-orchestrator-dev|all": {
+   "requests": 5709,
+   "by_route": {
+    "specialist": [
+     1679,
+     30,
+     0
+    ],
+    "coordinator": [
+     3468,
+     22,
+     29
+    ],
+    "direct dispatch": [
+     562,
+     0,
+     0
+    ]
+   },
+   "stream_visible_round_chars": [
+    53,
+    54,
+    58,
+    64,
+    70,
+    72,
+    84,
+    88,
+    96,
+    100,
+    134,
+    155,
+    155,
+    156,
+    157,
+    161,
+    165,
+    174,
+    176,
+    196,
+    199,
+    201,
+    205,
+    223,
+    235,
+    238,
+    241,
+    254,
+    283,
+    289,
+    297,
+    345,
+    368,
+    369,
+    398,
+    426,
+    447,
+    481,
+    511,
+    591,
+    680,
+    701,
+    751,
+    777,
+    955,
+    1170,
+    1370,
+    1441,
+    1662,
+    1912,
+    2272,
+    5271
+   ]
+  },
+  "kronk-orchestrator-dev|before this e2e": {
+   "requests": 4795,
+   "by_route": {
+    "specialist": [
+     1632,
+     30,
+     0
+    ],
+    "coordinator": [
+     2787,
+     17,
+     19
+    ],
+    "direct dispatch": [
+     376,
+     0,
+     0
+    ]
+   },
+   "stream_visible_round_chars": [
+    53,
+    54,
+    58,
+    64,
+    70,
+    72,
+    84,
+    88,
+    96,
+    100,
+    134,
+    155,
+    155,
+    156,
+    157,
+    161,
+    165,
+    174,
+    176,
+    196,
+    199,
+    201,
+    205,
+    223,
+    235,
+    241,
+    254,
+    283,
+    289,
+    297,
+    345,
+    368,
+    398,
+    426,
+    447,
+    481,
+    511,
+    591,
+    701,
+    955,
+    1170,
+    1370,
+    1441,
+    1662,
+    1912,
+    2272,
+    5271
+   ]
+  },
+  "kronk-orchestrator-dev|this e2e": {
+   "requests": 914,
+   "by_route": {
+    "coordinator": [
+     681,
+     5,
+     10
+    ],
+    "specialist": [
+     47,
+     0,
+     0
+    ],
+    "direct dispatch": [
+     186,
+     0,
+     0
+    ]
+   },
+   "stream_visible_round_chars": [
+    238,
+    369,
+    680,
+    751,
+    777
+   ]
+  },
+  "kronk-orchestrator-dev|traces with a stream-visible text+tool round": [
+   {
+    "trace": "fbbdca6087b33a5ea46e4c795ad289ba",
+    "start": 1794814096.968002,
+    "route": "home",
+    "rounds": [
+     [
+      "home",
+      "plan_1",
+      283,
+      [
+       "play_music"
+      ]
+     ]
+    ],
+    "voice_stream": null
+   },
+   {
+    "trace": "c510dcdbf0be5d3ce8af62bb05597e94",
+    "start": 1794805699.486346,
+    "route": "home",
+    "rounds": [
+     [
+      "home",
+      "plan_1",
+      591,
+      [
+       "escalate"
+      ]
+     ]
+    ],
+    "voice_stream": null
+   },
+   {
+    "trace": "925f25ca31062e7ccb57ab2be4206995",
+    "start": 1794802619.302207,
+    "route": "direct",
+    "rounds": [
+     [
+      "coordinator",
+      "plan_1",
+      196,
+      [
+       "ask_research"
+      ]
+     ]
+    ],
+    "voice_stream": null
+   },
+   {
+    "trace": "fea70614f5492803d293122ba838ae3e",
+    "start": 1794802499.554943,
+    "route": "direct",
+    "rounds": [
+     [
+      "coordinator",
+      "plan_1",
+      54,
+      [
+       "ask_research"
+      ]
+     ]
+    ],
+    "voice_stream": null
+   },
+   {
+    "trace": "84c4ac3085c41ec8c38e05710672b412",
+    "start": 1794800128.460189,
+    "route": "home",
+    "rounds": [
+     [
+      "home",
+      "plan_1",
+      201,
+      [
+       "rate_music"
+      ]
+     ]
+    ],
+    "voice_stream": null
+   },
+   {
+    "trace": "5115784f53616b2f372b6cec833f1ac3",
+    "start": 1794796051.3144274,
+    "route": "direct",
+    "rounds": [
+     [
+      "coordinator",
+      "plan_2",
+      155,
+      [
+       "ask_home"
+      ]
+     ]
+    ],
+    "voice_stream": null
+   },
+   {
+    "trace": "c5baf765ef2846a8e2185b1f6ddb6eab",
+    "start": 1794795918.1996424,
+    "route": "home",
+    "rounds": [
+     [
+      "home",
+      "plan_1",
+      345,
+      [
+       "rate_music"
+      ]
+     ]
+    ],
+    "voice_stream": null
+   },
+   {
+    "trace": "37b52c13de027e9c42f0592f5d9b92f2",
+    "start": 1794793361.2470582,
+    "route": "home",
+    "rounds": [
+     [
+      "home",
+      "plan_1",
+      235,
+      [
+       "now_playing"
+      ]
+     ]
+    ],
+    "voice_stream": null
+   },
+   {
+    "trace": "73e75dc52f7b01460bb2e95eb5c44279",
+    "start": 1794792710.068667,
+    "route": "home",
+    "rounds": [
+     [
+      "home",
+      "plan_1",
+      1370,
+      [
+       "play_music"
+      ]
+     ]
+    ],
+    "voice_stream": null
+   },
+   {
+    "trace": "f5cdee1b1cc6fc9446c8c256d6774750",
+    "start": 1794792629.2647028,
+    "route": "home",
+    "rounds": [
+     [
+      "home",
+      "plan_1",
+      241,
+      [
+       "control_music"
+      ]
+     ]
+    ],
+    "voice_stream": null
+   },
+   {
+    "trace": "242af1cbc78b3e952e84af75ceabda16",
+    "start": 1794792398.4099097,
+    "route": "direct",
+    "rounds": [
+     [
+      "coordinator",
+      "plan_1",
+      88,
+      [
+       "ask_home"
+      ]
+     ]
+    ],
+    "voice_stream": null
+   },
+   {
+    "trace": "9589849743755ba0acb8cb330b5bc00a",
+    "start": 1794875713.063171,
+    "route": "home",
+    "rounds": [
+     [
+      "home",
+      "plan_1",
+      5271,
+      [
+       "escalate"
+      ]
+     ]
+    ],
+    "voice_stream": null
+   },
+   {
+    "trace": "4735e6ebc19caa77cf7a70d8523e3a93",
+    "start": 1794872776.792384,
+    "route": "research",
+    "rounds": [
+     [
+      "research",
+      "plan_1",
+      426,
+      [
+       "escalate"
+      ]
+     ]
+    ],
+    "voice_stream": null
+   },
+   {
+    "trace": "770597a2b05b40669294f60aad3b3a98",
+    "start": 1794872002.9578712,
+    "route": "devops",
+    "rounds": [
+     [
+      "coordinator",
+      "plan_1",
+      58,
+      [
+       "ask_home"
+      ]
+     ]
+    ],
+    "voice_stream": null
+   },
+   {
+    "trace": "76d5a8b6e27ed747caefa055beb577d",
+    "start": 1794871950.676805,
+    "route": "direct",
+    "rounds": [
+     [
+      "coordinator",
+      "plan_1",
+      1170,
+      [
+       "ask_home"
+      ]
+     ]
+    ],
+    "voice_stream": null
+   },
+   {
+    "trace": "b2ca710d24e627cea3c9f72bb5e94bab",
+    "start": 1794868728.627817,
+    "route": "direct",
+    "rounds": [
+     [
+      "coordinator",
+      "plan_1",
+      161,
+      [
+       "ask_home"
+      ]
+     ]
+    ],
+    "voice_stream": null
+   },
+   {
+    "trace": "9b6fb05a08a9f358d5c85d32cd9fd8d2",
+    "start": 1794866606.1713815,
+    "route": "devops",
+    "rounds": [
+     [
+      "coordinator",
+      "plan_2",
+      70,
+      [
+       "ask_home"
+      ]
+     ]
+    ],
+    "voice_stream": null
+   },
+   {
+    "trace": "3bb3046dd58078f8e2b29c754a50be81",
+    "start": 1794866567.2089262,
+    "route": "direct",
+    "rounds": [
+     [
+      "coordinator",
+      "plan_1",
+      511,
+      [
+       "ask_home"
+      ]
+     ]
+    ],
+    "voice_stream": null
+   },
+   {
+    "trace": "3eddd9741843913ddee4090a5375cc62",
+    "start": 1794845318.1745808,
+    "route": "home",
+    "rounds": [
+     [
+      "home",
+      "plan_1",
+      174,
+      [
+       "play_music"
+      ]
+     ]
+    ],
+    "voice_stream": null
+   },
+   {
+    "trace": "95606d104b1098e119e099daf3bfa011",
+    "start": 1794841919.0540512,
+    "route": "home",
+    "rounds": [
+     [
+      "home",
+      "plan_1",
+      254,
+      [
+       "now_playing"
+      ]
+     ]
+    ],
+    "voice_stream": null
+   },
+   {
+    "trace": "357f94b7d973dc8330826bb21a1a6145",
+    "start": 1794838410.9075427,
+    "route": "direct",
+    "rounds": [
+     [
+      "coordinator",
+      "plan_1",
+      72,
+      [
+       "ask_research"
+      ]
+     ]
+    ],
+    "voice_stream": null
+   },
+   {
+    "trace": "56dc27f9bfb728b69b984f68b2109aaa",
+    "start": 1794837812.4192853,
+    "route": "home",
+    "rounds": [
+     [
+      "home",
+      "plan_1",
+      368,
+      [
+       "rate_music"
+      ]
+     ]
+    ],
+    "voice_stream": null
+   },
+   {
+    "trace": "d12e5a110f0f1b38328170daccb07740",
+    "start": 1794836380.7298563,
+    "route": "direct",
+    "rounds": [
+     [
+      "coordinator",
+      "plan_1",
+      53,
+      [
+       "ask_home"
+      ]
+     ]
+    ],
+    "voice_stream": null
+   },
+   {
+    "trace": "7015fa3b867212e414ef37f84eb80e59",
+    "start": 1794834389.9414146,
+    "route": "devops",
+    "rounds": [
+     [
+      "devops",
+      "plan_1",
+      205,
+      [
+       "remote_exec",
+       "remote_exec"
+      ]
+     ]
+    ],
+    "voice_stream": null
+   },
+   {
+    "trace": "882a21e5d68c9cce95a7c77e7c4c2d54",
+    "start": 1794901537.3436415,
+    "route": "home",
+    "rounds": [
+     [
+      "home",
+      "plan_1",
+      156,
+      [
+       "control_music"
+      ]
+     ]
+    ],
+    "voice_stream": null
+   },
+   {
+    "trace": "62a730cbe129081c33f99e19377b66af",
+    "start": 1794885564.2091887,
+    "route": "direct",
+    "rounds": [
+     [
+      "coordinator",
+      "plan_1",
+      176,
+      [
+       "ask_home"
+      ]
+     ]
+    ],
+    "voice_stream": null
+   },
+   {
+    "trace": "e4c7324a133a788058c83f08840efab7",
+    "start": 1794884707.5086021,
+    "route": "home",
+    "rounds": [
+     [
+      "home",
+      "plan_1",
+      165,
+      [
+       "play_music"
+      ]
+     ]
+    ],
+    "voice_stream": null
+   },
+   {
+    "trace": "86c75b309b5232d36cd7d4894205fe74",
+    "start": 1794884604.1259975,
+    "route": "home",
+    "rounds": [
+     [
+      "home",
+      "plan_1",
+      398,
+      [
+       "play_music"
+      ]
+     ]
+    ],
+    "voice_stream": null
+   },
+   {
+    "trace": "3b7be853196da51bbd5d536c0158c5be",
+    "start": 1794884600.9892335,
+    "route": "home",
+    "rounds": [
+     [
+      "home",
+      "plan_1",
+      64,
+      [
+       "play_music"
+      ]
+     ]
+    ],
+    "voice_stream": null
+   },
+   {
+    "trace": "53047d7319a9de2ef0c72a2a97f71a4f",
+    "start": 1794884333.647608,
+    "route": "research",
+    "rounds": [
+     [
+      "research",
+      "plan_2",
+      100,
+      [
+       "web_search"
+      ]
+     ]
+    ],
+    "voice_stream": null
+   },
+   {
+    "trace": "36e91be0dec6e8ca86d5663510738bce",
+    "start": 1794881607.3690982,
+    "route": "direct",
+    "rounds": [
+     [
+      "coordinator",
+      "plan_2",
+      157,
+      [
+       "ask_home"
+      ]
+     ]
+    ],
+    "voice_stream": null
+   },
+   {
+    "trace": "4008f0d344e22160124d95ba7adf1fe",
+    "start": 1794881589.3138366,
+    "route": "home",
+    "rounds": [
+     [
+      "home",
+      "plan_1",
+      2272,
+      [
+       "play_music"
+      ]
+     ]
+    ],
+    "voice_stream": null
+   },
+   {
+    "trace": "ee111eb4871ea64a09a64548f2a22d45",
+    "start": 1794881305.7308517,
+    "route": "home",
+    "rounds": [
+     [
+      "home",
+      "plan_1",
+      447,
+      [
+       "rate_music"
+      ]
+     ]
+    ],
+    "voice_stream": null
+   },
+   {
+    "trace": "c84219cc3b54252bc4771f2679556355",
+    "start": 1794880597.158269,
+    "route": "home",
+    "rounds": [
+     [
+      "home",
+      "plan_1",
+      1441,
+      [
+       "play_music"
+      ]
+     ]
+    ],
+    "voice_stream": null
+   },
+   {
+    "trace": "af7fd1402c9bc75982f5c1ba18efeaab",
+    "start": 1794880499.2858014,
+    "route": "home",
+    "rounds": [
+     [
+      "home",
+      "plan_1",
+      481,
+      [
+       "play_music"
+      ]
+     ]
+    ],
+    "voice_stream": null
+   },
+   {
+    "trace": "1760f908c8cb992ece66d4b78751c265",
+    "start": 1794880474.7467082,
+    "route": "home",
+    "rounds": [
+     [
+      "home",
+      "plan_1",
+      701,
+      [
+       "play_music"
+      ]
+     ]
+    ],
+    "voice_stream": null
+   },
+   {
+    "trace": "83febe78fe9b5761cd6414e4c7137d66",
+    "start": 1794880308.1108155,
+    "route": "home",
+    "rounds": [
+     [
+      "home",
+      "plan_1",
+      96,
+      [
+       "play_music"
+      ]
+     ]
+    ],
+    "voice_stream": null
+   },
+   {
+    "trace": "d8ee80c3927dccc83c49cd9b0efb7d33",
+    "start": 1794877437.8063486,
+    "route": "direct",
+    "rounds": [
+     [
+      "coordinator",
+      "plan_1",
+      155,
+      [
+       "ask_research"
+      ]
+     ]
+    ],
+    "voice_stream": null
+   },
+   {
+    "trace": "8ffe1c1448065503c42520c17fa2936b",
+    "start": 1794876843.023632,
+    "route": "research",
+    "rounds": [
+     [
+      "research",
+      "plan_2",
+      134,
+      [
+       "web_search"
+      ]
+     ]
+    ],
+    "voice_stream": null
+   },
+   {
+    "trace": "548043c6a2f269b0d7b0282d41eb09fc",
+    "start": 1794876700.248182,
+    "route": "direct",
+    "rounds": [
+     [
+      "coordinator",
+      "plan_1",
+      199,
+      [
+       "ask_home"
+      ]
+     ]
+    ],
+    "voice_stream": null
+   },
+   {
+    "trace": "e6202e02810d9bb7cb1aab565a8b9725",
+    "start": 1794913486.9261675,
+    "route": "direct",
+    "rounds": [
+     [
+      "coordinator",
+      "plan_1",
+      297,
+      [
+       "ask_home"
+      ]
+     ]
+    ],
+    "voice_stream": null
+   },
+   {
+    "trace": "fdf866c59db85b6acd7e7d4455750fd7",
+    "start": 1794913128.667805,
+    "route": "direct",
+    "rounds": [
+     [
+      "coordinator",
+      "plan_1",
+      223,
+      [
+       "ask_home"
+      ]
+     ]
+    ],
+    "voice_stream": null
+   },
+   {
+    "trace": "3660b8c056ecf6c00517b6722a28a775",
+    "start": 1794912907.6454036,
+    "route": "home",
+    "rounds": [
+     [
+      "home",
+      "plan_1",
+      955,
+      [
+       "play_music",
+       "get_weather"
+      ]
+     ]
+    ],
+    "voice_stream": null
+   },
+   {
+    "trace": "462270051fd5efda15cdc97ffd20b536",
+    "start": 1794911125.1962616,
+    "route": "direct",
+    "rounds": [
+     [
+      "coordinator",
+      "plan_1",
+      84,
+      [
+       "ask_home",
+       "ask_home"
+      ]
+     ]
+    ],
+    "voice_stream": null
+   },
+   {
+    "trace": "beca47e48ab64e2adffb9e51199f96e2",
+    "start": 1794910905.921452,
+    "route": "direct",
+    "rounds": [
+     [
+      "coordinator",
+      "plan_1",
+      289,
+      [
+       "ask_home"
+      ]
+     ]
+    ],
+    "voice_stream": null
+   },
+   {
+    "trace": "3edfb45dfdbbf36e1d6fd6eb76a996a2",
+    "start": 1794906290.0521638,
+    "route": "home",
+    "rounds": [
+     [
+      "home",
+      "plan_1",
+      1662,
+      [
+       "play_music"
+      ]
+     ]
+    ],
+    "voice_stream": null
+   },
+   {
+    "trace": "d35cdfabb7b49acb0405fed5908d259a",
+    "start": 1794903992.4596443,
+    "route": "home",
+    "rounds": [
+     [
+      "home",
+      "plan_1",
+      1912,
+      [
+       "play_music"
+      ]
+     ]
+    ],
+    "voice_stream": null
+   },
+   {
+    "trace": "d4c95010727a8efeb57201465be1ad7",
+    "start": 1794928524.7841694,
+    "route": "direct",
+    "rounds": [
+     [
+      "coordinator",
+      "plan_1",
+      238,
+      [
+       "ask_home"
+      ]
+     ]
+    ],
+    "voice_stream": {
+     "kronk.chunks": "2",
+     "kronk.first_chunk_ms": "627",
+     "kronk.done_ms": "6570",
+     "kronk.hold": "1",
+     "kronk.retracts": "1",
+     "kronk.retract_held_chars": "197",
+     "kronk.retract_unhonoured": "1",
+     "kronk.retract_unhonoured_chars": "41",
+     "kronk.spoken_chars": "127"
+    }
+   },
+   {
+    "trace": "f2c08d15cc87bd93d187a74af44a194c",
+    "start": 1794928474.8856723,
+    "route": "direct",
+    "rounds": [
+     [
+      "coordinator",
+      "plan_1",
+      777,
+      [
+       "ask_home"
+      ]
+     ]
+    ],
+    "voice_stream": {
+     "kronk.chunks": "9",
+     "kronk.first_chunk_ms": "2689",
+     "kronk.done_ms": "5620",
+     "kronk.hold": "1",
+     "kronk.retracts": "1",
+     "kronk.retract_held_chars": "221",
+     "kronk.retract_unhonoured": "1",
+     "kronk.retract_unhonoured_chars": "556",
+     "kronk.spoken_chars": "667"
+    }
+   },
+   {
+    "trace": "11aebe68b7b385cfefbb5abece6b4070",
+    "start": 1794928105.8452063,
+    "route": "direct",
+    "rounds": [
+     [
+      "coordinator",
+      "plan_1",
+      680,
+      [
+       "ask_research"
+      ]
+     ]
+    ],
+    "voice_stream": {
+     "kronk.chunks": "12",
+     "kronk.first_chunk_ms": "3267",
+     "kronk.done_ms": "23266",
+     "kronk.hold": "1",
+     "kronk.retracts": "1",
+     "kronk.retract_held_chars": "167",
+     "kronk.retract_unhonoured": "1",
+     "kronk.retract_unhonoured_chars": "513",
+     "kronk.spoken_chars": "939"
+    }
+   },
+   {
+    "trace": "817143ab597c410a81ecb400932ece21",
+    "start": 1794927515.3271437,
+    "route": "direct",
+    "rounds": [
+     [
+      "coordinator",
+      "plan_1",
+      751,
+      [
+       "ask_research"
+      ]
+     ]
+    ],
+    "voice_stream": {
+     "kronk.chunks": "5",
+     "kronk.first_chunk_ms": "2805",
+     "kronk.done_ms": "15710",
+     "kronk.hold": "1",
+     "kronk.retracts": "1",
+     "kronk.retract_held_chars": "444",
+     "kronk.retract_unhonoured": "1",
+     "kronk.retract_unhonoured_chars": "307",
+     "kronk.spoken_chars": "336"
+    }
+   },
+   {
+    "trace": "696794cb83f9e046ee81e4dc09ca6551",
+    "start": 1794925606.8231976,
+    "route": "direct",
+    "rounds": [
+     [
+      "coordinator",
+      "plan_1",
+      369,
+      [
+       "ask_home"
+      ]
+     ]
+    ],
+    "voice_stream": {
+     "kronk.chunks": "3",
+     "kronk.first_chunk_ms": "3319",
+     "kronk.done_ms": "5881",
+     "kronk.hold": "1",
+     "kronk.retracts": "1",
+     "kronk.retract_held_chars": "129",
+     "kronk.retract_unhonoured": "1",
+     "kronk.retract_unhonoured_chars": "240",
+     "kronk.spoken_chars": "359"
+    }
+   }
+  ],
+  "kronk-orchestrator|all": {
+   "requests": 52,
+   "by_route": {
+    "coordinator": [
+     33,
+     0,
+     0
+    ],
+    "specialist": [
+     18,
+     0,
+     0
+    ],
+    "direct dispatch": [
+     1,
+     0,
+     0
+    ]
+   },
+   "stream_visible_round_chars": []
+  },
+  "kronk-orchestrator|before this e2e": {
+   "requests": 52,
+   "by_route": {
+    "coordinator": [
+     33,
+     0,
+     0
+    ],
+    "specialist": [
+     18,
+     0,
+     0
+    ],
+    "direct dispatch": [
+     1,
+     0,
+     0
+    ]
+   },
+   "stream_visible_round_chars": []
+  },
+  "kronk-orchestrator|traces with a stream-visible text+tool round": []
+ }
+}

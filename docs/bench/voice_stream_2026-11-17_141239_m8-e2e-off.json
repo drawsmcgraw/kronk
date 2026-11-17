@@ -1,0 +1,1961 @@
+{
+  "mode": "shim",
+  "url": "http://localhost/dev/voice/api/chat",
+  "rows": [
+    {
+      "wall_start": 1794924759.026458,
+      "first_chunk_s": 2.364,
+      "done_s": 2.364,
+      "chunks": 1,
+      "chunk_times": [
+        2.364
+      ],
+      "chars": 338,
+      "sentences": 3,
+      "reply": "A heat pump moves heat from one area to another, rather than generating heat itself. It uses a refrigeration cycle, which involves refrigerant flowing through coils, to transfer thermal energy. In winter, it extracts heat from the cold outdoor air and moves it indoors, and in summer, it reverses the process to move indoor heat outdoors.",
+      "done_record": {
+        "model": "gemma-4-e4b",
+        "created_at": "2026-11-17T14:12:41.000000000Z",
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 0,
+        "load_duration": 0,
+        "prompt_eval_count": 7,
+        "eval_count": 84
+      },
+      "question": "explain how a heat pump works",
+      "run": 1,
+      "rid": "fbbc73d6",
+      "trace_id": "c7a84dee83e14e966d101a03a5be6700",
+      "route": "direct",
+      "generation_s": 2.3,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          2.3
+        ]
+      ],
+      "pipeline_s": 2.35,
+      "voice_stream": null
+    },
+    {
+      "wall_start": 1794924761.4069028,
+      "first_chunk_s": 1.377,
+      "done_s": 1.377,
+      "chunks": 1,
+      "chunk_times": [
+        1.377
+      ],
+      "chars": 286,
+      "sentences": 3,
+      "reply": "A refrigerator keeps food cold by moving heat from inside the box to the outside. It uses a refrigerant that is chilled and then allowed to evaporate, which absorbs heat from the food. As the gas expands and cools, it flows through a condenser at the back to release that captured heat.",
+      "done_record": {
+        "model": "gemma-4-e4b",
+        "created_at": "2026-11-17T14:12:42.000000000Z",
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 0,
+        "load_duration": 0,
+        "prompt_eval_count": 9,
+        "eval_count": 71
+      },
+      "question": "how does a refrigerator keep food cold",
+      "run": 1,
+      "rid": "e4d8c7de",
+      "trace_id": "f5a6a9bbe510b340b4910a227c823b8d",
+      "route": "direct",
+      "generation_s": 1.35,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          1.35
+        ]
+      ],
+      "pipeline_s": 1.37,
+      "voice_stream": null
+    },
+    {
+      "wall_start": 1794924762.799111,
+      "first_chunk_s": 0.837,
+      "done_s": 0.837,
+      "chunks": 1,
+      "chunk_times": [
+        0.837
+      ],
+      "chars": 328,
+      "sentences": 3,
+      "reply": "The sky appears blue due to a phenomenon called Rayleigh scattering. Sunlight contains all colors of the rainbow, but the Earth's atmosphere preferentially scatters shorter, bluer wavelengths of light more than longer, redder wavelengths. This scattered blue light reaches our eyes from all directions, making the sky look blue.",
+      "done_record": {
+        "model": "gemma-4-e4b",
+        "created_at": "2026-11-17T14:12:43.000000000Z",
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 0,
+        "load_duration": 0,
+        "prompt_eval_count": 4,
+        "eval_count": 82
+      },
+      "question": "why is the sky blue",
+      "run": 1,
+      "rid": "1d44e1e7",
+      "trace_id": "0283e91ef06ad8c384626435fc348bc3",
+      "route": "direct",
+      "generation_s": 0.81,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          0.81
+        ]
+      ],
+      "pipeline_s": 0.83,
+      "voice_stream": null
+    },
+    {
+      "wall_start": 1794924763.6503954,
+      "first_chunk_s": 1.74,
+      "done_s": 1.74,
+      "chunks": 1,
+      "chunk_times": [
+        1.74
+      ],
+      "chars": 425,
+      "sentences": 3,
+      "reply": "Vaccines work by training your immune system to recognize and fight specific pathogens, like bacteria or viruses. They introduce a harmless component of the pathogen, such as a weakened or inactive form, which the body then learns to fight without causing the actual disease. This preparation allows your body to respond rapidly and effectively if you are ever exposed to the real, dangerous version of the pathogen later on.",
+      "done_record": {
+        "model": "gemma-4-e4b",
+        "created_at": "2026-11-17T14:12:45.000000000Z",
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 0,
+        "load_duration": 0,
+        "prompt_eval_count": 5,
+        "eval_count": 106
+      },
+      "question": "how do vaccines work",
+      "run": 1,
+      "rid": "631d70c7",
+      "trace_id": "0defe15f26eb755d93666abf6b6cc189",
+      "route": "direct",
+      "generation_s": 1.72,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          1.72
+        ]
+      ],
+      "pipeline_s": 1.74,
+      "voice_stream": null
+    },
+    {
+      "wall_start": 1794924765.4063058,
+      "first_chunk_s": 3.611,
+      "done_s": 3.611,
+      "chunks": 1,
+      "chunk_times": [
+        3.611
+      ],
+      "chars": 338,
+      "sentences": 3,
+      "reply": "The seasons are caused by the Earth's axial tilt of about 23.5 degrees. As the Earth orbits the Sun, this tilt means that different parts of the planet receive varying amounts of direct sunlight throughout the year. This change in the angle and duration of sunlight results in the different temperatures and seasonal cycles we experience.",
+      "done_record": {
+        "model": "gemma-4-e4b",
+        "created_at": "2026-11-17T14:12:49.000000000Z",
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 0,
+        "load_duration": 0,
+        "prompt_eval_count": 8,
+        "eval_count": 84
+      },
+      "question": "what causes the seasons on earth",
+      "run": 1,
+      "rid": "077471fe",
+      "trace_id": "87391634db59c1a7a5ef793d6a7e1e6c",
+      "route": "direct",
+      "generation_s": 3.58,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          3.58
+        ]
+      ],
+      "pipeline_s": 3.61,
+      "voice_stream": null
+    },
+    {
+      "wall_start": 1794924769.0316124,
+      "first_chunk_s": 2.046,
+      "done_s": 2.046,
+      "chunks": 1,
+      "chunk_times": [
+        2.046
+      ],
+      "chars": 356,
+      "sentences": 3,
+      "reply": "A solar panel converts sunlight into electricity through the photovoltaic effect. Photons from the sun strike the panel's semiconductor material, typically silicon, exciting electrons within the material. This movement of electrons creates a direct current or DC electricity, which is then usually converted into alternating current (AC) for household use.",
+      "done_record": {
+        "model": "gemma-4-e4b",
+        "created_at": "2026-11-17T14:12:51.000000000Z",
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 0,
+        "load_duration": 0,
+        "prompt_eval_count": 9,
+        "eval_count": 89
+      },
+      "question": "how does a solar panel make electricity",
+      "run": 1,
+      "rid": "20c49f45",
+      "trace_id": "547bd538cd89286ec42043628ac04b5a",
+      "route": "direct",
+      "generation_s": 2.02,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          2.02
+        ]
+      ],
+      "pipeline_s": 2.04,
+      "voice_stream": null
+    },
+    {
+      "wall_start": 1794924771.092865,
+      "first_chunk_s": 1.584,
+      "done_s": 1.584,
+      "chunks": 1,
+      "chunk_times": [
+        1.584
+      ],
+      "chars": 378,
+      "sentences": 4,
+      "reply": "A car engine converts chemical energy from fuel into mechanical energy to move the car. In a standard internal combustion engine, fuel is mixed with air and ignited within cylinders. This explosion forces a piston down, which rotates a crankshaft and ultimately turns the wheels. The process is typically repeated in a four-stroke cycle: intake, compression, power, and exhaust.",
+      "done_record": {
+        "model": "gemma-4-e4b",
+        "created_at": "2026-11-17T14:12:52.000000000Z",
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 0,
+        "load_duration": 0,
+        "prompt_eval_count": 7,
+        "eval_count": 94
+      },
+      "question": "explain how a car engine works",
+      "run": 1,
+      "rid": "b0e11f68",
+      "trace_id": "a8ce7d06cc734f1fdfe975df742dc02d",
+      "route": "direct",
+      "generation_s": 1.56,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          1.56
+        ]
+      ],
+      "pipeline_s": 1.58,
+      "voice_stream": null
+    },
+    {
+      "wall_start": 1794924772.691774,
+      "first_chunk_s": 3.76,
+      "done_s": 3.76,
+      "chunks": 1,
+      "chunk_times": [
+        3.76
+      ],
+      "chars": 438,
+      "sentences": 4,
+      "reply": "Airplanes stay in the air because their wings generate lift using the principles of aerodynamics. The wing is shaped to direct air faster over its top surface than its bottom surface. This creates lower pressure above the wing and higher pressure underneath, resulting in an upward force that counteracts gravity. The engines provide thrust to move the aircraft forward, which allows the wings to continuously generate the necessary lift.",
+      "done_record": {
+        "model": "gemma-4-e4b",
+        "created_at": "2026-11-17T14:12:56.000000000Z",
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 0,
+        "load_duration": 0,
+        "prompt_eval_count": 8,
+        "eval_count": 109
+      },
+      "question": "how do airplanes stay in the air",
+      "run": 1,
+      "rid": "54baaf1b",
+      "trace_id": "e8bbe27bb6bce6dfb1e6a8b806728ebc",
+      "route": "direct",
+      "generation_s": 3.72,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          3.72
+        ]
+      ],
+      "pipeline_s": 3.76,
+      "voice_stream": null
+    },
+    {
+      "wall_start": 1794924776.4672394,
+      "first_chunk_s": 3.235,
+      "done_s": 3.235,
+      "chunks": 1,
+      "chunk_times": [
+        3.235
+      ],
+      "chars": 287,
+      "sentences": 3,
+      "reply": "Bacteria are single-celled living organisms that can reproduce on their own. Viruses are much smaller and are not considered living until they infect a host cell to reproduce. Essentially, bacteria are complete organisms, while viruses are parasitic genetic material that require a host.",
+      "done_record": {
+        "model": "gemma-4-e4b",
+        "created_at": "2026-11-17T14:12:59.000000000Z",
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 0,
+        "load_duration": 0,
+        "prompt_eval_count": 13,
+        "eval_count": 71
+      },
+      "question": "what is the difference between a virus and a bacterium",
+      "run": 1,
+      "rid": "124c8dde",
+      "trace_id": "782d4301efe1ca63d2bfd8c38c0d548c",
+      "route": "direct",
+      "generation_s": 3.21,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          3.21
+        ]
+      ],
+      "pipeline_s": 3.23,
+      "voice_stream": null
+    },
+    {
+      "wall_start": 1794924779.7167096,
+      "first_chunk_s": 0.752,
+      "done_s": 0.752,
+      "chunks": 1,
+      "chunk_times": [
+        0.752
+      ],
+      "chars": 288,
+      "sentences": 3,
+      "reply": "A microwave oven uses microwave radiation to excite water molecules inside the food. These vibrating molecules create friction, which converts electrical energy into thermal energy, heating the food. The microwaves are reflected by the metal walls of the oven, which ensures even cooking.",
+      "done_record": {
+        "model": "gemma-4-e4b",
+        "created_at": "2026-11-17T14:13:00.000000000Z",
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 0,
+        "load_duration": 0,
+        "prompt_eval_count": 8,
+        "eval_count": 72
+      },
+      "question": "how does a microwave oven heat food",
+      "run": 1,
+      "rid": "7f42fa77",
+      "trace_id": "928fc005e1728c0c39b74a1561dc23f7",
+      "route": "direct",
+      "generation_s": 0.73,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          0.73
+        ]
+      ],
+      "pipeline_s": 0.75,
+      "voice_stream": null
+    },
+    {
+      "wall_start": 1794924780.4819002,
+      "first_chunk_s": 3.245,
+      "done_s": 3.245,
+      "chunks": 1,
+      "chunk_times": [
+        3.245
+      ],
+      "chars": 450,
+      "sentences": 3,
+      "reply": "A heat pump works by moving heat from one area to another, rather than generating it. It uses a special fluid called refrigerant that absorbs heat in a colder area and releases it in a warmer area. This process involves four steps: the refrigerant absorbs heat and boils, the gas is compressed to raise its temperature, the hot gas releases heat into the target area and condenses back into a liquid, and then the liquid expands to absorb heat again.",
+      "done_record": {
+        "model": "gemma-4-e4b",
+        "created_at": "2026-11-17T14:13:03.000000000Z",
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 0,
+        "load_duration": 0,
+        "prompt_eval_count": 7,
+        "eval_count": 112
+      },
+      "question": "explain how a heat pump works",
+      "run": 2,
+      "rid": "3cc1bff9",
+      "trace_id": "c63e8aa4711950445af135dd65ae32c1",
+      "route": "direct",
+      "generation_s": 3.22,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          3.22
+        ]
+      ],
+      "pipeline_s": 3.24,
+      "voice_stream": null
+    },
+    {
+      "wall_start": 1794924783.7425337,
+      "first_chunk_s": 3.476,
+      "done_s": 3.476,
+      "chunks": 1,
+      "chunk_times": [
+        3.476
+      ],
+      "chars": 355,
+      "sentences": 3,
+      "reply": "A refrigerator works by removing heat from the inside of the appliance and moving it to the outside. The system uses a refrigerant that evaporates in the cooling coils to absorb heat from the food, and then the compressor pumps this refrigerant, causing it to condense outside, releasing the heat. This continuous cycle maintains a low temperature inside.",
+      "done_record": {
+        "model": "gemma-4-e4b",
+        "created_at": "2026-11-17T14:13:07.000000000Z",
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 0,
+        "load_duration": 0,
+        "prompt_eval_count": 9,
+        "eval_count": 88
+      },
+      "question": "how does a refrigerator keep food cold",
+      "run": 2,
+      "rid": "8e34f672",
+      "trace_id": "8865681efce527b88e245d91fbd1a4b0",
+      "route": "direct",
+      "generation_s": 3.44,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          3.44
+        ]
+      ],
+      "pipeline_s": 3.47,
+      "voice_stream": null
+    },
+    {
+      "wall_start": 1794924787.2330909,
+      "first_chunk_s": 1.541,
+      "done_s": 1.541,
+      "chunks": 1,
+      "chunk_times": [
+        1.541
+      ],
+      "chars": 391,
+      "sentences": 4,
+      "reply": "The sky appears blue due to a phenomenon called Rayleigh scattering. Sunlight is composed of many colors, each with a different wavelength. When sunlight enters Earth's atmosphere, the gas molecules scatter shorter, bluer wavelengths of light much more effectively than the longer, redder wavelengths. This scattered blue light reaches our eyes from all directions, making the sky look blue.",
+      "done_record": {
+        "model": "gemma-4-e4b",
+        "created_at": "2026-11-17T14:13:08.000000000Z",
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 0,
+        "load_duration": 0,
+        "prompt_eval_count": 4,
+        "eval_count": 97
+      },
+      "question": "why is the sky blue",
+      "run": 2,
+      "rid": "0a904bc6",
+      "trace_id": "b46b0134c062904e0934edd997fc0b52",
+      "route": "direct",
+      "generation_s": 1.53,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          1.53
+        ]
+      ],
+      "pipeline_s": 1.54,
+      "voice_stream": null
+    },
+    {
+      "wall_start": 1794924788.789088,
+      "first_chunk_s": 2.115,
+      "done_s": 2.115,
+      "chunks": 1,
+      "chunk_times": [
+        2.115
+      ],
+      "chars": 364,
+      "sentences": 3,
+      "reply": "Vaccines work by training your immune system to recognize and fight specific diseases. They introduce a harmless component of the pathogen, like a weakened virus or a protein, to stimulate an immune response. This allows your body to build defenses, like antibodies, so that if you encounter the actual disease later, your system can identify and fight it quickly.",
+      "done_record": {
+        "model": "gemma-4-e4b",
+        "created_at": "2026-11-17T14:13:10.000000000Z",
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 0,
+        "load_duration": 0,
+        "prompt_eval_count": 5,
+        "eval_count": 91
+      },
+      "question": "how do vaccines work",
+      "run": 2,
+      "rid": "7917b0be",
+      "trace_id": "85a4438c9ed500e6f65595a38ea29135",
+      "route": "direct",
+      "generation_s": 2.09,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          2.09
+        ]
+      ],
+      "pipeline_s": 2.11,
+      "voice_stream": null
+    },
+    {
+      "wall_start": 1794924790.9196846,
+      "first_chunk_s": 1.402,
+      "done_s": 1.402,
+      "chunks": 1,
+      "chunk_times": [
+        1.402
+      ],
+      "chars": 274,
+      "sentences": 2,
+      "reply": "The seasons on Earth are caused by the tilt of the planet's axis, which is about 23.5 degrees. As the Earth orbits the Sun, different parts of the planet receive varying amounts of direct sunlight throughout the year, leading to changes in temperature and daylight duration.",
+      "done_record": {
+        "model": "gemma-4-e4b",
+        "created_at": "2026-11-17T14:13:12.000000000Z",
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 0,
+        "load_duration": 0,
+        "prompt_eval_count": 8,
+        "eval_count": 68
+      },
+      "question": "what causes the seasons on earth",
+      "run": 2,
+      "rid": "bbff0b64",
+      "trace_id": "54fc639bad75de9cea20f3682998e731",
+      "route": "direct",
+      "generation_s": 1.38,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          1.38
+        ]
+      ],
+      "pipeline_s": 1.4,
+      "voice_stream": null
+    },
+    {
+      "wall_start": 1794924792.337086,
+      "first_chunk_s": 1.074,
+      "done_s": 1.074,
+      "chunks": 1,
+      "chunk_times": [
+        1.074
+      ],
+      "chars": 234,
+      "sentences": 3,
+      "reply": "Solar panels generate electricity through the photovoltaic effect. When sunlight hits the silicon cells, the energy excites electrons within the material. These excited electrons are pushed into a flow, creating an electrical current.",
+      "done_record": {
+        "model": "gemma-4-e4b",
+        "created_at": "2026-11-17T14:13:13.000000000Z",
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 0,
+        "load_duration": 0,
+        "prompt_eval_count": 9,
+        "eval_count": 58
+      },
+      "question": "how does a solar panel make electricity",
+      "run": 2,
+      "rid": "b6195c4a",
+      "trace_id": "7cefc40bf57d151715a21163ba02a99d",
+      "route": "direct",
+      "generation_s": 1.06,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          1.06
+        ]
+      ],
+      "pipeline_s": 1.07,
+      "voice_stream": null
+    },
+    {
+      "wall_start": 1794924793.4261632,
+      "first_chunk_s": 1.603,
+      "done_s": 1.603,
+      "chunks": 1,
+      "chunk_times": [
+        1.603
+      ],
+      "chars": 328,
+      "sentences": 4,
+      "reply": "A car engine converts fuel into mechanical motion through controlled explosions. In an internal combustion engine, fuel and air are mixed and compressed within a cylinder. A spark plug ignites the mixture, causing it to expand and push a piston down. The piston's movement turns a crankshaft, which ultimately powers the wheels.",
+      "done_record": {
+        "model": "gemma-4-e4b",
+        "created_at": "2026-11-17T14:13:15.000000000Z",
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 0,
+        "load_duration": 0,
+        "prompt_eval_count": 7,
+        "eval_count": 82
+      },
+      "question": "explain how a car engine works",
+      "run": 2,
+      "rid": "861b815b",
+      "trace_id": "cb1f29a596e1aeb5b325da9e137ddb13",
+      "route": "direct",
+      "generation_s": 1.58,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          1.58
+        ]
+      ],
+      "pipeline_s": 1.6,
+      "voice_stream": null
+    },
+    {
+      "wall_start": 1794924795.0440156,
+      "first_chunk_s": 0.947,
+      "done_s": 0.947,
+      "chunks": 1,
+      "chunk_times": [
+        0.947
+      ],
+      "chars": 334,
+      "sentences": 3,
+      "reply": "Airplanes stay in the air primarily due to the principles of aerodynamics. As wings move through the air, their shape creates a lift force that opposes gravity. This lift is generated because the air travels faster over the curved top surface of the wing than under the flat bottom surface, resulting in lower pressure above the wing.",
+      "done_record": {
+        "model": "gemma-4-e4b",
+        "created_at": "2026-11-17T14:13:15.000000000Z",
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 0,
+        "load_duration": 0,
+        "prompt_eval_count": 8,
+        "eval_count": 83
+      },
+      "question": "how do airplanes stay in the air",
+      "run": 2,
+      "rid": "7481d5d1",
+      "trace_id": "6e5ce7f49a788e836aad4cd2e8102947",
+      "route": "direct",
+      "generation_s": 0.92,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          0.92
+        ]
+      ],
+      "pipeline_s": 0.94,
+      "voice_stream": null
+    },
+    {
+      "wall_start": 1794924796.0059552,
+      "first_chunk_s": 1.973,
+      "done_s": 1.973,
+      "chunks": 1,
+      "chunk_times": [
+        1.973
+      ],
+      "chars": 361,
+      "sentences": 2,
+      "reply": "Bacteria are single-celled microorganisms that can reproduce independently, while viruses are much smaller and can only replicate inside a living host cell. The main difference is that bacteria are living organisms that can be killed with antibiotics, but viruses are non-living particles and require different treatments like vaccines or antiviral medications.",
+      "done_record": {
+        "model": "gemma-4-e4b",
+        "created_at": "2026-11-17T14:13:17.000000000Z",
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 0,
+        "load_duration": 0,
+        "prompt_eval_count": 13,
+        "eval_count": 90
+      },
+      "question": "what is the difference between a virus and a bacterium",
+      "run": 2,
+      "rid": "aaaedc30",
+      "trace_id": "01e5a216a93cd98dedaa432c97f9d0ce",
+      "route": "direct",
+      "generation_s": 1.95,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          1.95
+        ]
+      ],
+      "pipeline_s": 1.97,
+      "voice_stream": null
+    },
+    {
+      "wall_start": 1794924797.9937727,
+      "first_chunk_s": 1.179,
+      "done_s": 1.179,
+      "chunks": 1,
+      "chunk_times": [
+        1.179
+      ],
+      "chars": 256,
+      "sentences": 3,
+      "reply": "A microwave oven heats food using electromagnetic radiation called microwaves. These waves interact with polar molecules, such as water, in the food, causing them to vibrate rapidly. This friction from the intense vibrations generates heat within the food.",
+      "done_record": {
+        "model": "gemma-4-e4b",
+        "created_at": "2026-11-17T14:13:19.000000000Z",
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 0,
+        "load_duration": 0,
+        "prompt_eval_count": 8,
+        "eval_count": 64
+      },
+      "question": "how does a microwave oven heat food",
+      "run": 2,
+      "rid": "22d7b736",
+      "trace_id": "ef0a9aea5fa624ca01da29d770316f6b",
+      "route": "direct",
+      "generation_s": 1.15,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          1.15
+        ]
+      ],
+      "pipeline_s": 1.18,
+      "voice_stream": null
+    },
+    {
+      "wall_start": 1794924799.1877646,
+      "first_chunk_s": 0.488,
+      "done_s": 0.488,
+      "chunks": 1,
+      "chunk_times": [
+        0.488
+      ],
+      "chars": 172,
+      "sentences": 2,
+      "reply": "A heat pump works by transferring heat rather than creating it. It uses a refrigerant that absorbs heat from a cooler area, moves it to a warmer area, and then releases it.",
+      "done_record": {
+        "model": "gemma-4-e4b",
+        "created_at": "2026-11-17T14:13:19.000000000Z",
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 0,
+        "load_duration": 0,
+        "prompt_eval_count": 7,
+        "eval_count": 43
+      },
+      "question": "explain how a heat pump works",
+      "run": 3,
+      "rid": "27290ca8",
+      "trace_id": "f62033c0500ec57dc1e532f46b17fc1a",
+      "route": "direct",
+      "generation_s": 0.46,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          0.46
+        ]
+      ],
+      "pipeline_s": 0.48,
+      "voice_stream": null
+    },
+    {
+      "wall_start": 1794924799.6905372,
+      "first_chunk_s": 2.03,
+      "done_s": 2.03,
+      "chunks": 1,
+      "chunk_times": [
+        2.03
+      ],
+      "chars": 302,
+      "sentences": 3,
+      "reply": "A refrigerator uses a refrigeration cycle to move heat from inside the unit to the outside. A refrigerant inside a closed loop is compressed, cooled, and then evaporates inside the cold cabinet, absorbing the heat. The resulting vapor is then condensed and the cycle repeats, keeping the interior cold.",
+      "done_record": {
+        "model": "gemma-4-e4b",
+        "created_at": "2026-11-17T14:13:21.000000000Z",
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 0,
+        "load_duration": 0,
+        "prompt_eval_count": 9,
+        "eval_count": 75
+      },
+      "question": "how does a refrigerator keep food cold",
+      "run": 3,
+      "rid": "17cb6bca",
+      "trace_id": "4cd6e05155babdf4c57592f5925c0924",
+      "route": "direct",
+      "generation_s": 2.01,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          2.01
+        ]
+      ],
+      "pipeline_s": 2.03,
+      "voice_stream": null
+    },
+    {
+      "wall_start": 1794924801.736407,
+      "first_chunk_s": 1.25,
+      "done_s": 1.251,
+      "chunks": 1,
+      "chunk_times": [
+        1.25
+      ],
+      "chars": 313,
+      "sentences": 3,
+      "reply": "The sky appears blue because of a phenomenon called Rayleigh scattering. Sunlight contains all the colors of the rainbow, but the atmosphere scatters shorter wavelengths, like blue, more effectively than longer wavelengths. This scattered blue light reaches our eyes from all directions, making the sky look blue.",
+      "done_record": {
+        "model": "gemma-4-e4b",
+        "created_at": "2026-11-17T14:13:22.000000000Z",
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 0,
+        "load_duration": 0,
+        "prompt_eval_count": 4,
+        "eval_count": 78
+      },
+      "question": "why is the sky blue",
+      "run": 3,
+      "rid": "14de0577",
+      "trace_id": "51adacaa7e1f309e7cd90f32a82a6f0f",
+      "route": "direct",
+      "generation_s": 1.23,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          1.23
+        ]
+      ],
+      "pipeline_s": 1.25,
+      "voice_stream": null
+    },
+    {
+      "wall_start": 1794924803.0017385,
+      "first_chunk_s": 3.403,
+      "done_s": 3.403,
+      "chunks": 1,
+      "chunk_times": [
+        3.403
+      ],
+      "chars": 366,
+      "sentences": 3,
+      "reply": "Vaccines introduce a weakened or inactivated form of a disease into the body, which teaches the immune system to recognize and fight that specific pathogen. The immune system then develops antibodies to defend against the disease. If the body is later exposed to the real disease, the immune system already recognizes it and can fight it off quickly and effectively.",
+      "done_record": {
+        "model": "gemma-4-e4b",
+        "created_at": "2026-11-17T14:13:26.000000000Z",
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 0,
+        "load_duration": 0,
+        "prompt_eval_count": 5,
+        "eval_count": 91
+      },
+      "question": "how do vaccines work",
+      "run": 3,
+      "rid": "47e99202",
+      "trace_id": "e54016b44923c4130d962430e1b93644",
+      "route": "direct",
+      "generation_s": 3.38,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          3.38
+        ]
+      ],
+      "pipeline_s": 3.4,
+      "voice_stream": null
+    },
+    {
+      "wall_start": 1794924806.4195795,
+      "first_chunk_s": 2.706,
+      "done_s": 2.706,
+      "chunks": 1,
+      "chunk_times": [
+        2.706
+      ],
+      "chars": 353,
+      "sentences": 3,
+      "reply": "The seasons on Earth are caused by the tilt of the Earth's axis at the same rate it orbits the Sun. This tilt means that different parts of the planet receive varying amounts of direct sunlight throughout the year. When the Northern Hemisphere tilts toward the Sun, it experiences summer, while the Southern Hemisphere tilts away and experiences winter.",
+      "done_record": {
+        "model": "gemma-4-e4b",
+        "created_at": "2026-11-17T14:13:29.000000000Z",
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 0,
+        "load_duration": 0,
+        "prompt_eval_count": 8,
+        "eval_count": 88
+      },
+      "question": "what causes the seasons on earth",
+      "run": 3,
+      "rid": "2e70a23c",
+      "trace_id": "6fff446f9ae9a8478907d1472545f6e7",
+      "route": "direct",
+      "generation_s": 2.67,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          2.67
+        ]
+      ],
+      "pipeline_s": 2.7,
+      "voice_stream": null
+    },
+    {
+      "wall_start": 1794924809.140502,
+      "first_chunk_s": 3.494,
+      "done_s": 3.494,
+      "chunks": 1,
+      "chunk_times": [
+        3.494
+      ],
+      "chars": 280,
+      "sentences": 3,
+      "reply": "Photovoltaic cells convert sunlight into electricity using the photovoltaic effect. When photons from the sun strike the semiconductor material, they knock electrons loose, generating an electrical current. These individual cells are combined into a panel to produce usable power.",
+      "done_record": {
+        "model": "gemma-4-e4b",
+        "created_at": "2026-11-17T14:13:32.000000000Z",
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 0,
+        "load_duration": 0,
+        "prompt_eval_count": 9,
+        "eval_count": 70
+      },
+      "question": "how does a solar panel make electricity",
+      "run": 3,
+      "rid": "e036d89a",
+      "trace_id": "296c495f5230d906bf369c47eb0678e9",
+      "route": "direct",
+      "generation_s": 3.47,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          3.47
+        ]
+      ],
+      "pipeline_s": 3.49,
+      "voice_stream": null
+    },
+    {
+      "wall_start": 1794924812.6493618,
+      "first_chunk_s": 1.917,
+      "done_s": 1.917,
+      "chunks": 1,
+      "chunk_times": [
+        1.917
+      ],
+      "chars": 452,
+      "sentences": 6,
+      "reply": "A typical car engine converts chemical energy from fuel into mechanical energy. In an internal combustion engine, this happens in four strokes: intake, compression, power, and exhaust. During the intake stroke, the engine pulls in air and fuel. The compression stroke squeezes the mixture. The power stroke ignites the mixture, causing rapid expansion that moves the piston. Finally, the exhaust stroke pushes out the burnt gases, completing the cycle.",
+      "done_record": {
+        "model": "gemma-4-e4b",
+        "created_at": "2026-11-17T14:13:34.000000000Z",
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 0,
+        "load_duration": 0,
+        "prompt_eval_count": 7,
+        "eval_count": 113
+      },
+      "question": "explain how a car engine works",
+      "run": 3,
+      "rid": "d56f7c21",
+      "trace_id": "151cf52fb5d5a65f287c329ccba54001",
+      "route": "direct",
+      "generation_s": 1.89,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          1.89
+        ]
+      ],
+      "pipeline_s": 1.91,
+      "voice_stream": null
+    },
+    {
+      "wall_start": 1794924814.5813127,
+      "first_chunk_s": 4.319,
+      "done_s": 4.319,
+      "chunks": 1,
+      "chunk_times": [
+        4.319
+      ],
+      "chars": 467,
+      "sentences": 4,
+      "reply": "Airplanes stay airborne through a combination of four forces: lift, weight, thrust, and drag. The wings are shaped like an airfoil, which is designed to deflect air. As air moves over and under the wing, it creates a pressure difference that generates lift, overcoming the plane's weight. Thrust, generated by engines, pulls the plane forward, and the difference between that forward movement and air resistance (drag) allows the plane to climb and maintain altitude.",
+      "done_record": {
+        "model": "gemma-4-e4b",
+        "created_at": "2026-11-17T14:13:38.000000000Z",
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 0,
+        "load_duration": 0,
+        "prompt_eval_count": 8,
+        "eval_count": 116
+      },
+      "question": "how do airplanes stay in the air",
+      "run": 3,
+      "rid": "38c07114",
+      "trace_id": "a18381c4ef1cb5e5ed8f2ebc52efd0d0",
+      "route": "direct",
+      "generation_s": 4.3,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          4.3
+        ]
+      ],
+      "pipeline_s": 4.32,
+      "voice_stream": null
+    },
+    {
+      "wall_start": 1794924818.9152985,
+      "first_chunk_s": 1.811,
+      "done_s": 1.811,
+      "chunks": 1,
+      "chunk_times": [
+        1.811
+      ],
+      "chars": 337,
+      "sentences": 3,
+      "reply": "Bacteria are single-celled organisms that are living cells capable of reproducing on their own. Viruses are not considered living cells; they are much smaller and can only reproduce inside a host cell. Bacteria are typically treated with antibiotics, whereas viruses are generally treated with antivirals or the body's own immune system.",
+      "done_record": {
+        "model": "gemma-4-e4b",
+        "created_at": "2026-11-17T14:13:40.000000000Z",
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 0,
+        "load_duration": 0,
+        "prompt_eval_count": 13,
+        "eval_count": 84
+      },
+      "question": "what is the difference between a virus and a bacterium",
+      "run": 3,
+      "rid": "b2554f06",
+      "trace_id": "02a19331ea134ecb903d53a29ddb123c",
+      "route": "direct",
+      "generation_s": 1.79,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          1.79
+        ]
+      ],
+      "pipeline_s": 1.81,
+      "voice_stream": null
+    },
+    {
+      "wall_start": 1794924820.741751,
+      "first_chunk_s": 3.176,
+      "done_s": 3.176,
+      "chunks": 1,
+      "chunk_times": [
+        3.176
+      ],
+      "chars": 210,
+      "sentences": 2,
+      "reply": "A microwave oven generates electromagnetic waves that target the water molecules within food. These microwaves cause the water molecules to vibrate and rotate rapidly, which creates friction and generates heat.",
+      "done_record": {
+        "model": "gemma-4-e4b",
+        "created_at": "2026-11-17T14:13:43.000000000Z",
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 0,
+        "load_duration": 0,
+        "prompt_eval_count": 8,
+        "eval_count": 52
+      },
+      "question": "how does a microwave oven heat food",
+      "run": 3,
+      "rid": "65912455",
+      "trace_id": "a269d03c2bd09dbb43775304b1867cc5",
+      "route": "direct",
+      "generation_s": 3.15,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          3.15
+        ]
+      ],
+      "pipeline_s": 3.17,
+      "voice_stream": null
+    },
+    {
+      "wall_start": 1794924823.9334357,
+      "first_chunk_s": 2.845,
+      "done_s": 2.845,
+      "chunks": 1,
+      "chunk_times": [
+        2.845
+      ],
+      "chars": 455,
+      "sentences": 3,
+      "reply": "A heat pump is a device that moves thermal energy from one area to another. It operates by circulating a refrigerant through a system of coils, which allows the heat to be absorbed in one space and released in another. The process uses a compressor to change the pressure and temperature of the refrigerant, enabling it to efficiently move heat from a cold area, like a winter home, to a warm area, or from a warm area, like a summer home, to a cool area.",
+      "done_record": {
+        "model": "gemma-4-e4b",
+        "created_at": "2026-11-17T14:13:46.000000000Z",
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 0,
+        "load_duration": 0,
+        "prompt_eval_count": 7,
+        "eval_count": 113
+      },
+      "question": "explain how a heat pump works",
+      "run": 4,
+      "rid": "66d24a16",
+      "trace_id": "4eaa80870cb71181a22122576307f75f",
+      "route": "direct",
+      "generation_s": 2.82,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          2.82
+        ]
+      ],
+      "pipeline_s": 2.84,
+      "voice_stream": null
+    },
+    {
+      "wall_start": 1794924826.7922826,
+      "first_chunk_s": 1.912,
+      "done_s": 1.913,
+      "chunks": 1,
+      "chunk_times": [
+        1.912
+      ],
+      "chars": 350,
+      "sentences": 3,
+      "reply": "A refrigerator maintains a cold environment by moving heat from the inside to the outside. It uses a refrigerant that evaporates inside, absorbing heat, and then the gas travels to the back coils to condense, releasing that heat into the surrounding kitchen air. This cycle allows the cooling process to continue without continuous power consumption.",
+      "done_record": {
+        "model": "gemma-4-e4b",
+        "created_at": "2026-11-17T14:13:48.000000000Z",
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 0,
+        "load_duration": 0,
+        "prompt_eval_count": 9,
+        "eval_count": 87
+      },
+      "question": "how does a refrigerator keep food cold",
+      "run": 4,
+      "rid": "05707499",
+      "trace_id": "7b065d411f015da87e3aee1aa8fb6a89",
+      "route": "direct",
+      "generation_s": 1.89,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          1.89
+        ]
+      ],
+      "pipeline_s": 1.91,
+      "voice_stream": null
+    },
+    {
+      "wall_start": 1794924828.7195477,
+      "first_chunk_s": 3.96,
+      "done_s": 3.96,
+      "chunks": 1,
+      "chunk_times": [
+        3.96
+      ],
+      "chars": 316,
+      "sentences": 3,
+      "reply": "The sky appears blue because of a phenomenon called Rayleigh scattering. As sunlight enters the atmosphere, the gases and small particles scatter shorter wavelengths of light, like blue and violet. Since blue light is scattered more effectively than other colors, it reaches our eyes from every direction in the sky.",
+      "done_record": {
+        "model": "gemma-4-e4b",
+        "created_at": "2026-11-17T14:13:52.000000000Z",
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 0,
+        "load_duration": 0,
+        "prompt_eval_count": 4,
+        "eval_count": 79
+      },
+      "question": "why is the sky blue",
+      "run": 4,
+      "rid": "11c11e7e",
+      "trace_id": "3713f1c17c35cd61c2aacab17b2d67a7",
+      "route": "direct",
+      "generation_s": 3.94,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          3.94
+        ]
+      ],
+      "pipeline_s": 3.96,
+      "voice_stream": null
+    },
+    {
+      "wall_start": 1794924832.6951706,
+      "first_chunk_s": 1.432,
+      "done_s": 1.432,
+      "chunks": 1,
+      "chunk_times": [
+        1.432
+      ],
+      "chars": 312,
+      "sentences": 3,
+      "reply": "Vaccines introduce a weakened or inactive part of a germ to help the body recognize it. This exposure allows the immune system to build defenses and produce antibodies against the germ. If the body encounters the actual disease later, the antibodies will recognize and fight the germ before it can make you sick.",
+      "done_record": {
+        "model": "gemma-4-e4b",
+        "created_at": "2026-11-17T14:13:54.000000000Z",
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 0,
+        "load_duration": 0,
+        "prompt_eval_count": 5,
+        "eval_count": 78
+      },
+      "question": "how do vaccines work",
+      "run": 4,
+      "rid": "7844e7f8",
+      "trace_id": "2a3b2a421cf475dbfb876b8bbdf807c6",
+      "route": "direct",
+      "generation_s": 1.41,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          1.41
+        ]
+      ],
+      "pipeline_s": 1.43,
+      "voice_stream": null
+    },
+    {
+      "wall_start": 1794924834.1422505,
+      "first_chunk_s": 3.528,
+      "done_s": 3.528,
+      "chunks": 1,
+      "chunk_times": [
+        3.528
+      ],
+      "chars": 337,
+      "sentences": 3,
+      "reply": "The seasons are caused by the tilt of Earth's axis and its orbit around the sun. As the Earth moves around the sun, different parts of the globe receive varying amounts of direct sunlight throughout the year. This differential in sunlight intensity results in differences in temperature and precipitation, which we experience as seasons.",
+      "done_record": {
+        "model": "gemma-4-e4b",
+        "created_at": "2026-11-17T14:13:57.000000000Z",
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 0,
+        "load_duration": 0,
+        "prompt_eval_count": 8,
+        "eval_count": 84
+      },
+      "question": "what causes the seasons on earth",
+      "run": 4,
+      "rid": "33a1da18",
+      "trace_id": "cf538fcf5f712b729edc09074009af45",
+      "route": "direct",
+      "generation_s": 3.49,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          3.49
+        ]
+      ],
+      "pipeline_s": 3.52,
+      "voice_stream": null
+    },
+    {
+      "wall_start": 1794924837.6855865,
+      "first_chunk_s": 3.083,
+      "done_s": 3.083,
+      "chunks": 1,
+      "chunk_times": [
+        3.083
+      ],
+      "chars": 257,
+      "sentences": 3,
+      "reply": "Solar panels convert sunlight into electricity through a process called the photovoltaic effect. Silicon cells absorb photons from sunlight, which knocks electrons loose from the atoms. These flowing electrons create a direct current that can power devices.",
+      "done_record": {
+        "model": "gemma-4-e4b",
+        "created_at": "2026-11-17T14:14:00.000000000Z",
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 0,
+        "load_duration": 0,
+        "prompt_eval_count": 9,
+        "eval_count": 64
+      },
+      "question": "how does a solar panel make electricity",
+      "run": 4,
+      "rid": "78475d5c",
+      "trace_id": "3227ddb5dd763cc5bfb753fe33a02018",
+      "route": "direct",
+      "generation_s": 3.06,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          3.06
+        ]
+      ],
+      "pipeline_s": 3.08,
+      "voice_stream": null
+    },
+    {
+      "wall_start": 1794924840.783566,
+      "first_chunk_s": 2.665,
+      "done_s": 2.665,
+      "chunks": 1,
+      "chunk_times": [
+        2.665
+      ],
+      "chars": 448,
+      "sentences": 3,
+      "reply": "A car engine, typically an internal combustion engine, operates on the principle of converting chemical energy into mechanical energy. In a four-stroke engine, fuel and air are drawn into the cylinder, a spark ignites the mixture, forcing the piston down to compress the gases and create movement, and finally, exhaust is expelled. This linear motion of the pistons is then converted into rotational energy by a crankshaft, which powers the wheels.",
+      "done_record": {
+        "model": "gemma-4-e4b",
+        "created_at": "2026-11-17T14:14:03.000000000Z",
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 0,
+        "load_duration": 0,
+        "prompt_eval_count": 7,
+        "eval_count": 112
+      },
+      "question": "explain how a car engine works",
+      "run": 4,
+      "rid": "32f4e599",
+      "trace_id": "68cacc04a8842abdfdd012f62ad363f6",
+      "route": "direct",
+      "generation_s": 2.64,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          2.64
+        ]
+      ],
+      "pipeline_s": 2.66,
+      "voice_stream": null
+    },
+    {
+      "wall_start": 1794924843.4632683,
+      "first_chunk_s": 2.14,
+      "done_s": 2.14,
+      "chunks": 1,
+      "chunk_times": [
+        2.14
+      ],
+      "chars": 377,
+      "sentences": 4,
+      "reply": "Airplanes stay in the air through a principle called lift. Wings are shaped like an airfoil, which is curved on the top and flat on the bottom. As the plane moves forward, this shape forces air to travel faster over the top of the wing than the bottom, creating a lower air pressure above the wing than below it. This difference in pressure pushes the wing up, generating lift.",
+      "done_record": {
+        "model": "gemma-4-e4b",
+        "created_at": "2026-11-17T14:14:05.000000000Z",
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 0,
+        "load_duration": 0,
+        "prompt_eval_count": 8,
+        "eval_count": 94
+      },
+      "question": "how do airplanes stay in the air",
+      "run": 4,
+      "rid": "1013feff",
+      "trace_id": "d75174b50c882b6916def13b33a25e7f",
+      "route": "direct",
+      "generation_s": 2.13,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          2.13
+        ]
+      ],
+      "pipeline_s": 2.14,
+      "voice_stream": null
+    },
+    {
+      "wall_start": 1794924845.6172135,
+      "first_chunk_s": 3.347,
+      "done_s": 3.347,
+      "chunks": 1,
+      "chunk_times": [
+        3.347
+      ],
+      "chars": 246,
+      "sentences": 3,
+      "reply": "A bacterium is a single-celled living organism that can reproduce on its own and is generally treated with antibiotics. A virus, however, is not considered fully alive and requires a host cell to reproduce. Viruses are much smaller than bacteria.",
+      "done_record": {
+        "model": "gemma-4-e4b",
+        "created_at": "2026-11-17T14:14:08.000000000Z",
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 0,
+        "load_duration": 0,
+        "prompt_eval_count": 13,
+        "eval_count": 61
+      },
+      "question": "what is the difference between a virus and a bacterium",
+      "run": 4,
+      "rid": "90589801",
+      "trace_id": "0206987d3f63bb9f103e4cab6b9c2c6f",
+      "route": "direct",
+      "generation_s": 3.32,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          3.32
+        ]
+      ],
+      "pipeline_s": 3.34,
+      "voice_stream": null
+    },
+    {
+      "wall_start": 1794924848.9792387,
+      "first_chunk_s": 1.906,
+      "done_s": 1.906,
+      "chunks": 1,
+      "chunk_times": [
+        1.906
+      ],
+      "chars": 333,
+      "sentences": 3,
+      "reply": "A microwave oven heats food by using a magnetron to generate electromagnetic waves in the microwave range. These waves cause water molecules, fats, and sugars in the food to rotate rapidly, which creates friction and converts the energy into thermal energy, or heat. The food also rotates inside the turntable to ensure even heating.",
+      "done_record": {
+        "model": "gemma-4-e4b",
+        "created_at": "2026-11-17T14:14:10.000000000Z",
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 0,
+        "load_duration": 0,
+        "prompt_eval_count": 8,
+        "eval_count": 83
+      },
+      "question": "how does a microwave oven heat food",
+      "run": 4,
+      "rid": "3e328bcb",
+      "trace_id": "6e784254390b38f70447235805596038",
+      "route": "direct",
+      "generation_s": 1.88,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          1.88
+        ]
+      ],
+      "pipeline_s": 1.9,
+      "voice_stream": null
+    },
+    {
+      "wall_start": 1794924850.9015234,
+      "first_chunk_s": 1.341,
+      "done_s": 1.341,
+      "chunks": 1,
+      "chunk_times": [
+        1.341
+      ],
+      "chars": 317,
+      "sentences": 3,
+      "reply": "A heat pump works by moving thermal energy from one location to another, rather than generating heat itself. In heating mode, it extracts heat from the cooler outdoor air and transfers that heat into your home. In cooling mode, it reverses this process, absorbing heat from inside your home and releasing it outdoors.",
+      "done_record": {
+        "model": "gemma-4-e4b",
+        "created_at": "2026-11-17T14:14:12.000000000Z",
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 0,
+        "load_duration": 0,
+        "prompt_eval_count": 7,
+        "eval_count": 79
+      },
+      "question": "explain how a heat pump works",
+      "run": 5,
+      "rid": "c2c94a79",
+      "trace_id": "707f8decbbd2207430d513a749db0545",
+      "route": "direct",
+      "generation_s": 1.32,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          1.32
+        ]
+      ],
+      "pipeline_s": 1.34,
+      "voice_stream": null
+    },
+    {
+      "wall_start": 1794924852.2588694,
+      "first_chunk_s": 1.178,
+      "done_s": 1.178,
+      "chunks": 1,
+      "chunk_times": [
+        1.178
+      ],
+      "chars": 276,
+      "sentences": 3,
+      "reply": "A refrigerator moves heat from the inside compartment to the warmer air outside. It uses a refrigerant that changes between a liquid and a gas, absorbing heat as it turns to gas and releasing heat as it turns back into a liquid. This constant cycle keeps the food inside cool.",
+      "done_record": {
+        "model": "gemma-4-e4b",
+        "created_at": "2026-11-17T14:14:13.000000000Z",
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 0,
+        "load_duration": 0,
+        "prompt_eval_count": 9,
+        "eval_count": 69
+      },
+      "question": "how does a refrigerator keep food cold",
+      "run": 5,
+      "rid": "b9e5af4d",
+      "trace_id": "a36badfc3f0cfdd04ff7d82b54eed4dd",
+      "route": "direct",
+      "generation_s": 1.15,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          1.15
+        ]
+      ],
+      "pipeline_s": 1.17,
+      "voice_stream": null
+    },
+    {
+      "wall_start": 1794924853.452096,
+      "first_chunk_s": 1.126,
+      "done_s": 1.126,
+      "chunks": 1,
+      "chunk_times": [
+        1.126
+      ],
+      "chars": 461,
+      "sentences": 5,
+      "reply": "The sky appears blue because of a phenomenon called Rayleigh scattering. Sunlight, which contains all colors of the rainbow, hits the Earth's atmosphere. The atmosphere is made up of tiny molecules of gases like nitrogen and oxygen. These molecules scatter shorter wavelengths of light, such as blue and violet, much more effectively than longer wavelengths like red and yellow. Because blue light is scattered across the sky, our eyes perceive the sky as blue.",
+      "done_record": {
+        "model": "gemma-4-e4b",
+        "created_at": "2026-11-17T14:14:14.000000000Z",
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 0,
+        "load_duration": 0,
+        "prompt_eval_count": 4,
+        "eval_count": 115
+      },
+      "question": "why is the sky blue",
+      "run": 5,
+      "rid": "35da6a96",
+      "trace_id": "fb8e5db7d175537724814196d6eb4fc9",
+      "route": "direct",
+      "generation_s": 1.1,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          1.1
+        ]
+      ],
+      "pipeline_s": 1.12,
+      "voice_stream": null
+    },
+    {
+      "wall_start": 1794924854.5926588,
+      "first_chunk_s": 0.782,
+      "done_s": 0.782,
+      "chunks": 1,
+      "chunk_times": [
+        0.782
+      ],
+      "chars": 296,
+      "sentences": 3,
+      "reply": "Vaccines work by training the immune system to recognize and fight a specific disease. They introduce a harmless version of a virus or bacteria, or just a part of it, allowing the body to build immunity without getting sick. Once immune, the body can quickly recognize and combat the real threat.",
+      "done_record": {
+        "model": "gemma-4-e4b",
+        "created_at": "2026-11-17T14:14:15.000000000Z",
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 0,
+        "load_duration": 0,
+        "prompt_eval_count": 5,
+        "eval_count": 74
+      },
+      "question": "how do vaccines work",
+      "run": 5,
+      "rid": "64b4ae54",
+      "trace_id": "e1a0c52c052949a1d1b7bfd7380a94c2",
+      "route": "direct",
+      "generation_s": 0.76,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          0.76
+        ]
+      ],
+      "pipeline_s": 0.78,
+      "voice_stream": null
+    },
+    {
+      "wall_start": 1794924855.3898761,
+      "first_chunk_s": 0.773,
+      "done_s": 0.773,
+      "chunks": 1,
+      "chunk_times": [
+        0.773
+      ],
+      "chars": 300,
+      "sentences": 3,
+      "reply": "Earth's seasons are caused by the tilt of its axis as it revolves around the sun. This tilt means different parts of Earth receive varying amounts of direct sunlight throughout the year. The intensity and angle of the sunlight determine the length of the days and the temperature, leading to seasons.",
+      "done_record": {
+        "model": "gemma-4-e4b",
+        "created_at": "2026-11-17T14:14:16.000000000Z",
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 0,
+        "load_duration": 0,
+        "prompt_eval_count": 8,
+        "eval_count": 75
+      },
+      "question": "what causes the seasons on earth",
+      "run": 5,
+      "rid": "85437813",
+      "trace_id": "76604f0153299df9c2dd5a2bd52a9023",
+      "route": "direct",
+      "generation_s": 0.75,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          0.75
+        ]
+      ],
+      "pipeline_s": 0.77,
+      "voice_stream": null
+    },
+    {
+      "wall_start": 1794924856.1797776,
+      "first_chunk_s": 1.925,
+      "done_s": 1.925,
+      "chunks": 1,
+      "chunk_times": [
+        1.925
+      ],
+      "chars": 343,
+      "sentences": 3,
+      "reply": "Solar panels work by capturing sunlight with photovoltaic cells, which are made of semiconductor materials like silicon. When photons from the sun strike these cells, they excite electrons, knocking them loose and creating an electric current. These cells then convert this direct current into alternating current, which is usable electricity.",
+      "done_record": {
+        "model": "gemma-4-e4b",
+        "created_at": "2026-11-17T14:14:18.000000000Z",
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 0,
+        "load_duration": 0,
+        "prompt_eval_count": 9,
+        "eval_count": 85
+      },
+      "question": "how does a solar panel make electricity",
+      "run": 5,
+      "rid": "52ce2481",
+      "trace_id": "063309b2103978d986a393dc07fee3a7",
+      "route": "direct",
+      "generation_s": 1.9,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          1.9
+        ]
+      ],
+      "pipeline_s": 1.92,
+      "voice_stream": null
+    },
+    {
+      "wall_start": 1794924858.1200786,
+      "first_chunk_s": 1.521,
+      "done_s": 1.521,
+      "chunks": 1,
+      "chunk_times": [
+        1.521
+      ],
+      "chars": 356,
+      "sentences": 4,
+      "reply": "A typical internal combustion engine works by converting the chemical energy in fuel into mechanical energy to move the wheels. Air and fuel are mixed and compressed in a cylinder, then ignited by a spark plug. This controlled explosion pushes a piston down, which rotates a crankshaft to power the wheels. This cycle repeats thousands of times per minute.",
+      "done_record": {
+        "model": "gemma-4-e4b",
+        "created_at": "2026-11-17T14:14:19.000000000Z",
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 0,
+        "load_duration": 0,
+        "prompt_eval_count": 7,
+        "eval_count": 89
+      },
+      "question": "explain how a car engine works",
+      "run": 5,
+      "rid": "341e6321",
+      "trace_id": "9850bc0068aaf7842c092734c8a8ac49",
+      "route": "direct",
+      "generation_s": 1.5,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          1.5
+        ]
+      ],
+      "pipeline_s": 1.52,
+      "voice_stream": null
+    },
+    {
+      "wall_start": 1794924859.6555822,
+      "first_chunk_s": 1.904,
+      "done_s": 1.904,
+      "chunks": 1,
+      "chunk_times": [
+        1.904
+      ],
+      "chars": 254,
+      "sentences": 3,
+      "reply": "Airplanes stay in the air primarily due to lift generated by their wings. As the wings move through the air, the shape and angle create a difference in air pressure. This difference in pressure pushes the plane upward, counteracting the force of gravity.",
+      "done_record": {
+        "model": "gemma-4-e4b",
+        "created_at": "2026-11-17T14:14:21.000000000Z",
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 0,
+        "load_duration": 0,
+        "prompt_eval_count": 8,
+        "eval_count": 63
+      },
+      "question": "how do airplanes stay in the air",
+      "run": 5,
+      "rid": "d3bd82d7",
+      "trace_id": "e4b38d5cc4785b508b50f7bc0f521f0b",
+      "route": "direct",
+      "generation_s": 1.88,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          1.88
+        ]
+      ],
+      "pipeline_s": 1.9,
+      "voice_stream": null
+    },
+    {
+      "wall_start": 1794924861.5756035,
+      "first_chunk_s": 1.434,
+      "done_s": 1.434,
+      "chunks": 1,
+      "chunk_times": [
+        1.434
+      ],
+      "chars": 249,
+      "sentences": 2,
+      "reply": "Bacteria are single-celled microorganisms that can reproduce on their own and are generally larger than viruses. Viruses, in contrast, are not considered cells; they are much smaller particles that can only reproduce by infecting a living host cell.",
+      "done_record": {
+        "model": "gemma-4-e4b",
+        "created_at": "2026-11-17T14:14:23.000000000Z",
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 0,
+        "load_duration": 0,
+        "prompt_eval_count": 13,
+        "eval_count": 62
+      },
+      "question": "what is the difference between a virus and a bacterium",
+      "run": 5,
+      "rid": "2b80aa8e",
+      "trace_id": "a1edaa59d4f04b03b93b7224f81900e1",
+      "route": "direct",
+      "generation_s": 1.41,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          1.41
+        ]
+      ],
+      "pipeline_s": 1.43,
+      "voice_stream": null
+    },
+    {
+      "wall_start": 1794924863.02481,
+      "first_chunk_s": 1.21,
+      "done_s": 1.21,
+      "chunks": 1,
+      "chunk_times": [
+        1.21
+      ],
+      "chars": 285,
+      "sentences": 3,
+      "reply": "A microwave oven heats food by using electromagnetic radiation to excite water molecules within the food. These molecules vibrate rapidly when exposed to microwaves, generating heat through friction. The microwaves are generated by a magnetron, which creates the necessary radio waves.",
+      "done_record": {
+        "model": "gemma-4-e4b",
+        "created_at": "2026-11-17T14:14:24.000000000Z",
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 0,
+        "load_duration": 0,
+        "prompt_eval_count": 8,
+        "eval_count": 71
+      },
+      "question": "how does a microwave oven heat food",
+      "run": 5,
+      "rid": "67674c26",
+      "trace_id": "afc6fc119fef415f10f32dc50cc87384",
+      "route": "direct",
+      "generation_s": 1.19,
+      "rounds": [
+        [
+          "coordinator",
+          "synthesis",
+          1.19
+        ]
+      ],
+      "pipeline_s": 1.21,
+      "voice_stream": null
+    }
+  ],
+  "summary": [
+    {
+      "question": "explain how a heat pump works",
+      "n": 5,
+      "chars_median": 338,
+      "sentences_median": 3,
+      "generation_s_median": 2.3,
+      "first_chunk_s_median": 2.36,
+      "done_s_median": 2.36,
+      "chunks_median": 1
+    },
+    {
+      "question": "how does a refrigerator keep food cold",
+      "n": 5,
+      "chars_median": 302,
+      "sentences_median": 3,
+      "generation_s_median": 1.89,
+      "first_chunk_s_median": 1.91,
+      "done_s_median": 1.91,
+      "chunks_median": 1
+    },
+    {
+      "question": "why is the sky blue",
+      "n": 5,
+      "chars_median": 328,
+      "sentences_median": 3,
+      "generation_s_median": 1.23,
+      "first_chunk_s_median": 1.25,
+      "done_s_median": 1.25,
+      "chunks_median": 1
+    },
+    {
+      "question": "how do vaccines work",
+      "n": 5,
+      "chars_median": 364,
+      "sentences_median": 3,
+      "generation_s_median": 1.72,
+      "first_chunk_s_median": 1.74,
+      "done_s_median": 1.74,
+      "chunks_median": 1
+    },
+    {
+      "question": "what causes the seasons on earth",
+      "n": 5,
+      "chars_median": 337,
+      "sentences_median": 3,
+      "generation_s_median": 2.67,
+      "first_chunk_s_median": 2.71,
+      "done_s_median": 2.71,
+      "chunks_median": 1
+    },
+    {
+      "question": "how does a solar panel make electricity",
+      "n": 5,
+      "chars_median": 280,
+      "sentences_median": 3,
+      "generation_s_median": 2.02,
+      "first_chunk_s_median": 2.05,
+      "done_s_median": 2.05,
+      "chunks_median": 1
+    },
+    {
+      "question": "explain how a car engine works",
+      "n": 5,
+      "chars_median": 378,
+      "sentences_median": 4,
+      "generation_s_median": 1.58,
+      "first_chunk_s_median": 1.6,
+      "done_s_median": 1.6,
+      "chunks_median": 1
+    },
+    {
+      "question": "how do airplanes stay in the air",
+      "n": 5,
+      "chars_median": 377,
+      "sentences_median": 4,
+      "generation_s_median": 2.13,
+      "first_chunk_s_median": 2.14,
+      "done_s_median": 2.14,
+      "chunks_median": 1
+    },
+    {
+      "question": "what is the difference between a virus and a bacterium",
+      "n": 5,
+      "chars_median": 287,
+      "sentences_median": 3,
+      "generation_s_median": 1.95,
+      "first_chunk_s_median": 1.97,
+      "done_s_median": 1.97,
+      "chunks_median": 1
+    },
+    {
+      "question": "how does a microwave oven heat food",
+      "n": 5,
+      "chars_median": 285,
+      "sentences_median": 3,
+      "generation_s_median": 1.19,
+      "first_chunk_s_median": 1.21,
+      "done_s_median": 1.21,
+      "chunks_median": 1
+    }
+  ],
+  "label": "m8-e2e-off",
+  "started_utc": "2026-11-17T14:12:39+00:00",
+  "git": "05bbcc6"
+}
