@@ -10,6 +10,8 @@ Files (docs/features/config-directory.md has the full description):
                      Starts with a <!-- header --> comment, which is
                      stripped; the rest, minus leading and trailing blank
                      lines, is the system prompt, byte for byte.
+  tuning.yaml        agent-loop budgets and the other orchestrator
+                     numbers; schema: the Tuning model below.
 
 Rules:
   - Load at startup (the first current() call). A file that fails
@@ -35,7 +37,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 import yaml
-from pydantic import BaseModel, ConfigDict, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 import prompt_defaults
 from events import emit
@@ -43,6 +45,7 @@ from events import emit
 logger = logging.getLogger(__name__)
 
 PROMPTS_DIR = "prompts"
+TUNING_FILE = "tuning.yaml"
 # A prompt may name these, written {{name}}; agents.apply_config fills them.
 PLACEHOLDERS = frozenset({"max_rounds"})
 _PLACEHOLDER = re.compile(r"\{\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*\}\}")
@@ -88,9 +91,40 @@ class _Strict(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
 
+_ROUNDS = dict(ge=1, le=20)
+
+
+class MaxRounds(_Strict):
+    """Tool-use rounds per request. One per agent in agents.AGENTS and the
+    coordinator (tests/test_config_loader.py checks the names); an agent
+    left at None uses `default`."""
+    default: int = Field(3, **_ROUNDS)
+    coordinator: int | None = Field(None, **_ROUNDS)
+    research: int | None = Field(8, **_ROUNDS)
+    home: int | None = Field(None, **_ROUNDS)
+    assistant: int | None = Field(None, **_ROUNDS)
+    coding: int | None = Field(None, **_ROUNDS)
+    talkie: int | None = Field(None, **_ROUNDS)
+    devops: int | None = Field(None, **_ROUNDS)
+
+    def for_agent(self, name: str) -> int:
+        value = getattr(self, name, None) if name in type(self).model_fields else None
+        return self.default if value is None else value
+
+
+class AgentLoop(_Strict):
+    max_rounds: MaxRounds = Field(default_factory=MaxRounds)
+    repeat_tool_nudge_at: int = Field(3, ge=2, le=20)
+
+
+class Tuning(_Strict):
+    agent_loop: AgentLoop = Field(default_factory=AgentLoop)
+
+
 @dataclass
 class Config:
     prompts: dict[str, str]                       # name -> prompt text (placeholders unfilled)
+    tuning: "Tuning"
     source: str                                   # "files" | "defaults"
     loaded_at: float = field(default_factory=time.time)
     digests: dict[str, str] = field(default_factory=dict)   # file -> sha256[:12]
@@ -99,7 +133,7 @@ class Config:
 
 def defaults() -> Config:
     """The built-in config: today's values, no files read."""
-    return Config(prompts=dict(prompt_defaults.PROMPTS), source="defaults")
+    return Config(prompts=dict(prompt_defaults.PROMPTS), tuning=Tuning(), source="defaults")
 
 
 # ── parsing ──────────────────────────────────────────────────────────────────
@@ -226,9 +260,18 @@ def load(base: Path | None = None) -> Config:
                                         "unknown prompt file: no agent of that name "
                                         f"(known: {', '.join(prompt_defaults.PROMPTS)})"))
 
+    tuning = None
+    try:
+        text = _read(base, TUNING_FILE)
+        data, lines = parse_yaml(text, TUNING_FILE)
+        tuning = validate(Tuning, data, lines, TUNING_FILE)
+        digests[TUNING_FILE] = _digest(text)
+    except ConfigInvalid as e:
+        problems += e.problems
+
     if problems:
         raise ConfigInvalid(problems)
-    return Config(prompts=prompts, source="files", digests=digests)
+    return Config(prompts=prompts, tuning=tuning, source="files", digests=digests)
 
 
 # ── the values in effect ─────────────────────────────────────────────────────
@@ -240,6 +283,16 @@ _listeners: list = []
 
 def _flatten(cfg: Config) -> dict[str, object]:
     flat: dict[str, object] = {f"prompts/{n}.md": t for n, t in cfg.prompts.items()}
+
+    def walk(prefix, value):
+        if isinstance(value, dict):
+            for k, v in value.items():
+                walk(f"{prefix}.{k}", v)
+        else:
+            flat[prefix] = value
+
+    for k, v in cfg.tuning.model_dump().items():
+        walk(f"{TUNING_FILE}:{k}", v)
     return flat
 
 

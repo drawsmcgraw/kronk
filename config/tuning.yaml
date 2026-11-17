@@ -1,0 +1,24 @@
+# Orchestrator tuning (sprint M21 step 1; docs/features/config-directory.md).
+#
+# Read by orchestrator/config_loader.py at startup and on POST /config/reload
+# (scripts/config_reload.sh). Schema: the Tuning model in config_loader.py.
+# An unknown key, a wrong type ("3" is not 3) or an out-of-range number
+# rejects the whole file, with its line, on /services; the values in effect
+# stay as they were. A key left out takes its built-in default, which is
+# the value written here.
+
+# The tool-calling loop every agent and the coordinator run (agents.run_stream).
+agent_loop:
+  # Tool-use rounds an agent gets per request: one streaming LLM call each.
+  # When every round ends in tool calls, one more call with tools disabled
+  # forces an answer. 1 to 20.
+  max_rounds:
+    # Every agent without its own line below, and the coordinator.
+    default: 3
+    # Research gets more: rank, fetch, enumerate, per-item lookups
+    # (2026-06-12 budget-cliff incident). Its prompt states this number
+    # through {{max_rounds}}, so the two cannot disagree.
+    research: 8
+  # A tool called this many times in one turn gets a stop order appended to
+  # its result (2026-07-05: five near-identical web_search calls). 2 to 20.
+  repeat_tool_nudge_at: 3

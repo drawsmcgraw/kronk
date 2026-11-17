@@ -471,8 +471,9 @@ def test_research_round_budget_single_source():
     config once already."""
     import agents
     research = agents.AGENTS["research"]
-    assert research.max_rounds == agents.RESEARCH_MAX_ROUNDS
-    assert f"budget of {agents.RESEARCH_MAX_ROUNDS} tool-use rounds" in research.system_prompt
+    budget = agents.config_loader.current().tuning.agent_loop.max_rounds.research
+    assert research.max_rounds == budget
+    assert f"budget of {budget} tool-use rounds" in research.system_prompt
 
 
 @pytest.mark.asyncio

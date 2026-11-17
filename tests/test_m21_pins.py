@@ -272,7 +272,8 @@ def effective_values() -> dict:
         v[f"agent.{a.name}.max_rounds"] = a.max_rounds
         v[f"agent.{a.name}.terminal_tools"] = sorted(a.terminal_tools)
         v[f"agent.{a.name}.tool_names"] = list(a.tool_names)
-    v["agents.repeat_tool_nudge_at"] = agents.REPEAT_TOOL_NUDGE_AT
+    v["agents.repeat_tool_nudge_at"] = \
+        agents.config_loader.current().tuning.agent_loop.repeat_tool_nudge_at
     v["agents.weather_ctx_max_age_s"] = agents.WEATHER_CTX_MAX_AGE_S
     names = sorted(d["function"]["name"] for d in tools.TOOL_DEFINITIONS)
     v["tools.timeout_s"] = {n: tools.TOOL_TIMEOUTS.get(n, tools.TOOL_TIMEOUT_DEFAULT) for n in names}

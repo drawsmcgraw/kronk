@@ -196,14 +196,8 @@ RESEARCH_AGENT_MODEL = os.getenv("RESEARCH_AGENT_MODEL", COORDINATOR_MODEL)
 CODING_AGENT_MODEL   = os.getenv("CODING_AGENT_MODEL",   "devstral-2512")
 DEVOPS_AGENT_MODEL   = os.getenv("DEVOPS_AGENT_MODEL",   "devstral-2512")
 
-MAX_TOOL_ROUNDS = 3
-# Research gets a bigger budget (multi-part questions need several lookups).
-# Single source for both the config and the budget stated in its prompt.
-RESEARCH_MAX_ROUNDS = 8
-# A tool called this many times in one turn triggers a stop-nudge appended to
-# its result (see run_stream) — the 2026-07-05 forecast incident burned five
-# rounds on near-identical web_search calls the prompt alone couldn't prevent.
-REPEAT_TOOL_NUDGE_AT = 3
+# Round budgets and the repeat-call nudge threshold live in config/tuning.yaml
+# (agent_loop); apply_config copies the budgets onto the registry.
 
 
 @dataclass
@@ -222,10 +216,11 @@ class AgentConfig:
     system_prompt: str = field(default="")
     tool_names: list[str] = field(default_factory=list)
     model: str = field(default="")
-    # Tool-use round budget. Research needs depth (rank → fetch → enumerate
-    # → per-item lookups); single-tool agents don't (2026-06-12 budget-cliff
-    # incident: a correct 4-step plan died at round 3).
-    max_rounds: int = field(default=MAX_TOOL_ROUNDS)
+    # Tool-use round budget: config/tuning.yaml agent_loop.max_rounds, set by
+    # apply_config for every registry agent; agents built in tests get the
+    # configured default.
+    max_rounds: int = field(default_factory=lambda: (
+        config_loader.current().tuning.agent_loop.max_rounds.default))
     # Tools whose result IS the final answer: run_stream speaks the result
     # verbatim and ends the turn instead of handing it back to the model.
     # Structural guardrail — small models otherwise re-call the tool or
@@ -248,9 +243,9 @@ AGENTS: dict[str, AgentConfig] = {
         icon="🔍",
         probe="tools",
         # system prompt: config/prompts/research.md ({{max_rounds}} in it is max_rounds)
+        # round budget: config/tuning.yaml agent_loop.max_rounds.research
         tool_names=["web_search", "fetch_url"],
         model=RESEARCH_AGENT_MODEL,
-        max_rounds=RESEARCH_MAX_ROUNDS,
     ),
     "home": AgentConfig(
         name="home",
@@ -436,12 +431,15 @@ COORDINATOR.tool_defs = _coordinator_tool_defs  # type: ignore[method-assign]
 
 
 # ── config/ (sprint M21) ─────────────────────────────────────────────────────
-# The prompts live in config/prompts/<name>.md. apply_config copies them onto
-# the registry above at import (config_loader's first load) and after every
-# successful POST /config/reload, so run_stream and everything else read
-# agent.system_prompt as before.
+# The prompts live in config/prompts/<name>.md and the round budgets in
+# config/tuning.yaml. apply_config copies them onto the registry above at
+# import (config_loader's first load) and after every successful POST
+# /config/reload, so run_stream and everything else read agent.system_prompt
+# and agent.max_rounds as before.
 
 def apply_config(cfg: "config_loader.Config") -> None:
+    for agent in [*AGENTS.values(), COORDINATOR]:
+        agent.max_rounds = cfg.tuning.agent_loop.max_rounds.for_agent(agent.name)
     for name, text in cfg.prompts.items():
         agent = COORDINATOR if name == "coordinator" else AGENTS[name]
         agent.system_prompt = config_loader.fill(text, max_rounds=agent.max_rounds)
@@ -799,7 +797,8 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
                     # append the stop order to the result itself.
                     tool_call_counts[fn_name] = tool_call_counts.get(fn_name, 0) + 1
                     n = tool_call_counts[fn_name]
-                    if n >= REPEAT_TOOL_NUDGE_AT and isinstance(result, str):
+                    nudge_at = config_loader.current().tuning.agent_loop.repeat_tool_nudge_at
+                    if n >= nudge_at and isinstance(result, str):
                         result += (
                             f"\n\n[NOTE: that was call #{n} to {fn_name} this turn. "
                             f"Do not call {fn_name} again — answer from the results "
