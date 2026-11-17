@@ -32,7 +32,33 @@ them with fixtures written from the tree before the move.
   `tool_service/config_loader.py` (ruamel.yaml). Two small modules rather
   than a shared package: each service builds its own image from its own
   directory, and each already pinned a different YAML library. No new
-  dependency. Same rules in both.
+  dependency. Same rules in both. What the two must agree on lives in
+  `config_files.py`, which is **byte-identical** in `orchestrator/` and
+  `tool_service/` (a test compares them): bounded reading, and the YAML
+  dialect.
+- **One YAML dialect.** Neither library's type resolution is used. Each
+  library only tokenises; `config_files.build()` walks its parse events
+  and decides what a value is: `null`/`~`, `true`/`false`, decimal
+  integers without leading zeros, and decimal floats. Everything else is
+  a string, so YAML 1.1 surprises (`2:00:00`, `0o17`, `017`, `0x1f`,
+  `7_200`, `yes`, `on`, `.inf`) reach the schema as strings and a numeric
+  field rejects them. Quoted scalars are always strings. Anchors,
+  aliases, merge keys (`<<`) and explicit tags (`!!int`) are errors;
+  config files need none of them.
+- **Bounds.** Each file is checked with `lstat` before a byte is read: it
+  must be a regular file (not a directory, pipe or device), no path
+  component under `config/` may be a symlink, and it must be at most
+  64 KiB (`MAX_YAML_BYTES`, `MAX_PROMPT_BYTES`; the largest file today is
+  4.2 kB). The read itself is capped at the same size. Nesting deeper
+  than 10 collections is an error, raised before the parser reads further.
+  A rejected value is quoted in the error up to 80 characters, and a load
+  reports at most 50 problems plus a count of the rest. Under these caps
+  the worst parse measured is 0.3 s, which bounds how long a reload holds
+  the service (reload runs on the event loop).
+- **No file takes a load down.** Any exception at all while loading a
+  file (a parser `RecursionError`, a `MemoryError`, a library bug) becomes
+  a config error for that file. `start()` never raises; `reload()` always
+  answers 200 or 422, never 500.
 - **Schema.** pydantic models with `extra="forbid"` and `strict=True`:
   an unknown key, a wrong type (`"8"` is not `8`, `true` is not `1`) and a
   number outside its bounds are errors. Round budgets and per-tool
@@ -43,7 +69,9 @@ them with fixtures written from the tree before the move.
 - **Prompt files.** Each starts with a `<!-- … -->` header (what the
   prompt is for, which agent), which is stripped. The rest, minus leading
   and trailing blank lines, is the prompt, byte for byte. Missing file,
-  missing header, empty prompt and a `.md` file in `prompts/` that names no
+  missing header, empty prompt (also: only further `<!-- -->` comments
+  after the header), a control character other than newline and tab
+  (NUL, ESC, form feed, …) and a `.md` file in `prompts/` that names no
   agent are errors. One placeholder exists: `{{max_rounds}}`, filled with
   the agent's round budget (the research prompt states its budget this
   way, so the prompt and the loop cannot disagree). Any other `{{name}}` is
@@ -58,6 +86,14 @@ them with fixtures written from the tree before the move.
   `config_error` event, and shown on `/services` (Config section, data
   from `GET /api/config`, which merges the orchestrator's status with
   tool_service's `GET /config/status`).
+- **Warnings.** Two things load but are reported as warnings, on
+  `/services` (the card's badge says `warning`) and in the reload answer
+  (`"warnings": [...]`): a YAML file with no keys (empty or comments only;
+  every value at its default) as `all defaults (file has no keys)`, and
+  any entry under `config/` or `config/prompts/` that no service reads (a
+  misspelt `tunning.yaml`, a `home.md.bak`). The orchestrator scans the
+  whole directory once, so a stray shows once; tool_service does not
+  scan.
 - **An invalid file never takes effect.** Loads are all or nothing. At
   startup a bad file means the service runs on the built-in defaults and
   says so; after a bad reload the last good values stay in effect.
@@ -66,7 +102,8 @@ them with fixtures written from the tree before the move.
   8 -> 6`, or `prompts/home.md: changed (3637 -> 3645 chars)`) or 422 with
   the errors and what stayed in effect. No file watching. From the host:
   `scripts/config_reload.sh dev|prod` (the orchestrator has no host port,
-  so it goes through `docker exec`; tool_service is on its loopback port).
+  so it goes through `docker exec`; tool_service is on its loopback port);
+  it prints `<HTTP code> <body>` for each service.
 - **Not on the LAN.** nginx returns 404 for `/config/` and `/dev/config/`.
   The orchestrator's handler also refuses (403) any request carrying
   `X-Real-IP` or `X-Forwarded-For`, which nginx sets on everything it
@@ -114,6 +151,14 @@ report has the full inventory and the reason for each.
 - **Cross-file coupling.** The orchestrator's `tool_timeouts` for the
   music tools must stay above `music.yaml verify.timeout_s`; no loader
   checks across files.
+- **Symlinks are refused on purpose.** Linking a config file to a copy
+  elsewhere is an error, not a shortcut: in a container the link target
+  usually does not exist, and a target that does exist would be read from
+  outside the reviewed directory. The `config/` directory itself may be a
+  symlink (a release that links it); only what is under it is checked.
+- **Caps live in code.** The size and depth limits are in
+  `config_files.py`, not in `config/`: a cap the file could raise is no
+  cap.
 - **Prompt cache.** A prompt edit invalidates llama.cpp's cached prefix
   once; the next request pays for it.
 

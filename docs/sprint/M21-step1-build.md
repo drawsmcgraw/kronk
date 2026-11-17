@@ -344,3 +344,43 @@ default.
    design. Retarget them then: keep the defaults pin, and pin the files
    against the edited text, or drop the file pins. Step 2 should plan for
    this.
+
+## Addendum, fix round 1 (2026-11-17): inventory completion (criterion 1)
+
+Added by the fix agent for `docs/sprint/M21-step1-e2e.md` finding 5. The
+table above is left as written. These rows are the values the tester found
+missing, plus what a fresh search of `orchestrator/` and `tool_service/`
+found (module-level constants and env reads, and literal `timeout=`,
+`sleep(`, `max_tokens`, `temperature` and length caps in calls). No value
+was found half moved, so none is moved in this round.
+
+| What | Where | Outcome |
+|---|---|---|
+| Solar inverter-health thresholds: `SOLAR_PRODUCING_FLOOR` 0.03, `SOLAR_FAIL_RATIO` 0.40, `SOLAR_MARGINAL_BAND` 0.15, `SOLAR_MIN_SAMPLES` 8, `SOLAR_BAD_FRACTION` 0.70, `SOLAR_CONFIRM_DAYS` 3, `SOLAR_POLL_MIN` 15, `SOLAR_TZ` | `tool_service/solar.py:37-44` (env with defaults) | **Left where it is**: already env-tunable without a rebuild, like the orchestrator's env knobs in the row above; moving them adds a file-versus-env precedence rule for no edit anyone asked for. Not a named later item; step 2 can show them read-only |
+| PVS and HA client timeouts 10 s | `tool_service/solar.py:86`, `:625` | **Left**: per-call infrastructure timeouts, not tuning |
+| `WEATHER_REFRESH_SEC` 3600 | `tool_service/main.py:60`; set in `docker-compose.yml:73`, `:312` | **Left**: an env knob compose already sets for both services; same reason as the solar row |
+| `MUSIC_TASTE_BUILD_AT` 03:30, `MUSIC_TASTE_TZ`, `MUSIC_TASTE_TAG_TOP_N` 300 | `tool_service/taste.py:271-275` (env) | **Left**: env knobs of the nightly taste build (schedule and batch size), not model-facing |
+| `HISTORY_LIMIT` 500, `CONCURRENCY` 8 | `tool_service/taste.py:276`, `:278` | **Deferred to M11**, with `HISTORY_DECAY` and the taste weights in the row above: they shape the same profile M11 reworks |
+| `MUSIC_GENRE_ARTIST_RADIO` (off) | `tool_service/taste.py:659` (env) | **Deferred to M11**: a genre-pick policy switch, part of the genre picks M11 reworks |
+| `GENERIC_WORDS`, `BUILTIN_GENRES` (the genre list) | `tool_service/taste.py:560`, `:563` | **Deferred to M11**: the "genre list" the row above names for M11; listed here by name |
+| `_VOICE_ANOTHER` ("something else", "another one", …) | `tool_service/main.py:1619` | **Deferred to M11**: music marker words, which M11 owns |
+| `RESOLVE_TYPES` (artist, album, track, playlist), `_LIBRARY_SCORED` | `tool_service/main.py:1984`, `:2022` | **Left**: the media types the resolver searches and the MA endpoints that list them; protocol, not tuning. M11's single-search design may change them |
+| Genre-tagging call timeout 120 s; taste build start delay 120 s | `tool_service/taste.py:371`, `:542` | **Left**: per-call and startup infrastructure; the delay lets MA and the LLMs settle after a restart |
+| News: `NEWS_WINDOW_H` 24, `NEWS_PER_FEED` 6, `NEWS_MAX_ITEMS` 36, `NEWS_CHECK_S` 60, `NEWS_TZ` | `tool_service/news.py:38-44` (env) | **Left**: covered by "`NEWS_*` env" in the row above; named here. Env knobs already |
+| News: `EDITION_HOURS` (6, 12, 18), `EDITION_LABELS`, `DEFAULT_FEEDS` | `tool_service/news.py:49-61` | **Left**: the edition label is written into the brief's prompt by `build_prompt` (same contract as the news prompt row above), and the feed list is already a data file (`NEWS_FEEDS_FILE`, `DEFAULT_FEEDS` only when it is absent) |
+| News: feed fetch timeout 15 s, summarisation timeout 120 s, item summary caps 400 and 250 chars | `tool_service/news.py:134`, `:212`, `:108`, `:117`, `:196` | **Left**: the caps shape the prompt `build_prompt` assembles (same contract); the timeouts are per-call infrastructure |
+| tool_service per-call HTTP timeouts: NWS 15, SearXNG 10, `fetch_url` 15, `dot` 30, HA REST 10 (five call sites), MA websocket open/greeting 5, HA websocket close 5 | `tool_service/main.py:275`, `:402`, `:487`, `:708`, `:1445`, `:1951`, `:2273`, `:2430`, `:2528`, `:2192-2193`, `:882` | **Left**: each sits under the orchestrator's per-tool timeout for the same call, which is in `config/tuning.yaml`; listed for step 2 |
+| Playback poll interval 1 s | `tool_service/main.py:1740`, `:1877`, `:2317`, `:2478` | **Left**: the step of the verify loop whose window (`music.yaml verify.timeout_s`) is in `config/`; the interval is how the window is measured, not a policy |
+| `DNS_TIMEOUT_S` 5.0, `MAX_REDIRECTS` 5 | `tool_service/netguard.py:27-28` | **Left**: covered by "netguard limits" in the row above (M4 safety bounds); named here |
+| `MAX_COMMAND_LEN` 4000, `RECURSIVE_ROOT_MIN_DEPTH` 3, `REMOTE_KILL_AFTER_S` 2, ops exec output cap 8000 chars | `tool_service/ops.py:50`, `:122`, `:1464`; `tool_service/main.py:1134` | **Left**: safety bounds of the audited exec path (M5), not tuning |
+| `MUSIC_DEFAULT_PLAYER`, `HOME_LOCATION`, `ANNOUNCE_SATELLITE`, `HA_NOTIFY_SERVICE`, `MUSIC_DRY_RUN` | `tool_service/main.py:59`, `:838`, `:1199`, `:1215`, `:2167` (env) | **Left**: wiring (which device, which location, which notify target) and a test switch; env vars, like the model assignments |
+| `TEXT_PREVIEW_CHARS` 500 | `orchestrator/telemetry.py:43` | **Left**: how much text a trace records; telemetry, not model-facing |
+| `/api/status` and `/api/shopping_list` probe timeouts 5 s, `/api/config` tool_service status timeout 3 s | `orchestrator/main.py:211`, `:1092`; `orchestrator/config_api.py:42` | **Left**: UI and status probes, not tuning; same as the `servers probe 10` row above |
+| `_DELEGATE_FLAVOR` ("research agent searching...") | `orchestrator/main.py:268` | **Left**: UI text, with `_STAGE_LABELS` in the row above |
+| Log and trace truncations (`[:120]` to `[:2000]` in `agents.py`, `errors.py`, `tools.py`, `telemetry.py`) | throughout | **Left**: log hygiene, not tuning; not listed one by one |
+| The caps of `config/` itself: 64 KiB per file, nesting depth 10, 80-char quotes, 50 problems | `orchestrator/config_files.py` = `tool_service/config_files.py` (added in fix round 1) | **Left in code on purpose**: a cap the file could raise is no cap |
+
+`scripts/`, `voice_tracer/`, `hottub_monitor/` and `ha/` were not searched,
+as before: criterion 1 names the orchestrator, tool_service, compose,
+LiteLLM, the llama units and the taste data, and none of those directories
+holds a value the two loaders read.
