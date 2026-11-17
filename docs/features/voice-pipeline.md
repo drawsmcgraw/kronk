@@ -133,7 +133,7 @@ streaming `/voice/api/chat` request gets its reply as it is generated
   retracted (`TOOL_ROUND_RETRACT_PLAN`). While it is held it is dropped,
   as the buffered path drops it. A retract longer than the held text drops
   everything held; what was already sent stays spoken, and the event is
-  logged (`voice_stream_retract_unhonoured`, with a preview) and counted
+  logged (`voice_stream_retract_unhonoured`; its `preview` field is empty today, the text is in the same request's `round_content_retracted` event) and counted
   on the trace.
 - **Blocks.** Nothing inside a list, table or fence leaves until the block
   ends (the first line of another kind). An unclosed block leaves at the
@@ -173,12 +173,27 @@ the same moment as `intent-end`; streamed, it fires at the first chunk.
 
 **The switch and rollback.** `VOICE_STREAM` (`on`/`off`, default off in
 code; an unknown value is off and logged) is set per service in
-`docker-compose.yml`: `on` for `orchestrator-dev`, `off` for production
-until the sprint coordinator promotes it. To roll back: set `off`,
-`docker compose up -d orchestrator` (an env change recreates the
-container), then `docker compose restart nginx`. The hold and the
-spoken-reply line change with a config reload
-(`scripts/config_reload.sh prod`), no rebuild.
+`docker-compose.yml`: `on` for `orchestrator-dev`, `off` for production.
+Production stays off (decision at M8's promotion, 2026-11-17): with a
+one-sentence hold the coordinator's text before a tool call was spoken in
+5 of 5 cases where it reached the stream, and with the spoken-reply line
+the gain is about a quarter of a second (`docs/sprint/M8-e2e.md`, S1).
+
+Production runs from a release directory (`../kronk-releases/<tag>/`) with
+its own copy of `config/` and of `docker-compose.yml`. A change made in the
+working tree does not reach it, and a bare `docker compose up -d
+orchestrator` run from the working tree would recreate production from the
+working tree. So:
+
+- The switch: change the value in `docker-compose.yml`, commit, tag, and
+  `scripts/deploy_tag.sh deploy <tag>`.
+- The spoken-reply line and the hold: change `config/voice.yaml`, commit,
+  tag and deploy the same way. For an immediate change without a deploy,
+  edit `../kronk-releases/<running tag>/config/voice.yaml` and run
+  `scripts/config_reload.sh prod`; the next deploy replaces that edit, so
+  commit it too. Removing the line (`spoken_reply: null`) brings back long
+  answers and, with them, markdown markers that `to_speech` does not strip
+  from star bullets with bold labels.
 
 **Measuring it:** `scripts/voice_stream_bench.py` (dev only): shim mode
 times send, first content chunk and `done` on `/dev/voice/api/chat`; `ha`

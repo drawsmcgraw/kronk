@@ -236,9 +236,10 @@ services:
       # Sentence streaming on the speech mount (sprint M8): on sends a
       # streaming /voice/api/chat reply sentence by sentence as it is
       # generated; off (the default in code) sends it whole as one chunk.
-      # Set at promotion by the sprint coordinator. Roll back: off, then
-      # `up -d orchestrator` (an env change recreates the container) and
-      # restart nginx. Hold and spoken-reply line: config/voice.yaml.
+      # Off in production (M8 promotion, 2026-11-17): with it on, text the
+      # coordinator writes before a tool call is spoken
+      # (docs/sprint/M8-e2e.md, S1). Change it by commit, tag and
+      # scripts/deploy_tag.sh. Hold and spoken-reply line: config/voice.yaml.
       - VOICE_STREAM=off
       # OpenTelemetry tracing → Tempo (stack: docker-compose.telemetry.yml,
       # reached by service name over the shared kronk network). Set
