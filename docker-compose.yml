@@ -211,12 +211,14 @@ services:
       - TALKIE_MODEL=talkie
       - LOCATION=Laurel, MD
       # User-facing error rendering: debug (full detail: causes, HTTP
-      # statuses, rid) | friendly (one clean sentence). Rendering only —
-      # logs and traces always keep full detail. ERROR_STYLE_VOICE
-      # overrides for the shim transport (/api/chat + /v1; HA voice).
-      # The voice smoke test (ROADMAP item 8) always runs in debug.
+      # statuses, rid) | friendly (one short spoken sentence). Rendering
+      # only — logs and traces always keep full detail. ERROR_STYLE covers
+      # /message, /api/chat and /v1. ERROR_STYLE_VOICE covers only the
+      # speech mount (/voice/api/chat) and defaults to friendly in code
+      # (orchestrator/errors.py); uncomment the line below to hear debug
+      # wording on the speakers again.
       - ERROR_STYLE=${ERROR_STYLE:-debug}
-      # - ERROR_STYLE_VOICE=friendly
+      # - ERROR_STYLE_VOICE=debug
       # Per-client session store (SQLite at /data/sessions.db).
       - HISTORY_MAX_MESSAGES=40
       # OpenTelemetry tracing → Tempo (stack: docker-compose.telemetry.yml,

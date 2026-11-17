@@ -287,8 +287,9 @@ Newest first; feature docs in `docs/features/`.
 - **Verbose error reporting** *(item 2, 2026-07-05)* — every layer surfaces
   its most specific failure cause; failed turns marked ERROR in Langfuse;
   "an unexpected error occurred" is now a bug by tenet. Includes the
-  `ERROR_STYLE` toggle (debug now, friendly later — rendering only, capture
-  always full; `ERROR_STYLE_VOICE` overrides per transport). With the P0
+  `ERROR_STYLE` toggle (rendering only, capture always full; since sprint
+  M2, `ERROR_STYLE_VOICE` covers only the speech mount and defaults to
+  friendly). With the P0
   correctness batch and the forecast-misroute fixes (weather routing
   shortcut, repeat-tool-call guardrail, research budget 5→8) from the same
   review. See `docs/features/verbose-errors.md`,

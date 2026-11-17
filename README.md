@@ -257,8 +257,11 @@ cause + rid instead of a dead stream.
 How much of that detail the *user* sees is a toggle —
 `orchestrator/errors.py`, config in `docker-compose.yml`:
 `ERROR_STYLE=debug` (default: causes, HTTP statuses, rid) or `friendly`
-(one clean sentence); `ERROR_STYLE_VOICE` overrides just the shim/voice
-transport. Rendering only — logs and traces always keep full detail.
+(one clean sentence) for `/message`, `/api/chat` and `/v1`;
+`ERROR_STYLE_VOICE` for the speech mount `/voice/api/chat` only, friendly by
+default (set it to `debug` to hear full detail on the speakers). The style is
+keyed on `origin.voice`, the request-scoped "came in on the speech mount"
+value. Rendering only — logs and traces always keep full detail.
 Details: [`docs/features/verbose-errors.md`](docs/features/verbose-errors.md).
 
 ### Telemetry

@@ -325,8 +325,13 @@ _current_root: ContextVar[Any] = ContextVar("kronk_trace_root", default=_NOOP)
 
 
 def start_pipeline(name: str, input_text: str, rid: str = "-",
-                   transport: str | None = None, origin=None):
-    """Open the root span for one pipeline run and make it current."""
+                   transport: str | None = None, origin=None,
+                   voice: bool = False):
+    """Open the root span for one pipeline run and make it current.
+
+    voice: origin.voice for this request (it came in on the speech mount);
+    recorded as kronk.voice so spoken requests filter in one TraceQL clause:
+    { span.kronk.voice = true } (failed ones: add && { status = error })."""
     if not ENABLED or _tracer is None:
         _current_root.set(_NOOP)
         return _NOOP
@@ -348,6 +353,7 @@ def start_pipeline(name: str, input_text: str, rid: str = "-",
             "kronk.input_chars": len(input_text or ""),
             "kronk.origin.device_id": getattr(origin, "device_id", None),
             "kronk.origin.area": getattr(origin, "area", None),
+            "kronk.voice": bool(voice),
         })
         if RECORD_TEXT:
             span.set_attribute("kronk.input", _text_preview(input_text))

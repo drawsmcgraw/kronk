@@ -92,6 +92,17 @@ def test_pipeline_span_tree_and_attributes(exporter):
     assert len({s.context.trace_id for s in spans.values()}) == 1
 
 
+@pytest.mark.parametrize("voice", [True, False])
+def test_pipeline_root_carries_the_voice_signal(exporter, voice):
+    """Sprint M2: spoken requests filter in Tempo with
+    { span.kronk.voice = true }; every other request carries false."""
+    root = telemetry.start_pipeline("pipeline.shim", "hi", rid="rv",
+                                    transport="shim", voice=voice)
+    telemetry.end_pipeline(root, output="ok", route="direct")
+    p = _by_name(exporter.get_finished_spans())["pipeline.shim"]
+    assert p.attributes["kronk.voice"] is voice
+
+
 def test_error_marks_span_status(exporter):
     root = telemetry.start_pipeline("pipeline.message", "hi", rid="r2", transport="message")
     telemetry.end_pipeline(root, output="failed", route="research", level="ERROR",

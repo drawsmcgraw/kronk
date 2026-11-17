@@ -151,7 +151,7 @@ def test_trim_reply_across_token_boundaries():
 
 @pytest.mark.asyncio
 async def test_voice_collector_drops_retracted_text():
-    async def fake_tokens(text, model, context=None, req_origin=None, said=None):
+    async def fake_tokens(text, model, context=None, req_origin=None, said=None, voice=False):
         yield {"type": "token", "text": LEAK}
         yield {"type": "retract", "chars": len(LEAK), "preview": LEAK[:160]}
         yield {"type": "token", "text": "Paused on the Kitchen speaker."}
@@ -161,7 +161,7 @@ async def test_voice_collector_drops_retracted_text():
 
 @pytest.mark.asyncio
 async def test_streaming_shims_pass_tokens_and_skip_retracts():
-    async def fake_tokens(text, model, context=None, req_origin=None, said=None):
+    async def fake_tokens(text, model, context=None, req_origin=None, said=None, voice=False):
         yield {"type": "token", "text": "a"}
         yield {"type": "retract", "chars": 1, "preview": "a"}
         yield {"type": "token", "text": "b"}

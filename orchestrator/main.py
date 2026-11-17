@@ -280,6 +280,7 @@ async def _run_pipeline(
     history: list[dict],
     *,
     said: str | None,
+    voice: bool,
     transport: str,
     pipeline_name: str,
     session_id: str | None = None,        # set → persist the exchange
@@ -296,18 +297,22 @@ async def _run_pipeline(
     stages: list[dict] = []
     agent_name = "?"  # set by routing; referenced in the finally block
     pipeline_error: str | None = None  # marks the trace ERROR in the finally
-    # How failures are RENDERED for this request (debug|friendly). Capture
-    # (logs, trace) always keeps full detail — see errors.py.
-    error_style = errors.style_for(transport)
+    # How failures are RENDERED for this request (debug|friendly), keyed on
+    # the speech mount, not the transport. Capture (logs, trace) always
+    # keeps full detail — see errors.py.
+    error_style = errors.style_for(voice)
 
     async with _llm_lock:
         trace = telemetry.start_pipeline(
             pipeline_name, text, rid=rid, transport=transport,
-            origin=origin.current.get(),
+            origin=origin.current.get(), voice=voice,
         )
         # origin.said is the user's own words for this turn, which may be
         # None while `text` (routing input) is not: see _turn_said.
         said_token = origin.said.set(said)
+        # origin.voice: this request came in on the speech mount. Set here,
+        # once, from the mount's argument; read anywhere below (sprint M2).
+        voice_token = origin.voice.set(voice)
         try:
             # Extra system context for the coordinator run. The persona
             # itself lives in agents.COORDINATOR; these are the dynamic
@@ -501,6 +506,7 @@ async def _run_pipeline(
             yield {"type": "token", "text": err}
 
         finally:
+            origin.voice.reset(voice_token)
             origin.said.reset(said_token)
             telemetry.end_pipeline(
                 trace,
@@ -530,7 +536,7 @@ async def message(req: MessageRequest):
         # so llama.cpp's prompt cache (--swa-full) reuses the prefix.
         history = sessions.window(session_id)
         async for ev in _run_pipeline(
-            req.text, history, said=req.text,
+            req.text, history, said=req.text, voice=False,
             transport="webui", pipeline_name="pipeline.message",
             session_id=session_id, include_local_context=True,
         ):
@@ -649,7 +655,7 @@ def _shim_context(messages, current_text: str) -> list[dict]:
 
 async def _kronk_pipeline_tokens(text: str, model: str, context: list[dict] | None = None,
                                  req_origin: origin.Origin | None = None,
-                                 said: str | None = None):
+                                 said: str | None = None, voice: bool = False):
     """Shim wrapper around _run_pipeline: token events only.
 
     context: prior conversation turns supplied by the client (HA resends the
@@ -659,6 +665,8 @@ async def _kronk_pipeline_tokens(text: str, model: str, context: list[dict] | No
     target it, three async layers down, without a parameter at every hop.
     said: the user's own words for this turn (_turn_said); None when the
     request does not end in a non-empty user message.
+    voice: the request arrived on the speech mount (/voice/api/chat). Only
+    ollama_chat_voice passes True; _run_pipeline holds it in origin.voice.
     """
     # Voice "clear my history": confirm and stop. There is no Kronk-side
     # store for shim clients (HA owns and resends voice history; its window
@@ -670,7 +678,7 @@ async def _kronk_pipeline_tokens(text: str, model: str, context: list[dict] | No
 
     with origin.scope(req_origin):
         async for ev in _run_pipeline(
-            text, context or [], said=said,
+            text, context or [], said=said, voice=voice,
             transport="shim", pipeline_name="pipeline.shim",
         ):
             if ev["type"] in ("token", "retract"):
@@ -704,12 +712,12 @@ async def _openai_pipeline_stream(text: str, model: str, rid: str,
 async def _ollama_pipeline_stream(text: str, model: str,
                                   context: list[dict] | None = None,
                                   req_origin: origin.Origin | None = None,
-                                  said: str | None = None):
+                                  said: str | None = None, voice: bool = False):
     """Ollama /api/chat NDJSON framing around the core pipeline. A streaming
     client can't take back text already sent, so `retract` events are
     dropped here (the buffered speech path in _ollama_collect honours them)."""
     created = time.strftime("%Y-%m-%dT%H:%M:%S.000000000Z", time.gmtime())
-    async for ev in _kronk_pipeline_tokens(text, model, context, req_origin, said):
+    async for ev in _kronk_pipeline_tokens(text, model, context, req_origin, said, voice):
         if ev["type"] != "token":
             continue
         chunk = {
@@ -863,12 +871,12 @@ async def ollama_show():
 async def _ollama_collect(text: str, model: str,
                           context: list[dict] | None,
                           req_origin: origin.Origin | None = None,
-                          said: str | None = None) -> str:
+                          said: str | None = None, voice: bool = False) -> str:
     """Run the pipeline to completion and return the full reply text —
     with tool-round text retracted (this is the speech path; nothing has
     been sent yet, so retracts are honoured exactly)."""
     reply = ""
-    async for ev in _kronk_pipeline_tokens(text, model, context, req_origin, said):
+    async for ev in _kronk_pipeline_tokens(text, model, context, req_origin, said, voice):
         if ev["type"] == "token":
             reply += ev["text"]
         elif ev["type"] == "retract":
@@ -899,10 +907,13 @@ async def _ollama_single_chunk_stream(full: str, text: str, model: str):
     }) + "\n"
 
 
-async def _ollama_chat_impl(req: _OllamaChatRequest, profile: str):
-    """Shared /api/chat implementation. profile: 'display' streams tokens
-    untouched (today's behavior); 'speech' buffers and runs render.to_speech
-    so no markdown ever reaches a speaker (RENDER_PROFILES_PLAN)."""
+async def _ollama_chat_impl(req: _OllamaChatRequest, voice: bool):
+    """Shared /api/chat implementation. voice=False (/api/chat, the display
+    profile) streams tokens untouched; voice=True (/voice/api/chat, the
+    speech profile) buffers and runs render.to_speech so no markdown ever
+    reaches a speaker (RENDER_PROFILES_PLAN). The same `voice` value goes
+    to _run_pipeline as origin.voice, so the speech profile and the
+    pipeline's voice signal cannot disagree (sprint M2)."""
     user_msgs = [m for m in req.messages if m.role == "user" and m.content]
     if not user_msgs:
         raise HTTPException(400, "no user message with content")
@@ -914,8 +925,9 @@ async def _ollama_chat_impl(req: _OllamaChatRequest, profile: str):
     # system prompt (origin.py). None for clients that don't stamp.
     req_origin = origin.from_messages(req.messages)
 
-    if profile == "speech":
-        full = render.to_speech(await _ollama_collect(text, model, context, req_origin, said))
+    if voice:
+        full = render.to_speech(
+            await _ollama_collect(text, model, context, req_origin, said, voice))
         if req.stream:
             return StreamingResponse(
                 _ollama_single_chunk_stream(full, text, model),
@@ -943,7 +955,7 @@ async def _ollama_chat_impl(req: _OllamaChatRequest, profile: str):
 
 @app.post("/api/chat")
 async def ollama_chat(req: _OllamaChatRequest):
-    return await _ollama_chat_impl(req, profile="display")
+    return await _ollama_chat_impl(req, voice=False)
 
 
 # ── /voice mount: same Ollama protocol, speech render profile ────────────────
@@ -952,10 +964,12 @@ async def ollama_chat(req: _OllamaChatRequest):
 # display default. HA's integration base URL points at /voice; nginx's
 # catch-all forwards the prefix, so no nginx change. The mount mirrors the
 # full protocol surface HA touches (chat, tags, version, show).
+# This handler is the only place voice=True is decided: it becomes
+# origin.voice for the whole pipeline run (sprint M2).
 
 @app.post("/voice/api/chat")
 async def ollama_chat_voice(req: _OllamaChatRequest):
-    return await _ollama_chat_impl(req, profile="speech")
+    return await _ollama_chat_impl(req, voice=True)
 
 
 @app.get("/voice/api/tags")

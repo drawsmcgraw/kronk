@@ -144,7 +144,7 @@ def _terminal_speech(result: str, style: str = errors.DEBUG,
     # kept short in debug and dropped in friendly (2026-07-05 review P1.4).
     logger.warning("terminal tool result had no speech mapping: %r", result[:300])
     if style == errors.FRIENDLY:
-        return "That didn't work — I couldn't finish that request."
+        return errors.friendly_tool_failure(tool)
     if line.lower().startswith("tool ") and " error: " in line:
         cause = line.split(" error: ", 1)[1]
         return f"That didn't work — the tool failed with {cause[:120]}."
@@ -582,7 +582,7 @@ def kronk_facts() -> str:
 async def run_stream(agent: AgentConfig, task: str, context: list[dict],
                      system_extra: str | None = None,
                      history_messages: list[dict] | None = None,
-                     error_style: str = errors.DEBUG,
+                     error_style: str | None = None,
                      allow_escalation: bool = False):
     """Run an agent's tool-calling loop with unified streaming.
 
@@ -606,6 +606,11 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
     are accumulated from the stream and executed at end-of-round. A round with
     no accumulated tool_calls terminates the loop.
     """
+    if error_style is None:
+        # Not handed one (a specialist run via ask_*): the running request's
+        # style, from origin.voice — so a delegated failure on the speech
+        # mount is phrased for a speaker too.
+        error_style = errors.current_style()
     agent_tool_defs = agent.tool_defs() or None
     if allow_escalation:
         # Top-level pinned specialist runs only (see ESCALATE_TOOL comment) —
@@ -618,10 +623,6 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
     offered = {d["function"]["name"] for d in agent_tool_defs or []}
 
     system_content = agent.system_prompt + "\n\n" + kronk_facts()
-    if error_style == errors.FRIENDLY:
-        # Tool results keep full failure detail (the model needs it to act);
-        # this changes only how the model phrases it to the user.
-        system_content += "\n\n" + errors.FRIENDLY_TOOL_PHRASING
     if allow_escalation:
         system_content += "\n\n" + ESCALATION_GUIDANCE
     if system_extra:
@@ -850,6 +851,13 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
                             f"Do not call {fn_name} again — answer from the results "
                             "above, or use a different tool if one fits better.]"
                         )
+
+                # Friendly style: the phrasing rule rides on the failed result
+                # itself, never on the system prompt, so successful requests
+                # see the same prompt in both styles. The result keeps its
+                # full detail (errors.FRIENDLY_TOOL_PHRASING).
+                if error_style == errors.FRIENDLY and errors.is_failed_tool_result(result):
+                    result += "\n\n" + errors.FRIENDLY_TOOL_PHRASING
 
                 messages.append({
                     "role":         "tool",

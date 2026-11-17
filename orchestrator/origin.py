@@ -16,6 +16,10 @@ so concurrent requests cannot see each other's origin (tests/test_origin.py).
 
 Requests without the stamp (web UI, OpenAI shim, other clients) carry
 None and behave as before.
+
+Two more request-scoped values live here for the same reason: `said` (the
+user's own words for this turn) and `voice` (the request came in on the
+speech mount).
 """
 import re
 from contextlib import contextmanager
@@ -36,6 +40,17 @@ current: ContextVar[Origin | None] = ContextVar("kronk_origin", default=None)
 # model drops when it builds the call — "radio", the whole station name
 # (INVESTIGATION_2026-11-07_ma_pandora_and_ui.md).
 said: ContextVar[str | None] = ContextVar("kronk_said", default=None)
+
+# True while the request that arrived on the speech mount (/voice/api/chat)
+# runs; False for /message, /api/chat and /v1/chat/completions. The mount
+# decides it (main.ollama_chat_voice is the only caller that passes
+# voice=True) and _run_pipeline holds it here for the whole run, beside
+# `said`. Never derived from request content: no field, header or message
+# text can set it. The one answer to "will this be spoken?" inside the
+# pipeline: errors.style_for() keys the friendly error style on it, and
+# later voice-only behaviour (sentence streaming, sprint M8; M14) reads it
+# here rather than adding a second flag. Sprint M2.
+voice: ContextVar[bool] = ContextVar("kronk_voice", default=False)
 
 _STAMP = re.compile(r"\[kronk-origin\]\s*device=(?P<device>\S*)\s*area=(?P<area>[^\n]*)")
 

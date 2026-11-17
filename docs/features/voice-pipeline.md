@@ -36,6 +36,36 @@ Key design decisions (full rationale in the build journal):
   into every agent path — fixed the "what location?" reflex on bare weather
   queries.
 
+## The voice signal (sprint M2)
+
+`/voice/api/chat`, `/api/chat` and `/v1/chat/completions` all run the
+pipeline as `transport="shim"`, so the transport cannot tell a spoken
+request from a typed one. The mount can. `origin.voice`
+(`orchestrator/origin.py`) is a request-scoped `ContextVar[bool]`:
+
+- **Set once, by the mount.** `ollama_chat_voice` (`/voice/api/chat`) is the
+  only caller that passes `voice=True`; every other entrypoint passes
+  `False`. `_run_pipeline` holds it in `origin.voice` for the whole run,
+  beside `origin.said`, and resets it in its `finally`. No field, header or
+  message text can set it.
+- **One source of truth.** The speech render profile (`render.to_speech`)
+  in `_ollama_chat_impl` and the pipeline's value come from the same
+  `voice` argument, so they cannot disagree.
+- **Readable anywhere below**, without a parameter at every hop:
+  `origin.voice.get()`. asyncio copies the context per task, so concurrent
+  requests keep their own value (`tests/test_voice_signal.py`).
+- **On the trace.** The pipeline root span carries `kronk.voice`
+  (true/false). TraceQL: `{ span.kronk.voice = true }`; failed spoken
+  requests: `{ span.kronk.voice = true } && { status = error }`.
+
+What reads it today: the error style. On the speech mount failures are
+spoken as one short plain sentence (`ERROR_STYLE_VOICE`, default
+`friendly`); the other mounts keep debug wording (`ERROR_STYLE`, default
+`debug`). Set `ERROR_STYLE_VOICE=debug` to hear full detail on a speaker.
+The sentences and their debug twins are in `docs/features/verbose-errors.md`.
+Later voice-only behaviour (sentence streaming, M8; M14) reads the same
+value rather than adding a second flag.
+
 ## Gotchas (learned the hard way)
 
 - The Voice PE has **two assistant slots**; slot 2 (tap-to-talk) silently
@@ -83,3 +113,6 @@ single utterance, from the shell:
 - The Whisper model-size ladder: hallucinations vs. empty transcriptions.
 - The two-assistant-slot Voice PE trap.
 - Shim archaeology: speaking Ollama's API because the OpenAI card vanished.
+- The mount is the signal: three shims share one transport, so "will this
+  be spoken?" has to come from the URL the client chose, held in one
+  ContextVar, never from anything the client sends.

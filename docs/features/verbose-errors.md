@@ -57,24 +57,57 @@ Error rendering has two styles, resolved per request in
 `orchestrator/errors.py` (the single seam for all user-facing failure
 text):
 
-- **`debug`** (default): full detail — error types, causes, HTTP statuses,
-  rid. What you want while building and refining.
-- **`friendly`**: one natural sentence, no technical identifiers. For when
-  the kitchen audience matters more than the operator.
+- **`debug`**: full detail — error types, causes, HTTP statuses, rid. The
+  default on `/message`, `/api/chat` and `/v1/chat/completions`.
+- **`friendly`**: one short spoken sentence, no technical identifiers, that
+  still says what kind of thing failed where the code knows. The default on
+  the speech mount, `/voice/api/chat` (sprint M2).
 
-Config: `ERROR_STYLE` (global) and `ERROR_STYLE_VOICE` (overrides for the
-shim transport — HA voice) on the orchestrator in `docker-compose.yml`.
-Read at request time; flipping is an env edit + `up -d orchestrator`.
+Which style a request gets is keyed on `origin.voice`, the request-scoped
+"this came in on the speech mount" value (see `docs/features/voice-pipeline.md`,
+"The voice signal"), not on the transport: `/api/chat` and `/v1` are shims
+too, but nothing speaks them, and the benches read their debug text.
+
+Config, read at request time (`orchestrator/errors.py`):
+
+| Setting | Covers | Default |
+| --- | --- | --- |
+| `ERROR_STYLE` | `/message`, `/api/chat`, `/v1/chat/completions` | `debug` (compose passes `${ERROR_STYLE:-debug}`) |
+| `ERROR_STYLE_VOICE` | `/voice/api/chat` only | `friendly` (code default) |
+
+To hear debug wording on the speakers again, set `ERROR_STYLE_VOICE=debug`
+(uncomment the line in `docker-compose.yml` for production, or add it to
+`.env.dev` for dev) and `up -d --build` the orchestrator. An unknown value
+falls back to `debug`.
+
+The friendly sentences (debug twin in brackets):
+
+| Failure | Friendly | Debug |
+| --- | --- | --- |
+| Routing raised | "Sorry — I couldn't work out where to send that request. I've noted the details." | `Error: routing failed: <cause> [rid <rid>]` |
+| Pipeline crash (cause unknown) | "Sorry — something went wrong on my end. I've noted the details." | `Error: the pipeline failed unexpectedly (<Type>: <cause>) [rid <rid>]` |
+| Model server unreachable (connect error, timeout, 5xx) | "Sorry — I couldn't reach my language model. Try again in a moment." | `[coordinator agent error: <cause>]` |
+| Model server refused (LiteLLM 4xx) | "Sorry — my language model couldn't handle that request." | `[coordinator agent error: LiteLLM returned 4xx: <detail>]` |
+| Terminal tool raised (e.g. tool_service down) | "That didn't work — I couldn't get through to the music service." (or "the magic mirror updater", or "the service that handles that") | `That didn't work — the tool failed with <cause>.` |
+| Music failures with their own sentence | unchanged in both styles ("I couldn't play that. The speaker may be powered off.") | same |
+
+Failures the model phrases — a non-terminal tool that failed, a specialist
+that failed and fell back to the coordinator — keep full detail model-side
+in both styles. In friendly style the phrasing rule
+(`errors.FRIENDLY_TOOL_PHRASING`) is appended to the failed tool result
+itself (`errors.is_failed_tool_result` recognises the code's own failure
+shapes), and the specialist-failure block carries the friendly instruction.
+Nothing is added to the system prompt, so a successful request sees the same
+prompt in both styles. These sentences are model-written, so they are
+instructed, not guaranteed.
 
 The toggle governs **rendering only, never capture**: logs and traces
 always get full detail, and traces are marked ERROR in both styles — in
-friendly mode you look in the trace instead of the transcript. Model-facing
-tool results also keep full detail in both styles (the model needs it to
-act); friendly mode changes only the phrasing instruction, and the
-invented-answer ban never relaxes.
-
-**The voice smoke test (ROADMAP item 8) always runs in debug** — its
-deliberate-failure assertions expect specific detail.
+friendly mode you look in the trace instead of the transcript. Failed
+spoken requests, in one TraceQL query:
+`{ span.kronk.voice = true } && { status = error }` (the error may sit on
+the pipeline root or, for a tool the agent reported, on the failing httpx
+span inside the trace). The invented-answer ban never relaxes.
 
 ## Gotchas
 
