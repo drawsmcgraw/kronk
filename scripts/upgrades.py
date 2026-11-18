@@ -621,6 +621,9 @@ class Ops:
         except Exception:  # noqa: BLE001 - not knowing is reported by the caller as not quiet
             return None
 
+    def path_exists(self, path: str) -> bool:
+        return os.path.exists(path)
+
     def wyoming(self, host: str, port: int) -> bool:
         if host not in LOCAL_HOSTS:
             raise StepFailed(f"refused: {host} is not this host's loopback")
@@ -1055,6 +1058,7 @@ class Ctx:
     touched: bool = False                  # the component's bring-up changed what runs (F2, F4)
     redeploys: int = 0                     # production (Kronk stack) deploys made by this run (F11)
     status: dict | None = None             # the status file's content; carries the intent record (F3)
+    ha_binds: list | None = None           # (source, target) of HA's bind mounts, from the compose file (F5)
 
 
 # The intent record (F3): before each step that changes git or what runs,
@@ -1254,6 +1258,22 @@ def ha_precheck(ctx: Ctx, snap: dict) -> list[str]:
     return why
 
 
+def ha_files_ok(ctx: Ctx, comp: dict) -> list[str]:
+    """M12 H2/H7b: the compose file renders, and every path it bind-mounts
+    exists (`create_host_path: false` makes Docker refuse to create HA
+    without the recordings directory, after HA was stopped)."""
+    r = ctx.ops.compose(comp["project"], comp["file"], "config", "--format", "json", timeout=60)
+    if not r.ok:
+        return [f"{comp['file']} does not render (compose config failed): {r.tail(200)}"]
+    try:
+        vols = json.loads(r.out)["services"][comp["service"]].get("volumes") or []
+        ctx.ha_binds = [(v["source"], v["target"]) for v in vols if isinstance(v, dict) and v.get("type") == "bind"]
+    except (ValueError, KeyError, TypeError, AttributeError) as e:
+        return [f"{comp['file']} renders, but not as expected ({e.__class__.__name__}: {e})"]
+    return [f"{src} (bind-mounted by {comp['file']} at {tgt}) does not exist: Docker would refuse to create HA "
+            f"after the stop" for src, tgt in ctx.ha_binds if not ctx.ops.path_exists(src)]
+
+
 def ha_up(ctx: Ctx, comp: dict, frm: str, to: str) -> str | None:
     ops = ctx.ops
     i = ops.docker("inspect", comp["container"], "-f", "{{.Image}}", timeout=30)
@@ -1261,11 +1281,24 @@ def ha_up(ctx: Ctx, comp: dict, frm: str, to: str) -> str | None:
         return f"cannot inspect {comp['container']}: {i.tail(160)}"
     ctx.ha_old_id = i.out.strip()
     ctx.log(f"  previous image {comp['image']}:{frm} = {ctx.ha_old_id}; kept as {HA_ROLLBACK_REPO}:{frm}")
-    steps = [("docker", ("tag", ctx.ha_old_id, f"{HA_ROLLBACK_REPO}:{frm}")),
-             ("docker", ("pull", f"{comp['image']}:{to}")),
-             ("docker", ("stop", "-t", "120", comp["container"])),
-             ("compose", ("up", "-d", comp["service"]))]
-    return _ha_steps(ctx, comp, steps)
+    err = _ha_steps(ctx, comp, [("docker", ("tag", ctx.ha_old_id, f"{HA_ROLLBACK_REPO}:{frm}")),
+                                ("docker", ("pull", f"{comp['image']}:{to}"))])
+    if err:
+        return err
+    # H7b, right before the stop: anything missing is "not started", never a stop.
+    why = ha_files_ok(ctx, comp)
+    n = ops.docker("image", "inspect", f"{comp['image']}:{to}", "-f", "{{.Id}}", timeout=30)
+    if not n.ok:
+        why.append(f"{comp['image']}:{to} is not present locally after the pull")
+    k = ops.docker("image", "inspect", f"{HA_ROLLBACK_REPO}:{frm}", "-f", "{{.Id}}", timeout=30)
+    if not k.ok or k.out.strip() != ctx.ha_old_id:
+        why.append(f"{HA_ROLLBACK_REPO}:{frm} is not the running image {ctx.ha_old_id} "
+                   f"({k.out.strip() or k.tail(100)}): no rollback image")
+    if why:
+        ctx.log(f"  H7b: {'; '.join(why)}")
+        return "not started: the checks before HA's stop failed (M12 H7b): " + "; ".join(why)
+    return _ha_steps(ctx, comp, [("docker", ("stop", "-t", "120", comp["container"])),
+                                 ("compose", ("up", "-d", comp["service"]))])
 
 
 def _ha_steps(ctx: Ctx, comp: dict, steps) -> str | None:
@@ -1288,13 +1321,31 @@ def ha_checks(ctx: Ctx, comp: dict, wait_s: float = 600, step: float = 15) -> li
     """H8 against the snapshot taken before the restart."""
     ops, before, problems = ctx.ops, ctx.ha_before or {}, []
     r = ops.docker("inspect", comp["container"], "-f", "{{.Config.StopTimeout}}", timeout=30)
-    if r.ok and r.out.strip() != "120":
-        problems.append(f"StopTimeout is {r.out.strip()}, not 120 (stop_grace_period lost)")
+    if not r.ok or r.out.strip() != "120":
+        problems.append(f"StopTimeout is {r.out.strip() or 'unreadable'}, not 120 (stop_grace_period lost)")
     since = ctx.ha_restart_at or "30m"
     k = ops.docker("events", "--since", since, "--until", "0s", "--filter", f"container={comp['container']}",
                    "--filter", "event=kill", "--format", "{{.Actor.Attributes.signal}}", timeout=30)
     if k.ok and "9" in k.out.split():
         problems.append("HA was killed with signal 9 (unclean shutdown)")
+    # M12 H7: the mounts the compose file gives HA, and no unclean-shutdown line.
+    if ctx.ha_binds is None:
+        problems += [f"after the start: {w}" for w in ha_files_ok(ctx, comp)]
+    mi = ops.docker("inspect", comp["container"], "-f", "{{json .Mounts}}", timeout=30)
+    try:
+        mounts = {(m.get("Source"), m.get("Destination")) for m in json.loads(mi.out)} if mi.ok else None
+    except (ValueError, AttributeError, TypeError):
+        mounts = None
+    if mounts is None:
+        problems.append(f"cannot read {comp['container']}'s mounts")
+    else:
+        problems += [f"{src} is not mounted at {tgt}" for src, tgt in ctx.ha_binds or [] if (src, tgt) not in mounts]
+    lg = ops.docker("logs", "--since", since, comp["container"], timeout=60)
+    if not lg.ok:
+        problems.append(f"cannot read HA's log since the restart ({lg.tail(100)})")
+    elif "was shutdown cleanly" in lg.out + lg.err:
+        problems.append("HA's log says the database was not shut down cleanly (\"could not validate that the "
+                        "sqlite3 database ... was shutdown cleanly\")")
     tries = max(1, int(wait_s // step)) + 1
     for i in range(tries):
         try:
@@ -1416,7 +1467,7 @@ def _apply_one(ctx: Ctx, p: Plan) -> Outcome:
             ctx.ha_before = ha_snapshot(ctx)
         except (StepFailed, ValueError) as e:
             return Outcome(name, frm, to, "not_started", f"cannot snapshot HA before the restart: {e}")
-        why = ha_precheck(ctx, ctx.ha_before)
+        why = ha_precheck(ctx, ctx.ha_before) + ha_files_ok(ctx, comp)
         if why:
             return Outcome(name, frm, to, "not_started", "HA restart declined: " + "; ".join(why))
     info: list[str] = []

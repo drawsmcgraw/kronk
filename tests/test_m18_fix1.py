@@ -538,3 +538,89 @@ def test_dry_run_reports_an_unfinished_intent_and_changes_nothing(house, capsys)
     assert "a real run would finish the rollback to 2026.5.4 now (it is down: no wait)" in out
     assert (sd / "status.json").read_text() == before and git(ops.repo, "rev-parse", "HEAD") == head
     assert "homeassistant" in ops.stopped
+
+
+# ── F5: M12's H7b and H7 checks around HA's restart ──────────────────────
+
+def _stops(ops):
+    return [c for c in ops.calls if c[:2] == ("docker", "stop")]
+
+
+def test_ha_is_not_started_without_the_recordings_directory(house):
+    ops, sd = house
+    ops.existing_paths.discard("/home/drew/kronk-voice-recordings")
+    assert run(ops, sd, only=["homeassistant"]) == 0
+    o, = status(sd)["last_run"]["outcomes"]
+    assert o["result"] == "not_started"
+    assert "/home/drew/kronk-voice-recordings (bind-mounted by docker-compose.ha.yml at /voice_recordings) does not exist" in o["detail"]
+    assert _stops(ops) == [] and subjects(ops.repo) == ["initial"]
+
+
+def test_ha_is_not_started_when_its_compose_file_does_not_render(house):
+    ops, sd = house
+    orig = ops.compose
+
+    def compose(project, file, *args, **kw):
+        if args[:3] == ("config", "--format", "json"):
+            return U.Result(15, "", "yaml: line 12: did not find expected key")
+        return orig(project, file, *args, **kw)
+    ops.compose = compose
+    run(ops, sd, only=["homeassistant"])
+    o, = status(sd)["last_run"]["outcomes"]
+    assert o["result"] == "not_started" and "does not render" in o["detail"] and _stops(ops) == []
+
+
+@pytest.mark.parametrize("what", ["directory", "image", "rollback-tag"])
+def test_a_precondition_lost_right_before_the_stop_is_never_a_stop(house, what):
+    ops, sd = house
+    orig = ops.docker
+
+    def docker(*args, timeout=600):
+        r = orig(*args, timeout=timeout)
+        if args[0] == "pull":
+            if what == "directory":
+                ops.existing_paths.discard("/home/drew/kronk-voice-recordings")
+            elif what == "image":
+                ops.images.pop(args[1], None)
+            else:
+                ops.images["kronk/ha-rollback:2026.5.4"] = "sha256:" + "e" * 64
+        return r
+    ops.docker = docker
+    assert run(ops, sd, only=["homeassistant"]) == 1
+    o, = status(sd)["last_run"]["outcomes"]
+    assert o["result"] == "not_applied" and "M12 H7b" in o["detail"]
+    assert {"directory": "does not exist", "image": "is not present locally",
+            "rollback-tag": "no rollback image"}[what] in o["detail"]
+    assert _stops(ops) == [] and "homeassistant" not in ops.stopped
+    assert U.read_pin(ops.repo, rules().component("homeassistant")).value == "2026.5.4"
+
+
+def _on_ha_up(ops, new, old):
+    orig = ops.compose
+
+    def compose(project, file, *args, **kw):
+        r = orig(project, file, *args, **kw)
+        if args[0] == "up" and project == "kronk-ha":
+            (new if ops.containers["homeassistant"].endswith("2026.5.5") else old)()
+        return r
+    ops.compose = compose
+
+
+def test_a_mount_missing_after_the_start_rolls_back(house):
+    ops, sd = house
+    _on_ha_up(ops, lambda: setattr(ops, "ha_mounted", [("/etc/localtime", "/etc/localtime")]),
+              lambda: setattr(ops, "ha_mounted", list(ops.ha_binds)))
+    assert run(ops, sd, only=["homeassistant"]) == 1
+    o, = status(sd)["last_run"]["outcomes"]
+    assert o["result"] == "rolled_back" and "/home/drew/kronk-voice-recordings is not mounted at /voice_recordings" in o["detail"]
+    assert ops.containers["homeassistant"].endswith(":2026.5.4")
+
+
+def test_an_unclean_shutdown_line_after_the_start_rolls_back(house):
+    ops, sd = house
+    bad = ("2026-12-01 08:31:02 WARNING (Recorder) [homeassistant.components.recorder.util] The system could not "
+           "validate that the sqlite3 database at //config/home-assistant_v2.db was shutdown cleanly\n")
+    _on_ha_up(ops, lambda: setattr(ops, "ha_log", bad), lambda: setattr(ops, "ha_log", ""))
+    assert run(ops, sd, only=["homeassistant"]) == 1
+    o, = status(sd)["last_run"]["outcomes"]
+    assert o["result"] == "rolled_back" and "not shut down cleanly" in o["detail"]

@@ -197,6 +197,11 @@ class FakeOps(U.Ops):
         git(repo, "tag", self.prod_tag)
         self.hashes_match = True
         self.stopped: set[str] = set()     # containers stopped and not started again
+        # Home Assistant's compose file renders these bind mounts; the paths that exist on the host
+        self.ha_binds = [("/etc/localtime", "/etc/localtime"), ("/home/drew/kronk-voice-recordings", "/voice_recordings")]
+        self.existing_paths = {"/etc/localtime", "/home/drew/kronk-voice-recordings"}
+        self.ha_mounted = list(self.ha_binds)  # what the running container mounts
+        self.ha_log = "2026-12-01 08:31:00 INFO (MainThread) [homeassistant.bootstrap] Home Assistant initialized\n"
         # failure switches
         self.bad_versions: set[str] = set()        # health fails while one of these runs
         self.deploy_fail_tags: set[str] = set()
@@ -243,6 +248,8 @@ class FakeOps(U.Ops):
                 return U.Result(0, self.images[ref] + "\n")
             if fmt == "{{.State.StartedAt}}":
                 return U.Result(0, self.ma_started + "\n")
+            if fmt == "{{json .Mounts}}":
+                return U.Result(0, json.dumps([{"Type": "bind", "Source": s, "Destination": t} for s, t in self.ha_mounted]))
             if fmt == "{{.Config.StopTimeout}}":
                 return U.Result(0, "120\n")
             if fmt == "{{.State.Health.Status}}":
@@ -266,6 +273,8 @@ class FakeOps(U.Ops):
         if a[0] == "stop":
             self.stopped.add(a[-1])
             return U.Result(0)
+        if a[0] == "logs" and a[-1] == "homeassistant":
+            return U.Result(0, self.ha_log)
         if a[0] == "logs":
             # `docker logs --since <N>m`: only lines from the last N minutes.
             since = self.clock - dt.timedelta(minutes=int(a[a.index("--since") + 1].rstrip("m")))
@@ -282,6 +291,10 @@ class FakeOps(U.Ops):
         a = list(args)
         if a[0] == "config" and a[1] == "--hash":
             return U.Result(0, f"{a[2]} {'HASH' if self.hashes_match else 'OTHER'}\n")
+        if a[:3] == ["config", "--format", "json"]:
+            vols = [{"type": "volume", "source": "ha-config", "target": "/config"}] + [
+                {"type": "bind", "source": s, "target": t, "bind": {}} for s, t in self.ha_binds]
+            return U.Result(0, json.dumps({"services": {"homeassistant": {"volumes": vols}}}))
         if a[0] == "pull":
             pins = self._pins_at(None, file)
             for image, tag in pins.items():
@@ -403,6 +416,9 @@ class FakeOps(U.Ops):
         if not self.dev_list_ok:
             return None
         return set(self.dev_runs) if "kronk-dev" in names else set()
+
+    def path_exists(self, path):
+        return path in self.existing_paths
 
     def wyoming(self, host, port):
         return self._version_running("wyoming-piper") not in self.bad_versions
