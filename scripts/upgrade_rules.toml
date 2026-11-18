@@ -181,6 +181,11 @@ service = "grafana"
 env_file = ".env.telemetry"
 container = "kronk-telemetry-grafana-1"
 health = [{ type = "http", url = "http://localhost:3000/api/health" }]
+# Bind-mounted paths Grafana reloads by itself while it runs (the dashboard
+# provider polls every 30 s: telemetry/grafana/provisioning/dashboards/kronk.yaml),
+# so a change there after the start is already loaded and does not hold the
+# upgrade back. Provisioning (datasources) loads at start only and counts.
+live_binds = ["telemetry/grafana/dashboards"]
 
 # ── Kronk stack (project kronk; deployed from a tag by deploy_tag.sh) ─────
 

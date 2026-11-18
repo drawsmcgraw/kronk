@@ -248,7 +248,8 @@ class FakeOps(U.Ops):
         # Bind mounts of the other containers, their start times, and the
         # modification times of files in the working tree (F10).
         self.mounts = {"kronk-telemetry-tempo-1": [(str(repo / "telemetry/tempo.yaml"), "/etc/tempo.yaml")],
-                       "kronk-telemetry-grafana-1": [(str(repo / "telemetry/grafana/provisioning"), "/etc/grafana/provisioning")]}
+                       "kronk-telemetry-grafana-1": [(str(repo / "telemetry/grafana/provisioning"), "/etc/grafana/provisioning"),
+                                                     (str(repo / "telemetry/grafana/dashboards"), "/var/lib/grafana/dashboards")]}
         self.started = {"music-assistant-server": self.ma_started_default,
                         "kronk-telemetry-tempo-1": "2026-11-08T22:30:23.087882723Z",
                         "kronk-telemetry-grafana-1": "2026-11-08T22:28:30.647456834Z",

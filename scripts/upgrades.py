@@ -1236,7 +1236,9 @@ def bind_files_unreleased(ops: Ops, comp: dict) -> str | None:
     loads whatever the working tree holds: a file modified after the start
     is one the running service may never have loaded. Compared by
     modification time with the container's start (a touched but unchanged
-    file declines too: errs toward not starting)."""
+    file declines too: errs toward not starting). Paths the service reloads
+    by itself while it runs (the component's `live_binds`) are set aside:
+    the running service already has them."""
     c = comp["container"]
     st = ops.docker("inspect", c, "-f", "{{.State.StartedAt}}", timeout=30)
     mi = ops.docker("inspect", c, "-f", "{{json .Mounts}}", timeout=30)
@@ -1244,7 +1246,9 @@ def bind_files_unreleased(ops: Ops, comp: dict) -> str | None:
         started = _date(st.out.strip()) if st.ok else None
         mounts = json.loads(mi.out) if mi.ok else None
         repo = ops.repo.resolve()
-        srcs = [m["Source"] for m in mounts if m.get("Type") == "bind" and Path(m["Source"]).resolve().is_relative_to(repo)]
+        live = [(repo / q).resolve() for q in comp.get("live_binds", [])]
+        srcs = [m["Source"] for m in mounts if m.get("Type") == "bind" and Path(m["Source"]).resolve().is_relative_to(repo)
+                and not any(Path(m["Source"]).resolve().is_relative_to(q) for q in live)]
     except (ValueError, TypeError, KeyError, AttributeError, LookupFailed) as e:
         return f"cannot read {c}'s start time and mounts ({e})"
     if started is None or mounts is None:

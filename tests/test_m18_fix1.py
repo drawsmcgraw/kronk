@@ -1132,3 +1132,18 @@ def test_a_redirect_is_followed_only_to_an_allowed_host():
     for bad in ("https://evil.example/x", "http://pkg-containers.githubusercontent.com/x"):
         with pytest.raises(U.urllib.error.URLError, match="refused"):
             h.redirect_request(req, None, 307, "x", {}, bad)
+
+
+def test_dashboards_grafana_reloads_by_itself_do_not_hold_it_back(house):
+    """Found by the fix's live dry run: the dashboards were edited minutes
+    after Grafana started, and Grafana polls them every 30 s."""
+    ops, sd = house
+    ops.mtimes[str(ops.repo / "telemetry/grafana/dashboards/overview.json")] = \
+        _dt.datetime(2026, 11, 8, 22, 32, 46, tzinfo=_dt.timezone.utc)
+    assert run(ops, sd, only=["grafana"]) == 0
+    assert status(sd)["last_run"]["outcomes"][0]["result"] == "kept"
+    ops.mtimes[str(ops.repo / "telemetry/grafana/provisioning/datasources/tempo.yaml")] = \
+        _dt.datetime(2026, 11, 20, tzinfo=_dt.timezone.utc)                # loaded at start only: counts
+    why = U.bind_files_unreleased(ops, rules().component("grafana"))
+    assert why.startswith("telemetry/grafana/provisioning/datasources/tempo.yaml changed after")
+    assert "dashboards" not in why
