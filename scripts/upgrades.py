@@ -1488,6 +1488,7 @@ class Ctx:
     ignore_window: bool = False            # --ignore-window: a run by hand at any hour
     player_notes: list = field(default_factory=list)   # player differences a rollback's check reports (K4)
     ha_back: str | None = None             # a recovery brought a stopped or missing HA back (G2)
+    replay_note: str = ""                  # verify's replay was stopped and retried (H4): said in the notice
 
 
 # The intent record (F3): before each step that changes git or what runs,
@@ -1592,12 +1593,17 @@ def _replay_rows(out: Path) -> list[dict]:
 
 def run_replay(ctx: Ctx, label: str, retry: bool = False) -> tuple[list[dict] | None, str]:
     """The live dry-run replay. retry=True (verify): a replay stopped by a
-    player (exit 3) runs again for the rows it did not reach, after 5
-    minutes, up to 3 times; only then is it a failure (K5)."""
+    player (exit 3) with no row of its own changing one runs again for the
+    rows it did not reach, after 5 minutes, up to 3 times; only then is it a
+    failure (K5). A row that comes back with a player change after it
+    executed is a failure at once: that is the replay's guard against a real
+    action (H4). A retry is complete only when every row it selected has a
+    result."""
     out = ctx.sd / "runs" / f"{ctx.stamp}-replay-{label}.json"
     r = ctx.ops.replay(f"upgrade-{label}", out)
     rows: list[dict] = []
-    tries = 0
+    tries, left = 0, None
+    ctx.replay_note = ""
 
     def failed(why: str):
         _own_runs(ctx, rows)
@@ -1608,7 +1614,18 @@ def run_replay(ctx: Ctx, label: str, retry: bool = False) -> tuple[list[dict] | 
                 return failed(f"replay could not complete (exit 2: a safety precondition refused it): {r.tail(200)}")
             if r.rc == 3 and not retry:
                 return failed(f"replay could not complete (exit 3: stopped by the player or dry-run check): {r.tail(200)}")
-            rows += [x for x in _replay_rows(out) if isinstance(x, dict)]
+            part = [x for x in _replay_rows(out) if isinstance(x, dict)]
+            rows += part
+            moved = [x for x in part if x.get("player_change")]
+            if moved:
+                return failed(f"replay row {moved[0].get('id')} changed a player after it executed "
+                              f"({_cut(json.dumps(moved[0]['player_change']), 160)}): the replay's guard against a "
+                              f"real action; not retried")
+            if left is not None and r.rc != 3:
+                have = {x.get("id") for x in part}
+                if not all(i in have for i in left):
+                    return failed(f"replay retry {tries} wrote {sum(i in have for i in left)} of {len(left)} selected "
+                                  f"row(s) (exit {r.rc}): not complete")
             if r.rc != 3:
                 break
             done = {x.get("id") for x in rows}
@@ -1627,6 +1644,9 @@ def run_replay(ctx: Ctx, label: str, retry: bool = False) -> tuple[list[dict] | 
     except (OSError, ValueError, KeyError, TypeError) as e:
         return failed(f"replay wrote no readable result ({e}; exit {r.rc}: {r.tail(160)})")
     _own_runs(ctx, rows)
+    if tries:
+        ctx.replay_note = (f"the live replay was stopped by a player {tries} time(s) and retried for the rows it had "
+                           f"not reached")
     return rows, ""
 
 
@@ -2130,7 +2150,7 @@ def _apply_one(ctx: Ctx, p: Plan) -> Outcome:
         log(f"  verified: {name} {to} kept")
         if comp["deploy"] == "kronk":
             ctx.prod_tag = tag
-        return Outcome(name, frm, to, "kept", commit=commit)
+        return Outcome(name, frm, to, "kept", ctx.replay_note, commit=commit)
 
     log(f"  FAILED: {'; '.join(problems)}")
     step(ctx, "rollback")

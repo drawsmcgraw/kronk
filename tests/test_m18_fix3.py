@@ -347,3 +347,61 @@ def test_the_nightly_rollback_waiting_notice_is_sent_after_the_hourly_one(house,
     run(ops, sd, ["litellm"])
     notices_cmd(ops, sd, monkeypatch)
     assert len(ops.notices) == n                                         # once each
+
+
+# ── H4 (Y4): a replay stopped by its own row is a failed verify ──────────
+
+def _replay_hook(ops, hook):
+    """hook(label, ids, out, result) -> result, after the fake replay ran."""
+    orig = ops.replay
+
+    def replay(label, out, check_only=False, ids=None):
+        r = orig(label, out, check_only, ids)
+        return r if check_only else hook(label, ids, out, r)
+    ops.replay = replay
+
+
+@pytest.mark.parametrize("who", ["litellm", "homeassistant"])
+def test_a_row_that_changed_a_player_fails_verify_at_once(house, who):
+    """The tester's Y4: the first executed row comes back with a player
+    change (idle to playing) and exit 3."""
+    ops, sd = house
+
+    def hook(label, ids, out, r):
+        if label == f"upgrade-{who}":
+            d = json.loads(out.read_text())
+            d["rows"] = d["rows"][:1]
+            d["rows"][0]["player_change"] = {"media_player.kitchen": ["idle", "playing"]}
+            out.write_text(json.dumps(d))
+            return U.Result(3, "", "voice_replay: STOPPED: media_player state changed after row-a")
+        return r
+    _replay_hook(ops, hook)
+    assert run(ops, sd, [who]) == 1
+    o, = status(sd)["last_run"]["outcomes"]
+    assert o["result"] == "rolled_back" and "row-a changed a player after it executed" in o["detail"]
+    assert ("sleep", U.REPLAY_RETRY_WAIT_S) not in ops.calls                   # no retry
+
+
+def test_a_retry_that_wrote_only_some_of_its_rows_is_not_complete(house):
+    ops, sd = house
+    ops.replay_stops = [None, 1]           # the baseline whole; verify stopped after one row
+
+    def hook(label, ids, out, r):
+        if label.endswith("-retry1"):
+            d = json.loads(out.read_text())
+            d["rows"] = d["rows"][:1]
+            out.write_text(json.dumps(d))
+        return r
+    _replay_hook(ops, hook)
+    assert run(ops, sd, ["litellm"]) == 1
+    o, = status(sd)["last_run"]["outcomes"]
+    assert o["result"] == "rolled_back" and "wrote 1 of 3 selected row(s)" in o["detail"]
+
+
+def test_a_kept_upgrade_whose_replay_was_stopped_and_retried_says_so(house):
+    ops, sd = house
+    ops.replay_stops = [None, 2]
+    assert run(ops, sd, ["litellm"]) == 0
+    (_, title, body), = ops.notices
+    assert title == "Kronk upgrade: 1 upgraded"
+    assert "the live replay was stopped by a player 1 time(s) and retried" in body
