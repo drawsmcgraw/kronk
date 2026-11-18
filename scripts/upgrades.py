@@ -181,11 +181,17 @@ def load_rules(path: Path = RULES_FILE, env: dict | None = None) -> Rules:
 
 def vkey(comp: dict, version: str) -> tuple | None:
     """The comparable key of an exact version, or None when the rule does
-    not understand the string."""
-    m = re.fullmatch(comp["pattern"], version or "")
+    not understand the string. Only ASCII is a version, and a compared part
+    with a leading zero (13.02.6, 2026.05.6) is not, unless the component
+    says its parts are zero-padded (`zero_padded`, a YYYYMMDD date) (O1)."""
+    if not (version or "").isascii():
+        return None
+    m = re.fullmatch(comp["pattern"], version or "", re.ASCII)
     if not m:
         return None
     groups = m.groups()[: comp.get("compare", len(m.groups()))]
+    if not comp.get("zero_padded") and any(g and len(g) > 1 and g.startswith("0") for g in groups):
+        return None
     try:
         return tuple(int(g) if g is not None else 0 for g in groups)
     except ValueError:

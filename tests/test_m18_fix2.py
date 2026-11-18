@@ -849,3 +849,32 @@ def test_ack_drops_the_record_and_deploy_goes_ahead(tmp_path, monkeypatch):
     assert "intent" not in st and st["acknowledged"]["intent"]["component"] == "litellm"
     r = _deploy_tag_sh(tmp_path, "deploy")
     assert "refused" not in r.stderr and "no such tag" in r.stderr
+
+
+# ── O1: a leading zero or a non-ASCII digit is not a version ─────────────
+
+@pytest.mark.parametrize("name, version", [
+    ("grafana", "13.02.6"), ("homeassistant", "2026.05.6"), ("grafana", "13.2.06"),
+    ("grafana", "١٣.2.6"), ("grafana", "１３.2.6"), ("homeassistant", "2026.5.٥")])
+def test_a_leading_zero_or_a_non_ascii_digit_is_unparseable(name, version):
+    comp = rules().component(name)
+    assert U.vkey(comp, version) is None
+    assert U.classify(comp, {"grafana": "13.2.4", "homeassistant": "2026.5.4"}[name], version) is None
+
+
+def test_ha_takes_the_real_patch_not_a_zero_padded_one(tmp_path):
+    repo = make_repo(tmp_path, base_files())
+    web = standard_web()
+    web.table["https://ghcr.io/v2/home-assistant/home-assistant/tags/list"] = {"tags": ["2026.5.4", "2026.5.5", "2026.05.6"]}
+    web.table["https://api.github.com/repos/home-assistant/core/releases?"] = [
+        gh_release("2026.05.6", 20), gh_release("2026.5.5", 20), gh_release("2026.5.4", 190)]
+    from tests.m18_helpers import ghcr_registry
+    ghcr_registry(web.table, "home-assistant/home-assistant", {"2026.5.4": 190, "2026.5.5": 20, "2026.05.6": 20})
+    p = U.plan_component(rules(), rules().component("homeassistant"), repo, web, NOW)
+    assert p.action == "upgrade" and p.to.version == "2026.5.5"
+
+
+def test_zero_padded_parts_parse_only_where_the_rules_say_so():
+    assert U.vkey(rules().component("ma-blueprint"), "20250404") == (2025, 4, 4)
+    assert "zero_padded = true" in U.RULES_FILE.read_text()
+    assert U.vkey(rules().component("grafana"), "13.0.1") == (13, 0, 1)

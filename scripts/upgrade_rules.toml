@@ -13,7 +13,9 @@
 #             compared as integers, left to right (the first `compare`
 #             groups; default all). A pin or a candidate that does not match
 #             is not a version this rule understands: a pin is skipped and
-#             reported, a candidate is ignored.
+#             reported, a candidate is ignored. Only ASCII digits count, and
+#             a compared group with a leading zero does not match unless
+#             `zero_padded = true` (a date such as 20250404).
 #   same      how many leading groups a monthly (minor) upgrade keeps equal.
 #             2 = patch releases within X.Y. 0 = any newer release.
 #   minor     auto     the monthly run applies the newest release `same` allows
@@ -500,6 +502,9 @@ order = 220
 file = "ha/blueprints/upstream/mass_assist_blueprint_en.yaml"
 match = '^\s*version:\s*(\d{8})\s*$'
 pattern = '^(\d{4})(\d{2})(\d{2})$'
+# A date: its month and day carry a leading zero. Everywhere else a part
+# with a leading zero (13.02.6) is not a version (sprint M18 fix 2, O1).
+zero_padded = true
 same = 0
 minor = "none"
 why = "a hand-merged fork of the upstream blueprint"
