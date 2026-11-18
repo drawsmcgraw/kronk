@@ -1054,6 +1054,37 @@ class Ctx:
     own: Own = field(default_factory=Own)  # this run's own requests and replay runs (F1)
     touched: bool = False                  # the component's bring-up changed what runs (F2, F4)
     redeploys: int = 0                     # production (Kronk stack) deploys made by this run (F11)
+    status: dict | None = None             # the status file's content; carries the intent record (F3)
+
+
+# The intent record (F3): before each step that changes git or what runs,
+# the run writes what it is about to do into the status file; it clears it
+# when the component is finished, whichever way. A run that dies (reboot,
+# OOM, systemctl stop, the unit's timeout) leaves it behind, and the next run
+# reads it before anything else (recover()).
+
+def set_intent(ctx: Ctx, comp: dict, frm: str, to: str, step: str, **extra) -> None:
+    if ctx.status is None:
+        return
+    it = ctx.status.get("intent") or {}
+    it.update({"component": comp["name"], "from": frm, "to": to, "deploy": comp.get("deploy"), "step": step,
+               "prev_tag": ctx.prod_tag, "ha_old_id": ctx.ha_old_id, "run": ctx.stamp,
+               "at": ctx.ops.now().isoformat(timespec="seconds"), **extra})
+    ctx.status["intent"] = it
+    save_status(ctx.sd, ctx.status, ctx.ops.now())
+
+
+def step(ctx: Ctx, name: str, **extra) -> None:
+    it = (ctx.status or {}).get("intent")
+    if it is None:
+        return
+    it.update({"step": name, "ha_old_id": ctx.ha_old_id, "at": ctx.ops.now().isoformat(timespec="seconds"), **extra})
+    save_status(ctx.sd, ctx.status, ctx.ops.now())
+
+
+def clear_intent(ctx: Ctx) -> None:
+    if ctx.status is not None and ctx.status.pop("intent", None) is not None:
+        save_status(ctx.sd, ctx.status, ctx.ops.now())
 
 
 def image_is(ctx: Ctx, comp: dict, version: str) -> str | None:
@@ -1160,6 +1191,7 @@ def verify(ctx: Ctx, comp: dict, version: str, full: bool = True) -> list[str]:
 # Kronk stack: a tag and deploy_tag.sh.
 
 def kronk_up(ctx: Ctx, comp: dict, tag: str) -> str | None:
+    step(ctx, "tag", tag=tag)
     head = ctx.ops.git("rev-parse", "HEAD").strip()
     have = ctx.ops.git("rev-parse", "-q", "--verify", f"refs/tags/{tag}^{{commit}}", check=False).strip()
     if have and have != head:
@@ -1167,6 +1199,7 @@ def kronk_up(ctx: Ctx, comp: dict, tag: str) -> str | None:
     if not have:
         ctx.ops.git("tag", tag)
     ctx.log(f"  deploy_tag.sh deploy {tag}")
+    step(ctx, "deploy", tag=tag)
     ctx.touched = True
     ctx.redeploys += 1
     r = ctx.ops.deploy_tag("deploy", tag)
@@ -1179,6 +1212,7 @@ def kronk_up(ctx: Ctx, comp: dict, tag: str) -> str | None:
 
 def compose_up(ctx: Ctx, comp: dict) -> str | None:
     for args in (("pull", comp["service"]), ("up", "-d", "--no-deps", comp["service"])):
+        step(ctx, args[0])
         if args[0] == "up":
             ctx.touched = True
         r = ctx.ops.compose(comp["project"], comp["file"], *args, env_file=comp.get("env_file"))
@@ -1236,6 +1270,7 @@ def ha_up(ctx: Ctx, comp: dict, frm: str, to: str) -> str | None:
 
 def _ha_steps(ctx: Ctx, comp: dict, steps) -> str | None:
     for kind, args in steps:
+        step(ctx, f"ha-{args[0]}")
         if kind == "docker" and args[0] == "stop":
             ctx.ha_restart_at = ctx.ops.now().strftime("%Y-%m-%dT%H:%M:%SZ")
             ctx.touched = True
@@ -1293,7 +1328,7 @@ def _ha_diff(before: dict, after: dict) -> list[str]:
             out.append(f"{eid} unavailable")
         elif eid.startswith(("select.", "media_player.")) and a["state"] != b["state"]:
             out.append(f"{eid}: {b['state']} before, {a['state']} after")
-    if before.get("rest_command") != after.get("rest_command"):
+    if "rest_command" in before and before.get("rest_command") != after.get("rest_command"):
         out.append(f"rest_command services changed: {before.get('rest_command')} -> {after.get('rest_command')}")
     if before.get("ma_started") and before.get("ma_started") != after.get("ma_started"):
         out.append("Music Assistant restarted (its start time changed)")
@@ -1326,13 +1361,14 @@ class Outcome:
     state: str = ""      # the fact that matters (what git has, what runs): first in the notice, never cut
 
 
-def what_runs(ctx: Ctx, comp: dict) -> tuple[str | None, str]:
+def what_runs(ctx, comp: dict) -> tuple[str | None, str]:
     """(the version the component's container runs, or None; a phrase for
-    a notice). Read-only."""
+    a notice). Read-only. `ctx` may be a Ctx or an Ops."""
+    ops = getattr(ctx, "ops", ctx)
     c = comp.get("container")
     if not c or not comp.get("image"):
         return None, "unknown (no container to inspect)"
-    r = ctx.ops.docker("inspect", c, "-f", "{{.Config.Image}} {{.State.Running}}", timeout=30)
+    r = ops.docker("inspect", c, "-f", "{{.Config.Image}} {{.State.Running}}", timeout=30)
     if not r.ok:
         return None, f"nothing ({c} does not exist" + ("; Home Assistant is down)" if comp.get("deploy") == "ha" else ")")
     img, _, running = r.out.strip().partition(" ")
@@ -1353,6 +1389,12 @@ def head_pin(ctx: Ctx, comp: dict) -> str | None:
 
 
 def apply_one(ctx: Ctx, p: Plan) -> Outcome:
+    o = _apply_one(ctx, p)
+    clear_intent(ctx)                 # finished, whichever way (a process that dies leaves it)
+    return o
+
+
+def _apply_one(ctx: Ctx, p: Plan) -> Outcome:
     comp, frm, to = p.comp, p.pin, p.to.version
     ops, log, name = ctx.ops, ctx.log, comp["name"]
     log(f"── {name}: {frm} -> {to}")
@@ -1385,6 +1427,7 @@ def apply_one(ctx: Ctx, p: Plan) -> Outcome:
         return Outcome(name, frm, to, "not_started", "house busy: " + "; ".join(busy))
 
     # Pin, commit.
+    set_intent(ctx, comp, frm, to, "pin-commit")
     try:
         write_pin(ops.repo, comp, frm, to)
         ops.git("add", "--", comp["file"])
@@ -1395,6 +1438,7 @@ def apply_one(ctx: Ctx, p: Plan) -> Outcome:
     except (StepFailed, RulesError, OSError) as e:
         return pin_not_committed(ctx, comp, frm, to, f"the pin commit failed: {e}")
     log(f"  committed {commit}: upgrade: {name} {frm} -> {to}")
+    step(ctx, "bring-up", commit=commit)
 
     # Bring up. Until a step changes what runs (ctx.touched), a failure is
     # "not applied": git is put back and nothing is restarted.
@@ -1412,6 +1456,7 @@ def apply_one(ctx: Ctx, p: Plan) -> Outcome:
     if err and not ctx.touched:
         log(f"  NOT APPLIED (nothing deployed): {err}")
         return not_applied(ctx, comp, frm, to, err, commit)
+    step(ctx, "verify")
     problems = [err] if err else verify(ctx, comp, to)
     if not problems:
         log(f"  verified: {name} {to} kept")
@@ -1420,6 +1465,7 @@ def apply_one(ctx: Ctx, p: Plan) -> Outcome:
         return Outcome(name, frm, to, "kept", commit=commit)
 
     log(f"  FAILED: {'; '.join(problems)}")
+    step(ctx, "rollback")
     return rollback(ctx, comp, frm, to, problems, commit)
 
 
@@ -1444,6 +1490,7 @@ def not_applied(ctx: Ctx, comp: dict, frm: str, to: str, err: str, commit: str) 
     """The pin commit exists and nothing was deployed: revert the run's own
     pin commit, so git is back in step with what runs."""
     ops, name = ctx.ops, comp["name"]
+    step(ctx, "revert")
     try:
         head = ops.git("rev-parse", "--short", "HEAD").strip()
         if head != commit:
@@ -1512,6 +1559,214 @@ def error_outcome(ctx: Ctx, p: Plan, e: Exception) -> Outcome:
                        state=f"not started; git is at {frm}, running is {runs}")
     return Outcome(comp["name"], frm, to, "out_of_step", f"stopped by an error: {e}",
                    state=f"OUT OF STEP: git is at {gitp}, running is {runs}" + (f"; {'; '.join(dirty)}" if dirty else ""))
+
+
+# ═══ Recovery from an interrupted run (F3) ══════════════════════════════
+
+def pin_vs_running(ops: Ops, p: Plan) -> str | None:
+    """Planning-time check, every component, every run: the pin at HEAD must
+    be what its container runs. A pin commit ahead of what runs is never
+    CURRENT."""
+    c = p.comp
+    if p.action not in ("upgrade", "current") or not c.get("container") or not c.get("image"):
+        return None
+    ver, runs = what_runs(ops, c)
+    if ver == p.pin:
+        return None
+    return (f"pin {p.pin} ({c['file']}) but {c['container']} runs {runs}: git and what runs are out of step; "
+            f"not upgraded")
+
+
+def _pin_back(ctx: Ctx, comp: dict, frm: str, to: str, why: str) -> str:
+    write_pin(ctx.ops.repo, comp, to, frm)
+    ctx.ops.git("add", "--", comp["file"])
+    ctx.ops.git("commit", "-q", "-m", f"upgrade: roll back {comp['name']} {to} -> {frm}", "-m", why, "--", comp["file"])
+    return ctx.ops.git("rev-parse", "--short", "HEAD").strip()
+
+
+def intent_facts(ctx: Ctx, comp: dict, it: dict) -> dict:
+    """Read-only: where git, the tag and the running version stand."""
+    dirty = [ln[3:] for ln in ctx.ops.git("status", "--porcelain", "--untracked-files=normal").splitlines() if ln.strip()]
+    ver, runs = what_runs(ctx, comp)
+    f = {"git": head_pin(ctx, comp), "ver": ver, "runs": runs, "dirty": dirty, "prod_tag": None}
+    tag = it.get("tag")
+    f["tag"] = tag if tag and ctx.ops.git("rev-parse", "-q", "--verify", f"refs/tags/{tag}", check=False).strip() else None
+    if comp.get("deploy") == "kronk":
+        f["prod_tag"], _ = production_tag(ctx.ops, ctx.rules)
+    desc = f"git has {f['git']}, running is {runs}"
+    if f["prod_tag"]:
+        desc += f", production runs tag {f['prod_tag']}"
+    if f["tag"]:
+        desc += f", tag {f['tag']} exists"
+    if dirty:
+        desc += f", the working tree has uncommitted changes ({', '.join(dirty[:5])})"
+    f["desc"] = desc
+    return f
+
+
+def recover(ops: Ops, rules: Rules, sd: Path, status: dict, now: dt.datetime, log: RunLog, log_rel: str,
+            stamp: str, own: Own, dry_run: bool) -> int | None:
+    """An earlier run died inside a component (its intent record is still
+    in the status file). Compare git, the tag and what runs; finish the
+    rollback to the recorded previous version, or stop and say what is out
+    of step. None: nothing to recover, go on; else the run's exit code."""
+    it = status.get("intent")
+    if not it:
+        return None
+    name, frm, to = it.get("component"), it.get("from"), it.get("to")
+    log(f"an earlier run ({it.get('run')}) stopped inside {name} {frm} -> {to} at step {it.get('step')!r} "
+        f"({it.get('at')}): checking git, the tag and what runs")
+    ctx = Ctx(ops, rules, log, sd, stamp, now, it.get("prev_tag"), own=own, status=None if dry_run else status)
+    ctx.ha_old_id = it.get("ha_old_id")
+    try:
+        comp = rules.component(name)
+    except KeyError:
+        o = Outcome(str(name), str(frm), str(to), "out_of_step", "the interrupted component is no longer in the rules",
+                    state="OUT OF STEP: unknown component in the interrupted run's record")
+        return _recovered(ctx, status, o, log_rel, dry_run)
+    try:
+        f = intent_facts(ctx, comp, it)
+    except (StepFailed, RulesError, OSError) as e:
+        o = Outcome(name, frm, to, "out_of_step", f"cannot read git or what runs: {e}",
+                    state="OUT OF STEP: an interrupted run; git and what runs could not be read")
+        return _recovered(ctx, status, o, log_rel, dry_run)
+    log(f"  {f['desc']}")
+    o = _recover_one(ctx, comp, it, f, dry_run)
+    if o is None:                      # dry run: said what it would do
+        return None
+    return _recovered(ctx, status, o, log_rel, dry_run)
+
+
+def _recover_one(ctx: Ctx, comp: dict, it: dict, f: dict, dry_run: bool) -> Outcome | None:
+    name, frm, to, log = comp["name"], it["from"], it["to"], ctx.log
+    oos = lambda why: Outcome(name, frm, to, "out_of_step", why,  # noqa: E731
+                              state=f"OUT OF STEP after an interrupted run (step {it.get('step')}): {f['desc']}")
+    if f["dirty"]:
+        return oos("the working tree is not clean; the run does not touch uncommitted changes")
+    if f["git"] not in (frm, to):
+        return oos(f"git has {f['git']}, neither {frm} nor {to}")
+    down = f["ver"] is None and f["runs"].startswith("nothing")
+    ahead = f["ver"] == to or (comp.get("deploy") == "kronk" and f["prod_tag"] not in (None, it.get("prev_tag")))
+    if f["ver"] not in (frm, to) and not down:
+        return oos(f"{comp.get('container')} runs {f['runs']}, neither {frm} nor {to}")
+    if f["ver"] == frm and not ahead:
+        if f["git"] == frm:
+            if dry_run:
+                log(f"  a real run would clear the record: nothing is out of step ({frm} in git and running)")
+                return None
+            return Outcome(name, frm, to, "recovered", f"interrupted at step {it.get('step')}",
+                           state=f"recovered: nothing was out of step ({frm} in git and running)")
+        if dry_run:
+            log(f"  a real run would put the pin back to {frm} (a commit); nothing is restarted")
+            return None
+        try:
+            c = _pin_back(ctx, comp, frm, to, f"Recovering an interrupted run ({it.get('run')}, step {it.get('step')}): "
+                                              f"git had {to} while {frm} ran.")
+        except (StepFailed, RulesError, OSError) as e:
+            return oos(f"putting the pin back failed: {e}")
+        return Outcome(name, frm, to, "recovered", f"interrupted at step {it.get('step')}", c,
+                       state=f"recovered: git had {to} while {frm} ran; pin put back to {frm} (commit {c}), nothing restarted")
+    # The new version runs unverified, or the component is down: finish the
+    # rollback to the recorded previous version (the safe direction).
+    if not down:
+        busy = house_busy(ctx.ops, ctx.rules, ctx.ops.now(), ctx.own)
+        if busy or getattr(ctx, "outside_window", None):
+            why = "; ".join(busy) if busy else ctx.outside_window
+            if dry_run:
+                log(f"  a real run would finish the rollback to {frm} when the house is quiet (now: {why})")
+                return None
+            return Outcome(name, frm, to, "deferred", why,
+                           state=f"{to} runs unverified after an interrupted run; the rollback to {frm} waits for "
+                                 f"a quiet house in the night window")
+    if dry_run:
+        log(f"  a real run would finish the rollback to {frm} now" + (" (it is down: no wait)" if down else ""))
+        return None
+    try:
+        if f["git"] == to:
+            _pin_back(ctx, comp, frm, to, f"Recovering an interrupted run ({it.get('run')}, step {it.get('step')}).")
+        if comp["deploy"] == "kronk":
+            if not it.get("prev_tag"):
+                return oos("no previous tag recorded to deploy")
+            ctx.redeploys += 1
+            r = ctx.ops.deploy_tag("deploy", it["prev_tag"])
+            err = None if r.ok else f"deploy of the previous tag {it['prev_tag']} failed (exit {r.rc}): {r.tail(200)}"
+        elif comp["deploy"] == "ha":
+            if not ctx.ha_old_id:
+                i = ctx.ops.docker("image", "inspect", f"{HA_ROLLBACK_REPO}:{frm}", "-f", "{{.Id}}", timeout=30)
+                ctx.ha_old_id = i.out.strip() if i.ok else None
+            err = ha_rollback(ctx, comp, frm)
+        else:
+            r = ctx.ops.compose(comp["project"], comp["file"], "up", "-d", "--no-deps", comp["service"],
+                                env_file=comp.get("env_file"))
+            err = None if r.ok else f"compose up of {frm} failed: {r.tail(200)}"
+        after = [err] if err else verify(ctx, comp, frm, full=False)
+    except (StepFailed, RulesError, OSError) as e:
+        after = [f"recovery step raised: {e}"]
+    if after:
+        _, runs = what_runs(ctx, comp)
+        return Outcome(name, frm, to, "rollback_failed", "; ".join(after), state=f"ROLLBACK FAILED; running is {runs}; "
+                       f"git has {head_pin(ctx, comp)}")
+    what = ("Home Assistant was down after an interrupted upgrade; it runs " + frm + " again" if down and comp["deploy"] == "ha"
+            else f"finished the rollback: {frm} runs again")
+    return Outcome(name, frm, to, "recovered", f"interrupted at step {it.get('step')}", state=f"recovered: {what}, git has {frm}")
+
+
+def _recovered(ctx: Ctx, status: dict, o: Outcome, log_rel: str, dry_run: bool) -> int | None:
+    log, now = ctx.log, ctx.now
+    if dry_run:
+        log(f"  a real run would stop here: {o.state}")
+        return None
+    log(f"  {o.result}: {o.state}" + (f" ({_cut(o.detail, 400)})" if o.detail else ""))
+    month = now.strftime("%Y-%m")
+    m = status.setdefault("months", {}).setdefault(month, {"attempts": 0, "done": False})
+    if o.result == "deferred":
+        add_attention(status, "interrupted", f"Upgrade interrupted inside {o.name}: {o.state} ({o.detail})", now)
+        if not status["intent"].get("noticed"):
+            status["intent"]["noticed"] = now.isoformat(timespec="seconds")
+            deliver(ctx.ops, status, {"id": f"interrupted-{o.name}-{ctx.stamp}", "tag": NOTIFY_TAG,
+                                      "title": f"Kronk upgrade: interrupted ({o.name}); rollback waiting",
+                                      "body": f"{o.name} {o.frm} -> {o.to}: {o.state} (now: {_cut(o.detail, 300)}). "
+                                              f"Log: {log_rel}", "created": now.isoformat(timespec="seconds")}, now, log)
+        status["last_run"] = {"kind": "minor", "at": now.isoformat(timespec="seconds"), "result": "deferred",
+                              "summary": o.state, "log": log_rel}
+        save_status(ctx.sd, status, now)
+        return 0
+    status.pop("intent", None)
+    if o.result in BLOCKING:
+        block(status, o, now)
+    else:
+        m.setdefault("held_back", {})[o.name] = f"interrupted run recovered on {now.date()}; not retried this month"
+    title, body = notice_text([o], [], log_rel, ctx.redeploys)
+    if o.result == "recovered":
+        title = f"Kronk upgrade: an interrupted run was recovered ({o.name})" + (
+            ": Home Assistant was down" if "Home Assistant was down" in o.state else "")
+    status["last_run"] = {"kind": "minor", "at": now.isoformat(timespec="seconds"), "result": o.result,
+                          "summary": title, "log": log_rel, "outcomes": [o.__dict__]}
+    add_attention(status, f"interrupted:{o.name}", f"{title}. {o.state}. Details: {log_rel}", now)
+    deliver(ctx.ops, status, {"id": f"recover-{ctx.stamp}", "tag": NOTIFY_TAG, "title": title, "body": body,
+                              "created": now.isoformat(timespec="seconds")}, now, log)
+    save_status(ctx.sd, status, now)
+    log(f"done: {o.result} (this run stops here; the next one plans as usual)")
+    return {"recovered": 1}.get(o.result, 2)
+
+
+def mismatch_notice(ops: Ops, status: dict, m: dict, month: str, plans: list[Plan], now: dt.datetime,
+                    log: RunLog, log_rel: str) -> None:
+    """Pins that are not what runs: one notice and a warning per month and
+    set of mismatches."""
+    mm = [p for p in plans if p.action == "mismatch"]
+    if not mm:
+        return
+    key = sorted(f"{p.comp['name']}:{p.pin}" for p in mm)
+    add_attention(status, f"mismatch:{month}", "Pin and running version differ: "
+                  + "; ".join(f"{p.comp['name']}: {p.detail}" for p in mm), now)
+    if m.get("mismatch_noticed") == key:
+        return
+    m["mismatch_noticed"] = key
+    deliver(ops, status, {"id": f"mismatch-{now.strftime('%Y%m%dT%H%M%SZ')}", "tag": NOTIFY_TAG,
+                          "title": f"Kronk upgrade: pin and running version differ ({', '.join(p.comp['name'] for p in mm)})",
+                          "body": "\n".join(f"{p.comp['name']}: {p.detail}" for p in mm) + f"\nLog: {log_rel}",
+                          "created": now.isoformat(timespec="seconds")}, now, log)
 
 
 # ═══ The monthly run ═════════════════════════════════════════════════════
@@ -1586,6 +1841,12 @@ def minor_run(ops: Ops, rules: Rules, sd: Path, dry_run: bool = False, ignore_mo
             return 0
     try:
         status = load_status(sd)
+        if status.get("intent"):
+            # Before anything else, the month's bookkeeping included: a run
+            # that died inside a component is dealt with first (F3).
+            rc = recover(ops, rules, sd, status, now, log, log_rel, stamp, own, dry_run)
+            if rc is not None:
+                return rc
         months = status.setdefault("months", {})
         m = months.setdefault(month, {"attempts": 0, "done": False})
         if not dry_run and not ignore_month:
@@ -1611,6 +1872,12 @@ def minor_run(ops: Ops, rules: Rules, sd: Path, dry_run: bool = False, ignore_mo
             return 0
 
         plans = [plan_component(rules, c, ops.repo, ops.web, now) for c in rules.components]
+        for p in plans:
+            mm = pin_vs_running(ops, p)
+            if mm:
+                p.action, p.detail = "mismatch", mm
+            elif p.comp["name"] in (m.get("held_back") or {}) and p.action == "upgrade":
+                p.action, p.detail = "skip", f"held back this month: {m['held_back'][p.comp['name']]}"
         log("plan:")
         for p in plans:
             log(f"  {p.comp['name']:<26} {str(p.pin or '-'):<22} {p.action.upper():<9} {p.detail}")
@@ -1620,6 +1887,9 @@ def minor_run(ops: Ops, rules: Rules, sd: Path, dry_run: bool = False, ignore_mo
                 log(f"  {'':<26} {'':<22} {'':<9} > {r}")
         todo = [p for p in plans if p.action == "upgrade"]
         log(f"lookups: {ops.web.requests} request(s) to {', '.join(sorted(ops.web.hosts)) or 'none'}")
+        if not dry_run:
+            mismatch_notice(ops, status, m, month, plans, now, log, log_rel)
+            save_status(sd, status, now)
         if not todo:
             log("nothing to upgrade this month; no notice")
             if not dry_run:
@@ -1676,7 +1946,7 @@ def minor_run(ops: Ops, rules: Rules, sd: Path, dry_run: bool = False, ignore_mo
             save_status(sd, status, now)
             return 0
 
-        ctx = Ctx(ops, rules, log, sd, stamp, now, prod_tag, own=own)
+        ctx = Ctx(ops, rules, log, sd, stamp, now, prod_tag, own=own, status=status)
         log("baseline: offline corpus")
         t = ops.run_tests()
         if not t.ok:

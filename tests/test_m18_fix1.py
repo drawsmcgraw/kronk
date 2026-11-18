@@ -331,3 +331,210 @@ def test_a_failure_before_the_stop_does_not_touch_ha(house, fail):
     o, = status(sd)["last_run"]["outcomes"]
     assert o["result"] == "not_applied" and o["state"].endswith("running is 2026.5.4")
     assert U.read_pin(ops.repo, rules().component("homeassistant")).value == "2026.5.4"
+
+
+# ── F3: a run killed mid-component is seen by the next run ───────────────
+# Each row of the tester's table (M18-e2e B3): the run is killed at a step
+# (a BaseException, which no handler in the script catches, like SIGKILL:
+# nothing after it runs), then the next night runs on the same house.
+
+import datetime as _dt
+
+
+class Killed(BaseException):
+    pass
+
+
+def kill_on(ops, kind, pred):
+    """Kill the run when the call `kind` (git|docker|deploy_tag) matches pred(args), after it ran."""
+    orig = getattr(ops, kind)
+
+    def wrapped(*args, **kw):
+        r = orig(*args, **kw)
+        if pred(args):
+            raise Killed(f"killed after {kind} {args[:3]}")
+        return r
+    setattr(ops, kind, wrapped)
+    return lambda: setattr(ops, kind, orig)
+
+
+def kill_before(ops, kind, pred):
+    orig = getattr(ops, kind)
+
+    def wrapped(*args, **kw):
+        if pred(args):
+            raise Killed(f"killed before {kind} {args[:3]}")
+        return orig(*args, **kw)
+    setattr(ops, kind, wrapped)
+    return lambda: setattr(ops, kind, orig)
+
+
+def killed_run(ops, sd, only, undo):
+    with pytest.raises(Killed):
+        run(ops, sd, only=only)
+    undo()
+    ops.calls.clear()
+    ops.clock = NOW + _dt.timedelta(days=1)
+
+
+def deploys(ops):
+    return [c for c in ops.calls if c[0] == "deploy_tag" and c[1] == "deploy"]
+
+
+def test_killed_after_the_pin_commit_before_the_tag(house):
+    ops, sd = house
+    undo = kill_before(ops, "git", lambda a: a[0] == "tag")
+    killed_run(ops, sd, ["litellm"], undo)
+    it = status(sd)["intent"]
+    assert (it["component"], it["step"], it["from"], it["to"], it["prev_tag"]) == ("litellm", "tag", "v1.88.1", "v1.88.6", "sprint-X")
+    assert run(ops, sd, only=["litellm"]) == 1
+    st = status(sd)
+    assert "intent" not in st
+    o, = st["last_run"]["outcomes"]
+    assert o["result"] == "recovered"
+    assert o["state"].startswith("recovered: git had v1.88.6 while v1.88.1 ran; pin put back to v1.88.1")
+    assert subjects(ops.repo)[-1] == "upgrade: roll back litellm v1.88.6 -> v1.88.1"
+    assert deploys(ops) == []                                   # nothing restarted
+    assert ops.notices[-1][1] == "Kronk upgrade: an interrupted run was recovered (litellm)"
+    assert "litellm" in st["months"]["2026-12"]["held_back"]
+    # The night after, planning goes on as usual, without litellm this month.
+    ops.clock = NOW + _dt.timedelta(days=2)
+    assert run(ops, sd, only=["litellm", "tempo"]) == 0
+    assert subjects(ops.repo)[-1] == "upgrade: tempo 3.1.1 -> 3.1.2"
+
+
+def test_killed_after_the_tag_before_the_deploy(house):
+    ops, sd = house
+    undo = kill_before(ops, "deploy_tag", lambda a: a[0] == "deploy")
+    killed_run(ops, sd, ["litellm"], undo)
+    assert status(sd)["intent"]["step"] == "deploy"
+    assert "upgrade-20261201T083000Z-litellm" in git(ops.repo, "tag")
+    assert run(ops, sd, only=["litellm"]) == 1
+    o, = status(sd)["last_run"]["outcomes"]
+    assert o["result"] == "recovered" and "pin put back to v1.88.1" in o["state"]
+    assert deploys(ops) == []
+    assert ops.containers["kronk-litellm-1"].endswith(":v1.88.1")
+
+
+def test_killed_during_verify_finishes_the_rollback(house):
+    ops, sd = house
+    undo = kill_before(ops, "run_tests", lambda a: ops.containers["kronk-litellm-1"].endswith("v1.88.6"))
+    killed_run(ops, sd, ["litellm"], undo)
+    assert ops.containers["kronk-litellm-1"].endswith(":v1.88.6") and status(sd)["intent"]["step"] == "verify"
+    assert run(ops, sd, only=["litellm"]) == 1
+    assert deploys(ops) == [("deploy_tag", "deploy", "sprint-X")]           # the previous tag
+    assert ops.containers["kronk-litellm-1"].endswith(":v1.88.1")
+    o, = status(sd)["last_run"]["outcomes"]
+    assert o["state"] == "recovered: finished the rollback: v1.88.1 runs again, git has v1.88.1"
+    assert "redeployed 1 time(s)" in ops.notices[-1][2]
+
+
+def test_killed_during_verify_waits_for_a_quiet_house_to_roll_back(house):
+    ops, sd = house
+    undo = kill_before(ops, "run_tests", lambda a: ops.containers["kronk-litellm-1"].endswith("v1.88.6"))
+    killed_run(ops, sd, ["litellm"], undo)
+    ops.states[2]["state"] = "playing"
+    assert run(ops, sd, only=["litellm"]) == 0
+    st = status(sd)
+    assert st["intent"]["component"] == "litellm" and st["last_run"]["result"] == "deferred"
+    assert deploys(ops) == []
+    assert ops.notices[-1][1] == "Kronk upgrade: interrupted (litellm); rollback waiting"
+    assert any(a["id"] == "interrupted" for a in st["attention"])
+    n = len(ops.notices)
+    ops.clock += _dt.timedelta(days=1)
+    run(ops, sd, only=["litellm"])
+    assert len(ops.notices) == n                                       # one notice, not one a night
+    ops.states[2]["state"] = "idle"
+    ops.clock += _dt.timedelta(days=1)
+    assert run(ops, sd, only=["litellm"]) == 1
+    assert ops.containers["kronk-litellm-1"].endswith(":v1.88.1") and "intent" not in status(sd)
+
+
+def test_grafana_killed_after_the_pin_commit_before_the_pull(house):
+    ops, sd = house
+    undo = kill_before(ops, "compose", lambda a: a[2] == "pull")
+    killed_run(ops, sd, ["grafana"], undo)
+    assert run(ops, sd, only=["grafana"]) == 1
+    o, = status(sd)["last_run"]["outcomes"]
+    assert o["result"] == "recovered" and "pin put back to 13.2.4" in o["state"]
+    assert U.read_pin(ops.repo, rules().component("grafana")).value == "13.2.4"
+    assert not any(c[0] == "compose" and c[3] in ("up", "pull") for c in ops.calls)
+
+
+def test_ha_killed_after_the_pin_commit_before_the_pull(house):
+    ops, sd = house
+    undo = kill_before(ops, "docker", lambda a: a[0] == "pull")
+    killed_run(ops, sd, ["homeassistant"], undo)
+    assert status(sd)["intent"]["ha_old_id"]
+    assert run(ops, sd, only=["homeassistant"]) == 1
+    o, = status(sd)["last_run"]["outcomes"]
+    assert o["result"] == "recovered" and "pin put back to 2026.5.4" in o["state"]
+    assert not any(c[:2] == ("docker", "stop") for c in ops.calls)
+
+
+def test_ha_killed_after_the_stop_is_brought_back_on_the_previous_image(house):
+    ops, sd = house
+    undo = kill_on(ops, "docker", lambda a: a[0] == "stop")
+    killed_run(ops, sd, ["homeassistant"], undo)
+    assert "homeassistant" in ops.stopped
+    # Even with nothing to upgrade and HA unreadable (it is down), the next
+    # run brings it back first, at once.
+    ops.web.table["https://ghcr.io/v2/home-assistant/home-assistant/tags/list"] = {"tags": ["2026.5.4"]}
+    assert run(ops, sd, only=["homeassistant"]) == 1
+    assert "homeassistant" not in ops.stopped
+    assert ops.containers["homeassistant"] == "ghcr.io/home-assistant/home-assistant:2026.5.4"
+    assert U.read_pin(ops.repo, rules().component("homeassistant")).value == "2026.5.4"
+    o, = status(sd)["last_run"]["outcomes"]
+    assert o["state"] == ("recovered: Home Assistant was down after an interrupted upgrade; it runs 2026.5.4 again, "
+                          "git has 2026.5.4")
+    assert ops.notices[-1][1] == "Kronk upgrade: an interrupted run was recovered (homeassistant): Home Assistant was down"
+
+
+def test_killed_in_the_rollback_with_the_pin_restored_but_not_committed(house):
+    ops, sd = house
+    ops.bad_versions = {"13.2.6"}
+    undo = kill_before(ops, "git", lambda a: a[0] == "commit" and "roll back" in " ".join(a))
+    killed_run(ops, sd, ["grafana"], undo)
+    ops.bad_versions = set()
+    assert run(ops, sd, only=["grafana"]) == 2
+    st = status(sd)
+    o, = st["last_run"]["outcomes"]
+    assert o["result"] == "out_of_step"
+    assert "the working tree has uncommitted changes (docker-compose.telemetry.yml)" in o["state"]
+    assert st["out_of_step"]["component"] == "grafana"
+    assert ops.notices[-1][1].startswith("Kronk upgrade: OUT OF STEP (grafana)")
+    assert git(ops.repo, "status", "--porcelain").strip()               # left for a person: not touched
+
+
+def test_a_pin_ahead_of_what_runs_is_never_current(house):
+    """No intent record at all (a hand edit, or a record lost): planning
+    compares the pin with what runs, every component, every run."""
+    ops, sd = house
+    p = ops.repo / "docker-compose.yml"
+    p.write_text(p.read_text().replace("litellm:v1.88.1", "litellm:v1.88.6"))
+    git(ops.repo, "commit", "-qam", "pin bumped by hand, not deployed")
+    ops.web.table["https://ghcr.io/v2/berriai/litellm/tags/list"] = {"tags": ["v1.88.1", "v1.88.6"]}
+    assert run(ops, sd, only=["litellm"]) == 0
+    st = status(sd)
+    assert any(a["id"] == "mismatch:2026-12" for a in st["attention"])
+    (_, title, body), = ops.notices
+    assert title == "Kronk upgrade: pin and running version differ (litellm)"
+    assert body.startswith("litellm: pin v1.88.6 (docker-compose.yml) but kronk-litellm-1 runs v1.88.1")
+    ops.clock += _dt.timedelta(days=1)
+    run(ops, sd, only=["litellm"], ignore_month=True)
+    assert len(ops.notices) == 1                                         # once a month
+
+
+def test_dry_run_reports_an_unfinished_intent_and_changes_nothing(house, capsys):
+    ops, sd = house
+    undo = kill_on(ops, "docker", lambda a: a[0] == "stop")
+    killed_run(ops, sd, ["homeassistant"], undo)
+    before = (sd / "status.json").read_text()
+    head = git(ops.repo, "rev-parse", "HEAD")
+    capsys.readouterr()
+    run(ops, sd, only=["homeassistant"], dry_run=True)
+    out = capsys.readouterr().out
+    assert "stopped inside homeassistant 2026.5.4 -> 2026.5.5 at step 'ha-stop'" in out
+    assert "a real run would finish the rollback to 2026.5.4 now (it is down: no wait)" in out
+    assert (sd / "status.json").read_text() == before and git(ops.repo, "rev-parse", "HEAD") == head
+    assert "homeassistant" in ops.stopped
