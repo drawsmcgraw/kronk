@@ -52,6 +52,13 @@ select_quiet_minutes = 15
 # The timer fires on days 1-7 of the month; a run that declines tries again
 # the next day, at most this many attempts per month.
 max_attempts = 7
+# The monthly run works only inside this local-time window (start, end;
+# may cross midnight). Started outside it (the timer's boot catch-up,
+# Persistent=true) it declines without counting an attempt, and the next
+# night's firing runs. Between components it checks again: a run still
+# going at the end of the window leaves the rest for the next night. By
+# hand: scripts/upgrade_minor.sh --ignore-window.
+night_window = ["02:00", "05:00"]
 # Files whose changes do not reach the Kronk stack's containers. The run
 # tags HEAD and deploys it, so HEAD may differ from the tag production runs
 # only in these (fnmatch patterns; * crosses directories). Anything else is

@@ -120,8 +120,15 @@ def load_rules(path: Path = RULES_FILE, env: dict | None = None) -> Rules:
     for key, default in (("expected_branch", "main"), ("min_age_days", 14), ("quiet_minutes", 5),
                          ("select_quiet_minutes", 15), ("max_attempts", 7), ("inert_paths", []),
                          ("dev_services", []), ("dev_pipelines", ["kronk-dev"]),
-                         ("voice_tracer_state", "data/voice_tracer_state.json")):
+                         ("voice_tracer_state", "data/voice_tracer_state.json"),
+                         ("night_window", ["02:00", "05:00"])):
         settings.setdefault(key, default)
+    try:
+        win = [dt.time.fromisoformat(t) for t in settings["night_window"]]
+        assert len(win) == 2 and win[0] != win[1]
+    except (ValueError, TypeError, AssertionError) as e:
+        raise RulesError(f"settings.night_window = {settings['night_window']!r}: need [\"HH:MM\", \"HH:MM\"] ({e})") from e
+    settings["night_window_t"] = win
     comps = data.get("component", [])
     seen = set()
     for c in comps:
@@ -680,6 +687,10 @@ class Ops:
     def now(self) -> dt.datetime:
         return dt.datetime.now(dt.timezone.utc)
 
+    def local_now(self) -> dt.datetime:
+        """This host's local time (the night window is local: the house sleeps by the clock on the wall)."""
+        return dt.datetime.now().astimezone()
+
 
 class StepFailed(RuntimeError):
     pass
@@ -990,6 +1001,17 @@ def _held_not_ours(ops: Ops, rules: Rules, held: int, own: Own, info: list[str] 
     return why
 
 
+def outside_window(ops: Ops, rules: Rules) -> str | None:
+    """None inside the night window; else why not (F8). The window may cross midnight."""
+    start, end = rules.settings["night_window_t"]
+    t = ops.local_now().time()
+    inside = start <= t < end if start < end else (t >= start or t < end)
+    if inside:
+        return None
+    return (f"outside the night window {start.strftime('%H:%M')}-{end.strftime('%H:%M')} local "
+            f"(now {t.strftime('%H:%M')}): the timer tries the next night")
+
+
 def tree_state(ops: Ops, rules: Rules) -> list[str]:
     why = []
     try:
@@ -1101,6 +1123,8 @@ class Ctx:
     redeploys: int = 0                     # production (Kronk stack) deploys made by this run (F11)
     status: dict | None = None             # the status file's content; carries the intent record (F3)
     ha_binds: list | None = None           # (source, target) of HA's bind mounts, from the compose file (F5)
+    outside_window: str | None = None      # set when the run is outside the night window (F8)
+    ignore_window: bool = False            # --ignore-window: a run by hand at any hour
 
 
 # The intent record (F3): before each step that changes git or what runs,
@@ -1492,6 +1516,10 @@ def _apply_one(ctx: Ctx, p: Plan) -> Outcome:
     ops, log, name = ctx.ops, ctx.log, comp["name"]
     log(f"── {name}: {frm} -> {to}")
     # Preconditions that belong to this component only.
+    if not ctx.ignore_window:
+        late = outside_window(ops, ctx.rules)
+        if late:
+            return Outcome(name, frm, to, "not_started", f"the night window closed: {late}")
     if comp["deploy"] == "kronk":
         if not ctx.prod_tag:
             return Outcome(name, frm, to, "not_started", "production is not on a tag (see above)")
@@ -1698,7 +1726,7 @@ def intent_facts(ctx: Ctx, comp: dict, it: dict) -> dict:
 
 
 def recover(ops: Ops, rules: Rules, sd: Path, status: dict, now: dt.datetime, log: RunLog, log_rel: str,
-            stamp: str, own: Own, dry_run: bool) -> int | None:
+            stamp: str, own: Own, dry_run: bool, late: str | None = None) -> int | None:
     """An earlier run died inside a component (its intent record is still
     in the status file). Compare git, the tag and what runs; finish the
     rollback to the recorded previous version, or stop and say what is out
@@ -1711,6 +1739,7 @@ def recover(ops: Ops, rules: Rules, sd: Path, status: dict, now: dt.datetime, lo
         f"({it.get('at')}): checking git, the tag and what runs")
     ctx = Ctx(ops, rules, log, sd, stamp, now, it.get("prev_tag"), own=own, status=None if dry_run else status)
     ctx.ha_old_id = it.get("ha_old_id")
+    ctx.outside_window = late
     try:
         comp = rules.component(name)
     except KeyError:
@@ -1763,7 +1792,7 @@ def _recover_one(ctx: Ctx, comp: dict, it: dict, f: dict, dry_run: bool) -> Outc
     # rollback to the recorded previous version (the safe direction).
     if not down:
         busy = house_busy(ctx.ops, ctx.rules, ctx.ops.now(), ctx.own)
-        if busy or getattr(ctx, "outside_window", None):
+        if busy or ctx.outside_window:
             why = "; ".join(busy) if busy else ctx.outside_window
             if dry_run:
                 log(f"  a real run would finish the rollback to {frm} when the house is quiet (now: {why})")
@@ -1910,7 +1939,8 @@ def notice_text(outcomes: list[Outcome], plans: list[Plan], log_rel: str, redepl
     return title, "\n".join(lines)
 
 
-def minor_run(ops: Ops, rules: Rules, sd: Path, dry_run: bool = False, ignore_month: bool = False) -> int:
+def minor_run(ops: Ops, rules: Rules, sd: Path, dry_run: bool = False, ignore_month: bool = False,
+              ignore_window: bool = False) -> int:
     now = ops.now()
     stamp = now.strftime("%Y%m%dT%H%M%SZ")
     month = now.strftime("%Y-%m")
@@ -1934,12 +1964,23 @@ def minor_run(ops: Ops, rules: Rules, sd: Path, dry_run: bool = False, ignore_mo
             return 0
     try:
         status = load_status(sd)
+        late = None if ignore_window else outside_window(ops, rules)
         if status.get("intent"):
             # Before anything else, the month's bookkeeping included: a run
-            # that died inside a component is dealt with first (F3).
-            rc = recover(ops, rules, sd, status, now, log, log_rel, stamp, own, dry_run)
+            # that died inside a component is dealt with first (F3). A
+            # component that is down is brought back at any hour; anything
+            # that disrupts a running service waits for the night window.
+            rc = recover(ops, rules, sd, status, now, log, log_rel, stamp, own, dry_run, late)
             if rc is not None:
                 return rc
+        if late and not dry_run:
+            # A boot catch-up (Persistent=true) at 19:00 does nothing: no
+            # attempt counted, nothing planned (F8).
+            log(f"declined: {late}")
+            status["last_run"] = {"kind": "minor", "at": now.isoformat(timespec="seconds"), "result": "outside_window",
+                                  "summary": f"declined: {late}", "log": log_rel}
+            save_status(sd, status, now)
+            return 0
         months = status.setdefault("months", {})
         m = months.setdefault(month, {"attempts": 0, "done": False})
         if not dry_run and not ignore_month:
@@ -1993,7 +2034,7 @@ def minor_run(ops: Ops, rules: Rules, sd: Path, dry_run: bool = False, ignore_mo
             return 0
 
         info: list[str] = []
-        declines = run_declines(ops, rules, status, now, own, info)
+        declines = ([late] if late else []) + run_declines(ops, rules, status, now, own, info)
         for n in info:
             log(n)
         prod_tag, kronk_why = (None, [])
@@ -2039,7 +2080,7 @@ def minor_run(ops: Ops, rules: Rules, sd: Path, dry_run: bool = False, ignore_mo
             save_status(sd, status, now)
             return 0
 
-        ctx = Ctx(ops, rules, log, sd, stamp, now, prod_tag, own=own, status=status)
+        ctx = Ctx(ops, rules, log, sd, stamp, now, prod_tag, own=own, status=status, ignore_window=ignore_window)
         log("baseline: offline corpus")
         t = ops.run_tests()
         if not t.ok:
@@ -2611,6 +2652,8 @@ def main(argv=None, ops: Ops | None = None) -> int:
     mi = sub.add_parser("minor", help="the monthly patch run")
     mi.add_argument("--dry-run", action="store_true")
     mi.add_argument("--ignore-month", action="store_true", help="run even if this month's run is done")
+    mi.add_argument("--ignore-window", action="store_true",
+                    help="run outside the night window (a run by hand; the house checks still apply)")
     ma = sub.add_parser("major", help="the quarterly major-release report")
     ma.add_argument("--dry-run", action="store_true")
     ma.add_argument("--out", help="write the report here; no commit, no notice")
@@ -2624,7 +2667,7 @@ def main(argv=None, ops: Ops | None = None) -> int:
     ops = ops or Ops()
     sd = state_dir(ops.repo)
     if args.cmd == "minor":
-        return minor_run(ops, rules, sd, args.dry_run, args.ignore_month)
+        return minor_run(ops, rules, sd, args.dry_run, args.ignore_month, args.ignore_window)
     if args.cmd == "major":
         return major_run(ops, rules, sd, args.dry_run, Path(args.out) if args.out else None)
     if args.cmd == "inventory":

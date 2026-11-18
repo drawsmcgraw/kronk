@@ -166,6 +166,7 @@ class FakeOps(U.Ops):
     def __init__(self, repo: Path, web: FakeWeb | None = None, now: dt.datetime = NOW):
         super().__init__(repo, web or FakeWeb())
         self.clock = now
+        self.local_offset = dt.timedelta(hours=-5)
         self.calls: list[tuple] = []
         self.notices: list[tuple[str, str, str]] = []
         self.notify_ok = True
@@ -432,6 +433,10 @@ class FakeOps(U.Ops):
 
     def now(self):
         return self.clock
+
+    def local_now(self):
+        # America/New_York in December: UTC-5 (08:30Z is 03:30 local, inside the night window).
+        return (self.clock + self.local_offset).replace(tzinfo=None)
 
 
 def _logged_at(line):

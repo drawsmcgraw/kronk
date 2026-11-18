@@ -24,7 +24,6 @@
 #              systemctl --user daemon-reload
 [Unit]
 Description=Kronk — monthly patch upgrades (M18)
-After=docker.service network-online.target
 
 [Service]
 Type=oneshot

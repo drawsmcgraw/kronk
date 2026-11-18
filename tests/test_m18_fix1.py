@@ -759,3 +759,79 @@ def test_a_month_of_mixed_declines_and_not_started_ends_with_one_notice(house):
             ops.states[2]["state"] = "idle"
         run(ops, sd, only=["litellm"])
     assert [n[1] for n in ops.notices] == ["Kronk upgrade: this month's patch run applied nothing"]
+
+
+# ── F8: the monthly run works only inside the night window ───────────────
+
+def test_a_boot_catch_up_at_seven_in_the_evening_does_nothing_and_counts_nothing(house):
+    ops, sd = house
+    ops.clock = NOW.replace(hour=0, minute=0) + _dt.timedelta(days=1)    # 19:00 local on Dec 1
+    assert run(ops, sd) == 0
+    st = status(sd)
+    assert st["last_run"]["result"] == "outside_window"
+    assert "outside the night window 02:00-05:00 local (now 19:00)" in st["last_run"]["summary"]
+    assert st.get("months", {}).get("2026-12", {}).get("attempts", 0) == 0
+    assert ops.web.requests == 0 and _mutating(ops) == [] and ops.notices == []
+    ops.clock = NOW + _dt.timedelta(days=1)                               # the next night, 03:30
+    assert run(ops, sd, only=["tempo"]) == 0
+    assert status(sd)["last_run"]["result"] == "upgraded"
+
+
+def test_the_window_closing_between_components_leaves_the_rest(house):
+    ops, sd = house
+    orig = ops.replay
+
+    def replay(label, out, check_only=False):
+        r = orig(label, out, check_only)
+        if label == "upgrade-tempo":
+            ops.clock = NOW.replace(hour=10, minute=1)                    # 05:01 local
+        return r
+    ops.replay = replay
+    run(ops, sd, only=["tempo", "grafana"])
+    o = {x["name"]: x for x in status(sd)["last_run"]["outcomes"]}
+    assert o["tempo"]["result"] == "kept"
+    assert o["grafana"]["result"] == "not_started" and o["grafana"]["detail"].startswith("the night window closed")
+
+
+def test_a_run_by_hand_can_ignore_the_window_but_not_the_house(house):
+    ops, sd = house
+    ops.clock = NOW.replace(hour=19)                                      # 14:00 local
+    assert run(ops, sd, only=["tempo"], ignore_window=True) == 0
+    assert status(sd)["last_run"]["result"] == "upgraded"
+    household_chat(ops)
+    assert run(ops, sd, only=["grafana"], ignore_window=True, ignore_month=True) == 0
+    assert status(sd)["last_run"]["result"] == "declined"
+
+
+@pytest.mark.parametrize("hhmm, inside", [("23:30", True), ("04:59", True), ("05:00", False), ("12:00", False)])
+def test_a_window_may_cross_midnight(house, hhmm, inside):
+    ops, _ = house
+    r = rules(night_window=["23:00", "05:00"])
+    r.settings["night_window_t"] = [_dt.time(23), _dt.time(5)]
+    h, m = map(int, hhmm.split(":"))
+    ops.local_now = lambda: _dt.datetime(2026, 12, 1, h, m)
+    assert (U.outside_window(ops, r) is None) is inside
+
+
+def test_the_rules_refuse_a_window_that_is_not_two_times(tmp_path):
+    f = tmp_path / "r.toml"
+    f.write_text('[settings]\nnight_window = ["02:00"]\n')
+    with pytest.raises(U.RulesError, match="night_window"):
+        U.load_rules(f, env={})
+
+
+def test_a_down_ha_is_brought_back_at_any_hour_but_a_redeploy_waits_for_the_night(house):
+    ops, sd = house
+    undo = kill_before(ops, "run_tests", lambda a: ops.containers["kronk-litellm-1"].endswith("v1.88.6"))
+    killed_run(ops, sd, ["litellm"], undo)
+    ops.clock = NOW.replace(hour=19)                                      # 14:00 local
+    assert run(ops, sd, only=["litellm"]) == 0
+    assert status(sd)["last_run"]["result"] == "deferred" and deploys(ops) == []
+    assert "night window" in status(sd)["last_run"]["summary"]
+
+
+def test_user_units_carry_no_ordering_on_system_units():
+    for f in (ROOT / "systemd").glob("kronk-upgrade-*.service"):
+        text = f.read_text()
+        assert "docker.service" not in text.split("[Unit]", 1)[1], f.name
+        assert "network-online.target" not in text.split("[Unit]", 1)[1], f.name
