@@ -1543,6 +1543,19 @@ def check_pulled(ctx: Ctx, comp: dict, to: str) -> str | None:
 
 
 def kronk_up(ctx: Ctx, comp: dict, tag: str) -> str | None:
+    if comp.get("image") and ctx.plan:
+        # The image first, by a plain pull, and its digest against the
+        # registry's at planning: a moved tag is "not applied" before any
+        # tag or deploy (K7). deploy_tag.sh then finds it present.
+        ref = f"{comp['image']}:{ctx.plan.to.version}"
+        step(ctx, "pull")
+        r = ctx.ops.docker("pull", ref, timeout=900)
+        ctx.log(f"  docker pull {ref}: exit {r.rc}")
+        if not r.ok:
+            return f"docker pull {ref} failed: {r.tail(200)}"
+        moved = check_pulled(ctx, comp, ctx.plan.to.version)
+        if moved:
+            return moved
     step(ctx, "tag", tag=tag)
     head = ctx.ops.git("rev-parse", "HEAD").strip()
     have = ctx.ops.git("rev-parse", "-q", "--verify", f"refs/tags/{tag}^{{commit}}", check=False).strip()
@@ -1561,8 +1574,6 @@ def kronk_up(ctx: Ctx, comp: dict, tag: str) -> str | None:
         ctx.log(f"    | {ln}")
     if not r.ok:
         return f"deploy_tag.sh deploy {tag} failed (exit {r.rc})"
-    if comp.get("image") and ctx.plan:
-        return check_pulled(ctx, comp, ctx.plan.to.version)
     return None
 
 
@@ -2753,7 +2764,7 @@ def _would(p: Plan, prod_tag: str | None) -> str:
     c, frm, to = p.comp, p.pin, p.to.version
     head = f"{c['file']}: {frm} -> {to}; commit 'upgrade: {c['name']} {frm} -> {to}'; "
     if c["deploy"] == "kronk":
-        return head + f"git tag upgrade-<run time>-{c['name']}; deploy_tag.sh deploy it (a full production redeploy; rollback: pin back, deploy {prod_tag or '<previous tag>'}, another)"
+        return head + (f"docker pull {c['image']}:{to} (digest checked); " if c.get("image") else "") + f"git tag upgrade-<run time>-{c['name']}; deploy_tag.sh deploy it (a full production redeploy; rollback: pin back, deploy {prod_tag or '<previous tag>'}, another)"
     if c["deploy"] == "ha":
         return head + (f"docker tag <running id> {HA_ROLLBACK_REPO}:{frm}; docker pull {c['image']}:{to}; "
                        f"docker stop -t 120 {c['container']}; compose -p {c['project']} up -d {c['service']}; "

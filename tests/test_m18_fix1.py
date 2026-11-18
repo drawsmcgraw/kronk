@@ -227,7 +227,8 @@ def test_a_tag_that_exists_elsewhere_is_not_applied_and_git_is_put_back(house):
     assert subjects(ops.repo)[-2:] == ["upgrade: litellm v1.88.1 -> v1.88.6", "upgrade: not applied, litellm back v1.88.6 -> v1.88.1"]
     assert U.read_pin(ops.repo, rules().component("litellm")).value == "v1.88.1"
     assert git(ops.repo, "status", "--porcelain") == ""
-    assert _mutating(ops) == []                                        # nothing deployed, nothing rolled back
+    # nothing deployed, nothing rolled back; the image is pulled first since M18 fix 2 (K7)
+    assert _mutating(ops) == [("docker", "pull", "ghcr.io/berriai/litellm:v1.88.6")]
     (_, title, body), = ops.notices
     assert title == "Kronk upgrade: 1 not applied" and "ROLLBACK" not in title + body
     assert body.startswith("litellm v1.88.1 -> v1.88.6: not applied; git is at v1.88.1 again")

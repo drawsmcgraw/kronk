@@ -657,3 +657,26 @@ def test_when_attempts_run_out_the_notice_lists_what_never_started(house):
     m = status(sd)["months"]["2026-12"]
     assert m["done"] is True and m["attempts"] == 7
     assert "grafana 13.2.4 -> 13.2.6: not started (house busy" in ops.notices[-1][2]
+
+
+# ── K7: a Kronk-stack image is pulled and checked before the tag and deploy ──
+
+def test_a_moved_tag_on_a_kronk_stack_component_is_not_applied_and_nothing_is_deployed(house):
+    ops, sd = house
+    ref = "ghcr.io/berriai/litellm:v1.88.6"
+    ops.repo_digests[ref] = ["ghcr.io/berriai/litellm@sha256:" + "9" * 64]
+    assert run(ops, sd, ["litellm"]) == 1
+    o, = status(sd)["last_run"]["outcomes"]
+    assert o["result"] == "not_applied" and "moved between planning" in o["detail"]
+    assert deploys(ops) == [] and ops.prod_tag == "sprint-X"
+    assert "upgrade-20261201T083000Z-litellm" not in git(ops.repo, "tag")
+    assert ("docker", "pull", ref) in ops.calls
+
+
+def test_the_kronk_stack_pull_comes_before_the_tag(house):
+    ops, sd = house
+    assert run(ops, sd, ["litellm"]) == 0
+    order = [c for c in ops.calls if c[:2] == ("docker", "pull") or (c[0] == "run" and "tag" in c[1] and "git" in c[1][0])
+             or c[:2] == ("deploy_tag", "deploy")]
+    assert order[0] == ("docker", "pull", "ghcr.io/berriai/litellm:v1.88.6")
+    assert order[-1] == ("deploy_tag", "deploy", "upgrade-20261201T083000Z-litellm")
