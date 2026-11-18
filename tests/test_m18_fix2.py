@@ -878,3 +878,41 @@ def test_zero_padded_parts_parse_only_where_the_rules_say_so():
     assert U.vkey(rules().component("ma-blueprint"), "20250404") == (2025, 4, 4)
     assert "zero_padded = true" in U.RULES_FILE.read_text()
     assert U.vkey(rules().component("grafana"), "13.0.1") == (13, 0, 1)
+
+
+# ── O2: redirects, the registry token, a release looked up by tag ────────
+
+def _redirect(newurl, headers=None):
+    import urllib.request
+    req = urllib.request.Request("https://ghcr.io/v2/x/blobs/sha256:a", headers=headers or {})
+    return U._GuardedRedirects().redirect_request(req, None, 307, "x", {}, newurl)
+
+
+@pytest.mark.parametrize("bad", ["https://ghcr.io:8443/v2/x", "https://pkg-containers.githubusercontent.com:8080/x",
+                                 "https://ghcr.io:0/x"])
+def test_a_redirect_to_another_port_is_refused(bad):
+    with pytest.raises(U.urllib.error.URLError, match="refused"):
+        _redirect(bad)
+    assert _redirect("https://pkg-containers.githubusercontent.com:443/ghcr1/blobs/a") is not None
+
+
+def test_the_registry_token_is_not_sent_on_to_another_host():
+    new = _redirect("https://pkg-containers.githubusercontent.com/ghcr1/blobs/a", {"Authorization": "Bearer anon"})
+    assert not new.has_header("Authorization") and "Bearer anon" not in str(new.header_items())
+    same = _redirect("https://ghcr.io/v2/x/blobs/sha256:b", {"Authorization": "Bearer anon"})
+    assert same.get_header("Authorization") == "Bearer anon"
+
+
+def test_a_lookup_on_another_port_is_refused():
+    with pytest.raises(U.LookupFailed, match="refused"):
+        U.Web(opener=lambda *a, **k: None).get("https://api.github.com:8443/repos/x/y/releases")
+
+
+def test_a_release_looked_up_by_tag_must_carry_that_tag(tmp_path):
+    repo = make_repo(tmp_path, base_files())
+    web = standard_web()
+    web.table["https://api.github.com/repos/BerriAI/litellm/releases/tags/v1.88.6"] = gh_release("v1.110.0", 150)
+    with pytest.raises(U.LookupFailed, match="carries tag 'v1.110.0'"):
+        U.github_release(web, "BerriAI/litellm", "v1.88.6", "")
+    p = U.plan_component(rules(), rules().component("litellm"), repo, web, NOW)
+    assert p.action == "skip" and "carries tag 'v1.110.0'" in p.detail

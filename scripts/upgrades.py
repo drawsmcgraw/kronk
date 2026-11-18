@@ -319,8 +319,8 @@ class Web:
 
     def get(self, url: str, headers: dict | None = None) -> tuple[bytes, dict]:
         u = urllib.parse.urlsplit(url)
-        if u.scheme != "https" or u.hostname not in LOOKUP_HOSTS:
-            raise LookupFailed(f"refused: {url} is not an allowed lookup host")
+        if u.scheme != "https" or u.hostname not in LOOKUP_HOSTS or not _port_443(u):
+            raise LookupFailed(f"refused: {url} is not an allowed lookup host on port 443")
         key = url + json.dumps(headers or {}, sort_keys=True)
         if key in self.cache:
             return self.cache[key]
@@ -347,14 +347,29 @@ class Web:
             raise LookupFailed(f"GET {url}: not JSON") from e
 
 
+def _port_443(u: urllib.parse.SplitResult) -> bool:
+    try:
+        return u.port in (None, 443)
+    except ValueError:
+        return False
+
+
 class _GuardedRedirects(urllib.request.HTTPRedirectHandler):
-    """Follow a redirect only to an allowed lookup host, over https."""
+    """Follow a redirect only to an allowed lookup host, over https on port
+    443; the Authorization header (ghcr's anonymous token) is not carried to
+    another host (O2)."""
 
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         u = urllib.parse.urlsplit(newurl)
-        if u.scheme != "https" or u.hostname not in LOOKUP_HOSTS | REDIRECT_HOSTS:
-            raise urllib.error.URLError(f"redirect to {u.hostname} refused (not an allowed lookup host)")
-        return super().redirect_request(req, fp, code, msg, headers, newurl)
+        if u.scheme != "https" or u.hostname not in LOOKUP_HOSTS | REDIRECT_HOSTS or not _port_443(u):
+            raise urllib.error.URLError(f"redirect to {u.netloc} refused (not an allowed lookup host on port 443)")
+        new = super().redirect_request(req, fp, code, msg, headers, newurl)
+        if new is not None and u.hostname != urllib.parse.urlsplit(req.full_url).hostname:
+            for k in [k for k in new.headers if k.lower() == "authorization"]:
+                del new.headers[k]
+            for k in [k for k in new.unredirected_hdrs if k.lower() == "authorization"]:
+                del new.unredirected_hdrs[k]
+        return new
 
 
 def _shape(value, kind, what: str):
@@ -408,6 +423,8 @@ def github_release(web: Web, repo: str, tag: str, prefix: str = "") -> Release |
             return None
         raise
     _shape(r, dict, f"github {repo} release {tag}")
+    if r.get("tag_name") != f"{prefix}{tag}":
+        raise LookupFailed(f"github {repo}: the release looked up by tag {prefix}{tag} carries tag {r.get('tag_name')!r}")
     if r.get("draft"):
         return None
     _shape(r.get("body") or "", str, f"github {repo} release body")
