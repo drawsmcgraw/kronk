@@ -588,9 +588,10 @@ def test_a_precondition_lost_right_before_the_stop_is_never_a_stop(house, what):
     ops.docker = docker
     assert run(ops, sd, only=["homeassistant"]) == 1
     o, = status(sd)["last_run"]["outcomes"]
-    assert o["result"] == "not_applied" and "M12 H7b" in o["detail"]
-    assert {"directory": "does not exist", "image": "is not present locally",
+    assert o["result"] == "not_applied"
+    assert {"directory": "does not exist", "image": "is not present locally after the pull",
             "rollback-tag": "no rollback image"}[what] in o["detail"]
+    assert what == "image" or "M12 H7b" in o["detail"]
     assert _stops(ops) == [] and "homeassistant" not in ops.stopped
     assert U.read_pin(ops.repo, rules().component("homeassistant")).value == "2026.5.4"
 
@@ -1048,3 +1049,86 @@ def test_the_real_ops_finds_files_changed_after_a_time(tmp_path):
     assert sorted(_os.path.basename(f) for f, _ in got) == ["a.yaml", "one.yaml"]
     assert U.Ops(tmp_path).files_changed_since([str(tmp_path / "prov")], _dt.datetime.now(_dt.timezone.utc)
                                                + _dt.timedelta(hours=1)) == []
+
+
+# ── F12: the release list and the registry, both 14 days old; moved tags ─
+
+from tests.m18_helpers import ghcr_registry, hub_tag, hub_tag_lookup, iso
+
+
+def _grafana_plan(repo, gh_list, hub_days, by_tag=None):
+    w = standard_web()
+    w.table[GH + "grafana/grafana/releases?"] = gh_list
+    w.table[HUB + "grafana/grafana/tags?"] = {"results": [hub_tag(t, d) for t, d in hub_days.items()]}
+    w.table[HUB + "grafana/grafana/tags/"] = hub_tag_lookup(hub_days)
+    if by_tag is not None:
+        w.table[GH + "grafana/grafana/releases/tags/"] = by_tag
+    r = rules()
+    return U.plan_component(r, r.component("grafana"), repo, w, NOW)
+
+
+@pytest.mark.parametrize("case, gh_list, hub_days, by_tag, note", [
+    ("no date on GitHub", [{**gh_release("v13.2.6", 30), "published_at": None}], {"13.2.6": 30}, None,
+     "13.2.6: release date unknown, not taken"),
+    ("registry only", [gh_release("v13.2.4", 60)], {"13.2.6": 30}, None,
+     "13.2.6: in the registry but not in the release list (github:grafana/grafana), not taken"),
+    ("a draft", [{**gh_release("v13.2.6", 30), "draft": True}], {"13.2.6": 30}, {**gh_release("v13.2.6", 30), "draft": True},
+     "13.2.6: in the registry but not in the release list"),
+    ("moved tag", [gh_release("v13.2.6", 30)], {"13.2.6": 1}, None, "13.2.6: MOVED TAG: the registry's tag is from"),
+    ("registry too young", [gh_release("v13.2.6", 30)], {"13.2.6": 10}, None, "13.2.6: MOVED TAG"),
+])
+def test_the_testers_divergent_cases_are_not_taken(tmp_path, case, gh_list, hub_days, by_tag, note):
+    repo = make_repo(tmp_path, base_files())
+    p = _grafana_plan(repo, gh_list, hub_days, by_tag)
+    assert p.action == "current", (case, p.detail, p.notes)
+    assert any(n.startswith(note) for n in p.notes), (case, p.notes)
+
+
+def test_a_registry_tag_pushed_within_the_grace_of_its_release_is_taken(tmp_path):
+    repo = make_repo(tmp_path, base_files())
+    p = _grafana_plan(repo, [gh_release("v13.2.6", 30)], {"13.2.6": 29.5})       # 12 h after the release
+    assert (p.action, p.to.version) == ("upgrade", "13.2.6")
+    assert p.to.digest and "registry" in p.detail
+
+
+def test_a_moved_ghcr_tag_is_not_taken(tmp_path):
+    repo = make_repo(tmp_path, base_files())
+    w = standard_web()
+    ghcr_registry(w.table, "berriai/litellm", {"v1.88.6": 1})                     # rebuilt yesterday
+    r = rules()
+    p = U.plan_component(r, r.component("litellm"), repo, w, NOW)
+    assert p.action == "current"
+    assert any("v1.88.6: MOVED TAG" in n for n in p.notes)
+
+
+def test_the_log_records_the_digest_pulled_and_the_one_kept_for_rollback(house):
+    ops, sd = house
+    run(ops, sd, only=["grafana", "homeassistant"])
+    log = next((sd / "runs").glob("*-minor.log")).read_text()
+    from tests.m18_helpers import fake_digest
+    assert f"image pulled: grafana/grafana:13.2.6 = " in log
+    assert f"(grafana/grafana@{fake_digest('13.2.6')}); the registry gave {fake_digest('13.2.6')} at planning" in log
+    assert f"kept for rollback: grafana/grafana:13.2.4 = " in log and f"grafana/grafana@{fake_digest('13.2.4')}" in log
+    assert "kept for rollback: ghcr.io/home-assistant/home-assistant:2026.5.4 = sha256:" in log
+    assert f"image pulled: ghcr.io/home-assistant/home-assistant:2026.5.5 = " in log
+
+
+@pytest.mark.parametrize("name, ref", [("grafana", "grafana/grafana:13.2.6"),
+                                       ("homeassistant", "ghcr.io/home-assistant/home-assistant:2026.5.5")])
+def test_a_tag_that_moved_between_planning_and_the_pull_is_not_applied(house, name, ref):
+    ops, sd = house
+    ops.repo_digests[ref] = [ref.rsplit(":", 1)[0] + "@sha256:" + "9" * 64]
+    assert run(ops, sd, only=[name]) == 1
+    o, = status(sd)["last_run"]["outcomes"]
+    assert o["result"] == "not_applied" and "moved between planning" in o["detail"]
+    assert not any(c[0] == "compose" and c[3] == "up" for c in ops.calls) and _stops(ops) == []
+
+
+def test_a_redirect_is_followed_only_to_an_allowed_host():
+    import urllib.request
+    h = U._GuardedRedirects()
+    req = urllib.request.Request("https://ghcr.io/v2/x/blobs/sha256:a")
+    assert h.redirect_request(req, None, 307, "x", {}, "https://pkg-containers.githubusercontent.com/ghcr1/blobs/a") is not None
+    for bad in ("https://evil.example/x", "http://pkg-containers.githubusercontent.com/x"):
+        with pytest.raises(U.urllib.error.URLError, match="refused"):
+            h.redirect_request(req, None, 307, "x", {}, bad)

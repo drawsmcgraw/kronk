@@ -45,6 +45,14 @@ expected_branch = "main"
 # two-week rule, docker-compose.telemetry.yml). A release whose date cannot
 # be read is skipped, not assumed old.
 min_age_days = 14
+# A release is taken only when the project's release list (GitHub) and the
+# registry both have it and both dates are at least min_age_days old. A
+# registry tag pushed more than this many hours after its release is a
+# moved (re-pushed) tag: not taken, and reported in the plan. ghcr gives no
+# push date; the image's build time (its config's `created`) stands in.
+# Where the registry is the release list (SearXNG, nginx, the Python bases
+# on Docker Hub), there is one date and no moved-tag check.
+moved_tag_grace_hours = 48
 # Quiet window: no spoken or typed request, no satellite state change.
 quiet_minutes = 5
 # HA's selects (wake word / assistant slots) must be this old (M12 H6).

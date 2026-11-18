@@ -5,6 +5,7 @@ socket or runs docker."""
 from __future__ import annotations
 
 import datetime as dt
+import hashlib
 import importlib.util
 import json
 import re
@@ -50,6 +51,8 @@ class FakeWeb(U.Web):
         for prefix in sorted(self.table, key=len, reverse=True):
             if url.startswith(prefix):
                 ans = self.table[prefix]
+                if callable(ans):
+                    ans = ans(url)
                 if isinstance(ans, Exception):
                     raise ans
                 body, hdrs = ans if isinstance(ans, tuple) else (ans, {})
@@ -83,7 +86,47 @@ def gh_release(tag, days_ago, pre=False, body="", now=NOW):
 
 
 def hub_tag(name, days_ago, now=NOW):
-    return {"name": name, "last_updated": iso(days_ago, now), "tag_last_pushed": iso(days_ago, now)}
+    return {"name": name, "last_updated": iso(days_ago, now), "tag_last_pushed": iso(days_ago, now),
+            "digest": fake_digest(name)}
+
+
+def fake_digest(tag: str) -> str:
+    """The digest a fake registry gives a tag, and a fake pull records."""
+    return "sha256:" + hashlib.sha256(tag.encode()).hexdigest()
+
+
+def _not_found(url):
+    import urllib.error
+    return urllib.error.HTTPError(url, 404, "not found", {}, None)
+
+
+def hub_tag_lookup(pushed_days: dict, now=NOW):
+    """GET .../tags/<tag>: the tag's push date and digest, or a 404."""
+    def answer(url):
+        tag = url.rsplit("/", 1)[-1]
+        return hub_tag(tag, pushed_days[tag], now) if tag in pushed_days else _not_found(url)
+    return answer
+
+
+def ghcr_registry(table: dict, repo: str, created_days: dict, now=NOW):
+    """ghcr's manifest (an index with a linux/amd64 image), the image's
+    manifest and its config blob (with `created`), as ghcr.io answers."""
+    def manifests(url):
+        ref = url.rsplit("/", 1)[-1]
+        if ref.startswith("amd64-"):
+            return {"schemaVersion": 2, "config": {"digest": f"cfg-{ref[6:]}"}}
+        if ref not in created_days:
+            return _not_found(url)
+        return ({"schemaVersion": 2, "manifests": [
+            {"digest": f"arm64-{ref}", "platform": {"os": "linux", "architecture": "arm64"}},
+            {"digest": f"amd64-{ref}", "platform": {"os": "linux", "architecture": "amd64"}}]},
+            {"docker-content-digest": fake_digest(ref)})
+
+    def blobs(url):
+        tag = url.rsplit("/", 1)[-1].removeprefix("cfg-")
+        return {"created": iso(created_days[tag], now)} if tag in created_days else _not_found(url)
+    table[f"https://ghcr.io/v2/{repo}/manifests/"] = manifests
+    table[f"https://ghcr.io/v2/{repo}/blobs/"] = blobs
 
 
 # ── temporary git repositories ───────────────────────────────────────────
@@ -211,6 +254,7 @@ class FakeOps(U.Ops):
                         "kronk-telemetry-grafana-1": "2026-11-08T22:28:30.647456834Z",
                         "homeassistant": "2026-11-16T02:00:00.000000000Z"}
         self.mtimes: dict[str, dt.datetime] = {}
+        self.repo_digests: dict[str, list[str]] = {}   # image ref -> RepoDigests, when not the registry's (F12)
         self.ha_log = "2026-12-01 08:31:00 INFO (MainThread) [homeassistant.bootstrap] Home Assistant initialized\n"
         # failure switches
         self.bad_versions: set[str] = set()        # health fails while one of these runs
@@ -271,7 +315,13 @@ class FakeOps(U.Ops):
                 return U.Result(0, "HASH\n")
         if a[0] == "image" and a[1] == "inspect":
             ref = a[2]
-            return U.Result(0, self.images[ref] + "\n") if ref in self.images else U.Result(1, "", "no such image")
+            if ref not in self.images:
+                return U.Result(1, "", "no such image")
+            if "RepoDigests" in a[-1]:
+                image, _, tag = ref.rpartition(":")
+                digs = self.repo_digests.get(ref, [f"{image}@{fake_digest(tag)}"] if image else [])
+                return U.Result(0, f"{self.images[ref]} {json.dumps(digs)}\n")
+            return U.Result(0, self.images[ref] + "\n")
         if a[0] == "tag":
             src, dst = a[1], a[2]
             self.images[dst] = src if src.startswith("sha256:") else self.images[src]
@@ -311,6 +361,8 @@ class FakeOps(U.Ops):
             for image, tag in pins.items():
                 if f"{image}:{tag}" in self.pull_fail:
                     return U.Result(1, "", "pull failed")
+            for image, tag in pins.items():
+                self.images.setdefault(f"{image}:{tag}", f"sha256:{abs(hash(image + tag)):064x}"[:71])
             return U.Result(0)
         if a[0] == "up":
             svc = a[-1]
@@ -345,6 +397,7 @@ class FakeOps(U.Ops):
                 if version in self.cannot_return and cur != f"{image}:{version}":
                     return U.Result(1, "", f"deploy of {tag} failed: {image}:{version} cannot come back")
             for image, version in pins.items():
+                self.images.setdefault(f"{image}:{version}", f"sha256:{abs(hash(image + version)):064x}"[:71])
                 for c, ref in list(self.containers.items()):
                     if ref.rsplit(":", 1)[0] == image:
                         self.containers[c] = f"{image}:{version}"
@@ -471,7 +524,7 @@ def household_chat(ops, ua="HomeAssistant/2026.5.4 aiohttp/3.12.13", path="/api/
 def standard_web(now=NOW) -> FakeWeb:
     """Registries as of 2026-12-01 for the components the tests upgrade."""
     gh = "https://api.github.com/repos/"
-    return FakeWeb({
+    w = FakeWeb({
         gh + "grafana/tempo/releases?": [gh_release("v3.1.2", 20), gh_release("v3.1.1", 41), gh_release("v3.2.0", 15)],
         gh + "grafana/grafana/releases?": [gh_release("v13.3.1", 21), gh_release("v13.2.6", 21),
                                             gh_release("v13.2.7", 3), gh_release("v13.2.5", 35)],
@@ -481,16 +534,21 @@ def standard_web(now=NOW) -> FakeWeb:
         gh + "home-assistant/core/releases?": [gh_release("2026.11.2", 15), gh_release("2026.5.4", 190)],
         "https://hub.docker.com/v2/repositories/grafana/tempo/tags?": {"results": [hub_tag("3.1.2", 20), hub_tag("3.1.1", 41)]},
         "https://hub.docker.com/v2/repositories/grafana/grafana/tags?": {"results": [hub_tag("13.2.6", 21), hub_tag("13.2.7", 3)]},
-        "https://hub.docker.com/v2/repositories/grafana/tempo/tags/": {"name": "x"},
-        "https://hub.docker.com/v2/repositories/grafana/grafana/tags/": {"name": "x"},
+        "https://hub.docker.com/v2/repositories/grafana/tempo/tags/": hub_tag_lookup({"3.1.2": 20, "3.1.1": 41, "3.2.0": 15}),
+        "https://hub.docker.com/v2/repositories/grafana/grafana/tags/": hub_tag_lookup(
+            {"13.2.5": 35, "13.2.6": 21, "13.2.7": 3, "13.3.1": 21}),
         "https://hub.docker.com/v2/repositories/rhasspy/wyoming-piper/tags": {"results": []},
         "https://hub.docker.com/v2/repositories/searxng/searxng/tags?": {"results": [
             hub_tag("2026.11.17-b99cf7496", 14.5), hub_tag("2026.11.28-aaaaaaa11", 3), hub_tag("latest", 0)]},
-        "https://hub.docker.com/v2/repositories/searxng/searxng/tags/": {"name": "x"},
+        "https://hub.docker.com/v2/repositories/searxng/searxng/tags/": hub_tag_lookup(
+            {"2026.11.17-b99cf7496": 14.5, "2026.11.28-aaaaaaa11": 3}),
         "https://ghcr.io/token": {"token": "anon"},
         "https://ghcr.io/v2/berriai/litellm/tags/list": {"tags": ["v1.88.1", "v1.88.6", "v1.88.6-stable", "main-latest", "v1.110.0"]},
         "https://ghcr.io/v2/home-assistant/home-assistant/tags/list": {"tags": ["2026.5.3", "2026.5.4", "2026.6.0b0", "stable"]},
     })
+    ghcr_registry(w.table, "berriai/litellm", {"v1.88.1": 200, "v1.88.6": 150, "v1.110.0": 13})
+    ghcr_registry(w.table, "home-assistant/home-assistant", {"2026.5.4": 190, "2026.5.5": 20, "2026.6.0": 30, "2026.11.2": 15})
+    return w
 
 
 def cleanup(path: Path):

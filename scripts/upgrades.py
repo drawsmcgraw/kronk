@@ -82,6 +82,9 @@ HA_ROLLBACK_REPO = "kronk/ha-rollback"
 # nothing about this system in the request. Anything else is refused.
 LOOKUP_HOSTS = {"api.github.com", "hub.docker.com", "ghcr.io", "pypi.org",
                 "raw.githubusercontent.com", "www.home-assistant.io"}
+# Where ghcr.io redirects a blob GET (the image config, for its build date).
+# Redirects are followed only to these hosts and the ones above.
+REDIRECT_HOSTS = {"pkg-containers.githubusercontent.com"}
 USER_AGENT = "upgrade-check/1.0"
 # Local HTTP (HA, the probes) only ever goes to this host's loopback.
 LOCAL_HOSTS = {"localhost", "127.0.0.1"}
@@ -198,10 +201,13 @@ def classify(comp: dict, pin: str, cand: str) -> str | None:
 @dataclass
 class Release:
     version: str
-    date: dt.datetime | None = None
+    date: dt.datetime | None = None          # the project's release date (its release list)
     url: str | None = None
     notes: str | None = None
     prerelease: bool = False
+    listed: bool = True                      # in the project's release list (False: seen in the registry only)
+    reg_date: dt.datetime | None = None      # when the registry's tag was pushed (ghcr: the image's build time)
+    digest: str | None = None                # the registry's digest for the tag at planning
 
 
 def newest(comp: dict, pin: str, releases: list[Release], kind: str, now: dt.datetime | None = None,
@@ -295,7 +301,7 @@ class Web:
         self.cache: dict[str, tuple[bytes, dict]] = {}
         self.hosts: set[str] = set()
         self.requests = 0
-        self._open = opener or urllib.request.urlopen
+        self._open = opener or urllib.request.build_opener(_GuardedRedirects()).open
 
     def get(self, url: str, headers: dict | None = None) -> tuple[bytes, dict]:
         u = urllib.parse.urlsplit(url)
@@ -325,6 +331,16 @@ class Web:
             return json.loads(body)
         except ValueError as e:
             raise LookupFailed(f"GET {url}: not JSON") from e
+
+
+class _GuardedRedirects(urllib.request.HTTPRedirectHandler):
+    """Follow a redirect only to an allowed lookup host, over https."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        u = urllib.parse.urlsplit(newurl)
+        if u.scheme != "https" or u.hostname not in LOOKUP_HOSTS | REDIRECT_HOSTS:
+            raise urllib.error.URLError(f"redirect to {u.hostname} refused (not an allowed lookup host)")
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 
 def _shape(value, kind, what: str):
@@ -404,16 +420,6 @@ def dockerhub_tags(web: Web, repo: str, name: str | None = None, pages: int = 2)
     return out
 
 
-def dockerhub_has(web: Web, repo: str, tag: str) -> bool:
-    try:
-        web.json(f"https://hub.docker.com/v2/repositories/{repo}/tags/{tag}")
-        return True
-    except LookupFailed as e:
-        if "HTTP 404" in str(e):
-            return False
-        raise
-
-
 def ghcr_token(web: Web, repo: str) -> str:
     tok = _shape(web.json(f"https://ghcr.io/token?scope=repository:{repo}:pull"), dict, f"ghcr {repo} token answer").get("token")
     if not tok or not isinstance(tok, str):
@@ -475,17 +481,20 @@ def image_releases(web: Web, comp: dict, pin: str, deep: bool = False) -> list[R
         if same_prefix:
             for r in dockerhub_tags(web, rrepo, None, pages=1):
                 rel.setdefault(r.version, r)
+    # Tags the registry has and the release list does not are kept, marked
+    # listed=False: the inventory shows them, the monthly run never takes
+    # them (F12). The registry's date never stands in for a release date.
     if gkind == "ghcr":
         for t in ghcr_tags(web, grepo):
             if t not in rel and vkey(comp, t) is not None:
-                rel[t] = Release(t)
+                rel[t] = Release(t, listed=False)
     elif gkind == "dockerhub" and rkind == "github":
         same_prefix = _same_prefix(comp, pin)
         for r in dockerhub_tags(web, grepo, same_prefix or None, pages=1):
             if r.version in rel:
-                rel[r.version].date = rel[r.version].date or r.date
+                rel[r.version].reg_date = r.date
             elif vkey(comp, r.version) is not None:
-                rel[r.version] = r
+                rel[r.version] = Release(r.version, None, r.url, listed=False, reg_date=r.date)
     return list(rel.values())
 
 
@@ -499,24 +508,76 @@ def _same_prefix(comp: dict, pin: str) -> str:
     return pin[:end] + (pin[end] if end < len(pin) and not pin[end].isalnum() else "")
 
 
-def registry_has(web: Web, comp: dict, tag: str, seen_tags: set[str] | None = None) -> bool:
+def fill_date(web: Web, comp: dict, r: Release) -> Release:
+    """A candidate beyond the release list's first page, or seen only in the
+    registry: look its release up by tag (a draft is not a release)."""
+    rkind, rrepo = _kind_src(comp.get("releases", ""))
+    if (r.date is None or not r.listed) and rkind == "github":
+        g = github_release(web, rrepo, r.version, comp.get("tag_prefix", ""))
+        if g:
+            r.date, r.url, r.notes, r.prerelease, r.listed = g.date, g.url, g.notes, g.prerelease, True
+    return r
+
+
+def separate_sources(comp: dict) -> bool:
+    """True when the release list and the registry are different sources
+    (GitHub and a registry); False when the registry is the release list
+    (SearXNG, nginx, the Python bases on Docker Hub)."""
+    return _kind_src(comp.get("releases", "")) != _kind_src(comp.get("registry", ""))
+
+
+def registry_info(web: Web, comp: dict, tag: str, seen_tags: set[str] | None = None) -> tuple[bool, dt.datetime | None, str | None]:
+    """(the registry has the tag, when it was pushed, its digest). Docker
+    Hub gives the push date and digest per tag. ghcr gives no push date: the
+    image's build time (its config's `created`) stands in, and the digest is
+    the manifest's (Docker-Content-Digest)."""
     gkind, grepo = _kind_src(comp.get("registry", ""))
     if gkind == "dockerhub":
-        return dockerhub_has(web, grepo, tag)
+        try:
+            t = _shape(web.json(f"https://hub.docker.com/v2/repositories/{grepo}/tags/{tag}"), dict,
+                       f"docker hub {grepo} tag {tag}")
+        except LookupFailed as e:
+            if "HTTP 404" in str(e):
+                return False, None, None
+            raise
+        d = t.get("digest")
+        return True, _date(t.get("tag_last_pushed") or t.get("last_updated")), d if isinstance(d, str) else None
     if gkind == "ghcr":
         tags = seen_tags if seen_tags is not None else set(ghcr_tags(web, grepo))
-        return tag in tags
+        if tag not in tags:
+            return False, None, None
+        created, digest = ghcr_created(web, grepo, tag)
+        return True, created, digest
     raise LookupFailed(f"{comp['name']}: no registry to confirm {tag}")
 
 
-def fill_date(web: Web, comp: dict, r: Release) -> Release:
-    """A ghcr candidate has no date of its own: take the GitHub release's."""
-    rkind, rrepo = _kind_src(comp.get("releases", ""))
-    if r.date is None and rkind == "github":
-        g = github_release(web, rrepo, r.version, comp.get("tag_prefix", ""))
-        if g:
-            r.date, r.url, r.notes, r.prerelease = g.date, g.url, g.notes, g.prerelease
-    return r
+_MANIFEST_TYPES = ", ".join(("application/vnd.oci.image.index.v1+json",
+                             "application/vnd.docker.distribution.manifest.list.v2+json",
+                             "application/vnd.oci.image.manifest.v1+json",
+                             "application/vnd.docker.distribution.manifest.v2+json"))
+
+
+def ghcr_created(web: Web, repo: str, tag: str) -> tuple[dt.datetime | None, str | None]:
+    """The linux/amd64 image's build time and the tag's manifest digest."""
+    auth = {"Authorization": f"Bearer {ghcr_token(web, repo)}"}
+    body, hdrs = web.get(f"https://ghcr.io/v2/{repo}/manifests/{tag}", {**auth, "Accept": _MANIFEST_TYPES})
+    digest = hdrs.get("docker-content-digest")
+    try:
+        man = _shape(json.loads(body), dict, f"ghcr {repo} manifest {tag}")
+        if "manifests" in man:
+            plat = [m for m in _shape(man["manifests"], list, f"ghcr {repo} {tag} manifests")
+                    if isinstance(m, dict) and (m.get("platform") or {}).get("os") == "linux"
+                    and (m.get("platform") or {}).get("architecture") == "amd64"]
+            if not plat:
+                raise LookupFailed(f"ghcr {repo} {tag}: no linux/amd64 image")
+            body, _ = web.get(f"https://ghcr.io/v2/{repo}/manifests/{plat[0]['digest']}", {**auth, "Accept": _MANIFEST_TYPES})
+            man = _shape(json.loads(body), dict, f"ghcr {repo} amd64 manifest {tag}")
+        cfg = _shape(man.get("config"), dict, f"ghcr {repo} {tag} config")["digest"]
+        body, _ = web.get(f"https://ghcr.io/v2/{repo}/blobs/{cfg}", auth)
+        created = _shape(json.loads(body), dict, f"ghcr {repo} {tag} image config").get("created")
+    except (ValueError, KeyError) as e:
+        raise LookupFailed(f"ghcr {repo} {tag}: unexpected manifest ({e.__class__.__name__}: {e})") from e
+    return _date(created), digest if isinstance(digest, str) else None
 
 
 # ═══ External steps (stubbed by the tests) ═══════════════════════════════
@@ -909,8 +970,16 @@ def plan_component(rules: Rules, comp: dict, repo: Path, web: Web, now: dt.datet
         gkind, grepo = _kind_src(comp.get("registry", ""))
         ghcr_seen = set(ghcr_tags(web, grepo)) if gkind == "ghcr" else None
         min_age = rules.settings["min_age_days"]
+        grace = dt.timedelta(hours=rules.settings.get("moved_tag_grace_hours", 48))
+        two = separate_sources(comp)
         for r in pool:
+            # Taken only when the release list and the registry both have
+            # it, both dates at least min_age_days old, and the registry's
+            # tag was not pushed later than the release (a moved tag) (F12).
             fill_date(web, comp, r)
+            if not r.listed:
+                notes.append(f"{r.version}: in the registry but not in the release list ({comp.get('releases')}), not taken")
+                continue
             if r.prerelease:
                 notes.append(f"{r.version}: marked pre-release, not taken")
                 continue
@@ -921,10 +990,25 @@ def plan_component(rules: Rules, comp: dict, repo: Path, web: Web, now: dt.datet
             if age < min_age:
                 notes.append(f"{r.version}: {age} days old, under {min_age}")
                 continue
-            if not registry_has(web, comp, r.version, ghcr_seen):
+            has, reg_date, digest = registry_info(web, comp, r.version, ghcr_seen)
+            if not has:
                 notes.append(f"{r.version}: not in the registry {comp.get('registry')}")
                 continue
-            return Plan(comp, "upgrade", pin.value, r, f"{pin.value} -> {r.version} (released {r.date.date()}, {age} days)", notes)
+            if two:
+                if reg_date is None:
+                    notes.append(f"{r.version}: the registry's date for the tag is unknown, not taken")
+                    continue
+                if reg_date > r.date + grace:
+                    notes.append(f"{r.version}: MOVED TAG: the registry's tag is from {reg_date.isoformat(timespec='minutes')}, "
+                                 f"after the release ({r.date.isoformat(timespec='minutes')}); not taken")
+                    continue
+                if (now - reg_date).days < min_age:
+                    notes.append(f"{r.version}: the registry's tag is {(now - reg_date).days} days old, under {min_age}")
+                    continue
+            r.reg_date, r.digest = reg_date, digest
+            return Plan(comp, "upgrade", pin.value, r,
+                        f"{pin.value} -> {r.version} (released {r.date.date()}, {age} days"
+                        + (f"; registry {reg_date.date()}" if two and reg_date else "") + ")", notes)
         return Plan(comp, "current", pin.value, detail="newer minor releases exist, none taken yet", notes=notes)
     except (LookupFailed, RulesError) as e:
         return Plan(comp, "skip", pin.value, detail=f"lookup failed: {e}")
@@ -1210,6 +1294,7 @@ class Ctx:
     touched: bool = False                  # the component's bring-up changed what runs (F2, F4)
     redeploys: int = 0                     # production (Kronk stack) deploys made by this run (F11)
     status: dict | None = None             # the status file's content; carries the intent record (F3)
+    plan: "Plan | None" = None             # the component being applied (its planned digest, F12)
     ha_binds: list | None = None           # (source, target) of HA's bind mounts, from the compose file (F5)
     outside_window: str | None = None      # set when the run is outside the night window (F8)
     ignore_window: bool = False            # --ignore-window: a run by hand at any hour
@@ -1348,6 +1433,40 @@ def verify(ctx: Ctx, comp: dict, version: str, full: bool = True) -> list[str]:
 
 # Kronk stack: a tag and deploy_tag.sh.
 
+def image_digests(ops: Ops, ref: str) -> tuple[str | None, list[str]]:
+    """(local image id, its RepoDigests), or (None, []) when not present."""
+    r = ops.docker("image", "inspect", ref, "-f", "{{.Id}} {{json .RepoDigests}}", timeout=30)
+    if not r.ok:
+        return None, []
+    iid, _, rd = r.out.strip().partition(" ")
+    try:
+        digs = [d for d in (json.loads(rd) or []) if isinstance(d, str)]
+    except ValueError:
+        digs = []
+    return iid or None, digs
+
+
+def log_kept(ctx: Ctx, comp: dict, frm: str) -> None:
+    """The run's log records the image kept for rollback (F12)."""
+    iid, digs = image_digests(ctx.ops, f"{comp['image']}:{frm}")
+    ctx.log(f"  kept for rollback: {comp['image']}:{frm} = {iid or 'NOT PRESENT LOCALLY'}"
+            + (f" ({', '.join(digs)})" if digs else ""))
+
+
+def check_pulled(ctx: Ctx, comp: dict, to: str) -> str | None:
+    """Log the digest pulled; a digest other than the registry's at planning
+    means the tag moved in between (F12)."""
+    iid, digs = image_digests(ctx.ops, f"{comp['image']}:{to}")
+    want = ctx.plan.to.digest if ctx.plan and ctx.plan.to else None
+    ctx.log(f"  image pulled: {comp['image']}:{to} = {iid or 'NOT PRESENT LOCALLY'}"
+            + (f" ({', '.join(digs)})" if digs else "") + f"; the registry gave {want or 'no digest'} at planning")
+    if iid is None:
+        return f"{comp['image']}:{to} is not present locally after the pull"
+    if want and digs and not any(d.endswith("@" + want) for d in digs):
+        return f"the tag {comp['image']}:{to} moved between planning ({want}) and the pull ({', '.join(digs)})"
+    return None
+
+
 def kronk_up(ctx: Ctx, comp: dict, tag: str) -> str | None:
     step(ctx, "tag", tag=tag)
     head = ctx.ops.git("rev-parse", "HEAD").strip()
@@ -1356,6 +1475,8 @@ def kronk_up(ctx: Ctx, comp: dict, tag: str) -> str | None:
         return f"tag {tag} exists at {have[:10]}, not at the pin commit {head[:10]}"
     if not have:
         ctx.ops.git("tag", tag)
+    if comp.get("image") and ctx.plan:
+        log_kept(ctx, comp, ctx.plan.pin)
     ctx.log(f"  deploy_tag.sh deploy {tag}")
     step(ctx, "deploy", tag=tag)
     ctx.touched = True
@@ -1363,15 +1484,24 @@ def kronk_up(ctx: Ctx, comp: dict, tag: str) -> str | None:
     r = ctx.ops.deploy_tag("deploy", tag)
     for ln in r.tail(1500).splitlines()[-12:]:
         ctx.log(f"    | {ln}")
-    return None if r.ok else f"deploy_tag.sh deploy {tag} failed (exit {r.rc})"
+    if not r.ok:
+        return f"deploy_tag.sh deploy {tag} failed (exit {r.rc})"
+    if comp.get("image") and ctx.plan:
+        return check_pulled(ctx, comp, ctx.plan.to.version)
+    return None
 
 
 # Telemetry (and the rehearsal): compose pull + up of the one service.
 
 def compose_up(ctx: Ctx, comp: dict) -> str | None:
+    if ctx.plan:
+        log_kept(ctx, comp, ctx.plan.pin)
     for args in (("pull", comp["service"]), ("up", "-d", "--no-deps", comp["service"])):
         step(ctx, args[0])
         if args[0] == "up":
+            moved = check_pulled(ctx, comp, ctx.plan.to.version) if ctx.plan else None
+            if moved:
+                return moved
             ctx.touched = True
         r = ctx.ops.compose(comp["project"], comp["file"], *args, env_file=comp.get("env_file"))
         ctx.log(f"  docker compose -p {comp['project']} {' '.join(args)}: exit {r.rc}")
@@ -1434,9 +1564,14 @@ def ha_up(ctx: Ctx, comp: dict, frm: str, to: str) -> str | None:
     if not i.ok:
         return f"cannot inspect {comp['container']}: {i.tail(160)}"
     ctx.ha_old_id = i.out.strip()
-    ctx.log(f"  previous image {comp['image']}:{frm} = {ctx.ha_old_id}; kept as {HA_ROLLBACK_REPO}:{frm}")
+    _, digs = image_digests(ops, ctx.ha_old_id)
+    ctx.log(f"  kept for rollback: {comp['image']}:{frm} = {ctx.ha_old_id}" + (f" ({', '.join(digs)})" if digs else "")
+            + f", tagged {HA_ROLLBACK_REPO}:{frm}")
     err = _ha_steps(ctx, comp, [("docker", ("tag", ctx.ha_old_id, f"{HA_ROLLBACK_REPO}:{frm}")),
                                 ("docker", ("pull", f"{comp['image']}:{to}"))])
+    if err:
+        return err
+    err = check_pulled(ctx, comp, to)
     if err:
         return err
     # H7b, right before the stop: anything missing is "not started", never a stop.
@@ -1601,6 +1736,7 @@ def apply_one(ctx: Ctx, p: Plan) -> Outcome:
 
 def _apply_one(ctx: Ctx, p: Plan) -> Outcome:
     comp, frm, to = p.comp, p.pin, p.to.version
+    ctx.plan = p
     ops, log, name = ctx.ops, ctx.log, comp["name"]
     log(f"── {name}: {frm} -> {to}")
     # Preconditions that belong to this component only.
