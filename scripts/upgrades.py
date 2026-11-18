@@ -2542,6 +2542,13 @@ def _recover_one(ctx: Ctx, comp: dict, it: dict, f: dict, dry_run: bool) -> Outc
     name, frm, to = comp["name"], it["from"], it["to"]
     oos = lambda why: Outcome(name, frm, to, "out_of_step", f"{why}; {_oos_todo(ctx)}",  # noqa: E731
                               state=f"OUT OF STEP after an interrupted run (step {it.get('step')}): {f['desc']}")
+    if f["kind"] == "none":
+        # No container (the Python base images): nothing runs that the
+        # record could roll back (sprint M18 fix 3, H9).
+        if f["git"] not in (frm, to):
+            return oos(f"git has {f['git']}, neither {frm} nor {to}")
+        return Outcome(name, frm, to, "recovered", f"interrupted at step {it.get('step')}",
+                       state=f"recovered: nothing to recover ({name} has no container); git has {f['git']}")
     if f["tree"]:
         # The run's own tree checks (sprint M18 fix 3, H1): a recovery
         # commits, deploys, recreates or restarts only where a run would.

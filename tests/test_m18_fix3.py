@@ -706,3 +706,28 @@ def test_a_status_temp_directory_is_ignored_silently(house):
     run(ops, sd, ["tempo"])
     log = next((sd / "runs").glob("*-minor.log")).read_text()
     assert d.is_dir() and ".status.adir" not in log
+
+
+# ── H9: a component without a container has its own recovery row ─────────
+
+@pytest.mark.parametrize("pin, result", [("3.12.8-slim", "recovered"), ("3.12.7-slim", "recovered"),
+                                         ("3.12.9-slim", "out_of_step")])
+def test_a_record_for_a_component_without_a_container(tmp_path, pin, result):
+    files = {**base_files(), "orchestrator/Dockerfile": "FROM python:3.12.7-slim\n"}
+    repo = make_repo(tmp_path, files)
+    ops = FakeOps(repo, standard_web())
+    sd = tmp_path / "state"
+    head = git(repo, "rev-parse", "HEAD").strip()
+    if pin != "3.12.7-slim":
+        (repo / "orchestrator/Dockerfile").write_text(f"FROM python:{pin}\n")
+        git(repo, "-c", "user.email=upgrade_minor@kronk.invalid", "commit", "-qam",
+            f"upgrade: python-base-orchestrator 3.12.7-slim -> {pin}")
+    U.save_status(sd, {"intent": {"component": "python-base-orchestrator", "from": "3.12.7-slim", "to": "3.12.8-slim",
+                                  "step": "verify", "deploy": "kronk", "run": "20261201T083000Z", "head": head,
+                                  "prev_tag": "sprint-X", "at": "2026-12-01T08:40:00+00:00"}}, NOW)
+    ops.clock = NOW + _dt.timedelta(days=1)
+    run(ops, sd, ["python-base-orchestrator"])
+    o = status(sd)["last_run"]["outcomes"][0]
+    assert o["result"] == result and mutating(ops) == []
+    if result == "recovered":
+        assert "nothing to recover" in o["state"] and "intent" not in status(sd)
