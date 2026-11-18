@@ -196,6 +196,7 @@ class FakeOps(U.Ops):
         self.prod_tag = "sprint-X"
         git(repo, "tag", self.prod_tag)
         self.hashes_match = True
+        self.stopped: set[str] = set()     # containers stopped and not started again
         # failure switches
         self.bad_versions: set[str] = set()        # health fails while one of these runs
         self.deploy_fail_tags: set[str] = set()
@@ -236,6 +237,8 @@ class FakeOps(U.Ops):
             ref = self.containers[c]
             if fmt == "{{.Config.Image}}":
                 return U.Result(0, ref + "\n")
+            if fmt == "{{.Config.Image}} {{.State.Running}}":
+                return U.Result(0, f"{ref} {'false' if c in self.stopped else 'true'}\n")
             if fmt == "{{.Image}}":
                 return U.Result(0, self.images[ref] + "\n")
             if fmt == "{{.State.StartedAt}}":
@@ -245,7 +248,7 @@ class FakeOps(U.Ops):
             if fmt == "{{.State.Health.Status}}":
                 return U.Result(0, ("unhealthy" if self._version_running(c) in self.bad_versions else "healthy") + "\n")
             if fmt == "{{.State.Running}}":
-                return U.Result(0, "true\n")
+                return U.Result(0, ("false" if c in self.stopped else "true") + "\n")
             if "config-hash" in fmt:
                 return U.Result(0, "HASH\n")
         if a[0] == "image" and a[1] == "inspect":
@@ -261,9 +264,13 @@ class FakeOps(U.Ops):
             self.images.setdefault(a[1], f"sha256:{abs(hash(a[1])):064x}"[:71])
             return U.Result(0)
         if a[0] == "stop":
+            self.stopped.add(a[-1])
             return U.Result(0)
         if a[0] == "logs":
-            return U.Result(0, self.nginx_log + "".join(self.nginx_own))
+            # `docker logs --since <N>m`: only lines from the last N minutes.
+            since = self.clock - dt.timedelta(minutes=int(a[a.index("--since") + 1].rstrip("m")))
+            lines = (self.nginx_log + "".join(self.nginx_own)).splitlines(keepends=True)
+            return U.Result(0, "".join(ln for ln in lines if _logged_at(ln) is None or _logged_at(ln) >= since))
         if a[0] == "events":
             return U.Result(0, "15\n")
         if a[0] == "exec":
@@ -291,6 +298,7 @@ class FakeOps(U.Ops):
             if pins[image] in self.cannot_return and want != self.containers[container]:
                 return U.Result(1, "", "the previous image is gone")
             self.containers[container] = want
+            self.stopped.discard(container)
             self.images.setdefault(want, f"sha256:{abs(hash(want)):064x}"[:71])
             return U.Result(0)
         return U.Result(0)
@@ -408,6 +416,11 @@ class FakeOps(U.Ops):
 
     def now(self):
         return self.clock
+
+
+def _logged_at(line):
+    m = re.search(r"\[(\d\d/\w{3}/\d{4}:\d\d:\d\d:\d\d) \+0000\]", line)
+    return dt.datetime.strptime(m.group(1), "%d/%b/%Y:%H:%M:%S").replace(tzinfo=dt.timezone.utc) if m else None
 
 
 def _nginx(method, path, ua, when):

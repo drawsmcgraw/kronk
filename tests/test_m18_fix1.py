@@ -189,3 +189,145 @@ def test_the_nginx_line_parser_reads_path_and_user_agent():
     assert U.CHAT_ROUTE.search(ln).group(1) == "/dev/voice/api/chat"
     assert U.UA_FIELD.search(ln).group(1) == "kronk-upgrade/a b"
     assert U.CHAT_ROUTE.search(ln.replace("/dev/voice/api/chat", "/api/chats")) is None
+
+
+# ── F2: an outcome says what happened ────────────────────────────────────
+
+def _mutating(ops):
+    return [c for c in ops.calls if (c[0] == "docker" and c[1] in ("pull", "stop", "tag", "start", "restart", "kill"))
+            or (c[0] == "compose" and c[3] in ("up", "pull", "stop", "restart")) or (c[0] == "deploy_tag" and c[1] == "deploy")]
+
+
+def test_the_testers_same_day_rerun_now_works(house):
+    """M18-e2e B2's input: litellm rolled back at 08:30, rerun the same day
+    with --ignore-month (as the guide says). Before: `git tag` collided and
+    the notice said ROLLBACK FAILED with nothing deployed."""
+    ops, sd = house
+    ops.replay_regress = {"v1.88.6": ["row-a"]}
+    assert run(ops, sd, only=["litellm"]) == 1
+    ops.replay_regress = {}
+    ops.clock = NOW.replace(hour=9, minute=40)
+    assert run(ops, sd, only=["litellm"], ignore_month=True) == 0
+    assert ops.notices[-1][1] == "Kronk upgrade: 1 upgraded"
+    assert "ROLLBACK FAILED" not in "".join(n[1] + n[2] for n in ops.notices)
+    assert set(git(ops.repo, "tag").split()) == {"sprint-X", "upgrade-20261201T083000Z-litellm",
+                                                  "upgrade-20261201T094000Z-litellm"}
+    assert ops.containers["kronk-litellm-1"] == "ghcr.io/berriai/litellm:v1.88.6"
+
+
+def test_a_tag_that_exists_elsewhere_is_not_applied_and_git_is_put_back(house):
+    ops, sd = house
+    git(ops.repo, "tag", "upgrade-20261201T083000Z-litellm")          # at "initial", not at the pin commit
+    assert run(ops, sd, only=["litellm"]) == 1
+    o, = status(sd)["last_run"]["outcomes"]
+    assert o["result"] == "not_applied"
+    assert o["state"].startswith("not applied; git is at v1.88.1 again (revert ")
+    assert o["state"].endswith("), running is v1.88.1")
+    assert "exists at" in o["detail"]
+    assert subjects(ops.repo)[-2:] == ["upgrade: litellm v1.88.1 -> v1.88.6", "upgrade: not applied, litellm back v1.88.6 -> v1.88.1"]
+    assert U.read_pin(ops.repo, rules().component("litellm")).value == "v1.88.1"
+    assert git(ops.repo, "status", "--porcelain") == ""
+    assert _mutating(ops) == []                                        # nothing deployed, nothing rolled back
+    (_, title, body), = ops.notices
+    assert title == "Kronk upgrade: 1 not applied" and "ROLLBACK" not in title + body
+    assert body.startswith("litellm v1.88.1 -> v1.88.6: not applied; git is at v1.88.1 again")
+    st = status(sd)
+    assert not st.get("rollback_failed") and not st.get("out_of_step")    # later runs are not blocked
+
+
+def test_a_tag_that_already_points_at_the_pin_commit_is_reused(house):
+    ops, sd = house
+    ctx = U.Ctx(ops, rules(["litellm"]), U.RunLog(None), sd, "20261201T083000Z", NOW, "sprint-X")
+    git(ops.repo, "tag", "t-same")
+    assert U.kronk_up(ctx, rules().component("litellm"), "t-same") is None
+    assert not any(c[0] == "run" and c[1][-2:] == ("tag", "t-same") for c in ops.calls)
+    assert ("deploy_tag", "deploy", "t-same") in ops.calls
+
+
+def test_a_failed_pin_commit_puts_the_file_back(house):
+    ops, sd = house
+    orig = ops.git
+
+    def git_(*args, check=True):
+        if args[0] == "commit":
+            raise U.StepFailed("git commit: fatal: unable to write new index file")
+        return orig(*args, check=check)
+    ops.git = git_
+    assert run(ops, sd, only=["tempo"]) == 1
+    o, = status(sd)["last_run"]["outcomes"]
+    assert (o["result"], o["state"]) == ("not_applied", "not applied; git is at 3.1.1, running is 3.1.1")
+    assert git(ops.repo, "status", "--porcelain") == ""
+    assert _mutating(ops) == []
+
+
+def test_a_revert_that_fails_says_exactly_what_is_out_of_step_and_blocks(house):
+    ops, sd = house
+    git(ops.repo, "tag", "upgrade-20261201T083000Z-litellm")
+    orig = ops.git
+
+    def git_(*args, check=True):
+        if args[0] == "revert":
+            raise U.StepFailed("git revert: error: could not revert")
+        return orig(*args, check=check)
+    ops.git = git_
+    assert run(ops, sd, only=["litellm", "homeassistant"]) == 2
+    st = status(sd)
+    o = st["last_run"]["outcomes"]
+    assert [x["result"] for x in o] == ["out_of_step"]                 # HA never started
+    assert o[0]["state"].startswith("OUT OF STEP: git is at v1.88.6 (commit ") and o[0]["state"].endswith("running is v1.88.1")
+    assert st["out_of_step"]["component"] == "litellm"
+    assert ops.notices[0][1] == "Kronk upgrade: OUT OF STEP (litellm)"
+    # The next run declines on it until ack.
+    assert run(ops, sd, only=["litellm"], ignore_month=True) == 0
+    assert "left litellm out of step" in status(sd)["last_run"]["summary"]
+
+
+def test_an_error_before_any_change_is_not_called_a_rollback(house):
+    ops, sd = house
+    orig = ops.git
+
+    def git_(*args, check=True):
+        if args[0] == "diff":
+            raise U.StepFailed("git diff: fatal: bad object sprint-X")
+        return orig(*args, check=check)
+    ops.git = git_
+    run(ops, sd, only=["litellm"])
+    o, = status(sd)["last_run"]["outcomes"]
+    assert o["result"] == "not_started" and "stopped by an error before any change" in o["detail"]
+    assert not status(sd).get("rollback_failed")
+
+
+def test_notice_lines_put_the_state_first_and_cut_only_the_detail():
+    o = U.Outcome("homeassistant", "2026.5.4", "2026.5.5", "rollback_failed", "x" * 2000,
+                  state="ROLLBACK FAILED; running is nothing (homeassistant is stopped; Home Assistant is down); git has 2026.5.4")
+    title, body = U.notice_text([o], [], "l")
+    assert title == "Kronk upgrade: ROLLBACK FAILED (homeassistant): Home Assistant is down"
+    first = body.splitlines()[0]
+    assert first.startswith("homeassistant 2026.5.4 -> 2026.5.5: ROLLBACK FAILED; running is nothing "
+                            "(homeassistant is stopped; Home Assistant is down); git has 2026.5.4; needs you")
+    assert first.endswith("…)") and len(first) < 600
+
+
+# ── F4: a failure before HA was stopped does not restart HA ──────────────
+
+@pytest.mark.parametrize("fail", ["pull", "tag"])
+def test_a_failure_before_the_stop_does_not_touch_ha(house, fail):
+    ops, sd = house
+    if fail == "pull":
+        ops.pull_fail = {"ghcr.io/home-assistant/home-assistant:2026.5.5"}
+    else:
+        orig = ops.docker
+
+        def docker(*args, timeout=600):
+            if args[0] == "tag":
+                ops.calls.append(("docker",) + args)
+                return U.Result(1, "", "Error response from daemon: no such image")
+            return orig(*args, timeout=timeout)
+        ops.docker = docker
+    assert run(ops, sd, only=["homeassistant"]) == 1
+    assert not any(c[:2] == ("docker", "stop") for c in ops.calls)
+    assert not any(c[0] == "compose" and c[3] == "up" for c in ops.calls)
+    assert ops.containers["homeassistant"].endswith(":2026.5.4") and "homeassistant" not in ops.stopped
+    o, = status(sd)["last_run"]["outcomes"]
+    assert o["result"] == "not_applied" and o["state"].endswith("running is 2026.5.4")
+    assert U.read_pin(ops.repo, rules().component("homeassistant")).value == "2026.5.4"

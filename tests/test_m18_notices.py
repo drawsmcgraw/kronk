@@ -123,7 +123,11 @@ def test_when_ha_is_what_failed_the_result_is_still_on_services(house):
     assert U.minor_run(ops, rules(["homeassistant"]), sd) == 2
     st = status(sd)
     assert st["rollback_failed"]["component"] == "homeassistant"
-    assert st["pending_notices"][0]["title"] == "Kronk upgrade: ROLLBACK FAILED (homeassistant)"
+    # M18 fix 1 (F2): the state comes first and says HA is down, in those words.
+    assert st["pending_notices"][0]["title"] == "Kronk upgrade: ROLLBACK FAILED (homeassistant): Home Assistant is down"
+    assert st["pending_notices"][0]["body"].startswith(
+        "homeassistant 2026.5.4 -> 2026.5.5: ROLLBACK FAILED; running is nothing (homeassistant is stopped; "
+        "Home Assistant is down); git has 2026.5.4; needs you")
     r = client(sd / "status.json").get("/api/upgrades").json()
     assert r["present"] is True and r["rollback_failed"]["component"] == "homeassistant"
     assert any("rollback FAILED for homeassistant" in w for w in r["warnings"])

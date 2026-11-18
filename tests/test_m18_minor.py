@@ -111,9 +111,9 @@ def test_components_go_one_at_a_time_in_order_each_its_own_commit(house):
     ]
     author = git(ops.repo, "log", "-1", "--format=%an <%ae>")
     assert author.strip() == "Kronk upgrade_minor <upgrade_minor@kronk.invalid>"
-    assert set(git(ops.repo, "tag").split()) == {"sprint-X", "upgrade-20261201-searxng", "upgrade-20261201-litellm"}
+    assert set(git(ops.repo, "tag").split()) == {"sprint-X", "upgrade-20261201T083000Z-searxng", "upgrade-20261201T083000Z-litellm"}
     deploys = [c for c in ops.calls if c[0] == "deploy_tag" and c[1] == "deploy"]
-    assert deploys == [("deploy_tag", "deploy", "upgrade-20261201-searxng"), ("deploy_tag", "deploy", "upgrade-20261201-litellm")]
+    assert deploys == [("deploy_tag", "deploy", "upgrade-20261201T083000Z-searxng"), ("deploy_tag", "deploy", "upgrade-20261201T083000Z-litellm")]
     assert ops.containers["kronk-telemetry-tempo-1"] == "grafana/tempo:3.1.2"
     assert ops.containers["kronk-litellm-1"] == "ghcr.io/berriai/litellm:v1.88.6"
     # One notice, every change named, from and to.
@@ -165,7 +165,7 @@ def test_a_replay_regression_rolls_back_a_kronk_stack_component_by_deploying_the
     ops.replay_regress = {"v1.88.6": ["row-a"]}
     assert run(ops, sd, only=["litellm"]) == 1
     deploys = [c[2] for c in ops.calls if c[0] == "deploy_tag" and c[1] == "deploy"]
-    assert deploys == ["upgrade-20261201-litellm", "sprint-X"]
+    assert deploys == ["upgrade-20261201T083000Z-litellm", "sprint-X"]
     assert ops.containers["kronk-litellm-1"] == "ghcr.io/berriai/litellm:v1.88.1"
     assert "row-a" in ops.notices[0][2]
 
@@ -201,7 +201,7 @@ def test_a_replay_that_cannot_complete_after_the_change_rolls_back_unverified(ho
 
 def test_a_failed_deploy_rolls_back(house):
     ops, sd = house
-    ops.deploy_fail_tags = {"upgrade-20261201-searxng"}
+    ops.deploy_fail_tags = {"upgrade-20261201T083000Z-searxng"}
     assert run(ops, sd, only=["searxng"]) == 1
     assert ops.containers["kronk-searxng-1"] == "searxng/searxng:2026.11.9-57ff753ad"
     assert log_subjects(ops.repo)[-1] == "upgrade: roll back searxng 2026.11.17-b99cf7496 -> 2026.11.9-57ff753ad"

@@ -684,6 +684,17 @@ def save_status(sd: Path, status: dict, now: dt.datetime) -> None:
     os.replace(tmp, sd / "status.json")
 
 
+def block(status: dict, o, now: dt.datetime) -> None:
+    """A failed rollback, or git and what runs out of step: later runs
+    decline until `ack`, and /services shows it."""
+    key = o.result                       # rollback_failed | out_of_step
+    status[key] = {"component": o.name, "at": now.isoformat(timespec="seconds"), "state": o.state,
+                   "detail": o.detail}
+    word = "rollback FAILED" if key == "rollback_failed" else "OUT OF STEP"
+    add_attention(status, key, f"Upgrade {word} for {o.name}: {o.state}. {_cut(o.detail, 300)}. "
+                  f"Later runs decline until `python3 scripts/upgrades.py ack`.", now)
+
+
 def add_attention(status: dict, key: str, text: str, now: dt.datetime) -> None:
     items = [a for a in status.get("attention", []) if a.get("id") != key]
     items.append({"id": key, "at": now.isoformat(timespec="seconds"), "text": text})
@@ -951,16 +962,26 @@ def tree_state(ops: Ops, rules: Rules) -> list[str]:
 
 def run_declines(ops: Ops, rules: Rules, status: dict, now: dt.datetime, own: Own | None = None,
                  info: list[str] | None = None) -> list[str]:
-    why = []
-    if status.get("rollback_failed"):
-        rf = status["rollback_failed"]
-        why.append(f"the last rollback failed ({rf.get('component')}: {rf.get('detail', '')[:160]}); "
-                   f"fix it, then `python3 scripts/upgrades.py ack`")
+    why = run_declines_blocked(status)
     procs = ops.pgrep(r"scripts/deploy_tag\.sh (deploy|plan|seed)")
     if procs:
         why.append(f"a deploy is in progress ({procs[0][:120]})")
     why += tree_state(ops, rules)
     why += house_busy(ops, rules, now, own, info)
+    return why
+
+
+def run_declines_blocked(status: dict) -> list[str]:
+    """Blocks an earlier run left: only `ack` clears them."""
+    why = []
+    if status.get("rollback_failed"):
+        rf = status["rollback_failed"]
+        why.append(f"the last rollback failed ({rf.get('component')}: {rf.get('state') or ''} {rf.get('detail', '')[:160]}); "
+                   f"fix it, then `python3 scripts/upgrades.py ack`")
+    if status.get("out_of_step"):
+        oo = status["out_of_step"]
+        why.append(f"an earlier run left {oo.get('component')} out of step ({oo.get('state', '')}); "
+                   f"fix it, then `python3 scripts/upgrades.py ack`")
     return why
 
 
@@ -1031,6 +1052,8 @@ class Ctx:
     ha_old_id: str | None = None
     ha_restart_at: str | None = None      # ISO time just before the stop, for `docker events --since`
     own: Own = field(default_factory=Own)  # this run's own requests and replay runs (F1)
+    touched: bool = False                  # the component's bring-up changed what runs (F2, F4)
+    redeploys: int = 0                     # production (Kronk stack) deploys made by this run (F11)
 
 
 def image_is(ctx: Ctx, comp: dict, version: str) -> str | None:
@@ -1137,8 +1160,15 @@ def verify(ctx: Ctx, comp: dict, version: str, full: bool = True) -> list[str]:
 # Kronk stack: a tag and deploy_tag.sh.
 
 def kronk_up(ctx: Ctx, comp: dict, tag: str) -> str | None:
-    ctx.ops.git("tag", tag)
+    head = ctx.ops.git("rev-parse", "HEAD").strip()
+    have = ctx.ops.git("rev-parse", "-q", "--verify", f"refs/tags/{tag}^{{commit}}", check=False).strip()
+    if have and have != head:
+        return f"tag {tag} exists at {have[:10]}, not at the pin commit {head[:10]}"
+    if not have:
+        ctx.ops.git("tag", tag)
     ctx.log(f"  deploy_tag.sh deploy {tag}")
+    ctx.touched = True
+    ctx.redeploys += 1
     r = ctx.ops.deploy_tag("deploy", tag)
     for ln in r.tail(1500).splitlines()[-12:]:
         ctx.log(f"    | {ln}")
@@ -1149,6 +1179,8 @@ def kronk_up(ctx: Ctx, comp: dict, tag: str) -> str | None:
 
 def compose_up(ctx: Ctx, comp: dict) -> str | None:
     for args in (("pull", comp["service"]), ("up", "-d", "--no-deps", comp["service"])):
+        if args[0] == "up":
+            ctx.touched = True
         r = ctx.ops.compose(comp["project"], comp["file"], *args, env_file=comp.get("env_file"))
         ctx.log(f"  docker compose -p {comp['project']} {' '.join(args)}: exit {r.rc}")
         if not r.ok:
@@ -1206,6 +1238,7 @@ def _ha_steps(ctx: Ctx, comp: dict, steps) -> str | None:
     for kind, args in steps:
         if kind == "docker" and args[0] == "stop":
             ctx.ha_restart_at = ctx.ops.now().strftime("%Y-%m-%dT%H:%M:%SZ")
+            ctx.touched = True
         if kind == "docker":
             r = ctx.ops.docker(*args, timeout=900)
         else:
@@ -1286,9 +1319,37 @@ class Outcome:
     name: str
     frm: str
     to: str
-    result: str          # kept | rolled_back | rollback_failed | not_started
+    # kept | rolled_back | rollback_failed | not_started | not_applied | out_of_step | recovered
+    result: str
     detail: str = ""
     commit: str | None = None
+    state: str = ""      # the fact that matters (what git has, what runs): first in the notice, never cut
+
+
+def what_runs(ctx: Ctx, comp: dict) -> tuple[str | None, str]:
+    """(the version the component's container runs, or None; a phrase for
+    a notice). Read-only."""
+    c = comp.get("container")
+    if not c or not comp.get("image"):
+        return None, "unknown (no container to inspect)"
+    r = ctx.ops.docker("inspect", c, "-f", "{{.Config.Image}} {{.State.Running}}", timeout=30)
+    if not r.ok:
+        return None, f"nothing ({c} does not exist" + ("; Home Assistant is down)" if comp.get("deploy") == "ha" else ")")
+    img, _, running = r.out.strip().partition(" ")
+    ver = img[len(comp["image"]) + 1:] if img.startswith(comp["image"] + ":") else img
+    if running.strip() != "true":
+        return None, f"nothing ({c} is stopped" + ("; Home Assistant is down)" if comp.get("deploy") == "ha" else ")")
+    return ver, ver
+
+
+def head_pin(ctx: Ctx, comp: dict) -> str | None:
+    """The pin as committed at HEAD (not the working tree), or None."""
+    try:
+        text = ctx.ops.git("show", f"HEAD:{comp['file']}")
+    except StepFailed:
+        return None
+    hits = [m.group(1) for ln in text.splitlines() if (m := re.search(comp["match"], ln))]
+    return hits[0] if len(hits) == 1 else None
 
 
 def apply_one(ctx: Ctx, p: Plan) -> Outcome:
@@ -1324,22 +1385,33 @@ def apply_one(ctx: Ctx, p: Plan) -> Outcome:
         return Outcome(name, frm, to, "not_started", "house busy: " + "; ".join(busy))
 
     # Pin, commit.
-    write_pin(ops.repo, comp, frm, to)
-    ops.git("add", "--", comp["file"])
-    ops.git("commit", "-q", "-m", f"upgrade: {name} {frm} -> {to}", "-m",
-            f"Monthly patch upgrade by scripts/upgrade_minor.sh (sprint M18). Release: {p.to.url or 'n/a'}. "
-            f"Run log: {shown_path(ctx.sd / 'runs' / f'{ctx.stamp}-minor.log', ops.repo)}", "--", comp["file"])
-    commit = ops.git("rev-parse", "--short", "HEAD").strip()
+    try:
+        write_pin(ops.repo, comp, frm, to)
+        ops.git("add", "--", comp["file"])
+        ops.git("commit", "-q", "-m", f"upgrade: {name} {frm} -> {to}", "-m",
+                f"Monthly patch upgrade by scripts/upgrade_minor.sh (sprint M18). Release: {p.to.url or 'n/a'}. "
+                f"Run log: {shown_path(ctx.sd / 'runs' / f'{ctx.stamp}-minor.log', ops.repo)}", "--", comp["file"])
+        commit = ops.git("rev-parse", "--short", "HEAD").strip()
+    except (StepFailed, RulesError, OSError) as e:
+        return pin_not_committed(ctx, comp, frm, to, f"the pin commit failed: {e}")
     log(f"  committed {commit}: upgrade: {name} {frm} -> {to}")
 
-    # Bring up.
-    tag = f"upgrade-{ctx.stamp[:8]}-{name}"
-    if comp["deploy"] == "kronk":
-        err = kronk_up(ctx, comp, tag)
-    elif comp["deploy"] == "ha":
-        err = ha_up(ctx, comp, frm, to)
-    else:
-        err = compose_up(ctx, comp)
+    # Bring up. Until a step changes what runs (ctx.touched), a failure is
+    # "not applied": git is put back and nothing is restarted.
+    ctx.touched = False
+    tag = f"upgrade-{ctx.stamp}-{name}"
+    try:
+        if comp["deploy"] == "kronk":
+            err = kronk_up(ctx, comp, tag)
+        elif comp["deploy"] == "ha":
+            err = ha_up(ctx, comp, frm, to)
+        else:
+            err = compose_up(ctx, comp)
+    except (StepFailed, RulesError, OSError) as e:
+        err = str(e)
+    if err and not ctx.touched:
+        log(f"  NOT APPLIED (nothing deployed): {err}")
+        return not_applied(ctx, comp, frm, to, err, commit)
     problems = [err] if err else verify(ctx, comp, to)
     if not problems:
         log(f"  verified: {name} {to} kept")
@@ -1351,7 +1423,49 @@ def apply_one(ctx: Ctx, p: Plan) -> Outcome:
     return rollback(ctx, comp, frm, to, problems, commit)
 
 
+def pin_not_committed(ctx: Ctx, comp: dict, frm: str, to: str, err: str) -> Outcome:
+    """The pin edit or its commit failed: put the file back if it was edited."""
+    name = comp["name"]
+    ctx.log(f"  NOT APPLIED (no commit): {err}")
+    try:
+        if head_pin(ctx, comp) == frm and read_pin(ctx.ops.repo, comp).value == to:
+            write_pin(ctx.ops.repo, comp, to, frm)
+            ctx.ops.git("add", "--", comp["file"])          # the index back to HEAD's content too
+    except (StepFailed, RulesError, OSError) as e:
+        _, runs = what_runs(ctx, comp)
+        return Outcome(name, frm, to, "out_of_step", f"{err}; putting the file back failed: {e}",
+                       state=f"OUT OF STEP: {comp['file']} has an uncommitted pin edit; git (HEAD) has {head_pin(ctx, comp)}, "
+                             f"running is {runs}")
+    _, runs = what_runs(ctx, comp)
+    return Outcome(name, frm, to, "not_applied", err, state=f"not applied; git is at {head_pin(ctx, comp)}, running is {runs}")
+
+
+def not_applied(ctx: Ctx, comp: dict, frm: str, to: str, err: str, commit: str) -> Outcome:
+    """The pin commit exists and nothing was deployed: revert the run's own
+    pin commit, so git is back in step with what runs."""
+    ops, name = ctx.ops, comp["name"]
+    try:
+        head = ops.git("rev-parse", "--short", "HEAD").strip()
+        if head != commit:
+            raise StepFailed(f"HEAD is {head}, not the pin commit {commit}")
+        ops.git("revert", "--no-commit", commit)
+        ops.git("commit", "-q", "-m", f"upgrade: not applied, {name} back {to} -> {frm}", "-m",
+                f"Reverts {commit}: the upgrade stopped before anything was deployed: {' '.join(err.split())[:300]}")
+        rev = ops.git("rev-parse", "--short", "HEAD").strip()
+    except (StepFailed, RulesError, OSError) as e:
+        _, runs = what_runs(ctx, comp)
+        ctx.log(f"  OUT OF STEP: the revert of {commit} failed: {e}")
+        return Outcome(name, frm, to, "out_of_step", f"{err}; the revert of {commit} failed: {e}", commit,
+                       state=f"OUT OF STEP: git is at {to} (commit {commit}), running is {runs}")
+    _, runs = what_runs(ctx, comp)
+    ctx.log(f"  reverted {commit} as {rev}: git is at {frm}, running is {runs}")
+    return Outcome(name, frm, to, "not_applied", err, commit,
+                   state=f"not applied; git is at {frm} again (revert {rev}), running is {runs}")
+
+
 def rollback(ctx: Ctx, comp: dict, frm: str, to: str, problems: list[str], commit: str) -> Outcome:
+    """Undo what the bring-up did. Only called once a step changed what
+    runs (ctx.touched): a failure before that is not_applied, not this."""
     ops, log, name = ctx.ops, ctx.log, comp["name"]
     reason = "; ".join(problems)[:300]
     log(f"  rolling back {name} to {frm}")
@@ -1362,6 +1476,7 @@ def rollback(ctx: Ctx, comp: dict, frm: str, to: str, problems: list[str], commi
                 f"Verification failed: {reason}", "--", comp["file"])
         if comp["deploy"] == "kronk":
             log(f"  deploy_tag.sh deploy {ctx.prod_tag} (the previous tag)")
+            ctx.redeploys += 1
             r = ops.deploy_tag("deploy", ctx.prod_tag)
             err = None if r.ok else f"deploy of the previous tag {ctx.prod_tag} failed (exit {r.rc}): {r.tail(200)}"
         elif comp["deploy"] == "ha":
@@ -1376,43 +1491,73 @@ def rollback(ctx: Ctx, comp: dict, frm: str, to: str, problems: list[str], commi
     if after:
         why = " ".join("; ".join(after).split())[:300]
         log(f"  ROLLBACK FAILED: {why}")
-        where = f"; check what runs: docker inspect {comp['container']}" if comp.get("container") else ""
+        _, runs = what_runs(ctx, comp)
+        gitp = head_pin(ctx, comp)
         return Outcome(name, frm, to, "rollback_failed",
-                       f"upgrade failed: {' '.join(reason.split())}; rollback failed: {why}. "
-                       f"git has the pin back at {frm}; {to} may still be running{where}", commit)
+                       f"upgrade failed: {' '.join(reason.split())}; rollback failed: {why}", commit,
+                       state=f"ROLLBACK FAILED; running is {runs}; git has {gitp}")
     log(f"  rolled back and verified: {name} {frm}")
-    return Outcome(name, frm, to, "rolled_back", reason, commit)
+    return Outcome(name, frm, to, "rolled_back", reason, commit, state=f"rolled back to {frm}")
+
+
+def error_outcome(ctx: Ctx, p: Plan, e: Exception) -> Outcome:
+    """An error escaped a component: say exactly where git and the running
+    version stand, never more than is known."""
+    comp, frm, to = p.comp, p.pin, p.to.version
+    gitp = head_pin(ctx, comp)
+    ver, runs = what_runs(ctx, comp)
+    dirty = tree_state(ctx.ops, ctx.rules)
+    if gitp == frm and ver == frm and not dirty:
+        return Outcome(comp["name"], frm, to, "not_started", f"stopped by an error before any change: {e}",
+                       state=f"not started; git is at {frm}, running is {runs}")
+    return Outcome(comp["name"], frm, to, "out_of_step", f"stopped by an error: {e}",
+                   state=f"OUT OF STEP: git is at {gitp}, running is {runs}" + (f"; {'; '.join(dirty)}" if dirty else ""))
 
 
 # ═══ The monthly run ═════════════════════════════════════════════════════
 
-def notice_text(outcomes: list[Outcome], plans: list[Plan], log_rel: str) -> tuple[str, str]:
-    kept = [o for o in outcomes if o.result == "kept"]
-    rb = [o for o in outcomes if o.result == "rolled_back"]
-    rbf = [o for o in outcomes if o.result == "rollback_failed"]
-    ns = [o for o in outcomes if o.result == "not_started"]
-    if rbf:
-        title = f"Kronk upgrade: ROLLBACK FAILED ({rbf[0].name})"
-    elif rb:
-        title = (f"Kronk upgrade: {len(kept)} upgraded, {len(rb)} rolled back" if kept
-                 else f"Kronk upgrade: {len(rb)} rolled back")
-    elif kept:
-        title = f"Kronk upgrade: {len(kept)} upgraded"
+DEFAULT_STATE = {"kept": "upgraded", "not_started": "not started", "not_applied": "not applied",
+                 "rollback_failed": "ROLLBACK FAILED", "out_of_step": "OUT OF STEP", "recovered": "recovered"}
+BLOCKING = ("rollback_failed", "out_of_step")       # stop the run; later runs decline until `ack`
+
+
+def _cut(text: str, n: int) -> str:
+    text = " ".join((text or "").split())
+    return text if len(text) <= n else text[: n - 1] + "…"
+
+
+def notice_text(outcomes: list[Outcome], plans: list[Plan], log_rel: str, redeploys: int = 0) -> tuple[str, str]:
+    """Title and body. Each line puts the state first (what was done, what
+    git has, what runs) and the detail after, so a cut never takes the fact."""
+    by = {k: [o for o in outcomes if o.result == k] for k in
+          ("kept", "rolled_back", "rollback_failed", "not_started", "not_applied", "out_of_step", "recovered")}
+    down = any("Home Assistant is down" in o.state for o in outcomes)
+    if by["rollback_failed"]:
+        title = f"Kronk upgrade: ROLLBACK FAILED ({by['rollback_failed'][0].name})"
+    elif by["out_of_step"]:
+        title = f"Kronk upgrade: OUT OF STEP ({by['out_of_step'][0].name})"
     else:
-        title = "Kronk upgrade: nothing applied"
+        parts = [f"{len(by[k])} {w}" for k, w in (("kept", "upgraded"), ("rolled_back", "rolled back"),
+                                                   ("not_applied", "not applied"), ("recovered", "recovered")) if by[k]]
+        title = "Kronk upgrade: " + (", ".join(parts) if parts else "nothing applied")
+    if down:
+        title += ": Home Assistant is down"
     lines = []
-    for o in kept:
-        lines.append(f"{o.name} {o.frm} -> {o.to}: upgraded")
-    for o in rb:
-        lines.append(f"{o.name} {o.frm} -> {o.to}: rolled back to {o.frm} ({o.detail[:160]})")
-    for o in rbf:
-        lines.append(f"{o.name} {o.frm} -> {o.to}: ROLLBACK FAILED, needs you ({o.detail[:200]}). "
-                     f"Later runs wait until `python3 scripts/upgrades.py ack`.")
-    for o in ns:
-        lines.append(f"{o.name} {o.frm} -> {o.to}: not started ({o.detail[:160]})")
+    for k in ("rollback_failed", "out_of_step", "recovered", "kept", "rolled_back", "not_applied", "not_started"):
+        for o in by[k]:
+            state = o.state or ({"rolled_back": f"rolled back to {o.frm}"}.get(k) or DEFAULT_STATE[k])
+            line = f"{o.name} {o.frm} -> {o.to}: {state}"
+            if k in BLOCKING:
+                line += "; needs you: later runs wait until `python3 scripts/upgrades.py ack`"
+            if o.detail:
+                line += f" ({_cut(o.detail, 300)})"
+            lines.append(line)
+    if redeploys:
+        lines.append(f"Production (the Kronk stack) was redeployed {redeploys} time(s) by this run: "
+                     f"every service with a bind mount was recreated each time.")
     skipped = [p for p in plans if p.action == "skip"]
     if skipped:
-        lines.append("Skipped: " + "; ".join(f"{p.comp['name']} ({p.detail[:80]})" for p in skipped))
+        lines.append("Skipped: " + "; ".join(f"{p.comp['name']} ({_cut(p.detail, 80)})" for p in skipped))
     lines.append(f"Log: {log_rel}")
     return title, "\n".join(lines)
 
@@ -1454,6 +1599,16 @@ def minor_run(ops: Ops, rules: Rules, sd: Path, dry_run: bool = False, ignore_mo
             m["attempts"] += 1
             retry_pending(ops, status, now, log)
             save_status(sd, status, now)
+        blocked = [w for w in run_declines_blocked(status)]
+        if blocked and not dry_run:
+            # Checked before planning: a failed rollback or an out-of-step
+            # component can leave a pin that would otherwise read as CURRENT.
+            log("declined: " + "; ".join(blocked))
+            status["last_run"] = {"kind": "minor", "at": now.isoformat(timespec="seconds"), "result": "declined",
+                                  "summary": f"declined (attempt {m['attempts']} of {rules.settings['max_attempts']}): "
+                                             + "; ".join(blocked)[:400], "log": log_rel}
+            save_status(sd, status, now)
+            return 0
 
         plans = [plan_component(rules, c, ops.repo, ops.web, now) for c in rules.components]
         log("plan:")
@@ -1541,30 +1696,26 @@ def minor_run(ops: Ops, rules: Rules, sd: Path, dry_run: bool = False, ignore_mo
             try:
                 o = apply_one(ctx, p)
             except (StepFailed, RulesError, OSError) as e:
-                o = Outcome(p.comp["name"], p.pin, p.to.version, "rollback_failed",
-                            f"the run stopped inside this component: {e}")
                 log(f"  ERROR: {e}")
+                o = error_outcome(ctx, p, e)
             outcomes.append(o)
             if o.result == "not_started":
                 log(f"  not started: {o.detail}")
-            if o.result == "rollback_failed":
-                status["rollback_failed"] = {"component": o.name, "at": now.isoformat(timespec="seconds"),
-                                             "detail": o.detail}
-                add_attention(status, "rollback_failed", f"Upgrade rollback FAILED for {o.name}: {o.detail[:300]}. "
-                              f"Later runs decline until `python3 scripts/upgrades.py ack`.", now)
-                log("stopping: a rollback failed; the remaining components wait")
+            if o.result in BLOCKING:
+                block(status, o, now)
+                log(f"stopping: {o.name} {'rollback failed' if o.result == 'rollback_failed' else 'is out of step'}; "
+                    f"the remaining components wait")
                 break
 
         changed = [o for o in outcomes if o.result != "not_started"]
-        result = ("rollback_failed" if any(o.result == "rollback_failed" for o in outcomes) else
-                  "rolled_back" if any(o.result == "rolled_back" for o in outcomes) else
-                  "upgraded" if changed else "not_started")
-        title, body = notice_text(outcomes, plans, log_rel)
+        result = next((r for r in ("rollback_failed", "out_of_step", "rolled_back", "not_applied")
+                       if any(o.result == r for o in outcomes)), "upgraded" if changed else "not_started")
+        title, body = notice_text(outcomes, plans, log_rel, ctx.redeploys)
         m["done"] = result != "not_started" or m["attempts"] >= rules.settings["max_attempts"]
         status["last_run"] = {"kind": "minor", "at": now.isoformat(timespec="seconds"), "result": result,
                               "summary": title, "log": log_rel,
                               "outcomes": [o.__dict__ for o in outcomes]}
-        if any(o.result == "rolled_back" for o in outcomes):
+        if any(o.result in ("rolled_back", "not_applied") for o in outcomes):
             add_attention(status, f"rolled_back:{month}", f"{title}. Details: {log_rel}", now)
         if changed:
             deliver(ops, status, {"id": f"minor-{stamp}", "tag": NOTIFY_TAG, "title": title, "body": body,
@@ -1573,7 +1724,7 @@ def minor_run(ops: Ops, rules: Rules, sd: Path, dry_run: bool = False, ignore_mo
             log("nothing was changed or tried; no notice")
         save_status(sd, status, now)
         log(f"done: {result}")
-        return {"rollback_failed": 2, "rolled_back": 1}.get(result, 0)
+        return {"rollback_failed": 2, "out_of_step": 2, "rolled_back": 1, "not_applied": 1}.get(result, 0)
     finally:
         if lock_fd is not None:
             os.close(lock_fd)
@@ -1594,7 +1745,7 @@ def _would(p: Plan, prod_tag: str | None) -> str:
     c, frm, to = p.comp, p.pin, p.to.version
     head = f"{c['file']}: {frm} -> {to}; commit 'upgrade: {c['name']} {frm} -> {to}'; "
     if c["deploy"] == "kronk":
-        return head + f"git tag upgrade-<date>-{c['name']}; deploy_tag.sh deploy it (rollback: pin back, deploy {prod_tag or '<previous tag>'})"
+        return head + f"git tag upgrade-<run time>-{c['name']}; deploy_tag.sh deploy it (a full production redeploy; rollback: pin back, deploy {prod_tag or '<previous tag>'}, another)"
     if c["deploy"] == "ha":
         return head + (f"docker tag <running id> {HA_ROLLBACK_REPO}:{frm}; docker pull {c['image']}:{to}; "
                        f"docker stop -t 120 {c['container']}; compose -p {c['project']} up -d {c['service']}; "
@@ -2120,11 +2271,13 @@ def main(argv=None, ops: Ops | None = None) -> int:
         try:
             status = load_status(sd)
             print(f"cleared: {len(status.get('attention', []))} warning(s)"
-                  + (", the failed-rollback block" if status.get("rollback_failed") else ""))
+                  + (", the failed-rollback block" if status.get("rollback_failed") else "")
+                  + (", the out-of-step block" if status.get("out_of_step") else ""))
             status["acknowledged"] = {"at": ops.now().isoformat(timespec="seconds"),
                                       "attention": status.get("attention", []),
-                                      "rollback_failed": status.get("rollback_failed")}
-            status["attention"], status["rollback_failed"] = [], None
+                                      "rollback_failed": status.get("rollback_failed"),
+                                      "out_of_step": status.get("out_of_step")}
+            status["attention"], status["rollback_failed"], status["out_of_step"] = [], None, None
             if sd.exists():
                 save_status(sd, status, ops.now())
             return 0
