@@ -249,6 +249,8 @@ class Config:
     loaded_at: float = field(default_factory=time.time)
     digests: dict[str, str] = field(default_factory=dict)
     warnings: list[Problem] = field(default_factory=list)
+    # The parsed YAML as loaded (step 2): which keys the file sets.
+    data: dict[str, dict] = field(default_factory=dict)
 
 
 def defaults() -> Config:
@@ -332,7 +334,7 @@ def load(base: Path | None = None) -> Config:
     except Exception as e:              # RecursionError, MemoryError, a library bug
         raise ConfigInvalid([Problem(MUSIC_FILE, None, config_files.unexpected(e))])
     warnings = [] if data else [Problem(MUSIC_FILE, None, EMPTY_YAML)]
-    return Config(music=music, source="files", warnings=warnings,
+    return Config(music=music, source="files", warnings=warnings, data={MUSIC_FILE: data},
                   digests={MUSIC_FILE: hashlib.sha256(text.encode()).hexdigest()[:12]})
 
 

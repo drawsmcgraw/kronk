@@ -40,6 +40,34 @@ def load_gpu_mem() -> dict:
     return out
 
 
+LLAMA_PROPS_PATH = Path(os.getenv("LLAMA_PROPS_PATH", "/data/llama_props.json"))
+# Written every 60 s by scripts/llama_props_export.py (host timer); older
+# than this, the /settings page says the values are stale.
+LLAMA_PROPS_MAX_AGE_S = 300
+
+
+def load_llama_props() -> dict:
+    """What each running llama.cpp server reports (sprint M21 step 2, for
+    /settings): n_ctx, slots and sampling from its GET /props, and the flags
+    of its running process. Written on the HOST by
+    scripts/llama_props_export.py (the servers listen on the host's
+    loopback, which the containers cannot reach). Returns {"servers": [...],
+    "_age_s": n} or {"servers": [], "_error": why}."""
+    try:
+        raw = json.loads(LLAMA_PROPS_PATH.read_text())
+    except FileNotFoundError:
+        return {"servers": [], "_error": f"{LLAMA_PROPS_PATH} does not exist: the host-side exporter "
+                                         "(systemd/llama-props-export.timer) is not installed"}
+    except (OSError, ValueError) as e:
+        return {"servers": [], "_error": f"{LLAMA_PROPS_PATH} cannot be read: {e}"}
+    age = time.time() - (raw.get("ts") or 0)
+    servers_ = [s for s in raw.get("servers", []) if isinstance(s, dict)]
+    if not (-60 <= age <= LLAMA_PROPS_MAX_AGE_S):
+        return {"servers": servers_, "_age_s": round(age, 1),
+                "_error": f"stale: written {round(age)} s ago (the exporter runs every 60 s)"}
+    return {"servers": servers_, "_age_s": round(age, 1)}
+
+
 def load_catalog() -> list[dict]:
     """Return one entry per configured model with its kronk metadata."""
     if not LITELLM_CONFIG_PATH.exists():

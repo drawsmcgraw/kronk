@@ -1,0 +1,12 @@
+# Fires llama-props-export.service every 60 s. The orchestrator treats
+# data/llama_props.json older than 300 s as stale and says so on /settings.
+[Unit]
+Description=Kronk — llama.cpp settings export every 60s
+
+[Timer]
+OnBootSec=60
+OnUnitActiveSec=60
+AccuracySec=10
+
+[Install]
+WantedBy=timers.target

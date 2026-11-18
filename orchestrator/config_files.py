@@ -484,3 +484,108 @@ def build(events) -> tuple[dict, dict[tuple, int]]:
     if not isinstance(root, dict):
         raise FileError(1, "must be a mapping of keys to values")
     return root, lines
+
+
+# ── describing the keys, for /settings (sprint M21 step 2) ───────────────────
+
+def _jsonable(value):
+    if value is None or isinstance(value, (bool, int, float, str)):
+        return value
+    if isinstance(value, (list, tuple)):
+        return [_jsonable(v) for v in value]
+    if isinstance(value, dict):
+        return {str(k): _jsonable(v) for k, v in value.items()}
+    if hasattr(value, "model_dump"):
+        return value.model_dump()
+    return str(value)
+
+
+_BOUNDS = ("gt", "ge", "lt", "le", "min_length", "max_length", "pattern")
+
+
+def _bounds(info) -> dict:
+    out = {}
+    for m in getattr(info, "metadata", ()) or ():
+        for attr in _BOUNDS:
+            v = getattr(m, attr, None)
+            if v is not None:
+                out[attr] = v if isinstance(v, (int, float, str)) else str(v)
+    return out
+
+
+def _type_name(annotation) -> str:
+    text = str(annotation)
+    if text.startswith("<class '") and text.endswith("'>"):
+        return text[8:-2].rsplit(".", 1)[-1]
+    return re.sub(r"\b(?:typing|annotated_types|pydantic\.types|config_loader|tool_service\.config_loader)\.",
+                  "", text)
+
+
+def _present(data, path) -> bool:
+    node = data
+    for k in path:
+        if not isinstance(node, dict) or k not in node:
+            return False
+        node = node[k]
+    return True
+
+
+def describe_keys(model, data: dict, env: dict | None = None) -> list[dict]:
+    """One entry per leaf key of a loaded pydantic model (duck-typed: any
+    object whose class has model_fields): its dotted key, the value in
+    effect, where it came from ("environment" when env maps the key to the
+    variable that set it, "file" when the parsed file data sets it, else
+    "code default"), the built-in default, the schema's bounds and type.
+    Nested models are walked, not listed."""
+    env = env or {}
+    out: list[dict] = []
+
+    def walk(m, path):
+        for name, info in type(m).model_fields.items():
+            value = getattr(m, name)
+            p = path + (name,)
+            if hasattr(type(value), "model_fields"):
+                walk(value, p)
+                continue
+            key = ".".join(p)
+            source = "environment" if key in env else "file" if _present(data, p) else "code default"
+            out.append({"key": key, "value": _jsonable(value), "source": source,
+                        "env": env.get(key),
+                        "default": _jsonable(info.get_default(call_default_factory=True)),
+                        "bounds": _bounds(info), "type": _type_name(info.annotation)})
+
+    walk(model, ())
+    return out
+
+
+_COMMENT_LINE = re.compile(r"^\s*#\s?(.*)$")
+
+
+def key_comments(text: str, lines: dict) -> dict[str, str]:
+    """The comment that documents each mapping key of a YAML text (lines
+    from build(): key path -> 1-based line): the run of comment lines
+    directly above the key, and a trailing `# ...` on the key's own line
+    when the rest of the line holds no quote. Keyed by the dotted path."""
+    rows = text.split("\n")
+    out: dict[str, str] = {}
+    for path, line in lines.items():
+        if not isinstance(line, int) or line < 1 or line > len(rows):
+            continue
+        above = []
+        i = line - 2
+        while i >= 0:
+            m = _COMMENT_LINE.match(rows[i])
+            if not m:
+                break
+            above.append(m.group(1).rstrip())
+            i -= 1
+        parts = [" ".join(reversed(above)).strip()] if above else []
+        own = rows[line - 1]
+        if " #" in own:
+            head, _, tail = own.partition(" #")
+            if "'" not in head and '"' not in head:
+                parts.append(tail.strip())
+        comment = " ".join(p for p in parts if p)
+        if comment:
+            out[".".join(path)] = comment
+    return out

@@ -27,6 +27,7 @@ import routing
 import run_state
 import servers
 import sessions
+import settings_api
 import speech_stream
 import telemetry
 import tools
@@ -243,6 +244,8 @@ async def health_probe():
 # In their own router: the reload refusal reads a request header, and main.py
 # keeps its no-raw-Request rule (tests/test_voice_signal.py, sprint M2).
 app.include_router(config_api.router)
+# The /settings page (sprint M21 step 2): its own router, like config_api.
+app.include_router(settings_api.router)
 
 
 # ── /message: the main chat endpoint ─────────────────────────────────────────

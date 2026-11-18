@@ -1,0 +1,18 @@
+# Exports what each running llama.cpp server reports (GET /props and the
+# running process's flags) to data/llama_props.json and
+# data/dev/llama_props.json, for the /settings page (sprint M21 step 2).
+# Fired by llama-props-export.timer every 60 s. Reads only.
+#
+# Operations:
+#   install:  cp systemd/llama-props-export.{service,timer} ~/.config/systemd/user/
+#             systemctl --user daemon-reload
+#             systemctl --user enable --now llama-props-export.timer
+#   check:    systemctl --user list-timers llama-props-export.timer
+#   one-shot: python3 scripts/llama_props_export.py --print
+#   remove:   systemctl --user disable --now llama-props-export.timer
+[Unit]
+Description=Kronk — export llama.cpp server settings for /settings
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /home/drew/git-repos/drawsmcgraw/kronk/scripts/llama_props_export.py

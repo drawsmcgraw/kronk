@@ -332,6 +332,9 @@ class Config:
     digests: dict[str, str] = field(default_factory=dict)   # file -> sha256[:12]
     env: dict[str, str] = field(default_factory=dict)       # env overrides in effect
     warnings: list["Problem"] = field(default_factory=list)  # loaded, but worth a look
+    # The parsed YAML of each file as loaded (step 2): which keys the file
+    # sets, so /settings can tell a file value from a code default.
+    data: dict[str, dict] = field(default_factory=dict)
 
 
 def defaults() -> Config:
@@ -435,19 +438,19 @@ def _load_prompt(base: Path, rel: str) -> tuple[str, str]:
 def _load_tuning(base: Path) -> tuple["Tuning", str, bool]:
     text = _read(base, TUNING_FILE, config_files.MAX_YAML_BYTES)
     data, lines = parse_yaml(text, TUNING_FILE)
-    return validate(Tuning, data, lines, TUNING_FILE), _digest(text), bool(data)
+    return validate(Tuning, data, lines, TUNING_FILE), _digest(text), data
 
 
 def _load_lead_in(base: Path) -> tuple["LeadIn", str, bool]:
     text = _read(base, LEAD_IN_FILE, config_files.MAX_YAML_BYTES)
     data, lines = parse_yaml(text, LEAD_IN_FILE)
-    return validate(LeadIn, data, lines, LEAD_IN_FILE), _digest(text), bool(data)
+    return validate(LeadIn, data, lines, LEAD_IN_FILE), _digest(text), data
 
 
 def _load_voice(base: Path) -> tuple["Voice", str, bool]:
     text = _read(base, VOICE_FILE, config_files.MAX_YAML_BYTES)
     data, lines = parse_yaml(text, VOICE_FILE)
-    return validate(Voice, data, lines, VOICE_FILE), _digest(text), bool(data)
+    return validate(Voice, data, lines, VOICE_FILE), _digest(text), data
 
 
 def _strays(base: Path) -> tuple[list[Problem], list[Problem]]:
@@ -478,6 +481,7 @@ def load(base: Path | None = None) -> Config:
     warnings: list[Problem] = []
     prompts: dict[str, str] = {}
     digests: dict[str, str] = {}
+    data: dict[str, dict] = {}
 
     for name in prompt_defaults.PROMPTS:
         rel = f"{PROMPTS_DIR}/{name}.md"
@@ -490,8 +494,8 @@ def load(base: Path | None = None) -> Config:
 
     tuning = None
     try:
-        tuning, digests[TUNING_FILE], has_keys = _load_tuning(base)
-        if not has_keys:
+        tuning, digests[TUNING_FILE], data[TUNING_FILE] = _load_tuning(base)
+        if not data[TUNING_FILE]:
             warnings.append(Problem(TUNING_FILE, None, EMPTY_YAML))
     except ConfigInvalid as e:
         problems += e.problems
@@ -500,8 +504,8 @@ def load(base: Path | None = None) -> Config:
 
     lead_in = None
     try:
-        lead_in, digests[LEAD_IN_FILE], has_keys = _load_lead_in(base)
-        if not has_keys:
+        lead_in, digests[LEAD_IN_FILE], data[LEAD_IN_FILE] = _load_lead_in(base)
+        if not data[LEAD_IN_FILE]:
             warnings.append(Problem(LEAD_IN_FILE, None, EMPTY_YAML))
     except ConfigInvalid as e:
         problems += e.problems
@@ -510,8 +514,8 @@ def load(base: Path | None = None) -> Config:
 
     voice = None
     try:
-        voice, digests[VOICE_FILE], has_keys = _load_voice(base)
-        if not has_keys:
+        voice, digests[VOICE_FILE], data[VOICE_FILE] = _load_voice(base)
+        if not data[VOICE_FILE]:
             warnings.append(Problem(VOICE_FILE, None, EMPTY_YAML))
     except ConfigInvalid as e:
         problems += e.problems
@@ -533,7 +537,7 @@ def load(base: Path | None = None) -> Config:
     if problems:
         raise ConfigInvalid(problems)
     return Config(prompts=prompts, tuning=tuning, source="files", lead_in=lead_in,
-                  voice=voice, digests=digests, env=env, warnings=warnings)
+                  voice=voice, digests=digests, env=env, warnings=warnings, data=data)
 
 
 def _try_load() -> tuple[Config | None, list[Problem]]:

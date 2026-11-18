@@ -36,6 +36,7 @@ try:
     from . import netguard
     from . import news
     from . import ops
+    from . import settings_info
     from . import solar
     from . import taste
     from . import telemetry
@@ -47,6 +48,7 @@ except ImportError:
     import netguard
     import news
     import ops
+    import settings_info
     import solar
     import taste
     import telemetry
@@ -2900,6 +2902,33 @@ async def config_reload():
 @app.get("/config/status")
 async def config_status():
     return config_loader.config_files.render_status(config_loader.status(), "tool_service")
+
+
+# ── /settings support (sprint M21 step 2): read only, plus a validator ───────
+# Called by the orchestrator over the compose network. Nothing here writes:
+# the orchestrator writes the live directory and calls /config/reload.
+
+@app.get("/config/effective")
+async def config_effective():
+    """music.yaml's keys, values in effect and their source; the env
+    allow-list; the model-facing text in code."""
+    out = settings_info.effective()
+    out["env"] = settings_info.env_table()
+    out["code_text"] = settings_info.code_text(_MODEL_SYSTEM)
+    out["dry_run"] = MUSIC_DRY_RUN
+    return config_loader.config_files.renderable(out, lambda sentence: {"error": sentence})
+
+
+class _Candidate(BaseModel):
+    name: str
+    text: str
+
+
+@app.post("/config/validate")
+async def config_validate(c: _Candidate):
+    """Would this music.yaml load? The loader's schema, nothing written."""
+    result = settings_info.validate(c.name, c.text)
+    return JSONResponse(result, status_code=200 if result["ok"] else 422)
 
 
 @app.get("/health")

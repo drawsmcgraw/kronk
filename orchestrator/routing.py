@@ -325,6 +325,11 @@ class Rule:
     direct: Callable[[object], DirectCall] | None = None   # match -> the tool call
     request: Callable[[object], str] | None = None         # match -> the model's text
     detail: Callable[[object], dict] | None = None         # match -> why, for event and span
+    # For the /settings page (sprint M21 step 2), read only: what the rule
+    # matches in words, and the module-level patterns its matcher uses (by
+    # name, so the page shows the pattern in effect).
+    doc: str = ""
+    patterns: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -358,12 +363,23 @@ RULES: tuple[Rule, ...] = (
     # included ("ask Kronk to ..." asks Kronk). The coordinator gets the
     # request without the lead-in, with its full tool menu.
     Rule("lead_in",         "direct",   lambda t: lead_in_request(t),
-         request=lambda req: req),
+         request=lambda req: req,
+         doc='The spoken lead-in at the start ("ask Kronk to ..."); the words are config/lead_in.yaml. '
+             "The coordinator gets the rest of the sentence",
+         patterns=("lead_in_pattern()",)),
     # Talkie next: it takes priority over all other routing.
-    Rule("talkie_explicit", "talkie", lambda t: _TALKIE_PHRASES.search(t)),
-    Rule("direct_override", "direct", lambda t: _DIRECT_OVERRIDE.search(t)),
-    Rule("music_url",       "home",     lambda t: _MUSIC_URL_RE.search(t)),
-    Rule("url",             "research", lambda t: _URL_RE.search(t)),
+    Rule("talkie_explicit", "talkie", lambda t: _TALKIE_PHRASES.search(t),
+         doc='Talkie named explicitly ("ask talkie", "what does talkie think")',
+         patterns=("_TALKIE_PHRASES",)),
+    Rule("direct_override", "direct", lambda t: _DIRECT_OVERRIDE.search(t),
+         doc='The user says not to search or to answer from its own knowledge ("don\'t search", '
+             '"answer it yourself", "from your own knowledge")',
+         patterns=("_DIRECT_OVERRIDE",)),
+    Rule("music_url",       "home",     lambda t: _MUSIC_URL_RE.search(t),
+         doc="A YouTube Music link, or play/put on/listen to with a YouTube link",
+         patterns=("_MUSIC_URL_RE",)),
+    Rule("url",             "research", lambda t: _URL_RE.search(t),
+         doc="Any other link (http:// or https://)", patterns=("_URL_RE",)),
     # The messy-transcript gate (sprint M14). The five rules above stay
     # ahead of it because none reads the text as one clean command: the
     # lead-in and direct_override already go to the coordinator, Talkie is
@@ -373,29 +389,62 @@ RULES: tuple[Rule, ...] = (
     # taken to be the request's method or topic), so a transcript with
     # trailing speech or several requests goes to the coordinator, whole.
     Rule("messy",           "direct",   lambda t: messy(t),
-         detail=lambda m: m.as_dict()),
-    Rule("search_phrase",   "research", lambda t: _SEARCH_PHRASES.search(t)),
-    Rule("weather",         "home",     lambda t: _WEATHER_RE.search(t)),
+         detail=lambda m: m.as_dict(),
+         doc="More sentences or more words than config/tuning.yaml transcript_gate allows "
+             "(transcript_gate.py; no pattern)"),
+    Rule("search_phrase",   "research", lambda t: _SEARCH_PHRASES.search(t),
+         doc='An explicit search method ("search the web", "look it up", "google", "news about")',
+         patterns=("_SEARCH_PHRASES",)),
+    Rule("weather",         "home",     lambda t: _WEATHER_RE.search(t),
+         doc="A weather word with a question shape or a timeframe", patterns=("_WEATHER_RE",)),
     Rule("playback",        "home",     lambda t: _PLAYBACK_RE.search(t),
-         direct=lambda m: ("control_music", {"action": _group(m, _PLAYBACK_ACTIONS)})),
+         direct=lambda m: ("control_music", {"action": _group(m, _PLAYBACK_ACTIONS)}),
+         doc="A bare playback command (stop, pause, resume, skip, volume); runs control_music "
+             "with no model", patterns=("_PLAYBACK_RE",)),
     Rule("now_playing",     "home",     lambda t: _NOW_PLAYING_RE.search(t),
-         direct=lambda m: ("now_playing", {})),
+         direct=lambda m: ("now_playing", {}),
+         doc='"What\'s playing", "what song is this"; runs now_playing with no model',
+         patterns=("_NOW_PLAYING_RE",)),
     Rule("rate",            "home",     lambda t: _RATE_RE.search(t),
-         direct=lambda m: ("rate_music", {"thumb": _group(m, _RATE_THUMBS)})),
+         direct=lambda m: ("rate_music", {"thumb": _group(m, _RATE_THUMBS)}),
+         doc="Thumbs up or down, like or dislike this song; runs rate_music with no model",
+         patterns=("_RATE_RE",)),
     Rule("music_another",   "home",     lambda t: _ANOTHER_RE.search(t),
-         direct=_another_call),
-    Rule("taste",           "home",     lambda t: _TASTE_RE.search(t)),
-    Rule("music",           "home",     lambda t: _MUSIC_RE.search(t)),
+         direct=_another_call,
+         doc='"Play something else", "not that"; runs play_music another with no model',
+         patterns=("_ANOTHER_RE",)),
+    Rule("taste",           "home",     lambda t: _TASTE_RE.search(t),
+         doc='A music preference to remember ("I love X", "never play Y")', patterns=("_TASTE_RE",)),
+    Rule("music",           "home",     lambda t: _MUSIC_RE.search(t),
+         doc="A music request: a music-only verb, or play/start with a music noun or source",
+         patterns=("_MUSIC_RE",)),
     # The magic mirror: the pinned update sentence is home's fast terminal
     # tool; anything else about the mirror is devops' remote_exec loop.
     # update_magicmirror's own guard (origin.said) still decides whether
     # the update runs: the direct call goes through tools.execute.
     Rule("mm_update",       "home",
          lambda t: _MM_RE.search(t) and asks_for_mirror_update(t),
-         direct=lambda m: ("update_magicmirror", {})),
-    Rule("mm_ops",          "devops",   lambda t: _MM_RE.search(t)),
-    Rule("default",         "direct",   lambda t: True),
+         direct=lambda m: ("update_magicmirror", {}),
+         doc='The pinned sentence "update the magic mirror"; the only one that may run the update',
+         patterns=("_MM_RE", "_MM_UPDATE_RE")),
+    Rule("mm_ops",          "devops",   lambda t: _MM_RE.search(t),
+         doc="Anything else about the magic mirror", patterns=("_MM_RE",)),
+    Rule("default",         "direct",   lambda t: True,
+         doc="Everything else: the coordinator answers or delegates"),
 )
+
+
+def rules_table() -> list[dict]:
+    """RULES for the /settings page, read only: order, name, route, the
+    words, each pattern in effect, and whether it runs a tool directly."""
+    def source(name: str) -> str:
+        if name == "lead_in_pattern()":
+            return lead_in_pattern().pattern
+        return globals()[name].pattern
+    return [{"order": i + 1, "name": r.name, "route": r.route, "doc": r.doc,
+             "patterns": [{"name": p, "source": source(p)} for p in r.patterns],
+             "direct": r.direct is not None}
+            for i, r in enumerate(RULES)]
 
 
 def decide(text: str) -> Decision:
