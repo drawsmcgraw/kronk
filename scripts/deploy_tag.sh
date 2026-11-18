@@ -287,9 +287,11 @@ upgrade_lock_check() {
 d = json.loads(open(sys.argv[1], encoding="utf-8").read())
 it = d.get("intent")
 if it:
-    print("%s %s -> %s, step %s, run %s" % tuple(it.get(k) for k in ("component", "from", "to", "step", "run")))' \
+    print("%s %s -> %s, step %s, run %s" % tuple(it.get(k) for k in ("component", "from", "to", "step", "run"))
+          + ("; blocked (%s)" % it["blocked"] if it.get("blocked") else ""))' \
         "$UPGRADE_STATUS" 2>&1) \
         || die "refused: cannot tell whether an upgrade run was interrupted: $UPGRADE_STATUS cannot be read (${rec##*$'\n'}); python3 scripts/upgrades.py status says why"
+    case "$rec" in *"; blocked ("*) die "refused: an upgrade run was interrupted and left blocked ($rec; the record is in $UPGRADE_STATUS). No recovery acts on a blocked record: put it right by hand, then python3 scripts/upgrades.py ack" ;; esac
     [ -z "$rec" ] || die "refused: an upgrade run was interrupted ($rec; the record is in $UPGRADE_STATUS). Its recovery compares what runs with that record, so nothing is deployed by hand until it is dealt with. Either let it recover now: python3 scripts/upgrades.py minor --ignore-window (scripts/upgrade_minor.sh --ignore-window); or drop the record and take over by hand: python3 scripts/upgrades.py ack"
 }
 

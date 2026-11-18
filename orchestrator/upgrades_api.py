@@ -33,10 +33,17 @@ def summarize(raw: dict) -> dict:
         # An unfinished intent record: a run died inside a component. It
         # is a warning from the moment it exists, whatever else the file
         # says (sprint M18 fix 2, G2).
-        attention.insert(0, f"An upgrade run was interrupted inside {it.get('component')} {it.get('from')} -> "
-                            f"{it.get('to')} (step {it.get('step')}, {it.get('at')}). The next monthly run "
-                            f"recovers it, or scripts/upgrade_minor.sh --ignore-window now; until then "
-                            f"scripts/deploy_tag.sh deploy refuses.")
+        head = (f"An upgrade run was interrupted inside {it.get('component')} {it.get('from')} -> "
+                f"{it.get('to')} (step {it.get('step')}, {it.get('at')}).")
+        if it.get("blocked"):
+            # The record outlives an OUT OF STEP or ROLLBACK FAILED (sprint
+            # M18 fix 3, H2): no recovery acts on it; a person does, then ack.
+            word = "ROLLBACK FAILED" if it["blocked"] == "rollback_failed" else "OUT OF STEP"
+            attention.insert(0, f"{head} Blocked: {word}. Put it right by hand, then {ACK}; until then "
+                                f"scripts/deploy_tag.sh deploy refuses.")
+        else:
+            attention.insert(0, f"{head} The next monthly run recovers it, or scripts/upgrade_minor.sh "
+                                f"--ignore-window now; until then scripts/deploy_tag.sh deploy refuses.")
     return {
         "present": True,
         "warnings": attention,

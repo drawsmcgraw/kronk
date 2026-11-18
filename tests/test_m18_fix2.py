@@ -171,7 +171,7 @@ def test_a_tag_a_person_deployed_after_the_kill_is_never_deployed_over(house, ki
     assert "production runs tag sprint-Y" in o["detail"] and "sprint-X" in o["detail"]
     assert "upgrade-20261201T083000Z-litellm" in o["detail"] or kill == "deploy"
     assert "nothing was touched" in o["detail"]
-    assert st["out_of_step"]["component"] == "litellm" and "intent" not in st
+    assert st["out_of_step"]["component"] == "litellm" and st["intent"]["blocked"] == "out_of_step"   # kept (H2)
     (_, title, body), = ops.notices
     assert title == "Kronk upgrade: OUT OF STEP (litellm)" and "sprint-Y" in body
 

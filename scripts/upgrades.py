@@ -844,6 +844,17 @@ class StepFailed(RuntimeError):
     pass
 
 
+class ReadUnknown(RuntimeError):
+    """A read the recovery or the hourly command needs (the production tag,
+    docker inspect, git, compose config) failed. Unknown is never a fact:
+    nothing is done, the record is kept, and the next firing looks again
+    (sprint M18 fix 3, H2)."""
+
+    def __init__(self, what: str, err: str):
+        self.what, self.err = what, " ".join(str(err).split())[:300]
+        super().__init__(f"could not read {self.what}: {self.err}")
+
+
 def env_value(path: Path, key: str) -> str | None:
     try:
         for ln in path.read_text().splitlines():
@@ -991,6 +1002,8 @@ def block(status: dict, o, now: dt.datetime) -> None:
     """A failed rollback, or git and what runs out of step: later runs
     decline until `ack`, and /services shows it."""
     key = o.result                       # rollback_failed | out_of_step
+    if status.get("intent"):
+        status["intent"]["blocked"] = key  # kept until `ack` (H2)
     status[key] = {"component": o.name, "at": now.isoformat(timespec="seconds"), "state": o.state,
                    "detail": o.detail}
     word = "rollback FAILED" if key == "rollback_failed" else "OUT OF STEP"
@@ -1297,11 +1310,13 @@ def outside_window(ops: Ops, rules: Rules) -> str | None:
             f"(now {t.strftime('%H:%M')}): the timer tries the next night")
 
 
-def tree_state(ops: Ops, rules: Rules) -> list[str]:
+def tree_state(ops: Ops, rules: Rules, strict: bool = False) -> list[str]:
     why = []
     try:
         branch = ops.git("rev-parse", "--abbrev-ref", "HEAD").strip()
     except StepFailed as e:
+        if strict:
+            raise
         return [f"cannot read the git branch ({e})"]
     want = rules.settings["expected_branch"]
     if branch == "HEAD":
@@ -1336,17 +1351,24 @@ def run_declines_blocked(status: dict) -> list[str]:
         oo = status["out_of_step"]
         why.append(f"an earlier run left {oo.get('component')} out of step ({oo.get('state', '')}); "
                    f"fix it, then `python3 scripts/upgrades.py ack`")
+    it = status.get("intent") or {}
+    if it.get("blocked") and not why:
+        why.append(f"an earlier run's record for {it.get('component')} is blocked ({it['blocked']}); "
+                   f"fix it, then `python3 scripts/upgrades.py ack`")
     return why
 
 
 DEPLOY_ROW = re.compile(r"^(\S+)\s+(\S+)\s+(tag (\S+)|working tree|other: \S+)")
 
 
-def production_tag(ops: Ops, rules: Rules) -> tuple[str | None, list[str]]:
+def production_tag(ops: Ops, rules: Rules, strict: bool = False) -> tuple[str | None, list[str]]:
     """The tag production's orchestrator runs, and reasons the Kronk stack
-    is not in a state an unattended deploy may touch."""
+    is not in a state an unattended deploy may touch. strict: a status that
+    cannot be read raises ReadUnknown (H2)."""
     r = ops.deploy_tag("status")
     if not r.ok:
+        if strict:
+            raise ReadUnknown("production's tag (deploy_tag.sh status)", r.tail(200))
         return None, [f"deploy_tag.sh status failed: {r.tail(200)}"]
     why, tag = [], None
     for ln in r.out.splitlines()[1:]:
@@ -1373,7 +1395,7 @@ def undeployed(ops: Ops, rules: Rules, tag: str) -> list[str]:
     return [n for n in names if not any(fnmatch.fnmatch(n, p) for p in pats)]
 
 
-def bind_files_unreleased(ops: Ops, comp: dict) -> str | None:
+def bind_files_unreleased(ops: Ops, comp: dict, strict: bool = False) -> str | None:
     """None when no file the container bind-mounts from the working tree
     changed after the container started; else why not (F10). The config
     hash does not cover the contents of bind-mounted files, and a recreate
@@ -1394,8 +1416,12 @@ def bind_files_unreleased(ops: Ops, comp: dict) -> str | None:
         srcs = [m["Source"] for m in mounts if m.get("Type") == "bind" and Path(m["Source"]).resolve().is_relative_to(repo)
                 and not any(Path(m["Source"]).resolve().is_relative_to(q) for q in live)]
     except (ValueError, TypeError, KeyError, AttributeError, LookupFailed) as e:
+        if strict:
+            raise ReadUnknown(f"{c}'s start time and mounts", str(e)) from e
         return f"cannot read {c}'s start time and mounts ({e})"
     if started is None or mounts is None:
+        if strict:
+            raise ReadUnknown(f"{c}'s start time and mounts", (st if not st.ok else mi).tail(200))
         return f"cannot read {c}'s start time and mounts"
     changed = ops.files_changed_since(srcs, started)
     if not changed:
@@ -1759,17 +1785,22 @@ def ha_precheck(ctx: Ctx, snap: dict) -> list[str]:
     return why
 
 
-def ha_files_ok(ctx: Ctx, comp: dict) -> list[str]:
+def ha_files_ok(ctx: Ctx, comp: dict, strict: bool = False) -> list[str]:
     """M12 H2/H7b: the compose file renders, and every path it bind-mounts
     exists (`create_host_path: false` makes Docker refuse to create HA
-    without the recordings directory, after HA was stopped)."""
+    without the recordings directory, after HA was stopped). strict: a
+    compose config that cannot be read raises ReadUnknown (H2)."""
     r = ctx.ops.compose(comp["project"], comp["file"], "config", "--format", "json", timeout=60)
     if not r.ok:
+        if strict:
+            raise ReadUnknown(f"{comp['file']} (compose config)", r.tail(200))
         return [f"{comp['file']} does not render (compose config failed): {r.tail(200)}"]
     try:
         vols = json.loads(r.out)["services"][comp["service"]].get("volumes") or []
         ctx.ha_binds = [(v["source"], v["target"]) for v in vols if isinstance(v, dict) and v.get("type") == "bind"]
     except (ValueError, KeyError, TypeError, AttributeError) as e:
+        if strict:
+            raise ReadUnknown(f"{comp['file']} (compose config)", f"{e.__class__.__name__}: {e}") from e
         return [f"{comp['file']} renders, but not as expected ({e.__class__.__name__}: {e})"]
     return [f"{src} (bind-mounted by {comp['file']} at {tgt}) does not exist: Docker would refuse to create HA "
             f"after the stop" for src, tgt in ctx.ha_binds if not ctx.ops.path_exists(src)]
@@ -1985,11 +2016,14 @@ def what_runs(ctx, comp: dict) -> tuple[str | None, str]:
     return ver, phrase
 
 
-def head_pin(ctx: Ctx, comp: dict) -> str | None:
-    """The pin as committed at HEAD (not the working tree), or None."""
+def head_pin(ctx: Ctx, comp: dict, strict: bool = False) -> str | None:
+    """The pin as committed at HEAD (not the working tree), or None.
+    strict: a git that cannot be read raises StepFailed."""
     try:
         text = ctx.ops.git("show", f"HEAD:{comp['file']}")
     except StepFailed:
+        if strict:
+            raise
         return None
     hits = [m.group(1) for ln in text.splitlines() if (m := re.search(comp["match"], ln))]
     return hits[0] if len(hits) == 1 else None
@@ -1997,7 +2031,10 @@ def head_pin(ctx: Ctx, comp: dict) -> str | None:
 
 def apply_one(ctx: Ctx, p: Plan) -> Outcome:
     o = _apply_one(ctx, p)
-    clear_intent(ctx)                 # finished, whichever way (a process that dies leaves it)
+    if o.result not in BLOCKING:
+        clear_intent(ctx)             # finished (a process that dies leaves it)
+    # A block keeps the record (block() marks it): the hourly command still
+    # starts a stopped HA behind it, and only `ack` drops it (H2).
     return o
 
 
@@ -2229,10 +2266,11 @@ def unexplained_commits(ctx: Ctx, comp: dict, it: dict) -> str | None:
     head0 = it.get("head")
     if not head0:
         return "the record does not say where HEAD was when the run started"
-    try:
-        ctx.ops.git("merge-base", "--is-ancestor", head0, "HEAD")
-    except StepFailed:
+    r = ctx.ops.run(["git", "-C", str(ctx.ops.repo), "merge-base", "--is-ancestor", head0, "HEAD"], timeout=60)
+    if r.rc == 1:
         return f"HEAD does not descend from {head0[:10]}, where the run started"
+    if not r.ok:                                    # not an answer: unknown (H2)
+        raise StepFailed(f"git merge-base --is-ancestor: {r.tail(200)}")
     own = re.compile(rf"^upgrade: (roll back |not applied, )?{re.escape(comp['name'])} |^upgrade report: ")
     bad = []
     for ln in ctx.ops.git("log", "--format=%h%x09%ae%x09%s", f"{head0}..HEAD").splitlines():
@@ -2246,16 +2284,30 @@ def unexplained_commits(ctx: Ctx, comp: dict, it: dict) -> str | None:
 
 
 def intent_facts(ctx: Ctx, comp: dict, it: dict) -> dict:
-    """Read-only: where git, the tags and the running version stand."""
+    """Read-only: where git, the tags and the running version stand. A read
+    that fails raises ReadUnknown: never a fact (H2)."""
     ops = ctx.ops
-    dirty = [ln[3:] for ln in ops.git("status", "--porcelain", "--untracked-files=normal").splitlines() if ln.strip()]
+
+    def exists(t):
+        if not t:
+            return False
+        r = ops.run(["git", "-C", str(ops.repo), "rev-parse", "-q", "--verify", f"refs/tags/{t}"], timeout=60)
+        if r.rc not in (0, 1):
+            raise ReadUnknown("git", f"rev-parse refs/tags/{t}: {r.tail(200)}")
+        return r.rc == 0
+    try:
+        dirty = [ln[3:] for ln in ops.git("status", "--porcelain", "--untracked-files=normal").splitlines() if ln.strip()]
+        f = {"git": head_pin(ctx, comp, strict=True), "dirty": dirty, "prod_tag": None, "prod_why": [],
+             "tree": tree_state(ops, ctx.rules, strict=True), "unexplained": unexplained_commits(ctx, comp, it)}
+    except StepFailed as e:
+        raise ReadUnknown("git", str(e)) from e
     kind, ver, runs = container_state(ctx, comp)
-    f = {"git": head_pin(ctx, comp), "kind": kind, "ver": ver, "runs": runs, "dirty": dirty, "prod_tag": None,
-         "tree": tree_state(ops, ctx.rules), "unexplained": unexplained_commits(ctx, comp, it)}
-    exists = lambda t: bool(t) and bool(ops.git("rev-parse", "-q", "--verify", f"refs/tags/{t}", check=False).strip())  # noqa: E731
+    if kind == "unknown":
+        raise ReadUnknown(f"what {comp['container']} runs", runs.removeprefix("unknown (").removesuffix(")"))
+    f.update(kind=kind, ver=ver, runs=runs)
     f["tag"] = it.get("tag") if exists(it.get("tag")) else None
     if comp.get("deploy") == "kronk":
-        f["prod_tag"], _ = production_tag(ops, ctx.rules)
+        f["prod_tag"], f["prod_why"] = production_tag(ops, ctx.rules, strict=True)
         f["prev_exists"] = exists(it.get("prev_tag"))
     desc = f"git has {f['git']}, running is {runs}"
     if f["prod_tag"]:
@@ -2279,6 +2331,13 @@ def recover(ops: Ops, rules: Rules, sd: Path, status: dict, now: dt.datetime, lo
     if not it:
         return None
     name, frm, to = it.get("component"), it.get("from"), it.get("to")
+    if it.get("blocked"):
+        # OUT OF STEP or ROLLBACK FAILED: the record stays until `ack`, so
+        # the hourly command can still start a stopped HA; no recovery acts
+        # on it and the run declines on the block (H2).
+        log(f"an earlier run's record ({name} {frm} -> {to}, step {it.get('step')!r}) is blocked "
+            f"({it['blocked']}): no recovery acts on it until `python3 scripts/upgrades.py ack`")
+        return None
     log(f"an earlier run ({it.get('run')}) stopped inside {name} {frm} -> {to} at step {it.get('step')!r} "
         f"({it.get('at')}): checking git, the tags and what runs")
     ctx = Ctx(ops, rules, log, sd, stamp, now, it.get("prev_tag"), own=own, status=None if dry_run else status)
@@ -2300,12 +2359,27 @@ def recover(ops: Ops, rules: Rules, sd: Path, status: dict, now: dt.datetime, lo
             f = intent_facts(ctx, comp, it)
             log(f"  {f['desc']}")
             o = _recover_one(ctx, comp, it, f, dry_run)
+    except ReadUnknown as e:
+        o = _unknown(name, frm, to, e)
     except (StepFailed, RulesError, OSError) as e:
-        o = Outcome(name, frm, to, "out_of_step", f"cannot read git or what runs: {e}",
-                    state="OUT OF STEP: an interrupted run; git and what runs could not be read")
+        o = _unknown(name, frm, to, ReadUnknown("git or what runs", str(e)))
     if o is None:                      # dry run: said what it would do
         return None
     return _recovered(ctx, status, o, log_rel, dry_run)
+
+
+def _unknown(name: str, frm: str, to: str, e: ReadUnknown) -> Outcome:
+    return Outcome(name, frm, to, "unknown", e.what, state=f"could not read {e.what}: {e.err}; will look again")
+
+
+def notice_once(ops: Ops, status: dict, key: str, notice: dict, now: dt.datetime, log) -> None:
+    """At most one notice per record per distinct state (H3): `key` names
+    the state; the record remembers the keys it has sent."""
+    sent = status["intent"].setdefault("notices", [])
+    if key in sent:
+        return
+    sent.append(key)
+    deliver(ops, status, notice, now, log)
 
 
 def start_stopped_ha(ctx: Ctx, comp: dict) -> str | None:
@@ -2328,7 +2402,9 @@ def _ha_down_first(ctx: Ctx, comp: dict, it: dict, dry_run: bool):
     says what was done), "dry" in a dry run that would act, or an Outcome
     when HA could not be brought back."""
     name, frm, to, log, c = comp["name"], it["from"], it["to"], ctx.log, comp["container"]
-    kind, _, _ = container_state(ctx, comp)
+    kind, _, runs = container_state(ctx, comp)
+    if kind == "unknown":
+        raise ReadUnknown(f"what {c} runs", runs.removeprefix("unknown (").removesuffix(")"))
     if kind not in ("stopped", "absent"):
         return None
 
@@ -2414,8 +2490,10 @@ def _recover_one(ctx: Ctx, comp: dict, it: dict, f: dict, dry_run: bool) -> Outc
             if f["ver"] != frm:
                 return oos(f"production runs the recorded previous tag {prev}, but {c} runs {f['runs']}, not {frm}")
             return _pin_back_only(ctx, comp, it, f, dry_run)
-        return oos(f"production runs tag {prod or 'unknown'}; the record has the previous tag {prev} and the run's tag "
-                   f"{own or '(not made yet)'}: someone else deployed in between")
+        rec = f"the record has the previous tag {prev} and the run's tag {own or '(not made yet)'}"
+        if prod is None:                # read, and not a tag: a fact, but not a deploy by someone
+            return oos(f"production's orchestrator runs no tag ({'; '.join(f['prod_why']) or 'none found'}); {rec}")
+        return oos(f"production runs tag {prod}; {rec}: someone else deployed in between")
     # Telemetry and Home Assistant (a stopped or missing HA was dealt with first).
     if f["kind"] != "runs":
         return oos(f"{c} is not running ({f['runs']}); a recovery starts nothing the record does not account for")
@@ -2437,22 +2515,22 @@ def _recovery_guards(ctx: Ctx, comp: dict, it: dict, f: dict) -> str | None:
     ops, c = ctx.ops, comp["container"]
     have, err = label_hash(ops, comp)
     if err:
-        return err
+        raise ReadUnknown(f"{c}'s config-hash label", err)
     if not it.get("hash_to") or have != it["hash_to"]:
         return (f"{c} is not the container the run started (its config hash {have} is not the run's "
                 f"{it.get('hash_to')}): it was recreated since")
     want = it.get("hash_to") if f["git"] == it["to"] else it.get("hash_from")
     cur, err = config_hash(ops, comp)
     if err:
-        return err
+        raise ReadUnknown(f"the config hash of {comp['file']}", err)
     if not want or cur != want:
         return (f"{comp['file']} at HEAD (or its env file) no longer gives the config hash the record has "
                 f"({want}, now {cur}): a recreate would bring up something the run never checked")
-    why = bind_files_unreleased(ops, comp)
+    why = bind_files_unreleased(ops, comp, strict=True)
     if why:
         return why
     if comp["deploy"] == "ha":
-        files = ha_files_ok(ctx, comp)
+        files = ha_files_ok(ctx, comp, strict=True)
         if files:
             return "M12 H7b: " + "; ".join(files)
     return None
@@ -2545,7 +2623,22 @@ def _recovered(ctx: Ctx, status: dict, o: Outcome, log_rel: str, dry_run: bool) 
                               "summary": o.state, "log": log_rel}
         save_status(ctx.sd, status, now)
         return 0
-    status.pop("intent", None)
+    if o.result == "unknown":
+        # A read failed: nothing more is done, the record stays, the next
+        # firing looks again (H2).
+        add_attention(status, "interrupted", f"Upgrade interrupted inside {o.name} {o.frm} -> {o.to}: {o.state}", now)
+        notice_once(ctx.ops, status, f"unknown:{o.detail}", {
+            "id": f"unknown-{o.name}-{ctx.stamp}", "tag": NOTIFY_TAG,
+            "title": f"Kronk upgrade: interrupted ({o.name}); could not check it",
+            "body": f"{o.name} {o.frm} -> {o.to}: {o.state}. "
+                    f"{'Nothing else was done' if ctx.ha_back else 'Nothing was done'}. Log: {log_rel}",
+            "created": now.isoformat(timespec="seconds")}, now, log)
+        status["last_run"] = {"kind": "minor", "at": now.isoformat(timespec="seconds"), "result": "unknown",
+                              "summary": o.state, "log": log_rel}
+        save_status(ctx.sd, status, now)
+        return 1
+    if o.result == "recovered":
+        status.pop("intent", None)
     if o.result in BLOCKING:
         block(status, o, now)
     else:
@@ -3487,6 +3580,8 @@ def hourly_notice(ops: Ops, status: dict, now: dt.datetime, log: RunLog, back: s
             f"({it.get('at')}, run {it.get('run')}). The next monthly run recovers it, or "
             f"scripts/upgrade_minor.sh --ignore-window now; `python3 scripts/upgrades.py ack` drops the record "
             f"for a person to take over. Until then scripts/deploy_tag.sh deploy refuses." + (f" {back}." if back else ""))
+    if it.get("blocked") and not back:
+        return                          # the block's own warning and notice stand (H2)
     add_attention(status, "interrupted", text, now)
     if it.get("noticed") and not back:
         return

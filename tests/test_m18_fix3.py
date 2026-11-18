@@ -105,3 +105,165 @@ def test_a_stopped_ha_is_still_started_off_the_expected_branch(house):
     git(ops.repo, "checkout", "-q", "--detach")
     run(ops, sd, ["homeassistant"])
     assert mutating(ops) == [("docker", "start", "homeassistant")] and "homeassistant" not in ops.stopped
+
+
+# ── H2 (X2, Y1): a read that fails is unknown, never a fact ──────────────
+
+def _fail_once(ops, kind, pred, result=None):
+    """The next call `kind` whose args match pred fails once (a read that failed)."""
+    orig, done = getattr(ops, kind), []
+
+    def wrapped(*args, **kw):
+        if not done and pred(args):
+            done.append(True)
+            ops.calls.append((kind,) + args)
+            return result or U.Result(1, "", "Cannot connect to the Docker daemon at unix:///var/run/docker.sock")
+        return orig(*args, **kw)
+    setattr(ops, kind, wrapped)
+
+
+def test_an_unreadable_production_tag_is_unknown_not_someone_elses_deploy(house):
+    """The tester's X2: killed in verify, nobody touches anything, and at
+    the next run `deploy_tag.sh status` fails once."""
+    ops, sd = house
+    killed(ops, sd, ["litellm"], _kill_litellm_in_verify(ops))
+    _fail_once(ops, "deploy_tag", lambda a: a[0] == "status")
+    assert run(ops, sd, ["litellm"]) == 1
+    assert mutating(ops) == []
+    st = status(sd)
+    assert st["intent"]["component"] == "litellm" and not st["intent"].get("blocked")
+    assert not st.get("out_of_step") and not st.get("rollback_failed")
+    (_, title, body), = ops.notices
+    assert "someone else deployed" not in body and "OUT OF STEP" not in title
+    assert "could not read production's tag (deploy_tag.sh status): Cannot connect to the Docker daemon" in body
+    assert "will look again" in body
+    # The next night the read works: the rollback the record describes is finished.
+    ops.calls.clear()
+    ops.clock += _dt.timedelta(days=1)
+    assert run(ops, sd, ["litellm"]) == 1
+    assert [c for c in mutating(ops) if c[0] == "deploy_tag"] == [("deploy_tag", "deploy", "sprint-X")]
+    assert "intent" not in status(sd)
+
+
+def test_someone_elses_deploy_is_said_only_when_another_tag_was_read(house):
+    """Mutant r11: the sentence is the fact "production runs tag sprint-Y"."""
+    ops, sd = house
+    killed(ops, sd, ["litellm"], _kill_litellm_in_verify(ops))
+    git(ops.repo, "tag", "sprint-Y", "HEAD~1")
+    ops.prod_tag = "sprint-Y"
+    assert run(ops, sd, ["litellm"]) == 2
+    d = status(sd)["last_run"]["outcomes"][0]["detail"]
+    assert "production runs tag sprint-Y" in d and "someone else deployed in between" in d
+
+
+def test_production_on_no_tag_is_out_of_step_without_blaming_a_deploy(house):
+    ops, sd = house
+    killed(ops, sd, ["litellm"], _kill_litellm_in_verify(ops))
+    _fail_once(ops, "deploy_tag", lambda a: a[0] == "status", U.Result(0, "CONTAINER SERVICE RUNNING_FROM CREATED\n"
+               "kronk-orchestrator-1 orchestrator working tree 1 hour ago\n"))
+    assert run(ops, sd, ["litellm"]) == 2 and mutating(ops) == []
+    d = status(sd)["last_run"]["outcomes"][0]["detail"]
+    assert "production's orchestrator runs no tag" in d and "someone else deployed" not in d
+
+
+def test_a_failed_inspect_of_a_stopped_ha_is_unknown_and_the_hourly_start_still_comes(house, monkeypatch):
+    """The tester's Y1, first input: the first `docker inspect homeassistant`
+    of the monthly recovery fails once."""
+    ops, sd = house
+    killed(ops, sd, ["homeassistant"], _kill_after_ha_stop(ops))
+    _fail_once(ops, "docker", lambda a: a[:2] == ("inspect", "homeassistant"))
+    run(ops, sd, ["homeassistant"])
+    assert mutating(ops) == [] and "homeassistant" in ops.stopped
+    st = status(sd)
+    assert st["intent"]["component"] == "homeassistant" and not st.get("out_of_step")
+    assert "could not read what homeassistant runs" in ops.notices[-1][2]
+    monkeypatch.setenv("KRONK_UPGRADE_STATE", str(sd))
+    ops.clock += _dt.timedelta(minutes=50)
+    U.main(["notices"], ops=ops)
+    assert "homeassistant" not in ops.stopped
+
+
+def test_a_failed_docker_start_in_the_monthly_recovery_is_retried_by_the_hourly_command(house, monkeypatch):
+    """The tester's Y1, second input: ROLLBACK FAILED keeps the record,
+    marked blocked; the hourly command starts HA behind the block."""
+    ops, sd = house
+    killed(ops, sd, ["homeassistant"], _kill_after_ha_stop(ops))
+    _fail_once(ops, "docker", lambda a: a[0] == "start", U.Result(1, "", "Error response from daemon: busy"))
+    assert run(ops, sd, ["homeassistant"]) == 2
+    st = status(sd)
+    assert st["rollback_failed"]["component"] == "homeassistant"
+    assert st["intent"]["blocked"] == "rollback_failed"
+    monkeypatch.setenv("KRONK_UPGRADE_STATE", str(sd))
+    ops.clock += _dt.timedelta(minutes=50)
+    U.main(["notices"], ops=ops)
+    assert "homeassistant" not in ops.stopped
+    # The next night: the block declines the run; nothing else is touched.
+    ops.calls.clear()
+    ops.clock += _dt.timedelta(days=1)
+    assert run(ops, sd, ["homeassistant"]) == 0 and mutating(ops) == []
+    assert status(sd)["last_run"]["result"] == "declined"
+
+
+def test_a_git_read_that_fails_is_unknown(house):
+    ops, sd = house
+    killed(ops, sd, ["litellm"], _kill_litellm_in_verify(ops))
+    _fail_once(ops, "run", lambda a: "merge-base" in a[0], U.Result(128, "", "fatal: unable to read index"))
+    assert run(ops, sd, ["litellm"]) == 1 and mutating(ops) == []
+    st = status(sd)
+    assert st["intent"]["component"] == "litellm" and not st.get("out_of_step")
+    assert "could not read git" in ops.notices[-1][2]
+
+
+def test_a_failed_inspect_with_production_on_the_previous_tag_is_unknown(house):
+    ops, sd = house
+    killed(ops, sd, ["litellm"], kill_before(ops, "deploy_tag", lambda a: a[0] == "deploy"))
+    orig = ops.docker
+    ops.docker = lambda *a, **kw: (U.Result(1, "", "context deadline exceeded") if a[:2] == ("inspect", "kronk-litellm-1")
+                                   else orig(*a, **kw))
+    assert run(ops, sd, ["litellm"]) == 1 and mutating(ops) == []
+    assert not status(sd).get("out_of_step") and status(sd)["intent"]["component"] == "litellm"
+
+
+def test_a_failed_rollback_in_a_run_keeps_the_record_so_a_stopped_ha_is_started(house, monkeypatch):
+    """HA's upgrade fails verify, the rollback stops HA and its compose up
+    fails: ROLLBACK FAILED with HA stopped. The record stays (blocked)."""
+    ops, sd = house
+    ops.bad_versions.add("2026.5.5")
+    orig = ops.compose
+
+    def compose(project, file, *args, **kw):
+        if args[0] == "up" and "2026.5.4" in (ops.repo / file).read_text():
+            ops.calls.append(("compose", project, file) + args)
+            return U.Result(1, "", "Error response from daemon: no space left on device")
+        return orig(project, file, *args, **kw)
+    ops.compose = compose
+    assert run(ops, sd, ["homeassistant"]) == 2 and "homeassistant" in ops.stopped
+    assert status(sd)["intent"]["blocked"] == "rollback_failed"
+    monkeypatch.setenv("KRONK_UPGRADE_STATE", str(sd))
+    U.main(["notices"], ops=ops)
+    assert "homeassistant" not in ops.stopped
+
+
+def test_a_blocked_record_is_shown_as_needing_ack_by_the_api_and_deploy(tmp_path):
+    """The record now outlives a block (H2): the API and deploy_tag.sh do
+    not offer a recovery that will not act on it."""
+    import subprocess
+    import upgrades_api
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+    from tests.m18_helpers import ROOT
+    st = {"intent": {"component": "litellm", "from": "v1.88.1", "to": "v1.88.6", "step": "verify",
+                     "run": "20261201T083000Z", "at": "2026-12-01T08:41:00+00:00", "blocked": "out_of_step"}}
+    (tmp_path / "st").mkdir()
+    U.save_status(tmp_path / "st", st, NOW)
+    upgrades_api.STATUS_FILE = str(tmp_path / "st" / "status.json")
+    app = FastAPI()
+    app.include_router(upgrades_api.router)
+    w = TestClient(app).get("/api/upgrades").json()["warnings"][0]
+    assert "OUT OF STEP" in w and "ack" in w and "recovers it" not in w
+    r = subprocess.run(["bash", str(ROOT / "scripts" / "deploy_tag.sh"), "deploy", "m18-fix3-no-such-tag"],
+                       capture_output=True, text=True, timeout=30,
+                       env={"PATH": __import__("os").environ["PATH"], "HOME": str(tmp_path),
+                            "KRONK_UPGRADE_STATE": str(tmp_path / "st"), "KRONK_RELEASES": str(tmp_path / "rel"),
+                            "KRONK_LIVE_CONFIG": str(tmp_path / "cfg")})
+    assert r.returncode == 1 and "blocked (out_of_step)" in r.stderr and "--ignore-window" not in r.stderr
