@@ -1143,7 +1143,7 @@ def test_dashboards_grafana_reloads_by_itself_do_not_hold_it_back(house):
     assert run(ops, sd, only=["grafana"]) == 0
     assert status(sd)["last_run"]["outcomes"][0]["result"] == "kept"
     ops.mtimes[str(ops.repo / "telemetry/grafana/provisioning/datasources/tempo.yaml")] = \
-        _dt.datetime(2026, 11, 20, tzinfo=_dt.timezone.utc)                # loaded at start only: counts
+        NOW + _dt.timedelta(hours=1)                                      # loaded at start only: counts
     why = U.bind_files_unreleased(ops, rules().component("grafana"))
     assert why.startswith("telemetry/grafana/provisioning/datasources/tempo.yaml changed after")
     assert "dashboards" not in why

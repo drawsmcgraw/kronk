@@ -1269,18 +1269,32 @@ def bind_files_unreleased(ops: Ops, comp: dict) -> str | None:
             f"a recreate would load {'it' if len(names) == 1 else 'them'} unreleased")
 
 
-def compose_hash_ok(ops: Ops, comp: dict) -> str | None:
-    """None when the file at HEAD describes what runs; else why not."""
+def config_hash(ops: Ops, comp: dict) -> tuple[str | None, str | None]:
+    """(the config hash compose gives the service from the file on disk and
+    its env file, None) or (None, why it could not be read)."""
     r = ops.compose(comp["project"], comp["file"], "config", "--hash", comp["service"], env_file=comp.get("env_file"),
                     timeout=60)
     if not r.ok:
-        return f"compose config --hash failed: {r.tail(160)}"
-    want = r.out.split()[-1] if r.out.split() else ""
+        return None, f"compose config --hash failed: {r.tail(160)}"
+    return (r.out.split()[-1] if r.out.split() else ""), None
+
+
+def label_hash(ops: Ops, comp: dict) -> tuple[str | None, str | None]:
+    """(the config hash the running container was created with, None) or (None, why not)."""
     i = ops.docker("inspect", comp["container"], "-f", '{{index .Config.Labels "com.docker.compose.config-hash"}}',
                    timeout=30)
     if not i.ok:
-        return f"cannot inspect {comp['container']}: {i.tail(160)}"
-    if i.out.strip() != want:
+        return None, f"cannot inspect {comp['container']}: {i.tail(160)}"
+    return i.out.strip(), None
+
+
+def compose_hash_ok(ops: Ops, comp: dict) -> str | None:
+    """None when the file at HEAD describes what runs; else why not."""
+    want, err = config_hash(ops, comp)
+    have, err2 = label_hash(ops, comp) if not err else (None, None)
+    if err or err2:
+        return err or err2
+    if have != want:
         return (f"{comp['file']} at HEAD does not describe the running {comp['container']} "
                 f"(config hash differs): it has changes that were never brought up")
     return None
@@ -1804,8 +1818,13 @@ def _apply_one(ctx: Ctx, p: Plan) -> Outcome:
     if busy:
         return Outcome(name, frm, to, "not_started", "house busy: " + "; ".join(busy))
 
-    # Pin, commit.
-    set_intent(ctx, comp, frm, to, "pin-commit")
+    # Pin, commit. The record says where HEAD was and, for telemetry and HA,
+    # the config hash of what runs: a recovery acts only when the world is
+    # still what the record says (sprint M18 fix 2, G1).
+    extra = {"head": ops.git("rev-parse", "HEAD").strip()}
+    if comp["deploy"] in ("ha", "compose"):
+        extra["hash_from"], _ = config_hash(ops, comp)
+    set_intent(ctx, comp, frm, to, "pin-commit", **extra)
     try:
         write_pin(ops.repo, comp, frm, to)
         ops.git("add", "--", comp["file"])
@@ -1816,7 +1835,13 @@ def _apply_one(ctx: Ctx, p: Plan) -> Outcome:
     except (StepFailed, RulesError, OSError) as e:
         return pin_not_committed(ctx, comp, frm, to, f"the pin commit failed: {e}")
     log(f"  committed {commit}: upgrade: {name} {frm} -> {to}")
-    step(ctx, "bring-up", commit=commit)
+    hashed = {}
+    if comp["deploy"] in ("ha", "compose"):
+        hashed["hash_to"], err = config_hash(ops, comp)
+        if err:
+            step(ctx, "bring-up", commit=commit)
+            return not_applied(ctx, comp, frm, to, f"after the pin commit: {err}", commit)
+    step(ctx, "bring-up", commit=commit, **hashed)
 
     # Bring up. Until a step changes what runs (ctx.touched), a failure is
     # "not applied": git is put back and nothing is restarted.
@@ -1965,15 +1990,42 @@ def _pin_back(ctx: Ctx, comp: dict, frm: str, to: str, why: str) -> str:
     return ctx.ops.git("rev-parse", "--short", "HEAD").strip()
 
 
+def unexplained_commits(ctx: Ctx, comp: dict, it: dict) -> str | None:
+    """None when every commit between where HEAD was when the run started
+    (the record's `head`) and HEAD now is the run's own for this component
+    (the pin commit, its rollback or revert, a recovery's pin-back) or a
+    quarterly report; else what a person (or anything else) added."""
+    head0 = it.get("head")
+    if not head0:
+        return "the record does not say where HEAD was when the run started"
+    try:
+        ctx.ops.git("merge-base", "--is-ancestor", head0, "HEAD")
+    except StepFailed:
+        return f"HEAD does not descend from {head0[:10]}, where the run started"
+    own = re.compile(rf"^upgrade: (roll back |not applied, )?{re.escape(comp['name'])} |^upgrade report: ")
+    bad = []
+    for ln in ctx.ops.git("log", "--format=%h%x09%ae%x09%s", f"{head0}..HEAD").splitlines():
+        sha, email, subject = (ln.split("\t", 2) + ["", ""])[:3]
+        if ln.strip() and not (email == COMMIT_EMAIL and own.match(subject)):
+            bad.append(f"{sha} {subject}")
+    if bad:
+        return (f"HEAD has {len(bad)} commit(s) since the run started that the record does not explain "
+                f"({'; '.join(bad[:4])})")
+    return None
+
+
 def intent_facts(ctx: Ctx, comp: dict, it: dict) -> dict:
-    """Read-only: where git, the tag and the running version stand."""
-    dirty = [ln[3:] for ln in ctx.ops.git("status", "--porcelain", "--untracked-files=normal").splitlines() if ln.strip()]
-    ver, runs = what_runs(ctx, comp)
-    f = {"git": head_pin(ctx, comp), "ver": ver, "runs": runs, "dirty": dirty, "prod_tag": None}
-    tag = it.get("tag")
-    f["tag"] = tag if tag and ctx.ops.git("rev-parse", "-q", "--verify", f"refs/tags/{tag}", check=False).strip() else None
+    """Read-only: where git, the tags and the running version stand."""
+    ops = ctx.ops
+    dirty = [ln[3:] for ln in ops.git("status", "--porcelain", "--untracked-files=normal").splitlines() if ln.strip()]
+    kind, ver, runs = container_state(ctx, comp)
+    f = {"git": head_pin(ctx, comp), "kind": kind, "ver": ver, "runs": runs, "dirty": dirty, "prod_tag": None,
+         "unexplained": unexplained_commits(ctx, comp, it)}
+    exists = lambda t: bool(t) and bool(ops.git("rev-parse", "-q", "--verify", f"refs/tags/{t}", check=False).strip())  # noqa: E731
+    f["tag"] = it.get("tag") if exists(it.get("tag")) else None
     if comp.get("deploy") == "kronk":
-        f["prod_tag"], _ = production_tag(ctx.ops, ctx.rules)
+        f["prod_tag"], _ = production_tag(ops, ctx.rules)
+        f["prev_exists"] = exists(it.get("prev_tag"))
     desc = f"git has {f['git']}, running is {runs}"
     if f["prod_tag"]:
         desc += f", production runs tag {f['prod_tag']}"
@@ -1988,15 +2040,16 @@ def intent_facts(ctx: Ctx, comp: dict, it: dict) -> dict:
 def recover(ops: Ops, rules: Rules, sd: Path, status: dict, now: dt.datetime, log: RunLog, log_rel: str,
             stamp: str, own: Own, dry_run: bool, late: str | None = None) -> int | None:
     """An earlier run died inside a component (its intent record is still
-    in the status file). Compare git, the tag and what runs; finish the
-    rollback to the recorded previous version, or stop and say what is out
-    of step. None: nothing to recover, go on; else the run's exit code."""
+    in the status file). Compare git, the tags and what runs with the
+    record; act only when they are what the record says, else stop and say
+    what is out of step. None: nothing to recover, go on; else the run's
+    exit code."""
     it = status.get("intent")
     if not it:
         return None
     name, frm, to = it.get("component"), it.get("from"), it.get("to")
     log(f"an earlier run ({it.get('run')}) stopped inside {name} {frm} -> {to} at step {it.get('step')!r} "
-        f"({it.get('at')}): checking git, the tag and what runs")
+        f"({it.get('at')}): checking git, the tags and what runs")
     ctx = Ctx(ops, rules, log, sd, stamp, now, it.get("prev_tag"), own=own, status=None if dry_run else status)
     ctx.ha_old_id = it.get("ha_old_id")
     ctx.outside_window = late
@@ -2008,67 +2061,155 @@ def recover(ops: Ops, rules: Rules, sd: Path, status: dict, now: dt.datetime, lo
         return _recovered(ctx, status, o, log_rel, dry_run)
     try:
         f = intent_facts(ctx, comp, it)
+        log(f"  {f['desc']}")
+        o = _recover_one(ctx, comp, it, f, dry_run)
     except (StepFailed, RulesError, OSError) as e:
         o = Outcome(name, frm, to, "out_of_step", f"cannot read git or what runs: {e}",
                     state="OUT OF STEP: an interrupted run; git and what runs could not be read")
-        return _recovered(ctx, status, o, log_rel, dry_run)
-    log(f"  {f['desc']}")
-    o = _recover_one(ctx, comp, it, f, dry_run)
     if o is None:                      # dry run: said what it would do
         return None
     return _recovered(ctx, status, o, log_rel, dry_run)
 
 
+_OOS_TODO = ("nothing was touched; put what should run back by hand, make git's pin match it, "
+             "then `python3 scripts/upgrades.py ack`")
+
+
 def _recover_one(ctx: Ctx, comp: dict, it: dict, f: dict, dry_run: bool) -> Outcome | None:
-    name, frm, to, log = comp["name"], it["from"], it["to"], ctx.log
-    oos = lambda why: Outcome(name, frm, to, "out_of_step", why,  # noqa: E731
+    """The recovery table (sprint M18 fix 2, G1). The record is acted on
+    only when the world is exactly what it says; anything else is OUT OF
+    STEP with nothing touched. No recovery deploys over something a person
+    deployed."""
+    name, frm, to = comp["name"], it["from"], it["to"]
+    oos = lambda why: Outcome(name, frm, to, "out_of_step", f"{why}; {_OOS_TODO}",  # noqa: E731
                               state=f"OUT OF STEP after an interrupted run (step {it.get('step')}): {f['desc']}")
     if f["dirty"]:
         return oos("the working tree is not clean; the run does not touch uncommitted changes")
+    if f["unexplained"]:
+        return oos(f["unexplained"])
     if f["git"] not in (frm, to):
         return oos(f"git has {f['git']}, neither {frm} nor {to}")
-    down = f["ver"] is None and f["runs"].startswith("nothing")
-    ahead = f["ver"] == to or (comp.get("deploy") == "kronk" and f["prod_tag"] not in (None, it.get("prev_tag")))
-    if f["ver"] not in (frm, to) and not down:
-        return oos(f"{comp.get('container')} runs {f['runs']}, neither {frm} nor {to}")
-    if f["ver"] == frm and not ahead:
-        if f["git"] == frm:
-            if dry_run:
-                log(f"  a real run would clear the record: nothing is out of step ({frm} in git and running)")
-                return None
-            return Outcome(name, frm, to, "recovered", f"interrupted at step {it.get('step')}",
-                           state=f"recovered: nothing was out of step ({frm} in git and running)")
+    c = comp.get("container")
+    if comp["deploy"] == "kronk":
+        prod, prev, own = f["prod_tag"], it.get("prev_tag"), it.get("tag")
+        if own and prod == own:
+            # The run's own deploy reached production: deploy the recorded previous tag.
+            if not f.get("prev_exists"):
+                return oos(f"production runs the run's own tag {own}, and the recorded previous tag {prev} does not exist")
+            return _finish_rollback(ctx, comp, it, f, dry_run)
+        if prod and prod == prev:
+            if f["ver"] != frm:
+                return oos(f"production runs the recorded previous tag {prev}, but {c} runs {f['runs']}, not {frm}")
+            return _pin_back_only(ctx, comp, it, f, dry_run)
+        return oos(f"production runs tag {prod or 'unknown'}; the record has the previous tag {prev} and the run's tag "
+                   f"{own or '(not made yet)'}: someone else deployed in between")
+    # Telemetry and Home Assistant.
+    if comp["deploy"] == "ha" and f["kind"] in ("stopped", "absent"):
+        # Home Assistant down: brought back on the previous image at once.
         if dry_run:
-            log(f"  a real run would put the pin back to {frm} (a commit); nothing is restarted")
+            log = ctx.log
+            log(f"  a real run would finish the rollback to {frm} now (it is down: no wait)")
             return None
         try:
-            c = _pin_back(ctx, comp, frm, to, f"Recovering an interrupted run ({it.get('run')}, step {it.get('step')}): "
-                                              f"git had {to} while {frm} ran.")
+            if f["git"] == to:
+                _pin_back(ctx, comp, frm, to, f"Recovering an interrupted run ({it.get('run')}, step {it.get('step')}).")
+            if not ctx.ha_old_id:
+                i = ctx.ops.docker("image", "inspect", f"{HA_ROLLBACK_REPO}:{frm}", "-f", "{{.Id}}", timeout=30)
+                ctx.ha_old_id = i.out.strip() if i.ok else None
+            err = ha_rollback(ctx, comp, frm)
+            after = [err] if err else verify(ctx, comp, frm, full=False)
         except (StepFailed, RulesError, OSError) as e:
-            return oos(f"putting the pin back failed: {e}")
-        return Outcome(name, frm, to, "recovered", f"interrupted at step {it.get('step')}", c,
-                       state=f"recovered: git had {to} while {frm} ran; pin put back to {frm} (commit {c}), nothing restarted")
-    # The new version runs unverified, or the component is down: finish the
-    # rollback to the recorded previous version (the safe direction).
-    if not down:
-        busy = house_busy(ctx.ops, ctx.rules, ctx.ops.now(), ctx.own)
-        if busy or ctx.outside_window:
-            why = "; ".join(busy) if busy else ctx.outside_window
-            if dry_run:
-                log(f"  a real run would finish the rollback to {frm} when the house is quiet (now: {why})")
-                return None
-            return Outcome(name, frm, to, "deferred", why,
-                           state=f"{to} runs unverified after an interrupted run; the rollback to {frm} waits for "
-                                 f"a quiet house in the night window")
+            after = [f"recovery step raised: {e}"]
+        if after:
+            _, runs = what_runs(ctx, comp)
+            return Outcome(name, frm, to, "rollback_failed", "; ".join(after),
+                           state=f"ROLLBACK FAILED; running is {runs}; git has {head_pin(ctx, comp)}")
+        return Outcome(name, frm, to, "recovered", f"interrupted at step {it.get('step')}",
+                       state=f"recovered: Home Assistant was down after an interrupted upgrade; it runs {frm} again, "
+                             f"git has {frm}")
+    if f["kind"] != "runs":
+        return oos(f"{c} is not running ({f['runs']}); a recovery starts nothing the record does not account for")
+    if f["ver"] == frm:
+        return _pin_back_only(ctx, comp, it, f, dry_run)
+    if f["ver"] != to:
+        return oos(f"{c} runs {f['runs']}, neither {frm} nor {to}")
+    why = _recovery_guards(ctx, comp, it, f)
+    if why:
+        return oos(why)
+    return _finish_rollback(ctx, comp, it, f, dry_run)
+
+
+def _recovery_guards(ctx: Ctx, comp: dict, it: dict, f: dict) -> str | None:
+    """The guards an upgrade passes before its `up`, for the recovery's:
+    the container is the one the run created, the file at HEAD (and its
+    env file) still gives the config hash the record has for that commit,
+    no bind-mounted file changed after the start, and for HA M12's H7b."""
+    ops, c = ctx.ops, comp["container"]
+    have, err = label_hash(ops, comp)
+    if err:
+        return err
+    if not it.get("hash_to") or have != it["hash_to"]:
+        return (f"{c} is not the container the run started (its config hash {have} is not the run's "
+                f"{it.get('hash_to')}): it was recreated since")
+    want = it.get("hash_to") if f["git"] == it["to"] else it.get("hash_from")
+    cur, err = config_hash(ops, comp)
+    if err:
+        return err
+    if not want or cur != want:
+        return (f"{comp['file']} at HEAD (or its env file) no longer gives the config hash the record has "
+                f"({want}, now {cur}): a recreate would bring up something the run never checked")
+    why = bind_files_unreleased(ops, comp)
+    if why:
+        return why
+    if comp["deploy"] == "ha":
+        files = ha_files_ok(ctx, comp)
+        if files:
+            return "M12 H7b: " + "; ".join(files)
+    return None
+
+
+def _pin_back_only(ctx: Ctx, comp: dict, it: dict, f: dict, dry_run: bool) -> Outcome | None:
+    """The previous version runs: put git back if it is ahead; restart nothing."""
+    name, frm, to, log = comp["name"], it["from"], it["to"], ctx.log
+    if f["git"] == frm:
+        if dry_run:
+            log(f"  a real run would clear the record: nothing is out of step ({frm} in git and running)")
+            return None
+        return Outcome(name, frm, to, "recovered", f"interrupted at step {it.get('step')}",
+                       state=f"recovered: nothing was out of step ({frm} in git and running)")
     if dry_run:
-        log(f"  a real run would finish the rollback to {frm} now" + (" (it is down: no wait)" if down else ""))
+        log(f"  a real run would put the pin back to {frm} (a commit); nothing is restarted")
+        return None
+    try:
+        sha = _pin_back(ctx, comp, frm, to, f"Recovering an interrupted run ({it.get('run')}, step {it.get('step')}): "
+                                            f"git had {to} while {frm} ran.")
+    except (StepFailed, RulesError, OSError) as e:
+        return Outcome(name, frm, to, "out_of_step", f"putting the pin back failed: {e}",
+                       state=f"OUT OF STEP after an interrupted run: {f['desc']}")
+    return Outcome(name, frm, to, "recovered", f"interrupted at step {it.get('step')}", sha,
+                   state=f"recovered: git had {to} while {frm} ran; pin put back to {frm} (commit {sha}), nothing restarted")
+
+
+def _finish_rollback(ctx: Ctx, comp: dict, it: dict, f: dict, dry_run: bool) -> Outcome | None:
+    """The run's new version runs unverified: finish the rollback to the
+    recorded previous version, inside the night window with the house quiet."""
+    name, frm, to, log = comp["name"], it["from"], it["to"], ctx.log
+    busy = house_busy(ctx.ops, ctx.rules, ctx.ops.now(), ctx.own)
+    if busy or ctx.outside_window:
+        why = "; ".join(busy) if busy else ctx.outside_window
+        if dry_run:
+            log(f"  a real run would finish the rollback to {frm} when the house is quiet (now: {why})")
+            return None
+        return Outcome(name, frm, to, "deferred", why,
+                       state=f"{to} runs unverified after an interrupted run; the rollback to {frm} waits for "
+                             f"a quiet house in the night window")
+    if dry_run:
+        log(f"  a real run would finish the rollback to {frm} now")
         return None
     try:
         if f["git"] == to:
             _pin_back(ctx, comp, frm, to, f"Recovering an interrupted run ({it.get('run')}, step {it.get('step')}).")
         if comp["deploy"] == "kronk":
-            if not it.get("prev_tag"):
-                return oos("no previous tag recorded to deploy")
             ctx.redeploys += 1
             r = ctx.ops.deploy_tag("deploy", it["prev_tag"])
             err = None if r.ok else f"deploy of the previous tag {it['prev_tag']} failed (exit {r.rc}): {r.tail(200)}"
@@ -2088,9 +2229,8 @@ def _recover_one(ctx: Ctx, comp: dict, it: dict, f: dict, dry_run: bool) -> Outc
         _, runs = what_runs(ctx, comp)
         return Outcome(name, frm, to, "rollback_failed", "; ".join(after), state=f"ROLLBACK FAILED; running is {runs}; "
                        f"git has {head_pin(ctx, comp)}")
-    what = ("Home Assistant was down after an interrupted upgrade; it runs " + frm + " again" if down and comp["deploy"] == "ha"
-            else f"finished the rollback: {frm} runs again")
-    return Outcome(name, frm, to, "recovered", f"interrupted at step {it.get('step')}", state=f"recovered: {what}, git has {frm}")
+    return Outcome(name, frm, to, "recovered", f"interrupted at step {it.get('step')}",
+                   state=f"recovered: finished the rollback: {frm} runs again, git has {frm}")
 
 
 def _recovered(ctx: Ctx, status: dict, o: Outcome, log_rel: str, dry_run: bool) -> int | None:

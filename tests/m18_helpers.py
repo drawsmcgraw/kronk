@@ -240,6 +240,11 @@ class FakeOps(U.Ops):
         self.prod_tag = "sprint-X"
         git(repo, "tag", self.prod_tag)
         self.hashes_match = True
+        # Compose's config hash per service: what the file at HEAD (and its
+        # env file) gives the service, and the label a container carries,
+        # set by the `up` that created it (sprint M18 fix 2, G1).
+        self.config_extra: dict[str, str] = {}     # a change outside the pin (an env file, another key)
+        self.labels: dict[str, str] = {}
         self.stopped: set[str] = set()     # containers stopped and not started again
         # Home Assistant's compose file renders these bind mounts; the paths that exist on the host
         self.ha_binds = [("/etc/localtime", "/etc/localtime"), ("/home/drew/kronk-voice-recordings", "/voice_recordings")]
@@ -268,6 +273,12 @@ class FakeOps(U.Ops):
         self.pull_fail: set[str] = set()
 
     # helpers
+    def _config_hash(self, file: str, svc: str) -> str:
+        """What `compose config --hash <svc>` gives the file on disk: its
+        image line for the service and anything else configured for it."""
+        image = _IMAGE_OF.get(svc, "")
+        return _hash(svc, f"{image}:{self._pins_at(None, file).get(image, '')}", self.config_extra.get(svc, ""))
+
     def _image_of(self, comp_service_container: str) -> str:
         return self.containers.get(comp_service_container, "")
 
@@ -313,7 +324,8 @@ class FakeOps(U.Ops):
             if fmt == "{{.State.Running}}":
                 return U.Result(0, ("false" if c in self.stopped else "true") + "\n")
             if "config-hash" in fmt:
-                return U.Result(0, "HASH\n")
+                svc = _SVC_OF.get(c, c)
+                return U.Result(0, self.labels.get(c, _hash(svc, ref, "")) + "\n")
         if a[0] == "image" and a[1] == "inspect":
             ref = a[2]
             if ref not in self.images:
@@ -333,7 +345,14 @@ class FakeOps(U.Ops):
             self.images.setdefault(a[1], f"sha256:{abs(hash(a[1])):064x}"[:71])
             return U.Result(0)
         if a[0] == "stop":
+            if a[-1] not in self.containers:      # as Docker: a stop of a missing container fails
+                return U.Result(1, "", f"Error response from daemon: No such container: {a[-1]}")
             self.stopped.add(a[-1])
+            return U.Result(0)
+        if a[0] == "start":
+            if a[-1] not in self.containers:
+                return U.Result(1, "", f"Error response from daemon: No such container: {a[-1]}")
+            self.stopped.discard(a[-1])
             return U.Result(0)
         if a[0] == "logs" and a[-1] == "homeassistant":
             return U.Result(0, self.ha_log)
@@ -352,7 +371,7 @@ class FakeOps(U.Ops):
         self.calls.append(("compose", project, file) + args)
         a = list(args)
         if a[0] == "config" and a[1] == "--hash":
-            return U.Result(0, f"{a[2]} {'HASH' if self.hashes_match else 'OTHER'}\n")
+            return U.Result(0, f"{a[2]} {self._config_hash(file, a[2]) if self.hashes_match else 'OTHER'}\n")
         if a[:3] == ["config", "--format", "json"]:
             vols = [{"type": "volume", "source": "ha-config", "target": "/config"}] + [
                 {"type": "bind", "source": s, "target": t, "bind": {}} for s, t in self.ha_binds]
@@ -376,6 +395,8 @@ class FakeOps(U.Ops):
                 return U.Result(1, "", "the previous image is gone")
             self.containers[container] = want
             self.stopped.discard(container)
+            self.labels[container] = self._config_hash(file, svc)
+            self.started[container] = self.clock.strftime("%Y-%m-%dT%H:%M:%S.000000000Z")
             self.images.setdefault(want, f"sha256:{abs(hash(want)):064x}"[:71])
             return U.Result(0)
         return U.Result(0)
@@ -506,6 +527,14 @@ class FakeOps(U.Ops):
         return (self.clock + self.local_offset).replace(tzinfo=None)
 
 
+_SVC_OF = {"kronk-telemetry-tempo-1": "tempo", "kronk-telemetry-grafana-1": "grafana", "homeassistant": "homeassistant"}
+_IMAGE_OF = {"tempo": "grafana/tempo", "grafana": "grafana/grafana", "homeassistant": "ghcr.io/home-assistant/home-assistant"}
+
+
+def _hash(svc: str, ref: str, extra: str) -> str:
+    return hashlib.sha256(f"{svc}|{ref}|{extra}".encode()).hexdigest()[:16]
+
+
 def _logged_at(line):
     m = re.search(r"\[(\d\d/\w{3}/\d{4}:\d\d:\d\d:\d\d) \+0000\]", line)
     return dt.datetime.strptime(m.group(1), "%d/%b/%Y:%H:%M:%S").replace(tzinfo=dt.timezone.utc) if m else None
@@ -554,3 +583,34 @@ def standard_web(now=NOW) -> FakeWeb:
 
 def cleanup(path: Path):
     shutil.rmtree(path, ignore_errors=True)
+
+
+# ── killing a run at a chosen call (a BaseException no handler catches) ──
+
+class Killed(BaseException):
+    pass
+
+
+def kill_on(ops, kind, pred):
+    """Kill the run right after the call `kind` (git|docker|compose|deploy_tag|...) whose args match pred."""
+    orig = getattr(ops, kind)
+
+    def wrapped(*args, **kw):
+        r = orig(*args, **kw)
+        if pred(args):
+            raise Killed(f"killed after {kind} {args[:3]}")
+        return r
+    setattr(ops, kind, wrapped)
+    return lambda: setattr(ops, kind, orig)
+
+
+def kill_before(ops, kind, pred):
+    """Kill the run right before the call `kind` whose args match pred."""
+    orig = getattr(ops, kind)
+
+    def wrapped(*args, **kw):
+        if pred(args):
+            raise Killed(f"killed before {kind} {args[:3]}")
+        return orig(*args, **kw)
+    setattr(ops, kind, wrapped)
+    return lambda: setattr(ops, kind, orig)

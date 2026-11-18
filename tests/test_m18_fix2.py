@@ -120,3 +120,149 @@ def test_a_pin_whose_container_cannot_be_inspected_is_skipped_not_a_mismatch(hou
     log = next((sd / "runs").glob("*-minor.log")).read_text()
     assert "SKIP" in log and "cannot tell what kronk-litellm-1 runs" in log
     assert not any("differ" in t for _, t, _ in ops.notices)
+
+
+# ── G1 (N1): a recovery acts by itself only on the world the record describes ──
+
+from tests.m18_helpers import Killed, kill_before, kill_on  # noqa: E402
+
+
+def killed(ops, sd, only, undo):
+    with pytest.raises(Killed):
+        run(ops, sd, only)
+    undo()
+    ops.calls.clear()
+    ops.clock = NOW + _dt.timedelta(days=1)
+
+
+def deploys(ops):
+    return [c for c in ops.calls if c[0] == "deploy_tag" and c[1] == "deploy"]
+
+
+def person_deploys(ops, tag, at="HEAD"):
+    git(ops.repo, "tag", tag, at)
+    ops.deploy_tag("deploy", tag)
+    ops.calls.clear()
+
+
+def _kill_in_verify(ops):
+    return kill_before(ops, "run_tests", lambda a: ops.containers["kronk-litellm-1"].endswith("v1.88.6"))
+
+
+def _kill_before_deploy(ops):
+    return kill_before(ops, "deploy_tag", lambda a: a[0] == "deploy")
+
+
+@pytest.mark.parametrize("kill", ["verify", "deploy"])
+@pytest.mark.parametrize("at", ["HEAD", "HEAD~1"])
+def test_a_tag_a_person_deployed_after_the_kill_is_never_deployed_over(house, kill, at):
+    """The tester's N1, four variants: sprint-Y at HEAD (the pin commit) or
+    before it, after a kill in verify or before the deploy."""
+    ops, sd = house
+    killed(ops, sd, ["litellm"], (_kill_in_verify if kill == "verify" else _kill_before_deploy)(ops))
+    person_deploys(ops, "sprint-Y", at)
+    head = git(ops.repo, "rev-parse", "HEAD")
+    assert run(ops, sd, ["litellm"]) == 2
+    assert deploys(ops) == [] and mutating(ops) == [] and ops.prod_tag == "sprint-Y"
+    assert git(ops.repo, "rev-parse", "HEAD") == head
+    st = status(sd)
+    o, = st["last_run"]["outcomes"]
+    assert o["result"] == "out_of_step"
+    assert "production runs tag sprint-Y" in o["detail"] and "sprint-X" in o["detail"]
+    assert "upgrade-20261201T083000Z-litellm" in o["detail"] or kill == "deploy"
+    assert "nothing was touched" in o["detail"]
+    assert st["out_of_step"]["component"] == "litellm" and "intent" not in st
+    (_, title, body), = ops.notices
+    assert title == "Kronk upgrade: OUT OF STEP (litellm)" and "sprint-Y" in body
+
+
+def test_the_runs_own_tag_in_production_still_finishes_the_rollback(house):
+    ops, sd = house
+    killed(ops, sd, ["litellm"], _kill_in_verify(ops))
+    assert run(ops, sd, ["litellm"]) == 1
+    assert deploys(ops) == [("deploy_tag", "deploy", "sprint-X")]
+
+
+def test_the_previous_tag_running_puts_the_pin_back_and_restarts_nothing(house):
+    ops, sd = house
+    killed(ops, sd, ["litellm"], _kill_before_deploy(ops))
+    assert run(ops, sd, ["litellm"]) == 1
+    assert mutating(ops) == []
+    assert "pin put back to v1.88.1" in status(sd)["last_run"]["outcomes"][0]["state"]
+
+
+def test_a_previous_tag_that_no_longer_exists_is_out_of_step(house):
+    ops, sd = house
+    killed(ops, sd, ["litellm"], _kill_in_verify(ops))
+    git(ops.repo, "tag", "-d", "sprint-X")
+    assert run(ops, sd, ["litellm"]) == 2
+    assert mutating(ops) == []
+    assert "the recorded previous tag sprint-X does not exist" in status(sd)["last_run"]["outcomes"][0]["detail"]
+
+
+def test_a_commit_the_record_does_not_explain_is_out_of_step(house):
+    ops, sd = house
+    killed(ops, sd, ["litellm"], _kill_in_verify(ops))
+    (ops.repo / "docs" / "note.md").write_text("a person's work\n")
+    git(ops.repo, "add", "docs/note.md")
+    git(ops.repo, "commit", "-qm", "docs: a note")
+    assert run(ops, sd, ["litellm"]) == 2
+    assert mutating(ops) == []
+    d = status(sd)["last_run"]["outcomes"][0]["detail"]
+    assert "1 commit(s) since the run started that the record does not explain" in d and "docs: a note" in d
+
+
+def test_a_component_running_neither_version_while_production_runs_the_previous_tag_is_out_of_step(house):
+    """A deploy cut short: litellm recreated, the orchestrator not yet."""
+    ops, sd = house
+    killed(ops, sd, ["litellm"], _kill_before_deploy(ops))
+    ops.containers["kronk-litellm-1"] = "ghcr.io/berriai/litellm:v1.88.6"
+    assert run(ops, sd, ["litellm"]) == 2 and mutating(ops) == []
+
+
+def _kill_grafana_in_verify(ops):
+    return kill_before(ops, "run_tests", lambda a: ops.containers["kronk-telemetry-grafana-1"].endswith("13.2.6"))
+
+
+def test_a_telemetry_recovery_passes_the_config_hash_guard_or_touches_nothing(house):
+    ops, sd = house
+    killed(ops, sd, ["grafana"], _kill_grafana_in_verify(ops))
+    ops.config_extra["grafana"] = "GF_SERVER_ROOT_URL changed in .env.telemetry"
+    assert run(ops, sd, ["grafana"]) == 2
+    assert mutating(ops) == []
+    o, = status(sd)["last_run"]["outcomes"]
+    assert o["result"] == "out_of_step" and "config hash" in o["detail"]
+    assert ops.containers["kronk-telemetry-grafana-1"].endswith(":13.2.6")
+
+
+def test_a_telemetry_recovery_passes_the_bind_mount_guard_or_touches_nothing(house):
+    ops, sd = house
+    killed(ops, sd, ["grafana"], _kill_grafana_in_verify(ops))
+    ops.mtimes[str(ops.repo / "telemetry/grafana/provisioning/datasources/tempo.yaml")] = ops.clock
+    assert run(ops, sd, ["grafana"]) == 2
+    assert mutating(ops) == []
+    assert "a recreate would load it unreleased" in status(sd)["last_run"]["outcomes"][0]["detail"]
+
+
+def test_a_telemetry_container_recreated_by_a_person_is_not_rolled_back(house):
+    ops, sd = house
+    killed(ops, sd, ["grafana"], _kill_grafana_in_verify(ops))
+    ops.labels["kronk-telemetry-grafana-1"] = "a-hand-made-container"
+    assert run(ops, sd, ["grafana"]) == 2 and mutating(ops) == []
+    assert "not the container the run started" in status(sd)["last_run"]["outcomes"][0]["detail"]
+
+
+def test_a_clean_telemetry_recovery_still_rolls_back(house):
+    ops, sd = house
+    killed(ops, sd, ["grafana"], _kill_grafana_in_verify(ops))
+    assert run(ops, sd, ["grafana"]) == 1
+    assert ops.containers["kronk-telemetry-grafana-1"].endswith(":13.2.4")
+    assert status(sd)["last_run"]["outcomes"][0]["state"] == \
+        "recovered: finished the rollback: 13.2.4 runs again, git has 13.2.4"
+
+
+def test_a_stopped_telemetry_container_is_out_of_step_not_started(house):
+    ops, sd = house
+    killed(ops, sd, ["grafana"], _kill_grafana_in_verify(ops))
+    ops.stopped.add("kronk-telemetry-grafana-1")
+    assert run(ops, sd, ["grafana"]) == 2 and mutating(ops) == []
