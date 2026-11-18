@@ -130,6 +130,15 @@ class Rules:
         raise KeyError(name)
 
 
+def _fold_project(p):
+    return p.lower().replace("_", "-") if isinstance(p, str) else p
+
+
+def _same_file(f, name: str) -> bool:
+    """`f` (repo-relative or absolute) names the repo's `name`: by resolved path, case-insensitively."""
+    return isinstance(f, str) and str((REPO / f).resolve()).lower() == str((REPO / name).resolve()).lower()
+
+
 def branch_file(env) -> Path | None:
     """~/.config/kronk/upgrade.env (or under $XDG_CONFIG_HOME): one line,
     KRONK_UPGRADE_BRANCH=<branch>, written at install (H6)."""
@@ -185,9 +194,12 @@ def load_rules(path: Path = RULES_FILE, env: dict | None = None) -> Rules:
             v = c.get(k)
             if isinstance(v, str) and v != v.strip():
                 raise RulesError(f"component {c['name']!r}: {k} {v!r} has surrounding whitespace")
-        proj = c.get("project")
-        if isinstance(proj, str) and proj.lower() in ("kronk", "kronk-ma") and proj not in ("kronk", "kronk-ma"):
-            raise RulesError(f"component {c['name']}: project {proj!r} is a case variant of {proj.lower()!r}")
+        # Project names are compared with case and `_`/`-` folded, files by
+        # resolved path and case-insensitively (sprint M18 fix 3, H9).
+        proj = _fold_project(c.get("project"))
+        if proj in ("kronk", "kronk-ma") and c.get("project") != proj:
+            raise RulesError(f"component {c['name']}: project {c['project']!r} is a case variant of {proj!r} "
+                             f"(case and _/- are folded)")
         if c["minor"] not in _MINOR:
             raise RulesError(f"component {c['name']}: minor = {c['minor']!r}, not one of {_MINOR}")
         if c["name"] in seen:
@@ -208,14 +220,14 @@ def load_rules(path: Path = RULES_FILE, env: dict | None = None) -> Rules:
         # The Kronk stack is deployed only from a tag by deploy_tag.sh, never
         # by a compose command (M12, M17); the Music Assistant stack, by
         # stack and not by name, is never touched (Drew 2026-11-14) (F10).
-        if c.get("deploy") in ("compose", "ha") and c.get("project") in (None, "", "kronk"):
+        if c.get("deploy") in ("compose", "ha") and proj in (None, "", "kronk"):
             raise RulesError(f"component {c['name']}: deploy = {c['deploy']} with project {c.get('project')!r}: "
                              f"the Kronk stack is deployed only through deploy_tag.sh (deploy = \"kronk\")")
-        file = os.path.normpath(c["file"]) if isinstance(c.get("file"), str) else None
-        if c.get("deploy") in ("compose", "ha") and file == "docker-compose.yml":
+        file = c.get("file")
+        if c.get("deploy") in ("compose", "ha") and _same_file(file, "docker-compose.yml"):
             raise RulesError(f"component {c['name']}: deploy = {c['deploy']} on {c['file']!r}: the Kronk stack's compose "
                              f"file is deployed only through deploy_tag.sh, under any project")
-        in_ma = file == "docker-compose.ma.yml" or c.get("project") == "kronk-ma"
+        in_ma = _same_file(file, "docker-compose.ma.yml") or proj == "kronk-ma"
         if in_ma and (c["minor"] not in ("excluded", "none") or c.get("deploy")):
             raise RulesError(f"component {c['name']}: part of the Music Assistant stack; may only be excluded or none, "
                              f"with no deploy")

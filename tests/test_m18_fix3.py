@@ -667,3 +667,31 @@ def test_every_file_the_script_writes_fits_the_schema(house, monkeypatch):
     U.main(["notices"], ops=ops)
     U.main(["ack", "--yes-leave-as-is"], ops=ops)
     U.load_status(sd)
+
+
+# ── H9: the loader compares files by resolved path and names folded ──────
+
+def _rules_with(tmp_path, old, new):
+    text = U.RULES_FILE.read_text()
+    assert text.count(old) == 1, old
+    p = tmp_path / "r.toml"
+    p.write_text(text.replace(old, new))
+    return p
+
+
+_GRAFANA_FILE = 'order = 20\nfile = "docker-compose.telemetry.yml"'
+_GRAFANA_PROJECT = 'project = "kronk-telemetry"\nservice = "grafana"'
+
+
+@pytest.mark.parametrize("old, new, why", [
+    (_GRAFANA_FILE, f'order = 20\nfile = "{U.REPO.resolve() / "docker-compose.yml"}"', "the Kronk stack's compose file"),
+    (_GRAFANA_FILE, 'order = 20\nfile = "Docker-Compose.yml"', "the Kronk stack's compose file"),
+    (_GRAFANA_FILE, 'order = 20\nfile = "DOCKER-COMPOSE.MA.YML"', "Music Assistant stack"),
+    (_GRAFANA_PROJECT, 'project = "kronk_ma"\nservice = "grafana"', "case variant"),
+    (_GRAFANA_PROJECT, 'project = "Kronk_MA"\nservice = "grafana"', "case variant"),
+    ('order = 301\nfile = "docker-compose.ma.yml"', 'order = 301\nfile = "Docker-Compose.MA.yml"\ndeploy = "kronk"',
+     "Music Assistant stack"),
+])
+def test_the_loader_folds_case_separators_and_paths(tmp_path, old, new, why):
+    with pytest.raises(U.RulesError, match=why):
+        U.load_rules(_rules_with(tmp_path, old, new), env={})
