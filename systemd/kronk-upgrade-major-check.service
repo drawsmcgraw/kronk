@@ -1,6 +1,6 @@
 # Quarterly major-release check (sprint M18): scripts/upgrade_major_check.sh
 # writes the impact report to docs/upgrades/<date>.md (committed when the
-# tree is clean and on KRONK_UPGRADE_BRANCH; otherwise under
+# tree is clean and on the expected branch (see kronk-upgrade-minor.service); otherwise under
 # data/upgrades/reports/), then tells Drew one or more major upgrades need
 # scheduling, with the report's path. It upgrades nothing.
 # Fired by kronk-upgrade-major-check.timer.
@@ -17,5 +17,4 @@ Type=oneshot
 ExecStart=%h/git-repos/drawsmcgraw/kronk/scripts/upgrade_major_check.sh
 WorkingDirectory=%h/git-repos/drawsmcgraw/kronk
 Environment=KRONK_REPO_DIR=%h/git-repos/drawsmcgraw/kronk
-Environment=KRONK_UPGRADE_BRANCH=main
 TimeoutStartSec=30m

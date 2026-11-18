@@ -303,23 +303,50 @@ FAILED`. `journalctl --user -u kronk-upgrade-minor.service` has the same lines.
 ## Installing the timers
 
 Nothing is installed by the build. At 03:30 the working tree must be clean
-and on the units' branch (`KRONK_UPGRADE_BRANCH`, `main` in the reference
-units), or every night declines and night 7 says so. From the repo:
+and on the expected branch, or every night declines and night 7 says so.
+
+The branch has one source. `scripts/upgrade_rules.toml`'s `expected_branch`
+is `main`; the install overrides it, without editing the repo, by one line
+in `~/.config/kronk/upgrade.env` (`KRONK_UPGRADE_BRANCH=<branch>`). The
+units carry no branch: a drop-in for the monthly and quarterly units reads
+that file as an `EnvironmentFile`, and `scripts/upgrades.py` reads the same
+file when the variable is not in its environment, so the timer, a run by
+hand (`scripts/upgrade_minor.sh` or `python3 scripts/upgrades.py`) and the
+dry run agree. A `KRONK_UPGRADE_BRANCH` in the environment still wins. The
+name is checked with `git check-ref-format --branch` at load (so `/` works;
+`HEAD`, spaces, `..` do not). Write the file without quotes.
+
+From the repo, with `B` set to the branch production's tags are made from
+(`refactor` while the sprint runs; production's tag `sprint-M21-step2` is
+not on `main`):
 
 ```
+cd ~/git-repos/drawsmcgraw/kronk
+B=refactor
+git check-ref-format --branch "$B"          # prints the name back, or refuses it
 git status --porcelain                      # empty
-git rev-parse --abbrev-ref HEAD             # the branch production's tags are made from
+git rev-parse --abbrev-ref HEAD             # prints the same name as $B
+mkdir -p ~/.config/kronk
+printf 'KRONK_UPGRADE_BRANCH=%s\n' "$B" > ~/.config/kronk/upgrade.env
 cp systemd/kronk-upgrade-{minor,major-check,notices}.{service,timer} ~/.config/systemd/user/
-# only if production is not deployed from main (both units carry the branch):
-sed -i 's/^Environment=KRONK_UPGRADE_BRANCH=.*/Environment=KRONK_UPGRADE_BRANCH=<branch>/' \
-    ~/.config/systemd/user/kronk-upgrade-{minor,major-check}.service
+for u in minor major-check; do
+  mkdir -p ~/.config/systemd/user/kronk-upgrade-$u.service.d
+  printf '[Service]\nEnvironmentFile=%%h/.config/kronk/upgrade.env\n' \
+    > ~/.config/systemd/user/kronk-upgrade-$u.service.d/branch.conf
+done
 systemd-analyze --user verify ~/.config/systemd/user/kronk-upgrade-*.{service,timer}
 systemctl --user daemon-reload
+systemctl --user show -p EnvironmentFiles kronk-upgrade-minor.service   # names upgrade.env
 systemctl --user enable --now kronk-upgrade-minor.timer kronk-upgrade-major-check.timer kronk-upgrade-notices.timer
 systemctl --user list-timers 'kronk-upgrade-*'
 python3 scripts/upgrades.py test-notice     # one real notice, marked TEST
-scripts/upgrade_minor.sh --dry-run          # reads only
+scripts/upgrade_minor.sh --dry-run          # reads only; its DECLINE line names no branch
 ```
+
+The drop-in holds `EnvironmentFile=%h/.config/kronk/upgrade.env` (the
+`printf` writes `%%h` as `%h`): the branch itself is never written into a
+unit, so systemd's `%` specifiers and quoting never touch it. To change the
+branch later, edit the one line in `upgrade.env`; nothing else.
 
 Remove:
 
@@ -328,6 +355,10 @@ systemctl --user disable --now kronk-upgrade-minor.timer kronk-upgrade-major-che
 rm ~/.config/systemd/user/kronk-upgrade-minor.service ~/.config/systemd/user/kronk-upgrade-minor.timer \
    ~/.config/systemd/user/kronk-upgrade-major-check.service ~/.config/systemd/user/kronk-upgrade-major-check.timer \
    ~/.config/systemd/user/kronk-upgrade-notices.service ~/.config/systemd/user/kronk-upgrade-notices.timer
+rm ~/.config/systemd/user/kronk-upgrade-minor.service.d/branch.conf \
+   ~/.config/systemd/user/kronk-upgrade-major-check.service.d/branch.conf
+rmdir ~/.config/systemd/user/kronk-upgrade-minor.service.d ~/.config/systemd/user/kronk-upgrade-major-check.service.d
+rm ~/.config/kronk/upgrade.env
 systemctl --user daemon-reload
 ```
 

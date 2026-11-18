@@ -2,15 +2,18 @@
 # releases scripts/upgrade_rules.toml calls minor, one component at a time
 # (pin, commit, bring up, verify, keep or roll back), then sends one notice.
 # It declines when the house is busy or the tree is not clean or not on
-# KRONK_UPGRADE_BRANCH; the timer fires on days 1-7 of the month, so a
+# the expected branch; the timer fires on days 1-7 of the month, so a
 # decline is retried the next night, at most max_attempts times a month.
+# The branch has one source: scripts/upgrade_rules.toml's expected_branch
+# (main), unless ~/.config/kronk/upgrade.env says KRONK_UPGRADE_BRANCH=<b>;
+# the install's drop-in (kronk-upgrade-minor.service.d/branch.conf) reads
+# that same file as an EnvironmentFile, and so does a run by hand.
 # Fired by kronk-upgrade-minor.timer. Guide: docs/features/upgrade-cadence.md.
 #
 # Operations (the full sequence: docs/features/upgrade-cadence.md, "Installing the timers"):
-#   before:    the working tree clean and on the branch below at 03:30, or every night declines
-#   install:   cp systemd/kronk-upgrade-{minor,major-check,notices}.{service,timer} ~/.config/systemd/user/
-#              (if production is not deployed from main, set KRONK_UPGRADE_BRANCH in both
-#              installed kronk-upgrade-minor.service and kronk-upgrade-major-check.service)
+#   before:    the working tree clean and on the expected branch at 03:30, or every night declines
+#   install:   the branch file and the two drop-ins first (the full block in the guide), then
+#              cp systemd/kronk-upgrade-{minor,major-check,notices}.{service,timer} ~/.config/systemd/user/
 #              systemd-analyze --user verify ~/.config/systemd/user/kronk-upgrade-*.{service,timer}
 #              systemctl --user daemon-reload
 #              systemctl --user enable --now kronk-upgrade-minor.timer kronk-upgrade-major-check.timer kronk-upgrade-notices.timer
@@ -25,6 +28,7 @@
 #              data/upgrades/runs/<UTC time>-minor.log (one per run)
 #   remove:    systemctl --user disable --now kronk-upgrade-minor.timer kronk-upgrade-major-check.timer kronk-upgrade-notices.timer
 #              rm ~/.config/systemd/user/kronk-upgrade-{minor,major-check,notices}.{service,timer}
+#              rm ~/.config/systemd/user/kronk-upgrade-{minor,major-check}.service.d/branch.conf ~/.config/kronk/upgrade.env
 #              systemctl --user daemon-reload
 #   after a killed run: do not deploy by hand (deploy_tag.sh deploy refuses while the record exists);
 #              scripts/upgrade_minor.sh --ignore-window recovers it, or python3 scripts/upgrades.py ack drops it
@@ -36,9 +40,6 @@ Type=oneshot
 ExecStart=%h/git-repos/drawsmcgraw/kronk/scripts/upgrade_minor.sh
 WorkingDirectory=%h/git-repos/drawsmcgraw/kronk
 Environment=KRONK_REPO_DIR=%h/git-repos/drawsmcgraw/kronk
-# The branch the run's commits may land on: the one production's tags are
-# made from. A run on any other branch declines.
-Environment=KRONK_UPGRADE_BRANCH=main
 # A run is the baseline corpus and replay, then per component a deploy, the
 # corpus and a replay (about 10 minutes each): allow a long night.
 TimeoutStartSec=4h

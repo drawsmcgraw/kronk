@@ -472,3 +472,48 @@ def test_a_clean_absent_ha_is_still_created(house):
     assert run(ops, sd, ["homeassistant"]) == 1
     assert ops.containers["homeassistant"].endswith(":2026.5.4")
     assert status(sd)["last_run"]["outcomes"][0]["result"] == "recovered"
+
+
+# ── H6 (Y7): the branch has one source ───────────────────────────────────
+
+def _branch_file(home, text):
+    f = home / ".config" / "kronk" / "upgrade.env"
+    f.parent.mkdir(parents=True)
+    f.write_text(text)
+    return f
+
+
+def test_the_branch_comes_from_the_rules_the_file_outside_the_repo_or_the_variable(tmp_path):
+    assert U.load_rules(env={}).settings["expected_branch"] == "main"
+    _branch_file(tmp_path, "# set at install\nKRONK_UPGRADE_BRANCH=feature/m18\n")
+    assert U.load_rules(env={"HOME": str(tmp_path)}).settings["expected_branch"] == "feature/m18"
+    assert U.load_rules(env={"HOME": str(tmp_path), "KRONK_UPGRADE_BRANCH": "refactor"}).settings["expected_branch"] == "refactor"
+    _branch_file(tmp_path / "x", "KRONK_UPGRADE_BRANCH=other\n")
+    assert U.load_rules(env={"HOME": str(tmp_path), "XDG_CONFIG_HOME": str(tmp_path / "x" / ".config")}
+                        ).settings["expected_branch"] == "other"
+
+
+@pytest.mark.parametrize("bad", ["a b", "HEAD", "-x", "a..b", "x.lock", "@{-1}", "main\nevil"])
+def test_a_branch_name_git_would_refuse_is_refused(tmp_path, bad):
+    with pytest.raises(U.RulesError, match="not a valid branch name"):
+        U.load_rules(env={"KRONK_UPGRADE_BRANCH": bad})
+
+
+def test_a_by_hand_dry_run_agrees_with_the_timer_through_the_file(tmp_path, capsys):
+    repo = make_repo(tmp_path, base_files(), branch="feature/m18")
+    ops = FakeOps(repo, standard_web())
+    _branch_file(tmp_path / "home", "KRONK_UPGRADE_BRANCH=feature/m18\n")
+    r = U.load_rules(env={"HOME": str(tmp_path / "home")})
+    r.components = [c for c in r.components if c["name"] == "grafana"]
+    U.minor_run(ops, r, tmp_path / "state", dry_run=True)
+    out = capsys.readouterr().out
+    assert "a real run now would go ahead" in out and "on branch" not in out
+
+
+def test_the_units_carry_no_branch_and_the_drop_in_points_at_the_one_file():
+    from tests.m18_helpers import ROOT
+    for name in ("kronk-upgrade-minor.service", "kronk-upgrade-major-check.service"):
+        text = (ROOT / "systemd" / name).read_text()
+        assert not any(ln.startswith("Environment=KRONK_UPGRADE_BRANCH") for ln in text.splitlines()), name
+    doc = (ROOT / "docs" / "features" / "upgrade-cadence.md").read_text()
+    assert "EnvironmentFile=%h/.config/kronk/upgrade.env" in doc and "git check-ref-format --branch" in doc

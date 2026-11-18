@@ -121,6 +121,13 @@ class Rules:
         raise KeyError(name)
 
 
+def branch_file(env) -> Path | None:
+    """~/.config/kronk/upgrade.env (or under $XDG_CONFIG_HOME): one line,
+    KRONK_UPGRADE_BRANCH=<branch>, written at install (H6)."""
+    base = env.get("XDG_CONFIG_HOME") or (os.path.join(env["HOME"], ".config") if env.get("HOME") else None)
+    return Path(base) / "kronk" / "upgrade.env" if base else None
+
+
 _REQUIRED = ("name", "kind", "order", "pattern", "same", "minor")
 _MINOR = ("auto", "report", "none", "excluded")
 
@@ -129,8 +136,15 @@ def load_rules(path: Path = RULES_FILE, env: dict | None = None) -> Rules:
     env = os.environ if env is None else env
     data = tomllib.loads(Path(path).read_text())
     settings = dict(data.get("settings", {}))
-    if env.get("KRONK_UPGRADE_BRANCH"):
-        settings["expected_branch"] = env["KRONK_UPGRADE_BRANCH"]
+    # The branch: the rules' expected_branch, unless KRONK_UPGRADE_BRANCH
+    # is set in the environment or in the one file outside the repo that the
+    # install writes (branch_file; the units' drop-in reads the same file as
+    # an EnvironmentFile), so the timer, a run by hand and the dry run agree
+    # (sprint M18 fix 3, H6).
+    bf = branch_file(env)
+    branch = env.get("KRONK_UPGRADE_BRANCH") or (env_value(bf, "KRONK_UPGRADE_BRANCH") if bf else None)
+    if branch:
+        settings["expected_branch"] = branch[1:-1] if branch[:1] == branch[-1:] and branch[:1] in "'\"" else branch
     for key, default in (("expected_branch", "main"), ("min_age_days", 14), ("quiet_minutes", 5),
                          ("select_quiet_minutes", 15), ("max_attempts", 7), ("inert_paths", []),
                          ("dev_services", []), ("dev_pipelines", ["kronk-dev"]),
@@ -145,6 +159,11 @@ def load_rules(path: Path = RULES_FILE, env: dict | None = None) -> Rules:
     except (ValueError, TypeError, AssertionError) as e:
         raise RulesError(f"settings.night_window = {settings['night_window']!r}: need [\"HH:MM\", \"HH:MM\"] ({e})") from e
     settings["night_window_t"] = win
+    b = settings["expected_branch"]
+    ok = isinstance(b, str) and subprocess.run(["git", "check-ref-format", "--branch", b], capture_output=True,
+                                               text=True, cwd="/").stdout.strip() == b
+    if not ok:
+        raise RulesError(f"expected_branch {b!r}: not a valid branch name (git check-ref-format --branch)")
     comps = data.get("component", [])
     seen = set()
     for c in comps:

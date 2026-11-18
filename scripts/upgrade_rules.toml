@@ -39,9 +39,12 @@
 
 [settings]
 # The branch an unattended commit may land on. Production is deployed from
-# tags made on this branch; a run on any other branch declines. Override
-# with KRONK_UPGRADE_BRANCH (the timer unit sets it). During the sprint the
-# work branch is `refactor`; the coordinator sets the unit at install.
+# tags made on this branch; a run on any other branch declines, and a
+# recovery acts only on it. The one override is KRONK_UPGRADE_BRANCH in
+# ~/.config/kronk/upgrade.env (written at install; the units' drop-in reads
+# it as an EnvironmentFile, a run by hand reads it too) or in the
+# environment. During the sprint production's tags are made on `refactor`;
+# the coordinator writes that file at install.
 expected_branch = "main"
 # A release younger than this is not taken yet (the telemetry pins'
 # two-week rule, docker-compose.telemetry.yml). A release whose date cannot

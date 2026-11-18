@@ -47,8 +47,9 @@ def test_services_run_the_repo_scripts(name, script):
     assert s["Type"] == "oneshot"
     assert script in s["ExecStart"]
     assert (ROOT / script).exists()
-    if name != "kronk-upgrade-notices.service":
-        assert "Environment" in s and "KRONK_UPGRADE_BRANCH=" in (UNITS / name).read_text()
+    # The branch is not in the units (sprint M18 fix 3, H6): the rules file,
+    # or the install's file outside the repo through a drop-in.
+    assert not re.search(r"^Environment=KRONK_UPGRADE_BRANCH", (UNITS / name).read_text(), re.M)
 
 
 def test_the_operations_block_has_install_pause_and_remove():
