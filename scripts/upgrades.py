@@ -1304,7 +1304,9 @@ def tree_state(ops: Ops, rules: Rules) -> list[str]:
     except StepFailed as e:
         return [f"cannot read the git branch ({e})"]
     want = rules.settings["expected_branch"]
-    if branch != want:
+    if branch == "HEAD":
+        why.append(f"HEAD is detached, expected branch {want!r} (KRONK_UPGRADE_BRANCH / expected_branch)")
+    elif branch != want:
         why.append(f"on branch {branch!r}, expected {want!r} (KRONK_UPGRADE_BRANCH / expected_branch)")
     dirty = [ln for ln in ops.git("status", "--porcelain", "--untracked-files=normal").splitlines() if ln.strip()]
     if dirty:
@@ -2249,7 +2251,7 @@ def intent_facts(ctx: Ctx, comp: dict, it: dict) -> dict:
     dirty = [ln[3:] for ln in ops.git("status", "--porcelain", "--untracked-files=normal").splitlines() if ln.strip()]
     kind, ver, runs = container_state(ctx, comp)
     f = {"git": head_pin(ctx, comp), "kind": kind, "ver": ver, "runs": runs, "dirty": dirty, "prod_tag": None,
-         "unexplained": unexplained_commits(ctx, comp, it)}
+         "tree": tree_state(ops, ctx.rules), "unexplained": unexplained_commits(ctx, comp, it)}
     exists = lambda t: bool(t) and bool(ops.git("rev-parse", "-q", "--verify", f"refs/tags/{t}", check=False).strip())  # noqa: E731
     f["tag"] = it.get("tag") if exists(it.get("tag")) else None
     if comp.get("deploy") == "kronk":
@@ -2392,8 +2394,10 @@ def _recover_one(ctx: Ctx, comp: dict, it: dict, f: dict, dry_run: bool) -> Outc
     name, frm, to = comp["name"], it["from"], it["to"]
     oos = lambda why: Outcome(name, frm, to, "out_of_step", f"{why}; {_OOS_TODO}",  # noqa: E731
                               state=f"OUT OF STEP after an interrupted run (step {it.get('step')}): {f['desc']}")
-    if f["dirty"]:
-        return oos("the working tree is not clean; the run does not touch uncommitted changes")
+    if f["tree"]:
+        # The run's own tree checks (sprint M18 fix 3, H1): a recovery
+        # commits, deploys, recreates or restarts only where a run would.
+        return oos("; ".join(f["tree"]) + ": a recovery acts only where a run would (the expected branch, a clean tree)")
     if f["unexplained"]:
         return oos(f["unexplained"])
     if f["git"] not in (frm, to):
