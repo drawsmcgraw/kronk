@@ -41,7 +41,8 @@ def test_every_real_pin_reads_from_the_repo():
     for c in r.components:
         if c.get("match") and c["kind"] not in ("llama-build",):
             U.read_pin(U.REPO, c)              # exactly one line each
-    assert U.read_pin(U.REPO, r.component("homeassistant")).value == "2026.5.4"
+    # Exact under the rule (the monthly run may move it, so no literal value here).
+    assert U.vkey(r.component("homeassistant"), U.read_pin(U.REPO, r.component("homeassistant")).value)
 
 
 def test_read_lock_normalises_names(tmp_path):

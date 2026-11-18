@@ -831,10 +831,9 @@ def tree_state(ops: Ops, rules: Rules) -> list[str]:
     want = rules.settings["expected_branch"]
     if branch != want:
         why.append(f"on branch {branch!r}, expected {want!r} (KRONK_UPGRADE_BRANCH / expected_branch)")
-    dirty = ops.git("status", "--porcelain", "--untracked-files=normal").strip()
+    dirty = [ln for ln in ops.git("status", "--porcelain", "--untracked-files=normal").splitlines() if ln.strip()]
     if dirty:
-        n = len(dirty.splitlines())
-        why.append(f"working tree not clean ({n} path(s): {', '.join(l[3:] for l in dirty.splitlines()[:5])})")
+        why.append(f"working tree not clean ({len(dirty)} path(s): {', '.join(l[3:] for l in dirty[:5])})")
     return why
 
 

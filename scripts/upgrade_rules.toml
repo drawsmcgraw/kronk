@@ -61,8 +61,10 @@ inert_paths = [
   "docs/*", "README.md", "ROADMAP.md", "TECH_DEBT.md", "CLAUDE.md",
   "Kronk evaluation findings and implementation plan.md",
   "docker-compose.ha.yml", "docker-compose.ma.yml", "docker-compose.telemetry.yml",
-  "ha/*", "ma/*", "systemd/*", "scripts/*", "tests/test_*.py", "tests/conftest.py",
-  "tests/m21s2_helpers.py", "telemetry/*", "hottub_monitor/*",
+  "ha/*", "ma/*", "systemd/*", "scripts/*", "telemetry/*", "hottub_monitor/*",
+  # tests/: the images copy only voice_corpus.jsonl and fixtures/music_snapshot.json
+  # (the `corpus` build context), so the Python test files are inert.
+  "tests/*.py",
 ]
 # Dev containers in the kronk project: not production, not checked.
 dev_services = ["orchestrator-dev", "tool_service-dev"]

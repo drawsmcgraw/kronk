@@ -195,6 +195,7 @@ class FakeOps(U.Ops):
         self.bad_versions: set[str] = set()        # health fails while one of these runs
         self.deploy_fail_tags: set[str] = set()
         self.tests_fail = False
+        self.tests_fail_versions: set[str] = set()   # the corpus fails while one of these runs
         self.replay_regress: dict[str, list[str]] = {}   # running version -> row ids that fail
         self.replay_rc = 0
         self.cannot_return: set[str] = set()          # versions that cannot be brought back (rollback fails)
@@ -214,6 +215,8 @@ class FakeOps(U.Ops):
     # Ops interface
     def run(self, args, timeout=600, env=None):
         self.calls.append(("run", tuple(args)))
+        if args[0] == "git":                       # real git, in the temporary repository
+            return U.Ops.run(self, args, timeout, env)
         if args[:2] == ["systemctl", "--user"]:
             return U.Result(0, "active\n")
         return U.Result(0, "")
@@ -314,7 +317,10 @@ class FakeOps(U.Ops):
 
     def run_tests(self):
         self.calls.append(("run_tests",))
-        return U.Result(1, "", "1 failed") if self.tests_fail else U.Result(0, "4989 passed")
+        running = {v.rsplit(":", 1)[-1] for v in self.containers.values()}
+        if self.tests_fail or running & self.tests_fail_versions:
+            return U.Result(1, "", "1 failed")
+        return U.Result(0, "4989 passed")
 
     def replay(self, label, out, check_only=False):
         self.calls.append(("replay", label, check_only))

@@ -3,6 +3,7 @@ audio capture on into a directory outside the config volume and the repo,
 and the HA compose file mounts it and gives HA time to shut down cleanly.
 The dev pair records text by a compose setting; production takes the
 switch from .env, default off. Nothing is installed by these files."""
+import re
 import importlib.util
 import sys
 from pathlib import Path
@@ -37,7 +38,12 @@ def test_ha_configuration_turns_capture_on():
 def test_ha_compose_mount_and_grace_period():
     svc = yaml.safe_load((ROOT / "docker-compose.ha.yml").read_text())["services"]["homeassistant"]
     assert svc["stop_grace_period"] == "2m"
-    assert svc["image"] == "ghcr.io/home-assistant/home-assistant:2026.5.4"   # pin unchanged
+    # Pinned to an exact version (M12 left it at 2026.5.4). Since M18 the
+    # monthly patch run may move it within the month, so the test checks
+    # the shape the upgrade rules accept, not one value.
+    image, _, tag = svc["image"].rpartition(":")
+    assert image == "ghcr.io/home-assistant/home-assistant"
+    assert re.fullmatch(r"\d{4}\.\d{1,2}\.\d+", tag), svc["image"]
     assert "ha-config:/config" in svc["volumes"]
     bind = [v for v in svc["volumes"] if isinstance(v, dict)]
     assert bind == [{"type": "bind", "source": "/home/drew/kronk-voice-recordings",
