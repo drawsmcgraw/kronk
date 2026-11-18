@@ -916,3 +916,47 @@ def test_a_release_looked_up_by_tag_must_carry_that_tag(tmp_path):
         U.github_release(web, "BerriAI/litellm", "v1.88.6", "")
     p = U.plan_component(rules(), rules().component("litellm"), repo, web, NOW)
     assert p.action == "skip" and "carries tag 'v1.110.0'" in p.detail
+
+
+# ── O3 and mutant l13: the status write is atomic; its leftovers are swept ──
+
+def test_a_status_write_that_fails_midway_leaves_the_old_file_whole(tmp_path, monkeypatch):
+    sd = tmp_path / "st"
+    U.save_status(sd, {"months": {"2026-12": {"attempts": 1, "done": False}}}, NOW)
+    before = (sd / "status.json").read_text()
+
+    def dump(obj, f, **kw):
+        f.write('{"months": {"2026-12": {"att')
+        raise OSError(28, "No space left on device")
+    monkeypatch.setattr(U.json, "dump", dump)
+    with pytest.raises(OSError):
+        U.save_status(sd, {"months": {"2026-12": {"attempts": 2, "done": False}}}, NOW)
+    monkeypatch.undo()
+    assert (sd / "status.json").read_text() == before
+    assert not list(sd.glob(".status.*"))                    # its own temporary file removed
+
+
+def test_leftover_status_temporaries_older_than_a_day_are_swept_at_the_start_of_a_run(house):
+    import os
+    ops, sd = house
+    sd.mkdir()
+    old, fresh, other = sd / ".status.abc123", sd / ".status.def456", sd / "notes.status.txt"
+    for q in (old, fresh, other):
+        q.write_text("{")
+    os.utime(old, (NOW.timestamp() - 2 * 86400,) * 2)
+    os.utime(fresh, (NOW.timestamp() - 3600,) * 2)
+    os.utime(other, (NOW.timestamp() - 9 * 86400,) * 2)
+    run(ops, sd, ["tempo"])
+    assert not old.exists() and fresh.exists() and other.exists()
+    assert "removed .status.abc123" in next((sd / "runs").glob("*-minor.log")).read_text()
+
+
+def test_the_dry_run_sweeps_nothing(house):
+    import os
+    ops, sd = house
+    sd.mkdir()
+    old = sd / ".status.abc123"
+    old.write_text("{")
+    os.utime(old, (NOW.timestamp() - 2 * 86400,) * 2)
+    run(ops, sd, ["tempo"], dry_run=True)
+    assert old.exists()

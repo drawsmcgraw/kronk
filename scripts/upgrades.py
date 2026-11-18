@@ -929,13 +929,33 @@ def status_corrupt(ops: Ops, e: StatusCorrupt, log, notify: bool) -> int:
 
 
 def save_status(sd: Path, status: dict, now: dt.datetime) -> None:
+    """Atomic: a temporary file beside it, then a rename. A write that
+    fails removes its temporary file; one killed mid-way leaves it, and the
+    next run sweeps it (sweep_status_temps)."""
     sd.mkdir(parents=True, exist_ok=True)
     status["updated"] = now.isoformat(timespec="seconds")
     fd, tmp = tempfile.mkstemp(dir=sd, prefix=".status.")
-    with os.fdopen(fd, "w") as f:
-        json.dump(status, f, indent=2, sort_keys=True)
-        f.write("\n")
-    os.replace(tmp, sd / "status.json")
+    try:
+        with os.fdopen(fd, "w") as f:
+            json.dump(status, f, indent=2, sort_keys=True)
+            f.write("\n")
+        os.replace(tmp, sd / "status.json")
+    except BaseException:
+        Path(tmp).unlink(missing_ok=True)
+        raise
+
+
+def sweep_status_temps(sd: Path, now: dt.datetime, log) -> None:
+    """Remove save_status's own temporary files (`.status.*` in the state
+    directory) older than a day: a run killed inside a status write left
+    them (O3). Nothing else is touched."""
+    for q in sd.glob(".status.*"):
+        try:
+            if now.timestamp() - q.stat().st_mtime > 86400:
+                q.unlink()
+                log(f"removed {q.name}: a status write's temporary file, left by a run killed mid-write")
+        except OSError as e:
+            log(f"could not remove {q.name}: {e}")
 
 
 def block(status: dict, o, now: dt.datetime) -> None:
@@ -2596,6 +2616,7 @@ def minor_run(ops: Ops, rules: Rules, sd: Path, dry_run: bool = False, ignore_mo
         if lock_fd is None:
             log(f"declined: another upgrade run holds the lock ({lock_holder(sd)})")
             return 0
+        sweep_status_temps(sd, now, log)
     try:
         try:
             status = load_status(sd)
@@ -3331,6 +3352,7 @@ def major_run(ops: Ops, rules: Rules, sd: Path, dry_run: bool = False, out: Path
             log(f"notice: notifier raised {ex!r}")
         return 1
     try:
+        sweep_status_temps(sd, now, log)
         return _major_write(ops, rules, sd, now, date, text, names, notify, log)
     finally:
         os.close(fd)
