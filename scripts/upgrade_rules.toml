@@ -137,6 +137,8 @@ flappers = [
   "eval-shuffle-it",
   "eval-start-a-zzqx-florbent-radio-station-on",
   "m14-resume-get-the-door",
+  # Depends on a 4B model choosing the tool: failed once in 22 replays (M18 fourth test, Z8).
+  "m19-can-you-ask-kronk-to-turn-it-up",
 ]
 
 [report]

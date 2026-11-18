@@ -516,7 +516,7 @@ def test_the_units_carry_no_branch_and_the_drop_in_points_at_the_one_file():
         text = (ROOT / "systemd" / name).read_text()
         assert not any(ln.startswith("Environment=KRONK_UPGRADE_BRANCH") for ln in text.splitlines()), name
     doc = (ROOT / "docs" / "features" / "upgrade-cadence.md").read_text()
-    assert "EnvironmentFile=%h/.config/kronk/upgrade.env" in doc and "git check-ref-format --branch" in doc
+    assert "EnvironmentFile=-%h/.config/kronk/upgrade.env" in doc and "git check-ref-format --branch" in doc
 
 
 # ── H7 (Y8): how HA stopped is read from the stopped container ───────────
@@ -771,3 +771,33 @@ def test_a_start_that_fails_again_after_working_is_reported_again(house, monkeyp
         "Home Assistant is down: docker start homeassistant failed: busy",
         "Home Assistant was down; started again",
         "Home Assistant is down: docker start homeassistant failed: busy"]
+
+
+# ── Coordinator, after the fourth test (Z1): a rollback is not abandoned at its own stop ──
+
+@pytest.mark.parametrize("how", ["killed", "unreadable"])
+def test_a_rollback_goes_on_to_the_old_image_when_its_own_stop_was_not_clean(house, how):
+    """The upgrade's stop is clean and the new HA fails verify. The
+    rollback's stop of that new HA ends in a kill (or cannot be read): the
+    old image is brought up all the same, and the notice says how the stop
+    ended. Before: ROLLBACK FAILED with HA left stopped on the new version."""
+    ops, sd = house
+    orig, stops = ops.docker, []
+
+    def docker(*a, **kw):
+        if a[:1] == ("stop",):
+            stops.append(a)
+        if "{{.State.ExitCode}} {{.State.OOMKilled}}" in a and len(stops) >= 2:
+            return U.Result(1, "", "context deadline exceeded") if how == "unreadable" else U.Result(0, "137 false\n")
+        if a[:1] == ("logs",) and len(stops) == 1:      # the new HA: an unclean-shutdown line fails verify
+            return U.Result(0, "could not validate that the sqlite3 database was shutdown cleanly\n")
+        return orig(*a, **kw)
+
+    ops.docker = docker
+    assert run(ops, sd, ["homeassistant"]) == 1
+    o, = status(sd)["last_run"]["outcomes"]
+    assert o["result"] == "rolled_back", o
+    assert len(stops) == 2 and len(_upgrade_ups(ops)) == 2
+    assert ops.containers["homeassistant"].endswith(":2026.5.4") and "homeassistant" not in ops.stopped
+    assert "the rollback's own stop:" in o["detail"] and "brought up all the same" in o["detail"]
+    assert ("grace period" if how == "killed" else "cannot read how homeassistant stopped") in o["detail"]

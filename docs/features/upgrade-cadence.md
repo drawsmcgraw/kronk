@@ -99,7 +99,10 @@ step (`scripts/upgrades.py`, `minor_run`):
      created, the stopped container's `State.ExitCode` and
      `State.OOMKilled`: 137 or an OOM kill means HA did not shut down
      inside its grace period, a failed stop. A check whose own read fails
-     (that exit code, Music Assistant's start time) is a failed check. A
+     (that exit code, Music Assistant's start time) is a failed check. In
+     a rollback the same reading is reported and the old image is brought
+     up all the same: stopping there would leave HA down on the version
+     that just failed. A
      replay row that comes back with a player change after it executed is
      a failed verify at once (the replay's guard against a real action). A
      replay stopped by a player with no such row (exit 3) runs again for
@@ -396,7 +399,7 @@ printf 'KRONK_UPGRADE_BRANCH=%s\n' "$B" > ~/.config/kronk/upgrade.env
 cp systemd/kronk-upgrade-{minor,major-check,notices}.{service,timer} ~/.config/systemd/user/
 for u in minor major-check; do
   mkdir -p ~/.config/systemd/user/kronk-upgrade-$u.service.d
-  printf '[Service]\nEnvironmentFile=%%h/.config/kronk/upgrade.env\n' \
+  printf '[Service]\nEnvironmentFile=-%%h/.config/kronk/upgrade.env\n' \
     > ~/.config/systemd/user/kronk-upgrade-$u.service.d/branch.conf
 done
 systemd-analyze --user verify ~/.config/systemd/user/kronk-upgrade-*.{service,timer}
@@ -408,9 +411,11 @@ python3 scripts/upgrades.py test-notice     # one real notice, marked TEST
 scripts/upgrade_minor.sh --dry-run          # reads only; its DECLINE line names no branch
 ```
 
-The drop-in holds `EnvironmentFile=%h/.config/kronk/upgrade.env` (the
+The drop-in holds `EnvironmentFile=-%h/.config/kronk/upgrade.env` (the
 `printf` writes `%%h` as `%h`): the branch itself is never written into a
-unit, so systemd's `%` specifiers and quoting never touch it. To change the
+unit, so systemd's `%` specifiers and quoting never touch it. The leading `-` makes the file optional
+for systemd: without the file the script falls back to the rules file's branch and
+declines on it, which is reported, where a unit that cannot start is not. To change the
 branch later, edit the one line in `upgrade.env`; nothing else.
 
 Remove:

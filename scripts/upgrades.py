@@ -1487,6 +1487,7 @@ class Ctx:
     outside_window: str | None = None      # set when the run is outside the night window (F8)
     ignore_window: bool = False            # --ignore-window: a run by hand at any hour
     player_notes: list = field(default_factory=list)   # player differences a rollback's check reports (K4)
+    stop_note: str = ""   # how a rollback's own stop of HA ended, when not cleanly (reported, never a failure)
     ha_back: str | None = None             # a recovery brought a stopped or missing HA back (G2)
     replay_note: str = ""                  # verify's replay was stopped and retried (H4): said in the notice
 
@@ -1858,7 +1859,11 @@ def ha_up(ctx: Ctx, comp: dict, frm: str, to: str) -> str | None:
                                  ("compose", ("up", "-d", comp["service"]))])
 
 
-def _ha_steps(ctx: Ctx, comp: dict, steps) -> str | None:
+def _ha_steps(ctx: Ctx, comp: dict, steps, kill_fails: bool = True) -> str | None:
+    """kill_fails=False (a rollback): a stop that ended in a kill, or whose
+    exit code cannot be read, is noted for the notice and the old image is
+    brought up all the same. Abandoning the rollback there would leave HA
+    stopped on the version that just failed (fourth test, Z1)."""
     for kind, args in steps:
         # ha_stopped: from the run's own `docker stop` of HA on, the hourly
         # command may start a stopped HA for this record (H3).
@@ -1875,8 +1880,11 @@ def _ha_steps(ctx: Ctx, comp: dict, steps) -> str | None:
             return f"{kind} {' '.join(args)} failed: {r.tail(200)}"
         if kind == "docker" and args[0] == "stop":
             why = ha_stopped_cleanly(ctx, comp)
-            if why:
+            if why and kill_fails:
                 return why
+            if why:
+                ctx.stop_note = why
+                ctx.log(f"  noted, the rollback goes on: {why}")
     return None
 
 
@@ -2005,7 +2013,7 @@ def ha_rollback(ctx: Ctx, comp: dict, frm: str) -> str | None:
     if container_state(ctx, comp)[0] not in ("absent", "stopped"):
         steps.append(("docker", ("stop", "-t", "120", comp["container"])))
     steps.append(("compose", ("up", "-d", comp["service"])))
-    return _ha_steps(ctx, comp, steps)
+    return _ha_steps(ctx, comp, steps, kill_fails=False)
 
 
 # One component, start to end.
@@ -2256,8 +2264,10 @@ def rollback(ctx: Ctx, comp: dict, frm: str, to: str, problems: list[str], commi
 
 
 def _players_after(ctx: Ctx) -> str:
-    return (f"; after the rollback, players differ (reported, not a failure): {', '.join(ctx.player_notes)}"
-            if ctx.player_notes else "")
+    stop = f"; the rollback's own stop: {ctx.stop_note} (reported, the old image was brought up all the same)" if ctx.stop_note else ""
+    ctx.stop_note = ""
+    return stop + (f"; after the rollback, players differ (reported, not a failure): {', '.join(ctx.player_notes)}"
+                   if ctx.player_notes else "")
 
 
 def error_outcome(ctx: Ctx, p: Plan, e: Exception) -> Outcome:
