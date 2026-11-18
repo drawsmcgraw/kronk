@@ -52,6 +52,11 @@ def test_notice_text_names_from_to_and_what_was_rolled_back_and_why():
     ]
 
 
+def test_title_when_nothing_was_kept():
+    title, _ = U.notice_text([U.Outcome("tempo", "3.1.1", "3.1.2", "rolled_back", "x")], [], "l")
+    assert title == "Kronk upgrade: 1 rolled back"
+
+
 def test_rollback_failed_title_leads():
     title, body = U.notice_text([U.Outcome("homeassistant", "2026.5.4", "2026.5.5", "rollback_failed", "HA API: 502")], [], "l")
     assert title == "Kronk upgrade: ROLLBACK FAILED (homeassistant)"
@@ -174,3 +179,13 @@ def test_main_mounts_the_router_and_the_page_shows_it():
     page = (ROOT / "orchestrator" / "static" / "services.html").read_text()
     assert 'id="upgrade-grid"' in page and "fetch('/api/upgrades')" in page and "loadUpgrades()" in page
     assert "WARNING: " in page and "clear with: " in page
+
+
+def test_the_install_test_notice_goes_through_the_notifier_and_changes_nothing(house):
+    ops, sd = house
+    assert U.main(["test-notice"], ops=ops) == 0
+    (tag, title, body), = ops.notices
+    assert (tag, title) == ("kronk-upgrades", "Kronk: TEST upgrade notice") and "Nothing was upgraded" in body
+    assert not sd.exists()
+    ops.notify_ok = False
+    assert U.main(["test-notice"], ops=ops) == 1

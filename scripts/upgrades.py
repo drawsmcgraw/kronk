@@ -8,6 +8,7 @@ check, the inventory, and the notices.
     python3 scripts/upgrades.py notices                     retry notices HA did not take
     python3 scripts/upgrades.py ack                         clear the /services warning
     python3 scripts/upgrades.py status                      print the status file
+    python3 scripts/upgrades.py test-notice                 one notice now, marked TEST (install check)
 
 The rules (what is minor, what is major, per component) are data:
 scripts/upgrade_rules.toml. This file decides nothing the rules do not say:
@@ -956,7 +957,9 @@ def _one_health(ctx: Ctx, chk: dict) -> str | None:
         return None if ops.wyoming(chk["host"], chk["port"]) else f"wyoming {chk['host']}:{chk['port']}: no info answer"
     if t == "exec":
         r = ops.docker("exec", chk["container"], *chk["cmd"], timeout=60)
-        return None if r.ok else f"check in {chk['container']} failed: {r.tail(160)}"
+        what = " ".join(chk["cmd"])
+        what = what if len(what) <= 60 else what[:57] + "..."
+        return None if r.ok else f"check `{what}` in {chk['container']} failed (exit {r.rc}){': ' + r.tail(160) if r.tail(160) else ''}"
     if t == "ha-api":
         try:
             ops.ha_get("/api/")
@@ -1206,7 +1209,7 @@ def apply_one(ctx: Ctx, p: Plan) -> Outcome:
     ops.git("add", "--", comp["file"])
     ops.git("commit", "-q", "-m", f"upgrade: {name} {frm} -> {to}", "-m",
             f"Monthly patch upgrade by scripts/upgrade_minor.sh (sprint M18). Release: {p.to.url or 'n/a'}. "
-            f"Run log: data/upgrades/runs/{ctx.stamp}-minor.log", "--", comp["file"])
+            f"Run log: {shown_path(ctx.sd / 'runs' / f'{ctx.stamp}-minor.log', ops.repo)}", "--", comp["file"])
     commit = ops.git("rev-parse", "--short", "HEAD").strip()
     log(f"  committed {commit}: upgrade: {name} {frm} -> {to}")
 
@@ -1252,8 +1255,12 @@ def rollback(ctx: Ctx, comp: dict, frm: str, to: str, problems: list[str], commi
     except (StepFailed, RulesError, OSError) as e:
         after = [f"rollback step raised: {e}"]
     if after:
-        log(f"  ROLLBACK FAILED: {'; '.join(after)}")
-        return Outcome(name, frm, to, "rollback_failed", f"upgrade failed: {reason}; rollback failed: {'; '.join(after)[:300]}", commit)
+        why = " ".join("; ".join(after).split())[:300]
+        log(f"  ROLLBACK FAILED: {why}")
+        where = f"; check what runs: docker inspect {comp['container']}" if comp.get("container") else ""
+        return Outcome(name, frm, to, "rollback_failed",
+                       f"upgrade failed: {' '.join(reason.split())}; rollback failed: {why}. "
+                       f"git has the pin back at {frm}; {to} may still be running{where}", commit)
     log(f"  rolled back and verified: {name} {frm}")
     return Outcome(name, frm, to, "rolled_back", reason, commit)
 
@@ -1268,7 +1275,8 @@ def notice_text(outcomes: list[Outcome], plans: list[Plan], log_rel: str) -> tup
     if rbf:
         title = f"Kronk upgrade: ROLLBACK FAILED ({rbf[0].name})"
     elif rb:
-        title = f"Kronk upgrade: {len(kept)} upgraded, {len(rb)} rolled back"
+        title = (f"Kronk upgrade: {len(kept)} upgraded, {len(rb)} rolled back" if kept
+                 else f"Kronk upgrade: {len(rb)} rolled back")
     elif kept:
         title = f"Kronk upgrade: {len(kept)} upgraded"
     else:
@@ -1296,7 +1304,7 @@ def minor_run(ops: Ops, rules: Rules, sd: Path, dry_run: bool = False, ignore_mo
     month = now.strftime("%Y-%m")
     log_path = None if dry_run else sd / "runs" / f"{stamp}-minor.log"
     log = RunLog(log_path)
-    log_rel = f"data/upgrades/runs/{stamp}-minor.log"
+    log_rel = shown_path(sd / "runs" / f"{stamp}-minor.log", ops.repo)
     log(f"upgrade_minor {'DRY RUN ' if dry_run else ''}{now.isoformat(timespec='seconds')} "
         f"repo {ops.repo} branch rule {rules.settings['expected_branch']!r}")
 
@@ -1355,7 +1363,8 @@ def minor_run(ops: Ops, rules: Rules, sd: Path, dry_run: bool = False, ignore_mo
                 log(f"  {p.comp['name']}: {_would(p, prod_tag)}")
             log("then: one notice through scripts/lib/notify.sh with what changed; "
                 "the status file data/upgrades/status.json for /services")
-            log(f"production runs tag: {prod_tag or 'unknown'}" + (f" ({'; '.join(kronk_why)})" if kronk_why else ""))
+            if any(p.comp["deploy"] == "kronk" for p in todo):
+                log(f"production runs tag: {prod_tag or 'unknown'}" + (f" ({'; '.join(kronk_why)})" if kronk_why else ""))
             if prod_tag:
                 left = undeployed(ops, rules, prod_tag)
                 log(f"HEAD vs {prod_tag}: " + (f"undeployed changes in {', '.join(left[:8])} (Kronk-stack components would be declined)"
@@ -1468,6 +1477,14 @@ def _would(p: Plan, prod_tag: str | None) -> str:
                        f"M12 H8 checks (rollback: pin back, image by id, same restart)")
     return head + (f"compose -p {c['project']} pull {c['service']}; up -d --no-deps {c['service']} "
                    f"(rollback: pin back, up -d with the local previous image)")
+
+
+def shown_path(p: Path, repo: Path) -> str:
+    """A path as a reader should see it: repo-relative when inside the repo."""
+    try:
+        return str(p.resolve().relative_to(repo.resolve()))
+    except ValueError:
+        return str(p)
 
 
 def lock_held(sd: Path) -> bool:
@@ -1943,6 +1960,7 @@ def main(argv=None, ops: Ops | None = None) -> int:
     sub.add_parser("notices", help="retry notices HA did not take")
     sub.add_parser("ack", help="clear the /services warning and a failed-rollback block")
     sub.add_parser("status", help="print the status file")
+    sub.add_parser("test-notice", help="send one notice now, marked TEST (install check)")
     args = ap.parse_args(argv)
     rules = load_rules()
     ops = ops or Ops()
@@ -1992,6 +2010,12 @@ def main(argv=None, ops: Ops | None = None) -> int:
     if args.cmd == "status":
         print(json.dumps(load_status(sd), indent=2, sort_keys=True))
         return 0
+    if args.cmd == "test-notice":
+        ok = ops.notify(NOTIFY_TAG, "Kronk: TEST upgrade notice",
+                        "Install check for the upgrade cadence (sprint M18). Patch runs: days 1-7 of each month "
+                        "at 03:30; the major-upgrade report: the 8th of Jan/Apr/Jul/Oct. Nothing was upgraded.")
+        print("test notice " + ("sent" if ok else "NOT delivered"))
+        return 0 if ok else 1
     return 2
 
 

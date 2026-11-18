@@ -4,6 +4,7 @@ git real in a temporary repository: the dry run, the order, one commit per
 component, verify, rollback (including a rollback that fails), the
 declines and their bounded retries. No sockets, no docker, no notifier."""
 import json
+from pathlib import Path
 
 import pytest
 
@@ -119,7 +120,7 @@ def test_components_go_one_at_a_time_in_order_each_its_own_commit(house):
     (tag, title, body), = ops.notices
     assert tag == "kronk-upgrades" and title == "Kronk upgrade: 4 upgraded"
     for line in ("tempo 3.1.1 -> 3.1.2: upgraded", "grafana 13.2.4 -> 13.2.6: upgraded",
-                 "litellm v1.88.1 -> v1.88.6: upgraded", "Log: data/upgrades/runs/"):
+                 "litellm v1.88.1 -> v1.88.6: upgraded", f"Log: {sd}/runs/20261201T083000Z-minor.log"):
         assert line in body
     st = status(sd)
     assert st["last_run"]["result"] == "upgraded" and st["months"]["2026-12"]["done"] is True
@@ -518,3 +519,8 @@ def test_replay_regressions_count_only_rows_that_passed_before():
 
 def test_the_flapper_list_is_data():
     assert "eval-shuffle-it" in U.load_rules(env={}).replay["flappers"]
+
+
+def test_paths_are_shown_repo_relative_when_inside_the_repo(tmp_path):
+    assert U.shown_path(tmp_path / "data" / "upgrades" / "runs" / "x.log", tmp_path) == "data/upgrades/runs/x.log"
+    assert U.shown_path(Path("/elsewhere/x.log"), tmp_path) == "/elsewhere/x.log"
