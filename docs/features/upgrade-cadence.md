@@ -244,9 +244,9 @@ rollback's `docker stop` on), blocked or not; for any other record it only
 warns. It sends at most one notice per record per state: interrupted, HA
 started again, HA start failing, a read that failed. A start that keeps
 failing is tried every hour and reported once, and once more when it
-works. Its `docker start` waits at most 2 minutes and its wait for HA at
-most 4, the status is written between the two, and the unit's timeout is
-20 minutes. The nightly "rollback waiting" notice is its own and is sent
+works. Its `docker start` gets 2 minutes and HA 4 more to answer (735 s
+at worst with every request timing out), the status is written between
+the two, and the unit's timeout is 20 minutes. The nightly "rollback waiting" notice is its own and is sent
 once whether or not the hourly one came first. It does nothing else: no
 deploy, no compose, no pin or git change. `GET /api/upgrades` shows any
 unfinished record as a warning (a blocked one as needing `ack`). While
