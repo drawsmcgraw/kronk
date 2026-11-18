@@ -28,6 +28,14 @@ def summarize(raw: dict) -> dict:
     rf = raw.get("rollback_failed")
     if rf and not any("rollback FAILED" in a for a in attention):
         attention.insert(0, f"Upgrade rollback FAILED for {rf.get('component')}: {rf.get('detail', '')}")
+    it = raw.get("intent")
+    if isinstance(it, dict):
+        # An unfinished intent record: a run died inside a component. It
+        # is a warning from the moment it exists, whatever else the file
+        # says (sprint M18 fix 2, G2).
+        attention.insert(0, f"An upgrade run was interrupted inside {it.get('component')} {it.get('from')} -> "
+                            f"{it.get('to')} (step {it.get('step')}, {it.get('at')}). The next monthly run "
+                            f"recovers it, or scripts/upgrade_minor.sh --ignore-window now.")
     return {
         "present": True,
         "warnings": attention,
@@ -35,6 +43,7 @@ def summarize(raw: dict) -> dict:
         "last_run": raw.get("last_run"),
         "pending_notices": len(raw.get("pending_notices") or []),
         "rollback_failed": rf,
+        "intent": it if isinstance(it, dict) else None,
         "major": raw.get("major"),
         "updated": raw.get("updated"),
     }

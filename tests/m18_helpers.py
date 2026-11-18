@@ -389,9 +389,9 @@ class FakeOps(U.Ops):
             container = {"tempo": "kronk-telemetry-tempo-1", "grafana": "kronk-telemetry-grafana-1",
                          "homeassistant": "homeassistant"}.get(svc, svc)
             pins = self._pins_at(None, file)
-            image = self.containers[container].rsplit(":", 1)[0]
+            image = self.containers[container].rsplit(":", 1)[0] if container in self.containers else _IMAGE_OF[svc]
             want = f"{image}:{pins[image]}"
-            if pins[image] in self.cannot_return and want != self.containers[container]:
+            if pins[image] in self.cannot_return and want != self.containers.get(container):
                 return U.Result(1, "", "the previous image is gone")
             self.containers[container] = want
             self.stopped.discard(container)

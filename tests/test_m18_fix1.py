@@ -485,8 +485,11 @@ def test_ha_killed_after_the_stop_is_brought_back_on_the_previous_image(house):
     assert ops.containers["homeassistant"] == "ghcr.io/home-assistant/home-assistant:2026.5.4"
     assert U.read_pin(ops.repo, rules().component("homeassistant")).value == "2026.5.4"
     o, = status(sd)["last_run"]["outcomes"]
-    assert o["state"] == ("recovered: Home Assistant was down after an interrupted upgrade; it runs 2026.5.4 again, "
-                          "git has 2026.5.4")
+    # M18 fix 2 (G2): the smallest action, `docker start` of the same
+    # container, then the pin put back by a commit; nothing recreated.
+    assert o["state"].startswith("Home Assistant was down (homeassistant was stopped); the same container was "
+                                 "started again; recovered: git had 2026.5.5 while 2026.5.4 ran; pin put back to 2026.5.4")
+    assert not any(c[:2] == ("docker", "stop") for c in ops.calls)
     assert ops.notices[-1][1] == "Kronk upgrade: an interrupted run was recovered (homeassistant): Home Assistant was down"
 
 
@@ -535,7 +538,7 @@ def test_dry_run_reports_an_unfinished_intent_and_changes_nothing(house, capsys)
     run(ops, sd, only=["homeassistant"], dry_run=True)
     out = capsys.readouterr().out
     assert "stopped inside homeassistant 2026.5.4 -> 2026.5.5 at step 'ha-stop'" in out
-    assert "a real run would finish the rollback to 2026.5.4 now (it is down: no wait)" in out
+    assert "a real run would start the stopped homeassistant container (docker start, the same container)" in out
     assert (sd / "status.json").read_text() == before and git(ops.repo, "rev-parse", "HEAD") == head
     assert "homeassistant" in ops.stopped
 

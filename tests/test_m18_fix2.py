@@ -266,3 +266,192 @@ def test_a_stopped_telemetry_container_is_out_of_step_not_started(house):
     killed(ops, sd, ["grafana"], _kill_grafana_in_verify(ops))
     ops.stopped.add("kronk-telemetry-grafana-1")
     assert run(ops, sd, ["grafana"]) == 2 and mutating(ops) == []
+
+
+# ── G2 (K1, K2): Home Assistant down is dealt with first, by the smallest action ──
+
+def _kill_after_ha_stop(ops):
+    return kill_on(ops, "docker", lambda a: a[0] == "stop")
+
+
+def ha_calls(ops, *what):
+    return [c for c in ops.calls if c[0] == "docker" and c[1] in what]
+
+
+def test_a_stopped_ha_is_started_first_even_with_a_dirty_tree(house):
+    """The tester's K1: killed between the stop and compose up, then an
+    untracked file in the tree. HA comes back (the same container), git and
+    the pin are not touched, and the rest is OUT OF STEP with HA running."""
+    ops, sd = house
+    killed(ops, sd, ["homeassistant"], _kill_after_ha_stop(ops))
+    assert "homeassistant" in ops.stopped
+    (ops.repo / "notes.txt").write_text("a person's notes\n")
+    head = git(ops.repo, "rev-parse", "HEAD")
+    assert run(ops, sd, ["homeassistant"]) == 2
+    assert "homeassistant" not in ops.stopped
+    assert ha_calls(ops, "start") == [("docker", "start", "homeassistant")]
+    assert ha_calls(ops, "stop") == [] and not any(c[0] == "compose" and c[3] == "up" for c in ops.calls)
+    assert git(ops.repo, "rev-parse", "HEAD") == head
+    o, = status(sd)["last_run"]["outcomes"]
+    assert o["result"] == "out_of_step"
+    assert o["state"].startswith("Home Assistant was down (homeassistant was stopped); the same container was "
+                                 "started again; OUT OF STEP")
+    (_, title, _), = ops.notices
+    assert title == "Kronk upgrade: OUT OF STEP (homeassistant)"
+
+
+def test_a_stopped_ha_is_started_then_the_pin_is_put_back_by_a_commit(house):
+    ops, sd = house
+    killed(ops, sd, ["homeassistant"], _kill_after_ha_stop(ops))
+    ops.web.table["https://ghcr.io/v2/home-assistant/home-assistant/tags/list"] = {"tags": ["2026.5.4"]}
+    assert run(ops, sd, ["homeassistant"]) == 1
+    assert ha_calls(ops, "start") == [("docker", "start", "homeassistant")] and ha_calls(ops, "stop") == []
+    assert ops.containers["homeassistant"].endswith(":2026.5.4") and "homeassistant" not in ops.stopped
+    assert subjects(ops.repo)[-1] == "upgrade: roll back homeassistant 2026.5.5 -> 2026.5.4"
+    o, = status(sd)["last_run"]["outcomes"]
+    assert o["state"].startswith("Home Assistant was down (homeassistant was stopped); the same container was "
+                                 "started again; recovered: git had 2026.5.5 while 2026.5.4 ran")
+    assert ops.notices[-1][1] == "Kronk upgrade: an interrupted run was recovered (homeassistant): Home Assistant was down"
+
+
+def test_ha_is_started_even_at_seven_in_the_evening_with_the_house_busy(house):
+    ops, sd = house
+    killed(ops, sd, ["homeassistant"], _kill_after_ha_stop(ops))
+    ops.clock = NOW.replace(hour=0) + _dt.timedelta(days=1)            # 19:00 local
+    ops.states[2]["state"] = "playing"
+    run(ops, sd, ["homeassistant"])
+    assert "homeassistant" not in ops.stopped
+
+
+def _ha_gone_after_stop(ops):
+    """compose up cut between removing the old container and creating the new one."""
+    def gone(a):
+        if a[0] == "stop":
+            del ops.containers["homeassistant"]
+            ops.stopped.discard("homeassistant")
+            return True
+        return False
+    return kill_on(ops, "docker", gone)
+
+
+def test_a_missing_ha_container_is_created_on_the_rollback_image_without_a_stop(house):
+    ops, sd = house
+    killed(ops, sd, ["homeassistant"], _ha_gone_after_stop(ops))
+    ops.containers.pop("homeassistant", None)
+    assert run(ops, sd, ["homeassistant"]) == 1
+    assert ha_calls(ops, "stop") == []
+    assert ("compose", "kronk-ha", "docker-compose.ha.yml", "config", "--format", "json") in ops.calls   # H7b
+    assert ops.containers["homeassistant"] == "ghcr.io/home-assistant/home-assistant:2026.5.4"
+    assert U.read_pin(ops.repo, rules().component("homeassistant")).value == "2026.5.4"
+    o, = status(sd)["last_run"]["outcomes"]
+    assert o["result"] == "recovered" and o["state"].startswith("Home Assistant was down (no homeassistant container)")
+
+
+def test_a_missing_ha_container_is_not_created_when_h7b_fails(house):
+    ops, sd = house
+    killed(ops, sd, ["homeassistant"], _ha_gone_after_stop(ops))
+    ops.containers.pop("homeassistant", None)
+    ops.existing_paths.discard("/home/drew/kronk-voice-recordings")
+    assert run(ops, sd, ["homeassistant"]) == 2
+    assert not any(c[0] == "compose" and c[3] == "up" for c in ops.calls) and ha_calls(ops, "stop") == []
+    st = status(sd)
+    assert st["rollback_failed"]["component"] == "homeassistant"
+    assert ops.notices[-1][1].endswith(": Home Assistant is down")
+
+
+def test_a_rollback_never_stops_a_container_that_does_not_exist(house):
+    ops, sd = house
+    orig = ops.compose
+
+    def compose(project, file, *args, **kw):
+        if args[0] == "up" and project == "kronk-ha" and "2026.5.5" in (ops.repo / file).read_text():
+            ops.containers.pop("homeassistant", None)
+            ops.calls.append(("compose", project, file) + args)
+            return U.Result(1, "", "Error response from daemon: conflict")
+        return orig(project, file, *args, **kw)
+    ops.compose = compose
+    assert run(ops, sd, ["homeassistant"]) == 1
+    assert ha_calls(ops, "stop") == [("docker", "stop", "-t", "120", "homeassistant")]   # the upgrade's only
+    assert ops.containers["homeassistant"].endswith(":2026.5.4")
+    assert status(sd)["last_run"]["outcomes"][0]["result"] == "rolled_back"
+
+
+def test_the_dry_run_says_it_would_start_ha_and_changes_nothing(house, capsys):
+    ops, sd = house
+    killed(ops, sd, ["homeassistant"], _kill_after_ha_stop(ops))
+    before = (sd / "status.json").read_text()
+    capsys.readouterr()
+    run(ops, sd, ["homeassistant"], dry_run=True)
+    assert "a real run would start the stopped homeassistant container (docker start" in capsys.readouterr().out
+    assert (sd / "status.json").read_text() == before and "homeassistant" in ops.stopped
+
+
+def notices_cmd(ops, sd, monkeypatch):
+    monkeypatch.setenv("KRONK_UPGRADE_STATE", str(sd))
+    return U.main(["notices"], ops=ops)
+
+
+def test_the_hourly_unit_starts_a_stopped_ha_and_says_so_within_the_hour(house, monkeypatch):
+    """K2: killed on the 7th at 03:30 local; the next monthly firing is the
+    1st of next month. The hourly unit brings HA back and raises the
+    warning and the notice; it changes nothing else."""
+    ops, sd = house
+    ops.clock = NOW + _dt.timedelta(days=6)
+    _kill_after_ha_stop(ops)
+    with pytest.raises(Killed):
+        run(ops, sd, ["homeassistant"])
+    ops.docker = type(ops).docker.__get__(ops)
+    ops.calls.clear()
+    head = git(ops.repo, "rev-parse", "HEAD")
+    ops.clock += _dt.timedelta(minutes=50)
+    notices_cmd(ops, sd, monkeypatch)
+    assert "homeassistant" not in ops.stopped
+    assert [c for c in mutating(ops)] == [("docker", "start", "homeassistant")]
+    assert git(ops.repo, "rev-parse", "HEAD") == head
+    st = status(sd)
+    assert st["intent"]["component"] == "homeassistant" and st["intent"]["noticed"]
+    assert any(a["id"] == "interrupted" for a in st["attention"])
+    (_, title, body), = ops.notices
+    assert title == "Kronk upgrade: a run was interrupted (homeassistant): Home Assistant was down; started again"
+    assert "step 'ha-stop'" in body
+    ops.calls.clear()
+    ops.clock += _dt.timedelta(hours=1)
+    notices_cmd(ops, sd, monkeypatch)
+    assert mutating(ops) == [] and len(ops.notices) == 1                # once
+
+
+def test_the_hourly_unit_only_warns_about_a_record_of_another_component(house, monkeypatch):
+    ops, sd = house
+    killed(ops, sd, ["litellm"], _kill_in_verify(ops))
+    notices_cmd(ops, sd, monkeypatch)
+    assert mutating(ops) == []
+    assert ops.notices[-1][1] == "Kronk upgrade: a run was interrupted (litellm)"
+    assert any(a["id"] == "interrupted" for a in status(sd)["attention"])
+
+
+def test_the_hourly_unit_does_nothing_while_a_run_holds_the_lock(house, monkeypatch):
+    ops, sd = house
+    killed(ops, sd, ["homeassistant"], _kill_after_ha_stop(ops))
+    fd = U.take_lock(sd, "pid=1\nrun=upgrade_minor x\n")
+    try:
+        notices_cmd(ops, sd, monkeypatch)
+    finally:
+        import os
+        os.close(fd)
+    assert mutating(ops) == [] and ops.notices == [] and "homeassistant" in ops.stopped
+
+
+def test_the_api_shows_an_unfinished_record_as_a_warning(tmp_path):
+    import upgrades_api
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+    (tmp_path / "s.json").write_text(json.dumps({"intent": {
+        "component": "homeassistant", "from": "2026.5.4", "to": "2026.5.5", "step": "ha-stop",
+        "at": "2026-12-07T08:31:00+00:00"}}))
+    upgrades_api.STATUS_FILE = str(tmp_path / "s.json")
+    app = FastAPI()
+    app.include_router(upgrades_api.router)
+    r = TestClient(app).get("/api/upgrades").json()
+    assert r["warnings"][0].startswith("An upgrade run was interrupted inside homeassistant 2026.5.4 -> 2026.5.5 "
+                                       "(step ha-stop, 2026-12-07T08:31:00+00:00)")
+    assert r["ack"] and r["intent"]["component"] == "homeassistant"

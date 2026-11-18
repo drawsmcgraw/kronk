@@ -2,6 +2,11 @@
 # sends what data/upgrades/status.json holds as pending and exits at once
 # when nothing is pending. Until a notice is delivered, /services shows it
 # as a warning. Fired hourly by kronk-upgrade-notices.timer.
+# An unfinished intent record with the lock free (a monthly run died inside
+# a component): it raises the /services warning and sends one notice, and
+# when the record is Home Assistant's and HA's container is stopped, it
+# starts that container (`docker start`, nothing else). It never deploys,
+# recreates, or changes a pin; the monthly run does the recovery (M18 fix 2).
 #
 # Operations: install, check, remove as in kronk-upgrade-minor.service.
 #   log:       journalctl --user -u kronk-upgrade-notices.service -n 20

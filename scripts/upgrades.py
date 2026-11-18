@@ -1323,6 +1323,7 @@ class Ctx:
     ha_binds: list | None = None           # (source, target) of HA's bind mounts, from the compose file (F5)
     outside_window: str | None = None      # set when the run is outside the night window (F8)
     ignore_window: bool = False            # --ignore-window: a run by hand at any hour
+    ha_back: str | None = None             # a recovery brought a stopped or missing HA back (G2)
 
 
 # The intent record (F3): before each step that changes git or what runs,
@@ -1708,7 +1709,9 @@ def ha_rollback(ctx: Ctx, comp: dict, frm: str) -> str | None:
     steps = []
     if not cur.ok or cur.out.strip() != old:
         steps.append(("docker", ("tag", old, f"{comp['image']}:{frm}")))
-    steps += [("docker", ("stop", "-t", "120", comp["container"])), ("compose", ("up", "-d", comp["service"]))]
+    if container_state(ctx, comp)[0] != "absent":          # never `docker stop` a container that does not exist
+        steps.append(("docker", ("stop", "-t", "120", comp["container"])))
+    steps.append(("compose", ("up", "-d", comp["service"])))
     return _ha_steps(ctx, comp, steps)
 
 
@@ -2060,15 +2063,95 @@ def recover(ops: Ops, rules: Rules, sd: Path, status: dict, now: dt.datetime, lo
                     state="OUT OF STEP: unknown component in the interrupted run's record")
         return _recovered(ctx, status, o, log_rel, dry_run)
     try:
-        f = intent_facts(ctx, comp, it)
-        log(f"  {f['desc']}")
-        o = _recover_one(ctx, comp, it, f, dry_run)
+        # Home Assistant down comes first, before the tree, the window and
+        # the month, and by the smallest action (sprint M18 fix 2, G2).
+        o = _ha_down_first(ctx, comp, it, dry_run) if comp.get("deploy") == "ha" else None
+        if o == "dry":
+            return None
+        if o is None:
+            f = intent_facts(ctx, comp, it)
+            log(f"  {f['desc']}")
+            o = _recover_one(ctx, comp, it, f, dry_run)
     except (StepFailed, RulesError, OSError) as e:
         o = Outcome(name, frm, to, "out_of_step", f"cannot read git or what runs: {e}",
                     state="OUT OF STEP: an interrupted run; git and what runs could not be read")
     if o is None:                      # dry run: said what it would do
         return None
     return _recovered(ctx, status, o, log_rel, dry_run)
+
+
+def start_stopped_ha(ctx: Ctx, comp: dict) -> str | None:
+    """`docker start` the stopped container itself (no compose, no
+    recreate, no pin or git change) and wait for HA to answer. None when it
+    runs and answers; else why not."""
+    c = comp["container"]
+    r = ctx.ops.docker("start", c, timeout=300)
+    ctx.log(f"  docker start {c}: exit {r.rc}")
+    if not r.ok:
+        return f"docker start {c} failed: {r.tail(200)}"
+    problems = health(ctx, comp)
+    return f"{c} started, but HA does not answer: {'; '.join(problems)}" if problems else None
+
+
+def _ha_down_first(ctx: Ctx, comp: dict, it: dict, dry_run: bool):
+    """HA stopped: start the same container. HA's container missing (a
+    compose up cut short): create it on the rollback image, without a stop,
+    after M12 H7b. Returns None to go on with the recovery (ctx.ha_back
+    says what was done), "dry" in a dry run that would act, or an Outcome
+    when HA could not be brought back."""
+    name, frm, to, log, c = comp["name"], it["from"], it["to"], ctx.log, comp["container"]
+    kind, _, _ = container_state(ctx, comp)
+    if kind not in ("stopped", "absent"):
+        return None
+
+    def down(result: str, why: str) -> Outcome:
+        _, runs = what_runs(ctx, comp)
+        word = "ROLLBACK FAILED" if result == "rollback_failed" else "OUT OF STEP"
+        return Outcome(name, frm, to, result, why, state=f"{word}; running is {runs}; git has {head_pin(ctx, comp)}")
+    if kind == "stopped":
+        if dry_run:
+            log(f"  a real run would start the stopped {c} container (docker start, the same container), wait for HA, "
+                f"then go on with the recovery")
+            return "dry"
+        err = start_stopped_ha(ctx, comp)
+        if err:
+            return down("rollback_failed", err)
+        ctx.ha_back = f"Home Assistant was down ({c} was stopped); the same container was started again"
+        log(f"  {ctx.ha_back}")
+        return None
+    if dry_run:
+        log(f"  a real run would create {c} on the rollback image {comp['image']}:{frm} (compose up, no stop) after "
+            f"M12 H7b, then go on with the recovery")
+        return "dry"
+    # compose up reads the working tree's file: it must say `frm`, or the
+    # pin is put back by a commit first when the tree allows it.
+    try:
+        disk = read_pin(ctx.ops.repo, comp).value
+    except (RulesError, OSError) as e:
+        return down("out_of_step", f"cannot read the pin in {comp['file']}: {e}")
+    if disk == to:
+        dirty = tree_state(ctx.ops, ctx.rules)
+        unexpl = unexplained_commits(ctx, comp, it)
+        if head_pin(ctx, comp) != to or unexpl or any(w.startswith("working tree not clean") for w in dirty):
+            return down("out_of_step", f"{comp['file']} says {to} and the pin cannot be put back by a commit "
+                                       f"({unexpl or '; '.join(dirty) or 'HEAD is not the pin commit'}); {_OOS_TODO}")
+        _pin_back(ctx, comp, frm, to, f"Recovering an interrupted run ({it.get('run')}, step {it.get('step')}): "
+                                      f"no {c} container.")
+    elif disk != frm:
+        return down("out_of_step", f"{comp['file']} says {disk}, neither {frm} nor {to}; {_OOS_TODO}")
+    files = ha_files_ok(ctx, comp)
+    if files:
+        return down("rollback_failed", "not created: M12 H7b: " + "; ".join(files))
+    if not ctx.ha_old_id:
+        i = ctx.ops.docker("image", "inspect", f"{HA_ROLLBACK_REPO}:{frm}", "-f", "{{.Id}}", timeout=30)
+        ctx.ha_old_id = i.out.strip() if i.ok else None
+    err = ha_rollback(ctx, comp, frm)
+    problems = [err] if err else health(ctx, comp)
+    if problems:
+        return down("rollback_failed", "; ".join(problems))
+    ctx.ha_back = f"Home Assistant was down (no {c} container); it was created again on {frm}, the rollback image"
+    log(f"  {ctx.ha_back}")
+    return None
 
 
 _OOS_TODO = ("nothing was touched; put what should run back by hand, make git's pin match it, "
@@ -2103,30 +2186,7 @@ def _recover_one(ctx: Ctx, comp: dict, it: dict, f: dict, dry_run: bool) -> Outc
             return _pin_back_only(ctx, comp, it, f, dry_run)
         return oos(f"production runs tag {prod or 'unknown'}; the record has the previous tag {prev} and the run's tag "
                    f"{own or '(not made yet)'}: someone else deployed in between")
-    # Telemetry and Home Assistant.
-    if comp["deploy"] == "ha" and f["kind"] in ("stopped", "absent"):
-        # Home Assistant down: brought back on the previous image at once.
-        if dry_run:
-            log = ctx.log
-            log(f"  a real run would finish the rollback to {frm} now (it is down: no wait)")
-            return None
-        try:
-            if f["git"] == to:
-                _pin_back(ctx, comp, frm, to, f"Recovering an interrupted run ({it.get('run')}, step {it.get('step')}).")
-            if not ctx.ha_old_id:
-                i = ctx.ops.docker("image", "inspect", f"{HA_ROLLBACK_REPO}:{frm}", "-f", "{{.Id}}", timeout=30)
-                ctx.ha_old_id = i.out.strip() if i.ok else None
-            err = ha_rollback(ctx, comp, frm)
-            after = [err] if err else verify(ctx, comp, frm, full=False)
-        except (StepFailed, RulesError, OSError) as e:
-            after = [f"recovery step raised: {e}"]
-        if after:
-            _, runs = what_runs(ctx, comp)
-            return Outcome(name, frm, to, "rollback_failed", "; ".join(after),
-                           state=f"ROLLBACK FAILED; running is {runs}; git has {head_pin(ctx, comp)}")
-        return Outcome(name, frm, to, "recovered", f"interrupted at step {it.get('step')}",
-                       state=f"recovered: Home Assistant was down after an interrupted upgrade; it runs {frm} again, "
-                             f"git has {frm}")
+    # Telemetry and Home Assistant (a stopped or missing HA was dealt with first).
     if f["kind"] != "runs":
         return oos(f"{c} is not running ({f['runs']}); a recovery starts nothing the record does not account for")
     if f["ver"] == frm:
@@ -2238,6 +2298,8 @@ def _recovered(ctx: Ctx, status: dict, o: Outcome, log_rel: str, dry_run: bool) 
     if dry_run:
         log(f"  a real run would stop here: {o.state}")
         return None
+    if ctx.ha_back:
+        o.state = f"{ctx.ha_back}; {o.state}"
     log(f"  {o.result}: {o.state}" + (f" ({_cut(o.detail, 400)})" if o.detail else ""))
     month = now.strftime("%Y-%m")
     m = status.setdefault("months", {}).setdefault(month, {"attempts": 0, "done": False})
@@ -3099,6 +3161,44 @@ def _major_write(ops: Ops, rules: Rules, sd: Path, now: dt.datetime, date: str, 
     return 0
 
 
+# ═══ The hourly unit and an unfinished record (G2) ═══════════════════════
+#
+# A record with the lock free means the run that wrote it died. The hourly
+# `notices` command does two things about it and nothing else: if the record
+# is Home Assistant's and HA's container is stopped, it starts that container
+# (start_stopped_ha: no compose, no pin or git change); and it raises the
+# /services warning and sends one notice. The next monthly run (or
+# `scripts/upgrade_minor.sh --ignore-window`) does the recovery itself.
+
+def hourly_start_ha(ops: Ops, rules: Rules, sd: Path, status: dict, log: RunLog) -> str | None:
+    it = status["intent"]
+    try:
+        comp = rules.component(it.get("component"))
+    except KeyError:
+        return None
+    if comp.get("deploy") != "ha" or container_state(ops, comp)[0] != "stopped":
+        return None
+    ctx = Ctx(ops, rules, log, sd, "hourly", ops.now())
+    err = start_stopped_ha(ctx, comp)
+    return f"Home Assistant is down: {err}" if err else "Home Assistant was down; started again"
+
+
+def hourly_notice(ops: Ops, status: dict, now: dt.datetime, log: RunLog, back: str | None) -> None:
+    it = status["intent"]
+    name = it.get("component")
+    text = (f"Upgrade interrupted inside {name} {it.get('from')} -> {it.get('to')} at step {it.get('step')!r} "
+            f"({it.get('at')}, run {it.get('run')}). The next monthly run recovers it, or "
+            f"scripts/upgrade_minor.sh --ignore-window now; `python3 scripts/upgrades.py ack` drops the record "
+            f"for a person to take over." + (f" {back}." if back else ""))
+    add_attention(status, "interrupted", text, now)
+    if it.get("noticed") and not back:
+        return
+    it["noticed"] = now.isoformat(timespec="seconds")
+    deliver(ops, status, {"id": f"interrupted-{name}-{now.strftime('%Y%m%dT%H%M%SZ')}", "tag": NOTIFY_TAG,
+                          "title": f"Kronk upgrade: a run was interrupted ({name})" + (f": {back}" if back else ""),
+                          "body": text, "created": now.isoformat(timespec="seconds")}, now, log)
+
+
 # ═══ CLI ═════════════════════════════════════════════════════════════════
 
 def main(argv=None, ops: Ops | None = None) -> int:
@@ -3136,7 +3236,7 @@ def main(argv=None, ops: Ops | None = None) -> int:
             return status_corrupt(ops, e, print, notify=False)
     if args.cmd == "notices":
         status = load_status(sd)
-        if not status.get("pending_notices"):
+        if not status.get("pending_notices") and not status.get("intent"):
             return 0
         fd = take_lock(sd)
         if fd is None:
@@ -3144,7 +3244,11 @@ def main(argv=None, ops: Ops | None = None) -> int:
             return 0
         try:
             status = load_status(sd)
-            left = retry_pending(ops, status, ops.now(), RunLog(None))
+            log = RunLog(None)
+            back = hourly_start_ha(ops, rules, sd, status, log) if status.get("intent") else None
+            left = retry_pending(ops, status, ops.now(), log)
+            if status.get("intent"):
+                hourly_notice(ops, status, ops.now(), log, back)
             save_status(sd, status, ops.now())
             return 0 if left == 0 else 1
         finally:
