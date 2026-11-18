@@ -2415,6 +2415,43 @@ async def rebuild_taste_profile():
         raise HTTPException(status_code=502, detail=f"Couldn't read Music Assistant: {e}")
 
 
+@app.get("/music/stations")
+async def list_stations(provider: str = Query("pandora", pattern=r"^[a-z0-9_]{1,40}$")):
+    """The library's radio stations that one provider serves (sprint M13:
+    the Whisper vocabulary prompt, scripts/build_stt_prompt.py).
+
+    Reads only: MA's library listing through ma_read, and play counts from
+    the taste DB opened read-only (a missing DB means 0 plays). The taste
+    DB's own `stations.provider` reads `library` for every row, so the
+    provider comes from MA's provider_mappings. Ordered by plays, then name.
+    """
+    try:
+        items = await taste._paged(ma_read, "music/radios/library_items")
+    except MAError as e:
+        raise HTTPException(status_code=502, detail=f"Couldn't read Music Assistant: {e}")
+    plays: dict[str, float] = {}
+    try:
+        con = taste.db_readonly()
+        try:
+            plays = {r["uri"]: r["plays"] or 0.0 for r in con.execute("SELECT uri, plays FROM stations")}
+        finally:
+            con.close()
+    except sqlite3.Error as e:
+        logger.warning("station plays unavailable (taste DB): %s", e)
+    out = []
+    for it in items:
+        if not isinstance(it, dict) or not (it.get("name") or "").strip():
+            continue
+        domains = {it.get("provider")} | {m.get("provider_domain") for m in it.get("provider_mappings") or []
+                                          if isinstance(m, dict)}
+        if provider not in domains:
+            continue
+        out.append({"name": it["name"].strip(), "uri": it.get("uri"),
+                    "plays": round(float(plays.get(it.get("uri"), 0.0)), 3)})
+    out.sort(key=lambda s: (-s["plays"], s["name"].casefold(), s["name"]))
+    return {"provider": provider, "stations": out}
+
+
 # ── Playback control ─────────────────────────────────────────────────────────
 # action → (HA service, states that prove it worked, spoken word).
 # "stop" is deliberately media_pause: pause keeps the queue so "resume"
