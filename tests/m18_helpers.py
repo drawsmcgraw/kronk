@@ -273,6 +273,11 @@ class FakeOps(U.Ops):
         self.replay_stops: list[int] = []            # each: the next replay stops (exit 3) after this many rows
         self.cannot_return: set[str] = set()          # versions that cannot be brought back (rollback fails)
         self.pull_fail: set[str] = set()
+        # HA's H8 checks (M12): what the restarted container reports
+        self.stop_timeout = "120"
+        self.kill_signals = "15"                      # `docker events` signals of HA's kill events
+        self.check_only_rc = 0                        # voice_replay.py --check-only
+        self.vt_probe = {"connected": True, "too_old": 0}
 
     # helpers
     def _config_hash(self, file: str, svc: str) -> str:
@@ -320,7 +325,7 @@ class FakeOps(U.Ops):
                 pairs = self.ha_mounted if c == "homeassistant" else self.mounts.get(c, [])
                 return U.Result(0, json.dumps([{"Type": "bind", "Source": s, "Destination": t} for s, t in pairs]))
             if fmt == "{{.Config.StopTimeout}}":
-                return U.Result(0, "120\n")
+                return U.Result(0, self.stop_timeout + "\n")
             if fmt == "{{.State.Health.Status}}":
                 return U.Result(0, ("unhealthy" if self._version_running(c) in self.bad_versions else "healthy") + "\n")
             if fmt == "{{.State.Running}}":
@@ -364,7 +369,7 @@ class FakeOps(U.Ops):
             lines = (self.nginx_log + "".join(self.nginx_own)).splitlines(keepends=True)
             return U.Result(0, "".join(ln for ln in lines if _logged_at(ln) is None or _logged_at(ln) >= since))
         if a[0] == "events":
-            return U.Result(0, "15\n")
+            return U.Result(0, self.kill_signals + "\n")
         if a[0] == "exec":
             return U.Result(0 if self._version_running(a[1]) not in self.bad_versions else 1)
         return U.Result(0)
@@ -448,7 +453,7 @@ class FakeOps(U.Ops):
         if self.replay_rc in (2, 3):
             return U.Result(self.replay_rc, "", "refused")
         if check_only:
-            return U.Result(0)
+            return U.Result(self.check_only_rc, "", "check failed" if self.check_only_rc else "")
         running = set(v.rsplit(":", 1)[-1] for v in self.containers.values())
         failing = {rid for v, ids_ in self.replay_regress.items() if v in running for rid in ids_}
         rows = [{"id": rid, "status": "fail" if rid in failing else "pass"} for rid in CORPUS_IDS[:3]]
@@ -481,7 +486,7 @@ class FakeOps(U.Ops):
     def http_get(self, url, headers=None, timeout=10):
         self.calls.append(("http", url))
         if "probe/voice_tracer" in url:
-            return 200, json.dumps({"held": self.held + len(self.held_ids), "connected": True, "too_old": 0})
+            return 200, json.dumps({"held": self.held + len(self.held_ids), **self.vt_probe})
         bad = any(self._version_running(c) in self.bad_versions for c in self.containers)
         if ":3200/" in url:
             return (500 if self._version_running("kronk-telemetry-tempo-1") in self.bad_versions else 200), "ready"

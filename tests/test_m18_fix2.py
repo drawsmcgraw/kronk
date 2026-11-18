@@ -1033,3 +1033,51 @@ def test_a_failed_status_write_after_a_change_is_not_a_traceback_and_says_what_m
     assert title == "Kronk upgrade: STOPPED, the status file cannot be written"
     assert "after a change" in body and "the next run recovers from the record" in body
     assert status(sd)["intent"]["component"] == "tempo"           # the last good write stands
+
+
+# ── HA's H8 checks, one at a time (the survivors o33 to o37) ─────────────
+
+def _while_new_ha(ops, attr, bad):
+    """`attr` reads `bad` while HA 2026.5.5 runs, its own value otherwise."""
+    good = getattr(ops, attr)
+    orig = ops.compose
+
+    def compose(project, file, *args, **kw):
+        r = orig(project, file, *args, **kw)
+        if args[0] == "up" and project == "kronk-ha":
+            setattr(ops, attr, bad if ops.containers["homeassistant"].endswith(":2026.5.5") else good)
+        return r
+    ops.compose = compose
+
+
+@pytest.mark.parametrize("mutant, attr, bad, detail", [
+    ("o33", "stop_timeout", "10", "StopTimeout is 10, not 120"),
+    ("o34", "kill_signals", "9", "HA was killed with signal 9"),
+    ("o36", "check_only_rc", 1, "voice_replay --check-only failed (exit 1)"),
+    ("o37", "vt_probe", {"connected": False, "too_old": 0}, "voice_tracer not reconnected cleanly"),
+    ("o37", "vt_probe", {"connected": True, "too_old": 2}, "voice_tracer not reconnected cleanly"),
+])
+def test_each_of_has_restart_checks_fails_the_upgrade_on_its_own(house, mutant, attr, bad, detail):
+    ops, sd = house
+    _while_new_ha(ops, attr, bad)
+    assert run(ops, sd, ["homeassistant"]) == 1
+    o, = status(sd)["last_run"]["outcomes"]
+    assert o["result"] == "rolled_back" and detail in o["detail"]
+    assert ops.containers["homeassistant"].endswith(":2026.5.4")
+
+
+def test_has_state_diff_fails_the_upgrade_on_its_own(house):
+    """o35: a select that changed across the restart (a puck's assistant slot)."""
+    ops, sd = house
+    sel = next(x for x in ops.states if x["entity_id"] == "select.kitchen_assistant_2")
+    orig = ops.compose
+
+    def compose(project, file, *args, **kw):
+        r = orig(project, file, *args, **kw)
+        if args[0] == "up" and project == "kronk-ha":
+            sel["state"] = "kronk" if ops.containers["homeassistant"].endswith(":2026.5.5") else "kronk-dev"
+        return r
+    ops.compose = compose
+    assert run(ops, sd, ["homeassistant"]) == 1
+    o, = status(sd)["last_run"]["outcomes"]
+    assert o["result"] == "rolled_back" and "select.kitchen_assistant_2: kronk-dev before, kronk after" in o["detail"]
