@@ -741,3 +741,45 @@ def test_a_status_file_the_run_itself_writes_passes_the_shape_check(house):
     assert U.load_status(sd)["intent"]["component"] == "litellm"
     run(ops, sd, ["tempo", "litellm"])
     U.load_status(sd)
+
+
+# ── K12: a check whose own read fails is a failed check ──────────────────
+
+def _docker_fails_while(ops, what, cond):
+    orig = ops.docker
+
+    def docker(*args, **kw):
+        if what(args) and cond():
+            ops.calls.append(("docker",) + args)
+            return U.Result(1, "", "Cannot connect to the Docker daemon")
+        return orig(*args, **kw)
+    ops.docker = docker
+
+
+def _new_ha_runs(ops):
+    return lambda: ops.containers.get("homeassistant", "").endswith(":2026.5.5")
+
+
+def test_a_failed_docker_events_read_fails_the_upgrade(house):
+    ops, sd = house
+    _docker_fails_while(ops, lambda a: a[0] == "events", _new_ha_runs(ops))
+    assert run(ops, sd, ["homeassistant"]) == 1
+    o, = status(sd)["last_run"]["outcomes"]
+    assert o["result"] == "rolled_back" and "cannot read docker events" in o["detail"]
+
+
+def test_a_failed_read_of_music_assistants_start_time_before_the_restart_declines_it(house):
+    ops, sd = house
+    _docker_fails_while(ops, lambda a: a[:2] == ("inspect", "music-assistant-server"), lambda: True)
+    run(ops, sd, ["homeassistant"])
+    o, = status(sd)["last_run"]["outcomes"]
+    assert o["result"] == "not_started" and "cannot read Music Assistant's start time" in o["detail"]
+    assert not any(c[:2] == ("docker", "stop") for c in ops.calls)
+
+
+def test_a_failed_read_of_music_assistants_start_time_after_the_restart_fails_the_upgrade(house):
+    ops, sd = house
+    _docker_fails_while(ops, lambda a: a[:2] == ("inspect", "music-assistant-server"), _new_ha_runs(ops))
+    assert run(ops, sd, ["homeassistant"]) == 1
+    o, = status(sd)["last_run"]["outcomes"]
+    assert o["result"] == "rolled_back" and "cannot read Music Assistant's start time" in o["detail"]

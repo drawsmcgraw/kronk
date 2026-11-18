@@ -1755,7 +1755,10 @@ def ha_checks(ctx: Ctx, comp: dict, wait_s: float = 600, step: float = 15, playe
     since = ctx.ha_restart_at or "30m"
     k = ops.docker("events", "--since", since, "--until", "0s", "--filter", f"container={comp['container']}",
                    "--filter", "event=kill", "--format", "{{.Actor.Attributes.signal}}", timeout=30)
-    if k.ok and "9" in k.out.split():
+    if not k.ok:
+        problems.append(f"cannot read docker events for {comp['container']} ({k.tail(100)}): cannot tell whether HA "
+                        f"was killed with signal 9")
+    elif "9" in k.out.split():
         problems.append("HA was killed with signal 9 (unclean shutdown)")
     # M12 H7: the mounts the compose file gives HA, and no unclean-shutdown line.
     if ctx.ha_binds is None:
@@ -1829,8 +1832,12 @@ def _ha_diff(before: dict, after: dict, flapping=()) -> tuple[list[str], list[st
             out.append(f"{eid}: {b['state']} before, {a['state']} after")
     if "rest_command" in before and before.get("rest_command") != after.get("rest_command"):
         out.append(f"rest_command services changed: {before.get('rest_command')} -> {after.get('rest_command')}")
-    if before.get("ma_started") and before.get("ma_started") != after.get("ma_started"):
-        out.append("Music Assistant restarted (its start time changed)")
+    if "ma_started" in before:
+        # A read that failed is a failed check, not a skipped one (K12).
+        if not before["ma_started"] or not after.get("ma_started"):
+            out.append("cannot read Music Assistant's start time: cannot tell whether HA's restart restarted it")
+        elif before["ma_started"] != after["ma_started"]:
+            out.append("Music Assistant restarted (its start time changed)")
     return out, players
 
 
@@ -1945,6 +1952,9 @@ def _apply_one(ctx: Ctx, p: Plan) -> Outcome:
         except (StepFailed, ValueError) as e:
             return Outcome(name, frm, to, "not_started", f"cannot snapshot HA before the restart: {e}")
         why = ha_precheck(ctx, ctx.ha_before) + ha_files_ok(ctx, comp)
+        if not ctx.ha_before.get("ma_started"):
+            why.append("cannot read Music Assistant's start time (docker inspect music-assistant-server): "
+                       "the check that HA's restart leaves it alone could not run")
         if why:
             return Outcome(name, frm, to, "not_started", "HA restart declined: " + "; ".join(why))
     info: list[str] = []
