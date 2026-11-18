@@ -538,8 +538,15 @@ class Ops:
         # the house check can tell them from the household's. Set per run.
         self.client_ua: str | None = None
 
+        # The token the run writes into its lock file: deploy_tag.sh refuses
+        # to deploy while the lock is held, except for the holder (F9).
+        self.upgrade_token: str | None = None
+
     def client_env(self) -> dict:
-        return {"KRONK_CLIENT_UA": self.client_ua} if self.client_ua else {}
+        env = {"KRONK_CLIENT_UA": self.client_ua} if self.client_ua else {}
+        if self.upgrade_token:
+            env["KRONK_UPGRADE_TOKEN"] = self.upgrade_token
+        return env
 
     # processes
     def run(self, args: list[str], timeout: float = 600, env: dict | None = None) -> Result:
@@ -713,11 +720,39 @@ def state_dir(repo: Path = REPO) -> Path:
     return Path(os.getenv("KRONK_UPGRADE_STATE", str(repo / "data" / "upgrades")))
 
 
+class StatusCorrupt(RuntimeError):
+    """The status file exists and cannot be read: never read as empty, it
+    may hold a failed-rollback block or an interrupted run's record (F9)."""
+
+
 def load_status(sd: Path) -> dict:
+    path = sd / "status.json"
     try:
-        return json.loads((sd / "status.json").read_text())
-    except (FileNotFoundError, ValueError):
+        raw = path.read_text()
+    except FileNotFoundError:
         return {}
+    except OSError as e:
+        raise StatusCorrupt(f"{path} cannot be read ({e})") from e
+    try:
+        data = json.loads(raw)
+    except ValueError as e:
+        raise StatusCorrupt(f"{path} is not valid JSON ({e})") from e
+    if not isinstance(data, dict):
+        raise StatusCorrupt(f"{path} holds a {type(data).__name__}, not an object")
+    return data
+
+
+def status_corrupt(ops: Ops, e: StatusCorrupt, log, notify: bool) -> int:
+    log(f"STOPPED: {e}. It is not read as empty (it may hold a failed-rollback block or an interrupted run's "
+        f"record). Nothing was done. Look at it, then fix it or move it aside.")
+    if notify:
+        try:
+            ops.notify(NOTIFY_TAG, "Kronk upgrade: STOPPED, the status file is unreadable",
+                       f"{e}. Nothing was done; later runs stop the same way until it is fixed or moved aside. "
+                       f"/services shows the same warning.")
+        except Exception as ex:  # noqa: BLE001
+            log(f"notice: notifier raised {ex!r}")
+    return 2
 
 
 def save_status(sd: Path, status: dict, now: dt.datetime) -> None:
@@ -1520,6 +1555,9 @@ def _apply_one(ctx: Ctx, p: Plan) -> Outcome:
         late = outside_window(ops, ctx.rules)
         if late:
             return Outcome(name, frm, to, "not_started", f"the night window closed: {late}")
+    procs = ops.pgrep(r"scripts/deploy_tag\.sh (deploy|plan|seed)")
+    if procs:
+        return Outcome(name, frm, to, "not_started", f"a deploy is in progress ({procs[0][:120]})")
     if comp["deploy"] == "kronk":
         if not ctx.prod_tag:
             return Outcome(name, frm, to, "not_started", "production is not on a tag (see above)")
@@ -1955,15 +1993,19 @@ def minor_run(ops: Ops, rules: Rules, sd: Path, dry_run: bool = False, ignore_mo
     lock_fd = None
     if dry_run:
         held = lock_held(sd)
-        log(f"lock {sd / 'lock'}: {'HELD by another run' if held else 'free'} (dry run takes no lock)")
+        log(f"lock {sd / 'lock'}: {'HELD by ' + lock_holder(sd) if held else 'free'} (dry run takes no lock)")
     else:
         sd.mkdir(parents=True, exist_ok=True)
-        lock_fd = take_lock(sd)
+        ops.upgrade_token = secrets.token_hex(16)
+        lock_fd = take_lock(sd, f"pid={os.getpid()}\nrun=upgrade_minor {stamp}\ntoken={ops.upgrade_token}\n")
         if lock_fd is None:
-            log("declined: another upgrade run holds the lock")
+            log(f"declined: another upgrade run holds the lock ({lock_holder(sd)})")
             return 0
     try:
-        status = load_status(sd)
+        try:
+            status = load_status(sd)
+        except StatusCorrupt as e:
+            return status_corrupt(ops, e, log, notify=not dry_run)
         late = None if ignore_window else outside_window(ops, rules)
         if status.get("intent"):
             # Before anything else, the month's bookkeeping included: a run
@@ -2186,6 +2228,14 @@ def shown_path(p: Path, repo: Path) -> str:
         return str(p)
 
 
+def lock_holder(sd: Path) -> str:
+    """Who holds the lock, as the holder wrote it (never the token)."""
+    try:
+        return " ".join(ln for ln in (sd / "lock").read_text().splitlines() if ln and not ln.startswith("token="))
+    except OSError:
+        return "unknown"
+
+
 def lock_held(sd: Path) -> bool:
     p = sd / "lock"
     if not p.exists():
@@ -2201,14 +2251,32 @@ def lock_held(sd: Path) -> bool:
         os.close(fd)
 
 
-def take_lock(sd: Path) -> int | None:
+def take_lock(sd: Path, holder: str = "") -> int | None:
+    """The upgrade lock (flock on data/upgrades/lock), or None when held.
+    The holder's description is written into the file for deploy_tag.sh
+    and for a person reading it."""
     fd = os.open(sd / "lock", os.O_RDWR | os.O_CREAT, 0o644)
     try:
         fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        return fd
     except BlockingIOError:
         os.close(fd)
         return None
+    os.ftruncate(fd, 0)
+    os.write(fd, (holder or f"pid={os.getpid()}\n").encode())
+    return fd
+
+
+def wait_lock(ops: Ops, sd: Path, holder: str, minutes: int, log) -> int | None:
+    """The lock, waiting up to `minutes` for the holder to finish."""
+    waited = 0
+    while True:
+        fd = take_lock(sd, holder)
+        if fd is not None or waited >= minutes:
+            return fd
+        if waited == 0:
+            log(f"waiting for the upgrade lock (held by: {lock_holder(sd)}), up to {minutes} minutes")
+        ops.sleep(60)
+        waited += 1
 
 
 # ═══ Inventory ═══════════════════════════════════════════════════════════
@@ -2613,9 +2681,32 @@ def major_run(ops: Ops, rules: Rules, sd: Path, dry_run: bool = False, out: Path
         out.write_text(text)
         log(f"report written to {out} (no commit, no notice)")
         return 0
+    sd.mkdir(parents=True, exist_ok=True)
+    fd = wait_lock(ops, sd, f"pid={os.getpid()}\nrun=upgrade_major_check {now.strftime('%Y%m%dT%H%M%SZ')}\n",
+                   rules.settings.get("lock_wait_minutes", 240), log)
+    if fd is None:
+        log(f"STOPPED: the upgrade lock is still held ({lock_holder(sd)}); the report was not written. "
+            f"Run scripts/upgrade_major_check.sh when it is free.")
+        try:
+            ops.notify(NOTIFY_TAG, "Kronk: the quarterly upgrade check did not run",
+                       f"The upgrade lock stayed held ({lock_holder(sd)}). Run scripts/upgrade_major_check.sh by hand.")
+        except Exception as ex:  # noqa: BLE001
+            log(f"notice: notifier raised {ex!r}")
+        return 1
+    try:
+        return _major_write(ops, rules, sd, now, date, text, names, notify, log)
+    finally:
+        os.close(fd)
+
+
+def _major_write(ops: Ops, rules: Rules, sd: Path, now: dt.datetime, date: str, text: str, names: list[str],
+                 notify: bool, log) -> int:
+    try:
+        status = load_status(sd)
+    except StatusCorrupt as e:
+        return status_corrupt(ops, e, log, notify=True)
     rel = f"docs/upgrades/{date}.md"
     why = tree_state(ops, rules)
-    status = load_status(sd)
     if not why:
         path = ops.repo / rel
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -2674,6 +2765,11 @@ def main(argv=None, ops: Ops | None = None) -> int:
         now = ops.now()
         print(inventory_markdown(inventory(ops, rules, now), ops.web, now))
         return 0
+    if args.cmd in ("notices", "ack", "status"):
+        try:
+            load_status(sd)
+        except StatusCorrupt as e:
+            return status_corrupt(ops, e, print, notify=False)
     if args.cmd == "notices":
         status = load_status(sd)
         if not status.get("pending_notices"):

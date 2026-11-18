@@ -835,3 +835,118 @@ def test_user_units_carry_no_ordering_on_system_units():
         text = f.read_text()
         assert "docker.service" not in text.split("[Unit]", 1)[1], f.name
         assert "network-online.target" not in text.split("[Unit]", 1)[1], f.name
+
+
+# ── F9: one lock for both runs; a corrupt status file; deploys ───────────
+
+import os as _os
+import subprocess as _sp
+
+
+def test_the_quarterly_check_waits_for_the_lock_then_runs(house):
+    ops, sd = house
+    sd.mkdir()
+    fd = U.take_lock(sd, "pid=1\nrun=upgrade_minor 20261208T083000Z\ntoken=secret\n")
+    sleeps = []
+
+    def sleep(s):
+        sleeps.append(s)
+        if len(sleeps) == 3:
+            _os.close(fd)                                   # the monthly run finishes
+    ops.sleep = sleep
+    assert U.major_run(ops, rules(), sd) == 0
+    assert len(sleeps) == 3 and "major" in status(sd)
+
+
+def test_the_quarterly_check_gives_up_on_a_held_lock_and_says_so(house):
+    ops, sd = house
+    sd.mkdir()
+    fd = U.take_lock(sd, "pid=1\nrun=upgrade_minor 20261208T083000Z\ntoken=secret\n")
+    try:
+        ops.sleep = lambda s: None
+        assert U.major_run(ops, rules(), sd) == 1
+        assert not (sd / "status.json").exists()
+        assert not list((ops.repo / "docs").glob("upgrades/*.md"))
+        (_, title, body), = ops.notices
+        assert title == "Kronk: the quarterly upgrade check did not run"
+        assert "run=upgrade_minor 20261208T083000Z" in body and "secret" not in body
+    finally:
+        _os.close(fd)
+
+
+@pytest.mark.parametrize("text", ["{not json", "[]", ""])
+def test_a_corrupt_status_file_stops_every_command_and_is_never_read_as_empty(house, text, monkeypatch):
+    ops, sd = house
+    sd.mkdir()
+    (sd / "status.json").write_text(text)
+    assert run(ops, sd) == 2
+    assert (sd / "status.json").read_text() == text                 # untouched: not overwritten as {}
+    assert subjects(ops.repo) == ["initial"] and _mutating(ops) == []
+    assert ops.notices[-1][1] == "Kronk upgrade: STOPPED, the status file is unreadable"
+    ops.sleep = lambda s: None
+    assert U.major_run(ops, rules(), sd) == 2
+    monkeypatch.setenv("KRONK_UPGRADE_STATE", str(sd))
+    n = len(ops.notices)
+    for cmd in ("notices", "ack", "status"):
+        assert U.main([cmd], ops=ops) == 2
+    assert len(ops.notices) == n                                    # the hourly retry does not notify about it
+    assert (sd / "status.json").read_text() == text
+
+
+def test_a_deploy_started_during_the_run_stops_the_next_component(house):
+    ops, sd = house
+    orig = ops.replay
+
+    def replay(label, out, check_only=False):
+        r = orig(label, out, check_only)
+        if label == "upgrade-tempo":
+            ops.deploying = ["4242 bash scripts/deploy_tag.sh deploy sprint-M19"]
+        return r
+    ops.replay = replay
+    run(ops, sd, only=["tempo", "grafana"])
+    o = {x["name"]: x for x in status(sd)["last_run"]["outcomes"]}
+    assert o["tempo"]["result"] == "kept"
+    assert (o["grafana"]["result"], o["grafana"]["detail"]) == (
+        "not_started", "a deploy is in progress (4242 bash scripts/deploy_tag.sh deploy sprint-M19)")
+
+
+def test_the_run_hands_deploy_tag_its_lock_token(house):
+    ops, sd = house
+    seen = []
+    orig = ops.deploy_tag
+
+    def deploy_tag(*args):
+        if args[0] == "deploy":
+            seen.append((ops.client_env()["KRONK_UPGRADE_TOKEN"], (sd / "lock").read_text()))
+        return orig(*args)
+    ops.deploy_tag = deploy_tag
+    run(ops, sd, only=["litellm"])
+    (token, lock), = seen
+    assert f"token={token}\n" in lock and "run=upgrade_minor 20261201T083000Z" in lock
+
+
+def _deploy_tag_sh(tmp_path, env):
+    """Runs the real script's `deploy` with a tag that cannot exist: past
+    the lock check it stops at once at `no such tag` (no docker reached)."""
+    return _sp.run(["bash", str(ROOT / "scripts" / "deploy_tag.sh"), "deploy", "m18-fix1-no-such-tag-x"],
+                   capture_output=True, text=True, timeout=30,
+                   env={"PATH": _os.environ["PATH"], "HOME": str(tmp_path), "KRONK_UPGRADE_STATE": str(tmp_path / "st"),
+                        "KRONK_RELEASES": str(tmp_path / "rel"), "KRONK_LIVE_CONFIG": str(tmp_path / "cfg"), **env})
+
+
+def test_deploy_tag_refuses_while_the_upgrade_lock_is_held_and_says_who(tmp_path):
+    (tmp_path / "st").mkdir()
+    fd = U.take_lock(tmp_path / "st", "pid=4242\nrun=upgrade_minor 20261201T083000Z\ntoken=abc123\n")
+    try:
+        r = _deploy_tag_sh(tmp_path, {})
+        assert r.returncode == 1
+        assert "refused: an upgrade run holds" in r.stderr and "run=upgrade_minor 20261201T083000Z" in r.stderr
+        assert "abc123" not in r.stderr
+        r = _deploy_tag_sh(tmp_path, {"KRONK_UPGRADE_TOKEN": "wrong"})
+        assert "refused: an upgrade run holds" in r.stderr
+        r = _deploy_tag_sh(tmp_path, {"KRONK_UPGRADE_TOKEN": "abc123"})   # the run itself
+        assert "refused" not in r.stderr and "no such tag: m18-fix1-no-such-tag-x" in r.stderr
+    finally:
+        _os.close(fd)
+    r = _deploy_tag_sh(tmp_path, {})                                      # free again
+    assert "refused" not in r.stderr and "no such tag" in r.stderr

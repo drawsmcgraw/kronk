@@ -262,7 +262,22 @@ verify() {
     [ "$ok" = 1 ] || die "deployed, but verification failed; roll back by deploying the previous tag"
 }
 
+# The upgrade run (scripts/upgrades.py, sprint M18) holds an flock on its
+# lock file while it works; a deploy by anyone else in that time would race
+# it, so `deploy` refuses and says who holds it. The run's own deploys carry
+# the token it wrote into the file (KRONK_UPGRADE_TOKEN).
+UPGRADE_LOCK="${KRONK_UPGRADE_STATE:-$REPO/data/upgrades}/lock"
+upgrade_lock_check() {
+    [ -e "$UPGRADE_LOCK" ] || return 0
+    flock -n "$UPGRADE_LOCK" true 2>/dev/null && return 0
+    if [ -n "${KRONK_UPGRADE_TOKEN:-}" ] && grep -qxF "token=$KRONK_UPGRADE_TOKEN" "$UPGRADE_LOCK"; then
+        return 0
+    fi
+    die "refused: an upgrade run holds $UPGRADE_LOCK ($(grep -v '^token=' "$UPGRADE_LOCK" | tr '\n' ' ')); wait for it to finish (journalctl --user -u kronk-upgrade-minor.service -f)"
+}
+
 cmd=${1:-}; tag=${2:-}
+[ "$cmd" != deploy ] || upgrade_lock_check
 case "$cmd" in
     status) status ;;
     seed) seed "${2:-}" "${3:-}" ;;
