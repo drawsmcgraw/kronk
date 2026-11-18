@@ -54,6 +54,7 @@ import argparse
 import datetime as dt
 import fcntl
 import fnmatch
+import http.client
 import json
 import os
 import re
@@ -294,8 +295,10 @@ class Web:
                 body, hdrs = r.read(), {k.lower(): v for k, v in r.headers.items()}
         except urllib.error.HTTPError as e:
             raise LookupFailed(f"GET {url}: HTTP {e.code}") from e
-        except (urllib.error.URLError, OSError, TimeoutError) as e:
-            raise LookupFailed(f"GET {url}: {e}") from e
+        except (urllib.error.URLError, OSError, TimeoutError, http.client.HTTPException, ValueError) as e:
+            # HTTPException covers a body cut short (IncompleteRead) and a
+            # malformed status line.
+            raise LookupFailed(f"GET {url}: {e.__class__.__name__}: {e}") from e
         self.cache[key] = (body, hdrs)
         return body, hdrs
 
@@ -307,7 +310,17 @@ class Web:
             raise LookupFailed(f"GET {url}: not JSON") from e
 
 
+def _shape(value, kind, what: str):
+    """An answer of the expected JSON shape, or LookupFailed: a registry that
+    answers nonsense skips that component, never the run (F6)."""
+    if not isinstance(value, kind):
+        raise LookupFailed(f"unexpected answer: {what} is {type(value).__name__} {str(value)[:80]!r}")
+    return value
+
+
 def _date(s: str | None) -> dt.datetime | None:
+    if s is not None and not isinstance(s, str):
+        raise LookupFailed(f"unexpected answer: a date is {type(s).__name__} {s!r}")
     if not s:
         return None
     try:
@@ -325,9 +338,11 @@ def github_releases(web: Web, repo: str, prefix: str = "", pages: int = 1) -> li
         if not isinstance(data, list):
             raise LookupFailed(f"github {repo}: unexpected answer {str(data)[:120]}")
         for r in data:
+            _shape(r, dict, f"a github {repo} release")
             if r.get("draft"):
                 continue
-            tag = r.get("tag_name") or ""
+            tag = _shape(r.get("tag_name") or "", str, f"github {repo} tag_name")
+            _shape(r.get("body") or "", str, f"github {repo} release body")
             if prefix and tag.startswith(prefix):
                 tag = tag[len(prefix):]
             out.append(Release(tag, _date(r.get("published_at")), r.get("html_url"), r.get("body"),
@@ -345,6 +360,10 @@ def github_release(web: Web, repo: str, tag: str, prefix: str = "") -> Release |
         if "HTTP 404" in str(e):
             return None
         raise
+    _shape(r, dict, f"github {repo} release {tag}")
+    if r.get("draft"):
+        return None
+    _shape(r.get("body") or "", str, f"github {repo} release body")
     return Release(tag, _date(r.get("published_at")), r.get("html_url"), r.get("body"), bool(r.get("prerelease")))
 
 
@@ -355,13 +374,16 @@ def dockerhub_tags(web: Web, repo: str, name: str | None = None, pages: int = 2)
         q["name"] = name
     url = f"https://hub.docker.com/v2/repositories/{repo}/tags?{urllib.parse.urlencode(q)}"
     for _ in range(pages):
-        data = web.json(url)
-        for t in data.get("results", []):
-            out.append(Release(t.get("name", ""), _date(t.get("tag_last_pushed") or t.get("last_updated")),
-                               f"https://hub.docker.com/r/{repo.removeprefix('library/')}/tags?name={t.get('name', '')}"))
+        data = _shape(web.json(url), dict, f"docker hub {repo} tag list")
+        for t in _shape(data.get("results", []), list, f"docker hub {repo} results"):
+            _shape(t, dict, f"a docker hub {repo} tag")
+            name = _shape(t.get("name", ""), str, f"docker hub {repo} tag name")
+            out.append(Release(name, _date(t.get("tag_last_pushed") or t.get("last_updated")),
+                               f"https://hub.docker.com/r/{repo.removeprefix('library/')}/tags?name={name}"))
         url = data.get("next")
         if not url:
             break
+        _shape(url, str, f"docker hub {repo} next page")
     return out
 
 
@@ -375,14 +397,24 @@ def dockerhub_has(web: Web, repo: str, tag: str) -> bool:
         raise
 
 
-def ghcr_tags(web: Web, repo: str, max_pages: int = 20) -> list[str]:
-    tok = web.json(f"https://ghcr.io/token?scope=repository:{repo}:pull").get("token")
-    if not tok:
+def ghcr_token(web: Web, repo: str) -> str:
+    tok = _shape(web.json(f"https://ghcr.io/token?scope=repository:{repo}:pull"), dict, f"ghcr {repo} token answer").get("token")
+    if not tok or not isinstance(tok, str):
         raise LookupFailed(f"ghcr {repo}: no anonymous token")
+    return tok
+
+
+def ghcr_tags(web: Web, repo: str, max_pages: int = 20) -> list[str]:
+    tok = ghcr_token(web, repo)
     url, tags = f"https://ghcr.io/v2/{repo}/tags/list?n=1000", []
     for _ in range(max_pages):
         body, hdrs = web.get(url, {"Authorization": f"Bearer {tok}"})
-        tags += json.loads(body).get("tags") or []
+        try:
+            data = json.loads(body)
+        except ValueError as e:
+            raise LookupFailed(f"ghcr {repo}: tag list is not JSON ({body[:60]!r})") from e
+        page = _shape(_shape(data, dict, f"ghcr {repo} tag list").get("tags") or [], list, f"ghcr {repo} tags")
+        tags += [_shape(t, str, f"a ghcr {repo} tag") for t in page]
         m = re.search(r"<([^>]+)>", hdrs.get("link", ""))
         if not m:
             return tags
@@ -391,10 +423,10 @@ def ghcr_tags(web: Web, repo: str, max_pages: int = 20) -> list[str]:
 
 
 def pypi_releases(web: Web, package: str) -> list[Release]:
-    data = web.json(f"https://pypi.org/pypi/{package}/json")
+    data = _shape(web.json(f"https://pypi.org/pypi/{package}/json"), dict, f"pypi {package}")
     out = []
-    for v, files in (data.get("releases") or {}).items():
-        files = [f for f in files if not f.get("yanked")]
+    for v, files in _shape(data.get("releases") or {}, dict, f"pypi {package} releases").items():
+        files = [f for f in _shape(files, list, f"pypi {package} {v} files") if _shape(f, dict, "a pypi file") and not f.get("yanked")]
         if not files:
             continue
         when = min((_date(f.get("upload_time_iso_8601")) for f in files if f.get("upload_time_iso_8601")),
@@ -826,6 +858,16 @@ def plan_component(rules: Rules, comp: dict, repo: Path, web: Web, now: dt.datet
         return Plan(comp, "current", pin.value, detail="newer minor releases exist, none taken yet", notes=notes)
     except (LookupFailed, RulesError) as e:
         return Plan(comp, "skip", pin.value, detail=f"lookup failed: {e}")
+    except Exception as e:  # noqa: BLE001 - an answer of a shape no check foresaw: skip the component, not the run
+        return Plan(comp, "skip", pin.value, detail=f"lookup failed: unexpected answer ({e.__class__.__name__}: {e})")
+
+
+def safe_plan(rules: Rules, comp: dict, repo: Path, web: Web, now: dt.datetime) -> Plan:
+    """plan_component, and whatever it raises is that component's skip."""
+    try:
+        return plan_component(rules, comp, repo, web, now)
+    except Exception as e:  # noqa: BLE001
+        return Plan(comp, "skip", detail=f"planning failed: {e.__class__.__name__}: {e}")
 
 
 def plan_lockfile(rules: Rules, comp: dict, repo: Path, web: Web, now: dt.datetime) -> Plan:
@@ -840,10 +882,10 @@ def plan_lockfile(rules: Rules, comp: dict, repo: Path, web: Web, now: dt.dateti
             continue
         try:
             rels = pypi_releases(web, pkg)
-        except LookupFailed as e:
+            r, _ = newest(comp, ver, rels, "minor", now, rules.settings["min_age_days"])
+        except Exception as e:  # noqa: BLE001 - LookupFailed, or an answer of a shape no check foresaw
             notes.append(f"{pkg}: lookup failed ({e})")
             continue
-        r, _ = newest(comp, ver, rels, "minor", now, rules.settings["min_age_days"])
         if r:
             lines.append(f"{pkg} {ver} -> {r.version}")
     return Plan(comp, "report", f"{len(pins)} packages", detail=f"{len(lines)} patch release(s) available; report only",
@@ -1922,7 +1964,7 @@ def minor_run(ops: Ops, rules: Rules, sd: Path, dry_run: bool = False, ignore_mo
             save_status(sd, status, now)
             return 0
 
-        plans = [plan_component(rules, c, ops.repo, ops.web, now) for c in rules.components]
+        plans = [safe_plan(rules, c, ops.repo, ops.web, now) for c in rules.components]
         for p in plans:
             mm = pin_vs_running(ops, p)
             if mm:
@@ -2341,7 +2383,7 @@ def gather_majors(ops: Ops, rules: Rules, now: dt.datetime) -> list[dict]:
                     e["note"] = "pin not an exact version and the running version is not comparable"
             else:
                 e["note"] = "report only (see the inventory)"
-        except (LookupFailed, RulesError, OSError, ValueError) as ex:
+        except Exception as ex:  # noqa: BLE001 - LookupFailed, or an answer of a shape no check foresaw
             e["note"] = f"could not be read: {ex}"
         out.append(e)
     return out

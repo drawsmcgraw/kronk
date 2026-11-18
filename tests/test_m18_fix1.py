@@ -624,3 +624,87 @@ def test_an_unclean_shutdown_line_after_the_start_rolls_back(house):
     assert run(ops, sd, only=["homeassistant"]) == 1
     o, = status(sd)["last_run"]["outcomes"]
     assert o["result"] == "rolled_back" and "not shut down cleanly" in o["detail"]
+
+
+# ── F6: a registry that answers nonsense skips that component ────────────
+
+import http.client as _http
+
+
+class _ReadFails:
+    """The answer starts, then the body is cut short."""
+
+
+def _web_with(prefix, answer):
+    w = standard_web()
+    if answer is _ReadFails:
+        orig = w._fake_open
+
+        def opener(req, timeout=None):
+            if req.full_url.startswith(prefix):
+                class R:
+                    headers = {}
+
+                    def read(self):
+                        raise _http.IncompleteRead(b'{"results": [', 4096)
+
+                    def __enter__(self):
+                        return self
+
+                    def __exit__(self, *a):
+                        return False
+                return R()
+            return orig(req, timeout)
+        w._open = opener
+    else:
+        w.table[prefix] = answer
+    return w
+
+
+GH, HUB = "https://api.github.com/repos/", "https://hub.docker.com/v2/repositories/"
+SHAPES = [
+    ("searxng", HUB + "searxng/searxng/tags?", ["2026.11.17-b99cf7496"]),              # tag list is a JSON list
+    ("searxng", HUB + "searxng/searxng/tags?", "rate limited"),                        # a JSON string
+    ("searxng", HUB + "searxng/searxng/tags?", {"results": "none"}),                   # results not a list
+    ("searxng", HUB + "searxng/searxng/tags?", {"results": [{"name": 7}]}),            # a name that is a number
+    ("grafana", GH + "grafana/grafana/releases?", ["v13.2.6"]),                         # a list of non-objects
+    ("grafana", GH + "grafana/grafana/releases?", [{"tag_name": 13.26, "published_at": "2026-11-01T00:00:00Z"}]),
+    ("grafana", GH + "grafana/grafana/releases?", [{"tag_name": "v13.2.6", "published_at": 1761955200}]),
+    ("litellm", "https://ghcr.io/token", ["anon"]),                                     # a token answer that is a list
+    ("litellm", "https://ghcr.io/v2/berriai/litellm/tags/list", (b"<html><body>Bad gateway</body></html>", {})),
+    ("litellm", "https://ghcr.io/v2/berriai/litellm/tags/list", {"tags": [1, 2]}),
+    ("litellm", GH + "BerriAI/litellm/releases/tags/v1.88.6", ["not", "an", "object"]),
+    ("grafana", GH + "grafana/grafana/releases?", _ReadFails),                          # IncompleteRead
+    ("tempo", HUB + "grafana/tempo/tags/", (b"<!doctype html>", {})),                 # handled before the fix too
+    ("tempo", GH + "grafana/tempo/releases?", {"message": "API rate limit exceeded"}),  # handled before the fix too
+]
+
+
+@pytest.mark.parametrize("name, prefix, answer", SHAPES, ids=[f"{n}-{i}" for i, (n, _, _) in enumerate(SHAPES)])
+def test_a_malformed_answer_skips_that_component_with_a_reason(tmp_path, name, prefix, answer):
+    repo = make_repo(tmp_path, base_files())
+    r = rules()
+    p = U.safe_plan(r, r.component(name), repo, _web_with(prefix, answer), NOW)
+    assert p.action == "skip", (p.action, p.detail)
+    assert "lookup failed" in p.detail
+
+
+@pytest.mark.parametrize("name, prefix, answer", SHAPES[:12], ids=[f"{n}-{i}" for i, (n, _, _) in enumerate(SHAPES[:12])])
+def test_the_run_goes_on_past_a_malformed_answer(house, name, prefix, answer):
+    ops, sd = house
+    ops.web = _web_with(prefix, answer)
+    ha_patch_available(ops)
+    assert run(ops, sd, only=["tempo", name]) == 0
+    st = status(sd)
+    assert st["last_run"]["result"] == "upgraded"
+    assert [o["name"] for o in st["last_run"]["outcomes"]] == ["tempo"]
+    assert f"Skipped: {name} (lookup failed" in ops.notices[0][2]
+
+
+def test_a_malformed_lockfile_answer_is_a_note(tmp_path):
+    (tmp_path / "orchestrator").mkdir()
+    (tmp_path / "orchestrator" / "requirements.lock").write_text("fastapi==0.115.0 \\\n    --hash=sha256:a\n")
+    w = U.Web(opener=_web_with("https://pypi.org/", {"releases": {"0.115.14": "x"}})._open)
+    r = rules()
+    p = U.plan_component(r, r.component("lock-orchestrator"), tmp_path, w, NOW)
+    assert p.action == "report" and any("fastapi: lookup failed" in n for n in p.notes)
