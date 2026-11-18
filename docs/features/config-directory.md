@@ -290,6 +290,18 @@ stay) and saves the result through the save path as a new commit. Refused
 with the reason when later edits touched the same lines, for the seed
 commit, or when the result no longer validates against the running code.
 
+**Before a passphrase is set, read `docs/sprint/M21-step2-e2e.md` C3 to
+C10.** In short: a hand edit of a live file is committed by the next page
+save of that file without being named in the commit message (the page
+marks the file "uncommitted change on disk" first); the page cannot put a
+file back to exactly its committed text (the commit has nothing to
+commit, and the save is undone), so a file broken by hand is repaired with
+`git -C <live dir> checkout -- <file>` and `scripts/config_reload.sh`;
+request bodies are not size-limited before they are parsed (nginx allows
+500 MB); twenty wrong passphrases from any mix of LAN addresses lock
+unlocking for everyone for 15 minutes; anything that can read
+`SETTINGS_PASSPHRASE_HASH` can write dev's live directory.
+
 **Recovering by hand.** The live directory is an ordinary git repository
 owned by the host user:
 

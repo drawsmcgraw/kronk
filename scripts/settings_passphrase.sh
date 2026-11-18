@@ -33,9 +33,9 @@ target=$(realpath -m -- "$ENV_FILE")
 dir=$(dirname "$target")
 [ -d "$dir" ] || die "$dir does not exist"
 
-read -r -s -p "New /settings passphrase: " p1 || die "no passphrase read"
+IFS= read -r -s -p "New /settings passphrase: " p1 || die "no passphrase read"
 echo >&2
-read -r -s -p "The same again: " p2 || die "no passphrase read"
+IFS= read -r -s -p "The same again: " p2 || die "no passphrase read"
 echo >&2
 [ "$p1" = "$p2" ] || { unset p1 p2; die "the two entries differ; nothing written"; }
 unset p2
