@@ -1,0 +1,484 @@
+# Upgrade rules (sprint M18): what the monthly run may move by itself, what
+# waits for the quarterly report and Drew's greenlight, and what is never
+# touched. Read by scripts/upgrades.py; this file is the only place the
+# rules live. Mapping confirmed by Drew 2026-11-14 / 2026-11-15 (plan,
+# "M18. An upgrade cadence"); docs/features/upgrade-cadence.md explains it.
+#
+# A [[component]] is one pin. Fields:
+#   name      id used in logs, commits, tags and notices
+#   kind      image | base-image | tool | lockfile | host-venv | llama-build | blueprint
+#   file      repo-relative file the pin is written in
+#   match     regex; group 1 is the pin. Exactly one line of `file` must match
+#   pattern   regex an exact version must match in full. Its groups are
+#             compared as integers, left to right (the first `compare`
+#             groups; default all). A pin or a candidate that does not match
+#             is not a version this rule understands: a pin is skipped and
+#             reported, a candidate is ignored.
+#   same      how many leading groups a monthly (minor) upgrade keeps equal.
+#             2 = patch releases within X.Y. 0 = any newer release.
+#   minor     auto     the monthly run applies the newest release `same` allows
+#             report   listed by the monthly log and the quarterly report, never applied
+#             none     nothing is minor for this component (quarterly report only)
+#             excluded never looked at beyond the inventory (with `why`)
+#   releases  where versions, dates and notes come from:
+#             github:<owner>/<repo> (release list; `tag_prefix` is stripped),
+#             dockerhub:<namespace>/<repo> (tags; `last_updated` is the date),
+#             pypi:<package>
+#   registry  where the image tag must exist before it is used:
+#             dockerhub:<namespace>/<repo> or ghcr:<owner>/<repo>
+#   image     the image name in the pin line (image components)
+#   deploy    kronk | ha | compose (how a new pin is brought up; see upgrades.py)
+#   container the running container, for the inventory and the image check
+#   health    checks that must pass after the new version is up
+#   order     the monthly run's order, lowest first (see [settings])
+#
+# Never in this file: models (GGUF), the llama.cpp builds as anything but
+# "none", Music Assistant as anything but "excluded".
+
+[settings]
+# The branch an unattended commit may land on. Production is deployed from
+# tags made on this branch; a run on any other branch declines. Override
+# with KRONK_UPGRADE_BRANCH (the timer unit sets it). During the sprint the
+# work branch is `refactor`; the coordinator sets the unit at install.
+expected_branch = "main"
+# A release younger than this is not taken yet (the telemetry pins'
+# two-week rule, docker-compose.telemetry.yml). A release whose date cannot
+# be read is skipped, not assumed old.
+min_age_days = 14
+# Quiet window: no spoken or typed request, no satellite state change.
+quiet_minutes = 5
+# HA's selects (wake word / assistant slots) must be this old (M12 H6).
+select_quiet_minutes = 15
+# The timer fires on days 1-7 of the month; a run that declines tries again
+# the next day, at most this many attempts per month.
+max_attempts = 7
+# Files whose changes do not reach the Kronk stack's containers. The run
+# tags HEAD and deploys it, so HEAD may differ from the tag production runs
+# only in these (fnmatch patterns; * crosses directories). Anything else is
+# work that has not been deployed, and an unattended deploy would ship it:
+# the run declines the Kronk-stack components and names the files.
+inert_paths = [
+  "docs/*", "README.md", "ROADMAP.md", "TECH_DEBT.md", "CLAUDE.md",
+  "Kronk evaluation findings and implementation plan.md",
+  "docker-compose.ha.yml", "docker-compose.ma.yml", "docker-compose.telemetry.yml",
+  "ha/*", "ma/*", "systemd/*", "scripts/*", "tests/test_*.py", "tests/conftest.py",
+  "tests/m21s2_helpers.py", "telemetry/*", "hottub_monitor/*",
+]
+# Dev containers in the kronk project: not production, not checked.
+dev_services = ["orchestrator-dev", "tool_service-dev"]
+
+[replay]
+# Rows of tests/voice_corpus.jsonl known to flap on the live dev replay
+# (sprint briefs, 2026-11-17). A flapping row does not fail an upgrade.
+# Rows carrying xfail.live already count as expected failures in the replay.
+flappers = [
+  "inc-0930-search-deep-house-ytm",
+  "eval-look-for-some-good-deep-house-chill",
+  "eval-search-youtube-music-for-some-deep-chill",
+  "eval-shuffle-it",
+  "eval-start-a-zzqx-florbent-radio-station-on",
+  "m14-resume-get-the-door",
+]
+
+[report]
+# The quarterly report (scripts/upgrade_major_check.sh). Home Assistant's
+# release notes are scanned for these integration points (lower-case
+# substrings); other components for generic_keywords. `affects` names the
+# Kronk systems behind each point. A keyword hit is a lead for the reader,
+# not a verdict.
+first = ["homeassistant"]     # plan M18 step 5: the first major upgrade is HA
+max_lines_per_point = 25
+generic_keywords = ["breaking", "deprecat", "removed", "no longer", "security", "cve-"]
+
+[report.integration_points]
+"Ollama conversation integration" = ["ollama"]
+"Assist pipelines and satellites" = ["assist_pipeline", "assist pipeline", "assist_satellite", "assist satellite", "voice assistant", "voice pe", "esphome", "wake word", "debug_recording"]
+"Wyoming" = ["wyoming"]
+"Conversation and sentence triggers" = ["conversation", "sentence trigger", "trigger: conversation", "intent_script", "default agent", "prefer_local_intents", "local intents"]
+"Music Assistant integration" = ["music_assistant", "music assistant"]
+"Matter" = ["matter"]
+"Text-to-speech and speech-to-text" = ["tts", "stt", "text-to-speech", "speech-to-text", "streaming"]
+
+[report.affects]
+"Ollama conversation integration" = "the conversation entities behind the kronk and kronk-dev pipelines, which call /api/chat and /dev/voice"
+"Assist pipelines and satellites" = "the three satellites (two Voice PEs, a Satellite1), the two pipelines, voice_tracer's pipeline websocket, M12's debug_recording_dir"
+"Wyoming" = "the Whisper entries (10300, dev 10301) and the Piper entry (10200)"
+"Conversation and sentence triggers" = "the Music Assistant voice blueprint (mass_assist_kronk), prefer_local_intents, voice_replay's sentence-match debug"
+"Music Assistant integration" = "music playback through HA's MA integration (the blueprint fast path)"
+"Matter" = "M15 device control (not built; no Matter integration loaded)"
+"Text-to-speech and speech-to-text" = "streamed TTS (M8), Whisper STT"
+
+# ── Telemetry stack (project kronk-telemetry) ────────────────────────────
+
+[[component]]
+# Grafana Tempo, the trace store. Semver; Drew: patch releases are minor,
+# minor and major releases are major.
+name = "tempo"
+kind = "image"
+order = 10
+file = "docker-compose.telemetry.yml"
+match = '^\s*image:\s*grafana/tempo:(\S+)'
+image = "grafana/tempo"
+pattern = '^(\d+)\.(\d+)\.(\d+)$'
+same = 2
+minor = "auto"
+releases = "github:grafana/tempo"
+tag_prefix = "v"
+registry = "dockerhub:grafana/tempo"
+deploy = "compose"
+project = "kronk-telemetry"
+service = "tempo"
+env_file = ".env.telemetry"
+container = "kronk-telemetry-tempo-1"
+health = [{ type = "http", url = "http://localhost:3200/ready" }]
+
+[[component]]
+# Grafana. Semver; patch releases are minor (13.2.4 -> 13.2.x), 13.3 is major.
+name = "grafana"
+kind = "image"
+order = 20
+file = "docker-compose.telemetry.yml"
+match = '^\s*image:\s*grafana/grafana:(\S+)'
+image = "grafana/grafana"
+pattern = '^(\d+)\.(\d+)\.(\d+)$'
+same = 2
+minor = "auto"
+releases = "github:grafana/grafana"
+tag_prefix = "v"
+registry = "dockerhub:grafana/grafana"
+deploy = "compose"
+project = "kronk-telemetry"
+service = "grafana"
+env_file = ".env.telemetry"
+container = "kronk-telemetry-grafana-1"
+health = [{ type = "http", url = "http://localhost:3000/api/health" }]
+
+# ── Kronk stack (project kronk; deployed from a tag by deploy_tag.sh) ─────
+
+[[component]]
+# Piper TTS behind Wyoming. Semver; patch releases are minor.
+name = "wyoming-piper"
+kind = "image"
+order = 30
+file = "docker-compose.yml"
+match = '^\s*image:\s*rhasspy/wyoming-piper:(\S+)'
+image = "rhasspy/wyoming-piper"
+pattern = '^(\d+)\.(\d+)\.(\d+)$'
+same = 2
+minor = "auto"
+releases = "github:rhasspy/wyoming-piper"
+tag_prefix = "v"
+registry = "dockerhub:rhasspy/wyoming-piper"
+deploy = "kronk"
+container = "wyoming-piper"
+health = [{ type = "wyoming", host = "127.0.0.1", port = 10200 }]
+
+[[component]]
+# SearXNG publishes rolling date builds (YYYY.M.D-<commit>) and no
+# major/minor/patch. The table's "patch releases are minor" is read as:
+# any newer build at least min_age_days old is the monthly move, which is
+# what docs/runbooks/searxng-bump.md already does by hand ~monthly (the
+# weekly canary nags past 35 days). The commit suffix is not compared.
+# An interpretation of Drew's table: set minor = "none" to make every
+# SearXNG move a quarterly, greenlit one.
+name = "searxng"
+kind = "image"
+order = 40
+file = "docker-compose.yml"
+match = '^\s*image:\s*searxng/searxng:(\S+)'
+image = "searxng/searxng"
+pattern = '^(\d{4})\.(\d{1,2})\.(\d{1,2})-([0-9a-f]{7,})$'
+compare = 3
+same = 0
+minor = "auto"
+releases = "dockerhub:searxng/searxng"
+registry = "dockerhub:searxng/searxng"
+deploy = "kronk"
+container = "kronk-searxng-1"
+health = [
+  { type = "docker-healthy", container = "kronk-searxng-1" },
+  # One search through the network path tool_service uses; at least one result.
+  { type = "exec", container = "kronk-tool_service-1", cmd = ["python", "-c", "import httpx,sys; r=httpx.get('http://searxng:8080/search', params={'q':'weather forecast','format':'json'}, timeout=20); sys.exit(0 if r.status_code==200 and r.json().get('results') else 1)"] },
+]
+
+[[component]]
+# nginx. The pin `1.29-alpine` is a floating tag (it moves with every
+# 1.29.x), not an exact version, so the run skips it and says so. To bring
+# it under the cadence, pin an exact `1.29.N-alpine`; patch releases are
+# then minor, a new 1.N line is major.
+name = "nginx"
+kind = "image"
+order = 50
+file = "docker-compose.yml"
+match = '^\s*image:\s*nginx:(\S+)'
+image = "nginx"
+pattern = '^(\d+)\.(\d+)\.(\d+)-alpine$'
+same = 2
+minor = "auto"
+releases = "dockerhub:library/nginx"
+registry = "dockerhub:library/nginx"
+deploy = "kronk"
+container = "kronk-nginx-1"
+running = { cmd = ["docker", "exec", "kronk-nginx-1", "nginx", "-v"], regex = 'nginx/(\S+)' }
+health = [{ type = "http", url = "http://localhost/api/status" }]
+
+[[component]]
+# LiteLLM, every LLM call transits it. Tags are v-prefixed semver; the
+# -stable / -nightly / -rc / -dev tags are not exact releases and are ignored.
+# Patch releases are minor (v1.88.1 -> v1.88.x); a new v1.N is major.
+name = "litellm"
+kind = "image"
+order = 60
+file = "docker-compose.yml"
+match = '^\s*image:\s*ghcr\.io/berriai/litellm:(\S+)'
+image = "ghcr.io/berriai/litellm"
+pattern = '^v(\d+)\.(\d+)\.(\d+)$'
+same = 2
+minor = "auto"
+releases = "github:BerriAI/litellm"
+registry = "ghcr:berriai/litellm"
+deploy = "kronk"
+container = "kronk-litellm-1"
+health = [
+  { type = "docker-healthy", container = "kronk-litellm-1" },
+  { type = "http", url = "http://localhost:8002/health/liveliness" },
+]
+
+# ── Home Assistant (project kronk-ha; recreated from the working tree) ───
+
+[[component]]
+# Home Assistant. Calendar versions YYYY.M.P. Drew 2026-11-15: patch
+# releases within the pinned month are minor (2026.5.4 -> 2026.5.5); a new
+# monthly release (2026.6) is major, it carries breaking changes. The
+# monthly patch run is the one approved cause of an unannounced HA restart
+# (CLAUDE.md), and it still picks its moment. Last in the order: every
+# other component's live replay goes through HA.
+name = "homeassistant"
+kind = "image"
+order = 90
+file = "docker-compose.ha.yml"
+match = '^\s*image:\s*ghcr\.io/home-assistant/home-assistant:(\S+)'
+image = "ghcr.io/home-assistant/home-assistant"
+pattern = '^(\d{4})\.(\d{1,2})\.(\d+)$'
+same = 2
+minor = "auto"
+releases = "github:home-assistant/core"
+registry = "ghcr:home-assistant/home-assistant"
+deploy = "ha"
+project = "kronk-ha"
+service = "homeassistant"
+container = "homeassistant"
+health = [{ type = "ha-api" }]
+
+# ── Build inputs of the Kronk images ─────────────────────────────────────
+
+[[component]]
+# Base image of the orchestrator. `3.12-slim` floats with every 3.12.x and
+# Debian point release: not an exact version, skipped and reported. A
+# rebuild takes whatever python:3.12-slim is cached locally (no --pull).
+name = "python-base-orchestrator"
+kind = "base-image"
+order = 70
+file = "orchestrator/Dockerfile"
+match = '^FROM\s+python:(\S+)'
+image = "python"
+pattern = '^(\d+)\.(\d+)\.(\d+)-slim$'
+same = 2
+minor = "auto"
+releases = "dockerhub:library/python"
+registry = "dockerhub:library/python"
+deploy = "kronk"
+running = { cmd = ["docker", "exec", "kronk-orchestrator-1", "python", "-c", "import platform; print(platform.python_version())"], regex = '(\S+)' }
+
+[[component]]
+# Base image of tool_service; as python-base-orchestrator.
+name = "python-base-tool_service"
+kind = "base-image"
+order = 71
+file = "tool_service/Dockerfile"
+match = '^FROM\s+python:(\S+)'
+image = "python"
+pattern = '^(\d+)\.(\d+)\.(\d+)-slim$'
+same = 2
+minor = "auto"
+releases = "dockerhub:library/python"
+registry = "dockerhub:library/python"
+deploy = "kronk"
+running = { cmd = ["docker", "exec", "kronk-tool_service-1", "python", "-c", "import platform; print(platform.python_version())"], regex = '(\S+)' }
+
+[[component]]
+# Base image of voice_tracer; as python-base-orchestrator.
+name = "python-base-voice_tracer"
+kind = "base-image"
+order = 72
+file = "voice_tracer/Dockerfile"
+match = '^FROM\s+python:(\S+)'
+image = "python"
+pattern = '^(\d+)\.(\d+)\.(\d+)-slim$'
+same = 2
+minor = "auto"
+releases = "dockerhub:library/python"
+registry = "dockerhub:library/python"
+deploy = "kronk"
+running = { cmd = ["docker", "exec", "kronk-voice_tracer-1", "python", "-c", "import platform; print(platform.python_version())"], regex = '(\S+)' }
+
+[[component]]
+# uv, the installer in all three Dockerfiles (`pip install uv`): unpinned,
+# so each image has whichever uv was newest at its last uncached build.
+# Reported, never applied: it is a build tool, and pinning it is a code change.
+name = "uv"
+kind = "tool"
+order = 80
+file = "orchestrator/Dockerfile"
+match = '^RUN\s+pip install\s+(uv\S*)'
+pattern = '^uv==(\d+)\.(\d+)\.(\d+)$'
+same = 2
+minor = "report"
+releases = "pypi:uv"
+running = { cmd = ["docker", "exec", "kronk-orchestrator-1", "uv", "--version"], regex = 'uv (\S+)' }
+
+[[component]]
+# Debian's git in the orchestrator image (M21 step 2), held to the 2.47
+# series by design: a security update within it is taken at the next
+# uncached build, a new series only by editing the line.
+name = "git-orchestrator"
+kind = "tool"
+order = 81
+file = "orchestrator/Dockerfile"
+match = "'git=([^']+)'"
+pattern = '^1:(\d+)\.(\d+)\.\*$'
+same = 2
+minor = "none"
+why = "a Debian package series pin; no registry to read"
+running = { cmd = ["docker", "exec", "kronk-orchestrator-1", "git", "--version"], regex = 'git version (\S+)' }
+
+# ── Python lockfiles (hash-pinned, uv pip compile --generate-hashes) ─────
+# Report only. The monthly run lists the patch releases available; it does
+# not regenerate the locks. Why (docs/sprint/M18-build.md): the offline
+# corpus runs in tests/.venv, which is not built from these locks, so it
+# would not test the new versions; regenerating resolves against PyPI and
+# takes whatever was uploaded, with fresh hashes, and nobody reads the diff;
+# voice_tracer has no dev twin to try a new lock on. The quarterly report
+# carries the list; applying it is a runbook step.
+
+[[component]]
+# orchestrator/requirements.lock: the orchestrator image (and orchestrator-dev). Patch releases listed, report only.
+name = "lock-orchestrator"
+kind = "lockfile"
+order = 100
+file = "orchestrator/requirements.lock"
+pattern = '^(\d+)\.(\d+)(?:\.(\d+))?$'
+same = 2
+minor = "report"
+releases = "pypi"
+container = "kronk-orchestrator-1"
+
+[[component]]
+# tool_service/requirements.lock: the tool_service image (and tool_service-dev). Patch releases listed, report only.
+name = "lock-tool_service"
+kind = "lockfile"
+order = 101
+file = "tool_service/requirements.lock"
+pattern = '^(\d+)\.(\d+)(?:\.(\d+))?$'
+same = 2
+minor = "report"
+releases = "pypi"
+container = "kronk-tool_service-1"
+
+[[component]]
+# voice_tracer/requirements.lock: the voice_tracer image (no dev twin). Patch releases listed, report only.
+name = "lock-voice_tracer"
+kind = "lockfile"
+order = 102
+file = "voice_tracer/requirements.lock"
+pattern = '^(\d+)\.(\d+)(?:\.(\d+))?$'
+same = 2
+minor = "report"
+releases = "pypi"
+container = "kronk-voice_tracer-1"
+
+# ── Host-side builds: never automatic ────────────────────────────────────
+
+[[component]]
+# llama.cpp servers. Builds have no stable scheme (b<build number>); any new
+# build is a quarterly item with the model benches re-run. The pin is the
+# build directory in each unit's ExecStart. Directories without a build
+# number (llama-gfx1151-rocm7 and the like) are hand builds: reported as such.
+name = "llama.cpp"
+kind = "llama-build"
+order = 200
+file = "systemd/llama-gemma4-e4b.service"
+units = ["llama-gemma3-4b", "llama-gemma4-e4b", "llama-devstral-q4", "llama-devstral", "llama-mistral-nemo", "llama-bonsai", "llama-talkie"]
+match = 'llama-cpp/llama-b(\d+)-'
+pattern = '^b?(\d+)$'
+same = 1
+minor = "none"
+why = "llama.cpp builds have no stable scheme; any new build waits for the quarterly report and the model benches"
+releases = "github:ggml-org/llama.cpp"
+# Every llama.cpp build is flagged pre-release on GitHub; the flag carries no meaning here.
+ignore_prerelease_flag = true
+
+[[component]]
+# wyoming-faster-whisper in the host venv ~/services/wyoming-whisper/.venv
+# (production and dev units share it). Not in Drew's table; the venv carries
+# a ROCm ctranslate2 build, so any change is a rebuild: report only.
+name = "wyoming-faster-whisper"
+kind = "host-venv"
+order = 210
+venv = "~/services/wyoming-whisper/.venv"
+package = "wyoming_faster_whisper"
+pattern = '^(\d+)\.(\d+)\.(\d+)$'
+same = 2
+minor = "none"
+why = "not in the minor/major table; a GPU (ROCm) build in a host venv, not a pin in the repo"
+releases = "pypi:wyoming-faster-whisper"
+
+[[component]]
+# The Music Assistant voice blueprint, forked from upstream version 20250404
+# (ha/blueprints/mass_assist_kronk.yaml). Report only: the fork carries
+# Kronk's changes and is merged by hand.
+name = "ma-blueprint"
+kind = "blueprint"
+order = 220
+file = "ha/blueprints/upstream/mass_assist_blueprint_en.yaml"
+match = '^\s*version:\s*(\d{8})\s*$'
+pattern = '^(\d{4})(\d{2})(\d{2})$'
+same = 0
+minor = "none"
+why = "a hand-merged fork of the upstream blueprint"
+upstream_url = "https://raw.githubusercontent.com/music-assistant/voice-support/main/local-assist-blueprint/mass_assist_blueprint_en.yaml"
+
+# ── Excluded ─────────────────────────────────────────────────────────────
+
+[[component]]
+# Drew 2026-11-14: Music Assistant stays on the fork with the Pandora
+# station-create patch until that work is merged upstream; then it becomes
+# an ordinary component under these rules.
+name = "music-assistant"
+kind = "image"
+order = 300
+file = "docker-compose.ma.yml"
+match = '^\s*image:\s*kronk/music-assistant:(\S+)'
+image = "kronk/music-assistant"
+pattern = '^(\d+)\.(\d+)\.(\d+)(?:b(\d+))?-kronk\.(\d+)$'
+same = 0
+minor = "excluded"
+why = "Music Assistant is excluded (Drew 2026-11-14): local fork with the Pandora patch"
+releases = "github:music-assistant/server"
+container = "music-assistant-server"
+
+[[component]]
+# The YouTube PO-token helper lives in the Music Assistant stack and only
+# serves MA; it is excluded with it.
+name = "bgutil-pot-provider"
+kind = "image"
+order = 301
+file = "docker-compose.ma.yml"
+match = '^\s*image:\s*brainicism/bgutil-ytdlp-pot-provider:(\S+)'
+image = "brainicism/bgutil-ytdlp-pot-provider"
+pattern = '^(\d+)\.(\d+)\.(\d+)$'
+same = 2
+minor = "excluded"
+why = "part of the Music Assistant stack, excluded with it"
+releases = "github:Brainicism/bgutil-ytdlp-pot-provider"
+container = "bgutil-pot-provider"

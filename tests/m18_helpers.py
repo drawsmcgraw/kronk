@@ -1,0 +1,403 @@
+"""Shared fakes for the M18 upgrade tests: a fake internet (FakeWeb), a fake
+house (FakeOps: docker, compose, deploy_tag, HA, probes, notifier, clock),
+and temporary git repositories with their own user. Nothing here opens a
+socket or runs docker."""
+from __future__ import annotations
+
+import datetime as dt
+import importlib.util
+import json
+import re
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+
+
+def load_upgrades():
+    name = "upgrades_m18"
+    if name in sys.modules:
+        return sys.modules[name]
+    spec = importlib.util.spec_from_file_location(name, ROOT / "scripts" / "upgrades.py")
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[name] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+
+U = load_upgrades()
+NOW = dt.datetime(2026, 12, 1, 8, 30, tzinfo=dt.timezone.utc)
+
+
+def iso(days_ago: float, now: dt.datetime = NOW) -> str:
+    return (now - dt.timedelta(days=days_ago)).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+class FakeWeb(U.Web):
+    """Answers from a table of URL prefixes; anything else is a 404. Keeps
+    the real Web's host allow-list and request accounting."""
+
+    def __init__(self, table: dict | None = None):
+        super().__init__(opener=self._fake_open)
+        self.table = dict(table or {})
+        self.seen: list[tuple[str, dict]] = []
+
+    def _fake_open(self, req, timeout=None):
+        url = req.full_url
+        self.seen.append((url, dict(req.header_items())))
+        for prefix in sorted(self.table, key=len, reverse=True):
+            if url.startswith(prefix):
+                ans = self.table[prefix]
+                if isinstance(ans, Exception):
+                    raise ans
+                body, hdrs = ans if isinstance(ans, tuple) else (ans, {})
+                return _Resp(body if isinstance(body, bytes) else json.dumps(body).encode(), hdrs)
+        import urllib.error
+        raise urllib.error.HTTPError(url, 404, "not found", {}, None)
+
+
+class _Resp:
+    def __init__(self, body: bytes, headers: dict):
+        self._b, self.headers = body, _H(headers)
+
+    def read(self):
+        return self._b
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *a):
+        return False
+
+
+class _H(dict):
+    def items(self):
+        return super().items()
+
+
+def gh_release(tag, days_ago, pre=False, body="", now=NOW):
+    return {"tag_name": tag, "published_at": iso(days_ago, now), "prerelease": pre, "draft": False,
+            "html_url": f"https://github.com/x/y/releases/tag/{tag}", "body": body}
+
+
+def hub_tag(name, days_ago, now=NOW):
+    return {"name": name, "last_updated": iso(days_ago, now), "tag_last_pushed": iso(days_ago, now)}
+
+
+# ── temporary git repositories ───────────────────────────────────────────
+
+def git(repo: Path, *args: str) -> str:
+    return subprocess.run(["git", "-C", str(repo), *args], check=True, capture_output=True, text=True).stdout
+
+
+def make_repo(tmp: Path, files: dict[str, str], branch: str = "main") -> Path:
+    repo = tmp / "repo"
+    repo.mkdir()
+    git(repo, "init", "-q", "-b", branch)
+    git(repo, "config", "user.name", "M18 Test")
+    git(repo, "config", "user.email", "m18-test@example.invalid")
+    git(repo, "config", "commit.gpgsign", "false")
+    git(repo, "config", "core.hooksPath", "/dev/null")
+    for rel, text in files.items():
+        p = repo / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(text)
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "initial")
+    return repo
+
+
+COMPOSE_TELEMETRY = """services:
+  tempo:
+    image: grafana/tempo:3.1.1
+  grafana:
+    image: grafana/grafana:13.2.4
+"""
+COMPOSE_KRONK = """services:
+  nginx:
+    image: nginx:1.29-alpine
+  searxng:
+    image: searxng/searxng:2026.11.9-57ff753ad
+  litellm:
+    image: ghcr.io/berriai/litellm:v1.88.1
+  wyoming-piper:
+    image: rhasspy/wyoming-piper:2.2.2
+"""
+COMPOSE_HA = """name: kronk-ha
+services:
+  homeassistant:
+    image: ghcr.io/home-assistant/home-assistant:2026.5.4
+"""
+
+
+def base_files() -> dict[str, str]:
+    return {"docker-compose.telemetry.yml": COMPOSE_TELEMETRY, "docker-compose.yml": COMPOSE_KRONK,
+            "docker-compose.ha.yml": COMPOSE_HA, "docs/readme.md": "docs\n"}
+
+
+# ── rules for a test ─────────────────────────────────────────────────────
+
+def rules(only: list[str] | None = None, **settings):
+    r = U.load_rules(env={})
+    r.settings.update({"expected_branch": "main", **settings})
+    if only is not None:
+        r.components = [c for c in r.components if c["name"] in only]
+    return r
+
+
+# ── the fake house ───────────────────────────────────────────────────────
+
+def _quiet_states(now=NOW):
+    return [
+        {"entity_id": "assist_satellite.kitchen", "state": "idle", "last_changed": iso(1, now)},
+        {"entity_id": "assist_satellite.office", "state": "idle", "last_changed": iso(1, now)},
+        {"entity_id": "media_player.kitchen", "state": "idle", "last_changed": iso(1, now)},
+        {"entity_id": "select.kitchen_assistant_2", "state": "kronk-dev", "last_changed": iso(2, now)},
+        {"entity_id": "select.kitchen_wake_word_2", "state": "Hey Jarvis", "last_changed": iso(2, now)},
+    ]
+
+
+class FakeOps(U.Ops):
+    """A house with containers, a Kronk stack deployed from tags, HA, the
+    probes and a notifier, all in memory. `fail` makes chosen steps fail."""
+
+    def __init__(self, repo: Path, web: FakeWeb | None = None, now: dt.datetime = NOW):
+        super().__init__(repo, web or FakeWeb())
+        self.clock = now
+        self.calls: list[tuple] = []
+        self.notices: list[tuple[str, str, str]] = []
+        self.notify_ok = True
+        self.states = _quiet_states(now)
+        self.services = [{"domain": "rest_command", "services": {"kronk_music_voice": {}}}]
+        self.held = 0
+        self.nginx_log = ""
+        self.deploying: list[str] = []
+        self.ha_up = True
+        # what runs: container -> image reference; image ids per reference
+        self.containers = {
+            "kronk-telemetry-tempo-1": "grafana/tempo:3.1.1",
+            "kronk-telemetry-grafana-1": "grafana/grafana:13.2.4",
+            "kronk-nginx-1": "nginx:1.29-alpine",
+            "kronk-searxng-1": "searxng/searxng:2026.11.9-57ff753ad",
+            "kronk-litellm-1": "ghcr.io/berriai/litellm:v1.88.1",
+            "wyoming-piper": "rhasspy/wyoming-piper:2.2.2",
+            "homeassistant": "ghcr.io/home-assistant/home-assistant:2026.5.4",
+            "music-assistant-server": "kronk/music-assistant:2.11.0b5-kronk.9",
+        }
+        self.images = {ref: f"sha256:{abs(hash(ref)) :064x}"[:71] for ref in self.containers.values()}
+        self.ma_started = "2026-11-05T10:00:00Z"
+        self.prod_tag = "sprint-X"
+        git(repo, "tag", self.prod_tag)
+        self.hashes_match = True
+        # failure switches
+        self.bad_versions: set[str] = set()        # health fails while one of these runs
+        self.deploy_fail_tags: set[str] = set()
+        self.tests_fail = False
+        self.replay_regress: dict[str, list[str]] = {}   # running version -> row ids that fail
+        self.replay_rc = 0
+        self.cannot_return: set[str] = set()          # versions that cannot be brought back (rollback fails)
+        self.pull_fail: set[str] = set()
+
+    # helpers
+    def _image_of(self, comp_service_container: str) -> str:
+        return self.containers.get(comp_service_container, "")
+
+    def _version_running(self, container: str) -> str:
+        return self.containers.get(container, ":").rsplit(":", 1)[-1]
+
+    def _pins_at(self, rev: str | None, file: str) -> dict[str, str]:
+        text = git(self.repo, "show", f"{rev}:{file}") if rev else (self.repo / file).read_text()
+        return {m.group(1): m.group(2) for m in re.finditer(r"^\s*image:\s*((?:[^\s:]+/)*[^\s:]+):(\S+)", text, re.M)}
+
+    # Ops interface
+    def run(self, args, timeout=600, env=None):
+        self.calls.append(("run", tuple(args)))
+        if args[:2] == ["systemctl", "--user"]:
+            return U.Result(0, "active\n")
+        return U.Result(0, "")
+
+    def docker(self, *args, timeout=600):
+        self.calls.append(("docker",) + args)
+        a = list(args)
+        if a[0] == "inspect":
+            c, fmt = a[1], a[3]
+            if c not in self.containers:
+                return U.Result(1, "", f"no such container {c}")
+            ref = self.containers[c]
+            if fmt == "{{.Config.Image}}":
+                return U.Result(0, ref + "\n")
+            if fmt == "{{.Image}}":
+                return U.Result(0, self.images[ref] + "\n")
+            if fmt == "{{.State.StartedAt}}":
+                return U.Result(0, self.ma_started + "\n")
+            if fmt == "{{.Config.StopTimeout}}":
+                return U.Result(0, "120\n")
+            if fmt == "{{.State.Health.Status}}":
+                return U.Result(0, ("unhealthy" if self._version_running(c) in self.bad_versions else "healthy") + "\n")
+            if fmt == "{{.State.Running}}":
+                return U.Result(0, "true\n")
+            if "config-hash" in fmt:
+                return U.Result(0, "HASH\n")
+        if a[0] == "image" and a[1] == "inspect":
+            ref = a[2]
+            return U.Result(0, self.images[ref] + "\n") if ref in self.images else U.Result(1, "", "no such image")
+        if a[0] == "tag":
+            src, dst = a[1], a[2]
+            self.images[dst] = src if src.startswith("sha256:") else self.images[src]
+            return U.Result(0)
+        if a[0] == "pull":
+            if a[1] in self.pull_fail:
+                return U.Result(1, "", "pull failed")
+            self.images.setdefault(a[1], f"sha256:{abs(hash(a[1])):064x}"[:71])
+            return U.Result(0)
+        if a[0] == "stop":
+            return U.Result(0)
+        if a[0] == "logs":
+            return U.Result(0, self.nginx_log)
+        if a[0] == "events":
+            return U.Result(0, "15\n")
+        if a[0] == "exec":
+            return U.Result(0 if self._version_running(a[1]) not in self.bad_versions else 1)
+        return U.Result(0)
+
+    def compose(self, project, file, *args, env_file=None, timeout=900):
+        self.calls.append(("compose", project, file) + args)
+        a = list(args)
+        if a[0] == "config" and a[1] == "--hash":
+            return U.Result(0, f"{a[2]} {'HASH' if self.hashes_match else 'OTHER'}\n")
+        if a[0] == "pull":
+            pins = self._pins_at(None, file)
+            for image, tag in pins.items():
+                if f"{image}:{tag}" in self.pull_fail:
+                    return U.Result(1, "", "pull failed")
+            return U.Result(0)
+        if a[0] == "up":
+            svc = a[-1]
+            container = {"tempo": "kronk-telemetry-tempo-1", "grafana": "kronk-telemetry-grafana-1",
+                         "homeassistant": "homeassistant"}.get(svc, svc)
+            pins = self._pins_at(None, file)
+            image = self.containers[container].rsplit(":", 1)[0]
+            want = f"{image}:{pins[image]}"
+            if pins[image] in self.cannot_return and want != self.containers[container]:
+                return U.Result(1, "", "the previous image is gone")
+            self.containers[container] = want
+            self.images.setdefault(want, f"sha256:{abs(hash(want)):064x}"[:71])
+            return U.Result(0)
+        return U.Result(0)
+
+    def deploy_tag(self, *args):
+        self.calls.append(("deploy_tag",) + args)
+        if args[0] == "status":
+            rows = ["CONTAINER SERVICE RUNNING_FROM CREATED",
+                    f"kronk-orchestrator-1 orchestrator tag {self.prod_tag} 1 hour ago",
+                    f"kronk-litellm-1 litellm tag {self.prod_tag} 1 hour ago",
+                    "kronk-orchestrator-dev-1 orchestrator-dev working tree 1 hour ago"]
+            return U.Result(0, "\n".join(rows) + "\n")
+        if args[0] == "deploy":
+            tag = args[1]
+            if tag in self.deploy_fail_tags:
+                return U.Result(1, "", "verification failed")
+            pins = self._pins_at(tag, "docker-compose.yml")
+            for image, version in pins.items():
+                cur = next((r for r in self.containers.values() if r.rsplit(":", 1)[0] == image), None)
+                if version in self.cannot_return and cur != f"{image}:{version}":
+                    return U.Result(1, "", f"deploy of {tag} failed: {image}:{version} cannot come back")
+            for image, version in pins.items():
+                for c, ref in list(self.containers.items()):
+                    if ref.rsplit(":", 1)[0] == image:
+                        self.containers[c] = f"{image}:{version}"
+            self.prod_tag = tag
+            return U.Result(0, f"deployed {tag}\n")
+        return U.Result(0)
+
+    def run_tests(self):
+        self.calls.append(("run_tests",))
+        return U.Result(1, "", "1 failed") if self.tests_fail else U.Result(0, "4989 passed")
+
+    def replay(self, label, out, check_only=False):
+        self.calls.append(("replay", label, check_only))
+        if self.replay_rc in (2, 3):
+            return U.Result(self.replay_rc, "", "refused")
+        if check_only:
+            return U.Result(0)
+        running = set(v.rsplit(":", 1)[-1] for v in self.containers.values())
+        failing = {rid for v, ids in self.replay_regress.items() if v in running for rid in ids}
+        rows = [{"id": rid, "status": "fail" if rid in failing else "pass"} for rid in ("row-a", "row-b", "row-c")]
+        rows.append({"id": "inc-0930-search-deep-house-ytm", "status": "fail" if "flap" in failing else "pass"})
+        Path(out).parent.mkdir(parents=True, exist_ok=True)
+        Path(out).write_text(json.dumps({"rows": rows}))
+        return U.Result(1 if failing else 0)
+
+    def pgrep(self, pattern):
+        return list(self.deploying)
+
+    def http_get(self, url, headers=None, timeout=10):
+        self.calls.append(("http", url))
+        if "probe/voice_tracer" in url:
+            return 200, json.dumps({"held": self.held, "connected": True, "too_old": 0})
+        bad = any(self._version_running(c) in self.bad_versions for c in self.containers)
+        if ":3200/" in url:
+            return (500 if self._version_running("kronk-telemetry-tempo-1") in self.bad_versions else 200), "ready"
+        if ":3000/" in url:
+            return (500 if self._version_running("kronk-telemetry-grafana-1") in self.bad_versions else 200), "{}"
+        if ":8002/" in url:
+            return (500 if self._version_running("kronk-litellm-1") in self.bad_versions else 200), "{}"
+        return (500 if bad else 200), "{}"
+
+    def ha_get(self, path):
+        self.calls.append(("ha_get", path))
+        if not self.ha_up:
+            raise U.StepFailed("HA GET: connection refused")
+        if path == "/api/states":
+            return json.loads(json.dumps(self.states))
+        if path == "/api/services":
+            return self.services
+        if path == "/api/":
+            if self._version_running("homeassistant") in self.bad_versions:
+                raise U.StepFailed("HA GET /api/: 502")
+            return {"message": "API running."}
+        raise U.StepFailed(f"unexpected {path}")
+
+    def wyoming(self, host, port):
+        return self._version_running("wyoming-piper") not in self.bad_versions
+
+    def notify(self, tag, title, body):
+        self.notices.append((tag, title, body))
+        return self.notify_ok
+
+    def sleep(self, s):
+        self.calls.append(("sleep", s))
+
+    def now(self):
+        return self.clock
+
+
+def standard_web(now=NOW) -> FakeWeb:
+    """Registries as of 2026-12-01 for the components the tests upgrade."""
+    gh = "https://api.github.com/repos/"
+    return FakeWeb({
+        gh + "grafana/tempo/releases?": [gh_release("v3.1.2", 20), gh_release("v3.1.1", 41), gh_release("v3.2.0", 15)],
+        gh + "grafana/grafana/releases?": [gh_release("v13.3.1", 21), gh_release("v13.2.6", 21),
+                                            gh_release("v13.2.7", 3), gh_release("v13.2.5", 35)],
+        gh + "rhasspy/wyoming-piper/releases?": [gh_release("v2.5.4", 30), gh_release("v2.2.2", 300)],
+        gh + "BerriAI/litellm/releases?": [gh_release("v1.110.0", 13), gh_release("v1.88.6-stable", 100)],
+        gh + "BerriAI/litellm/releases/tags/v1.88.6": gh_release("v1.88.6", 150),
+        gh + "home-assistant/core/releases?": [gh_release("2026.11.2", 15), gh_release("2026.5.4", 190)],
+        "https://hub.docker.com/v2/repositories/grafana/tempo/tags?": {"results": [hub_tag("3.1.2", 20), hub_tag("3.1.1", 41)]},
+        "https://hub.docker.com/v2/repositories/grafana/grafana/tags?": {"results": [hub_tag("13.2.6", 21), hub_tag("13.2.7", 3)]},
+        "https://hub.docker.com/v2/repositories/grafana/tempo/tags/": {"name": "x"},
+        "https://hub.docker.com/v2/repositories/grafana/grafana/tags/": {"name": "x"},
+        "https://hub.docker.com/v2/repositories/rhasspy/wyoming-piper/tags": {"results": []},
+        "https://hub.docker.com/v2/repositories/searxng/searxng/tags?": {"results": [
+            hub_tag("2026.11.17-b99cf7496", 14.5), hub_tag("2026.11.28-aaaaaaa11", 3), hub_tag("latest", 0)]},
+        "https://hub.docker.com/v2/repositories/searxng/searxng/tags/": {"name": "x"},
+        "https://ghcr.io/token": {"token": "anon"},
+        "https://ghcr.io/v2/berriai/litellm/tags/list": {"tags": ["v1.88.1", "v1.88.6", "v1.88.6-stable", "main-latest", "v1.110.0"]},
+        "https://ghcr.io/v2/home-assistant/home-assistant/tags/list": {"tags": ["2026.5.3", "2026.5.4", "2026.6.0b0", "stable"]},
+    })
+
+
+def cleanup(path: Path):
+    shutil.rmtree(path, ignore_errors=True)
