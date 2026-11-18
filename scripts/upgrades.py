@@ -131,6 +131,7 @@ def load_rules(path: Path = RULES_FILE, env: dict | None = None) -> Rules:
                          ("select_quiet_minutes", 15), ("max_attempts", 7), ("inert_paths", []),
                          ("dev_services", []), ("dev_pipelines", ["kronk-dev"]),
                          ("voice_tracer_state", "data/voice_tracer_state.json"), ("flapping_players", []),
+                         ("major_lock_wait_minutes", 20),
                          ("night_window", ["02:00", "05:00"])):
         settings.setdefault(key, default)
     try:
@@ -3236,7 +3237,7 @@ def major_run(ops: Ops, rules: Rules, sd: Path, dry_run: bool = False, out: Path
         return 0
     sd.mkdir(parents=True, exist_ok=True)
     fd = wait_lock(ops, sd, f"pid={os.getpid()}\nrun=upgrade_major_check {now.strftime('%Y%m%dT%H%M%SZ')}\n",
-                   rules.settings.get("lock_wait_minutes", 240), log)
+                   rules.settings["major_lock_wait_minutes"], log)
     if fd is None:
         log(f"STOPPED: the upgrade lock is still held ({lock_holder(sd)}); the report was not written. "
             f"Run scripts/upgrade_major_check.sh when it is free.")

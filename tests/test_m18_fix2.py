@@ -680,3 +680,25 @@ def test_the_kronk_stack_pull_comes_before_the_tag(house):
              or c[:2] == ("deploy_tag", "deploy")]
     assert order[0] == ("docker", "pull", "ghcr.io/berriai/litellm:v1.88.6")
     assert order[-1] == ("deploy_tag", "deploy", "upgrade-20261201T083000Z-litellm")
+
+
+# ── K10: the quarterly check gives up on the lock before its unit's timeout ──
+
+def test_the_quarterly_check_waits_twenty_minutes_at_most_under_its_unit_timeout(house):
+    import os
+    import re as _re
+    ops, sd = house
+    assert rules().settings["major_lock_wait_minutes"] == 20
+    unit = (ROOT / "systemd" / "kronk-upgrade-major-check.service").read_text()
+    timeout = int(_re.search(r"^TimeoutStartSec=(\d+)m$", unit, _re.M).group(1))
+    assert timeout >= 20 + 5                     # the lookups and the report fit beside the wait
+    sd.mkdir()
+    fd = U.take_lock(sd, "pid=1\nrun=upgrade_minor x\n")
+    sleeps = []
+    ops.sleep = sleeps.append
+    try:
+        assert U.major_run(ops, rules(), sd) == 1
+    finally:
+        os.close(fd)
+    assert len(sleeps) == 20 and set(sleeps) == {60}
+    assert ops.notices[-1][1] == "Kronk: the quarterly upgrade check did not run"

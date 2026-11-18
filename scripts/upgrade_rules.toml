@@ -70,9 +70,12 @@ max_attempts = 7
 # going at the end of the window leaves the rest for the next night. By
 # hand: scripts/upgrade_minor.sh --ignore-window.
 night_window = ["02:00", "05:00"]
-# The quarterly check waits this long for the upgrade lock (a monthly run
-# holds it) before it gives up and says so.
-lock_wait_minutes = 240
+# The quarterly check waits this long for the upgrade lock (a monthly run,
+# or a run by hand, holds it) before it gives up and says so. Kept under
+# its unit's TimeoutStartSec (30m) so the give-up and its notice happen
+# before systemd kills it. The monthly timer's days (1-7) never overlap
+# the quarterly's (the 8th); only a run by hand can hold the lock then.
+major_lock_wait_minutes = 20
 # Files whose changes do not reach the Kronk stack's containers. The run
 # tags HEAD and deploys it, so HEAD may differ from the tag production runs
 # only in these (fnmatch patterns; * crosses directories). Anything else is
