@@ -130,8 +130,8 @@ class Session:
     sid: str
     token: str
     client: str
-    created: float = field(default_factory=time.monotonic)
-    last: float = field(default_factory=time.monotonic)
+    created: float = field(default_factory=lambda: time.monotonic())
+    last: float = field(default_factory=lambda: time.monotonic())
 
 
 _sessions: dict[str, Session] = {}

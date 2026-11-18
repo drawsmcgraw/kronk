@@ -195,3 +195,44 @@ async def settings_diff(name: str, commit: str):
         raise HTTPException(status_code=404, detail=str(e))
     # Decoded with "replace", so it holds no lone surrogate and encodes as JSON.
     return {"name": name, "commit": commit, "diff": diff[:200_000]}
+
+
+# ── unlock and lock (criteria 5, 6) ──────────────────────────────────────────
+
+def audit(event: str, **fields) -> dict:
+    import settings_audit
+    return settings_audit.record(event, **fields)
+
+
+@router.post("/api/settings/unlock")
+async def settings_unlock(request: Request):
+    """{"passphrase": ...} -> a session cookie and the page's second token.
+    401 wrong, 429 locked out, 403 editing off or wrong Origin."""
+    import settings_auth
+    settings_auth.check_origin(request)
+    client = client_of(request)
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    passphrase = body.get("passphrase") if isinstance(body, dict) else None
+    session = await settings_auth.unlock(passphrase, client, audit)
+    del passphrase, body
+    response = JSONResponse({"ok": True, "token": session.token, "idle_s": settings_auth.IDLE_S,
+                             "absolute_s": settings_auth.ABSOLUTE_S})
+    settings_auth.set_cookie(response, session)
+    return response
+
+
+@router.post("/api/settings/lock")
+async def settings_lock(request: Request):
+    """End this browser's session (no token needed: locking only takes
+    rights away)."""
+    import settings_auth
+    settings_auth.check_origin(request)
+    s = settings_auth.end_session(request)
+    if s is not None:
+        audit("lock", client=client_of(request))
+    response = JSONResponse({"ok": True, "message": "locked"})
+    settings_auth.clear_cookie(response)
+    return response
