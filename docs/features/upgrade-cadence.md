@@ -1,7 +1,7 @@
 # Upgrade cadence
 
-Sprint item M18 (built 2026-11-18; fix rounds 1 and 2 the same day,
-`docs/sprint/M18-fix1.md`, `docs/sprint/M18-fix2.md`). Pins stay; they now move on a schedule.
+Sprint item M18 (built 2026-11-18; fix rounds 1 to 3 the same day,
+`docs/sprint/M18-fix1.md`, `docs/sprint/M18-fix2.md`, `docs/sprint/M18-fix3.md`). Pins stay; they now move on a schedule.
 A monthly run applies patch releases by itself and says what it did; a
 quarterly check writes a report on major releases and asks Drew to schedule
 them. Build report: `docs/sprint/M18-build.md`. Plan: section "M18. An
@@ -38,8 +38,10 @@ reported (only ASCII digits count, and a part with a leading zero such as
 ## The monthly run
 
 `systemd/kronk-upgrade-minor.timer` fires at 03:30 on days 1 to 7 of each
-month. The first night that is not declined does the month; later nights
-find it done. Step by step (`scripts/upgrades.py`, `minor_run`):
+month. A night does what it can: a component not started (the house got
+busy, the window closed) goes the next night, and the month is done when
+every planned component has an outcome or the attempts run out. Step by
+step (`scripts/upgrades.py`, `minor_run`):
 
 1. Takes `data/upgrades/lock` and writes its holder into it. While it is
    held, `scripts/deploy_tag.sh deploy` refuses and names the holder; the
@@ -63,7 +65,8 @@ find it done. Step by step (`scripts/upgrades.py`, `minor_run`):
 6. Declines (and tries again tomorrow) when the household is busy or the
    tree is not ours: see "House busy" below; the last rollback failed or a
    component was left out of step; a deploy is running; the tree is not
-   clean; the branch is not `KRONK_UPGRADE_BRANCH` (default `main`). A check
+   clean; HEAD is detached or not on the expected branch (`main` unless the
+   install says otherwise: "Installing the timers"). A check
    that cannot be read (HA down, the probe silent) is a decline, not a pass.
 7. Baseline: `./scripts/run_tests.sh` and the live dry-run replay on
    `kronk-dev`. If either cannot run, declines.
@@ -92,10 +95,17 @@ find it done. Step by step (`scripts/upgrades.py`, `minor_run`):
      deploy's own; for HA M12's H8 plus H7's mounts, StopTimeout and no
      unclean-shutdown line), the offline corpus, the replay against the
      baseline (a row that passed before and fails now, flappers excepted).
-     A check whose own read fails (`docker events`, Music Assistant's start
-     time) is a failed check. A replay stopped by a player (exit 3) runs
-     again for the rows it did not reach, up to three times five minutes
-     apart; only then is it a failed verify. HA's "players as before"
+     Right after `docker stop -t 120` and before the new container is
+     created, the stopped container's `State.ExitCode` and
+     `State.OOMKilled`: 137 or an OOM kill means HA did not shut down
+     inside its grace period, a failed stop. A check whose own read fails
+     (that exit code, Music Assistant's start time) is a failed check. A
+     replay row that comes back with a player change after it executed is
+     a failed verify at once (the replay's guard against a real action). A
+     replay stopped by a player with no such row (exit 3) runs again for
+     the rows it did not reach, up to three times five minutes apart, and a
+     retry counts only when every row it selected has a result; a kept
+     upgrade whose replay was retried says so in the notice. HA's "players as before"
      skips the rules' `flapping_players` (the television, both Sonos
      Moves) and does not count a move between idle, off, paused, standby
      and on; any other change fails, as does a player that was available
@@ -158,59 +168,104 @@ is) and the detail after:
   that failed, an uncommitted change). Stops and blocks like a failed
   rollback.
 
+Both keep the component's intent record, marked `blocked`: no recovery
+acts on a blocked record, the run declines on it, and the hourly command
+can still start a Home Assistant the run had stopped. Only `ack` drops it.
+
 ### An interrupted run
 
 A run killed inside a component (a reboot, OOM, `systemctl stop`, the
 unit's 4 h timeout) leaves its intent record: the component, from and to,
 the step, where HEAD was when the component started, the previous
 production tag and the run's own tag (Kronk stack), the config hash before
-and after the pin commit (telemetry, HA), HA's previous image id. Recovery
-acts by itself only when the world is exactly what the record says.
+and after the pin commit (telemetry, HA), HA's previous image id, and
+`ha_stopped` once the run itself has issued `docker stop` to HA. Recovery
+acts by itself only when the world is exactly what the record says. It is
+the only thing the next run does: whatever it ends in, that night's run
+stops there (no other component is tried, no attempt is counted).
 
-Home Assistant down comes first, before the tree, branch, window and month
-checks: a stopped `homeassistant` container is started as it is (`docker
-start`, no compose, no recreate, no pin or git change), then the rest
-below runs on what it finds. A missing container (a `compose up` cut
-short) is created on the rollback image with `compose up` and no stop,
-after M12 H7b, putting the pin back by a commit first if the compose file
-says the new version and the tree allows it. No rollback ever runs
-`docker stop` on a container that does not exist.
+A read that fails (production's tag, `docker inspect`, git, `compose
+config`) is unknown, never a fact: nothing is done, the record is kept,
+the warning says "could not read <what>: <error>; will look again", one
+notice says the same, and the next firing looks again (the next monthly
+firing for a recovery, which is days 1 to 7; the next hour for the hourly
+command's start of HA). "Someone else deployed in between" is said only
+when production was read running another tag. A record is dropped only
+by a finished recovery, by "nothing was out of step", or by `ack`.
 
-Then, in order: the working tree not clean, or HEAD carrying commits the
-record does not explain (anything but the run's own pin, rollback, revert
-or a quarterly report), or git at neither version: OUT OF STEP, nothing
-touched.
+Home Assistant down comes first, before the window and month checks: a
+stopped `homeassistant` container is started as it is (`docker start`, no
+compose, no recreate, no pin or git change). That start needs no tree; it
+is the one action a recovery takes off the expected branch or with a
+dirty tree. Then the rest below runs on what it finds. A missing container
+(a `compose up` cut short) is created on the rollback image with `compose
+up` and no stop only when the run's tree checks pass (expected branch, not
+detached, clean, no commits the record does not explain, git at either
+version), the file at HEAD still gives the config hash the record has for
+that pin, no bind-mounted file of the repo changed since the run started,
+and M12 H7b passes, whatever the pin on disk says; the pin is put back by a
+commit first if git has the new one. If any of these fails, HA stays
+absent: OUT OF STEP, "Home Assistant is down". No rollback ever runs
+`docker stop` on a container that does not exist or is already stopped.
+
+Then, in order: HEAD detached or on another branch, the working tree not
+clean, HEAD carrying commits the record does not explain (anything but the
+run's own pin, rollback, revert or a quarterly report), or git at neither
+version: OUT OF STEP, nothing touched (a record for a component with no
+container comes before these, below).
 
 | Component | Found | Done |
 | --- | --- | --- |
+| no container (the Python bases) | git at either version | recovered: nothing to recover |
+| no container | git at neither | OUT OF STEP |
 | Kronk stack | production runs the run's own tag | deploy the recorded previous tag (pin back first if git has the new one), inside the night window with the house quiet, else one notice and it waits; verified |
 | Kronk stack | production runs the recorded previous tag, the component runs the old version | pin put back by a commit if git has the new one; nothing restarted |
 | Kronk stack | production runs the previous tag, the component runs anything else | OUT OF STEP |
-| Kronk stack | production runs any other tag, or the previous tag no longer exists | OUT OF STEP: the notice names the tag that runs, the recorded tags and what to do; nothing deployed over a person's deploy |
+| Kronk stack | production runs another tag | OUT OF STEP: "someone else deployed in between"; the notice names the tags; nothing deployed over a person's deploy |
+| Kronk stack | production runs no tag (read, not a tag) | OUT OF STEP, saying so |
+| Kronk stack | the previous tag no longer exists | OUT OF STEP |
 | Telemetry, HA | the old version runs | pin put back if git has the new one; nothing restarted |
 | Telemetry, HA | the new version runs, and the container is the one the run created (its config-hash label), the file at HEAD still gives the hash the record has, no bind-mounted file changed after the start, and (HA) H7b passes | `up -d` of the previous image (HA: stop, `up -d`, by the recorded image id), inside the window with the house quiet; verified |
 | Telemetry, HA | the new version runs and any guard fails; a container not running (telemetry); anything else | OUT OF STEP |
+| any | any read above fails | unknown: nothing done, the record kept, looked at again next time |
 | any | the rollback above fails | ROLLBACK FAILED |
 
-OUT OF STEP and ROLLBACK FAILED block later runs until `ack`. A recovered
-component is held back for the rest of the month (Drew's call). The
-notice says what was found and what was done.
+OUT OF STEP and ROLLBACK FAILED keep the record, blocked, until `ack`. A
+recovered component is held back for the rest of the month (Drew's call).
+The notice says what was found and what was done; "nothing was touched"
+only when that is true of the whole recovery ("nothing else was touched"
+after HA was started).
 
 Between runs, the hourly `kronk-upgrade-notices` unit looks for a record
-left with the lock free: it raises the `/services` warning and sends one
-notice, and if the record is HA's and HA's container is stopped, it starts
-that container. It does nothing else. `GET /api/upgrades` shows any
-unfinished record as a warning. While the record exists,
-`scripts/deploy_tag.sh deploy` refuses (the run's own deploys pass with its
-lock token), naming the two ways out: `python3 scripts/upgrades.py minor
---ignore-window` (recover now) or `python3 scripts/upgrades.py ack` (drop
-the record; a person takes over). `plan`, `status` and `seed` are not
-affected.
+left with the lock free. It raises the `/services` warning. It starts a
+stopped HA only when the record is Home Assistant's and the run itself
+had stopped HA (`ha_stopped`: the steps from the upgrade's or the
+rollback's `docker stop` on), blocked or not; for any other record it only
+warns. It sends at most one notice per record per state: interrupted, HA
+started again, HA start failing, a read that failed. A start that keeps
+failing is tried every hour and reported once, and once more when it
+works. Its `docker start` waits at most 2 minutes and its wait for HA at
+most 4, the status is written between the two, and the unit's timeout is
+20 minutes. The nightly "rollback waiting" notice is its own and is sent
+once whether or not the hourly one came first. It does nothing else: no
+deploy, no compose, no pin or git change. `GET /api/upgrades` shows any
+unfinished record as a warning (a blocked one as needing `ack`). While
+the record exists, `scripts/deploy_tag.sh deploy` refuses (the run's own
+deploys pass with its lock token), naming the ways out: `python3
+scripts/upgrades.py minor --ignore-window` (recover now; not for a blocked
+record) or `python3 scripts/upgrades.py ack`. `plan`, `status` and `seed`
+are not affected.
 
-Worst case for HA down after a kill: HA stopped between its stop and its
-start is back within the hour (the hourly unit, `RandomizedDelaySec=5m`).
-A missing HA container is created only by the monthly run (days 1 to 7;
-after a kill on the 7th, the 1st of next month) or a run by hand.
+Worst case for HA down after a kill: HA stopped by the run (between its
+`docker stop` and its verified start, in the upgrade, the rollback or a
+recovery's rollback) is started by the next hourly firing: the timer fires
+on the hour with `RandomizedDelaySec=5m`, so about 65 minutes at worst plus
+HA's own start, including behind a block. A `docker start` that keeps
+failing is retried each hour. A missing HA container is created only by
+the monthly run (days 1 to 7; after a kill on the 7th, the 1st of next
+month) or a run by hand, and only past the checks above. An HA a person
+stopped while the record's step was before the run's own stop is not
+started.
 
 ### What a Kronk-stack upgrade costs
 
@@ -257,12 +312,17 @@ visible without HA: `data/upgrades/status.json` keeps the notice, the
 `/services` page shows an "Upgrade cadence" card with a warning (from
 `GET /api/upgrades`, production's orchestrator, read-only), and
 `kronk-upgrade-notices.timer` retries the notice hourly until HA answers
-(and acts on an interrupted run's record, above).
+(and acts on an interrupted run's record, above: the warning, one notice
+per state, and the start of an HA the run had stopped).
 The warning stays until `python3 scripts/upgrades.py ack`. Rollbacks, failed
 rollbacks, out-of-step components, interrupted runs, pins that are not what
 runs, a month that never found a quiet moment and a month that applied
-nothing raise the same warning. A status file that cannot be parsed shows
-as a warning too (the API reads it), and every command stops on it. This is the built default; Drew has not chosen it yet (alternatives
+nothing raise the same warning. The status file is held to one schema
+(`orchestrator/upgrade_status.py`: every field's type, non-negative
+counts, a depth limit), shared by the script, the API and
+`deploy_tag.sh`: a file that cannot be parsed or is off the schema is one
+warning, "upgrade status file unreadable", on `/services`, every command
+stops on it, and `deploy_tag.sh deploy` refuses. This is the built default; Drew has not chosen it yet (alternatives
 in the build report).
 
 ## By hand
@@ -279,8 +339,13 @@ in the build report).
 - The status file: `python3 scripts/upgrades.py status`. Clear the warning
   (after reading it): `python3 scripts/upgrades.py ack`. `ack` also clears
   a failed-rollback or out-of-step block and drops an interrupted run's
-  record: after it, no recovery acts on that record, and what runs is yours
-  to put right.
+  record: after it, no recovery and no hourly start acts on that record,
+  and what runs is yours to put right. With a record, it first prints what
+  git has, what runs and (Kronk stack) production's tag for the record's
+  component, and it refuses, unless given `--yes-leave-as-is`, while Home
+  Assistant is stopped, absent or unreadable for HA's record, or while
+  production runs the run's unverified tag (or its tag cannot be read) for
+  a Kronk-stack record. With the flag it clears and says what it left.
 - Do not deploy by hand while an interrupted run's record exists
   (`deploy_tag.sh deploy` refuses): recover with `scripts/upgrade_minor.sh
   --ignore-window`, or `ack` first.

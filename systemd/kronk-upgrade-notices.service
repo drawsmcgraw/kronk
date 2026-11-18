@@ -3,10 +3,13 @@
 # when nothing is pending. Until a notice is delivered, /services shows it
 # as a warning. Fired hourly by kronk-upgrade-notices.timer.
 # An unfinished intent record with the lock free (a monthly run died inside
-# a component): it raises the /services warning and sends one notice, and
-# when the record is Home Assistant's and HA's container is stopped, it
-# starts that container (`docker start`, nothing else). It never deploys,
-# recreates, or changes a pin; the monthly run does the recovery (M18 fix 2).
+# a component, or left it blocked): it raises the /services warning and
+# sends at most one notice per record per state (interrupted, HA started
+# again, HA start failing, a read that failed). When the record is Home
+# Assistant's and the run itself had stopped HA (the record's ha_stopped)
+# and HA's container is stopped, it starts that container (`docker start`,
+# nothing else), blocked or not. It never deploys, creates, recreates, or
+# changes a pin; the monthly run does the recovery (M18 fix 2, fix 3 H3).
 #
 # Operations: install, check, remove as in kronk-upgrade-minor.service.
 #   log:       journalctl --user -u kronk-upgrade-notices.service -n 20

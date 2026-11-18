@@ -79,7 +79,9 @@ night_window = ["02:00", "05:00"]
 # or a run by hand, holds it) before it gives up and says so. Kept under
 # its unit's TimeoutStartSec (30m) so the give-up and its notice happen
 # before systemd kills it. The monthly timer's days (1-7) never overlap
-# the quarterly's (the 8th); only a run by hand can hold the lock then.
+# the quarterly's (the 8th), but the hourly notices command takes the same
+# lock briefly, both timers are Persistent=true (a boot can fire them
+# together), and a run by hand can hold it.
 major_lock_wait_minutes = 20
 # Files whose changes do not reach the Kronk stack's containers. The run
 # tags HEAD and deploys it, so HEAD may differ from the tag production runs

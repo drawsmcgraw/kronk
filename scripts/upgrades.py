@@ -2,12 +2,12 @@
 """Upgrade cadence (sprint M18): the monthly minor run, the quarterly major
 check, the inventory, and the notices.
 
-    scripts/upgrade_minor.sh [--dry-run] [--ignore-month]   monthly patch upgrades
+    scripts/upgrade_minor.sh [--dry-run] [--ignore-month] [--ignore-window]   monthly patch upgrades
     scripts/upgrade_major_check.sh [--dry-run]              quarterly major-release report + notice
     python3 scripts/upgrades.py inventory                   pins, what runs, what is newest
     python3 scripts/upgrades.py notices                     retry notices HA did not take; warn about (and
                                                             start a stopped HA for) an interrupted run's record
-    python3 scripts/upgrades.py ack                         clear the /services warning, the blocks, a record
+    python3 scripts/upgrades.py ack [--yes-leave-as-is]     clear the /services warning, the blocks, a record
     python3 scripts/upgrades.py status                      print the status file
     python3 scripts/upgrades.py test-notice                 one notice now, marked TEST (install check)
 
@@ -19,13 +19,16 @@ are each reported as a skip or a decline, never guessed around.
 Monthly run, in order (docs/features/upgrade-cadence.md has the long form;
 sprint M18 fix 1 added the night window, the intent record and recovery,
 the household-only busy check and the outcomes not applied / out of step;
-fix 2 made recovery act only on the world its record describes):
-  0. An earlier run's outcomes that never reached a notice are sent; its
-     unfinished intent record is dealt with (HA down first, by `docker
-     start`); outside settings.night_window the run declines without
-     counting an attempt.
-  1. Lock (data/upgrades/lock); this month's attempt count (at most
-     max_attempts; the timer fires on days 1-7).
+fix 2 made recovery act only on the world its record describes; fix 3
+held it to the run's tree checks and made a failed read unknown, never a
+fact):
+  0. Lock (data/upgrades/lock). An earlier run's outcomes that never
+     reached a notice are sent; its unfinished intent record is dealt with
+     (HA down first, by `docker start`), and that ends the night's run;
+     outside settings.night_window the run declines without counting an
+     attempt.
+  1. This month's attempt count (at most max_attempts; the timer fires on
+     days 1-7).
   2. Retry any notice HA did not take last time.
   3. Plan: for each component the newest release the rules call minor,
      at least min_age_days old, whose image exists in the registry.
@@ -3629,14 +3632,16 @@ def _major_write(ops: Ops, rules: Rules, sd: Path, now: dt.datetime, date: str, 
     return 0
 
 
-# ═══ The hourly unit and an unfinished record (G2) ═══════════════════════
+# ═══ The hourly unit and an unfinished record (G2, fix 3 H3) ═════════════
 #
-# A record with the lock free means the run that wrote it died. The hourly
-# `notices` command does two things about it and nothing else: if the record
-# is Home Assistant's and HA's container is stopped, it starts that container
-# (start_stopped_ha: no compose, no pin or git change); and it raises the
-# /services warning and sends one notice. The next monthly run (or
-# `scripts/upgrade_minor.sh --ignore-window`) does the recovery itself.
+# A record with the lock free means the run that wrote it died, or left it
+# blocked. The hourly `notices` command does two things about it and nothing
+# else: if the record is Home Assistant's, the run itself had stopped HA
+# (ha_stopped) and HA's container is stopped, it starts that container
+# (start_stopped_ha: no compose, no pin or git change), blocked or not; and
+# it raises the /services warning and sends at most one notice per state.
+# The next monthly run (or `scripts/upgrade_minor.sh --ignore-window`) does
+# the recovery itself.
 
 # The hourly command's wait for HA after a start, and its `docker start`
 # timeout: together, with every ha-api GET taking its full 15 s, well
