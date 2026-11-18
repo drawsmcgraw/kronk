@@ -960,3 +960,35 @@ def test_the_dry_run_sweeps_nothing(house):
     os.utime(old, (NOW.timestamp() - 2 * 86400,) * 2)
     run(ops, sd, ["tempo"], dry_run=True)
     assert old.exists()
+
+
+# ── O4: the loader strips nothing and refuses look-alikes ────────────────
+
+def _rules_text_with(tmp_path, old, new):
+    text = U.RULES_FILE.read_text()
+    assert text.count(old) == 1, old
+    p = tmp_path / "r.toml"
+    p.write_text(text.replace(old, new))
+    return p
+
+
+@pytest.mark.parametrize("old, new, why", [
+    ('project = "kronk-telemetry"\nservice = "grafana"', 'project = "Kronk"\nservice = "grafana"', "case variant"),
+    ('project = "kronk-telemetry"\nservice = "grafana"', 'project = "kronk "\nservice = "grafana"', "surrounding whitespace"),
+    ('project = "kronk-telemetry"\nservice = "grafana"', 'project = "KRONK-MA"\nservice = "grafana"', "case variant"),
+    ('name = "grafana"', 'name = " grafana"', "surrounding whitespace"),
+    ('order = 301\nfile = "docker-compose.ma.yml"', 'order = 301\nfile = "./docker-compose.ma.yml"\ndeploy = "kronk"',
+     "Music Assistant stack"),
+    ('name = "grafana"\nkind = "image"\norder = 20\nfile = "docker-compose.telemetry.yml"',
+     'name = "grafana"\nkind = "image"\norder = 20\nfile = "telemetry/../docker-compose.yml"', "the Kronk stack's compose file"),
+    ('name = "grafana"\nkind = "image"\norder = 20\nfile = "docker-compose.telemetry.yml"',
+     'name = "grafana"\nkind = "image"\norder = 20\nfile = "docker-compose.yml"', "the Kronk stack's compose file"),
+    ('night_window = ["02:00", "05:00"]', 'night_window = ["02:00+01:00", "05:00"]', "night_window"),
+])
+def test_the_loader_refuses_look_alikes(tmp_path, old, new, why):
+    with pytest.raises(U.RulesError, match=why):
+        U.load_rules(_rules_text_with(tmp_path, old, new), env={})
+
+
+def test_the_shipped_rules_still_load():
+    assert len(U.load_rules(env={}).components) > 10

@@ -136,7 +136,8 @@ def load_rules(path: Path = RULES_FILE, env: dict | None = None) -> Rules:
         settings.setdefault(key, default)
     try:
         win = [dt.time.fromisoformat(t) for t in settings["night_window"]]
-        assert len(win) == 2 and win[0] != win[1]
+        assert len(win) == 2 and win[0] != win[1], "two different times"
+        assert all(t.tzinfo is None for t in win), "local wall-clock times, no offset"
     except (ValueError, TypeError, AssertionError) as e:
         raise RulesError(f"settings.night_window = {settings['night_window']!r}: need [\"HH:MM\", \"HH:MM\"] ({e})") from e
     settings["night_window_t"] = win
@@ -146,6 +147,15 @@ def load_rules(path: Path = RULES_FILE, env: dict | None = None) -> Rules:
         for k in _REQUIRED:
             if k not in c:
                 raise RulesError(f"component {c.get('name', '?')}: missing {k}")
+        # Nothing is stripped or case-folded: a name that only looks right
+        # is refused, so no guard below can be stepped around (O4).
+        for k in ("name", "project", "file", "service", "container", "deploy"):
+            v = c.get(k)
+            if isinstance(v, str) and v != v.strip():
+                raise RulesError(f"component {c['name']!r}: {k} {v!r} has surrounding whitespace")
+        proj = c.get("project")
+        if isinstance(proj, str) and proj.lower() in ("kronk", "kronk-ma") and proj not in ("kronk", "kronk-ma"):
+            raise RulesError(f"component {c['name']}: project {proj!r} is a case variant of {proj.lower()!r}")
         if c["minor"] not in _MINOR:
             raise RulesError(f"component {c['name']}: minor = {c['minor']!r}, not one of {_MINOR}")
         if c["name"] in seen:
@@ -169,7 +179,11 @@ def load_rules(path: Path = RULES_FILE, env: dict | None = None) -> Rules:
         if c.get("deploy") in ("compose", "ha") and c.get("project") in (None, "", "kronk"):
             raise RulesError(f"component {c['name']}: deploy = {c['deploy']} with project {c.get('project')!r}: "
                              f"the Kronk stack is deployed only through deploy_tag.sh (deploy = \"kronk\")")
-        in_ma = c.get("file") == "docker-compose.ma.yml" or c.get("project") == "kronk-ma"
+        file = os.path.normpath(c["file"]) if isinstance(c.get("file"), str) else None
+        if c.get("deploy") in ("compose", "ha") and file == "docker-compose.yml":
+            raise RulesError(f"component {c['name']}: deploy = {c['deploy']} on {c['file']!r}: the Kronk stack's compose "
+                             f"file is deployed only through deploy_tag.sh, under any project")
+        in_ma = file == "docker-compose.ma.yml" or c.get("project") == "kronk-ma"
         if in_ma and (c["minor"] not in ("excluded", "none") or c.get("deploy")):
             raise RulesError(f"component {c['name']}: part of the Music Assistant stack; may only be excluded or none, "
                              f"with no deploy")
