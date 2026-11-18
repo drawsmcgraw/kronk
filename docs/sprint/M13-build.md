@@ -358,3 +358,42 @@ Headroom: GTT 50.7 of 109 GB (memwatch alerts at 90); 50.6 GB available.
 only with memory pressure (PSI 0.00 here; `mem_free` already dipped to
 6 GB at PSI 0 before this item). The 2 GB unconditional floor is far off.
 The cost is the one predicted in section 1.
+
+### Step 5 as done (00:47 to 00:49 UTC)
+
+- A1: config flow `wyoming`, user step `{"host": "127.0.0.1", "port":
+  10301}` → `create_entry`, entry **`01M7P1PQG3W0XAPSA5ZXJX5J65`**,
+  stored `data {"host": "127.0.0.1", "port": 10301}`, entity
+  **`stt.faster_whisper_2`** (friendly name "faster-whisper", from the
+  server's info). Retitled "Kronk Whisper STT dev" with
+  `config_entries/update`; the entry reloaded and is `loaded`.
+- A2: `assist_pipeline/pipeline/update` on `kronk-dev`, `stt_engine
+  stt.faster_whisper_2`, every other field copied.
+- After, compared with the backups and the "before" read:
+  - `core.config_entries`: one entry added; no existing entry changed
+    (each entry's JSON compared whole), the production Wyoming entry
+    `01KSBFASPA7R5EYA5ZHHX72ATE` included.
+  - `assist_pipeline.pipelines`: `kronk`, "Full local assistant" and
+    "Home Assistant" identical field by field; `kronk-dev` differs in
+    `stt_engine` only; preferred pipeline still `kronk`.
+  - Websocket reads before and after: `~/backups/ha/m13-2026-11-17/
+    ws_read_before.json`, `ws_read_after.json`.
+- No HA restart: `homeassistant` `StartedAt 2026-11-18T00:14:34Z`
+  (M12's promotion), `RestartCount 0`. Both STT entities read `unknown`,
+  as STT entities do between runs.
+- Not done, on purpose: an STT-stage pipeline run to prove the wiring.
+  With M12's capture on, HA writes the audio of every run that starts at
+  the STT stage to `~/kronk-voice-recordings`, which this item must not
+  write to. Zero files there are newer than the prompt file. The first
+  real proof is Drew's "Hey Jarvis" (Left for Drew).
+
+Undo, in order (exact):
+
+1. A2: websocket `assist_pipeline/pipeline/update`, `pipeline_id
+   01m7gvyhhfk2jp7havxm88ecme`, the fields of the "before" read with
+   `stt_engine: "stt.faster_whisper"` (scratch script used:
+   `MODE=set_dev_stt ARGS='{"stt_engine":"stt.faster_whisper"}'`, the
+   `ha_ws.py` logic reproduced in section 9).
+2. A1: `curl -X DELETE -H "Authorization: Bearer $HA_TOKEN"
+   http://127.0.0.1:8123/api/config/config_entries/entry/01M7P1PQG3W0XAPSA5ZXJX5J65`
+3. Then H2 and H1 of section 4.
