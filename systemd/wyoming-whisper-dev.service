@@ -1,0 +1,61 @@
+# Dev Whisper instance (sprint M13): the same model and compute type as
+# production's wyoming-whisper.service, on loopback port 10301, with the
+# household vocabulary prompt written by scripts/build_stt_prompt.py.
+# Only Home Assistant's kronk-dev pipeline uses it (Wyoming entry
+# "Kronk Whisper STT dev", 127.0.0.1:10301). Production's unit and port
+# 10300 are separate and carry no prompt.
+#
+# The model loads on the first transcription, not at start: a running but
+# unused instance holds about 0.1 GB; after one request about 2.1 GB GTT
+# plus 0.7 GB RSS (docs/sprint/M13-build.md, memory table).
+# HF_HUB_OFFLINE: the installed wyoming-faster-whisper 3.1.0 does not pass
+# --local-files-only to faster-whisper, which would otherwise ask the
+# Hugging Face Hub for updates at each model load.
+#
+# Operations:
+#   prompt:   ~/services/wyoming-whisper/.venv/bin/python scripts/build_stt_prompt.py
+#             (writes ~/services/wyoming-whisper/dev-prompt.env; --print to preview)
+#   install:  cp systemd/wyoming-whisper-dev.service ~/.config/systemd/user/
+#             systemctl --user daemon-reload
+#             systemctl --user enable --now wyoming-whisper-dev.service
+#   check:    ss -tlnp | grep 10301
+#             journalctl --user -u wyoming-whisper-dev -n 20
+#             tr '\0' ' ' < /proc/$(systemctl --user show -p MainPID --value wyoming-whisper-dev)/cmdline
+#   restart:  systemctl --user restart wyoming-whisper-dev.service   (never wyoming-whisper.service)
+#   stop:     systemctl --user stop wyoming-whisper-dev.service   (Hey Jarvis STT then fails)
+#   remove:   systemctl --user disable --now wyoming-whisper-dev.service
+#             rm ~/.config/systemd/user/wyoming-whisper-dev.service
+#             systemctl --user daemon-reload
+[Unit]
+Description=Wyoming faster-whisper STT, dev path with vocabulary prompt (sprint M13)
+After=network.target
+# A failing start (no prompt file, no GPU memory) gives up after three tries
+# instead of retrying every five seconds.
+StartLimitIntervalSec=300
+StartLimitBurst=3
+
+[Service]
+Type=simple
+WorkingDirectory=%h/services/wyoming-whisper
+Environment=HSA_OVERRIDE_GFX_VERSION=11.5.1
+Environment=ROCR_VISIBLE_DEVICES=0
+Environment=LD_LIBRARY_PATH=%h/services/wyoming-whisper/runtime-libs:/usr/local/lib/ollama/rocm
+Environment=HF_HUB_OFFLINE=1
+Environment=HF_HUB_DISABLE_TELEMETRY=1
+# WHISPER_INITIAL_PROMPT. No leading "-": a missing file fails the start.
+EnvironmentFile=%h/services/wyoming-whisper/dev-prompt.env
+ExecStart=%h/services/wyoming-whisper/.venv/bin/python -m wyoming_faster_whisper \
+    --model large-v3-turbo \
+    --language en \
+    --uri tcp://127.0.0.1:10301 \
+    --data-dir %h/services/wyoming-whisper/models \
+    --download-dir %h/services/wyoming-whisper/models \
+    --device cuda \
+    --compute-type float16 \
+    --local-files-only \
+    --initial-prompt ${WHISPER_INITIAL_PROMPT}
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

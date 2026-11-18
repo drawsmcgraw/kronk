@@ -346,3 +346,40 @@ def test_environment_file_shape(tmp_path):
     lines = out.read_text().splitlines()
     assert [ln for ln in lines if not ln.startswith("#")] == [f'{bsp.ENV_KEY}="{prompt_of(out)}"']
     assert any(ln.startswith("# tokens=") for ln in lines)
+
+
+# ── the units (criteria 5 and 8) ────────────────────────────────────────────
+
+SYSTEMD = SCRIPTS.parent / "systemd"
+
+
+def _exec_args(unit: Path) -> list[str]:
+    text = unit.read_text().replace("\\\n", " ")
+    line = [ln for ln in text.splitlines() if ln.startswith("ExecStart=")][0]
+    return line.split("=", 1)[1].split()
+
+
+def _flag(args, name):
+    return args[args.index(name) + 1]
+
+
+def test_dev_unit_is_production_plus_prompt_on_loopback():
+    prod = _exec_args(SYSTEMD / "wyoming-whisper.service")
+    dev = _exec_args(SYSTEMD / "wyoming-whisper-dev.service")
+    for f in ("--model", "--language", "--compute-type", "--device", "--data-dir"):
+        assert _flag(dev, f) == _flag(prod, f), f
+    assert _flag(prod, "--uri") == "tcp://0.0.0.0:10300" and "--initial-prompt" not in prod
+    assert _flag(dev, "--uri") == "tcp://127.0.0.1:10301"
+    assert _flag(dev, "--initial-prompt") == "${WHISPER_INITIAL_PROMPT}"   # braces: one argument
+    text = (SYSTEMD / "wyoming-whisper-dev.service").read_text()
+    assert "EnvironmentFile=%h/services/wyoming-whisper/dev-prompt.env" in text
+    assert "Environment=HF_HUB_OFFLINE=1" in text
+    assert bsp.ENV_KEY == "WHISPER_INITIAL_PROMPT"
+
+
+def test_regeneration_unit_restarts_only_the_dev_instance():
+    args = _exec_args(SYSTEMD / "kronk-stt-prompt.service")
+    assert args[-2:] == ["--restart-unit", "wyoming-whisper-dev.service"]
+    assert bsp.check_unit("wyoming-whisper-dev.service")
+    timer = (SYSTEMD / "kronk-stt-prompt.timer").read_text()
+    assert "OnCalendar=*-*-* 04:00" in timer

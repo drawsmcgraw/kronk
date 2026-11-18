@@ -1,0 +1,12 @@
+# Fires kronk-stt-prompt.service daily at 04:00 local, half an hour after
+# tool_service's nightly taste rebuild (MUSIC_TASTE_BUILD_AT, 03:30).
+# Not persistent: a missed night is caught up the next night.
+[Unit]
+Description=Kronk — nightly dev Whisper vocabulary prompt rebuild (M13)
+
+[Timer]
+OnCalendar=*-*-* 04:00
+RandomizedDelaySec=5m
+
+[Install]
+WantedBy=timers.target

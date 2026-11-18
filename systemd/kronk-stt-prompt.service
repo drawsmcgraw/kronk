@@ -1,0 +1,24 @@
+# Rebuilds the dev Whisper vocabulary prompt (sprint M13) after the nightly
+# music taste rebuild (tool_service, 03:30 local), and restarts the dev
+# Whisper instance only when the text changed. Never production's
+# wyoming-whisper.service: the script refuses any unit not named *-dev.service.
+# Reads HA (loopback) with HA_TOKEN from the repo's .env, and tool_service-dev
+# (127.0.0.1:8103); a failed or empty source keeps the old prompt (exit 1).
+# Fired by kronk-stt-prompt.timer. Docs: docs/features/voice-pipeline.md.
+#
+# Operations:
+#   install:  cp systemd/kronk-stt-prompt.{service,timer} ~/.config/systemd/user/
+#             systemctl --user daemon-reload
+#             systemctl --user enable --now kronk-stt-prompt.timer
+#   run now:  systemctl --user start kronk-stt-prompt.service
+#   log:      journalctl --user -u kronk-stt-prompt.service -n 20
+#   remove:   systemctl --user disable --now kronk-stt-prompt.timer
+#             rm ~/.config/systemd/user/kronk-stt-prompt.{service,timer}
+#             systemctl --user daemon-reload
+[Unit]
+Description=Kronk — rebuild the dev Whisper vocabulary prompt (M13)
+
+[Service]
+Type=oneshot
+Environment=KRONK_REPO_DIR=%h/git-repos/drawsmcgraw/kronk
+ExecStart=%h/services/wyoming-whisper/.venv/bin/python %h/git-repos/drawsmcgraw/kronk/scripts/build_stt_prompt.py --restart-unit wyoming-whisper-dev.service

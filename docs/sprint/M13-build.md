@@ -157,3 +157,159 @@ No out-of-memory or allocation-failure line in the last day of the
 - Token count: the Whisper model's own tokenizer
   (`tokenizer.json` in the model snapshot), through the `tokenizers`
   package (0.23.1 in both `tests/.venv` and the Whisper venv).
+
+## 2. The prompt (criteria 2 to 4)
+
+`scripts/build_stt_prompt.py` (commit `35f2a65`).
+
+- Sources, read-only, loopback only: HA's template API for area names
+  (`AREAS_TEMPLATE`) and the friendly names of the `music_assistant`
+  `media_player` entities (`PLAYERS_TEMPLATE`); `tool_service-dev`
+  `GET /music/stations?provider=pandora` and
+  `GET /music/taste/profile?limit=200`. HA_TOKEN from the environment, else
+  the `HA_TOKEN=` line of the repo's `.env` (as `scripts/lib/notify.sh`).
+- New route `GET /music/stations` (`tool_service/main.py:2418`): MA's
+  `music/radios/library_items` through `ma_read` (refuses anything outside
+  `MA_READ_COMMANDS`), filtered on `provider_mappings`, play counts joined
+  from the taste DB opened with `taste.db_readonly()`. Only
+  `tool_service-dev` was rebuilt (`up -d --build --no-deps
+  tool_service-dev`; every other container's id and creation time
+  unchanged, compared before and after).
+- Output: one line in an EnvironmentFile, default
+  `~/services/wyoming-whisper/dev-prompt.env` (new file), key
+  `WHISPER_INITIAL_PROMPT`, with a comment header carrying the token and
+  name counts and no timestamp. Written only when the content changes,
+  through a temporary file in the same directory and a rename
+  (`write_if_changed`, `scripts/build_stt_prompt.py:274`).
+- Names only. The script adds nothing but `", "` between names and a
+  final full stop. Characters systemd treats specially inside double
+  quotes (`" \ $ backtick`) are dropped from names, control characters
+  become spaces, and a comma inside a name becomes a space.
+- `Kronk` is added as a fixed name (plan, M19 step 4, left to M13 by
+  M19). Not one of criterion 2's four sources; see Departures.
+- `COMMAND_WORDS` (`scripts/build_stt_prompt.py:85`): the words of the
+  command forms. A test extracts every literal word from
+  `command_forms.PLAYBACK_RE`, `RATE_RE`, `ANOTHER_RE` and
+  `routing._MUSIC_RE` and fails if one is neither in `COMMAND_WORDS` nor
+  in its explicit list of nouns and function words. A kept name that
+  contains a command word is listed in the summary (`command_word_names`).
+  On the live sources: **none**.
+- Token count: `len(tokenizer.encode(" " + prompt.strip(),
+  add_special_tokens=False))` with the model's own `tokenizer.json`, the
+  exact call faster-whisper 1.2.1 makes (`transcribe.py:1143-1147`).
+  faster-whisper keeps at most the last 223 prompt tokens; the default
+  budget is 100.
+- Budget rule (criterion 4; `candidates` and `build`,
+  `scripts/build_stt_prompt.py:214-226`): Kronk and every room first, in
+  full; then stations (most played first), artists (highest taste score
+  first) and players take turns, one name each, until all three lists are
+  spent. A name is kept when the whole line with it still fits; one that
+  does not fit is skipped and the next tried. Folded duplicates are
+  skipped (an artist whose station is already in is not added again). A
+  station's trailing " Radio" is dropped: all 50 library stations end in
+  it, and the distinctive words are the ones before it. Output order:
+  category (Kronk, rooms, stations, artists, players), alphabetical inside
+  each, so play counts reordering the sources does not change the text;
+  only a change in the kept names does. A first version put players before
+  stations and artists in strict order; on the live sources that spent the
+  budget on 8 player names and kept 7 of 50 stations and 1 artist, so the
+  rule was changed before anything used it.
+- Live result (`--print`, 2026-11-18 00:30 UTC; the line itself is not
+  committed): **100 tokens, 26 names**: Kronk; 5 of 5 rooms; 6 of 46
+  stations (50 less 4 folded duplicates); 8 of 198 artists offered; 6 of 8
+  players. Examples: rooms "Basement Theater", "Office"; stations "Anime
+  Pop", "Mushroom Jazz"; artists "Air", "Orbital"; players "SHIELD". Two
+  runs were byte-identical.
+- Exit codes: 0 written or unchanged, 1 a source failed or was empty (old
+  file untouched, no restart), 2 usage or a refused unit, 3 tokenizer
+  missing, 4 restart failed.
+- Tests: `tests/test_build_stt_prompt.py` (52) and
+  `tests/test_music_stations.py` (7); stubbed sources, `no_network`,
+  `tmp_path`, a stand-in token counter, a recorded restart.
+
+## 3. The bench (criteria 9 to 11)
+
+`scripts/stt_prompt_bench.py`, run with `tests/.venv/bin/python`.
+
+- `render`: corpus sentences (`tests/voice_corpus.jsonl`, 158 distinct
+  texts) and carrier sentences for household names ("Play <station>.",
+  "Play some <artist>.", "Play music in the <room>.") from a names file,
+  rendered by Piper over its Wyoming port 10200 straight to WAV files,
+  resampled to 16 kHz mono 16-bit (the pucks' format). Voices rotate over
+  three already installed in the Piper volume (`en_US-lessac-medium`,
+  `en_US-hfc_male-medium`, `en_US-amy-medium`); the render reads Piper's
+  `describe` answer and refuses any voice not installed, so nothing is
+  downloaded. No HA, no speaker, no pipeline.
+- Each sentence in three variants: `clean`; `noise10` (white noise at
+  10 dB SNR); `room` (synthetic reverberant room, an exponential-decay
+  impulse of about 0.5 s, pink noise at 15 dB SNR, 12 dB quieter).
+- Non-speech (criterion 11), generated, 4 clips each of 2 to 4 s:
+  `silence` (digital zero), `hiss` (-55 dBFS), `white` and `pink` noise
+  (-20 dBFS), `hum` (50/60 Hz and harmonics), `water` (modulated bright
+  noise), `clatter` (random decaying knocks), `beeps` (three appliance
+  tones), `music` (synthesized chords), `reversed` (a Piper sentence
+  played backwards: speech-like, no words). Nothing downloaded.
+- `run`: one Wyoming `transcribe` / `audio-start` / chunks / `audio-stop`
+  exchange per file, as HA sends it; latency is from `audio-stop` to the
+  `transcript` event. Loopback hosts only (`check_host`). Scores: WER over
+  normalized words; a command-form error when `routing.decide()` gives the
+  transcript a different (rule, direct call) than the reference text; for
+  speech, rows where the transcript gained a prompt name the reference did
+  not have; for non-speech, whether any text came back and whether it held
+  a prompt name. HA's local tier (intents, the music blueprint) is not
+  modelled: it cannot be asked without running a pipeline.
+- Reads the M12 labelling sheet (`labels.csv` of
+  `scripts/voice_label_sheet.py`): `sample_id`, `audio_file`,
+  `correct_text`; unlabelled rows skipped. The render writes the same
+  columns plus `variant` and `origin`.
+- Files: `~/kronk-m13-bench/` (new directory, outside the repo):
+  `names.tsv`, `synthetic/labels.csv`, `synthetic/audio/*.wav` (754
+  files, 63 MB), `results/*.json` (per-row text; not committed).
+- Tests: `tests/test_stt_prompt_bench.py` (31): framing on in-memory
+  streams, loopback guard, scoring, an M12-format sheet, generators.
+
+## 4. Host changes (recorded before they were made)
+
+Each is new; no existing file under `~/services/wyoming-whisper/` or
+`~/.config/systemd/user/` is edited. `wyoming-whisper.service` is not
+edited, restarted, reloaded or signalled.
+
+| # | Change | Exact undo |
+| --- | --- | --- |
+| H1 | New file `~/services/wyoming-whisper/dev-prompt.env`, written by `scripts/build_stt_prompt.py` | `rm -- "$HOME/services/wyoming-whisper/dev-prompt.env"` (after H2's undo) |
+| H2 | New unit `~/.config/systemd/user/wyoming-whisper-dev.service`, a copy of `systemd/wyoming-whisper-dev.service`; `daemon-reload`; `start` (enable only after the memory check) | `systemctl --user disable --now wyoming-whisper-dev.service; rm -- "$HOME/.config/systemd/user/wyoming-whisper-dev.service"; systemctl --user daemon-reload` |
+| H3 | New units `~/.config/systemd/user/kronk-stt-prompt.{service,timer}`, copies of `systemd/`; timer enabled (step 7) | `systemctl --user disable --now kronk-stt-prompt.timer; rm -- "$HOME/.config/systemd/user/kronk-stt-prompt.service" "$HOME/.config/systemd/user/kronk-stt-prompt.timer"; systemctl --user daemon-reload` |
+| H4 | New directory `~/kronk-m13-bench/` (bench audio and results) | `rm -r -- "$HOME/kronk-m13-bench"` |
+| H5 | New directory `~/backups/ha/m13-2026-11-17/` (copies of four HA `.storage` files, taken 00:19 UTC) | Keep; `rm -r` only once M13's HA change is settled |
+
+Stop rule for H2, from the brief: if any `llama-*` unit, LiteLLM or
+production Whisper logs an allocation error, or a dev chat request on
+gemma or devstral fails after the load, `systemctl --user stop
+wyoming-whisper-dev.service` at once, then disable it, and report. No
+llama unit is restarted to make room.
+
+## 5. Home Assistant changes (recorded before they were made)
+
+No HA restart, no core config reload. Backups taken before:
+`~/backups/ha/m13-2026-11-17/` (`core.config_entries` sha256
+`dade50dc…0c03`, `assist_pipeline.pipelines` `1ccc96e5…2214`,
+`core.entity_registry`, `core.device_registry`).
+
+| # | Change | How | Exact undo |
+| --- | --- | --- | --- |
+| A1 | New Wyoming config entry for `127.0.0.1:10301`, retitled "Kronk Whisper STT dev"; HA creates one STT entity for it | REST config flow `POST /api/config/config_entries/flow {"handler": "wyoming"}`, then the user step `{"host": "127.0.0.1", "port": 10301}`; title by websocket `config_entries/update` | After A2's undo: `DELETE /api/config/config_entries/entry/<new entry id>` (or Settings → Devices & services → Wyoming → "Kronk Whisper STT dev" → Delete). Removes its entity too |
+| A2 | `kronk-dev` pipeline (`01m7gvyhhfk2jp7havxm88ecme`): `stt_engine` `stt.faster_whisper` → the new entity. Every other field copied from its current value | websocket `assist_pipeline/pipeline/update` | The same call with `stt_engine: "stt.faster_whisper"` (fields as in the "before" read below) |
+
+Not touched: the `kronk` pipeline, "Full local assistant", "Home
+Assistant", the production Wyoming entries, the pucks' selects, every
+other entry.
+
+"Before" read (websocket, 00:38 UTC), the fields A2 copies:
+`kronk-dev`: `conversation_engine conversation.kronk_dev`,
+`conversation_language *`, `language en`, `stt_engine stt.faster_whisper`,
+`stt_language en`, `tts_engine tts.piper`, `tts_language en_US`,
+`tts_voice en_US-hfc_male-medium`, `wake_word_entity null`,
+`wake_word_id null`, `prefer_local_intents true`. `kronk`: the same
+except `conversation_engine conversation.ollama_conversation`. Preferred
+pipeline `01ksc2pw5bkhtk37dh2d6zwcxp` (`kronk`). Wyoming entries: the two
+above, both `loaded`. STT entities: `stt.faster_whisper` only.
