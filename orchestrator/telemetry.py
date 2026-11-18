@@ -184,8 +184,11 @@ _URL_ATTRS = ("http.target", "http.url", "url.full", "url.path", "url.query")
 # has a fixed path (docs/sprint/M12-fix1.md, F3). /shopping_list/clear is a
 # fixed word and stays.
 _PATH_TEXT = (
-    (re.compile(r"(?<=/shopping_list/)(?!clear(?=[?#\s\"']|$))[^?#\s\"']+"), "<item>"),
-    (re.compile(r"(?<=/files/)[^?#\s\"']+"), "<name>"),
+    # To the end of the value: the item may hold spaces (a server span sees
+    # the decoded path), quotes or '#', and a query string after it goes too
+    # (M12-e2e2 block 1). Only the exact fixed word "clear" is kept.
+    (re.compile(r"(?<=/shopping_list/)(?!clear(?:[?#]|$)).+", re.S), "<item>"),
+    (re.compile(r"(?<=/files/).+", re.S), "<name>"),
 )
 
 

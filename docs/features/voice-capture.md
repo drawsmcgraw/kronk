@@ -178,8 +178,14 @@ it root-owned.
   `data/voice_tracer_state.json` for the rest of the window, so a correction
   that arrives later, after a restart too, is logged and counted as late
   (`/health` `marks_late`). `/health` `cut_short` counts these exports.
-- **What can still be lost:** a held run is lost only on a hard kill
-  (SIGKILL, OOM, `docker kill`) or a host crash inside its window. Its id is
+- **What can still be lost:** a held run is lost on a hard kill (SIGKILL,
+  OOM, `docker kill`) or a host crash inside its window, and on a stop
+  while Tempo cannot be reached (a host shutdown, or the telemetry stack
+  stopped first): the export at the stop fails, the stop takes about 15 s,
+  and no counter shows it; the only sign is the OpenTelemetry library's
+  "Failed to export spans batch" line. A run that ends while HA's
+  websocket is unreachable for about nine minutes or more is never fetched
+  (the same before M12). For the hard-kill case: Its id is
   then in the state file; the next start fetches it again from HA if HA
   still lists it (HA keeps the last 10 runs per pipeline, in memory) and it
   is under 11 minutes old, and recomputes its mark; otherwise it is logged

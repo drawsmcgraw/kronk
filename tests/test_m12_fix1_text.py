@@ -426,3 +426,44 @@ def test_llm_stream_bad_arguments_warning(record, monkeypatch, caplog):
     line = next(r.getMessage() for r in caplog.records if "not valid JSON" in r.getMessage())
     assert f"Fragment ({len(BAD_ARGS)} chars)" in line
     assert ("zqxwbadargs" in line) is record
+
+
+# ── M12 fix 2 (M12-e2e2 block 1): the whole item, whatever characters it holds ──
+
+_ITEMS = ["pindlewort vashti cream", "pindlewort%20vashti%20cream", "clear dorvalex wrap",
+          "clear%20dorvalex%20wrap", "krelbot's snarfweed", "krelbot's%20snarfweed",
+          'qvarg"qvarginner" qvargtail', "qvarg#qvarghashb", "clearance rack", "x?y=zqxw",
+          "clear/zqxw", "line\nbreak zqxw"]
+
+
+@pytest.mark.parametrize("t", MODS, ids=["orchestrator", "tool_service"])
+@pytest.mark.parametrize("item", _ITEMS)
+def test_the_whole_shopping_list_item_is_masked(t, item):
+    for prefix in ("/shopping_list/", "http://tool_service:8003/shopping_list/"):
+        assert t.strip_url_text(prefix + item) == prefix + "<item>"
+        assert t.mask_path(prefix + item) == prefix + "<item>"
+
+
+@pytest.mark.parametrize("t", MODS, ids=["orchestrator", "tool_service"])
+@pytest.mark.parametrize("fixed", ["/shopping_list", "/shopping_list/clear",
+                                   "http://tool_service:8003/shopping_list/clear"])
+def test_fixed_shopping_list_paths_are_left_alone(t, fixed):
+    assert t.strip_url_text(fixed) == fixed
+    assert t.strip_url_text(fixed + "?confirm=zqxw") == fixed + "?<query>"
+
+
+def test_an_upload_name_with_spaces_and_quotes_is_masked():
+    assert orch_telemetry.strip_url_text("/files/tax return 'final'.pdf") == "/files/<name>"
+
+
+def test_tool_service_server_span_for_a_multi_word_item(instrumented, monkeypatch):
+    """The server span sees the decoded path: spaces, an apostrophe, a first
+    word "clear" (M12-e2e2 block 1, the tester's live inputs)."""
+    import asyncio
+    app, exp = instrumented(TS, [])
+    monkeypatch.setattr(TS, "RECORD_TEXT", False)
+    asyncio.run(_send(app, "DELETE", "/shopping_list/krelbot's%20snarfweed%20vashti"))
+    asyncio.run(_send(app, "DELETE", "/shopping_list/clear%20dorvalex%20wrap"))
+    blob = _span_blob(exp)
+    for word in ("krelbot", "snarfweed", "vashti", "dorvalex", "wrap"):
+        assert word not in blob, blob
