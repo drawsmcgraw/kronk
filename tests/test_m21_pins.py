@@ -26,6 +26,14 @@ What is pinned:
   - values.json: every tuning value the move touches, as the code uses it.
 
 The clock is frozen and LOCATION is fixed, so kronk_facts() is stable.
+
+Retargeted in M21 step 2 (criterion 20). What these pins hold is the
+shipped defaults: the repo's config/ (tests/conftest.py points every test
+at it) and the loaders' built-in defaults, which must equal it
+(test_loader_defaults_equal_the_shipped_files). The services read a live
+config directory outside the repo, edited on /settings; no edit there can
+fail a test. A deliberate change of a shipped default changes config/, the
+code default and these fixtures in one commit, with the reason.
 """
 import asyncio
 import hashlib
@@ -374,6 +382,30 @@ def test_builtin_defaults_render_the_pinned_prompts_and_values(tmp_path, monkeyp
         monkeypatch.setenv("KRONK_CONFIG_DIR", good)
         config_loader.start()
         ts_config.start()
+
+
+def test_pins_read_the_shipped_defaults_not_a_live_directory():
+    import config_loader
+    from tool_service import config_loader as ts_config
+    shipped = (HERE.parent / "config").resolve()
+    assert Path(os.environ["KRONK_CONFIG_DIR"]).resolve() == shipped
+    assert config_loader.config_dir().resolve() == shipped
+    assert ts_config.config_dir().resolve() == shipped
+    assert not (shipped / ".git").exists(), "the repo's config/ is never a live directory"
+
+
+def test_loader_defaults_equal_the_shipped_files():
+    """Every value the shipped files set equals the loader's built-in
+    default, file by file, in both services."""
+    import config_loader
+    from tool_service import config_loader as ts_config
+    shipped = config_loader.load(HERE.parent / "config")
+    builtin = config_loader.defaults()
+    assert shipped.prompts == builtin.prompts
+    assert shipped.tuning == builtin.tuning
+    assert shipped.lead_in == builtin.lead_in
+    assert shipped.voice == builtin.voice
+    assert ts_config.load(HERE.parent / "config").music == ts_config.defaults().music
 
 
 # ── writer (once, before the move) ───────────────────────────────────────────

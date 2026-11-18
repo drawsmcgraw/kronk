@@ -23,9 +23,14 @@ os.environ.setdefault("MUSIC_TASTE_FILE", os.path.join(_TASTE_TMP, "music_taste.
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# config/ (sprint M21): the services read /config in the container; tests
-# read the repo's own files, so the pins prove the shipped files.
-os.environ.setdefault("KRONK_CONFIG_DIR", os.path.join(REPO_ROOT, "config"))
+# config/ (sprint M21): the services read /config in the container, which
+# since step 2 is a live config directory outside the repo (edited on
+# /settings). Tests always read the repo's own config/, the shipped
+# defaults, and never a live directory, even when the shell exports
+# KRONK_CONFIG_DIR: so an edit through the page fails no test, and the pins
+# prove the shipped files (criterion 20). Tests that need other files set
+# KRONK_CONFIG_DIR to a temporary directory with monkeypatch.
+os.environ["KRONK_CONFIG_DIR"] = os.path.join(REPO_ROOT, "config")
 
 _ORCH = os.path.join(REPO_ROOT, "orchestrator")
 if _ORCH not in sys.path:

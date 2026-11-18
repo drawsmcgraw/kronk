@@ -80,6 +80,7 @@ VOICE_FILE = "voice.yaml"
 # stray-file scan, done here once for the whole directory, knows it.
 TOOL_SERVICE_FILES = frozenset({"music.yaml"})
 EMPTY_YAML = "all defaults (file has no keys)"
+GIT_DIR = ".git"
 # A prompt may name these, written {{name}}; agents.apply_config fills them.
 PLACEHOLDERS = frozenset({"max_rounds"})
 _PLACEHOLDER = re.compile(r"\{\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*\}\}")
@@ -455,7 +456,9 @@ def _strays(base: Path) -> tuple[list[Problem], list[Problem]]:
     operator expects to take effect); anything else is a warning."""
     errors, warnings = [], []
     prompt_files = {f"{n}.md" for n in prompt_defaults.PROMPTS}
-    known = {"": {TUNING_FILE, LEAD_IN_FILE, VOICE_FILE, PROMPTS_DIR, *TOOL_SERVICE_FILES},
+    # .git: a live directory is its own git repository (step 2); the scan
+    # does not look inside it.
+    known = {"": {TUNING_FILE, LEAD_IN_FILE, VOICE_FILE, PROMPTS_DIR, GIT_DIR, *TOOL_SERVICE_FILES},
              PROMPTS_DIR: prompt_files}
     for rel, message in config_files.stray_entries(base, known):
         if rel.startswith(f"{PROMPTS_DIR}/") and rel.endswith(".md"):

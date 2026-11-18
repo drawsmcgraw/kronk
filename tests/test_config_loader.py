@@ -256,11 +256,21 @@ def test_services_page_shows_config_status():
 
 # ── compose wiring (criterion 6) ─────────────────────────────────────────────
 
-def test_config_is_mounted_read_only_into_all_four_services():
+def test_config_is_mounted_into_all_four_services():
+    """Since M21 step 2: production mounts ./config (in a release, a link to
+    production's live directory), dev mounts dev's live directory; only the
+    orchestrators may write (the /settings editor), the tool_services read;
+    a missing directory is an error, never created empty."""
     import yaml
     compose = yaml.safe_load((REPO / "docker-compose.yml").read_text())["services"]
-    for svc in ("orchestrator", "orchestrator-dev", "tool_service", "tool_service-dev"):
-        assert "./config:/config:ro" in compose[svc]["volumes"], svc
+    sources = {"orchestrator": "./config", "tool_service": "./config",
+               "orchestrator-dev": "${KRONK_DEV_CONFIG_DIR:-../kronk-config/dev}",
+               "tool_service-dev": "${KRONK_DEV_CONFIG_DIR:-../kronk-config/dev}"}
+    for svc, source in sources.items():
+        (m,) = [v for v in compose[svc]["volumes"] if isinstance(v, dict) and v.get("target") == "/config"]
+        assert m["type"] == "bind" and m["source"] == source, svc
+        assert m["bind"] == {"create_host_path": False}, svc
+        assert m.get("read_only", False) is svc.startswith("tool_service"), svc
 
 
 # ── tuning.yaml (criterion 7: unknown keys, wrong types, ranges) ─────────────

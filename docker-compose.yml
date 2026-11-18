@@ -64,7 +64,14 @@ services:
       - ./ops:/ops:ro
       # Music policy and tuning (sprint M21; docs/features/config-directory.md).
       # Read at startup and on POST /config/reload (scripts/config_reload.sh).
-      - ./config:/config:ro
+      # In a release, config/ is a link to production's live config
+      # directory (scripts/deploy_tag.sh, sprint M21 step 2); read only here:
+      # only the orchestrator writes it. No auto-created empty directory.
+      - type: bind
+        source: ./config
+        target: /config
+        read_only: true
+        bind: { create_host_path: false }
     environment:
       - SEARXNG_URL=http://searxng:8080
       # Hourly home-forecast cache (served at /weather/cached; the
@@ -218,10 +225,25 @@ services:
       - ./litellm/config.yaml:/litellm-config.yaml:ro
       # Prompts and tuning (sprint M21; docs/features/config-directory.md).
       # Read at startup and on POST /config/reload (scripts/config_reload.sh).
-      - ./config:/config:ro
+      # In a release, config/ is a link to production's live config
+      # directory, its own git repository (scripts/deploy_tag.sh, sprint M21
+      # step 2). Writable: the /settings page saves and commits there.
+      - type: bind
+        source: ./config
+        target: /config
+        bind: { create_host_path: false }
     environment:
       - LLM_SERVICE_URL=http://host.docker.internal:8002
       - TOOL_SERVICE_URL=http://tool_service:8003
+      # The /settings page (sprint M21 step 2; docs/features/config-directory.md).
+      # Editing is off unless SETTINGS_PASSPHRASE_HASH is set in .env
+      # (scripts/settings_passphrase.sh). SETTINGS_DEV_URL is the dev
+      # orchestrator, for "apply to dev first" and "bring over from dev".
+      # KRONK_RELEASE is set by scripts/deploy_tag.sh to the tag it deploys.
+      - SETTINGS_INSTANCE=production
+      - SETTINGS_PASSPHRASE_HASH=${SETTINGS_PASSPHRASE_HASH:-}
+      - SETTINGS_DEV_URL=http://orchestrator-dev:8100
+      - KRONK_RELEASE=${KRONK_RELEASE:-working tree}
       - ROUTER_MODEL=gemma-3-4b
       - COORDINATOR_MODEL=gemma-4-e4b
       - RESEARCH_AGENT_MODEL=gemma-4-e4b
@@ -331,8 +353,13 @@ services:
       # directory read-only at that path instead of under /shared.
       - ./data/hottub:/data/hottub:ro
       - ./ops:/ops:ro
-      # The same config/ as production (sprint M21).
-      - ./config:/config:ro
+      # Dev's live config directory (sprint M21 step 2), not the working
+      # tree's config/: the /dev/settings page edits it. Read only here.
+      - type: bind
+        source: ${KRONK_DEV_CONFIG_DIR:-../kronk-config/dev}
+        target: /config
+        read_only: true
+        bind: { create_host_path: false }
     environment:
       - SEARXNG_URL=http://searxng:8080
       - HOME_LOCATION=Laurel, MD
@@ -389,12 +416,25 @@ services:
       - ./data/dev:/data
       - ./kronk-context.md:/kronk-context.md:ro
       - ./litellm/config.yaml:/litellm-config.yaml:ro
-      # Prompts and tuning (sprint M21; docs/features/config-directory.md).
-      # Read at startup and on POST /config/reload (scripts/config_reload.sh).
-      - ./config:/config:ro
+      # Prompts and tuning: dev's live config directory (sprint M21 step 2),
+      # its own git repository next to kronk-releases, not the working
+      # tree's config/ (which holds the shipped defaults). To try a config
+      # change on dev, edit it on /dev/settings, or edit the file there and
+      # commit it with git -C, then scripts/config_reload.sh dev.
+      - type: bind
+        source: ${KRONK_DEV_CONFIG_DIR:-../kronk-config/dev}
+        target: /config
+        bind: { create_host_path: false }
     environment:
       - LLM_SERVICE_URL=http://host.docker.internal:8002
       - TOOL_SERVICE_URL=http://tool_service-dev:8103
+      # The /dev/settings page (sprint M21 step 2). nginx strips /dev/, so the
+      # page is told its prefix. Same passphrase hash as production, from
+      # .env (the "apply to dev first" request is signed with it).
+      - SETTINGS_INSTANCE=dev
+      - SETTINGS_URL_PREFIX=/dev
+      - SETTINGS_PASSPHRASE_HASH=${SETTINGS_PASSPHRASE_HASH:-}
+      - KRONK_RELEASE=${KRONK_RELEASE:-working tree}
       # Sentence streaming on the speech mount (sprint M8), on for the dev
       # path; production's value is in the orchestrator service above.
       - VOICE_STREAM=on
