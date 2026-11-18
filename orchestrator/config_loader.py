@@ -44,12 +44,21 @@ Rules:
     value shown passes through config_files.safe() when it is built (fix
     round 2): a file name that is not UTF-8 or a "\\uD800" key must not
     make the status unencodable.
+  - Reload isolation (step 2, criterion 9): a request keeps the config it
+    started with. PinConfig, an ASGI middleware outermost in main.py, pins
+    current() for the whole request (the streamed body included, and every
+    task the request starts, since tasks copy the context). A reload swaps
+    the config for requests that start after it; one in flight never sees
+    values from two loads. latest() is the unpinned value, for the code
+    that has just reloaded and must look at the new config.
 """
 import hashlib
 import logging
 import os
 import re
 import time
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Annotated
@@ -540,6 +549,8 @@ def _try_load() -> tuple[Config | None, list[Problem]]:
 _current: Config | None = None
 _status: dict = {}
 _listeners: list = []
+# The config a request started with (PinConfig); None outside a request.
+_pinned: ContextVar["Config | None"] = ContextVar("kronk_config_pinned", default=None)
 
 
 def _flatten(cfg: Config) -> dict[str, object]:
@@ -611,13 +622,46 @@ def start() -> Config:
     return cfg
 
 
-def current() -> Config:
+def latest() -> Config:
+    """The config in effect for new requests, ignoring any pin."""
     return _current if _current is not None else start()
+
+
+def current() -> Config:
+    """The config this request started with (see PinConfig), else latest()."""
+    pinned = _pinned.get()
+    return pinned if pinned is not None else latest()
+
+
+@contextmanager
+def pinned(cfg: "Config | None" = None):
+    """Pin current() to cfg (default: the config in effect now) inside the
+    block, for this task and the tasks it starts."""
+    token = _pinned.set(cfg if cfg is not None else latest())
+    try:
+        yield
+    finally:
+        _pinned.reset(token)
+
+
+class PinConfig:
+    """ASGI middleware: each HTTP request runs with current() pinned to the
+    config in effect when it arrived, until its response is complete."""
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope.get("type") != "http":
+            await self.app(scope, receive, send)
+            return
+        with pinned():
+            await self.app(scope, receive, send)
 
 
 def on_change(fn) -> None:
     """Call fn(config) now and after every successful reload."""
-    cfg = current()
+    cfg = latest()
     _listeners.append(fn)
     fn(cfg)
 
@@ -626,7 +670,7 @@ def reload() -> dict:
     """Re-read every file. Valid: it takes effect, and the answer lists
     what changed. Invalid: nothing changes, and the answer has the errors."""
     global _status
-    old = current()
+    old = latest()
     new, problems = _try_load()
     if new is None:
         kept = f"last good values ({old.source}, loaded {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(old.loaded_at))})"
@@ -650,7 +694,7 @@ def reload() -> dict:
 
 def status() -> dict:
     """For /api/config: what is in effect, from where, and the last error."""
-    cfg = current()
+    cfg = latest()
     return {
         "service": "orchestrator",
         "dir": config_files.safe(config_dir(), config_files.MAX_MESSAGE),

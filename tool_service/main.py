@@ -176,6 +176,9 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Kronk Tool Service", lifespan=lifespan)
 telemetry.instrument_app(app)   # server spans join the orchestrator's trace via traceparent
+# Reload isolation (sprint M21 step 2): each request keeps the config it
+# started with, whatever a POST /config/reload does meanwhile.
+app.add_middleware(config_loader.PinConfig)
 
 SEARXNG_URL = os.getenv("SEARXNG_URL", "http://localhost:8080")
 LIST_FILE = Path("/data/shopping_list.json")

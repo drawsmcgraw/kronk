@@ -69,6 +69,10 @@ app = FastAPI(title="Kronk Orchestrator", lifespan=lifespan)
 telemetry.instrument_app(app)   # server spans + httpx traceparent; no-op when off
 # A chat request whose client disconnects is cancelled (sprint M9 step 4).
 app.add_middleware(client_watch.ClientWatch)
+# Reload isolation (sprint M21 step 2): each request keeps the config it
+# started with. Added last, so it is the outermost middleware and the pin is
+# set before ClientWatch starts the app's task (tasks copy the context).
+app.add_middleware(config_loader.PinConfig)
 
 COORDINATOR_MODEL = agents.COORDINATOR_MODEL
 STATE_FILE        = Path("/data/kronk_state.md")

@@ -31,6 +31,10 @@ Rules:
   - Every Problem's file and message and every "changed" line passes
     through config_files.safe() when it is built (fix round 2), so the
     status and the reload answer can always be encoded.
+  - Reload isolation (step 2, criterion 9): PinConfig, an ASGI middleware
+    in main.py, pins current() for each request, so a request in flight
+    keeps the values it started with across a reload; latest() ignores the
+    pin.
   - The models are not frozen so tests can patch a value with
     patch.object(config_loader.current().music.verify, "timeout_s", 0);
     code never assigns to them.
@@ -39,6 +43,8 @@ import hashlib
 import logging
 import os
 import time
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -345,6 +351,8 @@ def _try_load() -> tuple[Config | None, list[Problem]]:
 
 _current: Config | None = None
 _status: dict = {}
+# The config a request started with (PinConfig); None outside a request.
+_pinned: ContextVar["Config | None"] = ContextVar("kronk_ts_config_pinned", default=None)
 
 
 def _flatten(cfg: Config) -> dict[str, object]:
@@ -398,13 +406,45 @@ def start() -> Config:
     return _current
 
 
-def current() -> Config:
+def latest() -> Config:
+    """The config in effect for new requests, ignoring any pin."""
     return _current if _current is not None else start()
+
+
+def current() -> Config:
+    """The config this request started with (see PinConfig), else latest()."""
+    pinned = _pinned.get()
+    return pinned if pinned is not None else latest()
+
+
+@contextmanager
+def pinned(cfg: "Config | None" = None):
+    """Pin current() to cfg (default: the config in effect now) inside the block."""
+    token = _pinned.set(cfg if cfg is not None else latest())
+    try:
+        yield
+    finally:
+        _pinned.reset(token)
+
+
+class PinConfig:
+    """ASGI middleware: each HTTP request runs with current() pinned to the
+    config in effect when it arrived, until its response is complete."""
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope.get("type") != "http":
+            await self.app(scope, receive, send)
+            return
+        with pinned():
+            await self.app(scope, receive, send)
 
 
 def reload() -> dict:
     global _current, _status
-    old = current()
+    old = latest()
     new, problems = _try_load()
     if new is None:
         kept = (f"last good values ({old.source}, loaded "
@@ -427,7 +467,7 @@ def reload() -> dict:
 
 
 def status() -> dict:
-    cfg = current()
+    cfg = latest()
     return {"service": "tool_service", "dir": config_files.safe(config_dir(), config_files.MAX_MESSAGE),
             "source": cfg.source,
             "loaded_at": cfg.loaded_at, "files": cfg.digests, **_status}

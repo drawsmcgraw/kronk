@@ -437,8 +437,9 @@ COORDINATOR.tool_defs = _coordinator_tool_defs  # type: ignore[method-assign]
 # The prompts live in config/prompts/<name>.md and the round budgets in
 # config/tuning.yaml. apply_config copies them onto the registry above at
 # import (config_loader's first load) and after every successful POST
-# /config/reload, so run_stream and everything else read agent.system_prompt
-# and agent.max_rounds as before.
+# /config/reload, for the roster and anything that reads the registry. A run
+# reads them through prompt_and_rounds() (below), from the config its
+# request started with.
 
 def apply_config(cfg: "config_loader.Config") -> None:
     for agent in [*AGENTS.values(), COORDINATOR]:
@@ -449,6 +450,40 @@ def apply_config(cfg: "config_loader.Config") -> None:
 
 
 config_loader.on_change(apply_config)
+
+
+def prompt_and_rounds(agent: AgentConfig) -> tuple[str, int]:
+    """(system prompt, round budget) for one run of `agent`. For the registry
+    agents and the coordinator they come from config_loader.current(), the
+    config the request started with (sprint M21 step 2, reload isolation):
+    a reload during the request does not change them part way. An agent
+    built elsewhere (tests) keeps its own fields."""
+    registry = COORDINATOR if agent.name == "coordinator" else AGENTS.get(agent.name)
+    cfg = config_loader.current()
+    if registry is not agent or agent.name not in cfg.prompts:
+        return agent.system_prompt, agent.max_rounds
+    rounds = cfg.tuning.agent_loop.max_rounds.for_agent(agent.name)
+    return config_loader.fill(cfg.prompts[agent.name], max_rounds=rounds), rounds
+
+
+# ── Loop texts (model-facing; shown read-only on /settings) ─────────────────
+# What run_stream tells the model when a guardrail fires. Named here, beside
+# the loop, so the /settings page shows the exact text the loop sends; each
+# is filled with str.format at its one call site. Structural guardrails
+# (tenet 5): the code path decides, the text only explains.
+TOOL_REJECTED_TEXT = ("[TOOL: {tool} — REJECTED: not available to the {agent} agent. "
+                      "It was not run. Use only the tools you were given.]")
+DUPLICATE_CALL_TEXT = "[{tool} was already called with these exact arguments this turn; use the earlier result]"
+NO_SUCH_SPECIALIST_TEXT = "[no such specialist: {name}]"
+REPEAT_CALL_TEXT = ("\n\n[NOTE: that was call #{n} to {tool} this turn. "
+                    "Do not call {tool} again — answer from the results "
+                    "above, or use a different tool if one fits better.]")
+BUDGET_EXHAUSTED_TEXT = (
+    "[Your tool budget for this question is exhausted — no more tool "
+    "calls are possible. Using ONLY the information gathered above, "
+    "give your best final answer now. If parts are missing, say which "
+    "parts you could not look up. Do not write tool-call syntax.]"
+)
 
 
 # The LLM router (ROUTING_PROMPT / VALID_ROUTES / build_routing_prompt) was
@@ -587,7 +622,8 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
     # the devops loop must never run web_search or fetch_url).
     offered = {d["function"]["name"] for d in agent_tool_defs or []}
 
-    system_content = agent.system_prompt + "\n\n" + kronk_facts()
+    system_prompt, max_rounds = prompt_and_rounds(agent)
+    system_content = system_prompt + "\n\n" + kronk_facts()
     if allow_escalation:
         system_content += "\n\n" + ESCALATION_GUIDANCE
     if system_extra:
@@ -617,10 +653,10 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
     last_round_text = ""
 
     try:
-        # Tool-using rounds: up to agent.max_rounds streaming calls with tools enabled.
+        # Tool-using rounds: up to max_rounds streaming calls with tools enabled.
         # If a round ends without tool_calls, we're done — content already streamed.
         # If all rounds produce tool_calls, fall through to forced synthesis below.
-        for round_idx in range(agent.max_rounds):
+        for round_idx in range(max_rounds):
             round_content: list[str] = []
             round_tool_calls: list[dict] = []
             t_llm = time.monotonic()
@@ -738,9 +774,7 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
                     messages.append({
                         "role":         "tool",
                         "tool_call_id": call["id"],
-                        "content":      (f"[TOOL: {fn_name} — REJECTED: not available to "
-                                         f"the {agent.name} agent. It was not run. Use only "
-                                         "the tools you were given.]"),
+                        "content":      TOOL_REJECTED_TEXT.format(tool=fn_name, agent=agent.name),
                     })
                     continue
 
@@ -750,7 +784,7 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
                 # read off the text (M2 fix 2).
                 failed = False
                 if key in seen_calls:
-                    result = f"[{fn_name} was already called with these exact arguments this turn; use the earlier result]"
+                    result = DUPLICATE_CALL_TEXT.format(tool=fn_name)
                 else:
                     yield {"type": "narration", "text": _tool_narration(fn_name, fn_args)}
                     if fn_name.startswith("ask_"):
@@ -770,7 +804,7 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
                                 # sub-agent's own span/metrics come from its run.
                                 sub = AGENTS.get(fn_name[4:])
                                 if sub is None:
-                                    result = f"[no such specialist: {fn_name[4:]}]"
+                                    result = NO_SUCH_SPECIALIST_TEXT.format(name=fn_name[4:])
                                     failed = True
                                 else:
                                     result, delegated_terminal, failed = await run_delegated(
@@ -828,11 +862,7 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
                     n = tool_call_counts[fn_name]
                     nudge_at = config_loader.current().tuning.agent_loop.repeat_tool_nudge_at
                     if n >= nudge_at and isinstance(result, str):
-                        result += (
-                            f"\n\n[NOTE: that was call #{n} to {fn_name} this turn. "
-                            f"Do not call {fn_name} again — answer from the results "
-                            "above, or use a different tool if one fits better.]"
-                        )
+                        result += REPEAT_CALL_TEXT.format(n=n, tool=fn_name)
 
                 # Friendly style: the phrasing rule rides on a result its code
                 # flagged as failed, never on the system prompt and never on a
@@ -857,18 +887,13 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
         #      than correctness) and scrub leaked tool-call syntax.
         messages.append({
             "role": "user",
-            "content": (
-                "[Your tool budget for this question is exhausted — no more tool "
-                "calls are possible. Using ONLY the information gathered above, "
-                "give your best final answer now. If parts are missing, say which "
-                "parts you could not look up. Do not write tool-call syntax.]"
-            ),
+            "content": BUDGET_EXHAUSTED_TEXT,
         })
         t_llm = time.monotonic()
         final_content: list[str] = []
         gen = agent_span.child_generation(
             f"llm.{agent.model}", model=agent.model, input=messages,
-            metadata={"round": agent.max_rounds + 1, "phase": "synthesis_forced"},
+            metadata={"round": max_rounds + 1, "phase": "synthesis_forced"},
         )
         try:
             with gen.current():
