@@ -985,6 +985,8 @@ def sweep_status_temps(sd: Path, now: dt.datetime, log) -> None:
     directory) older than a day: a run killed inside a status write left
     them (O3). Nothing else is touched."""
     for q in sd.glob(".status.*"):
+        if q.is_dir():
+            continue                     # not one of save_status's files (H9)
         try:
             if now.timestamp() - q.stat().st_mtime > 86400:
                 q.unlink()

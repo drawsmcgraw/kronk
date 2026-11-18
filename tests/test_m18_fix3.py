@@ -695,3 +695,14 @@ _GRAFANA_PROJECT = 'project = "kronk-telemetry"\nservice = "grafana"'
 def test_the_loader_folds_case_separators_and_paths(tmp_path, old, new, why):
     with pytest.raises(U.RulesError, match=why):
         U.load_rules(_rules_with(tmp_path, old, new), env={})
+
+
+def test_a_status_temp_directory_is_ignored_silently(house):
+    import os
+    ops, sd = house
+    d = sd / ".status.adir"
+    d.mkdir(parents=True)
+    os.utime(d, (NOW.timestamp() - 2 * 86400,) * 2)
+    run(ops, sd, ["tempo"])
+    log = next((sd / "runs").glob("*-minor.log")).read_text()
+    assert d.is_dir() and ".status.adir" not in log
