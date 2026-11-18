@@ -1712,21 +1712,40 @@ class Outcome:
     state: str = ""      # the fact that matters (what git has, what runs): first in the notice, never cut
 
 
-def what_runs(ctx, comp: dict) -> tuple[str | None, str]:
-    """(the version the component's container runs, or None; a phrase for
-    a notice). Read-only. `ctx` may be a Ctx or an Ops."""
+# What Docker says when the container is not there ("Error: No such
+# object: x" from `docker inspect`, "No such container: x" from the API).
+NO_SUCH = re.compile(r"no such (container|object)", re.I)
+
+
+def container_state(ctx, comp: dict) -> tuple[str, str | None, str]:
+    """(kind, version, phrase) for the component's container, read-only.
+    kind is one of: runs (version set), stopped, absent (Docker said there
+    is no such container), unknown (the inspect itself failed: never read
+    as absent or stopped), none (no container to inspect). The phrase says
+    "Home Assistant is down" only when HA is known to be stopped or absent
+    (sprint M18 fix 2, G4). `ctx` may be a Ctx or an Ops."""
     ops = getattr(ctx, "ops", ctx)
     c = comp.get("container")
     if not c or not comp.get("image"):
-        return None, "unknown (no container to inspect)"
+        return "none", None, "unknown (no container to inspect)"
+    down = "; Home Assistant is down)" if comp.get("deploy") == "ha" else ")"
     r = ops.docker("inspect", c, "-f", "{{.Config.Image}} {{.State.Running}}", timeout=30)
     if not r.ok:
-        return None, f"nothing ({c} does not exist" + ("; Home Assistant is down)" if comp.get("deploy") == "ha" else ")")
+        if NO_SUCH.search(r.out + r.err):
+            return "absent", None, f"nothing ({c} does not exist" + down
+        return "unknown", None, f"unknown (cannot inspect {c}: {r.tail(160)})"
     img, _, running = r.out.strip().partition(" ")
     ver = img[len(comp["image"]) + 1:] if img.startswith(comp["image"] + ":") else img
     if running.strip() != "true":
-        return None, f"nothing ({c} is stopped" + ("; Home Assistant is down)" if comp.get("deploy") == "ha" else ")")
-    return ver, ver
+        return "stopped", None, f"nothing ({c} is stopped" + down
+    return "runs", ver, ver
+
+
+def what_runs(ctx, comp: dict) -> tuple[str | None, str]:
+    """(the version the component's container runs, or None; a phrase for
+    a notice). Read-only; never more than is known (container_state)."""
+    _, ver, phrase = container_state(ctx, comp)
+    return ver, phrase
 
 
 def head_pin(ctx: Ctx, comp: dict) -> str | None:
@@ -1922,18 +1941,21 @@ def error_outcome(ctx: Ctx, p: Plan, e: Exception) -> Outcome:
 
 # ═══ Recovery from an interrupted run (F3) ══════════════════════════════
 
-def pin_vs_running(ops: Ops, p: Plan) -> str | None:
+def pin_vs_running(ops: Ops, p: Plan) -> tuple[str, str] | None:
     """Planning-time check, every component, every run: the pin at HEAD must
     be what its container runs. A pin commit ahead of what runs is never
-    CURRENT."""
+    CURRENT. Returns (action, detail) to replace the plan's, or None. A
+    container that cannot be inspected is a skip, not a mismatch (G4)."""
     c = p.comp
     if p.action not in ("upgrade", "current") or not c.get("container") or not c.get("image"):
         return None
-    ver, runs = what_runs(ops, c)
+    kind, ver, runs = container_state(ops, c)
     if ver == p.pin:
         return None
-    return (f"pin {p.pin} ({c['file']}) but {c['container']} runs {runs}: git and what runs are out of step; "
-            f"not upgraded")
+    if kind == "unknown":
+        return "skip", f"cannot tell what {c['container']} runs: {runs}"
+    return "mismatch", (f"pin {p.pin} ({c['file']}) but {c['container']} runs {runs}: git and what runs are out of step; "
+                        f"not upgraded")
 
 
 def _pin_back(ctx: Ctx, comp: dict, frm: str, to: str, why: str) -> str:
@@ -2251,7 +2273,7 @@ def minor_run(ops: Ops, rules: Rules, sd: Path, dry_run: bool = False, ignore_mo
         for p in plans:
             mm = pin_vs_running(ops, p)
             if mm:
-                p.action, p.detail = "mismatch", mm
+                p.action, p.detail = mm
             elif p.comp["name"] in (m.get("held_back") or {}) and p.action == "upgrade":
                 p.action, p.detail = "skip", f"held back this month: {m['held_back'][p.comp['name']]}"
         log("plan:")
