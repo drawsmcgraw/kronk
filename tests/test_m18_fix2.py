@@ -489,3 +489,59 @@ def test_a_run_that_sends_its_notice_leaves_nothing_unreported(house):
     ops, sd = house
     run(ops, sd, ["tempo"])
     assert "unreported" not in status(sd) and len(ops.notices) == 1
+
+
+# ── K4: players that change on their own while HA restarts ───────────────
+
+def _player_after_up(ops, eid, state):
+    """From HA's first `compose up` on, `eid` has `state` (it stays so through a rollback)."""
+    orig = ops.compose
+
+    def compose(project, file, *args, **kw):
+        r = orig(project, file, *args, **kw)
+        if args[0] == "up" and project == "kronk-ha":
+            if not any(s["entity_id"] == eid for s in ops.states):
+                ops.states.append({"entity_id": eid, "state": "idle", "last_changed": "2026-11-01T00:00:00Z"})
+            next(s for s in ops.states if s["entity_id"] == eid)["state"] = state
+        return r
+    ops.compose = compose
+
+
+def _add_player(ops, eid, state="idle"):
+    ops.states.append({"entity_id": eid, "state": state, "last_changed": "2026-11-01T00:00:00Z"})
+
+
+def test_a_player_that_goes_unavailable_fails_the_upgrade_but_not_its_rollback(house):
+    ops, sd = house
+    _player_after_up(ops, "media_player.kitchen", "unavailable")
+    assert run(ops, sd, ["homeassistant"]) == 1
+    o, = status(sd)["last_run"]["outcomes"]
+    assert o["result"] == "rolled_back" and ops.containers["homeassistant"].endswith(":2026.5.4")
+    assert "media_player.kitchen: idle before, unavailable after" in o["detail"]
+    assert "after the rollback, players differ (reported, not a failure): media_player.kitchen" in o["detail"]
+    assert "rollback_failed" not in status(sd) or not status(sd)["rollback_failed"]
+
+
+@pytest.mark.parametrize("eid", ["media_player.xbr_49x800d", "media_player.sonos_move_derp",
+                                 "media_player.sonos_move_derp_2"])
+def test_a_listed_flapping_player_does_not_fail_the_upgrade(house, eid):
+    ops, sd = house
+    _add_player(ops, eid, "off")
+    _player_after_up(ops, eid, "unavailable")
+    assert run(ops, sd, ["homeassistant"]) == 0
+    assert status(sd)["last_run"]["outcomes"][0]["result"] == "kept"
+
+
+@pytest.mark.parametrize("before, after", [("idle", "off"), ("off", "standby"), ("paused", "idle"), ("on", "idle")])
+def test_a_player_moving_between_resting_states_does_not_fail_the_upgrade(house, before, after):
+    ops, sd = house
+    next(s for s in ops.states if s["entity_id"] == "media_player.kitchen")["state"] = before
+    _player_after_up(ops, "media_player.kitchen", after)
+    assert run(ops, sd, ["homeassistant"]) == 0
+
+
+def test_the_flapping_players_are_data_in_the_rules():
+    text = U.RULES_FILE.read_text()
+    assert "flapping_players = [" in text
+    assert rules().settings["flapping_players"] == [
+        "media_player.xbr_49x800d", "media_player.sonos_move_derp", "media_player.sonos_move_derp_2"]

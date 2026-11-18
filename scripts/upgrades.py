@@ -130,7 +130,7 @@ def load_rules(path: Path = RULES_FILE, env: dict | None = None) -> Rules:
     for key, default in (("expected_branch", "main"), ("min_age_days", 14), ("quiet_minutes", 5),
                          ("select_quiet_minutes", 15), ("max_attempts", 7), ("inert_paths", []),
                          ("dev_services", []), ("dev_pipelines", ["kronk-dev"]),
-                         ("voice_tracer_state", "data/voice_tracer_state.json"),
+                         ("voice_tracer_state", "data/voice_tracer_state.json"), ("flapping_players", []),
                          ("night_window", ["02:00", "05:00"])):
         settings.setdefault(key, default)
     try:
@@ -1323,6 +1323,7 @@ class Ctx:
     ha_binds: list | None = None           # (source, target) of HA's bind mounts, from the compose file (F5)
     outside_window: str | None = None      # set when the run is outside the night window (F8)
     ignore_window: bool = False            # --ignore-window: a run by hand at any hour
+    player_notes: list = field(default_factory=list)   # player differences a rollback's check reports (K4)
     ha_back: str | None = None             # a recovery brought a stopped or missing HA back (G2)
 
 
@@ -1440,7 +1441,7 @@ def verify(ctx: Ctx, comp: dict, version: str, full: bool = True) -> list[str]:
             problems.append(p)
     problems += health(ctx, comp)
     if comp["deploy"] == "ha":
-        problems += ha_checks(ctx, comp)
+        problems += ha_checks(ctx, comp, players_fail=full)
     if problems or not full:
         return problems
     t = ctx.ops.run_tests()
@@ -1632,9 +1633,12 @@ def _ha_steps(ctx: Ctx, comp: dict, steps) -> str | None:
     return None
 
 
-def ha_checks(ctx: Ctx, comp: dict, wait_s: float = 600, step: float = 15) -> list[str]:
-    """H8 against the snapshot taken before the restart."""
+def ha_checks(ctx: Ctx, comp: dict, wait_s: float = 600, step: float = 15, players_fail: bool = True) -> list[str]:
+    """H8 against the snapshot taken before the restart. players_fail=False
+    (a rollback's check): a player difference is put in ctx.player_notes for
+    the notice, never a failure (K4)."""
     ops, before, problems = ctx.ops, ctx.ha_before or {}, []
+    ctx.player_notes = []
     r = ops.docker("inspect", comp["container"], "-f", "{{.Config.StopTimeout}}", timeout=30)
     if not r.ok or r.out.strip() != "120":
         problems.append(f"StopTimeout is {r.out.strip() or 'unreadable'}, not 120 (stop_grace_period lost)")
@@ -1662,15 +1666,20 @@ def ha_checks(ctx: Ctx, comp: dict, wait_s: float = 600, step: float = 15) -> li
         problems.append("HA's log says the database was not shut down cleanly (\"could not validate that the "
                         "sqlite3 database ... was shutdown cleanly\")")
     tries = max(1, int(wait_s // step)) + 1
+    flapping = ctx.rules.settings.get("flapping_players", [])
     for i in range(tries):
         try:
-            diff = _ha_diff(before, ha_snapshot(ctx))
+            diff, players = _ha_diff(before, ha_snapshot(ctx), flapping)
         except (StepFailed, ValueError) as e:
-            diff = [f"HA not answering: {e}"]
-        if not diff or i == tries - 1:
+            diff, players = [f"HA not answering: {e}"], []
+        if not (diff or players) or i == tries - 1:
             break
         ops.sleep(step)
     problems += diff
+    if players_fail:
+        problems += players
+    else:
+        ctx.player_notes = players
     c = ops.replay("upgrade-ha-check", ctx.sd / "runs" / f"{ctx.stamp}-replay-check.json", check_only=True)
     if not c.ok:
         problems.append(f"voice_replay --check-only failed (exit {c.rc}): {c.tail(200)}")
@@ -1684,21 +1693,35 @@ def ha_checks(ctx: Ctx, comp: dict, wait_s: float = 600, step: float = 15) -> li
     return problems
 
 
-def _ha_diff(before: dict, after: dict) -> list[str]:
-    out = []
+# A player moving between these is not a difference (K4).
+RESTING_PLAYER = {"idle", "off", "paused", "standby", "on"}
+
+
+def _ha_diff(before: dict, after: dict, flapping=()) -> tuple[list[str], list[str]]:
+    """(differences, player differences) between two snapshots. Players on
+    the rules' flapping_players list are skipped; a move between resting
+    states is not a difference (K4)."""
+    out, players = [], []
     for eid, b in (before.get("entities") or {}).items():
         a = after["entities"].get(eid)
-        if a is None:
+        if eid.startswith("media_player."):
+            if eid in flapping:
+                continue
+            if a is None:
+                players.append(f"{eid} missing after the restart")
+            elif a["state"] != b["state"] and not {a["state"], b["state"]} <= RESTING_PLAYER:
+                players.append(f"{eid}: {b['state']} before, {a['state']} after")
+        elif a is None:
             out.append(f"{eid} missing after the restart")
         elif eid.startswith("assist_satellite.") and a["state"] == "unavailable":
             out.append(f"{eid} unavailable")
-        elif eid.startswith(("select.", "media_player.")) and a["state"] != b["state"]:
+        elif eid.startswith("select.") and a["state"] != b["state"]:
             out.append(f"{eid}: {b['state']} before, {a['state']} after")
     if "rest_command" in before and before.get("rest_command") != after.get("rest_command"):
         out.append(f"rest_command services changed: {before.get('rest_command')} -> {after.get('rest_command')}")
     if before.get("ma_started") and before.get("ma_started") != after.get("ma_started"):
         out.append("Music Assistant restarted (its start time changed)")
-    return out
+    return out, players
 
 
 def ha_rollback(ctx: Ctx, comp: dict, frm: str) -> str | None:
@@ -1950,7 +1973,12 @@ def rollback(ctx: Ctx, comp: dict, frm: str, to: str, problems: list[str], commi
                        f"upgrade failed: {' '.join(reason.split())}; rollback failed: {why}", commit,
                        state=f"ROLLBACK FAILED; running is {runs}; git has {gitp}")
     log(f"  rolled back and verified: {name} {frm}")
-    return Outcome(name, frm, to, "rolled_back", reason, commit, state=f"rolled back to {frm}")
+    return Outcome(name, frm, to, "rolled_back", reason + _players_after(ctx), commit, state=f"rolled back to {frm}")
+
+
+def _players_after(ctx: Ctx) -> str:
+    return (f"; after the rollback, players differ (reported, not a failure): {', '.join(ctx.player_notes)}"
+            if ctx.player_notes else "")
 
 
 def error_outcome(ctx: Ctx, p: Plan, e: Exception) -> Outcome:
@@ -2289,7 +2317,7 @@ def _finish_rollback(ctx: Ctx, comp: dict, it: dict, f: dict, dry_run: bool) -> 
         _, runs = what_runs(ctx, comp)
         return Outcome(name, frm, to, "rollback_failed", "; ".join(after), state=f"ROLLBACK FAILED; running is {runs}; "
                        f"git has {head_pin(ctx, comp)}")
-    return Outcome(name, frm, to, "recovered", f"interrupted at step {it.get('step')}",
+    return Outcome(name, frm, to, "recovered", f"interrupted at step {it.get('step')}" + _players_after(ctx),
                    state=f"recovered: finished the rollback: {frm} runs again, git has {frm}")
 
 

@@ -93,6 +93,19 @@ dev_services = ["orchestrator-dev", "tool_service-dev"]
 # lists the held run ids (read-only).
 dev_pipelines = ["kronk-dev"]
 voice_tracer_state = "data/voice_tracer_state.json"
+# Media players that change state on their own while HA restarts (sprint
+# M18 e2e reports, 2026-11-18): the television went off -> unavailable
+# twice during one replay; both Sonos Moves went unavailable / off between
+# 14:06 and 14:10 with nobody near them. HA's "players as before" check
+# (M12 H8) skips these. For every other player, a move between idle, off,
+# paused, standby and on is not a difference; anything else is, and a
+# player that was available and is `unavailable` after the wait fails the
+# upgrade. A rollback's check never fails on a player: it reports it.
+flapping_players = [
+  "media_player.xbr_49x800d",
+  "media_player.sonos_move_derp",
+  "media_player.sonos_move_derp_2",
+]
 
 [replay]
 # Rows of tests/voice_corpus.jsonl known to flap on the live dev replay

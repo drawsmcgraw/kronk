@@ -506,10 +506,11 @@ def test_ha_diff_names_what_did_not_come_back():
               "rest_command": ["kronk_music_voice"], "ma_started": "t1"}
     after = {"entities": {"assist_satellite.kitchen": {"state": "unavailable"}, "select.k_wake_word_2": {"state": "Okay Nabu"}},
              "rest_command": [], "ma_started": "t2"}
-    d = U._ha_diff(before, after)
+    d, players = U._ha_diff(before, after)          # M18 fix 2 (K4): players come back separately
     assert d == ["assist_satellite.kitchen unavailable", "select.k_wake_word_2: Hey Jarvis before, Okay Nabu after",
-                 "media_player.office missing after the restart", "rest_command services changed: ['kronk_music_voice'] -> []",
+                 "rest_command services changed: ['kronk_music_voice'] -> []",
                  "Music Assistant restarted (its start time changed)"]
+    assert players == ["media_player.office missing after the restart"]
 
 
 # ── replay comparison ────────────────────────────────────────────────────
