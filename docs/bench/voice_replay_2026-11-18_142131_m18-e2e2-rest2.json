@@ -1,0 +1,901 @@
+{
+ "meta": {
+  "started": "2026-11-18T14:21:31+00:00",
+  "label": "m18-e2e2-rest2",
+  "check_only": false,
+  "git_commit": "e00b997",
+  "corpus_sha256": "e1517e8d28b2d513",
+  "corpus_rows": 160,
+  "selected": 12,
+  "not_selected": 148,
+  "selection": {
+   "id": [
+    "m4b-update-magic-mirror",
+    "m4b-upgrade-the-magic-mirror",
+    "m4b-run-the-mirror-update",
+    "m4b-upgrade-the-mirror-latest",
+    "m4b-fetch-and-run-on-the-mirror",
+    "inc-1101-ask-kronk-groove-armada-radio",
+    "inc-1107-ask-kronk-ask-home-french-dinner",
+    "m19-find-deep-house-and-play-it",
+    "m19-ask-kronk-to-pause",
+    "m19-ask-kronk-to-play-some-jazz",
+    "m19-ask-kronk-play-jazz-in-the-office",
+    "m19-ask-kronk-what-song-is-this"
+   ],
+   "tag": null
+  },
+  "target": {
+   "pipeline": "kronk-dev",
+   "pipeline_id": "01m7gvyhhfk2jp7havxm88ecme",
+   "engine": "conversation.kronk_dev",
+   "kronk_url": "http://localhost/dev/voice",
+   "status_url": "http://localhost/dev/api/status",
+   "production": false,
+   "prefer_local_intents": true,
+   "orchestrator": "kronk-orchestrator-dev-1",
+   "tool_service": "kronk-tool_service-dev-1"
+  },
+  "tool_service_health": {
+   "status": "ok",
+   "music_dry_run": true
+  },
+  "trigger_templates": 11,
+  "stopped": "media_player state changed after m19-find-deep-house-and-play-it: [{'entity_id': 'media_player.home_assistant_voice_0ac919_pe_01', 'before': {'state': 'playing', 'media_title': 'Laid', 'media_artist': 'James', 'media_content_id': 'pandora://track/TR:3154749'}, 'after': {'state': 'playing', 'media_title': 'Peaches', 'media_artist': 'The Presidents Of The United States Of America', 'media_content_id': 'pandora://track/TR:95672564'}}]",
+  "finished": "2026-11-18T14:22:15+00:00"
+ },
+ "rows": [
+  {
+   "id": "m4b-update-magic-mirror",
+   "text": "update magic mirror",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "devops",
+    "rule": "mm_ops",
+    "tool": null
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": true,
+     "expected": "devops/mm_ops",
+     "actual": "devops/mm_ops"
+    },
+    {
+     "check": "no music tool",
+     "ok": true,
+     "expected": [],
+     "actual": []
+    }
+   ],
+   "latency_s": 6.16,
+   "trace_id": "da39b00efebe2817bdbf2765cef7203f",
+   "pipeline_run_id": "01M7QGHM0CA3CWQN0QFGZ173K8",
+   "conversation_id": "01M7QGHM0CN9VBYKP7G6409C6T",
+   "ha_debug": {
+    "local": false,
+    "summary": "no local match"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "Could not update the Magic Mirror because the host 'magicmirror' is not configured.",
+   "kronk": {
+    "rid": "da7ae1a3",
+    "route": "devops",
+    "rule": "mm_ops",
+    "tools": [
+     "devops:remote_exec"
+    ],
+    "direct": [],
+    "trace_id": "da39b00efebe2817bdbf2765cef7203f",
+    "events": [
+     "request",
+     "origin",
+     "route_shortcut",
+     "model_lock",
+     "agent_round",
+     "tool_call",
+     "tool_complete",
+     "model_lock",
+     "agent_round",
+     "agent_complete",
+     "request_complete",
+     "voice_stream"
+    ],
+    "dry_run": [],
+    "music_requests": []
+   },
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "m4b-upgrade-the-magic-mirror",
+   "text": "upgrade the magic mirror",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "devops",
+    "rule": "mm_ops",
+    "tool": null
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": true,
+     "expected": "devops/mm_ops",
+     "actual": "devops/mm_ops"
+    },
+    {
+     "check": "no music tool",
+     "ok": true,
+     "expected": [],
+     "actual": []
+    }
+   ],
+   "latency_s": 4.61,
+   "trace_id": "a8ec9f4bf97dd237a89f7f0c02b3131b",
+   "pipeline_run_id": "01M7QGHVGE85WHYHKMM8JKWMCQ",
+   "conversation_id": "01M7QGHVGFR5JAXG8BRA0YNY0E",
+   "ha_debug": {
+    "local": false,
+    "summary": "partial HassTurnOn (match false)"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "I cannot upgrade the Magic Mirror software for you because it involves making changes to the system, and my tools are limited to read-only operations. If you need an upgrade, I recommend contacting the system administrator or using appropriate tools manually. Let me know if you need help with any read-only diagnostics or checks related to the Magic Mirror.",
+   "kronk": {
+    "rid": "a0da3a28",
+    "route": "devops",
+    "rule": "mm_ops",
+    "tools": [],
+    "direct": [],
+    "trace_id": "a8ec9f4bf97dd237a89f7f0c02b3131b",
+    "events": [
+     "request",
+     "origin",
+     "route_shortcut",
+     "model_lock",
+     "agent_round",
+     "agent_complete",
+     "request_complete",
+     "voice_stream"
+    ],
+    "dry_run": [],
+    "music_requests": []
+   },
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "m4b-run-the-mirror-update",
+   "text": "run the mirror update",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "direct",
+    "rule": "default",
+    "tool": null
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": true,
+     "expected": "direct/default",
+     "actual": "direct/default"
+    },
+    {
+     "check": "no music tool",
+     "ok": true,
+     "expected": [],
+     "actual": []
+    },
+    {
+     "check": "mirror update refused",
+     "ok": true,
+     "expected": true,
+     "actual": true
+    }
+   ],
+   "latency_s": 6.01,
+   "trace_id": "d8f69456b182e8eb125d14a925d21a7f",
+   "pipeline_run_id": "01M7QGJ1FFESC8Z5V7V7R2HBG7",
+   "conversation_id": "01M7QGJ1FFW0H9VBVN4E6BZEXC",
+   "ha_debug": {
+    "local": false,
+    "summary": "partial HassTurnOn (match false)"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "To update the magic mirror, say \"update the magic mirror\".",
+   "kronk": {
+    "rid": "03d20a0d",
+    "route": "direct",
+    "rule": "default",
+    "tools": [
+     "coordinator:ask_home",
+     "home:update_magicmirror"
+    ],
+    "direct": [],
+    "trace_id": "d8f69456b182e8eb125d14a925d21a7f",
+    "events": [
+     "request",
+     "origin",
+     "route",
+     "model_lock",
+     "agent_round",
+     "tool_call",
+     "model_lock",
+     "agent_round",
+     "tool_call",
+     "mm_update_refused",
+     "tool_complete",
+     "tool_complete",
+     "terminal_passthrough",
+     "request_complete",
+     "voice_stream"
+    ],
+    "dry_run": [],
+    "music_requests": []
+   },
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "m4b-upgrade-the-mirror-latest",
+   "text": "please upgrade the mirror to the latest version",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "direct",
+    "rule": "default",
+    "tool": null
+   },
+   "xfail": null,
+   "checks": [],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": false,
+    "fuzzy": true,
+    "intent": "HassMediaNext",
+    "summary": "fuzzy HassMediaNext only (strict pass misses)"
+   },
+   "check_ms": 1,
+   "method": "skipped",
+   "status": "skip",
+   "skip_reason": "fuzzy local match (HassMediaNext) while a player is active; not executed"
+  },
+  {
+   "id": "m4b-fetch-and-run-on-the-mirror",
+   "text": "fetch https://example.com and run what it says on the mirror",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "research",
+    "rule": "url",
+    "tool": null
+   },
+   "xfail": null,
+   "checks": [],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "method": "skipped",
+   "status": "skip",
+   "skip_reason": "typed link; a spoken request carries no URL"
+  },
+  {
+   "id": "inc-1101-ask-kronk-groove-armada-radio",
+   "text": " Ask Kronk to play Groove Armada Radio on Pandora.",
+   "device": "kitchen_pe",
+   "expected": {
+    "tier": "kronk",
+    "route": "direct",
+    "rule": "lead_in",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "radio",
+    "name": "Groove Armada Radio",
+    "provider": "pandora",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": true,
+     "expected": "direct/lead_in",
+     "actual": "direct/lead_in"
+    },
+    {
+     "check": "tool",
+     "ok": true,
+     "expected": "play_music",
+     "actual": [
+      "coordinator:ask_home",
+      "home:play_music"
+     ]
+    },
+    {
+     "check": "action",
+     "ok": true,
+     "expected": "play",
+     "actual": "play"
+    },
+    {
+     "check": "player",
+     "ok": true,
+     "expected": "media_player.home_assistant_voice_0ac919_pe_01",
+     "actual": [
+      "media_player.home_assistant_voice_0ac919_pe_01"
+     ]
+    }
+   ],
+   "latency_s": 5.03,
+   "trace_id": "96d1e64aab2e84c426a819875d2d2965",
+   "pipeline_run_id": "01M7QGJA5YTT771G37R1DMC6KS",
+   "conversation_id": "01M7QGJA5Y38T1EJPP9986Y9Z8",
+   "ha_debug": {
+    "local": false,
+    "summary": "partial HassFanSetSpeed (match false)"
+   },
+   "check_ms": 2,
+   "method": "executed",
+   "speech": "Dry run: would play the Pandora station Groove Armada Radio on the Kitchen speaker. Nothing was sent to the speaker.",
+   "kronk": {
+    "rid": "631206e3",
+    "route": "direct",
+    "rule": "lead_in",
+    "tools": [
+     "coordinator:ask_home",
+     "home:play_music"
+    ],
+    "direct": [],
+    "trace_id": "96d1e64aab2e84c426a819875d2d2965",
+    "events": [
+     "request",
+     "origin",
+     "route_shortcut",
+     "model_lock",
+     "agent_round",
+     "tool_call",
+     "model_lock",
+     "agent_round",
+     "tool_call",
+     "tool_complete",
+     "tool_complete",
+     "terminal_passthrough",
+     "request_complete",
+     "voice_stream"
+    ],
+    "dry_run": [
+     {
+      "action": "play",
+      "targets": [
+       "media_player.home_assistant_voice_0ac919_pe_01"
+      ],
+      "detail": "Dry run: would play the Pandora station Groove Armada Radio on the Kitchen speaker. Nothing was sent to the speaker."
+     }
+    ],
+    "music_requests": [
+     "query='Groove Armada Radio' media_type='radio' player=None shuffle=False -> ['media_player.home_assistant_voice_0ac919_pe_01']"
+    ]
+   },
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "inc-1107-ask-kronk-ask-home-french-dinner",
+   "text": " Ask Kronk to ask the home agent to play French Dinner Radio from Pandora.",
+   "device": "kitchen_pe",
+   "expected": {
+    "tier": "kronk",
+    "route": "direct",
+    "rule": "lead_in",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "radio",
+    "name": "French Dinner Radio",
+    "provider": "pandora",
+    "player": "origin"
+   },
+   "xfail": {
+    "parser": "After the lead-in is removed (as the orchestrator does for origin.said) the request has no request verb; the lead-in sends it to the model by design (M19), not to the parser."
+   },
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": true,
+     "expected": "direct/lead_in",
+     "actual": "direct/lead_in"
+    },
+    {
+     "check": "tool",
+     "ok": true,
+     "expected": "play_music",
+     "actual": [
+      "coordinator:ask_home",
+      "home:play_music"
+     ]
+    },
+    {
+     "check": "action",
+     "ok": true,
+     "expected": "play",
+     "actual": "play"
+    },
+    {
+     "check": "player",
+     "ok": true,
+     "expected": "media_player.home_assistant_voice_0ac919_pe_01",
+     "actual": [
+      "media_player.home_assistant_voice_0ac919_pe_01"
+     ]
+    }
+   ],
+   "latency_s": 5.51,
+   "trace_id": "0970d14ae87fe1055f393eee6c9783a1",
+   "pipeline_run_id": "01M7QGJGK238QVEE623JQPPN91",
+   "conversation_id": "01M7QGJGK24NBQNS10M68BP97Z",
+   "ha_debug": {
+    "local": false,
+    "summary": "partial HassTurnOn (match false)"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "Dry run: would play the Pandora station French Dinner Radio on the Kitchen speaker. Nothing was sent to the speaker.",
+   "kronk": {
+    "rid": "b6047d08",
+    "route": "direct",
+    "rule": "lead_in",
+    "tools": [
+     "coordinator:ask_home",
+     "home:play_music"
+    ],
+    "direct": [],
+    "trace_id": "0970d14ae87fe1055f393eee6c9783a1",
+    "events": [
+     "request",
+     "origin",
+     "route_shortcut",
+     "model_lock",
+     "agent_round",
+     "tool_call",
+     "model_lock",
+     "agent_round",
+     "tool_call",
+     "tool_complete",
+     "tool_complete",
+     "terminal_passthrough",
+     "request_complete",
+     "voice_stream"
+    ],
+    "dry_run": [
+     {
+      "action": "play",
+      "targets": [
+       "media_player.home_assistant_voice_0ac919_pe_01"
+      ],
+      "detail": "Dry run: would play the Pandora station French Dinner Radio on the Kitchen speaker. Nothing was sent to the speaker."
+     }
+    ],
+    "music_requests": [
+     "query='French Dinner Radio' media_type='radio' player=None shuffle=False -> ['media_player.home_assistant_voice_0ac919_pe_01']"
+    ]
+   },
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "m19-find-deep-house-and-play-it",
+   "text": "ask Kronk to find some deep house music and play it",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "direct",
+    "rule": "lead_in",
+    "tool": "play_music",
+    "kind": "genre",
+    "media_type": null,
+    "name": "deep house",
+    "player": "origin"
+   },
+   "xfail": {
+    "parser": "After the lead-in is removed (as the orchestrator does for origin.said) the request has no request verb; the lead-in sends it to the model by design (M19), not to the parser."
+   },
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": true,
+     "expected": "direct/lead_in",
+     "actual": "direct/lead_in"
+    },
+    {
+     "check": "tool",
+     "ok": true,
+     "expected": "play_music",
+     "actual": [
+      "coordinator:ask_home",
+      "home:play_music"
+     ]
+    },
+    {
+     "check": "action",
+     "ok": true,
+     "expected": "play",
+     "actual": "play"
+    },
+    {
+     "check": "player",
+     "ok": true,
+     "expected": "media_player.satellite1_d8d1bc",
+     "actual": [
+      "media_player.satellite1_d8d1bc"
+     ]
+    }
+   ],
+   "latency_s": 4.47,
+   "trace_id": "aea835d478f124689db0b78ac4864639",
+   "pipeline_run_id": "01M7QGJQD910C1S5E41N9MR87D",
+   "conversation_id": "01M7QGJQD956ZXDAENAN9FTMZW",
+   "ha_debug": {
+    "local": false,
+    "summary": "partial HassFanSetSpeed (match false)"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "Dry run: would play Fantastic Plastic Machine, for deep house, on the Office speaker. Nothing was sent to the speaker.",
+   "kronk": {
+    "rid": "48c4a17a",
+    "route": "direct",
+    "rule": "lead_in",
+    "tools": [
+     "coordinator:ask_home",
+     "home:play_music"
+    ],
+    "direct": [],
+    "trace_id": "aea835d478f124689db0b78ac4864639",
+    "events": [
+     "request",
+     "origin",
+     "route_shortcut",
+     "model_lock",
+     "agent_round",
+     "tool_call",
+     "model_lock",
+     "agent_round",
+     "tool_call",
+     "tool_complete",
+     "tool_complete",
+     "terminal_passthrough",
+     "request_complete",
+     "voice_stream"
+    ],
+    "dry_run": [
+     {
+      "action": "play",
+      "targets": [
+       "media_player.satellite1_d8d1bc"
+      ],
+      "detail": "Dry run: would play Fantastic Plastic Machine, for deep house, on the Office speaker. Nothing was sent to the speaker."
+     }
+    ],
+    "music_requests": [
+     "query='deep house' media_type=None player=None shuffle=False -> ['media_player.satellite1_d8d1bc']"
+    ]
+   },
+   "status": "pass",
+   "xfail_reason": null,
+   "player_change": [
+    {
+     "entity_id": "media_player.home_assistant_voice_0ac919_pe_01",
+     "before": {
+      "state": "playing",
+      "media_title": "Laid",
+      "media_artist": "James",
+      "media_content_id": "pandora://track/TR:3154749"
+     },
+     "after": {
+      "state": "playing",
+      "media_title": "Peaches",
+      "media_artist": "The Presidents Of The United States Of America",
+      "media_content_id": "pandora://track/TR:95672564"
+     }
+    }
+   ]
+  }
+ ],
+ "players": {
+  "before": {
+   "media_player.upper_shield": {
+    "state": "off",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.shield": {
+    "state": "off",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.shield_2": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.upper_shield_2": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.living_room_sony_bravia": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.home_assistant_voice_0ac919_pe_01": {
+    "state": "playing",
+    "media_title": "Laid",
+    "media_artist": "James",
+    "media_content_id": "pandora://track/TR:3154749"
+   },
+   "media_player.satellite1_d8d1bc": {
+    "state": "idle",
+    "media_title": "Unwind",
+    "media_artist": "Digby Jones",
+    "media_content_id": "pandora://track/TR:131363610"
+   },
+   "media_player.home_assistant_voice_0ab117": {
+    "state": "idle",
+    "media_title": "My Funny Valentine (album version edit)",
+    "media_artist": "Big Muff",
+    "media_content_id": "library://track/15212"
+   },
+   "media_player.camerons_macbook_pro": {
+    "state": "unavailable",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.sonos_move_derp_2": {
+    "state": "off",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.home_assistant_voice_0ac919_media_player": {
+    "state": "playing",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.home_assistant_voice_0ab117_media_player": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.satellite_01_media_player": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.xbr_49x800d": {
+    "state": "off",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.sonos_move_derp": {
+    "state": "unavailable",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.web_firefox_on_linux": {
+    "state": "unavailable",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.drew_s_windows_firefox": {
+    "state": "unavailable",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   }
+  },
+  "after": {
+   "media_player.upper_shield": {
+    "state": "off",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.shield": {
+    "state": "off",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.shield_2": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.upper_shield_2": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.living_room_sony_bravia": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.home_assistant_voice_0ac919_pe_01": {
+    "state": "playing",
+    "media_title": "Peaches",
+    "media_artist": "The Presidents Of The United States Of America",
+    "media_content_id": "pandora://track/TR:95672564"
+   },
+   "media_player.satellite1_d8d1bc": {
+    "state": "idle",
+    "media_title": "Unwind",
+    "media_artist": "Digby Jones",
+    "media_content_id": "pandora://track/TR:131363610"
+   },
+   "media_player.home_assistant_voice_0ab117": {
+    "state": "idle",
+    "media_title": "My Funny Valentine (album version edit)",
+    "media_artist": "Big Muff",
+    "media_content_id": "library://track/15212"
+   },
+   "media_player.camerons_macbook_pro": {
+    "state": "unavailable",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.sonos_move_derp_2": {
+    "state": "off",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.home_assistant_voice_0ac919_media_player": {
+    "state": "playing",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.home_assistant_voice_0ab117_media_player": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.satellite_01_media_player": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.xbr_49x800d": {
+    "state": "off",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.sonos_move_derp": {
+    "state": "unavailable",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.web_firefox_on_linux": {
+    "state": "unavailable",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.drew_s_windows_firefox": {
+    "state": "unavailable",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   }
+  },
+  "changed": [
+   {
+    "entity_id": "media_player.home_assistant_voice_0ac919_pe_01",
+    "before": {
+     "state": "playing",
+     "media_title": "Laid",
+     "media_artist": "James",
+     "media_content_id": "pandora://track/TR:3154749"
+    },
+    "after": {
+     "state": "playing",
+     "media_title": "Peaches",
+     "media_artist": "The Presidents Of The United States Of America",
+     "media_content_id": "pandora://track/TR:95672564"
+    }
+   }
+  ],
+  "unchanged": false,
+  "count": 17
+ },
+ "summary": {
+  "counts": {
+   "pass": 6,
+   "skip": 2
+  },
+  "executed": 6,
+  "checked_read_only": 0,
+  "skipped": [
+   {
+    "id": "m4b-upgrade-the-mirror-latest",
+    "reason": "fuzzy local match (HassMediaNext) while a player is active; not executed"
+   },
+   {
+    "id": "m4b-fetch-and-run-on-the-mirror",
+    "reason": "typed link; a spoken request carries no URL"
+   }
+  ],
+  "not_selected": 148,
+  "failed": [],
+  "xpassed": []
+ }
+}
