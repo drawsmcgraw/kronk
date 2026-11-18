@@ -5,8 +5,9 @@ check, the inventory, and the notices.
     scripts/upgrade_minor.sh [--dry-run] [--ignore-month]   monthly patch upgrades
     scripts/upgrade_major_check.sh [--dry-run]              quarterly major-release report + notice
     python3 scripts/upgrades.py inventory                   pins, what runs, what is newest
-    python3 scripts/upgrades.py notices                     retry notices HA did not take
-    python3 scripts/upgrades.py ack                         clear the /services warning
+    python3 scripts/upgrades.py notices                     retry notices HA did not take; warn about (and
+                                                            start a stopped HA for) an interrupted run's record
+    python3 scripts/upgrades.py ack                         clear the /services warning, the blocks, a record
     python3 scripts/upgrades.py status                      print the status file
     python3 scripts/upgrades.py test-notice                 one notice now, marked TEST (install check)
 
@@ -17,9 +18,12 @@ are each reported as a skip or a decline, never guessed around.
 
 Monthly run, in order (docs/features/upgrade-cadence.md has the long form;
 sprint M18 fix 1 added the night window, the intent record and recovery,
-the household-only busy check and the outcomes not applied / out of step):
-  0. An earlier run's unfinished intent record is dealt with first; outside
-     settings.night_window the run declines without counting an attempt.
+the household-only busy check and the outcomes not applied / out of step;
+fix 2 made recovery act only on the world its record describes):
+  0. An earlier run's outcomes that never reached a notice are sent; its
+     unfinished intent record is dealt with (HA down first, by `docker
+     start`); outside settings.night_window the run declines without
+     counting an attempt.
   1. Lock (data/upgrades/lock); this month's attempt count (at most
      max_attempts; the timer fires on days 1-7).
   2. Retry any notice HA did not take last time.

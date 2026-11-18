@@ -1,7 +1,7 @@
 # Upgrade cadence
 
-Sprint item M18 (built 2026-11-18; fix round 1 the same day,
-`docs/sprint/M18-fix1.md`). Pins stay; they now move on a schedule.
+Sprint item M18 (built 2026-11-18; fix rounds 1 and 2 the same day,
+`docs/sprint/M18-fix1.md`, `docs/sprint/M18-fix2.md`). Pins stay; they now move on a schedule.
 A monthly run applies patch releases by itself and says what it did; a
 quarterly check writes a report on major releases and asks Drew to schedule
 them. Build report: `docs/sprint/M18-build.md`. Plan: section "M18. An
@@ -30,7 +30,9 @@ taken; a tag the registry has and the release list does not is not taken.
 Docker Hub gives a push date per tag; ghcr gives none, so the image's build
 time (its config's `created`) stands in. Where the registry is the release
 list (SearXNG, nginx, the Python bases), there is one date. A version string the rule cannot parse is skipped and
-reported; a pin that is not an exact version (`nginx:1.29-alpine`,
+reported (only ASCII digits count, and a part with a leading zero such as
+`13.02.6` is not a version, except where a component is `zero_padded`, a
+`YYYYMMDD` date); a pin that is not an exact version (`nginx:1.29-alpine`,
 `python:3.12-slim`, `pip install uv`) is never changed.
 
 ## The monthly run
@@ -44,9 +46,11 @@ find it done. Step by step (`scripts/upgrades.py`, `minor_run`):
    run's own deploys carry its token. The quarterly check waits for the
    same lock. A status file that cannot be parsed stops the run: it is
    never read as empty.
-2. If an earlier run died inside a component, its intent record is still in
-   the status file: this run deals with it first (below, "An interrupted
-   run").
+2. If an earlier run finished components and died before its notice, it
+   sends that notice now ("… (run <time>, which ended before its
+   notice)"). If an earlier run died inside a component, its intent record
+   is still in the status file: this run deals with it first (below, "An
+   interrupted run").
 3. Outside the night window (`night_window`, default 02:00 to 05:00 local)
    it declines without counting an attempt: the timer's boot catch-up
    (`Persistent=true`) at 19:00 does nothing, and the next night's firing
@@ -87,8 +91,22 @@ find it done. Step by step (`scripts/upgrades.py`, `minor_run`):
    - verified: the image runs, the health checks, the stack's checks (the
      deploy's own; for HA M12's H8 plus H7's mounts, StopTimeout and no
      unclean-shutdown line), the offline corpus, the replay against the
-     baseline (a row that passed before and fails now, flappers excepted);
+     baseline (a row that passed before and fails now, flappers excepted).
+     A check whose own read fails (`docker events`, Music Assistant's start
+     time) is a failed check. A replay stopped by a player (exit 3) runs
+     again for the rows it did not reach, up to three times five minutes
+     apart; only then is it a failed verify. HA's "players as before"
+     skips the rules' `flapping_players` (the television, both Sonos
+     Moves) and does not count a move between idle, off, paused, standby
+     and on; any other change fails, as does a player that was available
+     and is `unavailable` after the wait. A rollback's check reports a
+     player difference in the notice and never fails on it;
    - kept, or rolled back. See "Outcomes".
+   Each outcome is written to the status file when the component ends. A
+   component not started (the house got busy, the window closed, a
+   precondition) goes again the next night; the month is done when every
+   planned component has another outcome, or the attempts run out, and
+   then the notice lists what never started.
 9. One notice through `scripts/lib/notify.sh` when anything was changed or
    tried. A month whose last attempt ends with nothing applied (every
    component not started, or no baseline) also sends one notice and raises
@@ -130,8 +148,9 @@ is) and the detail after:
   and that verified.
 - `not applied`: a step failed before anything changed what runs (a tag
   that exists elsewhere, a failed pull, a missing precondition, a tag that
-  moved since planning). The run reverts its own pin commit; nothing is
-  restarted.
+  moved since planning: for the Kronk stack too, whose image is pulled and
+  its digest checked before the tag and the deploy). The run reverts its
+  own pin commit; nothing is restarted.
 - `not started`: a precondition was not met; nothing was committed.
 - `ROLLBACK FAILED`: a rollback ran and failed. The run stops; later runs
   decline until `python3 scripts/upgrades.py ack`.
@@ -142,24 +161,56 @@ is) and the detail after:
 ### An interrupted run
 
 A run killed inside a component (a reboot, OOM, `systemctl stop`, the
-unit's 4 h timeout) leaves its intent record. The next run reads it before
-anything else and compares git, the tag and what runs:
+unit's 4 h timeout) leaves its intent record: the component, from and to,
+the step, where HEAD was when the component started, the previous
+production tag and the run's own tag (Kronk stack), the config hash before
+and after the pin commit (telemetry, HA), HA's previous image id. Recovery
+acts by itself only when the world is exactly what the record says.
 
-- nothing out of step: clears the record;
-- git ahead of what runs (killed before the bring-up): puts the pin back by
-  a commit; nothing restarts;
-- the new version running unverified: finishes the rollback to the recorded
-  previous version, but only inside the night window with the house quiet;
-  otherwise it says so once and waits for the next night;
-- the component down (Home Assistant stopped between its stop and start):
-  brings it back on the previous image at once, at any hour;
-- anything else (an uncommitted change, a version that is neither): stops
-  as out of step and tells Drew.
+Home Assistant down comes first, before the tree, branch, window and month
+checks: a stopped `homeassistant` container is started as it is (`docker
+start`, no compose, no recreate, no pin or git change), then the rest
+below runs on what it finds. A missing container (a `compose up` cut
+short) is created on the rollback image with `compose up` and no stop,
+after M12 H7b, putting the pin back by a commit first if the compose file
+says the new version and the tree allows it. No rollback ever runs
+`docker stop` on a container that does not exist.
 
-A recovered component is held back for the rest of the month. The notice
-says what was found and what was done. A run killed on the last night of
-the window waits for next month's first run (Drew's or the coordinator's
-call: see the fix report).
+Then, in order: the working tree not clean, or HEAD carrying commits the
+record does not explain (anything but the run's own pin, rollback, revert
+or a quarterly report), or git at neither version: OUT OF STEP, nothing
+touched.
+
+| Component | Found | Done |
+| --- | --- | --- |
+| Kronk stack | production runs the run's own tag | deploy the recorded previous tag (pin back first if git has the new one), inside the night window with the house quiet, else one notice and it waits; verified |
+| Kronk stack | production runs the recorded previous tag, the component runs the old version | pin put back by a commit if git has the new one; nothing restarted |
+| Kronk stack | production runs the previous tag, the component runs anything else | OUT OF STEP |
+| Kronk stack | production runs any other tag, or the previous tag no longer exists | OUT OF STEP: the notice names the tag that runs, the recorded tags and what to do; nothing deployed over a person's deploy |
+| Telemetry, HA | the old version runs | pin put back if git has the new one; nothing restarted |
+| Telemetry, HA | the new version runs, and the container is the one the run created (its config-hash label), the file at HEAD still gives the hash the record has, no bind-mounted file changed after the start, and (HA) H7b passes | `up -d` of the previous image (HA: stop, `up -d`, by the recorded image id), inside the window with the house quiet; verified |
+| Telemetry, HA | the new version runs and any guard fails; a container not running (telemetry); anything else | OUT OF STEP |
+| any | the rollback above fails | ROLLBACK FAILED |
+
+OUT OF STEP and ROLLBACK FAILED block later runs until `ack`. A recovered
+component is held back for the rest of the month (Drew's call). The
+notice says what was found and what was done.
+
+Between runs, the hourly `kronk-upgrade-notices` unit looks for a record
+left with the lock free: it raises the `/services` warning and sends one
+notice, and if the record is HA's and HA's container is stopped, it starts
+that container. It does nothing else. `GET /api/upgrades` shows any
+unfinished record as a warning. While the record exists,
+`scripts/deploy_tag.sh deploy` refuses (the run's own deploys pass with its
+lock token), naming the two ways out: `python3 scripts/upgrades.py minor
+--ignore-window` (recover now) or `python3 scripts/upgrades.py ack` (drop
+the record; a person takes over). `plan`, `status` and `seed` are not
+affected.
+
+Worst case for HA down after a kill: HA stopped between its stop and its
+start is back within the hour (the hourly unit, `RandomizedDelaySec=5m`).
+A missing HA container is created only by the monthly run (days 1 to 7;
+after a kill on the 7th, the 1st of next month) or a run by hand.
 
 ### What a Kronk-stack upgrade costs
 
@@ -170,6 +221,21 @@ litellm, searxng) is recreated. A rollback is another. Two Kronk components
 in one night can mean four restarts of production. The notice says how many
 times production was redeployed.
 
+### What the household check cannot see
+
+- A typed chat request still streaming: nginx writes its log line when the
+  request ends, and no satellite is involved.
+- Production chat requests spelled oddly (`/dev/../api/chat`, `//api/chat`,
+  `/./api/chat`, `/%61pi/chat`, the absolute form): nginx routes them to
+  production and the check does not count them. No household client
+  sends these.
+- `/devstral/` traffic; and a Kronk-stack deploy restarts nginx under it.
+- Held runs beyond the ten newest of the dev pipeline: HA's
+  `pipeline_debug/list` returns the last ten runs of a pipeline, so a run
+  sets aside its own replay's runs by the ids in its result files, and
+  another session's dev replay inside voice_tracer's correction window
+  declines the night.
+
 ## The quarterly check
 
 `systemd/kronk-upgrade-major-check.timer` fires on the 8th of January,
@@ -178,7 +244,9 @@ version table, release-note lines that mention Kronk's integration points,
 the Kronk systems behind each, the lockfiles, a proposed order), commits it
 when the tree is clean and on the expected branch (otherwise writes it to
 `data/upgrades/reports/` and says so), then sends one notice with the
-report's path. It upgrades nothing. Majors follow
+report's path. It upgrades nothing. It waits for the upgrade lock at most
+`major_lock_wait_minutes` (20), under its unit's 30-minute timeout, then
+gives up and says so. Majors follow
 `docs/runbooks/major-upgrade.md`, one component per window. The first
 report is `docs/upgrades/2026-11-18.md`.
 
@@ -188,7 +256,8 @@ The notice goes through HA. When HA does not take it, the result is still
 visible without HA: `data/upgrades/status.json` keeps the notice, the
 `/services` page shows an "Upgrade cadence" card with a warning (from
 `GET /api/upgrades`, production's orchestrator, read-only), and
-`kronk-upgrade-notices.timer` retries the notice hourly until HA answers.
+`kronk-upgrade-notices.timer` retries the notice hourly until HA answers
+(and acts on an interrupted run's record, above).
 The warning stays until `python3 scripts/upgrades.py ack`. Rollbacks, failed
 rollbacks, out-of-step components, interrupted runs, pins that are not what
 runs, a month that never found a quiet moment and a month that applied
@@ -208,7 +277,13 @@ in the build report).
   failed rollback or an out-of-step block: read the log, fix it, `ack`.
 - Pins, what runs, what is newest: `python3 scripts/upgrades.py inventory`.
 - The status file: `python3 scripts/upgrades.py status`. Clear the warning
-  (after reading it): `python3 scripts/upgrades.py ack`.
+  (after reading it): `python3 scripts/upgrades.py ack`. `ack` also clears
+  a failed-rollback or out-of-step block and drops an interrupted run's
+  record: after it, no recovery acts on that record, and what runs is yours
+  to put right.
+- Do not deploy by hand while an interrupted run's record exists
+  (`deploy_tag.sh deploy` refuses): recover with `scripts/upgrade_minor.sh
+  --ignore-window`, or `ack` first.
 - Pause: `systemctl --user stop kronk-upgrade-minor.timer` (until the next
   boot), or `disable --now` (until enabled). To keep one component still,
   set its `minor = "none"` in the rules file and commit.
@@ -224,6 +299,40 @@ what the rules decided (`UPGRADE`, `CURRENT`, `SKIP` with why, `REPORT`,
 either `declined: …` or one `── <name>: <from> -> <to>` block per component
 ending in `verified: … kept`, `rolled back and verified`, or `ROLLBACK
 FAILED`. `journalctl --user -u kronk-upgrade-minor.service` has the same lines.
+
+## Installing the timers
+
+Nothing is installed by the build. At 03:30 the working tree must be clean
+and on the units' branch (`KRONK_UPGRADE_BRANCH`, `main` in the reference
+units), or every night declines and night 7 says so. From the repo:
+
+```
+git status --porcelain                      # empty
+git rev-parse --abbrev-ref HEAD             # the branch production's tags are made from
+cp systemd/kronk-upgrade-{minor,major-check,notices}.{service,timer} ~/.config/systemd/user/
+# only if production is not deployed from main (both units carry the branch):
+sed -i 's/^Environment=KRONK_UPGRADE_BRANCH=.*/Environment=KRONK_UPGRADE_BRANCH=<branch>/' \
+    ~/.config/systemd/user/kronk-upgrade-{minor,major-check}.service
+systemd-analyze --user verify ~/.config/systemd/user/kronk-upgrade-*.{service,timer}
+systemctl --user daemon-reload
+systemctl --user enable --now kronk-upgrade-minor.timer kronk-upgrade-major-check.timer kronk-upgrade-notices.timer
+systemctl --user list-timers 'kronk-upgrade-*'
+python3 scripts/upgrades.py test-notice     # one real notice, marked TEST
+scripts/upgrade_minor.sh --dry-run          # reads only
+```
+
+Remove:
+
+```
+systemctl --user disable --now kronk-upgrade-minor.timer kronk-upgrade-major-check.timer kronk-upgrade-notices.timer
+rm ~/.config/systemd/user/kronk-upgrade-minor.service ~/.config/systemd/user/kronk-upgrade-minor.timer \
+   ~/.config/systemd/user/kronk-upgrade-major-check.service ~/.config/systemd/user/kronk-upgrade-major-check.timer \
+   ~/.config/systemd/user/kronk-upgrade-notices.service ~/.config/systemd/user/kronk-upgrade-notices.timer
+systemctl --user daemon-reload
+```
+
+`data/upgrades/` (status, lock, logs) is left in place on removal; it is
+the record of what ran.
 
 ## Gotchas
 

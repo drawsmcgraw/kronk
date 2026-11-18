@@ -6,12 +6,15 @@
 # decline is retried the next night, at most max_attempts times a month.
 # Fired by kronk-upgrade-minor.timer. Guide: docs/features/upgrade-cadence.md.
 #
-# Operations:
+# Operations (the full sequence: docs/features/upgrade-cadence.md, "Installing the timers"):
+#   before:    the working tree clean and on the branch below at 03:30, or every night declines
 #   install:   cp systemd/kronk-upgrade-{minor,major-check,notices}.{service,timer} ~/.config/systemd/user/
-#              (edit KRONK_UPGRADE_BRANCH below in the installed copy if production
-#              is not deployed from main)
+#              (if production is not deployed from main, set KRONK_UPGRADE_BRANCH in both
+#              installed kronk-upgrade-minor.service and kronk-upgrade-major-check.service)
+#              systemd-analyze --user verify ~/.config/systemd/user/kronk-upgrade-*.{service,timer}
 #              systemctl --user daemon-reload
 #              systemctl --user enable --now kronk-upgrade-minor.timer kronk-upgrade-major-check.timer kronk-upgrade-notices.timer
+#              python3 scripts/upgrades.py test-notice      (one real notice, marked TEST)
 #   check:     systemctl --user list-timers 'kronk-upgrade-*'
 #   dry run:   scripts/upgrade_minor.sh --dry-run          (any time; changes nothing)
 #   run now:   systemctl --user start kronk-upgrade-minor.service   (a real run; inside the night window only)
@@ -23,6 +26,8 @@
 #   remove:    systemctl --user disable --now kronk-upgrade-minor.timer kronk-upgrade-major-check.timer kronk-upgrade-notices.timer
 #              rm ~/.config/systemd/user/kronk-upgrade-{minor,major-check,notices}.{service,timer}
 #              systemctl --user daemon-reload
+#   after a killed run: do not deploy by hand (deploy_tag.sh deploy refuses while the record exists);
+#              scripts/upgrade_minor.sh --ignore-window recovers it, or python3 scripts/upgrades.py ack drops it
 [Unit]
 Description=Kronk — monthly patch upgrades (M18)
 
