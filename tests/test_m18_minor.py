@@ -189,14 +189,16 @@ def test_a_replay_that_cannot_complete_after_the_change_rolls_back_unverified(ho
     ops, sd = house
     orig = ops.replay
 
-    def replay(label, out, check_only=False):
+    def replay(label, out, check_only=False, ids=None):
         if label == "upgrade-tempo":
+            # M18 fix 2 (K5): a stopped replay is retried from its result
+            # file; one that wrote none cannot be, and fails the verify.
             return U.Result(3, "", "stopped: media_player state changed")
-        return orig(label, out, check_only)
+        return orig(label, out, check_only, ids)
     ops.replay = replay
     assert run(ops, sd, only=["tempo"]) == 1
     assert ops.containers["kronk-telemetry-tempo-1"] == "grafana/tempo:3.1.1"
-    assert "replay could not complete (exit 3" in ops.notices[0][2]
+    assert "replay wrote no readable result" in ops.notices[0][2] and "exit 3" in ops.notices[0][2]
 
 
 def test_a_failed_deploy_rolls_back(house):

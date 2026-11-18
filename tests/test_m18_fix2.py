@@ -545,3 +545,48 @@ def test_the_flapping_players_are_data_in_the_rules():
     assert "flapping_players = [" in text
     assert rules().settings["flapping_players"] == [
         "media_player.xbr_49x800d", "media_player.sonos_move_derp", "media_player.sonos_move_derp_2"]
+
+
+# ── K5: a replay stopped by a player during verify is retried ────────────
+
+def _verify_replays(ops):
+    return [c for c in ops.calls if c[0] == "replay" and c[1].startswith("upgrade-tempo")]
+
+
+def test_a_replay_stopped_once_during_verify_is_retried_for_the_remaining_rows(house):
+    ops, sd = house
+    orig = ops.replay
+
+    def replay(label, out, check_only=False, ids=None):
+        if label == "upgrade-tempo":
+            ops.replay_stops.append(2)
+        return orig(label, out, check_only, ids)
+    ops.replay = replay
+    assert run(ops, sd, ["tempo"]) == 0
+    assert status(sd)["last_run"]["outcomes"][0]["result"] == "kept"
+    assert _verify_replays(ops) == [("replay", "upgrade-tempo", False),
+                                    ("replay", "upgrade-tempo-retry1", False, ("row-c", "inc-0930-search-deep-house-ytm"))]
+    assert ("sleep", 300) in ops.calls
+
+
+def test_a_replay_stopped_four_times_is_a_failed_verify(house):
+    ops, sd = house
+    orig = ops.replay
+
+    def replay(label, out, check_only=False, ids=None):
+        if label.startswith("upgrade-tempo"):
+            ops.replay_stops.append(1 if label == "upgrade-tempo" else 0)
+        return orig(label, out, check_only, ids)
+    ops.replay = replay
+    assert run(ops, sd, ["tempo"]) == 1
+    o, = status(sd)["last_run"]["outcomes"]
+    assert o["result"] == "rolled_back"
+    assert "stopped by a player 4 times over 15 minutes" in o["detail"]
+    assert len(_verify_replays(ops)) == 4 and sum(c == ("sleep", 300) for c in ops.calls) == 3
+
+
+def test_a_stopped_baseline_still_declines_the_night(house):
+    ops, sd = house
+    ops.replay_stops.append(1)
+    assert run(ops, sd, ["tempo"]) == 0
+    assert status(sd)["last_run"]["result"] == "declined" and subjects(ops.repo) == ["initial"]

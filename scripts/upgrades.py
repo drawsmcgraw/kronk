@@ -662,9 +662,16 @@ class Ops:
         return self.run([str(self.repo / "scripts" / "run_tests.sh"), "-q", "-p", "no:cacheprovider"],
                         timeout=3600)
 
-    def replay(self, label: str, out: Path, check_only: bool = False) -> Result:
+    def replay(self, label: str, out: Path, check_only: bool = False, ids: list[str] | None = None) -> Result:
         cmd = ["python3", str(self.repo / "scripts" / "voice_replay.py"), "--label", label, "--out", str(out)]
+        for i in ids or []:
+            cmd += ["--id", i]
         return self.run(cmd + (["--check-only"] if check_only else []), timeout=3600)
+
+    def corpus_ids(self) -> list[str]:
+        """The row ids of the voice corpus, in order (what voice_replay selects by default)."""
+        text = (self.repo / "tests" / "voice_corpus.jsonl").read_text()
+        return [json.loads(ln)["id"] for ln in text.splitlines() if ln.strip()]
 
     def pgrep(self, pattern: str) -> list[str]:
         r = self.run(["pgrep", "-af", pattern], timeout=10)
@@ -1416,19 +1423,60 @@ def replay_regressions(baseline: list[dict], rows: list[dict], flappers: list[st
             if r.get("status") == "fail" and base.get(r["id"]) in ("pass", "xpass") and r["id"] not in flappers]
 
 
-def run_replay(ctx: Ctx, label: str) -> tuple[list[dict] | None, str]:
+REPLAY_RETRIES, REPLAY_RETRY_WAIT_S = 3, 300      # a replay stopped by a player: 3 retries over 15 minutes (K5)
+
+
+def _replay_rows(out: Path) -> list[dict]:
+    rows = json.loads(out.read_text())["rows"]
+    if not isinstance(rows, list):
+        raise ValueError("rows is not a list")
+    return rows
+
+
+def run_replay(ctx: Ctx, label: str, retry: bool = False) -> tuple[list[dict] | None, str]:
+    """The live dry-run replay. retry=True (verify): a replay stopped by a
+    player (exit 3) runs again for the rows it did not reach, after 5
+    minutes, up to 3 times; only then is it a failure (K5)."""
     out = ctx.sd / "runs" / f"{ctx.stamp}-replay-{label}.json"
     r = ctx.ops.replay(f"upgrade-{label}", out)
-    if r.rc in (2, 3):
-        return None, f"replay could not complete (exit {r.rc}: {'a safety precondition refused it' if r.rc == 2 else 'stopped by the player or dry-run check'}): {r.tail(200)}"
+    rows: list[dict] = []
+    tries = 0
+
+    def failed(why: str):
+        _own_runs(ctx, rows)
+        return None, why
     try:
-        rows = json.loads(out.read_text())["rows"]
-    except (OSError, ValueError, KeyError) as e:
-        return None, f"replay wrote no readable result ({e}; exit {r.rc}: {r.tail(160)})"
+        while True:
+            if r.rc == 2:
+                return failed(f"replay could not complete (exit 2: a safety precondition refused it): {r.tail(200)}")
+            if r.rc == 3 and not retry:
+                return failed(f"replay could not complete (exit 3: stopped by the player or dry-run check): {r.tail(200)}")
+            rows += [x for x in _replay_rows(out) if isinstance(x, dict)]
+            if r.rc != 3:
+                break
+            done = {x.get("id") for x in rows}
+            left = [i for i in ctx.ops.corpus_ids() if i not in done]
+            if not left:                    # stopped after its last row: the replay is complete
+                break
+            if tries == REPLAY_RETRIES:
+                return failed(f"replay stopped by a player {tries + 1} times over "
+                              f"{tries * REPLAY_RETRY_WAIT_S // 60} minutes: {r.tail(200)}")
+            tries += 1
+            ctx.log(f"  replay stopped by a player after {len(rows)} row(s); retry {tries} of {REPLAY_RETRIES} in "
+                    f"{REPLAY_RETRY_WAIT_S // 60} minutes for the other {len(left)}")
+            ctx.ops.sleep(REPLAY_RETRY_WAIT_S)
+            out = ctx.sd / "runs" / f"{ctx.stamp}-replay-{label}-retry{tries}.json"
+            r = ctx.ops.replay(f"upgrade-{label}-retry{tries}", out, ids=left)
+    except (OSError, ValueError, KeyError, TypeError) as e:
+        return failed(f"replay wrote no readable result ({e}; exit {r.rc}: {r.tail(160)})")
+    _own_runs(ctx, rows)
+    return rows, ""
+
+
+def _own_runs(ctx: Ctx, rows: list[dict]) -> None:
     # The runs this replay made: voice_tracer holds them for their correction
     # window, and they are this run's, not the household's.
     ctx.own.runs |= {str(x["pipeline_run_id"]) for x in rows if isinstance(x, dict) and x.get("pipeline_run_id")}
-    return rows, ""
 
 
 def verify(ctx: Ctx, comp: dict, version: str, full: bool = True) -> list[str]:
@@ -1448,7 +1496,7 @@ def verify(ctx: Ctx, comp: dict, version: str, full: bool = True) -> list[str]:
     if not t.ok:
         problems.append(f"offline corpus failed: {t.tail(300)}")
         return problems
-    rows, err = run_replay(ctx, comp["name"])
+    rows, err = run_replay(ctx, comp["name"], retry=True)
     if rows is None:
         problems.append(err)
     else:

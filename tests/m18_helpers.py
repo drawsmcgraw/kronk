@@ -15,6 +15,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+CORPUS_IDS = ("row-a", "row-b", "row-c", "inc-0930-search-deep-house-ytm")   # the fake replay's corpus
 
 
 def load_upgrades():
@@ -269,6 +270,7 @@ class FakeOps(U.Ops):
         self.tests_fail_versions: set[str] = set()   # the corpus fails while one of these runs
         self.replay_regress: dict[str, list[str]] = {}   # running version -> row ids that fail
         self.replay_rc = 0
+        self.replay_stops: list[int] = []            # each: the next replay stops (exit 3) after this many rows
         self.cannot_return: set[str] = set()          # versions that cannot be brought back (rollback fails)
         self.pull_fail: set[str] = set()
 
@@ -438,16 +440,24 @@ class FakeOps(U.Ops):
             return U.Result(1, "", "1 failed")
         return U.Result(0, "4989 passed")
 
-    def replay(self, label, out, check_only=False):
-        self.calls.append(("replay", label, check_only))
+    def corpus_ids(self):
+        return list(CORPUS_IDS)
+
+    def replay(self, label, out, check_only=False, ids=None):
+        self.calls.append(("replay", label, check_only) + ((tuple(ids),) if ids else ()))
         if self.replay_rc in (2, 3):
             return U.Result(self.replay_rc, "", "refused")
         if check_only:
             return U.Result(0)
         running = set(v.rsplit(":", 1)[-1] for v in self.containers.values())
-        failing = {rid for v, ids in self.replay_regress.items() if v in running for rid in ids}
-        rows = [{"id": rid, "status": "fail" if rid in failing else "pass"} for rid in ("row-a", "row-b", "row-c")]
+        failing = {rid for v, ids_ in self.replay_regress.items() if v in running for rid in ids_}
+        rows = [{"id": rid, "status": "fail" if rid in failing else "pass"} for rid in CORPUS_IDS[:3]]
         rows.append({"id": "inc-0930-search-deep-house-ytm", "status": "fail" if "flap" in failing else "pass"})
+        if ids:
+            rows = [r for r in rows if r["id"] in ids]
+        stop = self.replay_stops.pop(0) if self.replay_stops else None
+        if stop is not None:
+            rows = rows[:stop]
         # What a real replay leaves behind: each row is a run on HA's kronk-dev
         # pipeline, whose Kronk is behind /dev/voice (HA's client, not ours);
         # voice_tracer holds each run for its correction window (here: until
@@ -461,6 +471,8 @@ class FakeOps(U.Ops):
             self.nginx_own.append(_nginx("POST", "/dev/voice/api/chat", "HomeAssistant/2026.5.4 aiohttp/3.12.13", self.clock))
         Path(out).parent.mkdir(parents=True, exist_ok=True)
         Path(out).write_text(json.dumps({"rows": rows}))
+        if stop is not None:
+            return U.Result(3, "", "voice_replay: STOPPED: media_player state changed")
         return U.Result(1 if failing else 0)
 
     def pgrep(self, pattern):

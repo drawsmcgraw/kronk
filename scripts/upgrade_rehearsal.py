@@ -107,7 +107,7 @@ class RehearsalOps(U.Ops):
     # stubbed: corpus, replay, notifier
     def run_tests(self):
         return U.Result(0, "stub: offline corpus not run in the rehearsal")
-    def replay(self, label, out, check_only=False):
+    def replay(self, label, out, check_only=False, ids=None):
         Path(out).parent.mkdir(parents=True, exist_ok=True)
         Path(out).write_text(json.dumps({"rows": [{"id": "stub-row", "status": "pass"}]}))
         return U.Result(0)
