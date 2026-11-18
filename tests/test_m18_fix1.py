@@ -708,3 +708,54 @@ def test_a_malformed_lockfile_answer_is_a_note(tmp_path):
     r = rules()
     p = U.plan_component(r, r.component("lock-orchestrator"), tmp_path, w, NOW)
     assert p.action == "report" and any("fastapi: lookup failed" in n for n in p.notes)
+
+
+# ── F7: a month that ends with nothing applied says so ───────────────────
+
+def _undeployed_work(ops):
+    (ops.repo / "orchestrator").mkdir()
+    (ops.repo / "orchestrator" / "main.py").write_text("# new\n")
+    git(ops.repo, "add", "-A")
+    git(ops.repo, "commit", "-q", "-m", "work not yet deployed")
+
+
+def test_seven_nights_of_not_started_end_with_one_notice_and_the_warning(house):
+    """The tester's K4: HEAD carries undeployed work, so every Kronk-stack
+    component is not started, seven nights running."""
+    ops, sd = house
+    _undeployed_work(ops)
+    for night in range(7):
+        ops.clock = NOW + _dt.timedelta(days=night)
+        assert run(ops, sd, only=["searxng", "litellm"]) == 0
+        assert len(ops.notices) == (1 if night == 6 else 0)
+    st = status(sd)
+    assert st["months"]["2026-12"]["done"] is True
+    (_, title, body), = ops.notices
+    assert title == "Kronk upgrade: this month's patch run applied nothing"
+    assert "7 attempts in 2026-12; applied nothing: every pending component was not started" in body
+    assert "HEAD has changes not deployed to production (sprint-X): orchestrator/main.py" in body
+    assert any(a["id"] == "declined:2026-12" and "orchestrator/main.py" in a["text"] for a in st["attention"])
+
+
+def test_seven_nights_without_a_baseline_end_with_one_notice(house):
+    ops, sd = house
+    ops.tests_fail = True
+    for night in range(7):
+        ops.clock = NOW + _dt.timedelta(days=night)
+        run(ops, sd, only=["tempo"])
+    (_, title, body), = ops.notices
+    assert title == "Kronk upgrade: this month's patch run applied nothing"
+    assert "the baseline (offline corpus, live replay) could not be taken" in body and "offline corpus fails" in body
+    assert any(a["id"] == "declined:2026-12" for a in status(sd)["attention"])
+
+
+def test_a_month_of_mixed_declines_and_not_started_ends_with_one_notice(house):
+    ops, sd = house
+    _undeployed_work(ops)
+    ops.states[2]["state"] = "playing"
+    for night in range(7):
+        ops.clock = NOW + _dt.timedelta(days=night)
+        if night == 6:
+            ops.states[2]["state"] = "idle"
+        run(ops, sd, only=["litellm"])
+    assert [n[1] for n in ops.notices] == ["Kronk upgrade: this month's patch run applied nothing"]

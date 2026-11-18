@@ -2083,6 +2083,11 @@ def minor_run(ops: Ops, rules: Rules, sd: Path, dry_run: bool = False, ignore_mo
         if changed:
             deliver(ops, status, {"id": f"minor-{stamp}", "tag": NOTIFY_TAG, "title": title, "body": body,
                                   "created": now.isoformat(timespec="seconds")}, now, log)
+        elif m["attempts"] >= rules.settings["max_attempts"]:
+            # The month ends with nothing applied: say so, as a month of declines does (F7).
+            month_ended_empty(ops, status, m, month, rules, now, log, log_rel,
+                              "applied nothing: every pending component was not started",
+                              [f"{o.name} {o.to}: {o.detail}" for o in outcomes])
         else:
             log("nothing was changed or tried; no notice")
         save_status(sd, status, now)
@@ -2098,10 +2103,25 @@ def _baseline_declined(ctx: Ctx, status: dict, m: dict, month: str, log_rel: str
     status["last_run"] = {"kind": "minor", "at": ctx.now.isoformat(timespec="seconds"), "result": "declined",
                           "summary": why[:400], "log": log_rel}
     if m["attempts"] >= ctx.rules.settings["max_attempts"]:
-        m["done"] = True
-        add_attention(status, f"declined:{month}", f"Monthly upgrade could not verify in {month}: {why[:200]}", ctx.now)
+        month_ended_empty(ctx.ops, status, m, month, ctx.rules, ctx.now, ctx.log, log_rel,
+                          "applied nothing: the baseline (offline corpus, live replay) could not be taken", [why])
     save_status(ctx.sd, status, ctx.now)
     return 0
+
+
+def month_ended_empty(ops: Ops, status: dict, m: dict, month: str, rules: Rules, now: dt.datetime, log: RunLog,
+                      log_rel: str, what: str, reasons: list[str]) -> None:
+    """The last attempt of the month and nothing was applied: one notice and
+    the /services warning, naming the reasons."""
+    m["done"] = True
+    text = "; ".join(_cut(r, 240) for r in reasons)
+    deliver(ops, status, {"id": f"minor-{month}-empty", "tag": NOTIFY_TAG,
+                          "title": f"Kronk upgrade: this month's patch run {what.split(':')[0]}",
+                          "body": f"{m['attempts']} attempts in {month}; {what}. Reasons: {_cut(text, 700)}. "
+                                  f"Next try next month, or run scripts/upgrade_minor.sh --ignore-month. Log: {log_rel}",
+                          "created": now.isoformat(timespec="seconds")}, now, log)
+    add_attention(status, f"declined:{month}", f"Monthly upgrade {what} in {month} ({m['attempts']} attempts): "
+                  f"{_cut(text, 300)}; see {log_rel}", now)
 
 
 def _would(p: Plan, prod_tag: str | None) -> str:
