@@ -404,7 +404,15 @@ def test_summarize_samples():
     assert s["power_mean_w"] == 10.5 and s["fleet_engine_s"] == 3.0 and s["sclk_at_max_samples"] == 0
 
 
-def test_relay_binds_loopback_only():
+def test_relay_binds_loopback_only(monkeypatch):
+    # The no_network fixture blocks connect and send, not bind or listen. If
+    # the host check were ever removed this test would open a LAN-visible
+    # listener and serve forever (M20 e2e finding 2), so listening is made to
+    # fail here whatever the code under test does.
+    def _no_listen(*a, **k):
+        raise AssertionError("the relay tried to listen")
+    monkeypatch.setattr(b.asyncio, "start_server", _no_listen)
+    monkeypatch.setattr(b.asyncio, "start_unix_server", _no_listen, raising=False)
     with pytest.raises(b.BenchError, match="loopback only"):
         asyncio.run(b.relay_main("0.0.0.0", 10210, "/nonexistent.sock"))
     with pytest.raises(b.BenchError, match="loopback only"):
