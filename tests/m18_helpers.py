@@ -275,7 +275,7 @@ class FakeOps(U.Ops):
         self.pull_fail: set[str] = set()
         # HA's H8 checks (M12): what the restarted container reports
         self.stop_timeout = "120"
-        self.kill_signals = "15"                      # `docker events` signals of HA's kill events
+        self.stop_exit, self.oom_killed = "0", "false"   # a stopped HA's State.ExitCode and State.OOMKilled
         self.check_only_rc = 0                        # voice_replay.py --check-only
         self.vt_probe = {"connected": True, "too_old": 0}
 
@@ -324,6 +324,8 @@ class FakeOps(U.Ops):
             if fmt == "{{json .Mounts}}":
                 pairs = self.ha_mounted if c == "homeassistant" else self.mounts.get(c, [])
                 return U.Result(0, json.dumps([{"Type": "bind", "Source": s, "Destination": t} for s, t in pairs]))
+            if fmt == "{{.State.ExitCode}} {{.State.OOMKilled}}":
+                return U.Result(0, f"{self.stop_exit if c in self.stopped else 0} {self.oom_killed if c in self.stopped else 'false'}\n")
             if fmt == "{{.Config.StopTimeout}}":
                 return U.Result(0, self.stop_timeout + "\n")
             if fmt == "{{.State.Health.Status}}":
@@ -368,8 +370,6 @@ class FakeOps(U.Ops):
             since = self.clock - dt.timedelta(minutes=int(a[a.index("--since") + 1].rstrip("m")))
             lines = (self.nginx_log + "".join(self.nginx_own)).splitlines(keepends=True)
             return U.Result(0, "".join(ln for ln in lines if _logged_at(ln) is None or _logged_at(ln) >= since))
-        if a[0] == "events":
-            return U.Result(0, self.kill_signals + "\n")
         if a[0] == "exec":
             return U.Result(0 if self._version_running(a[1]) not in self.bad_versions else 1)
         return U.Result(0)

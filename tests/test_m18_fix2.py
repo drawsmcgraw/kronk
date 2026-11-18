@@ -760,14 +760,6 @@ def _new_ha_runs(ops):
     return lambda: ops.containers.get("homeassistant", "").endswith(":2026.5.5")
 
 
-def test_a_failed_docker_events_read_fails_the_upgrade(house):
-    ops, sd = house
-    _docker_fails_while(ops, lambda a: a[0] == "events", _new_ha_runs(ops))
-    assert run(ops, sd, ["homeassistant"]) == 1
-    o, = status(sd)["last_run"]["outcomes"]
-    assert o["result"] == "rolled_back" and "cannot read docker events" in o["detail"]
-
-
 def test_a_failed_read_of_music_assistants_start_time_before_the_restart_declines_it(house):
     ops, sd = house
     _docker_fails_while(ops, lambda a: a[:2] == ("inspect", "music-assistant-server"), lambda: True)
@@ -1052,7 +1044,6 @@ def _while_new_ha(ops, attr, bad):
 
 @pytest.mark.parametrize("mutant, attr, bad, detail", [
     ("o33", "stop_timeout", "10", "StopTimeout is 10, not 120"),
-    ("o34", "kill_signals", "9", "HA was killed with signal 9"),
     ("o36", "check_only_rc", 1, "voice_replay --check-only failed (exit 1)"),
     ("o37", "vt_probe", {"connected": False, "too_old": 0}, "voice_tracer not reconnected cleanly"),
     ("o37", "vt_probe", {"connected": True, "too_old": 2}, "voice_tracer not reconnected cleanly"),

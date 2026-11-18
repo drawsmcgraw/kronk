@@ -1496,7 +1496,7 @@ class Ctx:
     baseline: list[dict] | None = None
     ha_before: dict | None = None
     ha_old_id: str | None = None
-    ha_restart_at: str | None = None      # ISO time just before the stop, for `docker events --since`
+    ha_restart_at: str | None = None      # ISO time just before the stop, for `docker logs --since`
     own: Own = field(default_factory=Own)  # this run's own requests and replay runs (F1)
     touched: bool = False                  # the component's bring-up changed what runs (F2, F4)
     redeploys: int = 0                     # production (Kronk stack) deploys made by this run (F11)
@@ -1892,6 +1892,28 @@ def _ha_steps(ctx: Ctx, comp: dict, steps) -> str | None:
         ctx.log(f"  {kind} {' '.join(args)}: exit {r.rc}")
         if not r.ok:
             return f"{kind} {' '.join(args)} failed: {r.tail(200)}"
+        if kind == "docker" and args[0] == "stop":
+            why = ha_stopped_cleanly(ctx, comp)
+            if why:
+                return why
+    return None
+
+
+def ha_stopped_cleanly(ctx: Ctx, comp: dict) -> str | None:
+    """After `docker stop -t 120`, before anything is created: the stopped
+    container's exit code and OOM flag (sprint M18 fix 3, H7). 137 or an
+    OOM kill means HA did not shut down inside its grace period; a read
+    that fails is a failed check."""
+    c = comp["container"]
+    r = ctx.ops.docker("inspect", c, "-f", "{{.State.ExitCode}} {{.State.OOMKilled}}", timeout=30)
+    code, _, oom = r.out.strip().partition(" ")
+    if not r.ok or not code.lstrip("-").isdigit() or oom not in ("true", "false"):
+        return (f"cannot read how {c} stopped (State.ExitCode, State.OOMKilled: {r.tail(160) or 'no answer'}): "
+                f"cannot tell whether HA shut down inside its grace period")
+    ctx.log(f"  {c} stopped: exit code {code}, OOMKilled {oom}")
+    if code == "137" or oom == "true":
+        return (f"HA did not shut down inside the 120 s grace period (exit code {code}, OOMKilled {oom}): "
+                f"killed with signal 9")
     return None
 
 
@@ -1905,13 +1927,9 @@ def ha_checks(ctx: Ctx, comp: dict, wait_s: float = 600, step: float = 15, playe
     if not r.ok or r.out.strip() != "120":
         problems.append(f"StopTimeout is {r.out.strip() or 'unreadable'}, not 120 (stop_grace_period lost)")
     since = ctx.ha_restart_at or "30m"
-    k = ops.docker("events", "--since", since, "--until", "0s", "--filter", f"container={comp['container']}",
-                   "--filter", "event=kill", "--format", "{{.Actor.Attributes.signal}}", timeout=30)
-    if not k.ok:
-        problems.append(f"cannot read docker events for {comp['container']} ({k.tail(100)}): cannot tell whether HA "
-                        f"was killed with signal 9")
-    elif "9" in k.out.split():
-        problems.append("HA was killed with signal 9 (unclean shutdown)")
+    # Signal 9 is read from the stopped container before the new one is
+    # created (ha_stopped_cleanly, H7); `docker events` keeps only its last
+    # 256 events and could answer empty.
     # M12 H7: the mounts the compose file gives HA, and no unclean-shutdown line.
     if ctx.ha_binds is None:
         problems += [f"after the start: {w}" for w in ha_files_ok(ctx, comp)]
@@ -2001,7 +2019,9 @@ def ha_rollback(ctx: Ctx, comp: dict, frm: str) -> str | None:
     steps = []
     if not cur.ok or cur.out.strip() != old:
         steps.append(("docker", ("tag", old, f"{comp['image']}:{frm}")))
-    if container_state(ctx, comp)[0] != "absent":          # never `docker stop` a container that does not exist
+    # Never `docker stop` a container that does not exist, nor one already
+    # stopped (its exit code is the earlier stop's, read there).
+    if container_state(ctx, comp)[0] not in ("absent", "stopped"):
         steps.append(("docker", ("stop", "-t", "120", comp["container"])))
     steps.append(("compose", ("up", "-d", comp["service"])))
     return _ha_steps(ctx, comp, steps)

@@ -517,3 +517,39 @@ def test_the_units_carry_no_branch_and_the_drop_in_points_at_the_one_file():
         assert not any(ln.startswith("Environment=KRONK_UPGRADE_BRANCH") for ln in text.splitlines()), name
     doc = (ROOT / "docs" / "features" / "upgrade-cadence.md").read_text()
     assert "EnvironmentFile=%h/.config/kronk/upgrade.env" in doc and "git check-ref-format --branch" in doc
+
+
+# ── H7 (Y8): how HA stopped is read from the stopped container ───────────
+
+def _upgrade_ups(ops):
+    return [c for c in ops.calls if c[0] == "compose" and c[1] == "kronk-ha" and c[3] == "up"]
+
+
+@pytest.mark.parametrize("code, oom", [("137", "false"), ("0", "true")])
+def test_ha_killed_at_the_end_of_its_grace_period_fails_the_stop_before_the_new_one_is_created(house, code, oom):
+    ops, sd = house
+    ops.stop_exit, ops.oom_killed = code, oom
+    assert run(ops, sd, ["homeassistant"]) == 1
+    o, = status(sd)["last_run"]["outcomes"]
+    assert o["result"] == "rolled_back" and "did not shut down inside the 120 s grace period" in o["detail"]
+    assert len(_upgrade_ups(ops)) == 1                       # the rollback's; the upgrade's up never ran
+    assert [c for c in ops.calls if c[:2] == ("docker", "stop")] == [("docker", "stop", "-t", "120", "homeassistant")]
+    assert not any(c[:2] == ("docker", "events") for c in ops.calls)
+    assert ops.containers["homeassistant"].endswith(":2026.5.4") and "homeassistant" not in ops.stopped
+
+
+def test_a_stop_whose_exit_code_cannot_be_read_is_a_failed_check(house):
+    ops, sd = house
+    orig = ops.docker
+    ops.docker = lambda *a, **kw: (U.Result(1, "", "context deadline exceeded") if "{{.State.ExitCode}} {{.State.OOMKilled}}" in a
+                                   else orig(*a, **kw))
+    assert run(ops, sd, ["homeassistant"]) == 1
+    o, = status(sd)["last_run"]["outcomes"]
+    assert o["result"] == "rolled_back" and "cannot read how homeassistant stopped" in o["detail"]
+
+
+def test_a_clean_stop_passes_and_no_docker_events_is_read(house):
+    ops, sd = house
+    assert run(ops, sd, ["homeassistant"]) == 0
+    assert ("docker", "inspect", "homeassistant", "-f", "{{.State.ExitCode}} {{.State.OOMKilled}}") in ops.calls
+    assert not any(c[:2] == ("docker", "events") for c in ops.calls)
