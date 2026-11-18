@@ -753,3 +753,21 @@ def test_a_browser_player_coming_online_during_the_restart_does_not_fail_the_upg
     ops.compose = compose
     assert run(ops, sd, ["homeassistant"]) == 0
     assert set(BROWSERS) <= set(rules().settings["flapping_players"])
+
+
+def test_a_start_that_fails_again_after_working_is_reported_again(house, monkeypatch):
+    """Each change of state is reported once: failing, working, failing."""
+    ops, sd = house
+    killed(ops, sd, ["homeassistant"], _kill_after_ha_stop(ops))
+    orig = ops.docker
+    failing = [True]
+    ops.docker = lambda *a, **kw: (U.Result(1, "", "busy") if a[0] == "start" and failing else orig(*a, **kw))
+    for fail in (True, False, True, True):
+        failing[:] = [True] if fail else []
+        ops.stopped.add("homeassistant")
+        notices_cmd(ops, sd, monkeypatch)
+        ops.clock += _dt.timedelta(hours=1)
+    assert [t.split(": ", 2)[2] for _, t, _ in ops.notices] == [
+        "Home Assistant is down: docker start homeassistant failed: busy",
+        "Home Assistant was down; started again",
+        "Home Assistant is down: docker start homeassistant failed: busy"]
