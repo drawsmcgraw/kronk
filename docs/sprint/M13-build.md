@@ -1,9 +1,12 @@
 # M13 build report: bias Whisper toward household vocabulary (dev path only)
 
 Build agent, 2026-11-18 (UTC), branch `refactor`. Criteria:
-`docs/sprint/M13-criteria.md`. Status: in progress. This file is written
-step by step; each host and HA change is recorded here, with its undo,
-in a commit made before the change.
+`docs/sprint/M13-criteria.md`. Status: built. Commits `ce8375c` (check first), `35f2a65` (prompt
+script, `/music/stations`), `de3b40d` (bench, unit copies, change
+records), `2d970f7` (dev instance), `9d91118` (HA), `0aadd59`
+(regeneration, docs) and the commit that completes this report. Each
+host and HA change was recorded here, with its undo, in a commit made
+before the change.
 
 ## 1. Check first (criterion 1), read-only
 
@@ -389,11 +392,328 @@ The cost is the one predicted in section 1.
 
 Undo, in order (exact):
 
-1. A2: websocket `assist_pipeline/pipeline/update`, `pipeline_id
-   01m7gvyhhfk2jp7havxm88ecme`, the fields of the "before" read with
-   `stt_engine: "stt.faster_whisper"` (scratch script used:
-   `MODE=set_dev_stt ARGS='{"stt_engine":"stt.faster_whisper"}'`, the
-   `ha_ws.py` logic reproduced in section 9).
+1. A2: over HA's websocket (from inside the container, `docker exec -i
+   -e HA_TOKEN homeassistant python3 -`, aiohttp to
+   `ws://localhost:8123/api/websocket`): `assist_pipeline/pipeline/list`,
+   take `kronk-dev` (`01m7gvyhhfk2jp7havxm88ecme`), then
+   `{"type": "assist_pipeline/pipeline/update", "pipeline_id":
+   "01m7gvyhhfk2jp7havxm88ecme", <its twelve fields>, "stt_engine":
+   "stt.faster_whisper"}`. The twelve fields are those of the "before"
+   read above; only `stt_engine` differs from the current value.
 2. A1: `curl -X DELETE -H "Authorization: Bearer $HA_TOKEN"
    http://127.0.0.1:8123/api/config/config_entries/entry/01M7P1PQG3W0XAPSA5ZXJX5J65`
 3. Then H2 and H1 of section 4.
+
+## 6. Bench results (synthetic speech; not evidence for production)
+
+Run 2026-11-18 00:36 to 00:58 UTC, one file at a time, on the set of
+section 3 (`~/kronk-m13-bench/synthetic/labels.csv`, 754 files).
+`prod-before` and `prod-after`: production's port 10300, no prompt, before
+the dev instance existed and after the HA change. `dev-prompt`: port
+10301 with the prompt as installed (the comma-separated line).
+Same model, compute type and beam size on both ports, so 10300 is the
+"without the prompt" arm. Prompt-name counts are recounted for every run
+against the installed prompt (`compare --prompt-file`).
+
+**Synthetic speech is not evidence for production.** Piper's three voices
+are clean, steady and pronounce every name the way its phonemizer reads
+the spelling; real household speech, far-field pucks and real kitchens
+are none of that. These numbers show the mechanism and its hazards; the
+decision waits for the M12 clips (section 8).
+
+### Speech: WER, command-form errors, latency
+
+| Variant | Run | n | WER | Command-form errors | Rows with prompt names added | p50 s | p95 s |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| clean | prod-before | 238 | 9.4 % | 26 | 0 | 0.316 | 0.369 |
+| clean | dev-prompt | 238 | 9.0 % | 27 | 0 | 0.319 | 0.375 |
+| clean | prod-after | 238 | 9.4 % | 26 | 0 | 0.316 | 0.364 |
+| noise10 | prod-before | 238 | 11.6 % | 30 | 0 | 0.315 | 0.364 |
+| noise10 | dev-prompt | 238 | 9.9 % | 28 | 0 | 0.322 | 0.369 |
+| noise10 | prod-after | 238 | 11.6 % | 30 | 0 | 0.316 | 0.364 |
+| room | prod-before | 238 | 16.3 % | 39 | 0 | 0.318 | 0.366 |
+| room | dev-prompt | 238 | 13.7 % | 34 | 2 | 0.322 | 0.369 |
+| room | prod-after | 238 | 16.3 % | 39 | 0 | 0.318 | 0.365 |
+
+All 714 speech rows: WER 12.4 % without the prompt, 10.9 % with it;
+command-form errors 95 and 89. Latency (audio-stop to transcript) moves
+by 3 to 8 ms at p50 and p95: the prompt's 100 tokens cost almost nothing.
+
+By sentence group (no prompt → prompt):
+
+| Sentences | Variant | n | WER | Command-form errors |
+| --- | --- | --- | --- | --- |
+| stations in the prompt | clean / noise10 / room | 10 each | 7.9 → 0.0 % / 7.9 → 0.0 % / 21.1 → 5.3 % | 0 → 0 throughout |
+| stations not in the prompt | clean / noise10 / room | 40 each | 9.8 → 11.7 % / 16.6 → 16.0 % / 17.8 → 19.0 % | 2 → 2 / 4 → 3 / 4 → 5 |
+| artists in the prompt | clean / noise10 / room | 9 each | 31.2 → 25.0 % / 40.6 → 18.8 % / 46.9 → 21.9 % | 2 → 3 / 2 → 2 / 4 → 3 |
+| artists not in the prompt | clean / noise10 / room | 16 each | 25.4 → 30.2 % / 31.7 → 31.7 % / 46.0 → 41.3 % | 4 → 4 / 3 → 4 / 5 → 4 |
+| rooms | clean / noise10 / room | 5 each | 0.0 → 0.0 % / 0.0 → 0.0 % / 3.7 → 3.7 % | 0 → 0 / 0 → 0 / 1 → 1 |
+| corpus sentences | clean / noise10 / room | 158 each | 8.0 → 7.4 % / 9.2 → 8.0 % / 13.5 → 11.6 % | 18 → 18 / 21 → 19 / 25 → 21 |
+
+(The station and artist groups count the sentence words, "Play" and
+"some" included. "In the prompt" folds a station's " Radio" as the
+prompt does.)
+
+What the prompt does to routing, row by row: it fixes 20 command-form
+errors and causes 14. Of the 14:
+
+- 9 are punctuation. The comma-separated prompt pulls Whisper toward
+  commas: "Stop. Stop." → "Stop, Stop."; "Pause. Sonos. Move. Dirt." →
+  "Pause, Sonos, Move, Dirt."; "Thumbs up! I know but you missed the best
+  part." → "Thumbs up, I know but …"; the three-sentence Anime Pop
+  transcript became one sentence. The M14 messy gate counts sentences, so
+  these route `default` (or `music`) instead of `messy`. Words right,
+  route changed.
+- 2 are a player name replacing a command verb, the hazard the plan names:
+  "Shuffle my YouTube playlist, anime bangers." → "SHIELD, My YouTube
+  Playlist, …" (room variant, twice). "SHIELD" is a Music Assistant player
+  in the prompt.
+- 3 lost the verb: "Play" heard as "Place" (twice) or "Playbook", in
+  front of a station or an artist name, so `music` became `default`. The
+  prompt holds names and no verbs, and the words after the verb pulled
+  toward the prompt's spelling.
+
+### A second format, tried and dropped
+
+One variable: the same 26 names joined by full stops ("Kronk. Basement
+Theater. …", also 100 tokens), on the dev instance only (restarted twice:
+in and out). WER about the same (8.8 / 9.8 / 14.5 %), but command-form
+errors 29 / 34 / 50: it fixed 23 and caused 41, nearly all by splitting
+one request into sentences and tripping the messy gate. The comma line
+stays. Restored by the regeneration service itself (section 7).
+
+### Non-speech (criterion 11)
+
+Four clips per kind, 2 to 4 s, generated (section 3).
+
+| Kind | Returned text: no prompt (before / after) | Returned text: prompt | Returned a prompt name: no prompt / prompt |
+| --- | --- | --- | --- |
+| silence (digital zero) | 4 / 4 | 4 | 0 / 0 |
+| hiss (-55 dBFS) | 4 / 4 | 4 | 0 / 0 |
+| white noise | 4 / 4 | 4 | 0 / 0 |
+| pink noise | 4 / 4 | 4 | 0 / 0 |
+| hum | 4 / 4 | 4 | 0 / 0 |
+| water | 4 / 4 | 4 | 0 / 0 |
+| clatter | 4 / 4 | 3 | 0 / 2 ("Kronk", twice) |
+| beeps | 4 / 4 | 4 | 0 / 0 |
+| music | 4 / 4 | 4 | 0 / 0 |
+| reversed speech | 4 / 4 | 4 | 0 / 0 |
+| **all 40** | **40 / 40** | **39** | **0 / 2** |
+
+- Without a prompt, production already returns words for every clip,
+  silence included: "Thank you." (15 of 40), "You" (9), "so", "Bye.",
+  "Beep. Beep. Beep.". That is Whisper's known silence hallucination; no
+  VAD is configured on either instance. Kronk sees such a transcript only
+  if HA's pipeline passes it on, which it does today for production.
+- With the prompt, the only name that came back on non-speech is
+  "Kronk", on 2 of 4 clatter clips. No station, artist, room or player
+  name appeared on any non-speech clip. No command word either way.
+- Prompt names added to real speech: 2 of 714 rows, both the "SHIELD"
+  case above.
+
+### Production unchanged (criterion 5)
+
+`prod-before` against `prod-after`: **714 of 714 speech rows give the
+same text**; 750 of 754 rows overall. The 4 that differ are non-speech
+(3 clatter, 1 reversed speech). Run three more times each on production,
+those clips gave 3, 2, 3 and 2 distinct texts: Whisper's temperature
+fallback samples on audio it cannot decode, so they vary run to run on an
+unchanged instance. A silence clip and a speech clip gave 1 text in 3 runs.
+
+## 7. Regeneration (criterion 8), as done
+
+- H3 at 00:56 UTC: `kronk-stt-prompt.{service,timer}` copied,
+  `daemon-reload`, `enable --now kronk-stt-prompt.timer`; next run
+  2026-11-18 04:00:40 local.
+- Live check, 00:58 UTC, with the full-stop variant still in the file:
+  `systemctl --user start kronk-stt-prompt.service` → "written …",
+  "try-restart wyoming-whisper-dev.service", dev pid 1187411 → 1202239.
+  Started again → "unchanged …", no restart, pid 1202239. Production pid
+  2809 throughout. The file is byte-identical to the one benched.
+- Unit tests pin the rest with a recorded restart
+  (`tests/test_build_stt_prompt.py`): restart on change only; refused for
+  `wyoming-whisper.service`, `wyoming-whisper`, any llama unit,
+  `homeassistant`, a name with `;`, and anything not `*-dev.service`; exit
+  4 with the new file in place when the restart fails.
+- After a dev restart the model reloads on the next transcription: the
+  first Hey Jarvis after a changed night pays the load (the first clip
+  after the start took 0.55 s against about 0.32 s after it; model files
+  in page cache).
+
+## 8. Deciding production: the real-clip procedure (criterion 12)
+
+After M12's labelling (about 200 clips with `correct_text` filled in,
+`~/kronk-voice-labels/<date>/labels.csv`):
+
+1. Check both instances are up and the prompt is the one to judge:
+   `ss -tlnp | grep -E ':1030[01]'`; keep a copy of
+   `~/services/wyoming-whisper/dev-prompt.env` beside the results (the
+   nightly rebuild may change it).
+2. Run the same sheet against both ports, one after the other, in a quiet
+   hour (both share the GPU with the household's models):
+
+   ```bash
+   S=~/kronk-voice-labels/<date>/labels.csv; O=~/kronk-m13-bench/real-<date>
+   cp ~/services/wyoming-whisper/dev-prompt.env $O.prompt.env
+   tests/.venv/bin/python scripts/stt_prompt_bench.py run --sheet $S --port 10300 \
+       --label no-prompt --prompt-file $O.prompt.env --out $O/no-prompt.json
+   tests/.venv/bin/python scripts/stt_prompt_bench.py run --sheet $S --port 10301 \
+       --label prompt --prompt-file $O.prompt.env --out $O/prompt.json
+   tests/.venv/bin/python scripts/stt_prompt_bench.py compare $O/no-prompt.json $O/prompt.json \
+       --prompt-file $O.prompt.env
+   ```
+
+   Only labelled rows are scored (non-empty `correct_text`). The results
+   hold transcripts of household speech: keep them under
+   `~/kronk-m13-bench/` or the labels directory, never in the repo.
+3. Pass rule (the roadmap's): on the labelled clips, the prompt run has
+   **lower WER and fewer command-form errors, at a p95 latency no worse**
+   than the no-prompt run. Look also at the rows the prompt broke (the
+   per-row `command_error` flips), since a net gain can hide a new class
+   of failure, as the synthetic set's comma punctuation showed.
+4. Puck noise: M12's clips do not include non-speech by design (every
+   recording is a wake-word run). If the household's false wakes are in
+   the set, count `names_added` on them; otherwise the synthetic
+   non-speech counts of section 6 stand.
+5. **The decision is Drew's.** If it passes and Drew says go, follow
+   "Moving the prompt to production" in `docs/features/voice-pipeline.md`.
+
+## 9. Criteria, one line each
+
+| # | Evidence |
+| --- | --- |
+| 1 | Section 1: `--help` flags quoted; HA wiring table; memory table; one instance cannot serve two prompts (prompt is a process-wide argument, `Transcribe.context` ignored), so the second instance was built. |
+| 2 | One line, 100 Whisper tokens (model tokenizer, faster-whisper's own encoding), from HA areas, MA players, MA library Pandora stations, taste-profile artists, plus "Kronk". Command-word test derives its words from the routing patterns; names containing a command word on live data: none. |
+| 3 | Loopback reads only (HA template API, `tool_service-dev` GETs, MA through `ma_read`); writes only `--out` (temp file in the same directory, then rename); byte-identical across runs; order independent of play counts (test); every source failing or empty → exit 1, old file untouched, no restart (20 parametrized cases). |
+| 4 | Budget rule in section 2 and the script's docstring; pinned by five tests (`candidates` order, turns, rooms first, skip-and-try-next, folded duplicates). |
+| 5 | Second unit, `systemd/wyoming-whisper-dev.service`: loopback 10301, same model, language, compute type, device and model directory as production (test compares the two `ExecStart` lines), prompt from `EnvironmentFile`. `wyoming-whisper.service` sha256 `441b8b78…` before and after, pid 2809, `NRestarts=0`, active since 2026-11-04. Port 10300: 714 of 714 speech rows identical before and after; 4 non-speech rows vary run to run on the unchanged instance (section 6). |
+| 6 | Memory table, section 4: +2.17 GB GTT, −2.76 GB available; llama servers healthy, gemma and devstral dev requests answered; no OOM or allocation line. Recommendation: section 11. |
+| 7 | `kronk-dev` `stt_engine stt.faster_whisper_2` (entry `01M7P1PQG3W0XAPSA5ZXJX5J65`, `127.0.0.1:10301`); `kronk` and the other pipelines identical field by field; existing config entries byte-identical as JSON; no HA restart (`StartedAt 00:14:34Z`). Undo in section 5. |
+| 8 | `kronk-stt-prompt.timer` 04:00, after the 03:30 taste rebuild; live: changed → one dev restart, unchanged → none, production pid unchanged; unit tests with a recorded restart refuse production and non-dev units. |
+| 9 | `scripts/stt_prompt_bench.py`: Wyoming client, WER, command-form errors by `routing.decide`, files from `--sheet`'s directory, M12 sheet format (test with M12's column set). No sound. |
+| 10 | Section 6: corpus and names rendered by Piper (port 10200, files only), clean / noise10 / room, WER, command-form errors, p50/p95, both instances. Synthetic, not evidence for production (said there). |
+| 11 | Section 6: 40 generated non-speech clips, 10 kinds: text returned 40/40 without the prompt, 39/40 with it; prompt names returned 0 without, 2 with (both "Kronk", clatter). Nothing downloaded. |
+| 12 | Section 8. |
+| 13 | `4834 passed, 3 skipped, 53 xfailed` (baseline 4743 + 91 new); new tests under `no_network`, `tmp_path`, in-memory streams. |
+| 14 | Replay below: of the M10 baseline's 114 rows, 112 the same, 2 different, both listed flappers; 46 rows added since the baseline: 40 pass, 3 xfail, 3 skip; no fail. |
+| 15 | `ss`: `127.0.0.1:10301` (dev), `0.0.0.0:10300` (production, unchanged), no other new listener. Production containers: ids and creation times unchanged since the snapshot before the build; only `kronk-tool_service-dev-1` recreated. MA `StartedAt 2026-11-04`, untouched. Pucks: no select or firmware call. No sound: Piper to files, Whisper from files, no TTS service, no satellite, no device id. Nothing written to `~/kronk-voice-recordings` (newest entry 19:13 local, before the build). |
+| 16 | `docs/features/voice-pipeline.md` ("The dev Whisper instance and the vocabulary prompt"), `README.md` service map and "Whisper (STT) units", `ROADMAP.md` voice-accuracy item. |
+
+## 10. Test and replay output (verbatim)
+
+`./scripts/run_tests.sh -q -p no:cacheprovider`, last lines:
+
+```
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+4834 passed, 3 skipped, 53 xfailed, 6 warnings in 41.04s
+```
+
+`python3 scripts/voice_replay.py --label m13-build` (01:00 UTC), summary
+lines (148 rows reached; per-row results are in the JSON):
+
+```
+  X xpass executed   eval-shuffle-it  []
+  s skip  skipped    inc-1017-try-playing-it-ytm
+  s skip  skipped    inc-1019-ytm-link
+  s skip  skipped    m4b-fetch-and-run-on-the-mirror
+voice_replay: STOPPED: media_player state changed before m14-lookalike-am: [{'entity_id': 'media_player.sonos_move_derp', 'before': {'state': 'unavailable', 'media_title': None, 'media_artist': None, 'media_content_id': None}, 'after': {'state': 'idle', 'media_title': None, 'media_artist': None, 'media_content_id': None}}, {'entity_id': 'media_player.sonos_move_derp_2', 'before': {'state': 'off', 'media_title': None, 'media_artist': None, 'media_content_id': None}, 'after': {'state': 'idle', 'media_title': None, 'media_artist': None, 'media_content_id': None}}]
+voice_replay: {'pass': 122, 'xfail': 22, 'skip': 3, 'xpass': 1}; executed 69, checked read-only 76; players CHANGED: [{'entity_id': 'media_player.sonos_move_derp', 'before': {'state': 'unavailable', 'media_title': None, 'media_artist': None, 'media_content_id': None}, 'after': {'state': 'idle', 'media_title': None, 'media_artist': None, 'media_content_id': None}}, {'entity_id': 'media_player.sonos_move_derp_2', 'before': {'state': 'off', 'media_title': None, 'media_artist': None, 'media_content_id': None}, 'after': {'state': 'idle', 'media_title': None, 'media_artist': None, 'media_content_id': None}}] (17 checked)
+  skipped inc-1017-try-playing-it-ytm: follow-up that needs conversation history; a replay has none
+  skipped inc-1019-ytm-link: typed link; a spoken request carries no URL
+  skipped m4b-fetch-and-run-on-the-mirror: typed link; a spoken request carries no URL
+voice_replay: wrote /home/drew/git-repos/drawsmcgraw/kronk/docs/bench/voice_replay_2026-11-18_010011_m13-build.json
+```
+
+The stop: the Sonos Move came online on its own at 01:06:00 UTC
+(`unavailable` → `idle`) and started playing at 01:08:06, not by the replay (the dev path is
+dry-run and the replay had stopped). After
+ten minutes the 12 rows not reached were run once by id (01:16 UTC);
+see Departures:
+
+```
+voice_replay: pipeline kronk-dev → http://localhost/dev/voice, dry-run on, 12 rows (148 not selected)
+  . pass  executed   m14-lookalike-am
+  s skip  skipped    m14-lookalike-decimal
+  s skip  skipped    m14-lookalike-time
+  . pass  checked    m11-jazz-music-style
+  . pass  checked    m11-the-song-jazz-music
+  . pass  checked    m11-burning-down-the-house
+  . pass  checked    m11-girl-with-the-sun-in-the-office
+  . pass  checked    m11-toys-in-the-attic-in-the-kitchen
+  . pass  checked    m11-handcuffed-in-mississippi-radio
+  . pass  checked    m11-some-jazz-on-the-basement-player
+  . pass  checked    m11-play-a-game-with-me
+  . pass  checked    m11-play-the-movie-inception
+voice_replay: {'pass': 10, 'skip': 2}; executed 1, checked read-only 9; players unchanged (17 checked)
+  skipped m14-lookalike-decimal: fuzzy local match (HassTimerStatus) while a player is active; not executed
+  skipped m14-lookalike-time: fuzzy local match (HassLightSet) while a player is active; not executed
+voice_replay: wrote /home/drew/git-repos/drawsmcgraw/kronk/docs/bench/voice_replay_2026-11-18_011618_m13-build-rest.json
+```
+
+Files: `docs/bench/voice_replay_2026-11-18_010011_m13-build.json`,
+`docs/bench/voice_replay_2026-11-18_011618_m13-build-rest.json`.
+Compared with `voice_replay_2026-11-16_012824_m10-baseline.json` by row
+id and status: `inc-0930-search-deep-house-ytm` fail → pass (a "YouTube
+Music" search row) and `eval-shuffle-it` xfail → xpass, both on the
+flapper list; every other baseline row has the same status.
+
+## 11. Recommendation: leave the dev instance running
+
+Leave it up and enabled. It costs 2.1 GB GTT and 0.7 GB RSS once loaded
+(about 2 % of GTT, 5 % of available RAM), it is the only STT behind Hey
+Jarvis now, and the M12 comparison needs both instances. Stopping it when
+not in use buys 2.8 GB but breaks Hey Jarvis unless `kronk-dev` is
+pointed back at production's Whisper first (section 5 undo, step 1). If
+memory gets tight, that is the order: pipeline back, then `disable --now`.
+
+## 12. Departures from the criteria, and why
+
+1. **"Kronk" in the prompt.** Not one of criterion 2's four sources. Plan
+   M19 step 4 asks for it and M19 left it to M13. One fixed name; on
+   non-speech it is the only prompt name that came back (2 of 40 clips).
+   Removing it is one line (`FIXED_NAMES`).
+2. **A new tool_service route.** Criterion 3 says "the MA reads
+   tool_service already makes". The read is one it already makes
+   (`music/radios/library_items`, the nightly rebuild's), through
+   `ma_read`, but exposing it needed `GET /music/stations`: the taste DB
+   cannot tell Pandora stations from others. Only the dev pair runs it
+   until the next production deploy.
+3. **Station names lose " Radio".** All 50 end in it; dropping it saves a
+   token a station. The stations in the prompt went from 21.1 % to 5.3 %
+   WER in the room variant without it.
+4. **"Without the prompt" is production's instance.** No third instance or
+   dev restart without a prompt: 10300 runs the same model and flags, and
+   was benched before and after.
+5. **A second prompt format was tried** (full stops), on the dev instance
+   only, and dropped (section 6). The dev unit was restarted twice for it
+   (format in; format out, by the regeneration service).
+6. **The replay rerun covered only the rows the first run did not reach**
+   (12 by `--id`), not a full rerun: a speaker was in use by the household
+   and a full pass would have stopped again on the next track change. Two
+   of the 12 were skipped by the replay's own guard (a fuzzy local match
+   while a player is active).
+7. **No STT-stage pipeline run** to prove the HA wiring: M12 would record
+   it into `~/kronk-voice-recordings`.
+
+## 13. For Drew
+
+- **Say "Hey Jarvis, what's the capital of Peru"** on any puck. It is the
+  first real use of the dev Whisper through HA; the transcript appears in
+  `journalctl --user -u wyoming-whisper-dev`.
+- **The comma problem.** On synthetic speech the prompt cuts WER (12.4 →
+  10.9 %) and command-form errors (95 → 89), but it also turns sentence
+  breaks into commas, which hides multi-sentence captures from the M14
+  messy gate (9 of the 14 rows it broke), and once replaced "Shuffle" with
+  a player name. The M12 clips will say whether that holds on real speech.
+  If it does, options are a gate that counts commas too, or a prompt
+  without players. Your call after the data.
+- **Whisper talks on silence today.** Production returned words on all 40
+  generated non-speech clips, silence included ("Thank you."). The VAD
+  filter (`--vad-filter`, already installed) is the roadmap's other
+  candidate; it is a separate single-variable test on the dev instance.
+- **Production Whisper asks the Hugging Face Hub at each model load**
+  (`--local-files-only` is ignored by the installed version). Adding
+  `HF_HUB_OFFLINE=1` to `wyoming-whisper.service` would stop it; that is
+  a production change, not made.
+- **Moving the prompt to production** stays off until the real-clip run in
+  section 8 passes and you say go.
