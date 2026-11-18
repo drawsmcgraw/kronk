@@ -1,0 +1,325 @@
+{
+ "meta": {
+  "started": "2026-11-18T13:58:31+00:00",
+  "label": "m18-fix1-probe",
+  "check_only": false,
+  "git_commit": "1a486d5",
+  "corpus_sha256": "e1517e8d28b2d513",
+  "corpus_rows": 160,
+  "selected": 2,
+  "not_selected": 158,
+  "selection": {
+   "id": [
+    "m14-lookalike-decimal",
+    "m14-lookalike-time"
+   ],
+   "tag": null
+  },
+  "target": {
+   "pipeline": "kronk-dev",
+   "pipeline_id": "01m7gvyhhfk2jp7havxm88ecme",
+   "engine": "conversation.kronk_dev",
+   "kronk_url": "http://localhost/dev/voice",
+   "status_url": "http://localhost/dev/api/status",
+   "production": false,
+   "prefer_local_intents": true,
+   "orchestrator": "kronk-orchestrator-dev-1",
+   "tool_service": "kronk-tool_service-dev-1"
+  },
+  "tool_service_health": {
+   "status": "ok",
+   "music_dry_run": true
+  },
+  "trigger_templates": 11,
+  "finished": "2026-11-18T13:58:36+00:00"
+ },
+ "rows": [
+  {
+   "id": "m14-lookalike-decimal",
+   "text": "Is 98.6 a fever?",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "direct",
+    "rule": "default",
+    "tool": null
+   },
+   "xfail": null,
+   "checks": [],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": false,
+    "fuzzy": true,
+    "intent": "HassTimerStatus",
+    "summary": "fuzzy HassTimerStatus only (strict pass misses)"
+   },
+   "check_ms": 1,
+   "method": "skipped",
+   "status": "skip",
+   "skip_reason": "fuzzy local match (HassTimerStatus) while a player is active; not executed"
+  },
+  {
+   "id": "m14-lookalike-time",
+   "text": "Wake me at 7.30.",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "direct",
+    "rule": "default",
+    "tool": null
+   },
+   "xfail": null,
+   "checks": [],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": false,
+    "fuzzy": true,
+    "intent": "HassLightSet",
+    "summary": "fuzzy HassLightSet only (strict pass misses)"
+   },
+   "check_ms": 1,
+   "method": "skipped",
+   "status": "skip",
+   "skip_reason": "fuzzy local match (HassLightSet) while a player is active; not executed"
+  }
+ ],
+ "players": {
+  "before": {
+   "media_player.upper_shield": {
+    "state": "off",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.shield": {
+    "state": "off",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.shield_2": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.upper_shield_2": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.living_room_sony_bravia": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.home_assistant_voice_0ac919_pe_01": {
+    "state": "playing",
+    "media_title": "Pepper",
+    "media_artist": "Butthole Surfers",
+    "media_content_id": "pandora://track/TR:20320"
+   },
+   "media_player.satellite1_d8d1bc": {
+    "state": "idle",
+    "media_title": "Unwind",
+    "media_artist": "Digby Jones",
+    "media_content_id": "pandora://track/TR:131363610"
+   },
+   "media_player.home_assistant_voice_0ab117": {
+    "state": "idle",
+    "media_title": "My Funny Valentine (album version edit)",
+    "media_artist": "Big Muff",
+    "media_content_id": "library://track/15212"
+   },
+   "media_player.camerons_macbook_pro": {
+    "state": "unavailable",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.sonos_move_derp_2": {
+    "state": "off",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.home_assistant_voice_0ac919_media_player": {
+    "state": "playing",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.home_assistant_voice_0ab117_media_player": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.satellite_01_media_player": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.xbr_49x800d": {
+    "state": "off",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.sonos_move_derp": {
+    "state": "unavailable",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.web_firefox_on_linux": {
+    "state": "unavailable",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.drew_s_windows_firefox": {
+    "state": "unavailable",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   }
+  },
+  "after": {
+   "media_player.upper_shield": {
+    "state": "off",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.shield": {
+    "state": "off",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.shield_2": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.upper_shield_2": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.living_room_sony_bravia": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.home_assistant_voice_0ac919_pe_01": {
+    "state": "playing",
+    "media_title": "Pepper",
+    "media_artist": "Butthole Surfers",
+    "media_content_id": "pandora://track/TR:20320"
+   },
+   "media_player.satellite1_d8d1bc": {
+    "state": "idle",
+    "media_title": "Unwind",
+    "media_artist": "Digby Jones",
+    "media_content_id": "pandora://track/TR:131363610"
+   },
+   "media_player.home_assistant_voice_0ab117": {
+    "state": "idle",
+    "media_title": "My Funny Valentine (album version edit)",
+    "media_artist": "Big Muff",
+    "media_content_id": "library://track/15212"
+   },
+   "media_player.camerons_macbook_pro": {
+    "state": "unavailable",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.sonos_move_derp_2": {
+    "state": "off",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.home_assistant_voice_0ac919_media_player": {
+    "state": "playing",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.home_assistant_voice_0ab117_media_player": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.satellite_01_media_player": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.xbr_49x800d": {
+    "state": "off",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.sonos_move_derp": {
+    "state": "unavailable",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.web_firefox_on_linux": {
+    "state": "unavailable",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.drew_s_windows_firefox": {
+    "state": "unavailable",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   }
+  },
+  "changed": [],
+  "unchanged": true,
+  "count": 17
+ },
+ "summary": {
+  "counts": {
+   "skip": 2
+  },
+  "executed": 0,
+  "checked_read_only": 0,
+  "skipped": [
+   {
+    "id": "m14-lookalike-decimal",
+    "reason": "fuzzy local match (HassTimerStatus) while a player is active; not executed"
+   },
+   {
+    "id": "m14-lookalike-time",
+    "reason": "fuzzy local match (HassLightSet) while a player is active; not executed"
+   }
+  ],
+  "not_selected": 158,
+  "failed": [],
+  "xpassed": []
+ }
+}

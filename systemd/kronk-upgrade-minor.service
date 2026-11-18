@@ -14,7 +14,8 @@
 #              systemctl --user enable --now kronk-upgrade-minor.timer kronk-upgrade-major-check.timer kronk-upgrade-notices.timer
 #   check:     systemctl --user list-timers 'kronk-upgrade-*'
 #   dry run:   scripts/upgrade_minor.sh --dry-run          (any time; changes nothing)
-#   run now:   systemctl --user start kronk-upgrade-minor.service   (a real run)
+#   run now:   systemctl --user start kronk-upgrade-minor.service   (a real run; inside the night window only)
+#              scripts/upgrade_minor.sh --ignore-window [--ignore-month]   (by hand, any hour)
 #   pause:     systemctl --user stop kronk-upgrade-minor.timer      (until the next boot or start)
 #              systemctl --user disable --now kronk-upgrade-minor.timer   (until enabled again)
 #   log:       journalctl --user -u kronk-upgrade-minor.service -n 100

@@ -1,5 +1,15 @@
 # M18 build report: an upgrade cadence
 
+> Superseded in part by fix round 1 (`docs/sprint/M18-fix1.md`), after the
+> end-to-end test (`docs/sprint/M18-e2e.md`) failed the item. Statements
+> below that no longer hold: step 4's decline on `/dev/` requests and on any
+> held voice_tracer run (now only the household's count); "any error inside
+> a component records `rollback_failed`" (now `not applied`, `out of step`
+> or `ROLLBACK FAILED` by what happened); tags `upgrade-<YYYYMMDD>-<name>`
+> (now the run time); "the house checks read quiet at that moment" in the
+> dry-run section (they were never reached past the branch decline); the
+> install commands (the fix report has the current ones).
+
 Build agent, 2026-11-18 (UTC), branch `refactor`. Inputs: CLAUDE.md, the
 plan's section "M18. An upgrade cadence" and its M18 verification line,
 `docs/sprint/M18-criteria.md`, `scripts/deploy_tag.sh`,

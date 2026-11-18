@@ -15,14 +15,19 @@ scripts/upgrade_rules.toml. This file decides nothing the rules do not say:
 a version it cannot parse, a registry it cannot read, a check it cannot run
 are each reported as a skip or a decline, never guessed around.
 
-Monthly run, in order (docs/features/upgrade-cadence.md has the long form):
+Monthly run, in order (docs/features/upgrade-cadence.md has the long form;
+sprint M18 fix 1 added the night window, the intent record and recovery,
+the household-only busy check and the outcomes not applied / out of step):
+  0. An earlier run's unfinished intent record is dealt with first; outside
+     settings.night_window the run declines without counting an attempt.
   1. Lock (data/upgrades/lock); this month's attempt count (at most
      max_attempts; the timer fires on days 1-7).
   2. Retry any notice HA did not take last time.
   3. Plan: for each component the newest release the rules call minor,
      at least min_age_days old, whose image exists in the registry.
      Nothing to do: stop, send nothing.
-  4. Decline when the house is busy or the tree is not ours to commit on:
+  4. Decline when the household is busy or the tree is not ours to commit on
+     (the run's own replays and deploy checks do not count):
      a voice or chat request in the last quiet_minutes, a satellite not
      idle, a media player playing, voice_tracer holding a run, a deploy or
      another run in progress, the last rollback failed, the tree not clean,
@@ -38,7 +43,9 @@ Monthly run, in order (docs/features/upgrade-cadence.md has the long form):
      (image, health, the corpus, the replay against the baseline, the
      stack's own checks), keep it or roll it back (pin restored by a
      commit, previous tag deployed or previous image by id, then verified).
-     A failed rollback stops the run and blocks later runs until `ack`.
+     A failure before anything changed what runs is "not applied" (the pin
+     commit reverted). A failed rollback, or git left out of step with what
+     runs, stops the run and blocks later runs until `ack`.
   7. One notice (scripts/lib/notify.sh) when anything was changed or tried;
      if it cannot be sent, the status file keeps it, /services shows a
      warning, and `notices` (hourly timer) retries it.

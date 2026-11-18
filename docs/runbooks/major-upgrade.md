@@ -8,8 +8,14 @@ per component is `scripts/upgrade_rules.toml`. One component per window.
 Music Assistant is excluded until the Pandora work is upstream.
 
 Time: about an hour for a container image, half a day for Home Assistant,
-llama.cpp or Whisper (benches). Steps 1 to 3 happen before the window, the
-rest inside it.
+llama.cpp or Whisper (benches). Steps 0, 2 and 3 happen before the window.
+Step 1 happens inside it for every backup that stops a container (Home
+Assistant, Grafana, Tempo); the others can be taken before.
+
+(Corrected 2026-11-18, M18 fix 1: the order of steps, the HA backup path
+`$D`, the archive test before the restore, the LiteLLM scratch container,
+the telemetry volume restore, the M12 runbook's path and H2's pass
+criterion. The earlier text is in git.)
 
 ## 0. Before anything
 
@@ -19,7 +25,9 @@ rest inside it.
 - `scripts/upgrade_minor.sh --dry-run`: the house state the monthly run
   would see. Do not run a major upgrade in the same hour as the monthly run
   (they share the lock only when both are the script; this runbook is by
-  hand). Check `python3 scripts/upgrades.py status`: no `rollback_failed`.
+  hand; `scripts/deploy_tag.sh deploy` refuses while the run holds its lock).
+  Check `python3 scripts/upgrades.py status`: no `rollback_failed`,
+  `out_of_step` or `intent`.
 - Start `docs/incidents/INVESTIGATION_<date>_<component>-upgrade.md` now if
   anything is unusual; evidence evaporates.
 
@@ -32,12 +40,12 @@ are kept until the next window of the same component.
 
 | Component | What must be backed up | How (by hand, until M16) |
 | --- | --- | --- |
-| Home Assistant | The whole config volume `kronk_ha-config`, taken while HA is stopped (the recorder may migrate its schema one way across monthly releases; `.storage/` holds integrations, devices, pipelines) | Step H3 below |
+| Home Assistant | The whole config volume `kronk_ha-config`, taken while HA is stopped (`.storage/` holds integrations, devices, pipelines, and a new release may migrate it one way: 2026.11 migrates entity names there. The recorder schema is 53 in both 2026.5.4 and 2026.11.2, so the database is not the reason) | Step H4 below |
 | Kronk stack (LiteLLM, nginx, SearXNG, Piper, base images, lockfiles) | Nothing beyond git: the previous tag is the rollback. `data/` is not touched by an image change | `scripts/deploy_tag.sh status` and note the running tag |
 | LiteLLM | `litellm/config.yaml` and `litellm/hooks.py` are in git | none |
 | Piper | The `piper-models` volume holds re-downloadable voices only | none |
-| Grafana | The `grafana-data` volume (admin login, preferences; dashboards are provisioned from git) | `docker stop kronk-telemetry-grafana-1`, then the volume copy as in H3 with the volume `kronk-telemetry_grafana-data` |
-| Tempo | `tempo-data` holds 90 days of traces; a major Tempo release may change the block format | Decide whether the traces matter; if they do, copy the volume as for Grafana with Tempo stopped |
+| Grafana | The `grafana-data` volume (admin login, preferences; dashboards are provisioned from git). A major Grafana migrates its database on start | Inside the window: `docker stop kronk-telemetry-grafana-1`, the volume copy as in H4 with the volume `kronk-telemetry_grafana-data` and the Grafana image as the helper, the copy tested (`tar tzf … >/dev/null`), then `docker start kronk-telemetry-grafana-1` |
+| Tempo | `tempo-data` holds 90 days of traces; a major Tempo release may change the block format | Decide whether the traces matter; if they do, copy the volume as for Grafana with Tempo stopped, test the copy, then `docker start kronk-telemetry-tempo-1` |
 | llama.cpp | The current build directory (`~/pai/pai_workspace/llama-cpp/llama-b<N>-vulkan`) and the unit files | Never delete the old directory; the new build goes in a new one |
 | wyoming-faster-whisper | `~/services/wyoming-whisper/.venv` (a ROCm build) | `cp -a ~/services/wyoming-whisper/.venv ~/services/wyoming-whisper/.venv-<old version>` |
 
@@ -52,10 +60,13 @@ What can be tried off production:
 - **Container images (LiteLLM, Piper, SearXNG, nginx, Grafana, Tempo):**
   run the new image as a scratch container with its own name, on a spare
   loopback port, with the same config files mounted read-only, and exercise
-  it directly. LiteLLM example:
-  `docker run --rm -d --name scratch-litellm -p 127.0.0.1:8012:8012 -v $PWD/litellm/config.yaml:/app/config.yaml:ro -v $PWD/litellm/hooks.py:/app/hooks.py:ro ghcr.io/berriai/litellm:<new> --config /app/config.yaml --port 8012`,
+  it directly. LiteLLM example (production LiteLLM is `network_mode: host`
+  and every `api_base` in its config is `127.0.0.1`, so the scratch one
+  needs host networking too, on a port nothing uses):
+  `docker run --rm -d --name scratch-litellm --network host -v $PWD/litellm/config.yaml:/app/config.yaml:ro -v $PWD/litellm/hooks.py:/app/hooks.py:ro ghcr.io/berriai/litellm:<new> --config /app/config.yaml --port 8012`,
   then one completion per model alias through `localhost:8012`, then
-  `docker rm -f scratch-litellm`. Read its log for config warnings.
+  `docker rm -f scratch-litellm`. Read its log for config warnings. Check
+  first that 8012 is free (`ss -ltn 'sport = :8012'` prints only a header).
 - **Home Assistant:** never start a second HA on the real config (it would
   reach the pucks, Music Assistant and the phone over host networking). Off
   production, only: pull the new image, and read from it with
@@ -80,8 +91,9 @@ What can be tried off production:
 
 - Drew declared it. The house is quiet: every `assist_satellite` idle, no
   `media_player` playing, voice_tracer `held: 0`, no spoken request in the
-  last five minutes (M12 runbook steps H6 and H7a, with M12-fix2's
-  corrections). If not, wait or move the window.
+  last five minutes (the M12 restart runbook, steps H6 and H7a:
+  `docs/sprint/M12-fix1.md`, with the corrections in `docs/sprint/M12-fix2.md`).
+  If not, wait or move the window.
 - No `docker compose` command is typed in the working tree against the
   production Kronk stack (M12): Kronk-stack changes go commit, tag,
   `scripts/deploy_tag.sh plan <tag>`, `scripts/deploy_tag.sh deploy <tag>`.
@@ -114,8 +126,14 @@ obvious and small.
 
 - Kronk stack: put the pin back by a commit, `deploy_tag.sh deploy <the previous tag>`.
 - Telemetry: pin back, `up -d --no-deps <svc>` (the old image is still local).
-- Home Assistant: H-rollback below. After a recorder migration, the image
-  alone is not enough: the volume is restored from step H3's copy.
+  If the new version migrated its volume (Grafana's database, Tempo's
+  blocks), the old image alone will not read it: stop the container,
+  restore the step 1 copy into the volume with the old image as the helper
+  (as R2 does for HA: test the archive, then empty the volume, then
+  extract), then `up -d --no-deps <svc>`.
+- Home Assistant: H-rollback below. Once the new version has started it
+  may have migrated `.storage`, so the image alone is not enough: the
+  volume is restored from step H4's copy.
 - llama.cpp / Whisper: the unit back to the old directory or venv, restart.
 - Then verify as in step 6, and write the incident doc.
 
@@ -139,17 +157,20 @@ and the restart itself.
 
 Pick the window after the M12 audio capture ends (2026-12-01): a restart
 cuts voice_tracer's correction windows short. `$HA_TOKEN` from `.env`;
-`D=~/backups/ha/major-$(date +%F)`; `NEW` is the target version, `OLD` the
-running one.
+`NEW` is the target version, `OLD` the running one. `D` is the backup
+directory, set once with a literal date and written into the window's
+notes at H1 (`D=~/backups/ha/major-2026-12-05`, say). Never recompute it
+with `$(date …)`: past midnight, or in a new shell, that names a new, empty
+directory, and R2 would empty the volume and then find no archive.
 
 | Step | Command | Check |
 | --- | --- | --- |
-| H1 | `mkdir -p $D && docker pull ghcr.io/home-assistant/home-assistant:$NEW` (a new tag; nothing running uses it) | `docker image inspect ghcr.io/home-assistant/home-assistant:$NEW` succeeds |
-| H2 | Section 2's read of the new image: Music Assistant client and hassil versions | the MA client still speaks to `2.11.0b5-kronk.9` (MA's release notes or the client's changelog); if not, stop and tell Drew |
+| H1 | `mkdir -p $D && echo "D=$D" >> <the window's notes> && docker pull ghcr.io/home-assistant/home-assistant:$NEW` (a new tag; nothing running uses it) | `docker image inspect ghcr.io/home-assistant/home-assistant:$NEW` succeeds; `ls -d $D` |
+| H2 | Section 2's read of the new image: Music Assistant client and hassil versions, and the client's schema: `docker run --rm --network none --entrypoint python3 ghcr.io/home-assistant/home-assistant:$NEW -c "from music_assistant_client.constants import API_SCHEMA_VERSION as v; print(v)"`; the server's: `curl -s localhost:8095/info` (`min_supported_schema_version`; 28 on 2026-11-18, and 2026.5.4's client is 28) | pass when the client's `API_SCHEMA_VERSION` is at least the server's `min_supported_schema_version` (the client refuses the server otherwise: `music_assistant_client/client.py`); if not, stop and tell Drew |
 | H2b | Each Ollama entry's options in HA's UI (Settings > Devices & services > Ollama > Configure): is an LLM API selected? | if one is, the 2026.9 tool names apply; note it |
-| H3 | Snapshot and backup: M12 H6 into `$D/states-before.txt`; `docker inspect homeassistant -f '{{.Image}}' > $D/old-image-id`; `docker tag $(cat $D/old-image-id) kronk/ha-rollback:$OLD`; then `docker stop -t 120 homeassistant` and `docker run --rm --network none --entrypoint tar -v kronk_ha-config:/config:ro -v $D:/b ghcr.io/home-assistant/home-assistant:$OLD czf /b/ha-config.tgz -C /config .` | `tar tzf $D/ha-config.tgz \| grep -c '^./.storage/core.config_entries$'` is `1`; the size is near the config volume's (about 51 MB, mostly the recorder) |
-| H4 | Edit `docker-compose.ha.yml` to `$NEW`; commit | `git show --stat HEAD` names only that file |
-| H5 | `docker compose -f docker-compose.ha.yml up -d homeassistant` (HA is already stopped from H3; this is the one start) | `docker inspect homeassistant -f '{{.Config.Image}} {{.Config.StopTimeout}}'` shows `$NEW` and `120` |
+| H3 | Edit `docker-compose.ha.yml` to `$NEW`; commit (HA keeps running the old image until H5; done before the stop so the outage is only the backup and the start) | `git show --stat HEAD` names only that file |
+| H4 | Snapshot and backup: M12 H6 into `$D/states-before.txt`; `docker inspect homeassistant -f '{{.Image}}' > $D/old-image-id`; `docker tag $(cat $D/old-image-id) kronk/ha-rollback:$OLD`; M12 H7b (the recordings directory exists, the tags are as written); then `docker stop -t 120 homeassistant` and `docker run --rm --network none --entrypoint tar -v kronk_ha-config:/config:ro -v $D:/b ghcr.io/home-assistant/home-assistant:$OLD czf /b/ha-config.tgz -C /config .` | `gzip -t $D/ha-config.tgz && tar tzf $D/ha-config.tgz \| grep -c '^./.storage/core.config_entries$'` is `1`; the size is near the config volume's (about 51 MB, mostly the recorder) |
+| H5 | `docker compose -f docker-compose.ha.yml up -d homeassistant` (HA is already stopped from H4; this is the one start) | `docker inspect homeassistant -f '{{.Config.Image}} {{.Config.StopTimeout}}'` shows `$NEW` and `120`; the mount and the clean-shutdown checks of M12 H7 |
 | H6 | (wait for HA; the first start after six releases can take minutes: migrations) | M12 H8 in full: `/api/` 200; states compared with `$D/states-before.txt` (satellites not `unavailable`, slot-2 selects unchanged, players as before); `voice_replay.py --check-only` passes; `rest_command` services as before; `music-assistant-server` not restarted; voice_tracer connected; HA's log has no integration that failed to set up (`docker logs homeassistant 2>&1 \| grep -iE 'error setting up\|failed to set up'`) |
 | H7 | The corpus (step 6), the spoken requests, `/music/players` names compared with before | as step 6 |
 | H8 | `scripts/upgrade_minor.sh --dry-run` | HA shows `CURRENT` on the new month's line; from here the monthly run takes its patches |
@@ -159,7 +180,7 @@ H-rollback (when H6 or H7 fails and the cause is not small):
 | Step | Command | Check |
 | --- | --- | --- |
 | R1 | `docker stop -t 120 homeassistant` | stopped |
-| R2 | Restore the volume from H3 with the old image as the helper: `docker run --rm --network none --entrypoint sh -v kronk_ha-config:/config -v $D:/b:ro ghcr.io/home-assistant/home-assistant:$OLD -c 'find /config -mindepth 1 -delete && tar xzf /b/ha-config.tgz -C /config'` (destructive inside the volume: only with H3's check passed) | `docker run --rm --network none --entrypoint ls -v kronk_ha-config:/config ghcr.io/home-assistant/home-assistant:$OLD -la /config/.storage` lists `core.config_entries` |
+| R2 | First check `D` is the directory written down at H1, and `gzip -t $D/ha-config.tgz && tar tzf $D/ha-config.tgz \| grep -c '^./.storage/core.config_entries$'` prints `1`. Only then restore the volume with the old image as the helper; the archive is tested again inside the same command before anything is deleted: `docker run --rm --network none --entrypoint sh -v kronk_ha-config:/config -v $D:/b:ro ghcr.io/home-assistant/home-assistant:$OLD -c 'tar tzf /b/ha-config.tgz >/dev/null && find /config -mindepth 1 -delete && tar xzf /b/ha-config.tgz -C /config'` (destructive inside the volume) | `docker run --rm --network none --entrypoint ls -v kronk_ha-config:/config ghcr.io/home-assistant/home-assistant:$OLD -la /config/.storage` lists `core.config_entries` |
 | R3 | Pin back by a commit; if `ghcr.io/home-assistant/home-assistant:$OLD` no longer points at `$D/old-image-id`, `docker tag $(cat $D/old-image-id) ghcr.io/home-assistant/home-assistant:$OLD`; `docker compose -f docker-compose.ha.yml up -d homeassistant` | M12 H8 as in H6 |
 | R4 | Write the incident doc; tell Drew what failed | |
 

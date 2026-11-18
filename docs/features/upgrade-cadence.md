@@ -1,6 +1,7 @@
 # Upgrade cadence
 
-Sprint item M18 (built 2026-11-18). Pins stay; they now move on a schedule.
+Sprint item M18 (built 2026-11-18; fix round 1 the same day,
+`docs/sprint/M18-fix1.md`). Pins stay; they now move on a schedule.
 A monthly run applies patch releases by itself and says what it did; a
 quarterly check writes a report on major releases and asks Drew to schedule
 them. Build report: `docs/sprint/M18-build.md`. Plan: section "M18. An
@@ -21,8 +22,14 @@ with a comment. Drew's mapping (2026-11-15):
 | Python lockfiles | nothing applied: patch releases are listed in the run's log | everything (see below) |
 | Music Assistant (and its PO-token helper) | excluded | excluded, until the Pandora work is upstream |
 
-A release younger than 14 days is not taken; a release whose date cannot be
-read is not taken. A version string the rule cannot parse is skipped and
+A release is taken only when the project's release list (GitHub) and the
+registry both have it and both dates are at least 14 days old. A registry
+tag pushed more than 48 hours after its release is a moved (re-pushed) tag:
+not taken, and the plan says so. A release whose date cannot be read is not
+taken; a tag the registry has and the release list does not is not taken.
+Docker Hub gives a push date per tag; ghcr gives none, so the image's build
+time (its config's `created`) stands in. Where the registry is the release
+list (SearXNG, nginx, the Python bases), there is one date. A version string the rule cannot parse is skipped and
 reported; a pin that is not an exact version (`nginx:1.29-alpine`,
 `python:3.12-slim`, `pip install uv`) is never changed.
 
@@ -32,46 +39,136 @@ reported; a pin that is not an exact version (`nginx:1.29-alpine`,
 month. The first night that is not declined does the month; later nights
 find it done. Step by step (`scripts/upgrades.py`, `minor_run`):
 
-1. Takes `data/upgrades/lock`; counts this month's attempt (at most 7).
-2. Retries any notice HA did not take.
-3. Plans: per component, the newest minor release old enough and present in
-   the registry. Nothing to do: stops, sends nothing.
-4. Declines (and tries again tomorrow) when: a voice or chat request reached
-   nginx in the last 5 minutes; a satellite is not idle or changed state in
-   the last 5 minutes; a media player is playing; voice_tracer holds a run;
-   a deploy is running; the last rollback failed; the tree is not clean;
-   the branch is not `KRONK_UPGRADE_BRANCH` (default `main`). A check that
-   cannot be read (HA down, the probe silent) is a decline, not a pass.
-5. Baseline: `./scripts/run_tests.sh` and the live dry-run replay on
+1. Takes `data/upgrades/lock` and writes its holder into it. While it is
+   held, `scripts/deploy_tag.sh deploy` refuses and names the holder; the
+   run's own deploys carry its token. The quarterly check waits for the
+   same lock. A status file that cannot be parsed stops the run: it is
+   never read as empty.
+2. If an earlier run died inside a component, its intent record is still in
+   the status file: this run deals with it first (below, "An interrupted
+   run").
+3. Outside the night window (`night_window`, default 02:00 to 05:00 local)
+   it declines without counting an attempt: the timer's boot catch-up
+   (`Persistent=true`) at 19:00 does nothing, and the next night's firing
+   runs. A missed day 7 is next month's.
+4. Counts this month's attempt (at most 7); retries any notice HA did not take.
+5. Plans: per component, the newest minor release that passes the rules
+   above. Every pin is compared with what its container runs; a pin that is
+   not what runs is reported (`MISMATCH`, one notice and a `/services`
+   warning a month), never read as `CURRENT`. Nothing to do: stops.
+6. Declines (and tries again tomorrow) when the household is busy or the
+   tree is not ours: see "House busy" below; the last rollback failed or a
+   component was left out of step; a deploy is running; the tree is not
+   clean; the branch is not `KRONK_UPGRADE_BRANCH` (default `main`). A check
+   that cannot be read (HA down, the probe silent) is a decline, not a pass.
+7. Baseline: `./scripts/run_tests.sh` and the live dry-run replay on
    `kronk-dev`. If either cannot run, declines.
-6. One component at a time, in the rules' `order` (telemetry, Piper,
+8. One component at a time, in the rules' `order` (telemetry, Piper,
    SearXNG, nginx, LiteLLM, base images, then Home Assistant last, because
    every other replay goes through HA):
-   - per-component checks: for the Kronk stack, production runs from a tag
-     and HEAD differs from that tag only in files that do not reach the
-     containers (`inert_paths`), else the component is not started (an
-     unattended deploy would ship undeployed work); for HA and telemetry,
-     the compose file at HEAD has the config hash of the running container;
-     for HA, M12's H6 checks (selects untouched for 15 minutes);
-   - the pin is edited and committed: `upgrade: <name> <from> -> <to>`,
-     author `Kronk upgrade_minor`;
-   - brought up: Kronk stack by `git tag upgrade-<date>-<name>` and
+   - per-component checks: the night window is still open; no deploy has
+     started; for the Kronk stack, production runs from a tag and HEAD
+     differs from it only in `inert_paths`; for HA and telemetry, the
+     compose file at HEAD has the running container's config hash, and no
+     file the container bind-mounts from the working tree changed after
+     the container started (paths the service reloads by itself, the
+     rules' `live_binds`, aside); for HA, M12's H6 checks and H7b (the
+     compose file renders, every bind-mounted path exists); the house busy
+     check again;
+   - the intent record is written to the status file before each step
+     that changes git or what runs, and cleared when the component ends;
+   - the pin is edited and committed: `upgrade: <name> <from> -> <to>`;
+   - brought up: Kronk stack by `git tag upgrade-<run time>-<name>` and
      `scripts/deploy_tag.sh deploy`; telemetry by `compose pull` and
-     `up -d --no-deps` of that service; HA by M12's runbook in code (the
-     running image id tagged `kronk/ha-rollback:<from>`, pull, `docker stop
-     -t 120`, `up -d`);
-   - verified: the image runs, the component's health checks, the stack's
-     checks (the deploy's own; M12's H8 for HA), the offline corpus, the
-     replay compared with the baseline (a row that passed before and fails
-     now, flappers excepted, fails the upgrade);
-   - kept, or rolled back: the pin restored by a commit
-     (`upgrade: roll back …`), the previous tag deployed or the previous
-     image by id, and that verified. A failed rollback stops the run and
-     blocks later runs until `ack`.
-7. One notice through `scripts/lib/notify.sh`: what was upgraded, from and
-   to, what was rolled back and why, what was skipped, where the log is.
+     `up -d --no-deps`; HA by M12's runbook in code (the running image id
+     tagged `kronk/ha-rollback:<from>`, pull, H7b again right before the
+     stop, `docker stop -t 120`, `up -d`). The log records the image kept
+     for rollback and the digest pulled against the registry's at planning;
+   - verified: the image runs, the health checks, the stack's checks (the
+     deploy's own; for HA M12's H8 plus H7's mounts, StopTimeout and no
+     unclean-shutdown line), the offline corpus, the replay against the
+     baseline (a row that passed before and fails now, flappers excepted);
+   - kept, or rolled back. See "Outcomes".
+9. One notice through `scripts/lib/notify.sh` when anything was changed or
+   tried. A month whose last attempt ends with nothing applied (every
+   component not started, or no baseline) also sends one notice and raises
+   the warning, naming the reasons, as a month of declines does.
 
 It pushes nothing. Tags and commits stay local until Drew pushes.
+
+### House busy
+
+"Busy" means the household: a request on production's chat and voice
+routes in nginx's log in the last 5 minutes, a satellite not idle or
+changed in that time, a media player `playing` or `buffering` (a paused,
+idle or `on` player does not decline: Drew's ruling, D4 in the end-to-end
+report), or voice_tracer holding a run from the household. The run's own
+work is not counted:
+
+- requests under `/dev/` (the dev path, where the replay's runs go);
+- requests carrying the run's own User-Agent, `kronk-upgrade/<run
+  time>-<random>`, which it hands to `deploy_tag.sh` (`KRONK_CLIENT_UA`)
+  for its `/api/chat` check. The value is new every run and appears nowhere
+  else, so a household request (HA's aiohttp, a browser, curl by hand,
+  another run) never carries it;
+- held runs listed in voice_tracer's state file that are on the `kronk-dev`
+  pipeline (HA's `pipeline_debug/list`, read-only) or from the run's own
+  replays (their `pipeline_run_id`).
+
+A "Hey Jarvis" request by a person also goes to `/dev/`, but it changes its
+satellite's state, which the satellite check counts.
+
+### Outcomes
+
+Each component ends one way, and the notice line puts the state first
+(what git has, what runs; "Home Assistant is down" in those words when it
+is) and the detail after:
+
+- `upgraded`: kept.
+- `rolled back to <from>`: verify failed after something changed; the pin
+  is back by a commit, the previous tag deployed or the previous image up,
+  and that verified.
+- `not applied`: a step failed before anything changed what runs (a tag
+  that exists elsewhere, a failed pull, a missing precondition, a tag that
+  moved since planning). The run reverts its own pin commit; nothing is
+  restarted.
+- `not started`: a precondition was not met; nothing was committed.
+- `ROLLBACK FAILED`: a rollback ran and failed. The run stops; later runs
+  decline until `python3 scripts/upgrades.py ack`.
+- `OUT OF STEP`: git and what runs could not be put back in step (a revert
+  that failed, an uncommitted change). Stops and blocks like a failed
+  rollback.
+
+### An interrupted run
+
+A run killed inside a component (a reboot, OOM, `systemctl stop`, the
+unit's 4 h timeout) leaves its intent record. The next run reads it before
+anything else and compares git, the tag and what runs:
+
+- nothing out of step: clears the record;
+- git ahead of what runs (killed before the bring-up): puts the pin back by
+  a commit; nothing restarts;
+- the new version running unverified: finishes the rollback to the recorded
+  previous version, but only inside the night window with the house quiet;
+  otherwise it says so once and waits for the next night;
+- the component down (Home Assistant stopped between its stop and start):
+  brings it back on the previous image at once, at any hour;
+- anything else (an uncommitted change, a version that is neither): stops
+  as out of step and tells Drew.
+
+A recovered component is held back for the rest of the month. The notice
+says what was found and what was done. A run killed on the last night of
+the window waits for next month's first run (Drew's or the coordinator's
+call: see the fix report).
+
+### What a Kronk-stack upgrade costs
+
+Every Kronk-stack component upgrade is a full production redeploy:
+`deploy_tag.sh deploy` of a new tag changes the release directory, so every
+service with a bind mount (orchestrator, tool_service, voice_tracer, nginx,
+litellm, searxng) is recreated. A rollback is another. Two Kronk components
+in one night can mean four restarts of production. The notice says how many
+times production was redeployed.
 
 ## The quarterly check
 
@@ -93,16 +190,22 @@ visible without HA: `data/upgrades/status.json` keeps the notice, the
 `GET /api/upgrades`, production's orchestrator, read-only), and
 `kronk-upgrade-notices.timer` retries the notice hourly until HA answers.
 The warning stays until `python3 scripts/upgrades.py ack`. Rollbacks, failed
-rollbacks and a month that never found a quiet moment raise the same
-warning. This is the built default; Drew has not chosen it yet (alternatives
+rollbacks, out-of-step components, interrupted runs, pins that are not what
+runs, a month that never found a quiet moment and a month that applied
+nothing raise the same warning. A status file that cannot be parsed shows
+as a warning too (the API reads it), and every command stops on it. This is the built default; Drew has not chosen it yet (alternatives
 in the build report).
 
 ## By hand
 
 - What would happen now (any time; reads only, writes and sends nothing):
   `scripts/upgrade_minor.sh --dry-run`, `scripts/upgrade_major_check.sh --dry-run`.
-- A real run outside the timer: `scripts/upgrade_minor.sh` (or
-  `--ignore-month` when this month's is done).
+- A real run outside the timer: `scripts/upgrade_minor.sh --ignore-window`
+  (the night window is the timer's; the house checks still apply), with
+  `--ignore-month` when this month's run is done. A rerun the same day is
+  safe: tags are named after the run time, and a tag that already exists is
+  reused only when it points at the same commit. A rerun does not bypass a
+  failed rollback or an out-of-step block: read the log, fix it, `ack`.
 - Pins, what runs, what is newest: `python3 scripts/upgrades.py inventory`.
 - The status file: `python3 scripts/upgrades.py status`. Clear the warning
   (after reading it): `python3 scripts/upgrades.py ack`.
@@ -127,8 +230,13 @@ FAILED`. `journalctl --user -u kronk-upgrade-minor.service` has the same lines.
 - The run tags and deploys HEAD of the expected branch. Work committed but
   not deployed blocks the Kronk-stack components (by design); deploy it or
   wait. `inert_paths` lists what does not count.
-- Docker Hub dates are last-push dates. A re-pushed tag looks younger, never
-  older, so the age rule errs on the side of waiting.
+- Docker Hub dates are last-push dates; ghcr's stand-in is the image's
+  build time. A re-pushed tag looks younger, never older: it is reported as
+  a moved tag and not taken.
+- The telemetry and HA guard compares bind-mounted files' modification times
+  with the container's start. A file touched without a change declines too;
+  recreate the container by hand once, or wait for the change to be what
+  runs. Grafana's dashboards are `live_binds` (Grafana polls them).
 - GitHub's anonymous API allows 60 requests an hour; one monthly run uses
   about 10, a quarterly check about 15. A failed lookup is a skip.
 - The offline corpus must not pin a version the run may move:
