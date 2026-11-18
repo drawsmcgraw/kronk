@@ -1,0 +1,888 @@
+{
+ "meta": {
+  "started": "2026-11-18T01:35:14+00:00",
+  "label": "m13-e2e",
+  "check_only": false,
+  "git_commit": "5020a82",
+  "corpus_sha256": "e1517e8d28b2d513",
+  "corpus_rows": 160,
+  "selected": 160,
+  "not_selected": 0,
+  "selection": {
+   "id": null,
+   "tag": null
+  },
+  "target": {
+   "pipeline": "kronk-dev",
+   "pipeline_id": "01m7gvyhhfk2jp7havxm88ecme",
+   "engine": "conversation.kronk_dev",
+   "kronk_url": "http://localhost/dev/voice",
+   "status_url": "http://localhost/dev/api/status",
+   "production": false,
+   "prefer_local_intents": true,
+   "orchestrator": "kronk-orchestrator-dev-1",
+   "tool_service": "kronk-tool_service-dev-1"
+  },
+  "tool_service_health": {
+   "status": "ok",
+   "music_dry_run": true
+  },
+  "trigger_templates": 11,
+  "stopped": "media_player state changed after inc-1004-tell-kronk-orbital: [{'entity_id': 'media_player.sonos_move_derp', 'before': {'state': 'playing', 'media_title': 'Good Disease', 'media_artist': 'Aim & Stephen Jones', 'media_content_id': 'https://d3rz60g1mtspwx.cloudfront.net/9aaea0d5-858f-4235609197%2Fbdc76568-310a-3e68-bcf9-966f892e09ba.flac?Expires=1794966300&Signature=yJWEUotDdVsvS4ZTuT6lnYn3hFBTEXudWCBNR763mvISfoc~IRLwzucGR8qxfR8YAzsQAR3O2fMfMNWPjM5TNoZEVkDWC4oDIkrrz5PUIMps~WtvFn4TpZSthWnLZsTB2xx54TzfCfN-SedxD5tvoQaPUz7BnL5xRumOJ94j78A_&Key-Pair-Id=APKAJVZTZLZ7I5XDXGUQ'}, 'after': {'state': 'playing', 'media_title': 'The Omen [Explicit]', 'media_artist': 'Aim & Diamond D', 'media_content_id': 'https://d3rz60g1mtspwx.cloudfront.net/0d5b6f33-fa63-4235609198%2Fa47f1e78-b173-330b-aad2-1f87d68cf7ef.flac?Expires=1794967200&Signature=uvseEaQoBsllt36PtbcV-2j~WrHKvNLgYIuguo7Bi39gLQMziWp754yGytellRo3OBaRwM9dJ3XnAwgZvjqI0IRKdDya8b3quVe9pCAvF~2NF6tHaaY1h-zPVW0tIJSbto9BBE4TAcsjRkwRRAenU9TSMEPuizmnBeenVHxfYLA_&Key-Pair-Id=APKAJVZTZLZ7I5XDXGUQ'}}, {'entity_id': 'media_player.sonos_move_derp_2', 'before': {'state': 'playing', 'media_title': 'Good Disease', 'media_artist': 'Aim & Stephen Jones', 'media_content_id': ''}, 'after': {'state': 'playing', 'media_title': 'The Omen [Explicit]', 'media_artist': 'Aim & Diamond D', 'media_content_id': ''}}]",
+  "finished": "2026-11-18T01:35:29+00:00"
+ },
+ "rows": [
+  {
+   "id": "plan-anime-pop-radio-wet",
+   "text": "Play Anime Pop Radio. That's probably about it. Everything is pretty wet.",
+   "device": "kitchen_pe",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger",
+     "trigger": "catchall"
+    },
+    "route": "direct",
+    "rule": "messy",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "radio",
+    "name": "Anime Pop Radio",
+    "provider": "pandora",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    },
+    {
+     "check": "ha.trigger",
+     "ok": true,
+     "expected": "catchall",
+     "actual": "catchall"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "catchall",
+    "template": "(play|put on|listen to) {media_name}",
+    "summary": "trigger catchall"
+   },
+   "check_ms": 1,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "inc-1108-anime-pop-transcript",
+   "text": " Play Anime Pop Radio.  That's probably about it. Everything is pretty wet.  I just needed to make some space.",
+   "device": "kitchen_pe",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger",
+     "trigger": "catchall"
+    },
+    "route": "direct",
+    "rule": "messy",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "radio",
+    "name": "Anime Pop Radio",
+    "provider": "pandora",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    },
+    {
+     "check": "ha.trigger",
+     "ok": true,
+     "expected": "catchall",
+     "actual": "catchall"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "catchall",
+    "template": "(play|put on|listen to) {media_name}",
+    "summary": "trigger catchall"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "inc-1108-anime-pop-wet-basement",
+   "text": "Play Anime Pop Radio. That's probably about it. Everything is pretty wet, put it on the basement voice pe ma.",
+   "device": "basement_pe",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger",
+     "trigger": "catchall"
+    },
+    "route": "direct",
+    "rule": "messy",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "radio",
+    "name": "Anime Pop Radio",
+    "provider": "pandora",
+    "player": "entity:media_player.home_assistant_voice_0ab117"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    },
+    {
+     "check": "ha.trigger",
+     "ok": true,
+     "expected": "catchall",
+     "actual": "catchall"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "catchall",
+    "template": "(play|put on|listen to) {media_name}",
+    "summary": "trigger catchall"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "inc-1108-mushroom-jazz-basement",
+   "text": "Play Mushroom Jazz radio on the basement voice pe ma",
+   "device": "basement_pe",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger",
+     "trigger": "radio"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "radio",
+    "name": "Mushroom Jazz Radio",
+    "provider": "pandora",
+    "player": "entity:media_player.home_assistant_voice_0ab117"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    },
+    {
+     "check": "ha.trigger",
+     "ok": true,
+     "expected": "radio",
+     "actual": "radio"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "radio",
+    "template": "(play|listen to) [the ]{media_name} (radio|station) [(on|from|via) pandora][ (in|on) [the ]{area_or_player_name}]",
+    "summary": "trigger radio"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "inc-1108-artist-portishead-basement",
+   "text": "Play the artist Portishead on the basement voice pe ma",
+   "device": "basement_pe",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger",
+     "trigger": "artist"
+    },
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "artist",
+    "name": "Portishead",
+    "player": "entity:media_player.home_assistant_voice_0ab117"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    },
+    {
+     "check": "ha.trigger",
+     "ok": true,
+     "expected": "artist",
+     "actual": "artist"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "artist",
+    "template": "(shuffle|play|listen to) [the ](artist|band|group) {media_name} [(in|on|using) [the ]{area_or_player_name}][ (with|using) {radio_mode}]",
+    "summary": "trigger artist"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "inc-1108-pause-basement-player",
+   "text": "Pause the basement voice pe ma",
+   "device": "basement_pe",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "builtin",
+     "intent": "HassMediaPause"
+    },
+    "route": "direct",
+    "rule": "default",
+    "tool": "control_music",
+    "action": "pause",
+    "player": "entity:media_player.home_assistant_voice_0ab117"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "builtin",
+     "actual": "builtin"
+    },
+    {
+     "check": "ha.intent",
+     "ok": true,
+     "expected": "HassMediaPause",
+     "actual": "HassMediaPause"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "builtin",
+    "intent": "HassMediaPause",
+    "template": "(pause;<name>)",
+    "summary": "builtin HassMediaPause"
+   },
+   "check_ms": 1,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "inc-1108-timer-2min",
+   "text": "Set a timer for 2 minutes",
+   "device": "basement_pe",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "builtin",
+     "intent": "HassStartTimer"
+    },
+    "route": "direct",
+    "rule": "default",
+    "tool": null
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "builtin",
+     "actual": "builtin"
+    },
+    {
+     "check": "ha.intent",
+     "ok": true,
+     "expected": "HassStartTimer",
+     "actual": "HassStartTimer"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "builtin",
+    "intent": "HassStartTimer",
+    "template": "<timer_set> [a|the|my] timer for <timer_duration>",
+    "summary": "builtin HassStartTimer"
+   },
+   "check_ms": 1,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "plan-orbital-station-youtube",
+   "text": "Start an orbital radio station on YouTube Music.",
+   "device": "kitchen_pe",
+   "expected": {
+    "tier": "kronk",
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "radio",
+    "name": "Orbital",
+    "provider": "youtube_music",
+    "player": "origin"
+   },
+   "xfail": {
+    "parser": "YouTube Music offers no stations in Music Assistant, so the M11 path, like /music, plays the household's Pandora station 'Orbital Radio'; the row expects the YouTube Music request as said. An artist radio on YouTube Music (MA radio mode) is not built."
+   },
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": true,
+     "expected": "home/music",
+     "actual": "home/music"
+    },
+    {
+     "check": "tool",
+     "ok": true,
+     "expected": "play_music",
+     "actual": [
+      "home:play_music"
+     ]
+    }
+   ],
+   "latency_s": 7.36,
+   "trace_id": "2b0187dd171c37e4bdb69d68e09807a2",
+   "pipeline_run_id": "01M7P4PGQSZ9N1RV119GF0ZTFP",
+   "conversation_id": "01M7P4PGQSWAJR04AK9YBDM4Z1",
+   "ha_debug": {
+    "local": false,
+    "summary": "partial HassVacuumStart (match false)"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "I couldn't play that. I couldn't find a station called orbital radio station in Music Assistant. The closest I found was Orbital Radio.",
+   "kronk": {
+    "rid": "dcfcf634",
+    "route": "home",
+    "rule": "music",
+    "tools": [
+     "home:play_music"
+    ],
+    "direct": [],
+    "trace_id": "2b0187dd171c37e4bdb69d68e09807a2",
+    "events": [
+     "request",
+     "origin",
+     "route_shortcut",
+     "model_lock",
+     "agent_round",
+     "tool_call",
+     "tool_complete",
+     "agent_complete",
+     "request_complete",
+     "voice_stream"
+    ],
+    "dry_run": [],
+    "music_requests": [
+     "query='orbital radio station on YouTube Music' media_type='radio' player=None shuffle=False -> ['media_player.home_assistant_voice_0ac919_pe_01']"
+    ]
+   },
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "inc-1004-tell-kronk-orbital",
+   "text": "Tell Kronk to start an orbital radio to play on YouTube music.",
+   "device": "kitchen_pe",
+   "expected": {
+    "tier": "kronk",
+    "route": "home",
+    "rule": "music",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "radio",
+    "name": "Orbital",
+    "provider": "youtube_music",
+    "player": "origin"
+   },
+   "xfail": {
+    "parser": "YouTube Music offers no stations in Music Assistant, so the M11 path, like /music, plays the household's Pandora station 'Orbital Radio'; the row expects the YouTube Music request as said. An artist radio on YouTube Music (MA radio mode) is not built."
+   },
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": true,
+     "expected": "home/music",
+     "actual": "home/music"
+    },
+    {
+     "check": "tool",
+     "ok": true,
+     "expected": "play_music",
+     "actual": [
+      "home:play_music"
+     ]
+    },
+    {
+     "check": "action",
+     "ok": true,
+     "expected": "play",
+     "actual": "play"
+    },
+    {
+     "check": "player",
+     "ok": true,
+     "expected": "media_player.home_assistant_voice_0ac919_pe_01",
+     "actual": [
+      "media_player.home_assistant_voice_0ac919_pe_01"
+     ]
+    }
+   ],
+   "latency_s": 2.61,
+   "trace_id": "343d691cdb4e7da30ac666d7724ceeb4",
+   "pipeline_run_id": "01M7P4PS9M1CVFVVN82TS4FNT1",
+   "conversation_id": "01M7P4PS9MDCQRR2JKBX9XPS48",
+   "ha_debug": {
+    "local": false,
+    "summary": "partial HassFanSetSpeed (match false)"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "Dry run: would play the Pandora station Orbital Radio on the Kitchen speaker. Nothing was sent to the speaker.",
+   "kronk": {
+    "rid": "5e635f48",
+    "route": "home",
+    "rule": "music",
+    "tools": [
+     "home:play_music"
+    ],
+    "direct": [],
+    "trace_id": "343d691cdb4e7da30ac666d7724ceeb4",
+    "events": [
+     "request",
+     "origin",
+     "route_shortcut",
+     "model_lock",
+     "agent_round",
+     "tool_call",
+     "tool_complete",
+     "agent_complete",
+     "request_complete",
+     "voice_stream"
+    ],
+    "dry_run": [
+     {
+      "action": "play",
+      "targets": [
+       "media_player.home_assistant_voice_0ac919_pe_01"
+      ],
+      "detail": "Dry run: would play the Pandora station Orbital Radio on the Kitchen speaker. Nothing was sent to the speaker."
+     }
+    ],
+    "music_requests": [
+     "query='orbital radio on YouTube music' media_type='radio' player=None shuffle=False -> ['media_player.home_assistant_voice_0ac919_pe_01']"
+    ]
+   },
+   "status": "pass",
+   "xfail_reason": null,
+   "player_change": [
+    {
+     "entity_id": "media_player.sonos_move_derp",
+     "before": {
+      "state": "playing",
+      "media_title": "Good Disease",
+      "media_artist": "Aim & Stephen Jones",
+      "media_content_id": "https://d3rz60g1mtspwx.cloudfront.net/9aaea0d5-858f-4235609197%2Fbdc76568-310a-3e68-bcf9-966f892e09ba.flac?Expires=1794966300&Signature=yJWEUotDdVsvS4ZTuT6lnYn3hFBTEXudWCBNR763mvISfoc~IRLwzucGR8qxfR8YAzsQAR3O2fMfMNWPjM5TNoZEVkDWC4oDIkrrz5PUIMps~WtvFn4TpZSthWnLZsTB2xx54TzfCfN-SedxD5tvoQaPUz7BnL5xRumOJ94j78A_&Key-Pair-Id=APKAJVZTZLZ7I5XDXGUQ"
+     },
+     "after": {
+      "state": "playing",
+      "media_title": "The Omen [Explicit]",
+      "media_artist": "Aim & Diamond D",
+      "media_content_id": "https://d3rz60g1mtspwx.cloudfront.net/0d5b6f33-fa63-4235609198%2Fa47f1e78-b173-330b-aad2-1f87d68cf7ef.flac?Expires=1794967200&Signature=uvseEaQoBsllt36PtbcV-2j~WrHKvNLgYIuguo7Bi39gLQMziWp754yGytellRo3OBaRwM9dJ3XnAwgZvjqI0IRKdDya8b3quVe9pCAvF~2NF6tHaaY1h-zPVW0tIJSbto9BBE4TAcsjRkwRRAenU9TSMEPuizmnBeenVHxfYLA_&Key-Pair-Id=APKAJVZTZLZ7I5XDXGUQ"
+     }
+    },
+    {
+     "entity_id": "media_player.sonos_move_derp_2",
+     "before": {
+      "state": "playing",
+      "media_title": "Good Disease",
+      "media_artist": "Aim & Stephen Jones",
+      "media_content_id": ""
+     },
+     "after": {
+      "state": "playing",
+      "media_title": "The Omen [Explicit]",
+      "media_artist": "Aim & Diamond D",
+      "media_content_id": ""
+     }
+    }
+   ]
+  }
+ ],
+ "players": {
+  "before": {
+   "media_player.upper_shield": {
+    "state": "off",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.shield": {
+    "state": "off",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.shield_2": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.upper_shield_2": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.living_room_sony_bravia": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.home_assistant_voice_0ac919_pe_01": {
+    "state": "idle",
+    "media_title": "Love the DJ",
+    "media_artist": "Flying Pop’s",
+    "media_content_id": "filesystem_local--C7G2mf6f://track/Hotel Costes/hotelcostes1-costes/16 Love the DJ.mp3"
+   },
+   "media_player.satellite1_d8d1bc": {
+    "state": "idle",
+    "media_title": "Unwind",
+    "media_artist": "Digby Jones",
+    "media_content_id": "pandora://track/TR:131363610"
+   },
+   "media_player.home_assistant_voice_0ab117": {
+    "state": "idle",
+    "media_title": "My Funny Valentine (album version edit)",
+    "media_artist": "Big Muff",
+    "media_content_id": "library://track/15212"
+   },
+   "media_player.camerons_macbook_pro": {
+    "state": "unavailable",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.sonos_move_derp_2": {
+    "state": "playing",
+    "media_title": "Good Disease",
+    "media_artist": "Aim & Stephen Jones",
+    "media_content_id": ""
+   },
+   "media_player.home_assistant_voice_0ac919_media_player": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.home_assistant_voice_0ab117_media_player": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.satellite_01_media_player": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.xbr_49x800d": {
+    "state": "off",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.sonos_move_derp": {
+    "state": "playing",
+    "media_title": "Good Disease",
+    "media_artist": "Aim & Stephen Jones",
+    "media_content_id": "https://d3rz60g1mtspwx.cloudfront.net/9aaea0d5-858f-4235609197%2Fbdc76568-310a-3e68-bcf9-966f892e09ba.flac?Expires=1794966300&Signature=yJWEUotDdVsvS4ZTuT6lnYn3hFBTEXudWCBNR763mvISfoc~IRLwzucGR8qxfR8YAzsQAR3O2fMfMNWPjM5TNoZEVkDWC4oDIkrrz5PUIMps~WtvFn4TpZSthWnLZsTB2xx54TzfCfN-SedxD5tvoQaPUz7BnL5xRumOJ94j78A_&Key-Pair-Id=APKAJVZTZLZ7I5XDXGUQ"
+   },
+   "media_player.web_firefox_on_linux": {
+    "state": "unavailable",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.drew_s_windows_firefox": {
+    "state": "unavailable",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   }
+  },
+  "after": {
+   "media_player.upper_shield": {
+    "state": "off",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.shield": {
+    "state": "off",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.shield_2": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.upper_shield_2": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.living_room_sony_bravia": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.home_assistant_voice_0ac919_pe_01": {
+    "state": "idle",
+    "media_title": "Love the DJ",
+    "media_artist": "Flying Pop’s",
+    "media_content_id": "filesystem_local--C7G2mf6f://track/Hotel Costes/hotelcostes1-costes/16 Love the DJ.mp3"
+   },
+   "media_player.satellite1_d8d1bc": {
+    "state": "idle",
+    "media_title": "Unwind",
+    "media_artist": "Digby Jones",
+    "media_content_id": "pandora://track/TR:131363610"
+   },
+   "media_player.home_assistant_voice_0ab117": {
+    "state": "idle",
+    "media_title": "My Funny Valentine (album version edit)",
+    "media_artist": "Big Muff",
+    "media_content_id": "library://track/15212"
+   },
+   "media_player.camerons_macbook_pro": {
+    "state": "unavailable",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.sonos_move_derp_2": {
+    "state": "playing",
+    "media_title": "The Omen [Explicit]",
+    "media_artist": "Aim & Diamond D",
+    "media_content_id": ""
+   },
+   "media_player.home_assistant_voice_0ac919_media_player": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.home_assistant_voice_0ab117_media_player": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.satellite_01_media_player": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.xbr_49x800d": {
+    "state": "off",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.sonos_move_derp": {
+    "state": "playing",
+    "media_title": "The Omen [Explicit]",
+    "media_artist": "Aim & Diamond D",
+    "media_content_id": "https://d3rz60g1mtspwx.cloudfront.net/0d5b6f33-fa63-4235609198%2Fa47f1e78-b173-330b-aad2-1f87d68cf7ef.flac?Expires=1794967200&Signature=uvseEaQoBsllt36PtbcV-2j~WrHKvNLgYIuguo7Bi39gLQMziWp754yGytellRo3OBaRwM9dJ3XnAwgZvjqI0IRKdDya8b3quVe9pCAvF~2NF6tHaaY1h-zPVW0tIJSbto9BBE4TAcsjRkwRRAenU9TSMEPuizmnBeenVHxfYLA_&Key-Pair-Id=APKAJVZTZLZ7I5XDXGUQ"
+   },
+   "media_player.web_firefox_on_linux": {
+    "state": "unavailable",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.drew_s_windows_firefox": {
+    "state": "unavailable",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   }
+  },
+  "changed": [
+   {
+    "entity_id": "media_player.sonos_move_derp",
+    "before": {
+     "state": "playing",
+     "media_title": "Good Disease",
+     "media_artist": "Aim & Stephen Jones",
+     "media_content_id": "https://d3rz60g1mtspwx.cloudfront.net/9aaea0d5-858f-4235609197%2Fbdc76568-310a-3e68-bcf9-966f892e09ba.flac?Expires=1794966300&Signature=yJWEUotDdVsvS4ZTuT6lnYn3hFBTEXudWCBNR763mvISfoc~IRLwzucGR8qxfR8YAzsQAR3O2fMfMNWPjM5TNoZEVkDWC4oDIkrrz5PUIMps~WtvFn4TpZSthWnLZsTB2xx54TzfCfN-SedxD5tvoQaPUz7BnL5xRumOJ94j78A_&Key-Pair-Id=APKAJVZTZLZ7I5XDXGUQ"
+    },
+    "after": {
+     "state": "playing",
+     "media_title": "The Omen [Explicit]",
+     "media_artist": "Aim & Diamond D",
+     "media_content_id": "https://d3rz60g1mtspwx.cloudfront.net/0d5b6f33-fa63-4235609198%2Fa47f1e78-b173-330b-aad2-1f87d68cf7ef.flac?Expires=1794967200&Signature=uvseEaQoBsllt36PtbcV-2j~WrHKvNLgYIuguo7Bi39gLQMziWp754yGytellRo3OBaRwM9dJ3XnAwgZvjqI0IRKdDya8b3quVe9pCAvF~2NF6tHaaY1h-zPVW0tIJSbto9BBE4TAcsjRkwRRAenU9TSMEPuizmnBeenVHxfYLA_&Key-Pair-Id=APKAJVZTZLZ7I5XDXGUQ"
+    }
+   },
+   {
+    "entity_id": "media_player.sonos_move_derp_2",
+    "before": {
+     "state": "playing",
+     "media_title": "Good Disease",
+     "media_artist": "Aim & Stephen Jones",
+     "media_content_id": ""
+    },
+    "after": {
+     "state": "playing",
+     "media_title": "The Omen [Explicit]",
+     "media_artist": "Aim & Diamond D",
+     "media_content_id": ""
+    }
+   }
+  ],
+  "unchanged": false,
+  "count": 17
+ },
+ "summary": {
+  "counts": {
+   "pass": 9
+  },
+  "executed": 2,
+  "checked_read_only": 7,
+  "skipped": [],
+  "not_selected": 0,
+  "failed": [],
+  "xpassed": []
+ }
+}

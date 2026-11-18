@@ -1,0 +1,974 @@
+{
+ "meta": {
+  "started": "2026-11-18T01:50:14+00:00",
+  "label": "m13-e2e-rest",
+  "check_only": false,
+  "git_commit": "5020a82",
+  "corpus_sha256": "e1517e8d28b2d513",
+  "corpus_rows": 160,
+  "selected": 12,
+  "not_selected": 148,
+  "selection": {
+   "id": [
+    "m19-ask-kronk-play-jazz-in-the-office",
+    "m19-ask-kronk-what-song-is-this",
+    "m19-hey-ask-kronk-whats-playing",
+    "m19-can-you-ask-kronk-to-turn-it-up",
+    "m19-ask-kronk-search-the-web",
+    "m19-ask-kronk-update-the-magic-mirror",
+    "m19-what-happens-if-i-ask-kronk-to-pause",
+    "m19-ask-kronk-alone",
+    "m14-pause-thank-you",
+    "m14-resume-get-the-door",
+    "m14-thumbs-up-missed-best-part",
+    "m14-over-word-limit"
+   ],
+   "tag": null
+  },
+  "target": {
+   "pipeline": "kronk-dev",
+   "pipeline_id": "01m7gvyhhfk2jp7havxm88ecme",
+   "engine": "conversation.kronk_dev",
+   "kronk_url": "http://localhost/dev/voice",
+   "status_url": "http://localhost/dev/api/status",
+   "production": false,
+   "prefer_local_intents": true,
+   "orchestrator": "kronk-orchestrator-dev-1",
+   "tool_service": "kronk-tool_service-dev-1"
+  },
+  "tool_service_health": {
+   "status": "ok",
+   "music_dry_run": true
+  },
+  "trigger_templates": 11,
+  "finished": "2026-11-18T01:50:45+00:00"
+ },
+ "rows": [
+  {
+   "id": "m19-ask-kronk-play-jazz-in-the-office",
+   "text": "ask Kronk to play jazz in the office",
+   "device": "kitchen_pe",
+   "expected": {
+    "tier": "kronk",
+    "route": "direct",
+    "rule": "lead_in",
+    "tool": "play_music",
+    "kind": "genre",
+    "media_type": null,
+    "name": "jazz",
+    "player": "area:Office"
+   },
+   "xfail": null,
+   "checks": [],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": false,
+    "fuzzy": true,
+    "intent": "HassMediaPrevious",
+    "summary": "fuzzy HassMediaPrevious only (strict pass misses)"
+   },
+   "check_ms": 1,
+   "method": "skipped",
+   "status": "skip",
+   "skip_reason": "fuzzy local match (HassMediaPrevious) while a player is active; not executed"
+  },
+  {
+   "id": "m19-ask-kronk-what-song-is-this",
+   "text": "ask Kronk what song is this",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "direct",
+    "rule": "lead_in",
+    "tool": "now_playing",
+    "player": "origin"
+   },
+   "xfail": {
+    "live": "The lead-in routes it to the coordinator, which answers that it cannot identify music instead of delegating to ask_home -> now_playing: 0 of 11 dev runs on 2026-11-17 called the tool (the same sentence before M19, routed default: 0 of 5). The lead-in guarantees where a request goes, not what the model does with it."
+   },
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": true,
+     "expected": "direct/lead_in",
+     "actual": "direct/lead_in"
+    },
+    {
+     "check": "tool",
+     "ok": false,
+     "expected": "now_playing",
+     "actual": []
+    }
+   ],
+   "latency_s": 2.94,
+   "trace_id": "e5d67dea977cf20b594a32796eb0de58",
+   "pipeline_run_id": "01M7P5J0VJ6MY8VFVB8P6RCZ3D",
+   "conversation_id": "01M7P5J0VKZP5192F5Y70F1X3X",
+   "ha_debug": {
+    "local": false,
+    "summary": "no local match"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "I do not have access to audio input and cannot identify a song without hearing it.",
+   "kronk": {
+    "rid": "05026547",
+    "route": "direct",
+    "rule": "lead_in",
+    "tools": [],
+    "direct": [],
+    "trace_id": "e5d67dea977cf20b594a32796eb0de58",
+    "events": [
+     "request",
+     "origin",
+     "route_shortcut",
+     "model_lock",
+     "agent_round",
+     "request_complete",
+     "voice_stream"
+    ],
+    "dry_run": [],
+    "music_requests": []
+   },
+   "status": "xfail",
+   "xfail_reason": "The lead-in routes it to the coordinator, which answers that it cannot identify music instead of delegating to ask_home -> now_playing: 0 of 11 dev runs on 2026-11-17 called the tool (the same sentence before M19, routed default: 0 of 5). The lead-in guarantees where a request goes, not what the model does with it."
+  },
+  {
+   "id": "m19-hey-ask-kronk-whats-playing",
+   "text": "Hey, ask Kronk what's playing?",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "direct",
+    "rule": "lead_in",
+    "tool": "now_playing",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": true,
+     "expected": "direct/lead_in",
+     "actual": "direct/lead_in"
+    },
+    {
+     "check": "tool",
+     "ok": true,
+     "expected": "now_playing",
+     "actual": [
+      "coordinator:ask_home",
+      "home:now_playing"
+     ]
+    }
+   ],
+   "latency_s": 3.26,
+   "trace_id": "ae558ca8f5cdc323f8b24867eef84f4f",
+   "pipeline_run_id": "01M7P5J57P3QFWCJH1ZRADBEZ7",
+   "conversation_id": "01M7P5J57PNKXQFWE9F3ANEGN9",
+   "ha_debug": {
+    "local": false,
+    "summary": "no local match"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "Nothing is playing on the Office speaker.",
+   "kronk": {
+    "rid": "6f8b92f5",
+    "route": "direct",
+    "rule": "lead_in",
+    "tools": [
+     "coordinator:ask_home",
+     "home:now_playing"
+    ],
+    "direct": [],
+    "trace_id": "ae558ca8f5cdc323f8b24867eef84f4f",
+    "events": [
+     "request",
+     "origin",
+     "route_shortcut",
+     "model_lock",
+     "agent_round",
+     "tool_call",
+     "model_lock",
+     "agent_round",
+     "tool_call",
+     "tool_complete",
+     "tool_complete",
+     "terminal_passthrough",
+     "request_complete",
+     "voice_stream"
+    ],
+    "dry_run": [],
+    "music_requests": []
+   },
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "m19-can-you-ask-kronk-to-turn-it-up",
+   "text": "Can you ask Kronk to turn it up?",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "direct",
+    "rule": "lead_in",
+    "tool": "control_music",
+    "action": "volume_up",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": true,
+     "expected": "direct/lead_in",
+     "actual": "direct/lead_in"
+    },
+    {
+     "check": "tool",
+     "ok": true,
+     "expected": "control_music",
+     "actual": [
+      "coordinator:ask_home",
+      "home:control_music"
+     ]
+    }
+   ],
+   "latency_s": 2.18,
+   "trace_id": "edeacd4ce6d1ffcb7bb0da04028224fe",
+   "pipeline_run_id": "01M7P5J9Y9SB7AB00SFF6WRKMS",
+   "conversation_id": "01M7P5J9Y95HQ50B5SWBKQ1APD",
+   "ha_debug": {
+    "local": false,
+    "summary": "partial HassFanSetSpeed (match false)"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "I couldn't do that. Nothing is playing on the Office speaker.",
+   "kronk": {
+    "rid": "fb10e8b4",
+    "route": "direct",
+    "rule": "lead_in",
+    "tools": [
+     "coordinator:ask_home",
+     "home:control_music"
+    ],
+    "direct": [],
+    "trace_id": "edeacd4ce6d1ffcb7bb0da04028224fe",
+    "events": [
+     "request",
+     "origin",
+     "route_shortcut",
+     "model_lock",
+     "agent_round",
+     "tool_call",
+     "model_lock",
+     "agent_round",
+     "tool_call",
+     "tool_complete",
+     "tool_complete",
+     "terminal_passthrough",
+     "request_complete",
+     "voice_stream"
+    ],
+    "dry_run": [],
+    "music_requests": []
+   },
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "m19-ask-kronk-search-the-web",
+   "text": "ask Kronk to search the web for the tallest building in Ohio",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "direct",
+    "rule": "lead_in",
+    "tool": null
+   },
+   "xfail": null,
+   "checks": [],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": false,
+    "fuzzy": true,
+    "intent": "HassMediaNext",
+    "summary": "fuzzy HassMediaNext only (strict pass misses)"
+   },
+   "check_ms": 1,
+   "method": "skipped",
+   "status": "skip",
+   "skip_reason": "fuzzy local match (HassMediaNext) while a player is active; not executed"
+  },
+  {
+   "id": "m19-ask-kronk-update-the-magic-mirror",
+   "text": "ask Kronk to update the magic mirror",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "direct",
+    "rule": "lead_in",
+    "tool": "update_magicmirror"
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": true,
+     "expected": "direct/lead_in",
+     "actual": "direct/lead_in"
+    },
+    {
+     "check": "tool",
+     "ok": true,
+     "expected": "update_magicmirror",
+     "actual": [
+      "coordinator:ask_home",
+      "home:update_magicmirror"
+     ]
+    },
+    {
+     "check": "mirror update not refused",
+     "ok": true,
+     "expected": false,
+     "actual": false
+    }
+   ],
+   "latency_s": 1.91,
+   "trace_id": "bdfbb3d6e8926cf96c6226a3ff1e8952",
+   "pipeline_run_id": "01M7P5JEZAKV5B10AAKXTWQ34E",
+   "conversation_id": "01M7P5JEZA150BD9DJGKH3D825",
+   "ha_debug": {
+    "local": false,
+    "summary": "partial HassTurnOn (match false)"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "I couldn't start the magic mirror update. The details are in the logs.",
+   "kronk": {
+    "rid": "899769f8",
+    "route": "direct",
+    "rule": "lead_in",
+    "tools": [
+     "coordinator:ask_home",
+     "home:update_magicmirror"
+    ],
+    "direct": [],
+    "trace_id": "bdfbb3d6e8926cf96c6226a3ff1e8952",
+    "events": [
+     "request",
+     "origin",
+     "route_shortcut",
+     "model_lock",
+     "agent_round",
+     "tool_call",
+     "model_lock",
+     "agent_round",
+     "tool_call",
+     "tool_complete",
+     "failure_spoken_friendly",
+     "tool_complete",
+     "terminal_passthrough",
+     "request_complete",
+     "voice_stream"
+    ],
+    "dry_run": [],
+    "music_requests": []
+   },
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "m19-what-happens-if-i-ask-kronk-to-pause",
+   "text": "what happens if I ask Kronk to pause",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "direct",
+    "rule": "default",
+    "tool": null
+   },
+   "xfail": {
+    "live": "Routed default as intended, but the coordinator sometimes acts on the question instead of explaining: 2 of 18 dev runs on 2026-11-17 called ask_home -> control_music (pause) (docs/sprint/M19-e2e.md, finding 4). Model behaviour on the default route, not the lead-in rule; usually passes, so expect xpass."
+   },
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": true,
+     "expected": "direct/default",
+     "actual": "direct/default"
+    },
+    {
+     "check": "no music tool",
+     "ok": true,
+     "expected": [],
+     "actual": []
+    }
+   ],
+   "latency_s": 2.33,
+   "trace_id": "e5d68e1bd8f381b36e53ab2014a93349",
+   "pipeline_run_id": "01M7P5JJ7PKSCA732YS96YRS3Y",
+   "conversation_id": "01M7P5JJ7PF6T8159STZ06MFY3",
+   "ha_debug": {
+    "local": false,
+    "summary": "partial HassMediaPause (match false)"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "If you ask Kronk to pause, it will send a command to the home specialist to pause any music currently playing on the device.",
+   "kronk": {
+    "rid": "407b7060",
+    "route": "direct",
+    "rule": "default",
+    "tools": [],
+    "direct": [],
+    "trace_id": "e5d68e1bd8f381b36e53ab2014a93349",
+    "events": [
+     "request",
+     "origin",
+     "route",
+     "model_lock",
+     "agent_round",
+     "request_complete",
+     "voice_stream"
+    ],
+    "dry_run": [],
+    "music_requests": []
+   },
+   "status": "xpass",
+   "xfail_reason": "Routed default as intended, but the coordinator sometimes acts on the question instead of explaining: 2 of 18 dev runs on 2026-11-17 called ask_home -> control_music (pause) (docs/sprint/M19-e2e.md, finding 4). Model behaviour on the default route, not the lead-in rule; usually passes, so expect xpass."
+  },
+  {
+   "id": "m19-ask-kronk-alone",
+   "text": "Ask Kronk.",
+   "device": "office_sat1",
+   "expected": {
+    "tier": "kronk",
+    "route": "direct",
+    "rule": "default",
+    "tool": null
+   },
+   "xfail": null,
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": true,
+     "expected": "direct/default",
+     "actual": "direct/default"
+    },
+    {
+     "check": "no music tool",
+     "ok": true,
+     "expected": [],
+     "actual": []
+    }
+   ],
+   "latency_s": 0.23,
+   "trace_id": "e64f9074c850a5c18263a8dadb8be626",
+   "pipeline_run_id": "01M7P5JNYY5M4MX1RR83Q4J8Q2",
+   "conversation_id": "01M7P5JNYY667QZ85JKS3QWQC1",
+   "ha_debug": {
+    "local": false,
+    "summary": "no local match"
+   },
+   "check_ms": 1,
+   "method": "executed",
+   "speech": "I am ready to help. What do you need?",
+   "kronk": {
+    "rid": "6abf6dd2",
+    "route": "direct",
+    "rule": "default",
+    "tools": [],
+    "direct": [],
+    "trace_id": "e64f9074c850a5c18263a8dadb8be626",
+    "events": [
+     "request",
+     "origin",
+     "route",
+     "model_lock",
+     "agent_round",
+     "request_complete",
+     "voice_stream"
+    ],
+    "dry_run": [],
+    "music_requests": []
+   },
+   "status": "pass",
+   "xfail_reason": null
+  },
+  {
+   "id": "m14-pause-thank-you",
+   "text": " Pause.  Thank you.",
+   "device": "kitchen_pe",
+   "expected": {
+    "tier": "kronk",
+    "route": "direct",
+    "rule": "messy",
+    "tool": "control_music",
+    "action": "pause",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": false,
+    "fuzzy": true,
+    "intent": "HassMediaPause",
+    "summary": "fuzzy HassMediaPause only (strict pass misses)"
+   },
+   "check_ms": 1,
+   "method": "skipped",
+   "status": "skip",
+   "skip_reason": "fuzzy local match (HassMediaPause) while a player is active; not executed"
+  },
+  {
+   "id": "m14-resume-get-the-door",
+   "text": " Resume.  Can you get the door?  Thank you.",
+   "device": "kitchen_pe",
+   "expected": {
+    "tier": "kronk",
+    "route": "direct",
+    "rule": "messy",
+    "tool": "control_music",
+    "action": "resume",
+    "player": "origin"
+   },
+   "xfail": null,
+   "checks": [],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": false,
+    "fuzzy": true,
+    "intent": "HassMediaUnpause",
+    "summary": "fuzzy HassMediaUnpause only (strict pass misses)"
+   },
+   "check_ms": 2,
+   "method": "skipped",
+   "status": "skip",
+   "skip_reason": "fuzzy local match (HassMediaUnpause) while a player is active; not executed"
+  },
+  {
+   "id": "m14-thumbs-up-missed-best-part",
+   "text": " Thumbs up!  I know but you missed the best part.",
+   "device": "kitchen_pe",
+   "expected": {
+    "tier": "kronk",
+    "route": "direct",
+    "rule": "messy",
+    "tool": "rate_music",
+    "thumb": "up",
+    "player": "origin"
+   },
+   "xfail": {
+    "live": "The coordinator does not take \"Thumbs up!\" with trailing speech as a rating: 0 of 6 dev runs on 2026-11-17 called a tool (it asked for context). Same route before the gate (default; the anchored rate rule never matched), and production also called no tool on 2026-10-25. Coordinator behaviour, not the gate; no new rule (stopping rule)."
+   },
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "kronk",
+     "actual": "kronk"
+    },
+    {
+     "check": "rule",
+     "ok": true,
+     "expected": "direct/messy",
+     "actual": "direct/messy"
+    },
+    {
+     "check": "tool",
+     "ok": false,
+     "expected": "rate_music",
+     "actual": []
+    }
+   ],
+   "latency_s": 0.47,
+   "trace_id": "dcb69cb30c8501e4d276f9813eab0692",
+   "pipeline_run_id": "01M7P5JTJSR465V5DFBDTE8AMC",
+   "conversation_id": "01M7P5JTJSKRPR3JMJC81PM8ET",
+   "ha_debug": {
+    "local": false,
+    "summary": "partial HassTurnOn (match false)"
+   },
+   "check_ms": 2,
+   "method": "executed",
+   "speech": "I apologize, but I don't have enough context to understand what you are referring to. Could you please tell me what you would like me to help you with?",
+   "kronk": {
+    "rid": "8ac18eac",
+    "route": "direct",
+    "rule": "messy",
+    "tools": [],
+    "direct": [],
+    "trace_id": "dcb69cb30c8501e4d276f9813eab0692",
+    "events": [
+     "request",
+     "origin",
+     "route_shortcut",
+     "model_lock",
+     "agent_round",
+     "request_complete",
+     "voice_stream"
+    ],
+    "dry_run": [],
+    "music_requests": []
+   },
+   "status": "xfail",
+   "xfail_reason": "The coordinator does not take \"Thumbs up!\" with trailing speech as a rating: 0 of 6 dev runs on 2026-11-17 called a tool (it asked for context). Same route before the gate (default; the anchored rate rule never matched), and production also called no tool on 2026-10-25. Coordinator behaviour, not the gate; no new rule (stopping rule)."
+  },
+  {
+   "id": "m14-over-word-limit",
+   "text": "Play Anime Pop Radio that's probably about it everything is pretty wet I just needed to make some space okay so yeah",
+   "device": "kitchen_pe",
+   "expected": {
+    "tier": "ha_local",
+    "ha": {
+     "source": "trigger",
+     "trigger": "catchall"
+    },
+    "route": "direct",
+    "rule": "messy",
+    "tool": "play_music",
+    "kind": "named",
+    "media_type": "radio",
+    "name": "Anime Pop Radio",
+    "provider": "pandora",
+    "player": "origin"
+   },
+   "xfail": {
+    "parser": "No full stop for radio_name() to stop at: the station name runs on into the trailing speech. Only the model can pick it out; M11's parser is not expected to."
+   },
+   "checks": [
+    {
+     "check": "tier",
+     "ok": true,
+     "expected": "ha_local",
+     "actual": "ha_local"
+    },
+    {
+     "check": "ha.source",
+     "ok": true,
+     "expected": "trigger",
+     "actual": "trigger"
+    },
+    {
+     "check": "ha.trigger",
+     "ok": true,
+     "expected": "catchall",
+     "actual": "catchall"
+    }
+   ],
+   "latency_s": null,
+   "trace_id": null,
+   "pipeline_run_id": null,
+   "conversation_id": null,
+   "ha_debug": {
+    "local": true,
+    "source": "trigger",
+    "trigger": "catchall",
+    "template": "(play|put on|listen to) {media_name}",
+    "summary": "trigger catchall"
+   },
+   "check_ms": 0,
+   "method": "checked",
+   "status": "pass",
+   "xfail_reason": null
+  }
+ ],
+ "players": {
+  "before": {
+   "media_player.upper_shield": {
+    "state": "off",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.shield": {
+    "state": "off",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.shield_2": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.upper_shield_2": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.living_room_sony_bravia": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.home_assistant_voice_0ac919_pe_01": {
+    "state": "idle",
+    "media_title": "Love the DJ",
+    "media_artist": "Flying Pop’s",
+    "media_content_id": "filesystem_local--C7G2mf6f://track/Hotel Costes/hotelcostes1-costes/16 Love the DJ.mp3"
+   },
+   "media_player.satellite1_d8d1bc": {
+    "state": "idle",
+    "media_title": "Unwind",
+    "media_artist": "Digby Jones",
+    "media_content_id": "pandora://track/TR:131363610"
+   },
+   "media_player.home_assistant_voice_0ab117": {
+    "state": "idle",
+    "media_title": "My Funny Valentine (album version edit)",
+    "media_artist": "Big Muff",
+    "media_content_id": "library://track/15212"
+   },
+   "media_player.camerons_macbook_pro": {
+    "state": "unavailable",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.sonos_move_derp_2": {
+    "state": "playing",
+    "media_title": "Essarai (feat. Nicolaj Grandjean & Tanja Thulau)",
+    "media_artist": "Cantoma, Nicolaj Grandjean & Tanja Thulau",
+    "media_content_id": ""
+   },
+   "media_player.home_assistant_voice_0ac919_media_player": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.home_assistant_voice_0ab117_media_player": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.satellite_01_media_player": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.xbr_49x800d": {
+    "state": "off",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.sonos_move_derp": {
+    "state": "playing",
+    "media_title": "Essarai (feat. Nicolaj Grandjean & Tanja Thulau)",
+    "media_artist": "Cantoma, Nicolaj Grandjean & Tanja Thulau",
+    "media_content_id": "https://d3rz60g1mtspwx.cloudfront.net/06ad7b9a-9e49-4206728255%2F484161fa-39e8-3c3b-8db3-7c02fa37cb71.flac?Expires=1794967200&Signature=KzknzjSA2APbOIGpjjHAb2NKWxm3IpCi8ssqO3BsLAkpUy4AsGyPeMS5Bt2tAAJeJynVo12P13CNhz-mCGw1BAWOaXY23D3N7d6ZJ2aHo89JGTTk4BU53Vz8vz1klhfcbhRWSrBq~b85LFSZS~QGYLXN-bBWf7aFD6xC1t-DCmE_&Key-Pair-Id=APKAJVZTZLZ7I5XDXGUQ"
+   },
+   "media_player.web_firefox_on_linux": {
+    "state": "unavailable",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.drew_s_windows_firefox": {
+    "state": "unavailable",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   }
+  },
+  "after": {
+   "media_player.upper_shield": {
+    "state": "off",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.shield": {
+    "state": "off",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.shield_2": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.upper_shield_2": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.living_room_sony_bravia": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.home_assistant_voice_0ac919_pe_01": {
+    "state": "idle",
+    "media_title": "Love the DJ",
+    "media_artist": "Flying Pop’s",
+    "media_content_id": "filesystem_local--C7G2mf6f://track/Hotel Costes/hotelcostes1-costes/16 Love the DJ.mp3"
+   },
+   "media_player.satellite1_d8d1bc": {
+    "state": "idle",
+    "media_title": "Unwind",
+    "media_artist": "Digby Jones",
+    "media_content_id": "pandora://track/TR:131363610"
+   },
+   "media_player.home_assistant_voice_0ab117": {
+    "state": "idle",
+    "media_title": "My Funny Valentine (album version edit)",
+    "media_artist": "Big Muff",
+    "media_content_id": "library://track/15212"
+   },
+   "media_player.camerons_macbook_pro": {
+    "state": "unavailable",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.sonos_move_derp_2": {
+    "state": "playing",
+    "media_title": "Essarai (feat. Nicolaj Grandjean & Tanja Thulau)",
+    "media_artist": "Cantoma, Nicolaj Grandjean & Tanja Thulau",
+    "media_content_id": ""
+   },
+   "media_player.home_assistant_voice_0ac919_media_player": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.home_assistant_voice_0ab117_media_player": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.satellite_01_media_player": {
+    "state": "idle",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.xbr_49x800d": {
+    "state": "off",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.sonos_move_derp": {
+    "state": "playing",
+    "media_title": "Essarai (feat. Nicolaj Grandjean & Tanja Thulau)",
+    "media_artist": "Cantoma, Nicolaj Grandjean & Tanja Thulau",
+    "media_content_id": "https://d3rz60g1mtspwx.cloudfront.net/06ad7b9a-9e49-4206728255%2F484161fa-39e8-3c3b-8db3-7c02fa37cb71.flac?Expires=1794967200&Signature=KzknzjSA2APbOIGpjjHAb2NKWxm3IpCi8ssqO3BsLAkpUy4AsGyPeMS5Bt2tAAJeJynVo12P13CNhz-mCGw1BAWOaXY23D3N7d6ZJ2aHo89JGTTk4BU53Vz8vz1klhfcbhRWSrBq~b85LFSZS~QGYLXN-bBWf7aFD6xC1t-DCmE_&Key-Pair-Id=APKAJVZTZLZ7I5XDXGUQ"
+   },
+   "media_player.web_firefox_on_linux": {
+    "state": "unavailable",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   },
+   "media_player.drew_s_windows_firefox": {
+    "state": "unavailable",
+    "media_title": null,
+    "media_artist": null,
+    "media_content_id": null
+   }
+  },
+  "changed": [],
+  "unchanged": true,
+  "count": 17
+ },
+ "summary": {
+  "counts": {
+   "skip": 4,
+   "xfail": 2,
+   "pass": 5,
+   "xpass": 1
+  },
+  "executed": 7,
+  "checked_read_only": 1,
+  "skipped": [
+   {
+    "id": "m19-ask-kronk-play-jazz-in-the-office",
+    "reason": "fuzzy local match (HassMediaPrevious) while a player is active; not executed"
+   },
+   {
+    "id": "m19-ask-kronk-search-the-web",
+    "reason": "fuzzy local match (HassMediaNext) while a player is active; not executed"
+   },
+   {
+    "id": "m14-pause-thank-you",
+    "reason": "fuzzy local match (HassMediaPause) while a player is active; not executed"
+   },
+   {
+    "id": "m14-resume-get-the-door",
+    "reason": "fuzzy local match (HassMediaUnpause) while a player is active; not executed"
+   }
+  ],
+  "not_selected": 148,
+  "failed": [],
+  "xpassed": [
+   "m19-what-happens-if-i-ask-kronk-to-pause"
+  ]
+ }
+}
