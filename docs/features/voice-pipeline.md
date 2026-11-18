@@ -13,7 +13,8 @@ Fully local: wake word on-device, STT/TTS on the kronk host, no cloud.
 ```
 Voice PE (wake word, mic/speaker)
   → Home Assistant (device broker; Assist pipeline "kronk")
-    → Wyoming faster-whisper STT (host systemd, GPU, large-v3-turbo, :10300)
+    → Wyoming faster-whisper STT (host systemd, GPU, large-v3-turbo, :10300;
+      the kronk-dev pipeline uses a second instance with a prompt, :10301)
     → local intent matcher (prefer_local_intents ON — timers, MA blueprint)
     → fallback: Ollama shim  → Kronk pipeline (orchestrator /api/chat via nginx)
     → Wyoming Piper TTS (container, en_US-lessac-medium, :10200)
@@ -59,8 +60,95 @@ satellites, 2026-11-17), so "Okay Nabu, ask Kronk to find some deep
 house music and play it" reaches Kronk, where the first routing rule cuts
 off "ask Kronk to" and hands the rest to the coordinator, past every
 shortcut and direct dispatch. Slower by design: one or two model hops,
-about 3–7 s on dev. Adding "Kronk" to the Whisper prompt (plan M19 step 4)
-is left to M13. Details: [`lead-in.md`](lead-in.md).
+about 3–7 s on dev. "Kronk" is in the Whisper vocabulary prompt (plan M19
+step 4), on the dev path only (sprint M13, below). Details:
+[`lead-in.md`](lead-in.md).
+
+## The dev Whisper instance and the vocabulary prompt (sprint M13)
+
+**What.** HA's `kronk-dev` pipeline (Hey Jarvis) transcribes with a second
+Whisper instance, `wyoming-whisper-dev.service`, on `127.0.0.1:10301`: the
+same `large-v3-turbo` model and `float16` compute type as production, plus
+`--initial-prompt` with a line of household names (rooms, Pandora
+stations, top artists, Music Assistant players, and "Kronk"). The prompt
+biases Whisper toward those spellings. Production's `wyoming-whisper`
+(`:10300`, the `kronk` pipeline, Okay Nabu) has no prompt and stays that
+way until the M12 clips show the prompt helps (Drew's decision,
+2026-11-11). Build report: `docs/sprint/M13-build.md`.
+
+**How.**
+
+- HA: Wyoming entry "Kronk Whisper STT dev" (`127.0.0.1:10301`), entity
+  `stt.faster_whisper_2`; `kronk-dev`'s `stt_engine` points at it. The
+  `kronk` pipeline keeps `stt.faster_whisper`.
+- The prompt: `scripts/build_stt_prompt.py` reads HA's template API and
+  `tool_service-dev` (`GET /music/stations?provider=pandora`,
+  `GET /music/taste/profile`), all read-only, and writes
+  `~/services/wyoming-whisper/dev-prompt.env`
+  (`WHISPER_INITIAL_PROMPT="..."`), which the unit loads as an
+  `EnvironmentFile` and passes as one argument (`${WHISPER_INITIAL_PROMPT}`).
+  Names only: no command verbs, so noise is not pulled toward "pause". Budget
+  100 Whisper tokens, counted with the model's own tokenizer: Kronk and every
+  room first, then stations, artists and players take turns by rank. The
+  rule is in the script's docstring.
+- Memory: about 2.1 GB GTT and 0.7 GB RSS, loaded on the first
+  transcription after a start.
+
+**Regenerate.** Nightly, `kronk-stt-prompt.timer` (04:00, after the 03:30
+taste rebuild) runs the script with `--restart-unit
+wyoming-whisper-dev.service`; the unit restarts only when the file
+changed. By hand:
+
+```bash
+~/services/wyoming-whisper/.venv/bin/python scripts/build_stt_prompt.py --print   # preview, writes nothing
+~/services/wyoming-whisper/.venv/bin/python scripts/build_stt_prompt.py \
+    --restart-unit wyoming-whisper-dev.service                                   # write; restart if changed
+```
+
+A failed or empty source exits 1 and leaves the old file. The script
+refuses to restart any unit not named `*-dev.service`.
+
+**Stop it.** `systemctl --user disable --now wyoming-whisper-dev.service`
+frees its memory; Hey Jarvis then fails at the STT stage. To keep Hey Jarvis
+working without it, point `kronk-dev` back at production's Whisper first:
+websocket `assist_pipeline/pipeline/update` on `kronk-dev` with
+`stt_engine: "stt.faster_whisper"` (every other field unchanged).
+
+**Measure it.** `scripts/stt_prompt_bench.py` (run with
+`tests/.venv/bin/python`): `render` makes a synthetic set through Piper's
+Wyoming port (files only, no speaker), `run` sends a sheet's audio to one
+STT port, `compare` makes the tables. It reads the M12 labelling sheet
+(`voice-capture.md`), so the real decision runs the same tool on labelled
+household clips: procedure in `docs/sprint/M13-build.md`, "Deciding
+production".
+
+**Moving the prompt to production, when Drew decides.** One change, then a
+voice check:
+
+1. Deploy a tag that contains `GET /music/stations`, so production
+   `tool_service` serves it.
+2. Write a production prompt file with `--tool-service
+   http://127.0.0.1:8003 --out ~/services/wyoming-whisper/prompt.env`.
+3. Add `EnvironmentFile=` for that file and `--initial-prompt
+   ${WHISPER_INITIAL_PROMPT}` to `systemd/wyoming-whisper.service`, copy it,
+   `daemon-reload`, restart `wyoming-whisper` (Okay Nabu is down for a few
+   seconds; the model reloads on the next request).
+4. The nightly rebuild cannot restart production's unit (the script
+   refuses it); widening that guard is part of the same decision.
+5. Then retire the dev instance or keep it for the next experiment.
+
+**Gotchas.**
+
+- A prompt biases every transcription, silence and noise included. On
+  synthetic non-speech the bench counts how often each instance returns
+  text and whether it returns a prompt name (build report).
+- Whisper without VAD returns text on silence: production answered all 40
+  generated non-speech clips with words ("Thank you.", "You", "Bye.").
+  Not changed by M13.
+- Both units log each transcript at INFO in the user journal.
+- The installed `wyoming-faster-whisper` 3.1.0 ignores `--local-files-only`
+  for faster-whisper models; the dev unit sets `HF_HUB_OFFLINE=1` so a model
+  load never asks the Hugging Face Hub. Production still does at each load.
 
 ## The voice signal (sprint M2)
 
@@ -262,6 +350,11 @@ single utterance, from the shell:
   through to Kronk.
 
 ## Blog hooks
+
+- A hundred tokens of names: biasing Whisper toward a household's
+  stations and rooms, and why command verbs stay out of the prompt.
+- "Thank you." on silence: what a speech model says when nobody speaks,
+  with and without a prompt.
 
 - Building a fully-local voice assistant on one AMD Strix Halo box —
   the CTranslate2-on-gfx1151 build saga.

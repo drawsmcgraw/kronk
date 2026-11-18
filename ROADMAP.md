@@ -63,6 +63,13 @@ Conventions:
   sprint M12 (`docs/features/voice-capture.md`): transcripts in traces, two
   weeks of puck audio, a wrong-action mark, the labelling sheet; the
   recordings and the ~200 hand labels are what the bench runs on.
+  Sprint M13 (built 2026-11-18): the household vocabulary prompt
+  (`scripts/build_stt_prompt.py`) on a second, dev-only Whisper instance
+  that HA's `kronk-dev` pipeline uses, and the bench that decides it
+  (`scripts/stt_prompt_bench.py`, reads the M12 sheet). Production's
+  Whisper has no prompt until the labelled clips show WER and command-form
+  errors better at the same p95 latency; that call is Drew's
+  (`docs/sprint/M13-build.md`, "Deciding production").
 - **SearXNG stays healthy** — search must not silently degrade (a lapsed pin
   made every search junk for a month). Built 2026-10-05: weekly
   `kronk-searxng-canary.timer` and `docs/runbooks/searxng-bump.md`. Hand-run

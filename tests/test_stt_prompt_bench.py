@@ -249,3 +249,15 @@ def test_render_writes_the_sheet(tmp_path, monkeypatch):
         assert w.getframerate() == 16000 and w.getnchannels() == 1
     with pytest.raises(b.BenchError, match="exists"):
         asyncio.run(b.render(tmp_path, [("corpus:a", "Pause.")], ["v"], ("127.0.0.1", 10200), 3, 1))
+
+
+def test_rescore_names_recounts_from_the_stored_text():
+    res = {"label": "A", "rows": [
+        {"sample_id": "s", "variant": "clean", "ref": "play jazz", "hyp": "play jazz Kronk", "latency_s": 0.1,
+         "ref_words": 2, "word_errors": 1, "command_error": False, "names_added": []},
+        {"sample_id": "h", "variant": "hazard-hum", "hyp": "Kronk.", "latency_s": 0.1,
+         "returned_text": True, "names_hit": []}]}
+    out = b.rescore_names(res, ["Kronk"])
+    assert out["rows"][0]["names_added"] == ["Kronk"] and out["rows"][1]["names_hit"] == ["Kronk"]
+    assert out["summary"]["hazard-hum"]["returned_prompt_names"] == 1
+    assert res["rows"][1]["names_hit"] == []          # the input is not changed

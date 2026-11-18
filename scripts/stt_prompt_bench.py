@@ -557,6 +557,21 @@ def compare_tables(results: list[dict]) -> str:
     return "\n".join(lines)
 
 
+def rescore_names(result: dict, names: list[str]) -> dict:
+    """The result with its prompt-name counts recomputed from the stored
+    text against `names`, so runs made with and without --prompt-file
+    compare on the same list."""
+    rows = []
+    for r in result["rows"]:
+        r = dict(r)
+        if "ref_words" in r:
+            r["names_added"] = [n for n in names_in(r["hyp"], names) if n not in names_in(r["ref"], names)]
+        elif "returned_text" in r:
+            r["names_hit"] = names_in(r["hyp"], names)
+        rows.append(r)
+    return {**result, "rows": rows, "summary": summarize(rows)}
+
+
 def differing_rows(a: dict, b: dict) -> list[tuple[str, str, str]]:
     hb = {r["sample_id"]: r["hyp"] for r in b["rows"]}
     return [(r["sample_id"], r["hyp"], hb.get(r["sample_id"], "<missing>"))
@@ -584,6 +599,8 @@ def main(argv=None) -> int:
     c = sub.add_parser("compare")
     c.add_argument("results", type=Path, nargs="+")
     c.add_argument("--same", nargs=2, type=Path, default=None)
+    c.add_argument("--prompt-file", type=Path, default=None,
+                   help="recount prompt names in every result against this prompt")
     a = ap.parse_args(argv)
     try:
         if a.cmd == "render":
@@ -611,6 +628,9 @@ def main(argv=None) -> int:
             print(compare_tables([result]))
         else:
             results = [json.loads(p.read_text()) for p in a.results]
+            if a.prompt_file:
+                names = prompt_names(a.prompt_file)
+                results = [rescore_names(r, names) for r in results]
             print(compare_tables(results))
             if a.same:
                 x, y = (json.loads(p.read_text()) for p in a.same)

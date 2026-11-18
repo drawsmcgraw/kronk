@@ -91,7 +91,9 @@ systemd units, not containers. The live view is the `/services` page.
 | `tool_service` | 8003 (localhost) | Weather, search, URL fetch, music (HA/MA), solar, news brief, shopping list, hot tub, MagicMirror ops, diagrams |
 | `searxng` | 8080 (internal) | Self-hosted meta-search, used by `tool_service` |
 | `wyoming-piper` | 10200 | Piper TTS for the voice pipeline |
-| `wyoming-whisper` (host unit) | 10300 | faster-whisper STT on the GPU |
+| `wyoming-whisper` (host unit) | 10300 | faster-whisper STT on the GPU, no prompt (production pipelines) |
+| `wyoming-whisper-dev` (host unit) | 10301 (loopback) | The same model with the household vocabulary prompt; HA's `kronk-dev` pipeline only (sprint M13) |
+| `kronk-stt-prompt` (host timer) | — | Nightly 04:00: rebuilds the dev Whisper prompt (`scripts/build_stt_prompt.py`), restarts `wyoming-whisper-dev` only when the text changed |
 | `kronk-hottub-monitor` (host unit) | — | Polls the spa pack (`geckolib`) every 5 min and writes `data/hottub/status.json`, which `tool_service` serves at `/hottub` |
 | `homeassistant` (`kronk-ha`) | 8123 (host net) | Voice pipeline broker, satellites, automations |
 | `music-assistant-server` (`kronk-ma`) | 8095 (host net) | Players, YouTube Music, Pandora, NAS library |
@@ -434,6 +436,18 @@ Environment="LD_LIBRARY_PATH=/usr/local/lib/ollama/rocm:/home/drew/pai/pai_works
 ```
 
 The `render` group is required for `/dev/kfd` access — verify with `groups drew`.
+
+### Whisper (STT) units
+
+`wyoming-whisper.service` (production, `0.0.0.0:10300`, no prompt) and
+`wyoming-whisper-dev.service` (sprint M13, `127.0.0.1:10301`) run the same
+`large-v3-turbo` model from `~/services/wyoming-whisper/`; each loads it
+once, on its first transcription (about 2.1 GB GTT each). The dev unit adds
+`--initial-prompt` from `~/services/wyoming-whisper/dev-prompt.env`, written
+by `scripts/build_stt_prompt.py` and rebuilt nightly by
+`kronk-stt-prompt.timer`. Reference copies in [`systemd/`](systemd/); install,
+stop and removal recipes in each unit's header and in
+`docs/features/voice-pipeline.md` ("The dev Whisper instance").
 
 ### Building llama.cpp for gfx1151
 
