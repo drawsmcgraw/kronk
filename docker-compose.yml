@@ -42,7 +42,10 @@ services:
     restart: unless-stopped
 
   tool_service:
-    build: ./tool_service
+    build:
+      context: ./tool_service
+      # The voice corpus for the /settings corpus check (sprint M21 step 2).
+      additional_contexts: { corpus: ./tests }
     # Loopback only: Home Assistant (host networking) calls /music/voice from
     # the music blueprint's rest_command (MUSIC_TASTE_AGENT_PLAN step 7).
     # Not reachable from the LAN — everything else goes through nginx.
@@ -218,7 +221,10 @@ services:
     restart: unless-stopped
 
   orchestrator:
-    build: ./orchestrator
+    build:
+      context: ./orchestrator
+      # The voice corpus for the /settings corpus check (sprint M21 step 2).
+      additional_contexts: { corpus: ./tests }
     volumes:
       - ./data:/data
       - ./kronk-context.md:/kronk-context.md:ro
@@ -339,7 +345,9 @@ services:
   # update_magicmirror fail with an error instead).
   tool_service-dev:
     profiles: [dev]
-    build: ./tool_service
+    build:
+      context: ./tool_service
+      additional_contexts: { corpus: ./tests }
     command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8103"]
     ports:
       - "127.0.0.1:8103:8103"
@@ -409,7 +417,9 @@ services:
 
   orchestrator-dev:
     profiles: [dev]
-    build: ./orchestrator
+    build:
+      context: ./orchestrator
+      additional_contexts: { corpus: ./tests }
     command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8100"]
     env_file: [.env.dev]
     volumes:

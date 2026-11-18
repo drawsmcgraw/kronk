@@ -1,0 +1,5 @@
+# Build context `corpus` (docker-compose.yml additional_contexts, sprint M21
+# step 2): the images take only the voice corpus and the MA snapshot.
+*
+!voice_corpus.jsonl
+!fixtures/music_snapshot.json

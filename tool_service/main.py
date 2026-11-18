@@ -2931,6 +2931,25 @@ async def config_validate(c: _Candidate):
     return JSONResponse(result, status_code=200 if result["ok"] else 422)
 
 
+class _CorpusRequest(BaseModel):
+    candidate_yaml: str | None = None        # a candidate music.yaml; None: the policy in effect
+    baseline_said: dict[str, str] = {}       # row id -> sentence, under the values in effect
+    candidate_said: dict[str, str] = {}      # row id -> sentence, under the candidate (lead-in edits)
+
+
+@app.post("/config/corpus")
+async def config_corpus(c: _CorpusRequest):
+    """The voice corpus's parser-and-decision layer (offline, in a child
+    process: no network, nothing plays) under the music policy in effect
+    and under a candidate, for /settings (sprint M21 step 2, criterion 12)."""
+    if c.candidate_yaml is not None:
+        check = settings_info.validate(config_loader.MUSIC_FILE, c.candidate_yaml)
+        if not check["ok"]:
+            return JSONResponse({"error": "the candidate does not validate", **check}, status_code=422)
+    result = await settings_info.corpus_run(c.candidate_yaml, c.baseline_said, c.candidate_said)
+    return JSONResponse(result, status_code=503 if "error" in result else 200)
+
+
 @app.get("/health")
 async def health():
     return {"status": "ok", "music_dry_run": MUSIC_DRY_RUN}

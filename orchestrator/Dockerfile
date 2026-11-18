@@ -17,6 +17,10 @@ RUN uv pip install --system --require-hashes -r requirements.lock
 
 COPY *.py ./
 COPY static/ static/
+# The voice corpus, from the repo's tests/ at the same commit (compose
+# additional context `corpus`): the /settings page's routing check before a
+# lead-in or music-policy save (sprint M21 step 2, settings_corpus.py).
+COPY --from=corpus voice_corpus.jsonl /app/corpus/
 
 # Non-root (tenet 10, operator directive 2026-07-07). UID 1000 matches the
 # host operator, so writes to the ./data bind mount land drew-owned.

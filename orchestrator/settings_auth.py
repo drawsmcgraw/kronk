@@ -306,9 +306,12 @@ def check_origin(request: Request) -> None:
         raise HTTPException(status_code=403, detail=f"refused: Sec-Fetch-Site {config_files.quote(site)}")
 
 
-def require(request: Request) -> Session:
-    """The unlocked session of a state-changing request, or 403."""
-    check_origin(request)
+def require(request: Request, *, origin: bool = True) -> Session:
+    """The unlocked session of a state-changing request, or 403. origin=False
+    only for a GET that changes nothing but needs the session (browsers
+    send no Origin on a same-origin GET)."""
+    if origin:
+        check_origin(request)
     problem = hash_problem()
     if problem:
         raise HTTPException(status_code=403, detail=problem)

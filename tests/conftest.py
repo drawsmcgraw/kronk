@@ -31,6 +31,10 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # prove the shipped files (criterion 20). Tests that need other files set
 # KRONK_CONFIG_DIR to a temporary directory with monkeypatch.
 os.environ["KRONK_CONFIG_DIR"] = os.path.join(REPO_ROOT, "config")
+# The /settings corpus check (sprint M21 step 2) reads the corpus and the MA
+# snapshot from /app/corpus/ in the images; tests read the repo's copies.
+os.environ["VOICE_CORPUS_FILE"] = os.path.join(REPO_ROOT, "tests", "voice_corpus.jsonl")
+os.environ["MUSIC_SNAPSHOT_FILE"] = os.path.join(REPO_ROOT, "tests", "fixtures", "music_snapshot.json")
 
 _ORCH = os.path.join(REPO_ROOT, "orchestrator")
 if _ORCH not in sys.path:

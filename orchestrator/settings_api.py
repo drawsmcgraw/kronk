@@ -111,6 +111,15 @@ async def settings_data(request: Request):
                                                "message": "tool_service config status unavailable"}]}]
     errors, warnings = _status_problems(statuses)
     files = await asyncio.to_thread(settings_view.file_entries, base, ts_eff, git["ok"])
+    dev = await dev_digests()
+    for f in files:
+        if dev is None:
+            continue
+        if "error" in dev:
+            f["dev"] = {"error": dev["error"]}
+        else:
+            theirs = (dev.get("files") or {}).get(f["name"])
+            f["dev"] = {"blob": theirs, "differs": theirs != f["blob"]}
     out = {
         "instance": settings_view.instance(),
         "release": settings_view.release(),
@@ -286,6 +295,132 @@ async def settings_save_route(request: Request):
     try:
         result = await settings_save.save(body.get("name"), body.get("text"), body.get("base"),
                                           who(request), client_of(request), overrides=overrides)
+    except settings_save.SaveRefused as e:
+        return _refused(e)
+    return JSONResponse(config_files.renderable(result, lambda s: {"ok": True, "detail": s}))
+
+
+
+# ── production and dev (criterion 13) ───────────────────────────────────────
+# Production's page reaches dev's orchestrator over the compose network
+# (SETTINGS_DEV_URL). Reads (digests, a file) need nothing on dev's side;
+# the one write, "apply to dev first", is signed (settings_auth.peer_sign)
+# and goes through dev's own save path. "Bring over from dev" fetches dev's
+# file into production's editor; saving it is production's own save.
+
+PEER_HEADERS = ("x-kronk-peer-ts", "x-kronk-peer-nonce", "x-kronk-peer-sig")
+
+
+def dev_url() -> str | None:
+    if settings_view.instance() != "production":
+        return None
+    return (os.getenv("SETTINGS_DEV_URL") or "").rstrip("/") or None
+
+
+def dev_client(timeout: float = 5) -> httpx.AsyncClient:
+    """The client for dev's orchestrator (tests swap in a transport)."""
+    return httpx.AsyncClient(base_url=dev_url(), timeout=timeout)
+
+
+async def dev_digests() -> dict | None:
+    if not dev_url():
+        return None
+    try:
+        async with dev_client(3) as c:
+            r = await c.get("/api/settings/digests")
+            r.raise_for_status()
+            return r.json()
+    except Exception as e:
+        return {"error": f"dev did not answer ({config_files.safe(e, 120)})"}
+
+
+@router.get("/api/settings/dev_file")
+async def settings_dev_file(request: Request, name: str):
+    """Dev's copy of a file, for "bring over from dev" (production only)."""
+    import settings_auth
+    settings_auth.require(request, origin=False)
+    _name(name)
+    if not dev_url():
+        raise HTTPException(status_code=404, detail="this instance has no dev instance to bring a file from")
+    try:
+        async with dev_client(5) as c:
+            r = await c.get("/api/settings/file", params={"name": name})
+            r.raise_for_status()
+            return r.json()
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"dev did not answer ({config_files.safe(e, 120)})")
+
+
+@router.post("/api/settings/apply_dev")
+async def settings_apply_dev(request: Request):
+    """Send a candidate to the dev instance only (production unchanged).
+    Dev validates, writes, reloads, verifies and commits it through its own
+    save path, and answers as its save does."""
+    import json as _json_mod
+    import secrets
+    import time as _time
+    import settings_auth
+    settings_auth.require(request)
+    body = await _json(request)
+    name = _name(body.get("name"))
+    if not dev_url():
+        raise HTTPException(status_code=404, detail="this instance has no dev instance to apply to")
+    payload = _json_mod.dumps({"name": name, "text": body.get("text"), "overrides": body.get("overrides") or [],
+                               "who": who(request), "client": client_of(request)}).encode()
+    ts, nonce = int(_time.time()), secrets.token_hex(16)
+    sig = settings_auth.peer_sign(payload, ts, nonce)
+    if sig is None:
+        raise HTTPException(status_code=403, detail=settings_auth.hash_problem() or "editing is off")
+    try:
+        async with dev_client(180) as c:
+            r = await c.post("/api/settings/peer/save", content=payload, headers={
+                "content-type": "application/json", PEER_HEADERS[0]: str(ts), PEER_HEADERS[1]: nonce,
+                PEER_HEADERS[2]: sig})
+        answer = r.json()
+    except Exception as e:
+        audit("apply_dev_failed", client=client_of(request), file=name, reason=f"dev unreachable: {e}")
+        raise HTTPException(status_code=502, detail=f"dev did not answer ({config_files.safe(e, 120)}); "
+                                                    "nothing changed on production")
+    audit("apply_dev" if r.status_code == 200 else "apply_dev_refused", client=client_of(request), file=name,
+          keys=answer.get("keys"), commit=answer.get("commit"), outcome=str(r.status_code),
+          reason=None if r.status_code == 200 else answer.get("message"))
+    if r.status_code == 200:
+        answer["message"] = f"dev: {answer.get('message')}. Production is unchanged; dev now differs for {name}."
+    else:
+        answer["message"] = f"dev refused it: {answer.get('message') or answer.get('detail')}. Production is unchanged."
+    return JSONResponse(config_files.renderable(answer, lambda s: {"ok": False, "detail": s}),
+                        status_code=r.status_code)
+
+
+@router.post("/api/settings/peer/save")
+async def settings_peer_save(request: Request):
+    """Dev's side of "apply to dev first": a signed candidate from
+    production's orchestrator over the compose network, never through nginx."""
+    import config_api
+    import settings_auth
+    import settings_save
+    config_api.refuse_if_proxied(request, "/api/settings/peer/save")
+    raw = await request.body()
+    why = settings_auth.peer_verify(raw, *(request.headers.get(h) for h in PEER_HEADERS))
+    if why:
+        audit("peer_refused", client=client_of(request), reason=why)
+        raise HTTPException(status_code=403, detail=f"refused: {why}")
+    import json as _json_mod
+    try:
+        body = _json_mod.loads(raw)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="the request body must be JSON")
+    name = _name(body.get("name"))
+    try:
+        current = settings_store.read_bytes(base_dir(), name)
+    except settings_store.StoreError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    base = settings_git.blob_sha(current if current is not None else b"")
+    try:
+        result = await settings_save.save(
+            name, body.get("text"), base, f"{config_files.safe(body.get('who'), 120)}, applied to dev first",
+            config_files.safe(body.get("client"), 64), overrides=body.get("overrides") or [],
+            event="apply_from_production")
     except settings_save.SaveRefused as e:
         return _refused(e)
     return JSONResponse(config_files.renderable(result, lambda s: {"ok": True, "detail": s}))

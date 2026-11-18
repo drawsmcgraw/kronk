@@ -7,8 +7,14 @@ secret (HA_TOKEN, MA_TOKEN, SOLAR_SERIAL, the MagicMirror target and key)
 is not on it and so cannot be shown. tests/test_m21s2_view.py feeds secret
 values into the environment and finds none in any answer.
 """
+import asyncio
+import hashlib
+import json
 import os
+import sys
+import tempfile
 from datetime import datetime
+from pathlib import Path
 
 try:
     from . import config_files, config_loader
@@ -125,3 +131,53 @@ def check_candidate(text: str) -> "config_loader.Music":
         raise
     except Exception as e:
         raise config_loader.ConfigInvalid([config_loader.Problem(rel, None, config_files.unexpected(e))])
+
+
+# ── the voice corpus check (criterion 12) ────────────────────────────────────
+# The corpus and the MA/HA snapshot are copied into the image from the
+# repo's tests/ at build time (Dockerfile); tests point these at the repo.
+CORPUS_FILE = Path(os.getenv("VOICE_CORPUS_FILE", "/app/corpus/voice_corpus.jsonl"))
+SNAPSHOT_FILE = Path(os.getenv("MUSIC_SNAPSHOT_FILE", "/app/corpus/music_snapshot.json"))
+CORPUS_TIMEOUT_S = 120
+
+
+def corpus_digest() -> str | None:
+    try:
+        return hashlib.sha256(CORPUS_FILE.read_bytes()).hexdigest()[:12]
+    except OSError:
+        return None
+
+
+async def corpus_run(candidate_yaml: str | None, baseline_said: dict, candidate_said: dict) -> dict:
+    """Run the parser-and-decision layer of the corpus twice in a child
+    process (corpus_check.py): under the music policy in effect, and under
+    the candidate (music.yaml text, or the policy in effect with other
+    sentences). {"baseline": {...}, "candidate": {...}, "corpus_digest"}
+    or {"error": why}."""
+    if not CORPUS_FILE.is_file() or not SNAPSHOT_FILE.is_file():
+        return {"error": f"the corpus is not in this image ({CORPUS_FILE}, {SNAPSHOT_FILE})"}
+    in_effect = config_loader.latest().music.model_dump(mode="json")
+    req = {"corpus": str(CORPUS_FILE), "snapshot": str(SNAPSHOT_FILE), "runs": {
+        "baseline": {"music": in_effect, "said": baseline_said or {}},
+        "candidate": {"music": in_effect, "music_yaml": candidate_yaml, "said": candidate_said or {}}}}
+    script = Path(__file__).resolve().parent / "corpus_check.py"
+    env = {"PATH": os.environ.get("PATH", "/usr/local/bin:/usr/bin:/bin"), "HOME": os.environ.get("HOME", "/tmp"),
+           "LC_ALL": "C.UTF-8"}
+    with tempfile.TemporaryDirectory(prefix="corpus-run-") as cwd:
+        proc = await asyncio.create_subprocess_exec(
+            sys.executable, "-I", str(script), stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE, env=env, cwd=cwd)
+        try:
+            out, err = await asyncio.wait_for(proc.communicate(json.dumps(req).encode()), CORPUS_TIMEOUT_S)
+        except asyncio.TimeoutError:
+            proc.kill()
+            await proc.wait()
+            return {"error": f"the corpus check took longer than {CORPUS_TIMEOUT_S} s"}
+    if proc.returncode != 0:
+        tail = err.decode("utf-8", "replace").strip().splitlines()[-1:] or ["no output"]
+        return {"error": f"the corpus check failed (exit {proc.returncode}): {config_files.safe(tail[0], 200)}"}
+    try:
+        answer = json.loads(out)
+    except ValueError:
+        return {"error": "the corpus check answered something that is not JSON"}
+    return {**answer, "corpus_digest": corpus_digest()}

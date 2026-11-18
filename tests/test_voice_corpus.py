@@ -19,6 +19,7 @@ from pathlib import Path
 
 import pytest
 
+import corpus_routing
 import routing
 
 CORPUS = Path(__file__).resolve().parent / "voice_corpus.jsonl"
@@ -154,12 +155,13 @@ def _routing_params():
 
 @pytest.mark.parametrize("row", list(_routing_params()))
 def test_corpus_routing(row):
-    expected = (row["expect"]["route"], row["expect"]["rule"])
+    # corpus_routing is also what the /settings page runs before a lead-in
+    # save (sprint M21 step 2): one check, two callers.
     actual = asyncio.run(routing._classify_inner(row["text"]))
-    assert actual == expected, (
-        f"corpus row {row['id']}: {row['text']!r} routed {actual[0]}/{actual[1]}, "
-        f"expected {expected[0]}/{expected[1]}"
-    )
+    o = corpus_routing.outcome(row["text"])
+    assert (o["route"], o["rule"]) == actual
+    why = corpus_routing.routing_diff(row, o)
+    assert why is None, f"corpus row {row['id']}: {row['text']!r} {why}"
 
 
 # ── Layer one: the direct call (sprint M7) ───────────────────────────────────
@@ -178,20 +180,8 @@ def test_corpus_direct_call(row):
     """A row that expects the direct path gets routing.decide's direct call
     for its tool, with its action / thumb; any other row gets none. Rows
     marked xfail.routing are strict xfails here too."""
-    e = row["expect"]
-    d = routing.decide(row["text"])
-    if not e.get("direct"):
-        assert d.direct is None, f"corpus row {row['id']}: unexpected direct call {d.direct}"
-        return
-    assert d.direct is not None, f"corpus row {row['id']}: {row['text']!r} has no direct call ({d.rule})"
-    tool, args = d.direct
-    assert tool == e["tool"], f"corpus row {row['id']}: direct tool {tool}, expected {e['tool']}"
-    if "action" in e:
-        assert args.get("action") == e["action"], f"corpus row {row['id']}: {args}"
-    if "thumb" in e:
-        assert args.get("thumb") == e["thumb"], f"corpus row {row['id']}: {args}"
-    if e.get("kind") == "another":
-        assert args.get("kind") == "another", f"corpus row {row['id']}: {args}"
+    why = corpus_routing.direct_diff(row, corpus_routing.outcome(row["text"]))
+    assert why is None, f"corpus row {row['id']}: {row['text']!r} {why}"
 
 
 # ── M11 parser assertions (the hook) ─────────────────────────────────────────
@@ -219,13 +209,14 @@ def test_corpus_direct_call(row):
 #                               the only player in Kitchen); unknown:<words>
 #                               expects the target error naming the words
 # Rows with `xfail.parser` run as strict xfails.
-PARSER_FIELDS = ("kind", "media_type", "name", "artist", "provider", "player", "shuffle")
-_PROVIDER = {"ytmusic": "youtube_music", "filesystem_local": "nas", "pandora": "pandora"}
-
+# The comparison lives in tool_service/corpus_check.py since M21 step 2:
+# the /settings page runs it before a music-policy save, and this test runs
+# the same functions.
 try:  # the M11 path; absent before M11
     from tests import music_snapshot as _snap
+    from tool_service import corpus_check as _cc
     from tool_service import music_resolve as _mr
-    import tool_service.main as _ts
+    PARSER_FIELDS = _cc.PARSER_FIELDS
     _SNAP = _snap.load()
 except (ImportError, FileNotFoundError):  # pragma: no cover
     _snap = None
@@ -238,50 +229,11 @@ def PARSE(row, tmp_path):
     said = routing.lead_in_request(row["text"]) or row["text"]
     with _snap.offline_env(_SNAP, tmp_path):
         d = asyncio.run(_snap.decide_row({**row, "text": said}, _SNAP, model_answer=None))
-    o, p = d.outcome, d.parsed
-    return {"kind": o.kind, "media_type": o.media_type, "name": o.name, "artist": o.artist,
-            "provider": {"named": p.provider, "chosen": o.provider}, "shuffle": p.shuffle,
-            "player": {"entities": d.entities, "error": d.error}, "action": o.action,
-            "decided_by": o.decided_by}
-
-
-def _expected_entities(row):
-    players = [_ts._norm_player(x) for x in _SNAP["players"]]
-    want = row["expect"]["player"]
-    if want.startswith("entity:"):
-        return sorted([want.split(":", 1)[1]])
-    if want.startswith("area:"):
-        return sorted(t["entity_id"] for t in _ts._by_area(players, want.split(":", 1)[1]))
-    area, device = _snap.origin_of(row)
-    targets, _ = _ts.resolve_players(None, area, players, _snap.DEFAULT_PLAYER,
-                                     origin_key=_snap.ORIGIN_KEYS.get(device or ""))
-    return sorted(t["entity_id"] for t in targets)
+    return _cc.reading(d)
 
 
 def parser_diff(row, got):
-    want = {k: row["expect"][k] for k in PARSER_FIELDS if k in row["expect"]}
-    diff = {}
-    for k, w in want.items():
-        g = got[k]
-        if k == "name":
-            ok = (w is None and g is None) or (w is not None and g is not None and _mr.fold(w) == _mr.fold(g))
-        elif k == "artist":   # one of the credited artists ("Ulrich Schnauss and Mark Peters")
-            ok = (w is None and g is None) or (w is not None and g is not None and (
-                _mr.fold(w) == _mr.fold(g) or _mr.fold(w) in [_mr.fold(a) for a in g.split(" and ")]))
-        elif k == "provider":
-            named, chosen = _PROVIDER.get(g["named"]), _PROVIDER.get(g["chosen"])
-            ok = named is None if w is None else w in (named, chosen)
-            g = {"named": named, "chosen": chosen}
-        elif k == "player":
-            if w.startswith("unknown:"):
-                ok = bool(g["error"]) and w.split(":", 1)[1].lower() in g["error"].lower()
-            else:
-                ok = g["entities"] is not None and sorted(g["entities"]) == _expected_entities(row)
-        else:
-            ok = g == w
-        if not ok:
-            diff[k] = (w, g)
-    return diff
+    return _cc.parser_diff(row, got, _SNAP)
 
 
 def _parser_params():

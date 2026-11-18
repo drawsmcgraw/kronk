@@ -244,7 +244,7 @@ async def _save_locked(base, rel, info, text, base_blob, who, client, overrides,
             if corpus_result.get("error"):
                 refuse(503, f"not saved: the voice corpus check could not run: {corpus_result['error']}",
                        "corpus_unavailable", corpus=corpus_result)
-            blocking = [r["id"] for r in corpus_result["newly_failing"] if r["id"] not in overrides]
+            blocking = sorted({r["id"] for r in corpus_result["newly_failing"]} - set(overrides))
             if blocking:
                 refuse(409, f"not saved: {len(blocking)} voice corpus rows newly fail with this change "
                             f"({', '.join(blocking)}). Confirm each to override, or change the text.",
