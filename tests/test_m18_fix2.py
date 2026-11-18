@@ -929,7 +929,7 @@ def test_a_status_write_that_fails_midway_leaves_the_old_file_whole(tmp_path, mo
         f.write('{"months": {"2026-12": {"att')
         raise OSError(28, "No space left on device")
     monkeypatch.setattr(U.json, "dump", dump)
-    with pytest.raises(OSError):
+    with pytest.raises(U.StatusWriteFailed, match="No space left on device"):
         U.save_status(sd, {"months": {"2026-12": {"attempts": 2, "done": False}}}, NOW)
     monkeypatch.undo()
     assert (sd / "status.json").read_text() == before
@@ -992,3 +992,44 @@ def test_the_loader_refuses_look_alikes(tmp_path, old, new, why):
 
 def test_the_shipped_rules_still_load():
     assert len(U.load_rules(env={}).components) > 10
+
+
+# ── O6: a status write that fails is a clean stop with a notice attempt ──
+
+def _disk_full_when(monkeypatch, cond):
+    import tempfile
+    real = tempfile.mkstemp
+
+    def mkstemp(*a, **kw):
+        if cond():
+            raise OSError(28, "No space left on device")
+        return real(*a, **kw)
+    monkeypatch.setattr(U.tempfile, "mkstemp", mkstemp)
+
+
+def test_a_failed_status_write_before_any_change_stops_cleanly(house, monkeypatch):
+    ops, sd = house
+    _disk_full_when(monkeypatch, lambda: True)
+    assert run(ops, sd, ["tempo"]) == 2
+    assert subjects(ops.repo) == ["initial"] and mutating(ops) == []
+    (_, title, body), = ops.notices
+    assert title == "Kronk upgrade: STOPPED, the status file cannot be written"
+    assert "No space left on device" in body and "Nothing was changed" in body
+
+
+def test_a_failed_intent_write_stops_before_the_pin_commit(house, monkeypatch):
+    ops, sd = house
+    _disk_full_when(monkeypatch, lambda: ("replay", "upgrade-baseline", False) in ops.calls)
+    assert run(ops, sd, ["tempo"]) == 2
+    assert subjects(ops.repo) == ["initial"] and mutating(ops) == []
+    assert "Nothing was changed" in ops.notices[-1][2]
+
+
+def test_a_failed_status_write_after_a_change_is_not_a_traceback_and_says_what_moved(house, monkeypatch):
+    ops, sd = house
+    _disk_full_when(monkeypatch, lambda: ops.containers["kronk-telemetry-tempo-1"].endswith("3.1.2"))
+    assert run(ops, sd, ["tempo"]) == 2
+    (_, title, body), = ops.notices
+    assert title == "Kronk upgrade: STOPPED, the status file cannot be written"
+    assert "after a change" in body and "the next run recovers from the record" in body
+    assert status(sd)["intent"]["component"] == "tempo"           # the last good write stands

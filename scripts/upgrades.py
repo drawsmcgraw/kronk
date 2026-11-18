@@ -942,20 +942,31 @@ def status_corrupt(ops: Ops, e: StatusCorrupt, log, notify: bool) -> int:
     return 2
 
 
+class StatusWriteFailed(RuntimeError):
+    """The status file could not be written (a full disk). Not an OSError on
+    purpose: no step's handler takes it for that step's failure; the run
+    stops at its top with a notice attempt (O6)."""
+
+
 def save_status(sd: Path, status: dict, now: dt.datetime) -> None:
     """Atomic: a temporary file beside it, then a rename. A write that
     fails removes its temporary file; one killed mid-way leaves it, and the
     next run sweeps it (sweep_status_temps)."""
-    sd.mkdir(parents=True, exist_ok=True)
     status["updated"] = now.isoformat(timespec="seconds")
-    fd, tmp = tempfile.mkstemp(dir=sd, prefix=".status.")
+    try:
+        sd.mkdir(parents=True, exist_ok=True)
+        fd, tmp = tempfile.mkstemp(dir=sd, prefix=".status.")
+    except OSError as e:
+        raise StatusWriteFailed(f"{sd / 'status.json'}: {e}") from e
     try:
         with os.fdopen(fd, "w") as f:
             json.dump(status, f, indent=2, sort_keys=True)
             f.write("\n")
         os.replace(tmp, sd / "status.json")
-    except BaseException:
+    except BaseException as e:
         Path(tmp).unlink(missing_ok=True)
+        if isinstance(e, OSError):
+            raise StatusWriteFailed(f"{sd / 'status.json'}: {e}") from e
         raise
 
 
@@ -1004,8 +1015,11 @@ class RunLog:
         self.lines.append(line)
         print(line, flush=True)
         if self.path:
-            with self.path.open("a") as f:
-                f.write(line + "\n")
+            try:
+                with self.path.open("a") as f:
+                    f.write(line + "\n")
+            except OSError as e:          # a full disk: stdout (the journal) still has every line
+                print(f"{stamp} (run log {self.path} not written: {e})", flush=True)
 
 
 def deliver(ops: Ops, status: dict, notice: dict, now: dt.datetime, log: RunLog) -> bool:
@@ -1183,6 +1197,8 @@ class Own:
     run's own work as the household being busy (sprint M18 fix 1, F1)."""
     ua: str | None = None                       # User-Agent of its own requests to production
     runs: set[str] = field(default_factory=set)  # HA pipeline run ids of its own replays
+    head0: str | None = None                    # HEAD before the run's first step that may change something (O6)
+    acted: bool = False                         # a component's or a recovery's steps began (O6)
 
 
 def house_busy(ops: Ops, rules: Rules, now: dt.datetime, own: Own | None = None,
@@ -1457,6 +1473,7 @@ def set_intent(ctx: Ctx, comp: dict, frm: str, to: str, step: str, **extra) -> N
                "at": ctx.ops.now().isoformat(timespec="seconds"), **extra})
     ctx.status["intent"] = it
     save_status(ctx.sd, ctx.status, ctx.ops.now())
+    ctx.own.acted = True
 
 
 def step(ctx: Ctx, name: str, **extra) -> None:
@@ -2632,211 +2649,236 @@ def minor_run(ops: Ops, rules: Rules, sd: Path, dry_run: bool = False, ignore_mo
             return 0
         sweep_status_temps(sd, now, log)
     try:
-        try:
-            status = load_status(sd)
-        except StatusCorrupt as e:
-            return status_corrupt(ops, e, log, notify=not dry_run)
-        late = None if ignore_window else outside_window(ops, rules)
-        if not dry_run and status.get("unreported"):
-            report_unreported(ops, sd, status, now, log)
-        if status.get("intent"):
-            # Before anything else, the month's bookkeeping included: a run
-            # that died inside a component is dealt with first (F3). A
-            # component that is down is brought back at any hour; anything
-            # that disrupts a running service waits for the night window.
-            rc = recover(ops, rules, sd, status, now, log, log_rel, stamp, own, dry_run, late)
-            if rc is not None:
-                return rc
-        if late and not dry_run:
-            # A boot catch-up (Persistent=true) at 19:00 does nothing: no
-            # attempt counted, nothing planned (F8).
-            log(f"declined: {late}")
-            status["last_run"] = {"kind": "minor", "at": now.isoformat(timespec="seconds"), "result": "outside_window",
-                                  "summary": f"declined: {late}", "log": log_rel}
-            save_status(sd, status, now)
-            return 0
-        months = status.setdefault("months", {})
-        m = months.setdefault(month, {"attempts": 0, "done": False})
-        if not dry_run and not ignore_month:
-            if m.get("done"):
-                log(f"this month's run ({month}) is done; nothing to do (--ignore-month to run anyway)")
-                return 0
-            if m["attempts"] >= rules.settings["max_attempts"]:
-                log(f"{m['attempts']} attempts this month already; next try next month")
-                return 0
-        if not dry_run:
-            m["attempts"] += 1
-            retry_pending(ops, status, now, log)
-            save_status(sd, status, now)
-        blocked = [w for w in run_declines_blocked(status)]
-        if blocked and not dry_run:
-            # Checked before planning: a failed rollback or an out-of-step
-            # component can leave a pin that would otherwise read as CURRENT.
-            log("declined: " + "; ".join(blocked))
-            status["last_run"] = {"kind": "minor", "at": now.isoformat(timespec="seconds"), "result": "declined",
-                                  "summary": f"declined (attempt {m['attempts']} of {rules.settings['max_attempts']}): "
-                                             + "; ".join(blocked)[:400], "log": log_rel}
-            save_status(sd, status, now)
-            return 0
-
-        plans = [safe_plan(rules, c, ops.repo, ops.web, now) for c in rules.components]
-        for p in plans:
-            mm = pin_vs_running(ops, p)
-            if mm:
-                p.action, p.detail = mm
-            elif p.comp["name"] in (m.get("held_back") or {}) and p.action == "upgrade":
-                p.action, p.detail = "skip", f"held back this month: {m['held_back'][p.comp['name']]}"
-            elif not ignore_month and p.comp["name"] in (m.get("components") or {}) and p.action == "upgrade":
-                done = m["components"][p.comp["name"]]
-                p.action, p.detail = "skip", f"done this month: {done.get('result')} ({done.get('to')})"
-        log("plan:")
-        for p in plans:
-            log(f"  {p.comp['name']:<26} {str(p.pin or '-'):<22} {p.action.upper():<9} {p.detail}")
-            for n in p.notes[:6]:
-                log(f"  {'':<26} {'':<22} {'':<9} . {n}")
-            for r in p.reports[:40]:
-                log(f"  {'':<26} {'':<22} {'':<9} > {r}")
-        todo = [p for p in plans if p.action == "upgrade"]
-        log(f"lookups: {ops.web.requests} request(s) to {', '.join(sorted(ops.web.hosts)) or 'none'}")
-        if not dry_run:
-            mismatch_notice(ops, status, m, month, plans, now, log, log_rel)
-            save_status(sd, status, now)
-        if not todo:
-            log("nothing to upgrade this month; no notice")
-            if not dry_run:
-                m["done"] = True
-                status["last_run"] = {"kind": "minor", "at": now.isoformat(timespec="seconds"),
-                                      "result": "nothing", "summary": "nothing to upgrade", "log": log_rel}
-                save_status(sd, status, now)
-            return 0
-
-        info: list[str] = []
-        declines = ([late] if late else []) + run_declines(ops, rules, status, now, own, info)
-        for n in info:
-            log(n)
-        prod_tag, kronk_why = (None, [])
-        if any(p.comp["deploy"] == "kronk" for p in todo):
-            prod_tag, kronk_why = production_tag(ops, rules)
-        if dry_run:
-            log("would do, in order (each its own commit; verify = image, health, corpus, replay, stack checks):")
-            for p in todo:
-                log(f"  {p.comp['name']}: {_would(p, prod_tag)}")
-            log("then: one notice through scripts/lib/notify.sh with what changed; "
-                "the status file data/upgrades/status.json for /services")
-            if any(p.comp["deploy"] == "kronk" for p in todo):
-                log(f"production runs tag: {prod_tag or 'unknown'}" + (f" ({'; '.join(kronk_why)})" if kronk_why else ""))
-            if prod_tag:
-                left = undeployed(ops, rules, prod_tag)
-                log(f"HEAD vs {prod_tag}: " + (f"undeployed changes in {', '.join(left[:8])} (Kronk-stack components would be declined)"
-                                              if left else "differs only in paths that do not reach the Kronk containers"))
-            for p in todo:
-                if p.comp["deploy"] in ("ha", "compose"):
-                    log(f"{p.comp['file']} vs running {p.comp['container']}: {compose_hash_ok(ops, p.comp) or 'matches (config hash)'}")
-                    log(f"bind-mounted files of {p.comp['container']}: "
-                        f"{bind_files_unreleased(ops, p.comp) or 'none changed since it started'}")
-            if declines:
-                log("a real run now would DECLINE: " + "; ".join(declines))
-            else:
-                log("a real run now would go ahead (house quiet, tree clean, on the expected branch)")
-            log("dry run: nothing written, nothing changed, nothing sent")
-            return 0
-
-        if declines:
-            log("declined: " + "; ".join(declines))
-            status["last_run"] = {"kind": "minor", "at": now.isoformat(timespec="seconds"), "result": "declined",
-                                  "summary": f"declined (attempt {m['attempts']} of {rules.settings['max_attempts']}): "
-                                             + "; ".join(declines)[:400], "log": log_rel}
-            if m["attempts"] >= rules.settings["max_attempts"]:
-                m["done"] = True
-                deliver(ops, status, {"id": f"minor-{month}-declined", "tag": NOTIFY_TAG,
-                                      "title": "Kronk upgrade: this month's patch run never found a quiet moment",
-                                      "body": f"Declined {m['attempts']} times. Last reasons: {'; '.join(declines)[:500]}. "
-                                              f"Pending: {', '.join(p.comp['name'] + ' ' + p.to.version for p in todo)}. "
-                                              f"Next try next month, or run scripts/upgrade_minor.sh --ignore-month. Log: {log_rel}",
-                                      "created": now.isoformat(timespec="seconds")}, now, log)
-                add_attention(status, f"declined:{month}", f"Monthly upgrade declined {m['attempts']} times in {month}; "
-                              f"see {log_rel}", now)
-            save_status(sd, status, now)
-            return 0
-
-        ctx = Ctx(ops, rules, log, sd, stamp, now, prod_tag, own=own, status=status, ignore_window=ignore_window)
-        log("baseline: offline corpus")
-        t = ops.run_tests()
-        if not t.ok:
-            return _baseline_declined(ctx, status, m, month, log_rel, f"offline corpus fails before any change: {t.tail(200)}")
-        log("baseline: live dry-run replay on the dev path")
-        rows, err = run_replay(ctx, "baseline")
-        if rows is None:
-            return _baseline_declined(ctx, status, m, month, log_rel, f"live replay cannot run: {err}")
-        ctx.baseline = rows
-
-        outcomes: list[Outcome] = []
-        for p in todo:
-            if p.comp["deploy"] == "kronk" and kronk_why:
-                outcomes.append(Outcome(p.comp["name"], p.pin, p.to.version, "not_started", "; ".join(kronk_why)))
-                log(f"── {p.comp['name']}: not started: {'; '.join(kronk_why)}")
-                continue
-            try:
-                o = apply_one(ctx, p)
-            except (StepFailed, RulesError, OSError) as e:
-                log(f"  ERROR: {e}")
-                o = error_outcome(ctx, p, e)
-            outcomes.append(o)
-            if o.result != "not_started":
-                # This month has an outcome for it; one not started (house
-                # busy, the window closed, a precondition) goes again the
-                # next night while attempts remain (K6).
-                m.setdefault("components", {})[o.name] = {"result": o.result, "to": o.to}
-                # Written when the component ends: a run killed before its
-                # notice leaves them for the next run to report (K3).
-                status["unreported"] = {"run": stamp, "log": log_rel, "redeploys": ctx.redeploys,
-                                        "outcomes": [x.__dict__ for x in outcomes if x.result != "not_started"]}
-                save_status(sd, status, now)
-            if o.result == "not_started":
-                log(f"  not started: {o.detail}")
-            if o.result in BLOCKING:
-                block(status, o, now)
-                log(f"stopping: {o.name} {'rollback failed' if o.result == 'rollback_failed' else 'is out of step'}; "
-                    f"the remaining components wait")
-                break
-
-        changed = [o for o in outcomes if o.result != "not_started"]
-        result = next((r for r in ("rollback_failed", "out_of_step", "rolled_back", "not_applied")
-                       if any(o.result == r for o in outcomes)), "upgraded" if changed else "not_started")
-        title, body = notice_text(outcomes, plans, log_rel, ctx.redeploys)
-        pending = [p.comp["name"] for p in todo if p.comp["name"] not in (m.get("components") or {})]
-        last_try = m["attempts"] >= rules.settings["max_attempts"]
-        m["done"] = not pending or last_try
-        status["last_run"] = {"kind": "minor", "at": now.isoformat(timespec="seconds"), "result": result,
-                              "summary": title, "log": log_rel,
-                              "outcomes": [o.__dict__ for o in outcomes]}
-        if any(o.result in ("rolled_back", "not_applied") for o in outcomes):
-            add_attention(status, f"rolled_back:{month}", f"{title}. Details: {log_rel}", now)
-        if changed:
-            deliver(ops, status, {"id": f"minor-{stamp}", "tag": NOTIFY_TAG, "title": title, "body": body,
-                                  "created": now.isoformat(timespec="seconds")}, now, log)
-            status.pop("unreported", None)          # sent, or pending (retried hourly)
-        elif last_try and m.get("components"):
-            # Earlier nights applied something; these never started (K6).
-            deliver(ops, status, {"id": f"minor-{month}-ended", "tag": NOTIFY_TAG,
-                                  "title": f"Kronk upgrade: this month's patch run ended with {len(pending)} not started "
-                                           f"(attempts ran out)", "body": body,
-                                  "created": now.isoformat(timespec="seconds")}, now, log)
-            add_attention(status, f"declined:{month}", f"Monthly upgrade: {', '.join(pending)} never started in {month}; "
-                          f"see {log_rel}", now)
-        elif last_try:
-            # The month ends with nothing applied: say so, as a month of declines does (F7).
-            month_ended_empty(ops, status, m, month, rules, now, log, log_rel,
-                              "applied nothing: every pending component was not started",
-                              [f"{o.name} {o.to}: {o.detail}" for o in outcomes])
+        return _minor_run(ops, rules, sd, dry_run, ignore_month, ignore_window, now, stamp, month, log, log_rel, own)
+    except StatusWriteFailed as e:
+        head0 = own.head0 or ""
+        head = ops.git("rev-parse", "HEAD", check=False).strip() if own.acted else head0
+        tail = "the status file on disk is from its last good write, and the next run recovers from the record there."
+        if not own.acted:
+            what = "Nothing was changed."
+        elif head != head0:
+            what = f"The run stopped after a change (HEAD moved from {head0[:10]} to {head[:10]}); {tail}"
         else:
-            log("nothing was changed or tried; no notice")
-        save_status(sd, status, now)
-        log(f"done: {result}")
-        return {"rollback_failed": 2, "out_of_step": 2, "rolled_back": 1, "not_applied": 1}.get(result, 0)
+            what = (f"The run stopped inside a component or a recovery (HEAD unchanged at {head0[:10]}; what runs may "
+                    f"have changed); {tail}")
+        log(f"STOPPED: the status file cannot be written ({e}). {what}")
+        try:
+            ops.notify(NOTIFY_TAG, "Kronk upgrade: STOPPED, the status file cannot be written",
+                       f"{e}. {what} Later runs stop the same way until it can be written. Log: {log_rel}")
+        except Exception as ex:  # noqa: BLE001
+            log(f"notice: notifier raised {ex!r}")
+        return 2
     finally:
         if lock_fd is not None:
             os.close(lock_fd)
+
+
+def _minor_run(ops: Ops, rules: Rules, sd: Path, dry_run: bool, ignore_month: bool, ignore_window: bool,
+               now: dt.datetime, stamp: str, month: str, log: RunLog, log_rel: str, own: Own) -> int:
+    try:
+        status = load_status(sd)
+    except StatusCorrupt as e:
+        return status_corrupt(ops, e, log, notify=not dry_run)
+    late = None if ignore_window else outside_window(ops, rules)
+    if not dry_run and status.get("unreported"):
+        report_unreported(ops, sd, status, now, log)
+    if status.get("intent"):
+        # Before anything else, the month's bookkeeping included: a run
+        # that died inside a component is dealt with first (F3). A
+        # component that is down is brought back at any hour; anything
+        # that disrupts a running service waits for the night window.
+        own.head0, own.acted = ops.git("rev-parse", "HEAD", check=False).strip(), not dry_run
+        rc = recover(ops, rules, sd, status, now, log, log_rel, stamp, own, dry_run, late)
+        if rc is not None:
+            return rc
+    if late and not dry_run:
+        # A boot catch-up (Persistent=true) at 19:00 does nothing: no
+        # attempt counted, nothing planned (F8).
+        log(f"declined: {late}")
+        status["last_run"] = {"kind": "minor", "at": now.isoformat(timespec="seconds"), "result": "outside_window",
+                              "summary": f"declined: {late}", "log": log_rel}
+        save_status(sd, status, now)
+        return 0
+    months = status.setdefault("months", {})
+    m = months.setdefault(month, {"attempts": 0, "done": False})
+    if not dry_run and not ignore_month:
+        if m.get("done"):
+            log(f"this month's run ({month}) is done; nothing to do (--ignore-month to run anyway)")
+            return 0
+        if m["attempts"] >= rules.settings["max_attempts"]:
+            log(f"{m['attempts']} attempts this month already; next try next month")
+            return 0
+    if not dry_run:
+        m["attempts"] += 1
+        retry_pending(ops, status, now, log)
+        save_status(sd, status, now)
+    blocked = [w for w in run_declines_blocked(status)]
+    if blocked and not dry_run:
+        # Checked before planning: a failed rollback or an out-of-step
+        # component can leave a pin that would otherwise read as CURRENT.
+        log("declined: " + "; ".join(blocked))
+        status["last_run"] = {"kind": "minor", "at": now.isoformat(timespec="seconds"), "result": "declined",
+                              "summary": f"declined (attempt {m['attempts']} of {rules.settings['max_attempts']}): "
+                                         + "; ".join(blocked)[:400], "log": log_rel}
+        save_status(sd, status, now)
+        return 0
+
+    plans = [safe_plan(rules, c, ops.repo, ops.web, now) for c in rules.components]
+    for p in plans:
+        mm = pin_vs_running(ops, p)
+        if mm:
+            p.action, p.detail = mm
+        elif p.comp["name"] in (m.get("held_back") or {}) and p.action == "upgrade":
+            p.action, p.detail = "skip", f"held back this month: {m['held_back'][p.comp['name']]}"
+        elif not ignore_month and p.comp["name"] in (m.get("components") or {}) and p.action == "upgrade":
+            done = m["components"][p.comp["name"]]
+            p.action, p.detail = "skip", f"done this month: {done.get('result')} ({done.get('to')})"
+    log("plan:")
+    for p in plans:
+        log(f"  {p.comp['name']:<26} {str(p.pin or '-'):<22} {p.action.upper():<9} {p.detail}")
+        for n in p.notes[:6]:
+            log(f"  {'':<26} {'':<22} {'':<9} . {n}")
+        for r in p.reports[:40]:
+            log(f"  {'':<26} {'':<22} {'':<9} > {r}")
+    todo = [p for p in plans if p.action == "upgrade"]
+    log(f"lookups: {ops.web.requests} request(s) to {', '.join(sorted(ops.web.hosts)) or 'none'}")
+    if not dry_run:
+        mismatch_notice(ops, status, m, month, plans, now, log, log_rel)
+        save_status(sd, status, now)
+    if not todo:
+        log("nothing to upgrade this month; no notice")
+        if not dry_run:
+            m["done"] = True
+            status["last_run"] = {"kind": "minor", "at": now.isoformat(timespec="seconds"),
+                                  "result": "nothing", "summary": "nothing to upgrade", "log": log_rel}
+            save_status(sd, status, now)
+        return 0
+
+    info: list[str] = []
+    declines = ([late] if late else []) + run_declines(ops, rules, status, now, own, info)
+    for n in info:
+        log(n)
+    prod_tag, kronk_why = (None, [])
+    if any(p.comp["deploy"] == "kronk" for p in todo):
+        prod_tag, kronk_why = production_tag(ops, rules)
+    if dry_run:
+        log("would do, in order (each its own commit; verify = image, health, corpus, replay, stack checks):")
+        for p in todo:
+            log(f"  {p.comp['name']}: {_would(p, prod_tag)}")
+        log("then: one notice through scripts/lib/notify.sh with what changed; "
+            "the status file data/upgrades/status.json for /services")
+        if any(p.comp["deploy"] == "kronk" for p in todo):
+            log(f"production runs tag: {prod_tag or 'unknown'}" + (f" ({'; '.join(kronk_why)})" if kronk_why else ""))
+        if prod_tag:
+            left = undeployed(ops, rules, prod_tag)
+            log(f"HEAD vs {prod_tag}: " + (f"undeployed changes in {', '.join(left[:8])} (Kronk-stack components would be declined)"
+                                          if left else "differs only in paths that do not reach the Kronk containers"))
+        for p in todo:
+            if p.comp["deploy"] in ("ha", "compose"):
+                log(f"{p.comp['file']} vs running {p.comp['container']}: {compose_hash_ok(ops, p.comp) or 'matches (config hash)'}")
+                log(f"bind-mounted files of {p.comp['container']}: "
+                    f"{bind_files_unreleased(ops, p.comp) or 'none changed since it started'}")
+        if declines:
+            log("a real run now would DECLINE: " + "; ".join(declines))
+        else:
+            log("a real run now would go ahead (house quiet, tree clean, on the expected branch)")
+        log("dry run: nothing written, nothing changed, nothing sent")
+        return 0
+
+    if declines:
+        log("declined: " + "; ".join(declines))
+        status["last_run"] = {"kind": "minor", "at": now.isoformat(timespec="seconds"), "result": "declined",
+                              "summary": f"declined (attempt {m['attempts']} of {rules.settings['max_attempts']}): "
+                                         + "; ".join(declines)[:400], "log": log_rel}
+        if m["attempts"] >= rules.settings["max_attempts"]:
+            m["done"] = True
+            deliver(ops, status, {"id": f"minor-{month}-declined", "tag": NOTIFY_TAG,
+                                  "title": "Kronk upgrade: this month's patch run never found a quiet moment",
+                                  "body": f"Declined {m['attempts']} times. Last reasons: {'; '.join(declines)[:500]}. "
+                                          f"Pending: {', '.join(p.comp['name'] + ' ' + p.to.version for p in todo)}. "
+                                          f"Next try next month, or run scripts/upgrade_minor.sh --ignore-month. Log: {log_rel}",
+                                  "created": now.isoformat(timespec="seconds")}, now, log)
+            add_attention(status, f"declined:{month}", f"Monthly upgrade declined {m['attempts']} times in {month}; "
+                          f"see {log_rel}", now)
+        save_status(sd, status, now)
+        return 0
+
+    ctx = Ctx(ops, rules, log, sd, stamp, now, prod_tag, own=own, status=status, ignore_window=ignore_window)
+    own.head0 = ops.git("rev-parse", "HEAD", check=False).strip()
+    log("baseline: offline corpus")
+    t = ops.run_tests()
+    if not t.ok:
+        return _baseline_declined(ctx, status, m, month, log_rel, f"offline corpus fails before any change: {t.tail(200)}")
+    log("baseline: live dry-run replay on the dev path")
+    rows, err = run_replay(ctx, "baseline")
+    if rows is None:
+        return _baseline_declined(ctx, status, m, month, log_rel, f"live replay cannot run: {err}")
+    ctx.baseline = rows
+
+    outcomes: list[Outcome] = []
+    for p in todo:
+        if p.comp["deploy"] == "kronk" and kronk_why:
+            outcomes.append(Outcome(p.comp["name"], p.pin, p.to.version, "not_started", "; ".join(kronk_why)))
+            log(f"── {p.comp['name']}: not started: {'; '.join(kronk_why)}")
+            continue
+        try:
+            o = apply_one(ctx, p)
+        except (StepFailed, RulesError, OSError) as e:
+            log(f"  ERROR: {e}")
+            o = error_outcome(ctx, p, e)
+        outcomes.append(o)
+        if o.result != "not_started":
+            # This month has an outcome for it; one not started (house
+            # busy, the window closed, a precondition) goes again the
+            # next night while attempts remain (K6).
+            m.setdefault("components", {})[o.name] = {"result": o.result, "to": o.to}
+            # Written when the component ends: a run killed before its
+            # notice leaves them for the next run to report (K3).
+            status["unreported"] = {"run": stamp, "log": log_rel, "redeploys": ctx.redeploys,
+                                    "outcomes": [x.__dict__ for x in outcomes if x.result != "not_started"]}
+            save_status(sd, status, now)
+        if o.result == "not_started":
+            log(f"  not started: {o.detail}")
+        if o.result in BLOCKING:
+            block(status, o, now)
+            log(f"stopping: {o.name} {'rollback failed' if o.result == 'rollback_failed' else 'is out of step'}; "
+                f"the remaining components wait")
+            break
+
+    changed = [o for o in outcomes if o.result != "not_started"]
+    result = next((r for r in ("rollback_failed", "out_of_step", "rolled_back", "not_applied")
+                   if any(o.result == r for o in outcomes)), "upgraded" if changed else "not_started")
+    title, body = notice_text(outcomes, plans, log_rel, ctx.redeploys)
+    pending = [p.comp["name"] for p in todo if p.comp["name"] not in (m.get("components") or {})]
+    last_try = m["attempts"] >= rules.settings["max_attempts"]
+    m["done"] = not pending or last_try
+    status["last_run"] = {"kind": "minor", "at": now.isoformat(timespec="seconds"), "result": result,
+                          "summary": title, "log": log_rel,
+                          "outcomes": [o.__dict__ for o in outcomes]}
+    if any(o.result in ("rolled_back", "not_applied") for o in outcomes):
+        add_attention(status, f"rolled_back:{month}", f"{title}. Details: {log_rel}", now)
+    if changed:
+        deliver(ops, status, {"id": f"minor-{stamp}", "tag": NOTIFY_TAG, "title": title, "body": body,
+                              "created": now.isoformat(timespec="seconds")}, now, log)
+        status.pop("unreported", None)          # sent, or pending (retried hourly)
+    elif last_try and m.get("components"):
+        # Earlier nights applied something; these never started (K6).
+        deliver(ops, status, {"id": f"minor-{month}-ended", "tag": NOTIFY_TAG,
+                              "title": f"Kronk upgrade: this month's patch run ended with {len(pending)} not started "
+                                       f"(attempts ran out)", "body": body,
+                              "created": now.isoformat(timespec="seconds")}, now, log)
+        add_attention(status, f"declined:{month}", f"Monthly upgrade: {', '.join(pending)} never started in {month}; "
+                      f"see {log_rel}", now)
+    elif last_try:
+        # The month ends with nothing applied: say so, as a month of declines does (F7).
+        month_ended_empty(ops, status, m, month, rules, now, log, log_rel,
+                          "applied nothing: every pending component was not started",
+                          [f"{o.name} {o.to}: {o.detail}" for o in outcomes])
+    else:
+        log("nothing was changed or tried; no notice")
+    save_status(sd, status, now)
+    log(f"done: {result}")
+    return {"rollback_failed": 2, "out_of_step": 2, "rolled_back": 1, "not_applied": 1}.get(result, 0)
 
 
 def report_unreported(ops: Ops, sd: Path, status: dict, now: dt.datetime, log: RunLog) -> None:
