@@ -313,3 +313,48 @@ other entry.
 except `conversation_engine conversation.ollama_conversation`. Preferred
 pipeline `01ksc2pw5bkhtk37dh2d6zwcxp` (`kronk`). Wyoming entries: the two
 above, both `loaded`. STT entities: `stt.faster_whisper` only.
+
+### Step 4 as done (00:41 to 00:46 UTC)
+
+H1: `dev-prompt.env` written (sha256 `df732f30…a827`, 100 tokens, 26
+names, identical to the `--print` preview). H2: unit copied,
+`daemon-reload`, started once at 00:41:30 UTC (pid 1155070), listening on
+`127.0.0.1:10301` only (`ss -tlnp`). `/proc/<pid>/cmdline` ends
+`--local-files-only --initial-prompt <the line>`: the prompt arrives as
+one argument. The model loaded on the first transcription (one synthetic
+clip, 0.55 s including the load). Enabled at 00:46 UTC after the checks
+below.
+
+Memory (method as in section 1):
+
+| Measure | Before (00:41:20) | After the first load (00:41:45) | Change |
+| --- | --- | --- | --- |
+| RAM used / free / available (MiB) | 72,439 / 14,568 / 53,344 | 75,201 / 11,422 / 50,582 | +2,762 / −3,146 / −2,762 |
+| GTT used (GB of 109.05) | 48.558 | 50.724 | +2.166 |
+| VRAM carve-out used (GB of 0.537) | 0.5276 | 0.5309 | +0.003 |
+| Memory PSI some avg60 | 0.00 | 0.00 | |
+| `wyoming-whisper-dev` GTT / RSS (GB) | not running | 2.067 / 0.674 | |
+| `wyoming-whisper` (production) GTT / RSS | 2.097 / 0.717 | 2.097 / 0.717 | 0 |
+| `llama-devstral-q4` / `llama-gemma3-4b` / `llama-gemma4-e4b` GTT | 36.518 / 3.963 / 5.475 | same | 0 |
+| `gpu_busy_percent` at idle | 0 | 0, 0, 0 (00:45) | |
+
+Health after the load:
+
+- No out-of-memory, allocation, `hipError` or error line in the journals of
+  the three `llama-*` units, `wyoming-whisper`, `wyoming-whisper-dev` or
+  `kronk-memwatch` since 00:41 UTC; none in `kronk-litellm-1`'s log.
+- `/health` on 11438, 11439, 11440: `{"status":"ok"}`.
+- `/dev/api/chat` "What is the capital of Portugal?": 200 in 1.85 s,
+  "Lisbon" (coordinator, `gemma-4-e4b`).
+- `/dev/api/chat` "Write a Python function that returns the reverse of a
+  string. Use the coding agent.": 200 in 12.4 s, a correct function;
+  `orchestrator-dev` logged `ask_coding`, agent `coding`, model
+  `devstral-2512-q4`.
+- Production Whisper: same pid 2809, `NRestarts=0`, active since
+  2026-11-04; unit file sha256 unchanged (`441b8b78…a797b1`).
+
+Headroom: GTT 50.7 of 109 GB (memwatch alerts at 90); 50.6 GB available.
+`mem_free` 11.4 GB is under memwatch's 12 GB warning line, which counts
+only with memory pressure (PSI 0.00 here; `mem_free` already dipped to
+6 GB at PSI 0 before this item). The 2 GB unconditional floor is far off.
+The cost is the one predicted in section 1.
