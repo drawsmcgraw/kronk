@@ -263,15 +263,11 @@ def _playing(ops):
 
 
 def _held(ops):
-    ops.held = 1
+    ops.held_ids = ["01JHOUSEHOLD0001"]          # a household run, not on kronk-dev
 
 
 def _chat(ops):
     ops.nginx_log = '172.18.0.1 - - [01/Dec/2026:08:28:00 +0000] "POST /api/chat HTTP/1.1" 200 512 "-" "HomeAssistant"\n'
-
-
-def _dev_voice(ops):
-    ops.nginx_log = '172.18.0.1 - - [01/Dec/2026:08:28:00 +0000] "POST /dev/voice/api/chat HTTP/1.1" 200 512\n'
 
 
 def _deploying(ops):
@@ -300,7 +296,6 @@ def _ha_down(ops):
     (_playing, "media_player.kitchen is playing"),
     (_held, "voice_tracer holds 1 run(s)"),
     (_chat, "1 chat/voice request(s) in the last 5 minutes"),
-    (_dev_voice, "1 chat/voice request(s) in the last 5 minutes"),
     (_deploying, "a deploy is in progress"),
     (_dirty, "working tree not clean (1 path(s): scratch.txt)"),
     (_modified, "working tree not clean (1 path(s): docs/readme.md)"),

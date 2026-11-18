@@ -68,6 +68,13 @@ inert_paths = [
 ]
 # Dev containers in the kronk project: not production, not checked.
 dev_services = ["orchestrator-dev", "tool_service-dev"]
+# "House busy" means the household. Not counted: requests under /dev/ in
+# nginx's log (the dev path), requests carrying the run's own User-Agent
+# (deploy_tag.sh's /api/chat check), and runs voice_tracer holds that are on
+# these HA pipelines or from the run's own replays. voice_tracer's state file
+# lists the held run ids (read-only).
+dev_pipelines = ["kronk-dev"]
+voice_tracer_state = "data/voice_tracer_state.json"
 
 [replay]
 # Rows of tests/voice_corpus.jsonl known to flap on the live dev replay

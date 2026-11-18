@@ -57,6 +57,7 @@ import fnmatch
 import json
 import os
 import re
+import secrets
 import socket
 import subprocess
 import sys
@@ -117,7 +118,8 @@ def load_rules(path: Path = RULES_FILE, env: dict | None = None) -> Rules:
         settings["expected_branch"] = env["KRONK_UPGRADE_BRANCH"]
     for key, default in (("expected_branch", "main"), ("min_age_days", 14), ("quiet_minutes", 5),
                          ("select_quiet_minutes", 15), ("max_attempts", 7), ("inert_paths", []),
-                         ("dev_services", [])):
+                         ("dev_services", []), ("dev_pipelines", ["kronk-dev"]),
+                         ("voice_tracer_state", "data/voice_tracer_state.json")):
         settings.setdefault(key, default)
     comps = data.get("component", [])
     seen = set()
@@ -492,6 +494,13 @@ class Ops:
         self.repo = repo
         self.web = web or Web()
         self._ha_token: str | None = None
+        # The User-Agent this run's own requests to production carry
+        # (deploy_tag.sh's /api/chat check reads it from KRONK_CLIENT_UA), so
+        # the house check can tell them from the household's. Set per run.
+        self.client_ua: str | None = None
+
+    def client_env(self) -> dict:
+        return {"KRONK_CLIENT_UA": self.client_ua} if self.client_ua else {}
 
     # processes
     def run(self, args: list[str], timeout: float = 600, env: dict | None = None) -> Result:
@@ -523,7 +532,7 @@ class Ops:
         return self.run(cmd + list(args), timeout=timeout)
 
     def deploy_tag(self, *args: str) -> Result:
-        return self.run([str(self.repo / "scripts" / "deploy_tag.sh"), *args], timeout=3600)
+        return self.run([str(self.repo / "scripts" / "deploy_tag.sh"), *args], timeout=3600, env=self.client_env())
 
     def run_tests(self) -> Result:
         return self.run([str(self.repo / "scripts" / "run_tests.sh"), "-q", "-p", "no:cacheprovider"],
@@ -565,6 +574,52 @@ class Ops:
         if status != 200:
             raise StepFailed(f"HA GET {path}: {status or body[:120]}")
         return json.loads(body)
+
+    def voice_tracer_held_ids(self, rel: str) -> list[str] | None:
+        """The run ids voice_tracer lists as held (its state file, which it
+        rewrites on every hold and every export), or None when unreadable."""
+        try:
+            held = json.loads((self.repo / rel).read_text()).get("held")
+        except (OSError, ValueError, AttributeError):
+            return None
+        return [str(x) for x in held] if isinstance(held, list) else None
+
+    def dev_pipeline_run_ids(self, names: list[str]) -> set[str] | None:
+        """HA's recent run ids on the named pipelines (read-only websocket
+        calls on this host's loopback: assist_pipeline/pipeline/list and
+        pipeline_debug/list, what voice_tracer and voice_replay read), or None
+        when HA cannot be asked."""
+        try:
+            from websockets.sync.client import connect
+        except ImportError:
+            return None
+        try:
+            with connect("ws://localhost:8123/api/websocket", open_timeout=10, close_timeout=5, max_size=None) as ws:
+                ws.recv(timeout=10)
+                ws.send(json.dumps({"type": "auth", "access_token": self.ha_token()}))
+                if json.loads(ws.recv(timeout=10)).get("type") != "auth_ok":
+                    return None
+                n = 0
+
+                def call(type_: str, **kw):
+                    nonlocal n
+                    n += 1
+                    ws.send(json.dumps({"id": n, "type": type_, **kw}))
+                    while True:
+                        m = json.loads(ws.recv(timeout=15))
+                        if m.get("id") == n and m.get("type") == "result":
+                            if not m.get("success"):
+                                raise StepFailed(f"{type_}: {m.get('error')}")
+                            return m.get("result") or {}
+
+                out: set[str] = set()
+                for p in call("assist_pipeline/pipeline/list").get("pipelines", []):
+                    if p.get("name") in names:
+                        runs = call("assist_pipeline/pipeline_debug/list", pipeline_id=p["id"]).get("pipeline_runs", [])
+                        out |= {str(r["pipeline_run_id"]) for r in runs if isinstance(r, dict) and r.get("pipeline_run_id")}
+                return out
+        except Exception:  # noqa: BLE001 - not knowing is reported by the caller as not quiet
+            return None
 
     def wyoming(self, host: str, port: int) -> bool:
         if host not in LOCAL_HOSTS:
@@ -783,13 +838,30 @@ def plan_lockfile(rules: Rules, comp: dict, repo: Path, web: Web, now: dt.dateti
 
 # ═══ Declines ════════════════════════════════════════════════════════════
 
-CHAT_ROUTE = re.compile(r'"(?:POST|GET) /(?:dev/)?(?:api/chat|message|v1/chat/completions|voice)\b')
+# A chat or voice request in nginx's access log (combined format). Group 1 is
+# the path: requests under /dev/ are the dev path (the replay's, a test's)
+# and not the household's.
+CHAT_ROUTE = re.compile(r'"(?:POST|GET) (/(?:dev/)?(?:api/chat|message|v1/chat/completions|voice)\b\S*)')
+UA_FIELD = re.compile(r'"([^"]*)"\s*$')       # the last quoted field: the User-Agent
 
 
-def house_busy(ops: Ops, rules: Rules, now: dt.datetime) -> list[str]:
-    """Reasons the house is busy now (empty = quiet). A check that cannot be
-    read is a reason: not knowing is not quiet."""
+@dataclass
+class Own:
+    """What this run itself sends, so the house check does not read the
+    run's own work as the household being busy (sprint M18 fix 1, F1)."""
+    ua: str | None = None                       # User-Agent of its own requests to production
+    runs: set[str] = field(default_factory=set)  # HA pipeline run ids of its own replays
+
+
+def house_busy(ops: Ops, rules: Rules, now: dt.datetime, own: Own | None = None,
+               info: list[str] | None = None) -> list[str]:
+    """Reasons the household is busy now (empty = quiet). A check that
+    cannot be read is a reason: not knowing is not quiet. Not the
+    household's, and so not counted: requests under /dev/, requests that
+    carry this run's own User-Agent, and held runs on a dev pipeline or from
+    this run's replays. What was set aside is appended to `info`."""
     why, quiet = [], rules.settings["quiet_minutes"]
+    own = own or Own()
     try:
         states = ops.ha_get("/api/states")
         for s in states:
@@ -802,24 +874,63 @@ def house_busy(ops: Ops, rules: Rules, now: dt.datetime) -> list[str]:
                     why.append(f"{eid} changed state {int((now - ch).total_seconds())}s ago")
             elif eid.startswith("media_player.") and st in ("playing", "buffering"):
                 why.append(f"{eid} is {st}")
-    except (StepFailed, ValueError) as e:
+    except (StepFailed, ValueError, AttributeError, TypeError) as e:
         why.append(f"cannot read HA's states ({e}): cannot tell whether a satellite or a player is busy")
     status, body = ops.http_get("http://localhost/probe/voice_tracer")
     try:
         held = json.loads(body).get("held") if status == 200 else None
-    except ValueError:
+    except (ValueError, AttributeError):
         held = None
-    if held is None:
+    if not isinstance(held, int):
         why.append(f"cannot read voice_tracer's probe (HTTP {status})")
     elif held:
-        why.append(f"voice_tracer holds {held} run(s) in the correction window")
+        why += _held_not_ours(ops, rules, held, own, info)
     logs = ops.docker("logs", "--since", f"{quiet}m", "kronk-nginx-1", timeout=30)
     if not logs.ok:
         why.append(f"cannot read nginx's log ({logs.tail(120)})")
     else:
-        hits = [ln for ln in (logs.out + logs.err).splitlines() if CHAT_ROUTE.search(ln)]
+        hits, dev_n, own_n = [], 0, 0
+        for ln in (logs.out + logs.err).splitlines():
+            m = CHAT_ROUTE.search(ln)
+            if not m:
+                continue
+            if m.group(1).startswith("/dev/"):
+                dev_n += 1
+                continue
+            ua = UA_FIELD.search(ln)
+            if own.ua and ua and ua.group(1) == own.ua:
+                own_n += 1
+                continue
+            hits.append(ln)
         if hits:
             why.append(f"{len(hits)} chat/voice request(s) in the last {quiet} minutes")
+        if info is not None and (dev_n or own_n):
+            info.append(f"nginx: set aside {dev_n} request(s) on the dev path (/dev/) and {own_n} of this run's own "
+                        f"(User-Agent {own.ua})" if own.ua else
+                        f"nginx: set aside {dev_n} request(s) on the dev path (/dev/)")
+    return why
+
+
+def _held_not_ours(ops: Ops, rules: Rules, held: int, own: Own, info: list[str] | None) -> list[str]:
+    """voice_tracer holds `held` runs: the ones that are not on a dev
+    pipeline and not from this run's replays are the household's."""
+    ids = ops.voice_tracer_held_ids(rules.settings["voice_tracer_state"])
+    if ids is None:
+        return [f"voice_tracer holds {held} run(s) in the correction window and its state file "
+                f"({rules.settings['voice_tracer_state']}) cannot be read to tell whose"]
+    names = rules.settings["dev_pipelines"]
+    dev = ops.dev_pipeline_run_ids(names)
+    theirs = [i for i in ids if i not in own.runs and i not in (dev or set())]
+    why = []
+    if theirs:
+        why.append(f"voice_tracer holds {len(theirs)} run(s) in the correction window that are not on "
+                   f"{', '.join(names)} or from this run's replay"
+                   + ("" if dev is not None else " (HA's list of dev pipeline runs could not be read)"))
+    if held > len(ids):
+        why.append(f"voice_tracer holds {held - len(ids)} run(s) its state file does not list")
+    aside = len(ids) - len(theirs)
+    if aside and info is not None:
+        info.append(f"voice_tracer: set aside {aside} held run(s) on {', '.join(names)} or from this run's replay")
     return why
 
 
@@ -838,7 +949,8 @@ def tree_state(ops: Ops, rules: Rules) -> list[str]:
     return why
 
 
-def run_declines(ops: Ops, rules: Rules, status: dict, now: dt.datetime) -> list[str]:
+def run_declines(ops: Ops, rules: Rules, status: dict, now: dt.datetime, own: Own | None = None,
+                 info: list[str] | None = None) -> list[str]:
     why = []
     if status.get("rollback_failed"):
         rf = status["rollback_failed"]
@@ -848,7 +960,7 @@ def run_declines(ops: Ops, rules: Rules, status: dict, now: dt.datetime) -> list
     if procs:
         why.append(f"a deploy is in progress ({procs[0][:120]})")
     why += tree_state(ops, rules)
-    why += house_busy(ops, rules, now)
+    why += house_busy(ops, rules, now, own, info)
     return why
 
 
@@ -918,6 +1030,7 @@ class Ctx:
     ha_before: dict | None = None
     ha_old_id: str | None = None
     ha_restart_at: str | None = None      # ISO time just before the stop, for `docker events --since`
+    own: Own = field(default_factory=Own)  # this run's own requests and replay runs (F1)
 
 
 def image_is(ctx: Ctx, comp: dict, version: str) -> str | None:
@@ -988,6 +1101,9 @@ def run_replay(ctx: Ctx, label: str) -> tuple[list[dict] | None, str]:
         rows = json.loads(out.read_text())["rows"]
     except (OSError, ValueError, KeyError) as e:
         return None, f"replay wrote no readable result ({e}; exit {r.rc}: {r.tail(160)})"
+    # The runs this replay made: voice_tracer holds them for their correction
+    # window, and they are this run's, not the household's.
+    ctx.own.runs |= {str(x["pipeline_run_id"]) for x in rows if isinstance(x, dict) and x.get("pipeline_run_id")}
     return rows, ""
 
 
@@ -1200,7 +1316,10 @@ def apply_one(ctx: Ctx, p: Plan) -> Outcome:
         why = ha_precheck(ctx, ctx.ha_before)
         if why:
             return Outcome(name, frm, to, "not_started", "HA restart declined: " + "; ".join(why))
-    busy = house_busy(ops, ctx.rules, ops.now())
+    info: list[str] = []
+    busy = house_busy(ops, ctx.rules, ops.now(), ctx.own, info)
+    for n in info:
+        log(f"  {n}")
     if busy:
         return Outcome(name, frm, to, "not_started", "house busy: " + "; ".join(busy))
 
@@ -1308,6 +1427,8 @@ def minor_run(ops: Ops, rules: Rules, sd: Path, dry_run: bool = False, ignore_mo
     log(f"upgrade_minor {'DRY RUN ' if dry_run else ''}{now.isoformat(timespec='seconds')} "
         f"repo {ops.repo} branch rule {rules.settings['expected_branch']!r}")
 
+    own = Own(ua=f"kronk-upgrade/{stamp}-{secrets.token_hex(6)}")
+    ops.client_ua = own.ua
     lock_fd = None
     if dry_run:
         held = lock_held(sd)
@@ -1353,7 +1474,10 @@ def minor_run(ops: Ops, rules: Rules, sd: Path, dry_run: bool = False, ignore_mo
                 save_status(sd, status, now)
             return 0
 
-        declines = run_declines(ops, rules, status, now)
+        info: list[str] = []
+        declines = run_declines(ops, rules, status, now, own, info)
+        for n in info:
+            log(n)
         prod_tag, kronk_why = (None, [])
         if any(p.comp["deploy"] == "kronk" for p in todo):
             prod_tag, kronk_why = production_tag(ops, rules)
@@ -1397,7 +1521,7 @@ def minor_run(ops: Ops, rules: Rules, sd: Path, dry_run: bool = False, ignore_mo
             save_status(sd, status, now)
             return 0
 
-        ctx = Ctx(ops, rules, log, sd, stamp, now, prod_tag)
+        ctx = Ctx(ops, rules, log, sd, stamp, now, prod_tag, own=own)
         log("baseline: offline corpus")
         t = ops.run_tests()
         if not t.ok:

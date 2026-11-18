@@ -171,8 +171,13 @@ class FakeOps(U.Ops):
         self.notify_ok = True
         self.states = _quiet_states(now)
         self.services = [{"domain": "rest_command", "services": {"kronk_music_voice": {}}}]
-        self.held = 0
-        self.nginx_log = ""
+        self.held = 0                     # held runs voice_tracer's state file does not list
+        self.held_ids: list[str] = []     # held runs it lists (data/voice_tracer_state.json)
+        self.dev_runs: set[str] = set()   # HA's recent run ids on the kronk-dev pipeline
+        self.dev_list_ok = True
+        self.nginx_log = ""               # household lines a test puts in nginx's log
+        self.nginx_own: list[str] = []    # lines the run's own work leaves there (replays, deploy checks)
+        self._run_n = 0
         self.deploying: list[str] = []
         self.ha_up = True
         # what runs: container -> image reference; image ids per reference
@@ -258,7 +263,7 @@ class FakeOps(U.Ops):
         if a[0] == "stop":
             return U.Result(0)
         if a[0] == "logs":
-            return U.Result(0, self.nginx_log)
+            return U.Result(0, self.nginx_log + "".join(self.nginx_own))
         if a[0] == "events":
             return U.Result(0, "15\n")
         if a[0] == "exec":
@@ -312,6 +317,10 @@ class FakeOps(U.Ops):
                     if ref.rsplit(":", 1)[0] == image:
                         self.containers[c] = f"{image}:{version}"
             self.prod_tag = tag
+            # deploy_tag.sh's verify: /api/status and the /api/chat shim, with
+            # the User-Agent it is handed in KRONK_CLIENT_UA (else curl's).
+            ua = self.client_env().get("KRONK_CLIENT_UA", "curl/8.14.1")
+            self.nginx_own += [_nginx("GET", "/api/status", ua, self.clock), _nginx("POST", "/api/chat", ua, self.clock)]
             return U.Result(0, f"deployed {tag}\n")
         return U.Result(0)
 
@@ -332,6 +341,17 @@ class FakeOps(U.Ops):
         failing = {rid for v, ids in self.replay_regress.items() if v in running for rid in ids}
         rows = [{"id": rid, "status": "fail" if rid in failing else "pass"} for rid in ("row-a", "row-b", "row-c")]
         rows.append({"id": "inc-0930-search-deep-house-ytm", "status": "fail" if "flap" in failing else "pass"})
+        # What a real replay leaves behind: each row is a run on HA's kronk-dev
+        # pipeline, whose Kronk is behind /dev/voice (HA's client, not ours);
+        # voice_tracer holds each run for its correction window (here: until
+        # the end of the test).
+        for row in rows:
+            self._run_n += 1
+            rid = f"01JDEVRUN{self._run_n:04d}"
+            row["pipeline_run_id"] = rid
+            self.held_ids.append(rid)
+            self.dev_runs.add(rid)
+            self.nginx_own.append(_nginx("POST", "/dev/voice/api/chat", "HomeAssistant/2026.5.4 aiohttp/3.12.13", self.clock))
         Path(out).parent.mkdir(parents=True, exist_ok=True)
         Path(out).write_text(json.dumps({"rows": rows}))
         return U.Result(1 if failing else 0)
@@ -342,7 +362,7 @@ class FakeOps(U.Ops):
     def http_get(self, url, headers=None, timeout=10):
         self.calls.append(("http", url))
         if "probe/voice_tracer" in url:
-            return 200, json.dumps({"held": self.held, "connected": True, "too_old": 0})
+            return 200, json.dumps({"held": self.held + len(self.held_ids), "connected": True, "too_old": 0})
         bad = any(self._version_running(c) in self.bad_versions for c in self.containers)
         if ":3200/" in url:
             return (500 if self._version_running("kronk-telemetry-tempo-1") in self.bad_versions else 200), "ready"
@@ -366,6 +386,16 @@ class FakeOps(U.Ops):
             return {"message": "API running."}
         raise U.StepFailed(f"unexpected {path}")
 
+    def voice_tracer_held_ids(self, rel):
+        self.calls.append(("held_ids", rel))
+        return list(self.held_ids)
+
+    def dev_pipeline_run_ids(self, names):
+        self.calls.append(("dev_runs", tuple(names)))
+        if not self.dev_list_ok:
+            return None
+        return set(self.dev_runs) if "kronk-dev" in names else set()
+
     def wyoming(self, host, port):
         return self._version_running("wyoming-piper") not in self.bad_versions
 
@@ -378,6 +408,17 @@ class FakeOps(U.Ops):
 
     def now(self):
         return self.clock
+
+
+def _nginx(method, path, ua, when):
+    """One access-log line in nginx's combined format, as kronk-nginx-1 writes it."""
+    return (f'172.18.0.1 - - [{when.strftime("%d/%b/%Y:%H:%M:%S +0000")}] "{method} {path} HTTP/1.1" '
+            f'200 512 "-" "{ua}"\n')
+
+
+def household_chat(ops, ua="HomeAssistant/2026.5.4 aiohttp/3.12.13", path="/api/chat"):
+    """A real household request in the quiet window."""
+    ops.nginx_log += _nginx("POST", path, ua, ops.clock)
 
 
 def standard_web(now=NOW) -> FakeWeb:

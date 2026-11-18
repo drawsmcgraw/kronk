@@ -249,10 +249,14 @@ guard() {
 }
 
 verify() {
-    local ok=1
-    curl -sf -o /dev/null --max-time 10 http://localhost/api/status && echo "ok   /api/status" \
+    local ok=1 ua=()
+    # A caller may name the User-Agent of these checks (KRONK_CLIENT_UA): the
+    # upgrade run does, so its own /api/chat check is not read as a household
+    # request (scripts/upgrades.py, house_busy).
+    [ -z "${KRONK_CLIENT_UA:-}" ] || ua=(-A "$KRONK_CLIENT_UA")
+    curl -sf "${ua[@]}" -o /dev/null --max-time 10 http://localhost/api/status && echo "ok   /api/status" \
         || { echo "FAIL /api/status"; ok=0; }
-    if curl -sf --max-time 60 -H 'Content-Type: application/json' http://localhost/api/chat \
+    if curl -sf "${ua[@]}" --max-time 60 -H 'Content-Type: application/json' http://localhost/api/chat \
         -d '{"model":"kronk:latest","stream":false,"messages":[{"role":"user","content":"What time is it?"}]}' \
         | grep -q '"content"'; then echo "ok   /api/chat (shim)"; else echo "FAIL /api/chat (shim)"; ok=0; fi
     [ "$ok" = 1 ] || die "deployed, but verification failed; roll back by deploying the previous tag"
