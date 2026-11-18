@@ -702,3 +702,42 @@ def test_the_quarterly_check_waits_twenty_minutes_at_most_under_its_unit_timeout
         os.close(fd)
     assert len(sleeps) == 20 and set(sleeps) == {60}
     assert ops.notices[-1][1] == "Kronk: the quarterly upgrade check did not run"
+
+
+# ── K11: a status file of the wrong encoding or shape stops, never a traceback ──
+
+BAD_STATUS = [
+    b"\xff\xfe\x00\x01binary",
+    json.dumps({"months": {}}).encode("utf-16"),
+    b'{"months": []}',
+    b'{"months": {"2026-12": {"done": false}}}',
+    b'{"months": {"2026-12": {"attempts": "3", "done": false}}}',
+    b'{"intent": "x"}',
+    b'{"intent": {"component": 3, "from": "a", "to": "b", "step": "verify"}}',
+    b'{"rollback_failed": "yes"}',
+    b'{"attention": [1]}',
+    b'{"pending_notices": [{"id": "n", "tag": "t", "title": 5, "body": "b"}]}',
+    b'{"unreported": {"outcomes": "x"}}',
+]
+
+
+@pytest.mark.parametrize("raw", BAD_STATUS, ids=range(len(BAD_STATUS)))
+def test_a_status_file_of_the_wrong_encoding_or_shape_is_corrupt_for_every_command(house, raw, monkeypatch):
+    ops, sd = house
+    sd.mkdir()
+    (sd / "status.json").write_bytes(raw)
+    assert run(ops, sd, ["tempo"]) == 2
+    assert (sd / "status.json").read_bytes() == raw and subjects(ops.repo) == ["initial"]
+    assert ops.notices[-1][1] == "Kronk upgrade: STOPPED, the status file is unreadable"
+    monkeypatch.setenv("KRONK_UPGRADE_STATE", str(sd))
+    for cmd in ("notices", "ack", "status"):
+        assert U.main([cmd], ops=ops) == 2
+    assert (sd / "status.json").read_bytes() == raw
+
+
+def test_a_status_file_the_run_itself_writes_passes_the_shape_check(house):
+    ops, sd = house
+    killed(ops, sd, ["tempo", "litellm"], _kill_in_verify(ops))
+    assert U.load_status(sd)["intent"]["component"] == "litellm"
+    run(ops, sd, ["tempo", "litellm"])
+    U.load_status(sd)
