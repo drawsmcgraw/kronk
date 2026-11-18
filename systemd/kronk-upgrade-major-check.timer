@@ -1,0 +1,13 @@
+# Fires kronk-upgrade-major-check.service on the 8th of January, April, July
+# and October at 04:30 local: after the monthly run's window (days 1-7), so
+# the report sees that month's pins. Persistent: a missed day runs at boot.
+[Unit]
+Description=Kronk — quarterly major-upgrade report, 8th of Jan/Apr/Jul/Oct at 04:30 (M18)
+
+[Timer]
+OnCalendar=*-01,04,07,10-08 04:30
+Persistent=true
+RandomizedDelaySec=10m
+
+[Install]
+WantedBy=timers.target

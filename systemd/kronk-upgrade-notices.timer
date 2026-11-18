@@ -1,0 +1,11 @@
+# Fires kronk-upgrade-notices.service hourly. Not persistent: the next hour
+# catches up.
+[Unit]
+Description=Kronk — hourly retry of undelivered upgrade notices (M18)
+
+[Timer]
+OnCalendar=hourly
+RandomizedDelaySec=5m
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,40 @@
+# Monthly patch upgrades (sprint M18): scripts/upgrade_minor.sh applies the
+# releases scripts/upgrade_rules.toml calls minor, one component at a time
+# (pin, commit, bring up, verify, keep or roll back), then sends one notice.
+# It declines when the house is busy or the tree is not clean or not on
+# KRONK_UPGRADE_BRANCH; the timer fires on days 1-7 of the month, so a
+# decline is retried the next night, at most max_attempts times a month.
+# Fired by kronk-upgrade-minor.timer. Guide: docs/features/upgrade-cadence.md.
+#
+# Operations:
+#   install:   cp systemd/kronk-upgrade-{minor,major-check,notices}.{service,timer} ~/.config/systemd/user/
+#              (edit KRONK_UPGRADE_BRANCH below in the installed copy if production
+#              is not deployed from main)
+#              systemctl --user daemon-reload
+#              systemctl --user enable --now kronk-upgrade-minor.timer kronk-upgrade-major-check.timer kronk-upgrade-notices.timer
+#   check:     systemctl --user list-timers 'kronk-upgrade-*'
+#   dry run:   scripts/upgrade_minor.sh --dry-run          (any time; changes nothing)
+#   run now:   systemctl --user start kronk-upgrade-minor.service   (a real run)
+#   pause:     systemctl --user stop kronk-upgrade-minor.timer      (until the next boot or start)
+#              systemctl --user disable --now kronk-upgrade-minor.timer   (until enabled again)
+#   log:       journalctl --user -u kronk-upgrade-minor.service -n 100
+#              data/upgrades/runs/<UTC time>-minor.log (one per run)
+#   remove:    systemctl --user disable --now kronk-upgrade-minor.timer kronk-upgrade-major-check.timer kronk-upgrade-notices.timer
+#              rm ~/.config/systemd/user/kronk-upgrade-{minor,major-check,notices}.{service,timer}
+#              systemctl --user daemon-reload
+[Unit]
+Description=Kronk — monthly patch upgrades (M18)
+After=docker.service network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/git-repos/drawsmcgraw/kronk/scripts/upgrade_minor.sh
+WorkingDirectory=%h/git-repos/drawsmcgraw/kronk
+Environment=KRONK_REPO_DIR=%h/git-repos/drawsmcgraw/kronk
+# The branch the run's commits may land on: the one production's tags are
+# made from. A run on any other branch declines.
+Environment=KRONK_UPGRADE_BRANCH=main
+# A run is the baseline corpus and replay, then per component a deploy, the
+# corpus and a replay (about 10 minutes each): allow a long night.
+TimeoutStartSec=4h
+Nice=5

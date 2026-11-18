@@ -86,6 +86,11 @@ before proceeding.
    image tags. Version bumps happen on purpose — never as a side effect of a
    rebuild. *(Receipt: MA 2.8.8 shipped a known-fixed ytmusicapi bug; we run
    it until an intentional update day.)*
+   Since M18 the deliberate moves have a schedule: a monthly run applies
+   patch releases and reports them (`scripts/upgrade_minor.sh`), a quarterly
+   check reports major releases, and a major upgrade waits for Drew's
+   greenlight and a window (`docs/features/upgrade-cadence.md`,
+   `scripts/upgrade_rules.toml`).
 4. **Right-size to single-operator scale.** SQLite over Redis, one
    tool_service over microservices, no schema ceremony without payoff.
    *(Receipt: `TECH_DEBT.md` "Considered and rejected".)*
@@ -200,6 +205,10 @@ verbatim — never summarized away.
   Kronk-stack `up -d --build` must never touch either container. Prefer
   the no-restart path when one exists (HA's Reconfigure forms, MA's UI)
   over storage edits and recreates.
+  One approved cause (Drew's M18 decision, 2026-11-14): the monthly patch
+  run may restart HA for an HA patch release inside the pinned month. It
+  picks its own moment (nothing playing, no puck busy, no request in the
+  last five minutes) and declines otherwise. MA is excluded from it.
 - **Never modify files on managed remote hosts** (the MagicMirror Pi, and
   any host in the ops registry) without the operator's explicit permission
   for that specific action, each time — a past grant is not a standing one

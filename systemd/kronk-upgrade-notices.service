@@ -1,0 +1,16 @@
+# Retries upgrade notices HA did not take (sprint M18): `upgrades.py notices`
+# sends what data/upgrades/status.json holds as pending and exits at once
+# when nothing is pending. Until a notice is delivered, /services shows it
+# as a warning. Fired hourly by kronk-upgrade-notices.timer.
+#
+# Operations: install, check, remove as in kronk-upgrade-minor.service.
+#   log:       journalctl --user -u kronk-upgrade-notices.service -n 20
+[Unit]
+Description=Kronk — retry undelivered upgrade notices (M18)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 %h/git-repos/drawsmcgraw/kronk/scripts/upgrades.py notices
+WorkingDirectory=%h/git-repos/drawsmcgraw/kronk
+Environment=KRONK_REPO_DIR=%h/git-repos/drawsmcgraw/kronk
+TimeoutStartSec=5m

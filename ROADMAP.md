@@ -32,6 +32,14 @@ Conventions:
   on when Drew runs `scripts/settings_passphrase.sh`.
   `docs/features/config-directory.md`.
 
+- **Upgrade cadence** *(sprint M18, built 2026-11-18)* — a monthly run
+  applies patch releases and reports them; a quarterly check writes a
+  major-upgrade report and asks Drew for a window. Timers are installed at
+  promotion (first monthly run 2026-12-01). The first major (Home Assistant
+  2026.5.4 to 2026.11.2) waits for Drew: `docs/upgrades/2026-11-18.md`.
+  Open: the notice path when HA itself failed (built default: status file
+  and `/services` warning). `docs/features/upgrade-cadence.md`.
+
 ## Next — agreed, not started
 
 - **Music selection refinement** — Kronk plays what was meant, not the

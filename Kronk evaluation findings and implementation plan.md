@@ -1015,7 +1015,7 @@ Everything else in this document is decided. Raise each of these with Drew when 
 - [x] **M17:** whether the Satellite1 supports Hey Jarvis and a second wake word. Verified 2026-11-15: it does. Still to test: what the button does on each device once slot 2 changes.
 - [x] **Verification pass, 2026-11-15:** C1 to C10 reviewed with Drew the same day; see "Drew's review" in the verification section.
 - [ ] **M1:** what `data/postgres` is (71 MB, April 2026). Untouched until Drew says.
-- [ ] **M18:** how an upgrade notice reaches Drew when HA itself is the thing that failed.
+- [ ] **M18:** how an upgrade notice reaches Drew when HA itself is the thing that failed. Built default (2026-11-18): the notice stays in `data/upgrades/status.json`, `/services` shows it as a warning until `python3 scripts/upgrades.py ack`, and it is retried hourly until HA answers; alternatives for Drew in `docs/sprint/M18-build.md`.
 - [ ] **M20:** the voice clips to clone, which Drew will supply.
 - [ ] **M21:** the passphrase for editing on `/settings`.
 - [ ] **M22:** what the current MagicMirror panel is, and whether transcripts should be shown on it.

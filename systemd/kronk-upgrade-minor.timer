@@ -1,0 +1,14 @@
+# Fires kronk-upgrade-minor.service at 03:30 local on days 1-7 of each month.
+# The first run that is not declined does the month; the others find it done
+# and exit. Persistent: a night the box was off runs at the next boot.
+# Install and remove: the Operations block in kronk-upgrade-minor.service.
+[Unit]
+Description=Kronk — monthly patch upgrades, days 1-7 at 03:30 (M18)
+
+[Timer]
+OnCalendar=*-*-01..07 03:30
+Persistent=true
+RandomizedDelaySec=10m
+
+[Install]
+WantedBy=timers.target
