@@ -455,3 +455,37 @@ def test_the_api_shows_an_unfinished_record_as_a_warning(tmp_path):
     assert r["warnings"][0].startswith("An upgrade run was interrupted inside homeassistant 2026.5.4 -> 2026.5.5 "
                                        "(step ha-stop, 2026-12-07T08:31:00+00:00)")
     assert r["ack"] and r["intent"]["component"] == "homeassistant"
+
+
+# ── K3: outcomes a killed run never reported are reported by the next ────
+
+def test_upgrades_kept_before_a_kill_are_reported_by_the_next_run(house):
+    ops, sd = house
+    killed(ops, sd, ["tempo", "grafana", "litellm"], _kill_in_verify(ops))
+    assert [o["name"] for o in status(sd)["unreported"]["outcomes"]] == ["tempo", "grafana"]
+    run(ops, sd, ["tempo", "grafana", "litellm"])
+    late = [n for n in ops.notices if "ended before its notice" in n[1]]
+    (_, title, body), = late
+    assert title == "Kronk upgrade: 2 upgraded (run 20261201T083000Z, which ended before its notice)"
+    assert "tempo 3.1.1 -> 3.1.2: upgraded" in body and "grafana 13.2.4 -> 13.2.6: upgraded" in body
+    assert "unreported" not in status(sd)
+    assert any("interrupted run was recovered (litellm)" in t for _, t, _ in ops.notices)
+
+
+def test_a_kill_right_before_the_notice_is_reported_the_next_night(house):
+    ops, sd = house
+    killed(ops, sd, ["tempo"], kill_before(ops, "notify", lambda a: True))
+    assert ops.notices == []
+    assert run(ops, sd, ["tempo"]) == 0
+    (_, title, body), = ops.notices
+    assert title == "Kronk upgrade: 1 upgraded (run 20261201T083000Z, which ended before its notice)"
+    assert body.startswith("tempo 3.1.1 -> 3.1.2: upgraded")
+    ops.clock += _dt.timedelta(days=1)
+    run(ops, sd, ["tempo"])
+    assert len(ops.notices) == 1                                           # once
+
+
+def test_a_run_that_sends_its_notice_leaves_nothing_unreported(house):
+    ops, sd = house
+    run(ops, sd, ["tempo"])
+    assert "unreported" not in status(sd) and len(ops.notices) == 1

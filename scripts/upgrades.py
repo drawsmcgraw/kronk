@@ -2431,6 +2431,8 @@ def minor_run(ops: Ops, rules: Rules, sd: Path, dry_run: bool = False, ignore_mo
         except StatusCorrupt as e:
             return status_corrupt(ops, e, log, notify=not dry_run)
         late = None if ignore_window else outside_window(ops, rules)
+        if not dry_run and status.get("unreported"):
+            report_unreported(ops, sd, status, now, log)
         if status.get("intent"):
             # Before anything else, the month's bookkeeping included: a run
             # that died inside a component is dealt with first (F3). A
@@ -2571,6 +2573,12 @@ def minor_run(ops: Ops, rules: Rules, sd: Path, dry_run: bool = False, ignore_mo
                 log(f"  ERROR: {e}")
                 o = error_outcome(ctx, p, e)
             outcomes.append(o)
+            if o.result != "not_started":
+                # Written when the component ends: a run killed before its
+                # notice leaves them for the next run to report (K3).
+                status["unreported"] = {"run": stamp, "log": log_rel, "redeploys": ctx.redeploys,
+                                        "outcomes": [x.__dict__ for x in outcomes if x.result != "not_started"]}
+                save_status(sd, status, now)
             if o.result == "not_started":
                 log(f"  not started: {o.detail}")
             if o.result in BLOCKING:
@@ -2592,6 +2600,7 @@ def minor_run(ops: Ops, rules: Rules, sd: Path, dry_run: bool = False, ignore_mo
         if changed:
             deliver(ops, status, {"id": f"minor-{stamp}", "tag": NOTIFY_TAG, "title": title, "body": body,
                                   "created": now.isoformat(timespec="seconds")}, now, log)
+            status.pop("unreported", None)          # sent, or pending (retried hourly)
         elif m["attempts"] >= rules.settings["max_attempts"]:
             # The month ends with nothing applied: say so, as a month of declines does (F7).
             month_ended_empty(ops, status, m, month, rules, now, log, log_rel,
@@ -2605,6 +2614,20 @@ def minor_run(ops: Ops, rules: Rules, sd: Path, dry_run: bool = False, ignore_mo
     finally:
         if lock_fd is not None:
             os.close(lock_fd)
+
+
+def report_unreported(ops: Ops, sd: Path, status: dict, now: dt.datetime, log: RunLog) -> None:
+    """An earlier run ended (killed) after finishing components and before
+    its notice: send what it did now, once (K3)."""
+    u = status.pop("unreported")
+    outs = [Outcome(**o) for o in u.get("outcomes", [])]
+    if outs:
+        title, body = notice_text(outs, [], u.get("log", "?"), u.get("redeploys", 0))
+        title += f" (run {u.get('run')}, which ended before its notice)"
+        log(f"an earlier run ({u.get('run')}) ended before its notice: reporting {len(outs)} outcome(s) now")
+        deliver(ops, status, {"id": f"unreported-{u.get('run')}", "tag": NOTIFY_TAG, "title": title, "body": body,
+                              "created": now.isoformat(timespec="seconds")}, now, log)
+    save_status(sd, status, now)
 
 
 def _baseline_declined(ctx: Ctx, status: dict, m: dict, month: str, log_rel: str, why: str) -> int:
