@@ -731,3 +731,25 @@ def test_a_record_for_a_component_without_a_container(tmp_path, pin, result):
     assert o["result"] == result and mutating(ops) == []
     if result == "recovered":
         assert "nothing to recover" in o["state"] and "intent" not in status(sd)
+
+
+# ── The player list (Drew's contents; three browser players added as ruled) ──
+
+BROWSERS = ["media_player.camerons_macbook_pro", "media_player.drew_s_windows_firefox",
+            "media_player.web_firefox_on_linux"]
+
+
+@pytest.mark.parametrize("eid", BROWSERS)
+def test_a_browser_player_coming_online_during_the_restart_does_not_fail_the_upgrade(house, eid):
+    ops, sd = house
+    ops.states.append({"entity_id": eid, "state": "unavailable", "last_changed": "2026-11-01T00:00:00Z"})
+    orig = ops.compose
+
+    def compose(project, file, *args, **kw):
+        r = orig(project, file, *args, **kw)
+        if args[0] == "up" and project == "kronk-ha":
+            next(s for s in ops.states if s["entity_id"] == eid)["state"] = "idle"
+        return r
+    ops.compose = compose
+    assert run(ops, sd, ["homeassistant"]) == 0
+    assert set(BROWSERS) <= set(rules().settings["flapping_players"])

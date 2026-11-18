@@ -116,6 +116,12 @@ flapping_players = [
   "media_player.xbr_49x800d",
   "media_player.sonos_move_derp",
   "media_player.sonos_move_derp_2",
+  # A laptop's and two browsers' players: all three `unavailable` on
+  # 2026-11-18 (third M18 e2e report, docs/sprint/M18-e2e3.md); one coming
+  # online during HA's restart would fail the upgrade for nothing HA did.
+  "media_player.camerons_macbook_pro",
+  "media_player.drew_s_windows_firefox",
+  "media_player.web_firefox_on_linux",
 ]
 
 [replay]
