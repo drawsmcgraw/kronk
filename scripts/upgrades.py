@@ -2452,25 +2452,53 @@ def _ha_down_first(ctx: Ctx, comp: dict, it: dict, dry_run: bool):
         log(f"  a real run would create {c} on the rollback image {comp['image']}:{frm} (compose up, no stop) after "
             f"M12 H7b, then go on with the recovery")
         return "dry"
-    # compose up reads the working tree's file: it must say `frm`, or the
-    # pin is put back by a commit first when the tree allows it.
+    # compose up creates HA from the working tree's file: the create passes
+    # the run's tree checks and the guards a recreate passes, whatever the
+    # pin on disk says (sprint M18 fix 3, H5). Checked before anything is
+    # done: if one fails, HA stays absent and nothing was touched.
     try:
-        disk = read_pin(ctx.ops.repo, comp).value
-    except (RulesError, OSError) as e:
-        return down("out_of_step", f"cannot read the pin in {comp['file']}: {e}")
-    if disk == to:
-        dirty = tree_state(ctx.ops, ctx.rules)
+        why = tree_state(ctx.ops, ctx.rules, strict=True)
         unexpl = unexplained_commits(ctx, comp, it)
-        if head_pin(ctx, comp) != to or unexpl or any(w.startswith("working tree not clean") for w in dirty):
-            return down("out_of_step", f"{comp['file']} says {to} and the pin cannot be put back by a commit "
-                                       f"({unexpl or '; '.join(dirty) or 'HEAD is not the pin commit'}); {_OOS_TODO}")
-        _pin_back(ctx, comp, frm, to, f"Recovering an interrupted run ({it.get('run')}, step {it.get('step')}): "
-                                      f"no {c} container.")
-    elif disk != frm:
-        return down("out_of_step", f"{comp['file']} says {disk}, neither {frm} nor {to}; {_OOS_TODO}")
-    files = ha_files_ok(ctx, comp)
+        gitp = head_pin(ctx, comp, strict=True)
+    except StepFailed as e:
+        raise ReadUnknown("git", str(e)) from e
+    why += [unexpl] if unexpl else []
+    if not why and gitp not in (frm, to):
+        why.append(f"git has {gitp}, neither {frm} nor {to}")
+    if not why:
+        want = it.get("hash_to") if gitp == to else it.get("hash_from")
+        cur, err = config_hash(ctx.ops, comp)
+        if err:
+            raise ReadUnknown(f"the config hash of {comp['file']}", err)
+        if not want or cur != want:
+            why.append(f"{comp['file']} at HEAD (or its env file) no longer gives the config hash the record has "
+                       f"({want}, now {cur})")
+    files = ha_files_ok(ctx, comp, strict=True)
+    if not why:
+        # No container to read a start time from: a bind-mounted file of the
+        # repo changed after the run started is one the run never checked.
+        repo = ctx.ops.repo.resolve()
+        srcs = [src for src, _ in ctx.ha_binds or [] if Path(src).resolve().is_relative_to(repo)]
+        try:
+            since = dt.datetime.strptime(str(it.get("run")), "%Y%m%dT%H%M%SZ").replace(tzinfo=dt.timezone.utc)
+        except ValueError:
+            since = None
+        changed = ctx.ops.files_changed_since(srcs, since) if since and srcs else []
+        if srcs and not since:
+            why.append("the record has no run time to compare bind-mounted files with")
+        elif changed:
+            why.append(f"{', '.join(shown_path(Path(q), ctx.ops.repo) for q, _ in changed[:4])} changed after the run "
+                       f"started: a create would load it unchecked")
+    if why:
+        return down("out_of_step", f"{'; '.join(why)}; {c} was not created; {_oos_todo(ctx)}")
     if files:
         return down("rollback_failed", "not created: M12 H7b: " + "; ".join(files))
+    if gitp == to:
+        try:
+            _pin_back(ctx, comp, frm, to, f"Recovering an interrupted run ({it.get('run')}, step {it.get('step')}): "
+                                          f"no {c} container.")
+        except (StepFailed, RulesError, OSError) as e:
+            return down("out_of_step", f"putting the pin back before creating {c} failed: {e}; {c} was not created")
     if not ctx.ha_old_id:
         i = ctx.ops.docker("image", "inspect", f"{HA_ROLLBACK_REPO}:{frm}", "-f", "{{.Id}}", timeout=30)
         ctx.ha_old_id = i.out.strip() if i.ok else None
@@ -2483,8 +2511,10 @@ def _ha_down_first(ctx: Ctx, comp: dict, it: dict, dry_run: bool):
     return None
 
 
-_OOS_TODO = ("nothing was touched; put what should run back by hand, make git's pin match it, "
-             "then `python3 scripts/upgrades.py ack`")
+def _oos_todo(ctx: Ctx) -> str:
+    """"nothing was touched" only when that is true of the whole recovery (H5)."""
+    did = "nothing else was touched" if ctx.ha_back else "nothing was touched"
+    return f"{did}; put what should run back by hand, make git's pin match it, then `python3 scripts/upgrades.py ack`"
 
 
 def _recover_one(ctx: Ctx, comp: dict, it: dict, f: dict, dry_run: bool) -> Outcome | None:
@@ -2493,7 +2523,7 @@ def _recover_one(ctx: Ctx, comp: dict, it: dict, f: dict, dry_run: bool) -> Outc
     STEP with nothing touched. No recovery deploys over something a person
     deployed."""
     name, frm, to = comp["name"], it["from"], it["to"]
-    oos = lambda why: Outcome(name, frm, to, "out_of_step", f"{why}; {_OOS_TODO}",  # noqa: E731
+    oos = lambda why: Outcome(name, frm, to, "out_of_step", f"{why}; {_oos_todo(ctx)}",  # noqa: E731
                               state=f"OUT OF STEP after an interrupted run (step {it.get('step')}): {f['desc']}")
     if f["tree"]:
         # The run's own tree checks (sprint M18 fix 3, H1): a recovery

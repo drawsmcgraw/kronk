@@ -405,3 +405,70 @@ def test_a_kept_upgrade_whose_replay_was_stopped_and_retried_says_so(house):
     (_, title, body), = ops.notices
     assert title == "Kronk upgrade: 1 upgraded"
     assert "the live replay was stopped by a player 1 time(s) and retried" in body
+
+
+# ── H5 (Y5): an absent HA is created only past the run's checks ─────────
+
+def _ha_gone_after_stop(ops):
+    """compose up cut between removing the old container and creating the new one."""
+    def gone(a):
+        if a[0] == "stop":
+            del ops.containers["homeassistant"]
+            ops.stopped.discard("homeassistant")
+            return True
+        return False
+    return kill_on(ops, "docker", gone)
+
+
+PRIVILEGED = "    privileged: true\n"
+
+
+def _ha_file_back_with_privileged(ops):
+    f = ops.repo / "docker-compose.ha.yml"
+    f.write_text(f.read_text().replace(":2026.5.5\n", ":2026.5.4\n" + PRIVILEGED))
+    ops.config_extra["homeassistant"] = "privileged"
+
+
+@pytest.mark.parametrize("how", ["commit", "uncommitted", "env file", "detached"])
+def test_an_absent_ha_is_not_created_from_a_file_the_run_never_checked(house, how):
+    """The tester's Y5: HA's record, no container, and the compose file at
+    the old pin with a person's change in it (committed or not), an env
+    change only the config hash sees, or a detached HEAD."""
+    ops, sd = house
+    killed(ops, sd, ["homeassistant"], _ha_gone_after_stop(ops))
+    if how in ("commit", "uncommitted"):
+        _ha_file_back_with_privileged(ops)
+        if how == "commit":
+            git(ops.repo, "commit", "-qam", "ha: privileged")
+    elif how == "env file":
+        ops.config_extra["homeassistant"] = "TZ changed in an env file"
+    else:
+        git(ops.repo, "checkout", "-q", "--detach")
+    assert run(ops, sd, ["homeassistant"]) == 2
+    assert not any(c[0] == "compose" and c[3] == "up" for c in ops.calls) and "homeassistant" not in ops.containers
+    st = status(sd)
+    o, = st["last_run"]["outcomes"]
+    assert o["result"] == "out_of_step" and "was not created" in o["detail"]
+    assert st["intent"]["blocked"] == "out_of_step"
+    (_, title, _), = ops.notices
+    assert title == "Kronk upgrade: OUT OF STEP (homeassistant): Home Assistant is down"
+
+
+def test_nothing_was_touched_is_said_only_when_nothing_was(house):
+    """HA stopped is started (H1's exception), then the tree is not clean:
+    OUT OF STEP, and the notice does not say nothing was touched."""
+    ops, sd = house
+    killed(ops, sd, ["homeassistant"], _kill_after_ha_stop(ops))
+    (ops.repo / "notes.txt").write_text("a person's notes\n")
+    assert run(ops, sd, ["homeassistant"]) == 2
+    o, = status(sd)["last_run"]["outcomes"]
+    assert "nothing was touched" not in o["detail"] and "nothing else was touched" in o["detail"]
+    assert "nothing was touched" not in ops.notices[-1][2]
+
+
+def test_a_clean_absent_ha_is_still_created(house):
+    ops, sd = house
+    killed(ops, sd, ["homeassistant"], _ha_gone_after_stop(ops))
+    assert run(ops, sd, ["homeassistant"]) == 1
+    assert ops.containers["homeassistant"].endswith(":2026.5.4")
+    assert status(sd)["last_run"]["outcomes"][0]["result"] == "recovered"
