@@ -540,6 +540,35 @@ def load(base: Path | None = None) -> Config:
                   voice=voice, digests=digests, env=env, warnings=warnings, data=data)
 
 
+def check_candidate(rel: str, text: str):
+    """What a candidate text for one orchestrator file loads to (the prompt
+    text, or the validated model), by the same rules as load(); raises
+    ConfigInvalid with file and line. For the /settings editor (step 2):
+    a candidate that fails here is never written."""
+    try:
+        if rel.startswith(f"{PROMPTS_DIR}/") and rel.endswith(".md"):
+            if rel[len(PROMPTS_DIR) + 1:-3] not in prompt_defaults.PROMPTS:
+                raise ConfigInvalid([Problem(rel, None, "unknown prompt file: no agent of that name")])
+            limit = config_files.MAX_PROMPT_BYTES
+        else:
+            limit = config_files.MAX_YAML_BYTES
+        size = len(text.encode("utf-8", "surrogatepass"))
+        if size > limit:
+            raise ConfigInvalid([Problem(rel, None, f"too large: {size} bytes; the limit is {limit}")])
+        if rel.startswith(f"{PROMPTS_DIR}/"):
+            return parse_prompt(text, rel)
+        model = {TUNING_FILE: Tuning, LEAD_IN_FILE: LeadIn, VOICE_FILE: Voice}.get(rel)
+        if model is None:
+            raise ConfigInvalid([Problem(rel, None, "not a file the orchestrator reads")])
+        data, lines = parse_yaml(text, rel)
+        return validate(model, data, lines, rel)
+    except ConfigInvalid as e:
+        raise ConfigInvalid(config_files.cap_problems(
+            e.problems, lambda first, n: Problem(first.file, None, f"and {n} more problems, not shown")))
+    except Exception as e:
+        raise ConfigInvalid([Problem(rel, None, config_files.unexpected(e))])
+
+
 def _try_load() -> tuple[Config | None, list[Problem]]:
     """load(), never raising: (config, []) or (None, problems)."""
     try:

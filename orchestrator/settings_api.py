@@ -236,3 +236,56 @@ async def settings_lock(request: Request):
     response = JSONResponse({"ok": True, "message": "locked"})
     settings_auth.clear_cookie(response)
     return response
+
+
+# ── save (criteria 7, 8, 10, 24) ─────────────────────────────────────────────
+
+def who(request: Request) -> str:
+    return f"{settings_view.instance()} page, client {client_of(request)}"
+
+
+async def _json(request: Request) -> dict:
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="the request body must be JSON")
+    if not isinstance(body, dict):
+        raise HTTPException(status_code=400, detail="the request body must be a JSON object")
+    return body
+
+
+def _refused(e) -> JSONResponse:
+    return JSONResponse(config_files.renderable(e.body, lambda s: {"ok": False, "detail": s}), status_code=e.status)
+
+
+@router.post("/api/settings/check")
+async def settings_check(request: Request):
+    """Would this text save? Validation, the keys it changes and (music
+    policy, lead-in) the corpus check. Writes nothing."""
+    import settings_auth
+    import settings_save
+    settings_auth.require(request)
+    body = await _json(request)
+    _name(body.get("name"))
+    result = await settings_save.check(body["name"], body.get("text"))
+    return JSONResponse(config_files.renderable(result, lambda s: {"ok": False, "detail": s}),
+                        status_code=200 if result["ok"] else 422)
+
+
+@router.post("/api/settings/save")
+async def settings_save_route(request: Request):
+    """{"name", "text", "base" (the version the editor loaded), "overrides"
+    (corpus row ids the editor confirmed)} -> saved, or refused with why."""
+    import settings_auth
+    import settings_save
+    settings_auth.require(request)
+    body = await _json(request)
+    overrides = body.get("overrides") or []
+    if not isinstance(overrides, list):
+        raise HTTPException(status_code=400, detail="overrides must be a list of corpus row ids")
+    try:
+        result = await settings_save.save(body.get("name"), body.get("text"), body.get("base"),
+                                          who(request), client_of(request), overrides=overrides)
+    except settings_save.SaveRefused as e:
+        return _refused(e)
+    return JSONResponse(config_files.renderable(result, lambda s: {"ok": True, "detail": s}))
