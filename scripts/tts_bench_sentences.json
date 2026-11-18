@@ -1,0 +1,26 @@
+{
+  "about": "Fixed sentence set for scripts/tts_bench.py (sprint M20). Written for the bench; no household transcript text. Categories: confirm (short confirmations), music (artist, album and station names), weather2 (a two-sentence weather answer), answer3 (three-sentence answers), long (a long spoken answer), numbers (numbers, dates, times, money). Changing a sentence changes every result made with it: add new ids instead.",
+  "version": 1,
+  "sentences": [
+    {"id": "c01", "category": "confirm", "text": "Paused in the kitchen."},
+    {"id": "c02", "category": "confirm", "text": "Okay, the office lights are off."},
+    {"id": "c03", "category": "confirm", "text": "Timer set for ten minutes."},
+    {"id": "c04", "category": "confirm", "text": "Volume set to thirty percent in the living room."},
+    {"id": "c05", "category": "confirm", "text": "Sorry, I couldn't reach the kitchen speaker."},
+    {"id": "m01", "category": "music", "text": "Now playing Kind of Blue by Miles Davis on the office speaker."},
+    {"id": "m02", "category": "music", "text": "Starting Thelonious Monk Radio on Pandora in the kitchen."},
+    {"id": "m03", "category": "music", "text": "Playing Rumours by Fleetwood Mac on the living room Sonos."},
+    {"id": "m04", "category": "music", "text": "Shuffling Khruangbin and Sigur Rós in the bedroom."},
+    {"id": "m05", "category": "music", "text": "Up next is Beyoncé, then Daft Punk."},
+    {"id": "w01", "category": "weather2", "text": "It's 54 degrees and cloudy right now. Expect light rain after 3 p.m., with a high of 61."},
+    {"id": "a01", "category": "answer3", "text": "The garage door is closed. The back door is locked. The porch light comes on at sunset."},
+    {"id": "a02", "category": "answer3", "text": "A heat pump moves heat instead of making it. In winter it pulls warmth from the outside air. In summer it runs in reverse and cools the house."},
+    {"id": "l01", "category": "long", "text": "The sky looks blue because sunlight is a mix of colors, and the air scatters short blue wavelengths much more strongly than long red ones. Look anywhere away from the sun and you see that scattered blue light arriving from every direction. At sunrise and sunset the light crosses far more air, so most of the blue is scattered out before it reaches you, and the reds and oranges are what is left."},
+    {"id": "n01", "category": "numbers", "text": "Your appointment is on Tuesday, March 3rd, at 10:45 a.m."},
+    {"id": "n02", "category": "numbers", "text": "The total comes to $1,284.50."},
+    {"id": "n03", "category": "numbers", "text": "It's 6:05 in the morning, and sunrise is at 7:12."},
+    {"id": "n04", "category": "numbers", "text": "The package should arrive between November 21 and November 24, 2026."},
+    {"id": "n05", "category": "numbers", "text": "Set the oven to 425 degrees for 18 minutes."},
+    {"id": "n06", "category": "numbers", "text": "There are 3 timers running: 2 minutes, 15 minutes, and 1 hour."}
+  ]
+}

@@ -1016,7 +1016,7 @@ Everything else in this document is decided. Raise each of these with Drew when 
 - [x] **Verification pass, 2026-11-15:** C1 to C10 reviewed with Drew the same day; see "Drew's review" in the verification section.
 - [ ] **M1:** what `data/postgres` is (71 MB, April 2026). Untouched until Drew says.
 - [ ] **M18:** how an upgrade notice reaches Drew when HA itself is the thing that failed. Built default (2026-11-18): the notice stays in `data/upgrades/status.json`, `/services` shows it as a warning until `python3 scripts/upgrades.py ack`, and it is retried hourly until HA answers; alternatives for Drew in `docs/sprint/M18-build.md`.
-- [ ] **M20:** the voice clips to clone, which Drew will supply.
+- [ ] **M20:** the voice clips to clone, which Drew will supply. The bench without clips ran 2026-11-18 (`docs/bench/tts_bench_2026-11-18.md`); what to supply (one consenting speaker per voice, 10 to 30 s of clean mono WAV at 24 kHz or more), the commands and where the output goes are in `~/kronk-tts-trial/samples/CLONING_RUN.md` and the bench write-up. Pocket TTS cloning also needs Drew to accept the gated `kyutai/pocket-tts` terms on Hugging Face.
 - [ ] **M21:** the passphrase for editing on `/settings`.
 - [ ] **M22:** what the current MagicMirror panel is, and whether transcripts should be shown on it.
 

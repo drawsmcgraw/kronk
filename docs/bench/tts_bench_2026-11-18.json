@@ -1,0 +1,3360 @@
+{
+ "schema": "tts_bench/1",
+ "kind": "summary",
+ "date": "2026-11-18",
+ "git_at_runs": "683b0e2",
+ "engines": {
+  "piper": {
+   "mode": "stream",
+   "voice": "en_US-hfc_male-medium",
+   "describe": {
+    "name": "piper",
+    "version": "2.2.2",
+    "supports_synthesize_streaming": true,
+    "description": "A fast, local, neural text to speech engine",
+    "voices": [
+     "ar_JO-kareem-low",
+     "ar_JO-kareem-medium",
+     "bg_BG-dimitar-medium",
+     "ca_ES-upc_ona-medium",
+     "ca_ES-upc_ona-x_low",
+     "ca_ES-upc_pau-x_low",
+     "cs_CZ-jirka-low",
+     "cs_CZ-jirka-medium",
+     "cy_GB-bu_tts-medium",
+     "cy_GB-gwryw_gogleddol-medium",
+     "da_DK-talesyntese-medium",
+     "de_DE-eva_k-x_low",
+     "de_DE-karlsson-low",
+     "de_DE-kerstin-low",
+     "de_DE-mls-medium",
+     "de_DE-pavoque-low",
+     "de_DE-ramona-low",
+     "de_DE-thorsten-high",
+     "de_DE-thorsten-low",
+     "de_DE-thorsten-medium",
+     "de_DE-thorsten_emotional-medium",
+     "el_GR-rapunzelina-low",
+     "el_GR-rapunzelina-medium",
+     "en_GB-alan-low",
+     "en_GB-alan-medium",
+     "en_GB-alba-medium",
+     "en_GB-aru-medium",
+     "en_GB-cori-high",
+     "en_GB-cori-medium",
+     "en_GB-jenny_dioco-medium",
+     "en_GB-northern_english_male-medium",
+     "en_GB-semaine-medium",
+     "en_GB-southern_english_female-low",
+     "en_GB-vctk-medium",
+     "en_US-amy-low",
+     "en_US-amy-medium",
+     "en_US-arctic-medium",
+     "en_US-bryce-medium",
+     "en_US-danny-low",
+     "en_US-hfc_female-medium"
+    ]
+   },
+   "summary": {
+    "by_category": {
+     "answer3": {
+      "requests": 10,
+      "ok": 10,
+      "ttfa_s": {
+       "n": 10,
+       "p50": 0.041,
+       "p95": 0.051,
+       "max": 0.051
+      },
+      "total_s": {
+       "n": 10,
+       "p50": 0.122,
+       "p95": 0.162,
+       "max": 0.162
+      },
+      "audio_s": {
+       "n": 10,
+       "p50": 4.714,
+       "p95": 7.326,
+       "max": 7.326
+      },
+      "rtf": {
+       "n": 10,
+       "p50": 0.022,
+       "p95": 0.026,
+       "max": 0.026
+      }
+     },
+     "confirm": {
+      "requests": 25,
+      "ok": 25,
+      "ttfa_s": {
+       "n": 25,
+       "p50": 0.043,
+       "p95": 0.062,
+       "max": 0.068
+      },
+      "total_s": {
+       "n": 25,
+       "p50": 0.046,
+       "p95": 0.07,
+       "max": 0.076
+      },
+      "audio_s": {
+       "n": 25,
+       "p50": 1.869,
+       "p95": 2.38,
+       "max": 2.438
+      },
+      "rtf": {
+       "n": 25,
+       "p50": 0.024,
+       "p95": 0.043,
+       "max": 0.061
+      }
+     },
+     "long": {
+      "requests": 5,
+      "ok": 5,
+      "ttfa_s": {
+       "n": 5,
+       "p50": 0.122,
+       "p95": 0.139,
+       "max": 0.139
+      },
+      "total_s": {
+       "n": 5,
+       "p50": 0.347,
+       "p95": 0.375,
+       "max": 0.375
+      },
+      "audio_s": {
+       "n": 5,
+       "p50": 20.317,
+       "p95": 20.457,
+       "max": 20.457
+      },
+      "rtf": {
+       "n": 5,
+       "p50": 0.017,
+       "p95": 0.019,
+       "max": 0.019
+      }
+     },
+     "music": {
+      "requests": 25,
+      "ok": 25,
+      "ttfa_s": {
+       "n": 25,
+       "p50": 0.054,
+       "p95": 0.059,
+       "max": 0.064
+      },
+      "total_s": {
+       "n": 25,
+       "p50": 0.06,
+       "p95": 0.067,
+       "max": 0.073
+      },
+      "audio_s": {
+       "n": 25,
+       "p50": 2.891,
+       "p95": 3.297,
+       "max": 3.367
+      },
+      "rtf": {
+       "n": 25,
+       "p50": 0.021,
+       "p95": 0.022,
+       "max": 0.022
+      }
+     },
+     "numbers": {
+      "requests": 30,
+      "ok": 30,
+      "ttfa_s": {
+       "n": 30,
+       "p50": 0.07,
+       "p95": 0.107,
+       "max": 0.111
+      },
+      "total_s": {
+       "n": 30,
+       "p50": 0.076,
+       "p95": 0.115,
+       "max": 0.118
+      },
+      "audio_s": {
+       "n": 30,
+       "p50": 3.738,
+       "p95": 5.027,
+       "max": 5.132
+      },
+      "rtf": {
+       "n": 30,
+       "p50": 0.019,
+       "p95": 0.03,
+       "max": 0.03
+      }
+     },
+     "weather2": {
+      "requests": 5,
+      "ok": 5,
+      "ttfa_s": {
+       "n": 5,
+       "p50": 0.047,
+       "p95": 0.077,
+       "max": 0.077
+      },
+      "total_s": {
+       "n": 5,
+       "p50": 0.114,
+       "p95": 0.138,
+       "max": 0.138
+      },
+      "audio_s": {
+       "n": 5,
+       "p50": 5.886,
+       "p95": 6.049,
+       "max": 6.049
+      },
+      "rtf": {
+       "n": 5,
+       "p50": 0.019,
+       "p95": 0.023,
+       "max": 0.023
+      }
+     }
+    },
+    "overall": {
+     "requests": 100,
+     "ok": 100,
+     "ttfa_s": {
+      "n": 100,
+      "p50": 0.056,
+      "p95": 0.111,
+      "max": 0.139
+     },
+     "total_s": {
+      "n": 100,
+      "p50": 0.068,
+      "p95": 0.162,
+      "max": 0.375
+     },
+     "audio_s": {
+      "n": 100,
+      "p50": 3.321,
+      "p95": 7.326,
+      "max": 20.457
+     },
+     "rtf": {
+      "n": 100,
+      "p50": 0.021,
+      "p95": 0.03,
+      "max": 0.061
+     }
+    },
+    "failures": {}
+   },
+   "memory": {
+    "1752872": {
+     "cmd": ".venv/bin/python3 -m wyoming_piper --uri tcp://0.0.0.0:10200 --data-dir /data --voice en_US-hfc_male-medium --uri unix:///run/tts/piper.sock --data-dir /data --download-dir /tmp/piper-download ",
+     "rss_gb_max": 0.404,
+     "gtt_gb_max": 0,
+     "kfd_gb_max": 0,
+     "first": {
+      "rss_gb": 0.168,
+      "gtt_gb": 0.0,
+      "kfd_gb": 0.0
+     },
+     "last": {
+      "rss_gb": 0.404,
+      "gtt_gb": 0.0,
+      "kfd_gb": 0.0
+     }
+    }
+   },
+   "sessions": [],
+   "cold": {
+    "ready_after_start_s": 0.633,
+    "first_audio_after_start_s": 1.111,
+    "first_request_ttfa_s": 0.478,
+    "second_request_ttfa_s": 0.0451
+   },
+   "llm": {
+    "alone": {
+     "started_utc": "2026-11-18T18:14:38+00:00",
+     "tok_s_sustained": {
+      "n": 29,
+      "p50": 85.866,
+      "p95": 87.452,
+      "max": 87.476
+     },
+     "tok_s_sustained_mean": 85.881
+    },
+    "with": {
+     "started_utc": "2026-11-18T18:15:39+00:00",
+     "tok_s_sustained": {
+      "n": 21,
+      "p50": 60.129,
+      "p95": 62.597,
+      "max": 63.136
+     },
+     "tok_s_sustained_mean": 60.235,
+     "tts_requests": 554,
+     "tts_failures": 0
+    }
+   },
+   "check": {
+    "checked": 100,
+    "flagged": 28,
+    "by_flag": {
+     "words": 28
+    },
+    "flagged_rows": [
+     {
+      "id": "m02",
+      "rep": 1,
+      "hyp": " Starting the Lonious Monk radio on Pandora in the kitchen.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.906
+     },
+     {
+      "id": "m03",
+      "rep": 1,
+      "hyp": " Playing rumors by Fleetwood Mac on the Living Room Sonos.",
+      "word_errors": 1,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.718
+     },
+     {
+      "id": "m04",
+      "rep": 1,
+      "hyp": " Shuffling crew and Ben and Sigger rose in the bedroom.",
+      "word_errors": 4,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.803
+     },
+     {
+      "id": "w01",
+      "rep": 1,
+      "hyp": " It's 54 degrees and cloudy right now. Expect slight rain after 3 p.m. with a high of 61.",
+      "word_errors": 1,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.741
+     },
+     {
+      "id": "n03",
+      "rep": 1,
+      "hyp": " It's 6.05 in the morning and sunrises at 7.12.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.606
+     },
+     {
+      "id": "n04",
+      "rep": 1,
+      "hyp": " The package should arrive between November 21 and November 24, QFund 26.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.766
+     },
+     {
+      "id": "n05",
+      "rep": 1,
+      "hyp": " Set that oven to 425 degrees for 18 minutes.",
+      "word_errors": 1,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.664
+     },
+     {
+      "id": "m02",
+      "rep": 2,
+      "hyp": " Starting the Lonious Monk Radio on Pandora in the Kitchen.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.888
+     },
+     {
+      "id": "m03",
+      "rep": 2,
+      "hyp": " Playing rumors by Fleetwood Mac on the Living Room Sonos.",
+      "word_errors": 1,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.74
+     },
+     {
+      "id": "m04",
+      "rep": 2,
+      "hyp": " Shuffling crew and Ben and Sigger rose in the bedroom.",
+      "word_errors": 4,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.81
+     },
+     {
+      "id": "m05",
+      "rep": 2,
+      "hyp": " Up next is Bane say, then Daft Punk.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.833
+     },
+     {
+      "id": "n03",
+      "rep": 2,
+      "hyp": " It's 6.05 in the morning, and sunrises at 7.12.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.609
+     },
+     {
+      "id": "n04",
+      "rep": 2,
+      "hyp": " The package should arrive between November 21 and November 24, Tufun 26.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.772
+     },
+     {
+      "id": "m02",
+      "rep": 3,
+      "hyp": " Starting the Lonious Monk Radio on Pandora in the Kitchen.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.888
+     },
+     {
+      "id": "m03",
+      "rep": 3,
+      "hyp": " Playing rumors by Fleetwood Mac on the Living Room Sonos.",
+      "word_errors": 1,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.756
+     },
+     {
+      "id": "m04",
+      "rep": 3,
+      "hyp": " Shuffling crew and Ben and Sigur rose in the bedroom.",
+      "word_errors": 3,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.803
+     },
+     {
+      "id": "n02",
+      "rep": 3,
+      "hyp": " The total comes to $1200 E4.50.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.884
+     },
+     {
+      "id": "n03",
+      "rep": 3,
+      "hyp": " It's 6.05 in the morning and sunrises at 7.12.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.617
+     },
+     {
+      "id": "n04",
+      "rep": 3,
+      "hyp": " The package should arrive between November 21 and November 24, to fund 26.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.781
+     },
+     {
+      "id": "m02",
+      "rep": 4,
+      "hyp": " Starting the Lonious Monk Radio on Pandora in the Kitchen.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.894
+     },
+     {
+      "id": "m03",
+      "rep": 4,
+      "hyp": " Playing rumors by Fleetwood Mac on the Living Room Sonos.",
+      "word_errors": 1,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.751
+     },
+     {
+      "id": "m04",
+      "rep": 4,
+      "hyp": " Shuffling crew and Ben and Sigur Rose in the bedroom.",
+      "word_errors": 3,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.796
+     },
+     {
+      "id": "n03",
+      "rep": 4,
+      "hyp": " It's 6.05 in the morning, and sunrises at 7.12.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.628
+     },
+     {
+      "id": "n04",
+      "rep": 4,
+      "hyp": " The package should arrive between November 21 and November 24, to fund 26.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.756
+     },
+     {
+      "id": "m02",
+      "rep": 5,
+      "hyp": " Starting the Lonious Monk Radio on Pandora in the Kitchen.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.93
+     },
+     {
+      "id": "m03",
+      "rep": 5,
+      "hyp": " Playing rumors by Fleetwood Mac on the Living Room Sonos.",
+      "word_errors": 1,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.718
+     },
+     {
+      "id": "m04",
+      "rep": 5,
+      "hyp": " Shuffling crew and Ben and Sigger rose in the bedroom.",
+      "word_errors": 4,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.776
+     },
+     {
+      "id": "n04",
+      "rep": 5,
+      "hyp": " The package should arrive between November 21 and November 24, to fund 26.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.746
+     }
+    ]
+   }
+  },
+  "pocket-a": {
+   "mode": "stream",
+   "voice": "alba",
+   "describe": {
+    "name": "pocket-tts",
+    "version": "1.0.1",
+    "supports_synthesize_streaming": true,
+    "description": "A fast, local, neural text to speech engine",
+    "voices": [
+     "alba",
+     "anna",
+     "azelma",
+     "bill_boerst",
+     "caro_davy",
+     "charles",
+     "cosette",
+     "daan",
+     "eponine",
+     "estelle",
+     "eve",
+     "fantine",
+     "george",
+     "giovanni",
+     "jane",
+     "javert",
+     "jean",
+     "juergen",
+     "lola",
+     "marius",
+     "mary",
+     "michael",
+     "paul",
+     "peter_yearsley",
+     "rafael",
+     "stuart_bell",
+     "vera"
+    ]
+   },
+   "summary": {
+    "by_category": {
+     "answer3": {
+      "requests": 10,
+      "ok": 10,
+      "ttfa_s": {
+       "n": 10,
+       "p50": 1.327,
+       "p95": 2.153,
+       "max": 2.153
+      },
+      "total_s": {
+       "n": 10,
+       "p50": 1.331,
+       "p95": 2.158,
+       "max": 2.158
+      },
+      "audio_s": {
+       "n": 10,
+       "p50": 5.15,
+       "p95": 8.79,
+       "max": 8.79
+      },
+      "rtf": {
+       "n": 10,
+       "p50": 0.257,
+       "p95": 0.27,
+       "max": 0.27
+      }
+     },
+     "confirm": {
+      "requests": 25,
+      "ok": 25,
+      "ttfa_s": {
+       "n": 25,
+       "p50": 0.518,
+       "p95": 0.711,
+       "max": 0.734
+      },
+      "total_s": {
+       "n": 25,
+       "p50": 0.519,
+       "p95": 0.714,
+       "max": 0.736
+      },
+      "audio_s": {
+       "n": 25,
+       "p50": 1.507,
+       "p95": 2.565,
+       "max": 2.566
+      },
+      "rtf": {
+       "n": 25,
+       "p50": 0.325,
+       "p95": 0.387,
+       "max": 0.452
+      }
+     },
+     "long": {
+      "requests": 5,
+      "ok": 5,
+      "ttfa_s": {
+       "n": 5,
+       "p50": 4.719,
+       "p95": 4.92,
+       "max": 4.92
+      },
+      "total_s": {
+       "n": 5,
+       "p50": 4.722,
+       "p95": 4.926,
+       "max": 4.926
+      },
+      "audio_s": {
+       "n": 5,
+       "p50": 19.268,
+       "p95": 20.149,
+       "max": 20.149
+      },
+      "rtf": {
+       "n": 5,
+       "p50": 0.245,
+       "p95": 0.247,
+       "max": 0.247
+      }
+     },
+     "music": {
+      "requests": 25,
+      "ok": 25,
+      "ttfa_s": {
+       "n": 25,
+       "p50": 0.782,
+       "p95": 0.826,
+       "max": 0.888
+      },
+      "total_s": {
+       "n": 25,
+       "p50": 0.785,
+       "p95": 0.829,
+       "max": 0.89
+      },
+      "audio_s": {
+       "n": 25,
+       "p50": 2.765,
+       "p95": 2.989,
+       "max": 3.132
+      },
+      "rtf": {
+       "n": 25,
+       "p50": 0.283,
+       "p95": 0.301,
+       "max": 0.31
+      }
+     },
+     "numbers": {
+      "requests": 30,
+      "ok": 30,
+      "ttfa_s": {
+       "n": 30,
+       "p50": 0.956,
+       "p95": 1.176,
+       "max": 1.186
+      },
+      "total_s": {
+       "n": 30,
+       "p50": 0.96,
+       "p95": 1.179,
+       "max": 1.19
+      },
+      "audio_s": {
+       "n": 30,
+       "p50": 3.518,
+       "p95": 4.35,
+       "max": 4.428
+      },
+      "rtf": {
+       "n": 30,
+       "p50": 0.271,
+       "p95": 0.284,
+       "max": 0.298
+      }
+     },
+     "weather2": {
+      "requests": 5,
+      "ok": 5,
+      "ttfa_s": {
+       "n": 5,
+       "p50": 1.476,
+       "p95": 1.549,
+       "max": 1.549
+      },
+      "total_s": {
+       "n": 5,
+       "p50": 1.481,
+       "p95": 1.55,
+       "max": 1.55
+      },
+      "audio_s": {
+       "n": 5,
+       "p50": 5.715,
+       "p95": 6.051,
+       "max": 6.051
+      },
+      "rtf": {
+       "n": 5,
+       "p50": 0.259,
+       "p95": 0.259,
+       "max": 0.259
+      }
+     }
+    },
+    "overall": {
+     "requests": 100,
+     "ok": 100,
+     "ttfa_s": {
+      "n": 100,
+      "p50": 0.819,
+      "p95": 2.153,
+      "max": 4.92
+     },
+     "total_s": {
+      "n": 100,
+      "p50": 0.822,
+      "p95": 2.158,
+      "max": 4.926
+     },
+     "audio_s": {
+      "n": 100,
+      "p50": 2.892,
+      "p95": 8.79,
+      "max": 20.149
+     },
+     "rtf": {
+      "n": 100,
+      "p50": 0.277,
+      "p95": 0.359,
+      "max": 0.452
+     }
+    },
+    "failures": {}
+   },
+   "memory": {
+    "1776378": {
+     "cmd": "/home/drew/kronk-tts-trial/venv/pocket/bin/python -I /home/drew/kronk-tts-trial/src/pocket-tts-wyoming/wyoming_tts_server.py --uri unix:///home/drew/kronk-tts-trial/run/pocket/ikidd.sock --voice alba ",
+     "rss_gb_max": 0.916,
+     "gtt_gb_max": 0,
+     "kfd_gb_max": 0,
+     "first": {
+      "rss_gb": 0.815,
+      "gtt_gb": 0.0,
+      "kfd_gb": 0.0
+     },
+     "last": {
+      "rss_gb": 0.866,
+      "gtt_gb": 0.0,
+      "kfd_gb": 0.0
+     }
+    }
+   },
+   "sessions": [],
+   "cold": {
+    "ready_after_start_s": 2.65,
+    "first_audio_after_start_s": 3.073,
+    "first_request_ttfa_s": 0.4223,
+    "second_request_ttfa_s": 0.4092
+   },
+   "llm": {
+    "alone": {
+     "started_utc": "2026-11-18T18:44:39+00:00",
+     "tok_s_sustained": {
+      "n": 29,
+      "p50": 85.037,
+      "p95": 87.186,
+      "max": 87.288
+     },
+     "tok_s_sustained_mean": 85.334
+    },
+    "with": {
+     "started_utc": "2026-11-18T18:45:40+00:00",
+     "tok_s_sustained": {
+      "n": 28,
+      "p50": 81.868,
+      "p95": 82.965,
+      "max": 84.661
+     },
+     "tok_s_sustained_mean": 81.915,
+     "tts_requests": 32,
+     "tts_failures": 0
+    }
+   },
+   "check": {
+    "checked": 100,
+    "flagged": 24,
+    "by_flag": {
+     "words": 24,
+     "length": 1
+    },
+    "flagged_rows": [
+     {
+      "id": "m01",
+      "rep": 1,
+      "hyp": " Now playing Kinda Blue by Miles Davis on the office speaker.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.639
+     },
+     {
+      "id": "m02",
+      "rep": 1,
+      "hyp": " Starting the Loniest Monk Radio on Pandora in the kitchen.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.768
+     },
+     {
+      "id": "m03",
+      "rep": 1,
+      "hyp": " Playing rumors by Fleetwood Mac on the Living Room Sano's.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.729
+     },
+     {
+      "id": "m04",
+      "rep": 1,
+      "hyp": " Shuffling Kruang Bin and Sigur Rolus in the bedroom.",
+      "word_errors": 3,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.796
+     },
+     {
+      "id": "n01",
+      "rep": 1,
+      "hyp": " Your appointment is on Tuesday, March 3rd at 1045 a.m.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.663
+     },
+     {
+      "id": "n02",
+      "rep": 1,
+      "hyp": " The total comes to $20,84,000.",
+      "word_errors": 5,
+      "flags": [
+       "length",
+       "words"
+      ],
+      "length_ratio": 0.471
+     },
+     {
+      "id": "m01",
+      "rep": 2,
+      "hyp": " Now playing Kinda Blue by Miles Davis on the office speaker.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.594
+     },
+     {
+      "id": "m02",
+      "rep": 2,
+      "hyp": " Starting the Lonnie's Monk Radio on Pandora in the Kitchen.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.792
+     },
+     {
+      "id": "m03",
+      "rep": 2,
+      "hyp": " Playing Rumors by Fleetwood Mac on The Living Room Sonos.",
+      "word_errors": 1,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.756
+     },
+     {
+      "id": "m04",
+      "rep": 2,
+      "hyp": " Shuffling Kruang Bin and Sigur R\u00f3s in the bedroom.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.979
+     },
+     {
+      "id": "n02",
+      "rep": 2,
+      "hyp": " The total comes to 1,284 x 50.",
+      "word_errors": 1,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.79
+     },
+     {
+      "id": "m01",
+      "rep": 3,
+      "hyp": " Now playing Kinda Blue by Miles Davis on the office speaker?",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.621
+     },
+     {
+      "id": "m02",
+      "rep": 3,
+      "hyp": " Starting the Loniest Monk Radio on Pandora in the Kitchen.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.762
+     },
+     {
+      "id": "m03",
+      "rep": 3,
+      "hyp": " Playing Rumors by Fleetwood Mac on the Living Room Saunas.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.832
+     },
+     {
+      "id": "m04",
+      "rep": 3,
+      "hyp": " Shuffling Kruang Bin and Sigur R\u00f3s in the bedroom.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.891
+     },
+     {
+      "id": "n01",
+      "rep": 3,
+      "hyp": " Your appointment is on Tuesday, March 3rd at 1045 a.m.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.699
+     },
+     {
+      "id": "m02",
+      "rep": 4,
+      "hyp": " Starting the Lonious Monk radio on Pandora in the kitchen.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.822
+     },
+     {
+      "id": "m03",
+      "rep": 4,
+      "hyp": " Playing Rumors by Fleetwood Mac on The Living Room Sonos.",
+      "word_errors": 1,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.67
+     },
+     {
+      "id": "m04",
+      "rep": 4,
+      "hyp": " Shuffling Kruang Bin and Sigur R\u00f3s in the bedroom.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.817
+     },
+     {
+      "id": "n01",
+      "rep": 4,
+      "hyp": " Your appointment is on Tuesday, March 3rd at 1045 a.m.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.683
+     },
+     {
+      "id": "m03",
+      "rep": 5,
+      "hyp": " Playing Rumors by Fleetwood Mac on the Living Room Sonos.",
+      "word_errors": 1,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.756
+     },
+     {
+      "id": "m04",
+      "rep": 5,
+      "hyp": " Shuffling Kruang Bin and Sigur R\u00f3s in the bedroom.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.878
+     },
+     {
+      "id": "n02",
+      "rep": 5,
+      "hyp": " The total comes to $1,284 theft.",
+      "word_errors": 1,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.668
+     },
+     {
+      "id": "n04",
+      "rep": 5,
+      "hyp": " The package should arrive between November 21 and November 24, 24, 26.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.638
+     }
+    ]
+   }
+  },
+  "pocket-c": {
+   "mode": "stream",
+   "voice": "alba",
+   "describe": {
+    "name": "Pocket TTS Streaming",
+    "version": "1.0.0",
+    "supports_synthesize_streaming": true,
+    "description": "Ultra-low latency streaming TTS",
+    "voices": [
+     "alba",
+     "marius",
+     "javert",
+     "jean",
+     "fantine",
+     "cosette",
+     "eponine",
+     "azelma"
+    ]
+   },
+   "summary": {
+    "by_category": {
+     "answer3": {
+      "requests": 10,
+      "ok": 10,
+      "ttfa_s": {
+       "n": 10,
+       "p50": 0.065,
+       "p95": 0.068,
+       "max": 0.068
+      },
+      "total_s": {
+       "n": 10,
+       "p50": 1.418,
+       "p95": 2.337,
+       "max": 2.337
+      },
+      "audio_s": {
+       "n": 10,
+       "p50": 5.9,
+       "p95": 9.82,
+       "max": 9.82
+      },
+      "rtf": {
+       "n": 10,
+       "p50": 0.236,
+       "p95": 0.245,
+       "max": 0.245
+      }
+     },
+     "confirm": {
+      "requests": 25,
+      "ok": 25,
+      "ttfa_s": {
+       "n": 25,
+       "p50": 0.066,
+       "p95": 0.07,
+       "max": 0.073
+      },
+      "total_s": {
+       "n": 25,
+       "p50": 0.505,
+       "p95": 1.038,
+       "max": 1.046
+      },
+      "audio_s": {
+       "n": 25,
+       "p50": 2.22,
+       "p95": 4.38,
+       "max": 4.38
+      },
+      "rtf": {
+       "n": 25,
+       "p50": 0.232,
+       "p95": 0.239,
+       "max": 0.241
+      }
+     },
+     "long": {
+      "requests": 5,
+      "ok": 5,
+      "ttfa_s": {
+       "n": 5,
+       "p50": 0.064,
+       "p95": 0.069,
+       "max": 0.069
+      },
+      "total_s": {
+       "n": 5,
+       "p50": 4.892,
+       "p95": 5.024,
+       "max": 5.024
+      },
+      "audio_s": {
+       "n": 5,
+       "p50": 20.86,
+       "p95": 21.66,
+       "max": 21.66
+      },
+      "rtf": {
+       "n": 5,
+       "p50": 0.234,
+       "p95": 0.236,
+       "max": 0.236
+      }
+     },
+     "music": {
+      "requests": 25,
+      "ok": 25,
+      "ttfa_s": {
+       "n": 25,
+       "p50": 0.067,
+       "p95": 0.074,
+       "max": 0.075
+      },
+      "total_s": {
+       "n": 25,
+       "p50": 0.964,
+       "p95": 1.078,
+       "max": 1.084
+      },
+      "audio_s": {
+       "n": 25,
+       "p50": 4.06,
+       "p95": 4.38,
+       "max": 4.62
+      },
+      "rtf": {
+       "n": 25,
+       "p50": 0.235,
+       "p95": 0.244,
+       "max": 0.246
+      }
+     },
+     "numbers": {
+      "requests": 30,
+      "ok": 30,
+      "ttfa_s": {
+       "n": 30,
+       "p50": 0.066,
+       "p95": 0.07,
+       "max": 0.072
+      },
+      "total_s": {
+       "n": 30,
+       "p50": 1.083,
+       "p95": 1.27,
+       "max": 1.275
+      },
+      "audio_s": {
+       "n": 30,
+       "p50": 4.62,
+       "p95": 5.34,
+       "max": 5.42
+      },
+      "rtf": {
+       "n": 30,
+       "p50": 0.233,
+       "p95": 0.241,
+       "max": 0.243
+      }
+     },
+     "weather2": {
+      "requests": 5,
+      "ok": 5,
+      "ttfa_s": {
+       "n": 5,
+       "p50": 0.069,
+       "p95": 0.07,
+       "max": 0.07
+      },
+      "total_s": {
+       "n": 5,
+       "p50": 1.565,
+       "p95": 1.595,
+       "max": 1.595
+      },
+      "audio_s": {
+       "n": 5,
+       "p50": 6.54,
+       "p95": 6.86,
+       "max": 6.86
+      },
+      "rtf": {
+       "n": 5,
+       "p50": 0.233,
+       "p95": 0.239,
+       "max": 0.239
+      }
+     }
+    },
+    "overall": {
+     "requests": 100,
+     "ok": 100,
+     "ttfa_s": {
+      "n": 100,
+      "p50": 0.066,
+      "p95": 0.07,
+      "max": 0.075
+     },
+     "total_s": {
+      "n": 100,
+      "p50": 1.029,
+      "p95": 2.337,
+      "max": 5.024
+     },
+     "audio_s": {
+      "n": 100,
+      "p50": 4.3,
+      "p95": 9.82,
+      "max": 21.66
+     },
+     "rtf": {
+      "n": 100,
+      "p50": 0.234,
+      "p95": 0.241,
+      "max": 0.246
+     }
+    },
+    "failures": {}
+   },
+   "memory": {
+    "1828716": {
+     "cmd": "/home/drew/kronk-tts-trial/venv/pocket/bin/python -I /home/drew/kronk-tts-trial/src/pocket-tts-streaming/pocket-tts-streaming/wyoming_server.py ",
+     "rss_gb_max": 1.018,
+     "gtt_gb_max": 0,
+     "kfd_gb_max": 0,
+     "first": {
+      "rss_gb": 0.849,
+      "gtt_gb": 0.0,
+      "kfd_gb": 0.0
+     },
+     "last": {
+      "rss_gb": 0.973,
+      "gtt_gb": 0.0,
+      "kfd_gb": 0.0
+     }
+    }
+   },
+   "sessions": [],
+   "cold": {
+    "ready_after_start_s": 2.455,
+    "first_audio_after_start_s": 2.543,
+    "first_request_ttfa_s": 0.0877,
+    "second_request_ttfa_s": 0.0639
+   },
+   "llm": {
+    "alone": {
+     "started_utc": "2026-11-18T19:56:01+00:00",
+     "tok_s_sustained": {
+      "n": 29,
+      "p50": 85.512,
+      "p95": 86.089,
+      "max": 86.113
+     },
+     "tok_s_sustained_mean": 85.363
+    },
+    "with": {
+     "started_utc": "2026-11-18T19:57:02+00:00",
+     "tok_s_sustained": {
+      "n": 29,
+      "p50": 87.016,
+      "p95": 88.509,
+      "max": 89.959
+     },
+     "tok_s_sustained_mean": 87.061,
+     "tts_requests": 33,
+     "tts_failures": 0
+    }
+   },
+   "check": {
+    "checked": 100,
+    "flagged": 23,
+    "by_flag": {
+     "words": 23,
+     "length": 2
+    },
+    "flagged_rows": [
+     {
+      "id": "c05",
+      "rep": 1,
+      "hyp": " Sorry, I couldn't reach the kitchen, the speaker.",
+      "word_errors": 1,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 1.034
+     },
+     {
+      "id": "m01",
+      "rep": 1,
+      "hyp": " Now playing Kinda Blue by Miles, Davis on the office speaker.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.77
+     },
+     {
+      "id": "m02",
+      "rep": 1,
+      "hyp": " Starting Thelonious Monk Radio on Pandora Inn, The Kitchen.",
+      "word_errors": 1,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 1.026
+     },
+     {
+      "id": "m03",
+      "rep": 1,
+      "hyp": " Playing Rumors by Fleetwood Mac on the Living Room Sonos.",
+      "word_errors": 1,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.945
+     },
+     {
+      "id": "m04",
+      "rep": 1,
+      "hyp": " Shuffling Kruangbin and Sigur R\u00f3s in the bedroom.",
+      "word_errors": 1,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 1.066
+     },
+     {
+      "id": "n02",
+      "rep": 1,
+      "hyp": " The total comes to $284.50.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.707
+     },
+     {
+      "id": "m01",
+      "rep": 2,
+      "hyp": " Now playing Kinda Blue by Miles, Davis on the office speaker.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.779
+     },
+     {
+      "id": "m02",
+      "rep": 2,
+      "hyp": " Starting Thelonious Monk Radio on Pandora Inn, The Kitchen.",
+      "word_errors": 1,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.96
+     },
+     {
+      "id": "m03",
+      "rep": 2,
+      "hyp": " Playing rumors by Fleetwood Mac on the Living Room Sonos.",
+      "word_errors": 1,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.923
+     },
+     {
+      "id": "m04",
+      "rep": 2,
+      "hyp": " Shuffling Kruang Bin and Sigur R\u00f3s in the bedroom.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 1.202
+     },
+     {
+      "id": "m02",
+      "rep": 3,
+      "hyp": " Starting Delaunious Monk Radio on Pandora Inn. The Kitchen.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.978
+     },
+     {
+      "id": "m03",
+      "rep": 3,
+      "hyp": " Playing Rumors by Fleetwood Mac on the Living Room Sonos.",
+      "word_errors": 1,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.848
+     },
+     {
+      "id": "m04",
+      "rep": 3,
+      "hyp": " Shuffling Kruangbin and Sigur R\u00f3s in the bedroom.",
+      "word_errors": 1,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 1.094
+     },
+     {
+      "id": "n02",
+      "rep": 3,
+      "hyp": " The total comes to $2084.",
+      "word_errors": 4,
+      "flags": [
+       "length",
+       "words"
+      ],
+      "length_ratio": 0.461
+     },
+     {
+      "id": "m01",
+      "rep": 4,
+      "hyp": " Now playing Kinda Blue by Miles, Davis on the office speaker.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.761
+     },
+     {
+      "id": "m02",
+      "rep": 4,
+      "hyp": " Starting Thelonious Monk Radio on Pandora N. The Kitchen",
+      "word_errors": 1,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.978
+     },
+     {
+      "id": "m03",
+      "rep": 4,
+      "hyp": " Playing Rumors by Fleetwood Mac on the Living Room Sonos.",
+      "word_errors": 1,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 1.015
+     },
+     {
+      "id": "m04",
+      "rep": 4,
+      "hyp": " Shuffling Kruang Bin and Sigur R\u00f3s in the bedroom.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 1.195
+     },
+     {
+      "id": "n02",
+      "rep": 4,
+      "hyp": " The total comes to 184,050.",
+      "word_errors": 3,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.682
+     },
+     {
+      "id": "m02",
+      "rep": 5,
+      "hyp": " Starting the Loniest Monk Radio on Pandora Inn, The Kitchen.",
+      "word_errors": 3,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.996
+     },
+     {
+      "id": "m03",
+      "rep": 5,
+      "hyp": " Playing rumors by Fleetwood Mac on the Living Room Sonos.",
+      "word_errors": 1,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.913
+     },
+     {
+      "id": "m04",
+      "rep": 5,
+      "hyp": " Shuffling Kruang Bin and Sigur R\u00f3s in the bedroom.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 1.094
+     },
+     {
+      "id": "n02",
+      "rep": 5,
+      "hyp": " The total comes to $20,84,000.",
+      "word_errors": 5,
+      "flags": [
+       "length",
+       "words"
+      ],
+      "length_ratio": 0.437
+     }
+    ]
+   }
+  },
+  "chatterbox": {
+   "mode": "stream",
+   "voice": "builtin",
+   "describe": {
+    "name": "chatterbox",
+    "via": "wyoming-openai 0.9.0 + devnen server"
+   },
+   "summary": {
+    "by_category": {
+     "answer3": {
+      "requests": 10,
+      "ok": 10,
+      "ttfa_s": {
+       "n": 10,
+       "p50": 7.182,
+       "p95": 12.888,
+       "max": 12.888
+      },
+      "total_s": {
+       "n": 10,
+       "p50": 12.665,
+       "p95": 20.41,
+       "max": 20.41
+      },
+      "audio_s": {
+       "n": 10,
+       "p50": 5.0,
+       "p95": 8.0,
+       "max": 8.0
+      },
+      "rtf": {
+       "n": 10,
+       "p50": 1.918,
+       "p95": 2.753,
+       "max": 2.753
+      }
+     },
+     "confirm": {
+      "requests": 25,
+      "ok": 25,
+      "ttfa_s": {
+       "n": 25,
+       "p50": 3.865,
+       "p95": 5.792,
+       "max": 5.994
+      },
+      "total_s": {
+       "n": 25,
+       "p50": 3.877,
+       "p95": 5.806,
+       "max": 6.01
+      },
+      "audio_s": {
+       "n": 25,
+       "p50": 1.8,
+       "p95": 2.4,
+       "max": 2.44
+      },
+      "rtf": {
+       "n": 25,
+       "p50": 1.958,
+       "p95": 3.284,
+       "max": 3.43
+      }
+     },
+     "long": {
+      "requests": 5,
+      "ok": 5,
+      "ttfa_s": {
+       "n": 5,
+       "p50": 27.414,
+       "p95": 29.141,
+       "max": 29.141
+      },
+      "total_s": {
+       "n": 5,
+       "p50": 45.091,
+       "p95": 46.954,
+       "max": 46.954
+      },
+      "audio_s": {
+       "n": 5,
+       "p50": 18.24,
+       "p95": 19.08,
+       "max": 19.08
+      },
+      "rtf": {
+       "n": 5,
+       "p50": 2.461,
+       "p95": 2.478,
+       "max": 2.478
+      }
+     },
+     "music": {
+      "requests": 25,
+      "ok": 25,
+      "ttfa_s": {
+       "n": 25,
+       "p50": 5.224,
+       "p95": 8.715,
+       "max": 8.978
+      },
+      "total_s": {
+       "n": 25,
+       "p50": 5.247,
+       "p95": 8.754,
+       "max": 8.998
+      },
+      "audio_s": {
+       "n": 25,
+       "p50": 3.0,
+       "p95": 3.52,
+       "max": 3.56
+      },
+      "rtf": {
+       "n": 25,
+       "p50": 1.764,
+       "p95": 2.678,
+       "max": 2.726
+      }
+     },
+     "numbers": {
+      "requests": 30,
+      "ok": 30,
+      "ttfa_s": {
+       "n": 30,
+       "p50": 9.166,
+       "p95": 11.129,
+       "max": 11.719
+      },
+      "total_s": {
+       "n": 30,
+       "p50": 9.186,
+       "p95": 11.157,
+       "max": 11.772
+      },
+      "audio_s": {
+       "n": 30,
+       "p50": 3.8,
+       "p95": 4.68,
+       "max": 4.84
+      },
+      "rtf": {
+       "n": 30,
+       "p50": 2.536,
+       "p95": 2.626,
+       "max": 2.646
+      }
+     },
+     "weather2": {
+      "requests": 5,
+      "ok": 5,
+      "ttfa_s": {
+       "n": 5,
+       "p50": 4.065,
+       "p95": 6.16,
+       "max": 6.16
+      },
+      "total_s": {
+       "n": 5,
+       "p50": 11.231,
+       "p95": 14.982,
+       "max": 14.982
+      },
+      "audio_s": {
+       "n": 5,
+       "p50": 5.6,
+       "p95": 5.68,
+       "max": 5.68
+      },
+      "rtf": {
+       "n": 5,
+       "p50": 2.006,
+       "p95": 2.656,
+       "max": 2.656
+      }
+     }
+    },
+    "overall": {
+     "requests": 100,
+     "ok": 100,
+     "ttfa_s": {
+      "n": 100,
+      "p50": 5.654,
+      "p95": 12.888,
+      "max": 29.141
+     },
+     "total_s": {
+      "n": 100,
+      "p50": 6.354,
+      "p95": 20.41,
+      "max": 46.954
+     },
+     "audio_s": {
+      "n": 100,
+      "p50": 3.28,
+      "p95": 8.0,
+      "max": 19.08
+     },
+     "rtf": {
+      "n": 100,
+      "p50": 1.958,
+      "p95": 2.846,
+      "max": 3.43
+     }
+    },
+    "failures": {}
+   },
+   "memory": {
+    "2": {
+     "1858098": {
+      "cmd": "/home/drew/git-repos/drawsmcgraw/kronk/tests/.venv/bin/python /home/drew/git-repos/drawsmcgraw/kronk/scripts/tts_bench.py relay --port 10213 --unix /home/drew/kronk-tts-trial/run/chatterbox-chatterbox",
+      "rss_gb_max": 0.028,
+      "gtt_gb_max": 0,
+      "kfd_gb_max": 0,
+      "first": {
+       "rss_gb": 0.028,
+       "gtt_gb": 0.0,
+       "kfd_gb": 0.0
+      },
+      "last": {
+       "rss_gb": 0.028,
+       "gtt_gb": 0.0,
+       "kfd_gb": 0.0
+      }
+     },
+     "1858104": {
+      "cmd": "/home/drew/kronk-tts-trial/venv/chatterbox/bin/python -s -E /home/drew/kronk-tts-trial/src/Chatterbox-TTS-Server/server.py ",
+      "rss_gb_max": 2.353,
+      "gtt_gb_max": 4.248,
+      "kfd_gb_max": 4.553,
+      "first": {
+       "rss_gb": 2.348,
+       "gtt_gb": 3.7,
+       "kfd_gb": 3.965
+      },
+      "last": {
+       "rss_gb": 2.353,
+       "gtt_gb": 4.238,
+       "kfd_gb": 4.542
+      }
+     },
+     "1858333": {
+      "cmd": "/home/drew/kronk-tts-trial/venv/wyoming-openai/bin/python -I -m wyoming_openai --uri unix:///home/drew/kronk-tts-trial/run/chatterbox-chatterbox-s2/chatterbox.sock --languages en --tts-openai-url http",
+      "rss_gb_max": 0.058,
+      "gtt_gb_max": 0,
+      "kfd_gb_max": 0,
+      "first": {
+       "rss_gb": 0.058,
+       "gtt_gb": 0.0,
+       "kfd_gb": 0.0
+      },
+      "last": {
+       "rss_gb": 0.058,
+       "gtt_gb": 0.0,
+       "kfd_gb": 0.0
+      }
+     }
+    }
+   },
+   "sessions": [
+    {
+     "session": 1,
+     "ready_s": null,
+     "requests": null,
+     "loaded_s": 120.3,
+     "gap_s": 72.1
+    },
+    {
+     "session": 2,
+     "ready_s": 10.02,
+     "requests": 13,
+     "loaded_s": 117.3,
+     "gap_s": 72.1
+    },
+    {
+     "session": 3,
+     "ready_s": 9.02,
+     "requests": 17,
+     "loaded_s": 155.8,
+     "gap_s": 72.1
+    },
+    {
+     "session": 4,
+     "ready_s": 9.02,
+     "requests": 13,
+     "loaded_s": 161.0,
+     "gap_s": 72.1
+    },
+    {
+     "session": 5,
+     "ready_s": 9.02,
+     "requests": 14,
+     "loaded_s": 156.3,
+     "gap_s": 72.1
+    },
+    {
+     "session": 6,
+     "ready_s": 9.02,
+     "requests": 16,
+     "loaded_s": 124.4,
+     "gap_s": 72.1
+    },
+    {
+     "session": 7,
+     "ready_s": 9.02,
+     "requests": 19,
+     "loaded_s": 159.8,
+     "gap_s": 72.1
+    },
+    {
+     "session": 8,
+     "ready_s": 9.02,
+     "requests": 8,
+     "loaded_s": 114.2,
+     "gap_s": null
+    }
+   ],
+   "cold": {
+    "ready_after_start_s": 11.141,
+    "first_audio_after_start_s": 27.434,
+    "first_request_ttfa_s": 16.2931,
+    "second_request_ttfa_s": 3.7904
+   },
+   "llm": {
+    "alone": {
+     "started_utc": "2026-11-18T20:45:05+00:00",
+     "tok_s_sustained": {
+      "n": 29,
+      "p50": 85.278,
+      "p95": 86.159,
+      "max": 86.25
+     },
+     "tok_s_sustained_mean": 85.299
+    },
+    "with": {
+     "started_utc": "2026-11-18T20:46:38+00:00",
+     "tok_s_sustained": {
+      "n": 22,
+      "p50": 70.693,
+      "p95": 72.445,
+      "max": 72.606
+     },
+     "tok_s_sustained_mean": 63.723,
+     "tts_requests": 9,
+     "tts_failures": 0
+    }
+   },
+   "check": {
+    "checked": 100,
+    "flagged": 30,
+    "by_flag": {
+     "words": 30
+    },
+    "flagged_rows": [
+     {
+      "id": "m01",
+      "rep": 1,
+      "hyp": " Now playing Kinda Blue by Miles Davis on the office speaker.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.698
+     },
+     {
+      "id": "m03",
+      "rep": 1,
+      "hyp": " Playing Rumors by Fleetwood Mac on the Living Room Sonos.",
+      "word_errors": 1,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.707
+     },
+     {
+      "id": "m04",
+      "rep": 1,
+      "hyp": " Shuffling Kronk Ben and Sigur Oros in the bedroom.",
+      "word_errors": 3,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.952
+     },
+     {
+      "id": "n01",
+      "rep": 1,
+      "hyp": " Your appointment is on Tuesday, March 3rd at 10,045 a.m.",
+      "word_errors": 1,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.735
+     },
+     {
+      "id": "n02",
+      "rep": 1,
+      "hyp": " The total comes to $1,084.50.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.638
+     },
+     {
+      "id": "n03",
+      "rep": 1,
+      "hyp": " It's 6,005 in the morning and sunrise is at 7,012.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.635
+     },
+     {
+      "id": "m01",
+      "rep": 2,
+      "hyp": " Now playing Kinda Blue by Miles Davis on the office speaker.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.734
+     },
+     {
+      "id": "m03",
+      "rep": 2,
+      "hyp": " Playing Rumors by Fleetwood Mac on the Living Room Sonos.",
+      "word_errors": 1,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.805
+     },
+     {
+      "id": "m04",
+      "rep": 2,
+      "hyp": " Shuffling Kruhang Bin and Sigour Rose in the bedroom.",
+      "word_errors": 4,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.857
+     },
+     {
+      "id": "n01",
+      "rep": 2,
+      "hyp": " Your appointment is on Tuesday, March 3rd at 10,045 a.m.",
+      "word_errors": 1,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.754
+     },
+     {
+      "id": "n02",
+      "rep": 2,
+      "hyp": " The total comes to 1,284 desistants.",
+      "word_errors": 1,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.623
+     },
+     {
+      "id": "n03",
+      "rep": 2,
+      "hyp": " It's 6,005 in the morning and sunrise is at 7,012.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.69
+     },
+     {
+      "id": "n04",
+      "rep": 2,
+      "hyp": " The package should arrive between November 24 and November 24, 2026.",
+      "word_errors": 1,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.651
+     },
+     {
+      "id": "c04",
+      "rep": 3,
+      "hyp": " Volume set to 30% in a living room.",
+      "word_errors": 1,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.648
+     },
+     {
+      "id": "m03",
+      "rep": 3,
+      "hyp": " Playing Rumors by Fleetwood Mac on the Living Room Sonos.",
+      "word_errors": 1,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.653
+     },
+     {
+      "id": "m04",
+      "rep": 3,
+      "hyp": " Shuffling Croang Bean and Seagull Rose in the bedroom.",
+      "word_errors": 4,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.824
+     },
+     {
+      "id": "n01",
+      "rep": 3,
+      "hyp": " Your appointment is on Tuesday, March 3rd at 10,045 a.m.",
+      "word_errors": 1,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.814
+     },
+     {
+      "id": "n02",
+      "rep": 3,
+      "hyp": " The total comes to 1-2-Utter 8-1450.",
+      "word_errors": 6,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.663
+     },
+     {
+      "id": "n03",
+      "rep": 3,
+      "hyp": " It's 6,005 in the morning and sunrise is at 7,012.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.628
+     },
+     {
+      "id": "m01",
+      "rep": 4,
+      "hyp": " Now playing Kinda Blue by Miles Davis on the office speaker.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.671
+     },
+     {
+      "id": "m03",
+      "rep": 4,
+      "hyp": " Playing Rumors by Fleetwood Mac on the living room Sonos.",
+      "word_errors": 1,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.734
+     },
+     {
+      "id": "m04",
+      "rep": 4,
+      "hyp": " Shuffling Kru Hongbin and Sigur Ross in the bedroom.",
+      "word_errors": 3,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.837
+     },
+     {
+      "id": "n01",
+      "rep": 4,
+      "hyp": " Your appointment is on Tuesday, March 3rd at 10,045 a.m.",
+      "word_errors": 1,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.758
+     },
+     {
+      "id": "n02",
+      "rep": 4,
+      "hyp": " The total comes to $1,084, $24.50.",
+      "word_errors": 3,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.835
+     },
+     {
+      "id": "n03",
+      "rep": 4,
+      "hyp": " It's 6,005 in the morning and sunrise is at 7,000 Wulff.",
+      "word_errors": 3,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.646
+     },
+     {
+      "id": "m03",
+      "rep": 5,
+      "hyp": " Playing Rumors by Fleetwood Mac on the Living Room Sonos.",
+      "word_errors": 1,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.659
+     },
+     {
+      "id": "m04",
+      "rep": 5,
+      "hyp": " Shuffling Kluang Bin and Sigur R\u00f3s in the bedroom.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.932
+     },
+     {
+      "id": "n01",
+      "rep": 5,
+      "hyp": " Your appointment is on Tuesday, March 3rd at 10,045 a.m.",
+      "word_errors": 1,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.846
+     },
+     {
+      "id": "n02",
+      "rep": 5,
+      "hyp": " The total comes to 1084 x 50.",
+      "word_errors": 3,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.545
+     },
+     {
+      "id": "n03",
+      "rep": 5,
+      "hyp": " It's 6,005 in the morning and sunrise is at 7,012.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.624
+     }
+    ]
+   }
+  },
+  "chatterbox-turbo": {
+   "mode": "stream",
+   "voice": "builtin",
+   "describe": {
+    "name": "chatterbox-turbo",
+    "via": "wyoming-openai 0.9.0 + devnen server"
+   },
+   "summary": {
+    "by_category": {
+     "answer3": {
+      "requests": 10,
+      "ok": 10,
+      "ttfa_s": {
+       "n": 10,
+       "p50": 6.529,
+       "p95": 8.062,
+       "max": 8.062
+      },
+      "total_s": {
+       "n": 10,
+       "p50": 9.604,
+       "p95": 12.32,
+       "max": 12.32
+      },
+      "audio_s": {
+       "n": 10,
+       "p50": 5.92,
+       "p95": 8.96,
+       "max": 8.96
+      },
+      "rtf": {
+       "n": 10,
+       "p50": 1.32,
+       "p95": 1.737,
+       "max": 1.737
+      }
+     },
+     "confirm": {
+      "requests": 25,
+      "ok": 25,
+      "ttfa_s": {
+       "n": 25,
+       "p50": 3.052,
+       "p95": 3.744,
+       "max": 5.507
+      },
+      "total_s": {
+       "n": 25,
+       "p50": 3.061,
+       "p95": 3.755,
+       "max": 5.517
+      },
+      "audio_s": {
+       "n": 25,
+       "p50": 2.12,
+       "p95": 2.72,
+       "max": 2.76
+      },
+      "rtf": {
+       "n": 25,
+       "p50": 1.419,
+       "p95": 2.058,
+       "max": 2.458
+      }
+     },
+     "long": {
+      "requests": 5,
+      "ok": 5,
+      "ttfa_s": {
+       "n": 5,
+       "p50": 25.105,
+       "p95": 26.003,
+       "max": 26.003
+      },
+      "total_s": {
+       "n": 5,
+       "p50": 41.185,
+       "p95": 43.764,
+       "max": 43.764
+      },
+      "audio_s": {
+       "n": 5,
+       "p50": 21.64,
+       "p95": 22.12,
+       "max": 22.12
+      },
+      "rtf": {
+       "n": 5,
+       "p50": 1.978,
+       "p95": 1.984,
+       "max": 1.984
+      }
+     },
+     "music": {
+      "requests": 25,
+      "ok": 25,
+      "ttfa_s": {
+       "n": 25,
+       "p50": 3.828,
+       "p95": 6.887,
+       "max": 7.608
+      },
+      "total_s": {
+       "n": 25,
+       "p50": 3.838,
+       "p95": 6.91,
+       "max": 7.621
+      },
+      "audio_s": {
+       "n": 25,
+       "p50": 3.16,
+       "p95": 3.68,
+       "max": 3.92
+      },
+      "rtf": {
+       "n": 25,
+       "p50": 1.276,
+       "p95": 2.071,
+       "max": 2.133
+      }
+     },
+     "numbers": {
+      "requests": 30,
+      "ok": 30,
+      "ttfa_s": {
+       "n": 30,
+       "p50": 5.208,
+       "p95": 9.9,
+       "max": 9.964
+      },
+      "total_s": {
+       "n": 30,
+       "p50": 5.226,
+       "p95": 9.922,
+       "max": 9.984
+      },
+      "audio_s": {
+       "n": 30,
+       "p50": 3.96,
+       "p95": 4.92,
+       "max": 4.96
+      },
+      "rtf": {
+       "n": 30,
+       "p50": 1.223,
+       "p95": 2.057,
+       "max": 2.081
+      }
+     },
+     "weather2": {
+      "requests": 5,
+      "ok": 5,
+      "ttfa_s": {
+       "n": 5,
+       "p50": 3.135,
+       "p95": 3.557,
+       "max": 3.557
+      },
+      "total_s": {
+       "n": 5,
+       "p50": 7.495,
+       "p95": 11.575,
+       "max": 11.575
+      },
+      "audio_s": {
+       "n": 5,
+       "p50": 6.36,
+       "p95": 6.76,
+       "max": 6.76
+      },
+      "rtf": {
+       "n": 5,
+       "p50": 1.225,
+       "p95": 1.733,
+       "max": 1.733
+      }
+     }
+    },
+    "overall": {
+     "requests": 100,
+     "ok": 100,
+     "ttfa_s": {
+      "n": 100,
+      "p50": 4.194,
+      "p95": 9.964,
+      "max": 26.003
+     },
+     "total_s": {
+      "n": 100,
+      "p50": 4.479,
+      "p95": 12.32,
+      "max": 43.764
+     },
+     "audio_s": {
+      "n": 100,
+      "p50": 3.48,
+      "p95": 8.96,
+      "max": 22.12
+     },
+     "rtf": {
+      "n": 100,
+      "p50": 1.313,
+      "p95": 2.057,
+      "max": 2.458
+     }
+    },
+    "failures": {}
+   },
+   "memory": {
+    "2": {
+     "1929195": {
+      "cmd": "/home/drew/git-repos/drawsmcgraw/kronk/tests/.venv/bin/python /home/drew/git-repos/drawsmcgraw/kronk/scripts/tts_bench.py relay --port 10214 --unix /home/drew/kronk-tts-trial/run/chatterbox-turbo-chat",
+      "rss_gb_max": 0.028,
+      "gtt_gb_max": 0,
+      "kfd_gb_max": 0,
+      "first": {
+       "rss_gb": 0.028,
+       "gtt_gb": 0.0,
+       "kfd_gb": 0.0
+      },
+      "last": {
+       "rss_gb": 0.028,
+       "gtt_gb": 0.0,
+       "kfd_gb": 0.0
+      }
+     },
+     "1929201": {
+      "cmd": "/home/drew/kronk-tts-trial/venv/chatterbox/bin/python -s -E /home/drew/kronk-tts-trial/src/Chatterbox-TTS-Server/server.py ",
+      "rss_gb_max": 2.732,
+      "gtt_gb_max": 4.011,
+      "kfd_gb_max": 4.298,
+      "first": {
+       "rss_gb": 2.723,
+       "gtt_gb": 3.205,
+       "kfd_gb": 3.433
+      },
+      "last": {
+       "rss_gb": 2.732,
+       "gtt_gb": 3.882,
+       "kfd_gb": 4.16
+      }
+     },
+     "1929409": {
+      "cmd": "/home/drew/kronk-tts-trial/venv/wyoming-openai/bin/python -I -m wyoming_openai --uri unix:///home/drew/kronk-tts-trial/run/chatterbox-turbo-chatterbox-turbo-s2/chatterbox-turbo.sock --languages en --t",
+      "rss_gb_max": 0.059,
+      "gtt_gb_max": 0,
+      "kfd_gb_max": 0,
+      "first": {
+       "rss_gb": 0.058,
+       "gtt_gb": 0.0,
+       "kfd_gb": 0.0
+      },
+      "last": {
+       "rss_gb": 0.059,
+       "gtt_gb": 0.0,
+       "kfd_gb": 0.0
+      }
+     }
+    }
+   },
+   "sessions": [
+    {
+     "session": 1,
+     "ready_s": 8.02,
+     "requests": 25,
+     "loaded_s": 164.5,
+     "gap_s": 72.1
+    },
+    {
+     "session": 2,
+     "ready_s": 8.02,
+     "requests": 21,
+     "loaded_s": 167.3,
+     "gap_s": 72.1
+    },
+    {
+     "session": 3,
+     "ready_s": 8.02,
+     "requests": 25,
+     "loaded_s": 162.9,
+     "gap_s": 72.1
+    },
+    {
+     "session": 4,
+     "ready_s": 8.02,
+     "requests": 21,
+     "loaded_s": 154.8,
+     "gap_s": 72.1
+    },
+    {
+     "session": 5,
+     "ready_s": 8.02,
+     "requests": 8,
+     "loaded_s": 89.5,
+     "gap_s": null
+    }
+   ],
+   "cold": {
+    "ready_after_start_s": 9.096,
+    "first_audio_after_start_s": 12.683,
+    "first_request_ttfa_s": 3.5871,
+    "second_request_ttfa_s": 2.074
+   },
+   "llm": {
+    "alone": {
+     "started_utc": "2026-11-18T21:09:27+00:00",
+     "tok_s_sustained": {
+      "n": 29,
+      "p50": 85.211,
+      "p95": 86.483,
+      "max": 86.533
+     },
+     "tok_s_sustained_mean": 85.336
+    },
+    "with": {
+     "started_utc": "2026-11-18T21:10:52+00:00",
+     "tok_s_sustained": {
+      "n": 22,
+      "p50": 72.916,
+      "p95": 79.913,
+      "max": 80.494
+     },
+     "tok_s_sustained_mean": 68.04,
+     "tts_requests": 11,
+     "tts_failures": 0
+    }
+   },
+   "check": {
+    "checked": 100,
+    "flagged": 27,
+    "by_flag": {
+     "words": 27
+    },
+    "flagged_rows": [
+     {
+      "id": "m03",
+      "rep": 1,
+      "hyp": " Playing Rumors by Fleetwood Mac on the Living Room Sonos.",
+      "word_errors": 1,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.702
+     },
+     {
+      "id": "m04",
+      "rep": 1,
+      "hyp": " Shuffling Kruong Bin and Sigur Rose in the bedroom.",
+      "word_errors": 3,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 1.087
+     },
+     {
+      "id": "a02",
+      "rep": 1,
+      "hyp": " A heat pump moves heat instead of making it. In winter, it pulls warm from the outside air. In summer, it runs in reverse and cools the house.",
+      "word_errors": 1,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.766
+     },
+     {
+      "id": "n01",
+      "rep": 1,
+      "hyp": " Your appointment is on Tuesday, March 3rd at 1045 a.m.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.695
+     },
+     {
+      "id": "n02",
+      "rep": 1,
+      "hyp": " The total comes to $1,024.50.",
+      "word_errors": 3,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.751
+     },
+     {
+      "id": "n03",
+      "rep": 1,
+      "hyp": " It's 6,005 in the morning and sunrise is at 7,12.",
+      "word_errors": 1,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.642
+     },
+     {
+      "id": "m02",
+      "rep": 2,
+      "hyp": " Starting Filoni's Monk Radio on Pandora in the Kitchen.",
+      "word_errors": 1,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.906
+     },
+     {
+      "id": "m03",
+      "rep": 2,
+      "hyp": " Playing Rumors by Fleetwood Mac on the Living Room Sonos.",
+      "word_errors": 1,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.767
+     },
+     {
+      "id": "m04",
+      "rep": 2,
+      "hyp": " Shuffling Kroong Bin and Steger Rose in the bedroom.",
+      "word_errors": 4,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.986
+     },
+     {
+      "id": "n01",
+      "rep": 2,
+      "hyp": " Your appointment is on Tuesday, March 3rd at 1045 AM.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.731
+     },
+     {
+      "id": "n02",
+      "rep": 2,
+      "hyp": " The total comes to $1,028.50.",
+      "word_errors": 4,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.776
+     },
+     {
+      "id": "n03",
+      "rep": 2,
+      "hyp": " It's 6,005 in the morning and sunrise is at 7,012.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.69
+     },
+     {
+      "id": "n04",
+      "rep": 2,
+      "hyp": " The packet should arrive between November 21 and November 24, 2026.",
+      "word_errors": 1,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.651
+     },
+     {
+      "id": "m01",
+      "rep": 3,
+      "hyp": " Now playing Kinda Blue by Miles Davis on The Office Speaker.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.801
+     },
+     {
+      "id": "m03",
+      "rep": 3,
+      "hyp": " Playing Rumors by Flutewood Mac on the Living Room Sonos.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.702
+     },
+     {
+      "id": "m04",
+      "rep": 3,
+      "hyp": " Shuffling Kruang Bin and Seeger Rose in the bedroom.",
+      "word_errors": 4,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.79
+     },
+     {
+      "id": "n01",
+      "rep": 3,
+      "hyp": " Your appointment is on Tuesday, March 3rd at 1045 a.m.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.727
+     },
+     {
+      "id": "n03",
+      "rep": 3,
+      "hyp": " It's 6.05 in the morning and sun rises at 7,012.",
+      "word_errors": 3,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.664
+     },
+     {
+      "id": "m03",
+      "rep": 4,
+      "hyp": " Playing Rumors by Fleetwood Mac on the Living Room Sonos.",
+      "word_errors": 1,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.718
+     },
+     {
+      "id": "m04",
+      "rep": 4,
+      "hyp": " Shuffling Kroong Bin and Sigur Rose in the bedroom.",
+      "word_errors": 3,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.871
+     },
+     {
+      "id": "n02",
+      "rep": 4,
+      "hyp": " The total comes to $1,024.50.",
+      "word_errors": 3,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.849
+     },
+     {
+      "id": "n03",
+      "rep": 4,
+      "hyp": " It's 6,005 in the morning, and sun rises at 7,12.",
+      "word_errors": 3,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.628
+     },
+     {
+      "id": "m01",
+      "rep": 5,
+      "hyp": " Now playing Kinda Blue by Miles Davis on the office speaker.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.621
+     },
+     {
+      "id": "m03",
+      "rep": 5,
+      "hyp": " Playing Rumors by Fleawood Mac on the Living Room Sonos.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.794
+     },
+     {
+      "id": "m04",
+      "rep": 5,
+      "hyp": " Shuffling Kruang Bin and Sigur Rows in the bedroom.",
+      "word_errors": 3,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 1.134
+     },
+     {
+      "id": "n01",
+      "rep": 5,
+      "hyp": " Your appointment is on Tuesday, March 3rd at 1045 a.m.",
+      "word_errors": 2,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.711
+     },
+     {
+      "id": "n03",
+      "rep": 5,
+      "hyp": " It's 6 out of 5 in the morning, and sunrise is at 7,012.",
+      "word_errors": 3,
+      "flags": [
+       "words"
+      ],
+      "length_ratio": 0.66
+     }
+    ]
+   }
+  },
+  "pocket-a-sentence-chunks": {
+   "summary": {
+    "by_category": {
+     "answer3": {
+      "requests": 6,
+      "ok": 6,
+      "ttfa_s": {
+       "n": 6,
+       "p50": 2.296,
+       "p95": 2.984,
+       "max": 2.984
+      },
+      "total_s": {
+       "n": 6,
+       "p50": 2.297,
+       "p95": 2.986,
+       "max": 2.986
+      },
+      "audio_s": {
+       "n": 6,
+       "p50": 4.788,
+       "p95": 7.727,
+       "max": 7.727
+      },
+      "rtf": {
+       "n": 6,
+       "p50": 0.389,
+       "p95": 0.486,
+       "max": 0.486
+      }
+     },
+     "long": {
+      "requests": 3,
+      "ok": 3,
+      "ttfa_s": {
+       "n": 3,
+       "p50": 5.848,
+       "p95": 5.913,
+       "max": 5.913
+      },
+      "total_s": {
+       "n": 3,
+       "p50": 5.855,
+       "p95": 5.916,
+       "max": 5.916
+      },
+      "audio_s": {
+       "n": 3,
+       "p50": 19.533,
+       "p95": 19.785,
+       "max": 19.785
+      },
+      "rtf": {
+       "n": 3,
+       "p50": 0.299,
+       "p95": 0.3,
+       "max": 0.3
+      }
+     },
+     "weather2": {
+      "requests": 3,
+      "ok": 3,
+      "ttfa_s": {
+       "n": 3,
+       "p50": 1.91,
+       "p95": 2.015,
+       "max": 2.015
+      },
+      "total_s": {
+       "n": 3,
+       "p50": 1.912,
+       "p95": 2.019,
+       "max": 2.019
+      },
+      "audio_s": {
+       "n": 3,
+       "p50": 5.42,
+       "p95": 5.727,
+       "max": 5.727
+      },
+      "rtf": {
+       "n": 3,
+       "p50": 0.353,
+       "p95": 0.361,
+       "max": 0.361
+      }
+     }
+    },
+    "overall": {
+     "requests": 12,
+     "ok": 12,
+     "ttfa_s": {
+      "n": 12,
+      "p50": 2.296,
+      "p95": 5.913,
+      "max": 5.913
+     },
+     "total_s": {
+      "n": 12,
+      "p50": 2.297,
+      "p95": 5.916,
+      "max": 5.916
+     },
+     "audio_s": {
+      "n": 12,
+      "p50": 5.727,
+      "p95": 19.785,
+      "max": 19.785
+     },
+     "rtf": {
+      "n": 12,
+      "p50": 0.361,
+      "p95": 0.486,
+      "max": 0.486
+     }
+    },
+    "failures": {}
+   },
+   "chunk_gap_s": 0.5
+  },
+  "pocket-c-sentence-chunks": {
+   "summary": {
+    "by_category": {
+     "answer3": {
+      "requests": 6,
+      "ok": 6,
+      "ttfa_s": {
+       "n": 6,
+       "p50": 0.064,
+       "p95": 0.575,
+       "max": 0.575
+      },
+      "total_s": {
+       "n": 6,
+       "p50": 1.984,
+       "p95": 2.582,
+       "max": 2.582
+      },
+      "audio_s": {
+       "n": 6,
+       "p50": 5.82,
+       "p95": 9.74,
+       "max": 9.74
+      },
+      "rtf": {
+       "n": 6,
+       "p50": 0.279,
+       "p95": 0.345,
+       "max": 0.345
+      }
+     },
+     "long": {
+      "requests": 3,
+      "ok": 3,
+      "ttfa_s": {
+       "n": 3,
+       "p50": 0.065,
+       "p95": 0.066,
+       "max": 0.066
+      },
+      "total_s": {
+       "n": 3,
+       "p50": 4.907,
+       "p95": 4.912,
+       "max": 4.912
+      },
+      "audio_s": {
+       "n": 3,
+       "p50": 20.86,
+       "p95": 20.94,
+       "max": 20.94
+      },
+      "rtf": {
+       "n": 3,
+       "p50": 0.235,
+       "p95": 0.235,
+       "max": 0.235
+      }
+     },
+     "weather2": {
+      "requests": 3,
+      "ok": 3,
+      "ttfa_s": {
+       "n": 3,
+       "p50": 0.574,
+       "p95": 0.577,
+       "max": 0.577
+      },
+      "total_s": {
+       "n": 3,
+       "p50": 2.027,
+       "p95": 2.079,
+       "max": 2.079
+      },
+      "audio_s": {
+       "n": 3,
+       "p50": 6.54,
+       "p95": 6.86,
+       "max": 6.86
+      },
+      "rtf": {
+       "n": 3,
+       "p50": 0.305,
+       "p95": 0.31,
+       "max": 0.31
+      }
+     }
+    },
+    "overall": {
+     "requests": 12,
+     "ok": 12,
+     "ttfa_s": {
+      "n": 12,
+      "p50": 0.066,
+      "p95": 0.577,
+      "max": 0.577
+     },
+     "total_s": {
+      "n": 12,
+      "p50": 2.079,
+      "p95": 4.912,
+      "max": 4.912
+     },
+     "audio_s": {
+      "n": 12,
+      "p50": 6.86,
+      "p95": 20.94,
+      "max": 20.94
+     },
+     "rtf": {
+      "n": 12,
+      "p50": 0.279,
+      "p95": 0.345,
+      "max": 0.345
+     }
+    },
+    "failures": {}
+   },
+   "chunk_gap_s": 0.5
+  },
+  "piper-sentence-chunks": {
+   "summary": {
+    "by_category": {
+     "answer3": {
+      "requests": 6,
+      "ok": 6,
+      "ttfa_s": {
+       "n": 6,
+       "p50": 0.546,
+       "p95": 0.572,
+       "max": 0.572
+      },
+      "total_s": {
+       "n": 6,
+       "p50": 1.12,
+       "p95": 1.143,
+       "max": 1.143
+      },
+      "audio_s": {
+       "n": 6,
+       "p50": 4.783,
+       "p95": 7.338,
+       "max": 7.338
+      },
+      "rtf": {
+       "n": 6,
+       "p50": 0.157,
+       "p95": 0.242,
+       "max": 0.242
+      }
+     },
+     "long": {
+      "requests": 3,
+      "ok": 3,
+      "ttfa_s": {
+       "n": 3,
+       "p50": 0.649,
+       "p95": 0.663,
+       "max": 0.663
+      },
+      "total_s": {
+       "n": 3,
+       "p50": 1.249,
+       "p95": 1.259,
+       "max": 1.259
+      },
+      "audio_s": {
+       "n": 3,
+       "p50": 20.178,
+       "p95": 20.259,
+       "max": 20.259
+      },
+      "rtf": {
+       "n": 3,
+       "p50": 0.062,
+       "p95": 0.063,
+       "max": 0.063
+      }
+     },
+     "weather2": {
+      "requests": 3,
+      "ok": 3,
+      "ttfa_s": {
+       "n": 3,
+       "p50": 0.577,
+       "p95": 0.581,
+       "max": 0.581
+      },
+      "total_s": {
+       "n": 3,
+       "p50": 0.64,
+       "p95": 0.641,
+       "max": 0.641
+      },
+      "audio_s": {
+       "n": 3,
+       "p50": 5.956,
+       "p95": 6.084,
+       "max": 6.084
+      },
+      "rtf": {
+       "n": 3,
+       "p50": 0.107,
+       "p95": 0.111,
+       "max": 0.111
+      }
+     }
+    },
+    "overall": {
+     "requests": 12,
+     "ok": 12,
+     "ttfa_s": {
+      "n": 12,
+      "p50": 0.568,
+      "p95": 0.663,
+      "max": 0.663
+     },
+     "total_s": {
+      "n": 12,
+      "p50": 1.12,
+      "p95": 1.259,
+      "max": 1.259
+     },
+     "audio_s": {
+      "n": 12,
+      "p50": 6.084,
+      "p95": 20.259,
+      "max": 20.259
+     },
+     "rtf": {
+      "n": 12,
+      "p50": 0.111,
+      "p95": 0.242,
+      "max": 0.242
+     }
+    },
+    "failures": {}
+   },
+   "chunk_gap_s": 0.5
+  }
+ },
+ "idle": {
+  "piper-only": {
+   "n": 120,
+   "minutes": 19.8,
+   "busy_mean": 0.0,
+   "busy_p50": 0,
+   "busy_p95": 0,
+   "busy_max": 0,
+   "busy_ge_90_samples": 0,
+   "sclk_p50": 600.0,
+   "sclk_max": 600.0,
+   "sclk_at_max_samples": 0,
+   "power_mean_w": 9.19,
+   "power_p50_w": 9.06,
+   "power_p95_w": 10.04,
+   "gtt_gb_p50": 50.961,
+   "memavail_gb_min": 48.423,
+   "memfree_gb_min": 9.104,
+   "fleet_engine_s": 0.0
+  },
+  "pocket-a": {
+   "n": 360,
+   "minutes": 59.8,
+   "busy_mean": 0.0,
+   "busy_p50": 0,
+   "busy_p95": 0,
+   "busy_max": 0,
+   "busy_ge_90_samples": 0,
+   "sclk_p50": 600.0,
+   "sclk_max": 600.0,
+   "sclk_at_max_samples": 0,
+   "power_mean_w": 9.35,
+   "power_p50_w": 9.08,
+   "power_p95_w": 10.06,
+   "gtt_gb_p50": 50.961,
+   "memavail_gb_min": 47.643,
+   "memfree_gb_min": 7.043,
+   "fleet_engine_s": 0.0
+  },
+  "chatterbox": {
+   "n": 32,
+   "minutes": 2.6,
+   "busy_mean": 100.0,
+   "busy_p50": 100,
+   "busy_p95": 100,
+   "busy_max": 100,
+   "busy_ge_90_samples": 32,
+   "sclk_p50": 2900.0,
+   "sclk_max": 2900.0,
+   "sclk_at_max_samples": 32,
+   "power_mean_w": 37.3,
+   "power_p50_w": 37.05,
+   "power_p95_w": 39.06,
+   "gtt_gb_p50": 54.932,
+   "memavail_gb_min": 42.89,
+   "memfree_gb_min": 7.917,
+   "fleet_engine_s": 0.0,
+   "events": [
+    "guard: GPU at 100% for 140 s with no model work; SIGTERM [1835095, 1835349]"
+   ]
+  },
+  "chatterbox-turbo": {
+   "n": 29,
+   "minutes": 2.3,
+   "busy_mean": 100.0,
+   "busy_p50": 100,
+   "busy_p95": 100,
+   "busy_max": 100,
+   "busy_ge_90_samples": 29,
+   "sclk_p50": 2900.0,
+   "sclk_max": 2900.0,
+   "sclk_at_max_samples": 29,
+   "power_mean_w": 37.5,
+   "power_p50_w": 37.09,
+   "power_p95_w": 39.04,
+   "gtt_gb_p50": 54.381,
+   "memavail_gb_min": 42.825,
+   "memfree_gb_min": 1.471,
+   "fleet_engine_s": 0.0,
+   "events": [
+    "guard: GPU at 100% for 140 s with no model work; SIGTERM [1915761, 1915974]"
+   ]
+  }
+ }
+}

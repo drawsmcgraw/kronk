@@ -40,6 +40,15 @@ Conventions:
   Open: the notice path when HA itself failed (built default: status file
   and `/services` warning). `docs/features/upgrade-cadence.md`.
 
+- **Kronk's voice: TTS trial** *(sprint M20, bench run 2026-11-18)* —
+  a go/no-go on replacing Piper, voice customization counted as a benefit.
+  Done without clips: speed, stability, idle GPU and model slowdown with
+  preset voices (`docs/bench/tts_bench_2026-11-18.md`). Provisional:
+  Chatterbox and Turbo no-go here (slow first audio, ROCm idle-spin);
+  Pocket TTS (MisterEcks server) passes so far. Waits for Drew's voice clips
+  for the cloning run and the household listening test; material in
+  `~/kronk-tts-trial/samples/`. `docs/sprint/M20-build.md`.
+
 ## Next — agreed, not started
 
 - **Music selection refinement** — Kronk plays what was meant, not the

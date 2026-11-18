@@ -17,7 +17,8 @@ Voice PE (wake word, mic/speaker)
       the kronk-dev pipeline uses a second instance with a prompt, :10301)
     → local intent matcher (prefer_local_intents ON — timers, MA blueprint)
     → fallback: Ollama shim  → Kronk pipeline (orchestrator /api/chat via nginx)
-    → Wyoming Piper TTS (container, en_US-lessac-medium, :10200)
+    → Wyoming Piper TTS (container, :10200; the pipelines ask for
+      en_US-hfc_male-medium; lessac-medium is only the container's default)
   → audio back to the Voice PE
 ```
 
@@ -312,6 +313,18 @@ working tree. So:
 times send, first content chunk and `done` on `/dev/voice/api/chat`; `ha`
 mode runs HA's `kronk-dev` pipeline from intent to TTS with no satellite
 and records when `tts_start_streaming` fires. Results in `docs/bench/`.
+
+## Choosing a different TTS engine (sprint M20)
+
+`scripts/tts_bench.py` speaks Wyoming to any TTS service on a loopback port
+the way HA does, writes WAVs and plays nothing; the first trial (Piper
+against Pocket TTS, Chatterbox and Chatterbox-Turbo, preset voices only) is
+`docs/bench/tts_bench_2026-11-18.md`. Provisional result: Chatterbox and
+Turbo are a no-go on this host (3 to 7 s to first audio, and their ROCm
+PyTorch process holds the GPU at 100 % whenever it is loaded); Pocket TTS
+behind the MisterEcks Wyoming server passes every limit measured so far.
+The listening test and the cloning run wait for Drew's clips. Production
+still speaks through Piper; nothing in HA changed.
 
 ## Gotchas (learned the hard way)
 
