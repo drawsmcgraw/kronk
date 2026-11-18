@@ -596,3 +596,74 @@ def test_ack_with_nothing_dangerous_clears_and_still_says_what_runs(house, monke
     out = capsys.readouterr().out
     assert "git has v1.88.6" in out and "running is v1.88.1" in out and "production runs tag sprint-X" in out
     assert "intent" not in status(sd)
+
+
+# ── H9: one status schema for the script, the API and deploy_tag.sh ─────
+
+_INTENT = {"component": "litellm", "from": "v1.88.1", "to": "v1.88.6", "step": "verify"}
+RESIDUE = [
+    {"months": {"2026-12": {"attempts": 1, "components": {"grafana": "kept"}}}},
+    {"intent": {**_INTENT, "head": 5}},
+    {"unreported": {"outcomes": [{"name": "a", "frm": "1", "to": "2", "result": "kept", "detail": 7}]}},
+    {"rollback_failed": {"component": "litellm", "detail": 7}},
+    {"months": {"2026-12": {"attempts": -5}}},
+    {"intent": {}},
+    {"attention": ["a warning as a string"]},
+    {"pending_notices": [{"id": "n", "tag": "t", "title": "x", "body": "b", "attempts": -1}]},
+    {"last_run": {"outcomes": [{"name": "a", "frm": "1", "to": "2", "result": "kept", "extra": 1}]}},
+]
+DEEP = b'{"x": ' + b"[" * 3000 + b"]" * 3000 + b"}"
+
+
+def _raw(x):
+    return x if isinstance(x, bytes) else json.dumps(x).encode()
+
+
+@pytest.mark.parametrize("bad", RESIDUE + [DEEP, b"[1, 2]"], ids=range(len(RESIDUE) + 2))
+def test_a_status_file_off_the_schema_is_corrupt_for_the_script_and_one_warning_for_the_api(house, bad, monkeypatch):
+    import upgrades_api
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+    ops, sd = house
+    sd.mkdir()
+    raw = _raw(bad)
+    (sd / "status.json").write_bytes(raw)
+    assert run(ops, sd, ["tempo"]) == 2
+    monkeypatch.setenv("KRONK_UPGRADE_STATE", str(sd))
+    for cmd in ("notices", "ack", "status"):
+        assert U.main([cmd], ops=ops) == 2
+    assert (sd / "status.json").read_bytes() == raw
+    upgrades_api.STATUS_FILE = str(sd / "status.json")
+    app = FastAPI()
+    app.include_router(upgrades_api.router)
+    w = TestClient(app).get("/api/upgrades").json()["warnings"]
+    assert len(w) == 1 and w[0].startswith("upgrade status file unreadable")
+
+
+def test_an_empty_intent_is_corrupt_for_deploy_tag_too(tmp_path):
+    import os
+    import subprocess
+    from tests.m18_helpers import ROOT
+    (tmp_path / "st").mkdir()
+    (tmp_path / "st" / "status.json").write_text('{"intent": {}}')
+    r = subprocess.run(["bash", str(ROOT / "scripts" / "deploy_tag.sh"), "deploy", "m18-fix3-no-such-tag"],
+                       capture_output=True, text=True, timeout=30,
+                       env={"PATH": os.environ["PATH"], "HOME": str(tmp_path), "KRONK_UPGRADE_STATE": str(tmp_path / "st"),
+                            "KRONK_RELEASES": str(tmp_path / "rel"), "KRONK_LIVE_CONFIG": str(tmp_path / "cfg")})
+    assert r.returncode == 1 and "cannot tell whether an upgrade run was interrupted" in r.stderr
+    assert "intent.component is missing" in r.stderr
+
+
+def test_every_file_the_script_writes_fits_the_schema(house, monkeypatch):
+    """A control across the paths that write: a recovery, a block kept with
+    its record, the hourly notices, ack."""
+    ops, sd = house
+    killed(ops, sd, ["homeassistant"], _kill_after_ha_stop(ops))
+    (ops.repo / "notes.txt").write_text("x\n")
+    run(ops, sd, ["homeassistant"])
+    assert U.load_status(sd)["intent"]["blocked"]
+    monkeypatch.setenv("KRONK_UPGRADE_STATE", str(sd))
+    ops.notify_ok = False
+    U.main(["notices"], ops=ops)
+    U.main(["ack", "--yes-leave-as-is"], ops=ops)
+    U.load_status(sd)

@@ -283,13 +283,20 @@ upgrade_lock_check() {
     fi
     [ -e "$UPGRADE_STATUS" ] || return 0
     local rec
-    rec=$(python3 -I -c 'import json, sys
+    # The status file's schema is the script's and the API's (orchestrator/upgrade_status.py).
+    rec=$(python3 -I -c 'import importlib.util, json, sys
+spec = importlib.util.spec_from_file_location("upgrade_status", sys.argv[2])
+schema = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(schema)
 d = json.loads(open(sys.argv[1], encoding="utf-8").read())
+bad = schema.problems(d)
+if bad:
+    sys.exit("not shaped as scripts/upgrades.py writes it: " + "; ".join(bad[:3]))
 it = d.get("intent")
 if it:
     print("%s %s -> %s, step %s, run %s" % tuple(it.get(k) for k in ("component", "from", "to", "step", "run"))
           + ("; blocked (%s)" % it["blocked"] if it.get("blocked") else ""))' \
-        "$UPGRADE_STATUS" 2>&1) \
+        "$UPGRADE_STATUS" "$REPO/orchestrator/upgrade_status.py" 2>&1) \
         || die "refused: cannot tell whether an upgrade run was interrupted: $UPGRADE_STATUS cannot be read (${rec##*$'\n'}); python3 scripts/upgrades.py status says why"
     case "$rec" in *"; blocked ("*) die "refused: an upgrade run was interrupted and left blocked ($rec; the record is in $UPGRADE_STATUS). No recovery acts on a blocked record: put it right by hand, then python3 scripts/upgrades.py ack" ;; esac
     [ -z "$rec" ] || die "refused: an upgrade run was interrupted ($rec; the record is in $UPGRADE_STATUS). Its recovery compares what runs with that record, so nothing is deployed by hand until it is dealt with. Either let it recover now: python3 scripts/upgrades.py minor --ignore-window (scripts/upgrade_minor.sh --ignore-window); or drop the record and take over by hand: python3 scripts/upgrades.py ack"

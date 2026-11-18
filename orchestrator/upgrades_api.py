@@ -17,6 +17,8 @@ from pathlib import Path
 
 from fastapi import APIRouter
 
+import upgrade_status
+
 router = APIRouter()
 
 STATUS_FILE = os.getenv("UPGRADE_STATUS_FILE", "/data/upgrades/status.json")
@@ -62,12 +64,23 @@ async def upgrades_status():
     path = Path(STATUS_FILE)
     base = {"file": str(path)}
     try:
-        raw = json.loads(path.read_text())
+        raw = json.loads(path.read_bytes().decode("utf-8"))
     except FileNotFoundError:
         return {**base, "present": False, "warnings": [], "last_run": None,
                 "note": "no upgrade run has written a status file yet"}
-    except (OSError, ValueError) as e:
+    except (OSError, ValueError, RecursionError) as e:
         # Unreadable is itself worth a look: say so as a warning.
         return {**base, "present": False, "last_run": None,
-                "warnings": [f"upgrade status file unreadable: {e.__class__.__name__}: {e}"]}
-    return {**base, **summarize(raw if isinstance(raw, dict) else {})}
+                "warnings": [f"upgrade status file unreadable: {e.__class__.__name__}: {str(e)[:200]}"]}
+    # The same schema the script holds the file to (upgrade_status.py,
+    # sprint M18 fix 3, H9): a file off it is one warning, never a 500.
+    bad = upgrade_status.problems(raw)
+    if bad:
+        return {**base, "present": True, "last_run": None,
+                "warnings": [f"upgrade status file unreadable: not shaped as scripts/upgrades.py writes it: "
+                             f"{'; '.join(bad[:3])}"]}
+    try:
+        return {**base, **summarize(raw)}
+    except Exception as e:  # noqa: BLE001 - this route never raises
+        return {**base, "present": True, "last_run": None,
+                "warnings": [f"upgrade status file unreadable: {e.__class__.__name__}: {str(e)[:200]}"]}

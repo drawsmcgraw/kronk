@@ -66,6 +66,7 @@ import datetime as dt
 import fcntl
 import fnmatch
 import http.client
+import importlib.util
 import json
 import os
 import re
@@ -99,6 +100,14 @@ REDIRECT_HOSTS = {"pkg-containers.githubusercontent.com"}
 USER_AGENT = "upgrade-check/1.0"
 # Local HTTP (HA, the probes) only ever goes to this host's loopback.
 LOCAL_HOSTS = {"localhost", "127.0.0.1"}
+
+# The status file's one schema, shared with GET /api/upgrades and
+# deploy_tag.sh (sprint M18 fix 3, H9). Loaded by path: the orchestrator
+# directory is not put on sys.path.
+_spec = importlib.util.spec_from_file_location(
+    "upgrade_status", Path(__file__).resolve().parent.parent / "orchestrator" / "upgrade_status.py")
+upgrade_status = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(upgrade_status)
 
 
 # ═══ Rules ═══════════════════════════════════════════════════════════════
@@ -908,59 +917,14 @@ def load_status(sd: Path) -> dict:
         data = json.loads(raw.decode("utf-8"))
     except UnicodeDecodeError as e:
         raise StatusCorrupt(f"{path} is not UTF-8 ({e})") from e
-    except ValueError as e:
-        raise StatusCorrupt(f"{path} is not valid JSON ({e})") from e
+    except (ValueError, RecursionError) as e:
+        raise StatusCorrupt(f"{path} is not valid JSON ({e.__class__.__name__}: {_cut(str(e), 120)})") from e
     if not isinstance(data, dict):
         raise StatusCorrupt(f"{path} holds a {type(data).__name__}, not an object")
-    bad = status_shape(data)
+    bad = upgrade_status.problems(data)
     if bad:
         raise StatusCorrupt(f"{path} is not shaped as this script writes it: {'; '.join(bad[:4])}")
     return data
-
-
-def status_shape(d: dict) -> list[str]:
-    """What in a parsed status file is not of the type this script writes
-    (checked once, at load: the rest of the code may then trust it, K11).
-    Keys it does not know are left alone."""
-    bad: list[str] = []
-
-    def want(path: str, v, kind: type, opt: bool = False) -> bool:
-        if (v is None and opt) or (isinstance(v, kind) and (kind is bool or not isinstance(v, bool))):
-            return v is not None
-        bad.append(f"{path} is {type(v).__name__}, not {kind.__name__}")
-        return False
-    if "updated" in d:
-        want("updated", d["updated"], str)
-    if want("months", d.get("months", {}), dict):
-        for k, m in d.get("months", {}).items():
-            if want(f"months.{k}", m, dict):
-                want(f"months.{k}.attempts", m.get("attempts"), int)
-                if "done" in m:
-                    want(f"months.{k}.done", m["done"], bool)
-                for key in ("held_back", "components"):
-                    if key in m:
-                        want(f"months.{k}.{key}", m[key], dict)
-    for key in ("intent", "rollback_failed", "out_of_step", "last_run", "major", "acknowledged", "unreported"):
-        want(key, d.get(key), dict, opt=True)
-    if isinstance(d.get("intent"), dict):
-        for k in ("component", "from", "to", "step"):
-            want(f"intent.{k}", d["intent"].get(k), str)
-    for key, fields in (("attention", ("id", "text")), ("pending_notices", ("id", "tag", "title", "body"))):
-        if want(key, d.get(key, []), list):
-            for i, a in enumerate(d.get(key, [])):
-                if want(f"{key}[{i}]", a, dict):
-                    for f in fields:
-                        want(f"{key}[{i}].{f}", a.get(f), str)
-    u = d.get("unreported")
-    if isinstance(u, dict) and want("unreported.outcomes", u.get("outcomes", []), list):
-        names = set(Outcome.__dataclass_fields__)
-        for i, o in enumerate(u.get("outcomes", [])):
-            if want(f"unreported.outcomes[{i}]", o, dict):
-                if not set(o) <= names:
-                    bad.append(f"unreported.outcomes[{i}] has keys {sorted(set(o) - names)}")
-                for f in ("name", "frm", "to", "result"):
-                    want(f"unreported.outcomes[{i}].{f}", o.get(f), str)
-    return bad
 
 
 def status_corrupt(ops: Ops, e: StatusCorrupt, log, notify: bool) -> int:
