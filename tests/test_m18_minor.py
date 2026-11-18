@@ -410,6 +410,16 @@ def test_docs_only_changes_after_the_production_tag_do_not_block(house):
     assert log_subjects(ops.repo)[-1] == "upgrade: litellm v1.88.1 -> v1.88.6"
 
 
+def test_a_file_name_with_spaces_is_one_path(house):
+    ops, sd = house
+    (ops.repo / "Kronk evaluation findings and implementation plan.md").write_text("plan\n")
+    (ops.repo / "orchestrator").mkdir()
+    (ops.repo / "orchestrator" / "a b.py").write_text("x\n")
+    git(ops.repo, "add", "-A")
+    git(ops.repo, "commit", "-qm", "spaces")
+    assert U.undeployed(ops, rules(), "sprint-X") == ["orchestrator/a b.py"]
+
+
 def test_production_not_on_a_tag_declines_the_kronk_stack_components(house):
     ops, sd = house
     orig = ops.deploy_tag

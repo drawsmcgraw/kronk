@@ -881,7 +881,7 @@ def production_tag(ops: Ops, rules: Rules) -> tuple[str | None, list[str]]:
 def undeployed(ops: Ops, rules: Rules, tag: str) -> list[str]:
     """Paths that differ between `tag` and HEAD and would reach the Kronk
     containers if HEAD were deployed."""
-    names = ops.git("diff", "--name-only", tag, "HEAD").split()
+    names = [n for n in ops.git("diff", "--name-only", "-z", tag, "HEAD").split("\0") if n]
     pats = rules.settings["inert_paths"]
     return [n for n in names if not any(fnmatch.fnmatch(n, p) for p in pats)]
 
