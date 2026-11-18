@@ -3719,6 +3719,40 @@ def hourly_notice(ops: Ops, status: dict, now: dt.datetime, log: RunLog, back: t
                                    "body": text, "created": now.isoformat(timespec="seconds")}, now, log)
 
 
+def ack_leaves(ops: Ops, rules: Rules, sd: Path, it: dict) -> list[str]:
+    """Print what git has, what runs and production's tag for the record's
+    component; return what ack would leave that needs a person (H8): Home
+    Assistant stopped or absent (or unreadable) for HA's record, production
+    on the run's unverified tag (or unreadable) for a Kronk-stack record."""
+    print(f"the record: {it.get('component')} {it.get('from')} -> {it.get('to')}, step {it.get('step')}, "
+          f"run {it.get('run')}" + (f", blocked ({it['blocked']})" if it.get("blocked") else ""))
+    try:
+        comp = rules.component(it.get("component"))
+    except KeyError:
+        print("  the component is no longer in the rules")
+        return []
+    ctx = Ctx(ops, rules, print, sd, "ack", ops.now())
+    kind, _, runs = container_state(ops, comp)
+    print(f"  git has {head_pin(ctx, comp)}")
+    print(f"  running is {runs}")
+    left = []
+    if comp.get("deploy") == "ha" and kind in ("stopped", "absent", "unknown"):
+        left.append({"stopped": "Home Assistant is stopped", "absent": "Home Assistant does not exist (no container)",
+                     "unknown": f"Home Assistant's container cannot be read ({runs})"}[kind])
+    if comp.get("deploy") == "kronk":
+        try:
+            prod, _ = production_tag(ops, rules, strict=True)
+        except ReadUnknown as e:
+            print(f"  production's tag: {e}")
+            left.append(f"production's tag cannot be read ({e.err})")
+        else:
+            own = it.get("tag")
+            print(f"  production runs tag {prod}" + (" (the run's own, unverified)" if own and prod == own else ""))
+            if own and prod == own:
+                left.append(f"production on the run's unverified tag {own}")
+    return left
+
+
 # ═══ CLI ═════════════════════════════════════════════════════════════════
 
 def main(argv=None, ops: Ops | None = None) -> int:
@@ -3734,8 +3768,10 @@ def main(argv=None, ops: Ops | None = None) -> int:
     ma.add_argument("--out", help="write the report here; no commit, no notice")
     sub.add_parser("inventory", help="pins, what runs, what is newest (markdown)")
     sub.add_parser("notices", help="retry notices HA did not take")
-    sub.add_parser("ack", help="clear the /services warning, a failed-rollback or out-of-step block, "
-                               "and an interrupted run's record")
+    ak = sub.add_parser("ack", help="clear the /services warning, a failed-rollback or out-of-step block, "
+                                    "and an interrupted run's record")
+    ak.add_argument("--yes-leave-as-is", action="store_true",
+                    help="clear the record even with HA stopped or absent, or production on the run's unverified tag")
     sub.add_parser("status", help="print the status file")
     sub.add_parser("test-notice", help="send one notice now, marked TEST (install check)")
     args = ap.parse_args(argv)
@@ -3782,11 +3818,18 @@ def main(argv=None, ops: Ops | None = None) -> int:
         try:
             status = load_status(sd)
             it = status.get("intent")
+            left = ack_leaves(ops, rules, sd, it) if it else []
+            if left and not args.yes_leave_as_is:
+                print(f"refused: {'; '.join(left)}. After ack no recovery and no hourly start acts on this record. "
+                      f"Put it right first (scripts/upgrade_minor.sh --ignore-window recovers it), or clear it "
+                      f"anyway: python3 scripts/upgrades.py ack --yes-leave-as-is")
+                return 1
             print(f"cleared: {len(status.get('attention', []))} warning(s)"
                   + (", the failed-rollback block" if status.get("rollback_failed") else "")
                   + (", the out-of-step block" if status.get("out_of_step") else "")
                   + (f", the interrupted run's record ({it.get('component')} {it.get('from')} -> {it.get('to')}, "
-                     f"step {it.get('step')}): no recovery will act on it; what runs is yours to put right" if it else ""))
+                     f"step {it.get('step')}): no recovery will act on it; what runs is yours to put right" if it else "")
+                  + (f"; left as is: {'; '.join(left)}" if left else ""))
             status["acknowledged"] = {"at": ops.now().isoformat(timespec="seconds"),
                                       "attention": status.get("attention", []),
                                       "rollback_failed": status.get("rollback_failed"),

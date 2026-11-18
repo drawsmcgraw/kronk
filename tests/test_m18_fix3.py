@@ -553,3 +553,46 @@ def test_a_clean_stop_passes_and_no_docker_events_is_read(house):
     assert run(ops, sd, ["homeassistant"]) == 0
     assert ("docker", "inspect", "homeassistant", "-f", "{{.State.ExitCode}} {{.State.OOMKilled}}") in ops.calls
     assert not any(c[:2] == ("docker", "events") for c in ops.calls)
+
+
+# ── H8 (Y9): ack says what it leaves, and refuses two cases without a flag ──
+
+def ack(ops, sd, monkeypatch, *flags):
+    monkeypatch.setenv("KRONK_UPGRADE_STATE", str(sd))
+    return U.main(["ack", *flags], ops=ops)
+
+
+def test_ack_refuses_while_ha_is_stopped_and_says_what_it_leaves_with_the_flag(house, monkeypatch, capsys):
+    ops, sd = house
+    killed(ops, sd, ["homeassistant"], _kill_after_ha_stop(ops))
+    capsys.readouterr()
+    assert ack(ops, sd, monkeypatch) == 1
+    out = capsys.readouterr().out
+    assert "git has 2026.5.5" in out and "running is nothing (homeassistant is stopped" in out
+    assert "refused" in out and "--yes-leave-as-is" in out
+    assert status(sd)["intent"]["component"] == "homeassistant"
+    assert ack(ops, sd, monkeypatch, "--yes-leave-as-is") == 0
+    out = capsys.readouterr().out
+    assert "cleared" in out and "left as is: Home Assistant is stopped" in out
+    assert "intent" not in status(sd) and "homeassistant" in ops.stopped
+
+
+def test_ack_refuses_while_production_runs_the_runs_unverified_tag(house, monkeypatch, capsys):
+    ops, sd = house
+    killed(ops, sd, ["litellm"], _kill_litellm_in_verify(ops))
+    capsys.readouterr()
+    assert ack(ops, sd, monkeypatch) == 1
+    out = capsys.readouterr().out
+    assert "production runs tag upgrade-20261201T083000Z-litellm" in out and "unverified" in out and "refused" in out
+    assert ack(ops, sd, monkeypatch, "--yes-leave-as-is") == 0
+    assert "left as is: production on the run's unverified tag upgrade-20261201T083000Z-litellm" in capsys.readouterr().out
+
+
+def test_ack_with_nothing_dangerous_clears_and_still_says_what_runs(house, monkeypatch, capsys):
+    ops, sd = house
+    killed(ops, sd, ["litellm"], kill_before(ops, "deploy_tag", lambda a: a[0] == "deploy"))
+    capsys.readouterr()
+    assert ack(ops, sd, monkeypatch) == 0
+    out = capsys.readouterr().out
+    assert "git has v1.88.6" in out and "running is v1.88.1" in out and "production runs tag sprint-X" in out
+    assert "intent" not in status(sd)
