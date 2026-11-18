@@ -281,11 +281,18 @@ models otherwise re-call the tool or contradict its result. The tool verifies
 the player actually reaches `playing` before reporting success (MA queues
 requests async, so a 200 from HA alone proves nothing).
 
-### Prompts and tuning (`config/`)
+### Prompts and tuning (`config/`, the live directories, `/settings`)
 
-Prompts and tuning values are plain files in `config/`, bind-mounted
-read-only at `/config` into the orchestrator, `tool_service` and both dev
-services (sprint M21 step 1):
+Prompts and tuning values are plain files (sprint M21 step 1). The repo's
+`config/` holds the **shipped defaults**; each instance reads its own
+**live config directory**, a small git repository outside the repo
+(`kronk-config/prod`, `kronk-config/dev`, next to `kronk-releases/`),
+mounted at `/config` (sprint M21 step 2). **`/settings`** (and
+`/dev/settings`) shows every prompt and tuning value in effect, with its
+source, comment and last commit, plus the routing rules, env settings,
+model servers and model-facing text in code read only; editing is behind a
+passphrase (`scripts/settings_passphrase.sh`), validates, writes, reloads,
+verifies and commits. The files:
 
 - `config/prompts/<name>.md` — the system prompt of every agent and the
   coordinator. A `<!-- … -->` header says what it is for and is stripped;
@@ -396,9 +403,12 @@ because it runs with `network_mode: host`.
 - **nginx config change:** `docker compose restart nginx` — the config is
   volume-mounted and `nginx -s reload` won't pick it up.
 - **`litellm/config.yaml`:** bind-mounted and hot-editable; no rebuild needed.
-- **`config/` (prompts, tuning):** bind-mounted; edit the file, then
-  `scripts/config_reload.sh dev` (or `prod`). The answer lists what changed,
-  or the errors with file and line and the values kept. No rebuild.
+- **Prompts, tuning:** edit on `/settings` (production) or `/dev/settings`
+  (dev). By hand: edit the file in `kronk-config/prod` or `kronk-config/dev`,
+  commit it there, then `scripts/config_reload.sh prod` (or `dev`). The
+  answer lists what changed, or the errors with file and line and the values
+  kept. No rebuild. The repo's `config/` is the shipped defaults; editing it
+  changes nothing running until a new live directory is seeded from it.
 
 > **Volume safety:** never run `docker compose -f docker-compose.ha.yml down -v`
 > — the `-v` flag wipes `kronk_ha-config` and you lose every HA integration,

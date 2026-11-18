@@ -15,7 +15,12 @@ llama.cpp models, all on one machine (AMD Ryzen AI 375, Radeon 8060S iGPU,
    docs lifecycle: plan doc → build → `docs/features/` doc → blog topic).
 3. **`orchestrator/agents.py`** — the `AGENTS` dict is the single source of
    truth for agents and their tools. Their prompts and tuning values live
-   in `config/` (`docs/features/config-directory.md`).
+   in each instance's live config directory, shown and edited on
+   `/settings` (`kronk-config/prod`, `kronk-config/dev`; the repo's
+   `config/` is the shipped defaults; `docs/features/config-directory.md`).
+   To try a config change on dev: `/dev/settings`, or edit and commit in
+   `../kronk-config/dev`, then `scripts/config_reload.sh dev`. Never edit
+   the repo's `config/` to try a value.
 4. **`orchestrator/tools.py`** — tool definitions + dispatch.
 5. **`orchestrator/main.py`** — the pipeline entrypoints: `/message` (chat UI,
    SSE), `/v1/chat/completions` (OpenAI shim), `/api/chat` (Ollama shim — this
@@ -95,8 +100,10 @@ before proceeding.
 7. **Fail loud, specific, and traceable.** Every user-facing failure carries
    the most specific cause available and is findable in telemetry in one
    step. "An unexpected error occurred" is itself a bug.
-8. **One source of truth per fact.** `AGENTS` dict for agents, `config/`
-   for prompts and tuning, `ROADMAP.md` for plans, env vars for wiring.
+8. **One source of truth per fact.** `AGENTS` dict for agents, the live
+   config directory (seen and edited on `/settings`; shipped defaults in
+   `config/`) for prompts and tuning, `ROADMAP.md` for plans, env vars for
+   wiring.
    Duplicated facts drift, and drifted docs lie — the "verify, don't trust
    the docs" section above exists because of this.
 9. **Single-variable changes.** One change, one test, then the next.

@@ -25,7 +25,12 @@ Conventions:
 
 ## Now — in flight
 
-*(Nothing in flight.)*
+- **`/settings` page and live config directories** *(sprint M21 step 2,
+  built on dev 2026-11-18)* — every prompt and tuning value in effect on
+  one page, editing behind a passphrase. End-to-end test, then promotion by
+  the migration runbook in `docs/sprint/M21-step2-build.md`; editing turns
+  on when Drew runs `scripts/settings_passphrase.sh`.
+  `docs/features/config-directory.md`.
 
 ## Next — agreed, not started
 

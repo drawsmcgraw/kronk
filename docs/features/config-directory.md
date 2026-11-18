@@ -1,10 +1,12 @@
 # Feature: the config/ directory (prompts and tuning as plain files)
 
-**Shipped:** 2026-11-17 (sprint M21 step 1, branch `refactor`) · **Plan:**
-`Kronk evaluation findings and implementation plan.md`, section M21 ·
-**Criteria:** `docs/sprint/M21-step1-criteria.md` · **Build report:**
-`docs/sprint/M21-step1-build.md`. Step 2 (the `/settings` page) is not
-built yet.
+**Shipped:** 2026-11-17 (sprint M21 step 1, branch `refactor`); step 2, the
+`/settings` page and the live config directories, built 2026-11-18 on the
+dev path (promotion by the runbook in `docs/sprint/M21-step2-build.md`) ·
+**Plan:** `Kronk evaluation findings and implementation plan.md`, section
+M21 · **Criteria:** `docs/sprint/M21-step1-criteria.md`,
+`docs/sprint/M21-step2-criteria.md` · **Build reports:**
+`docs/sprint/M21-step1-build.md`, `docs/sprint/M21-step2-build.md`.
 
 ## What it does
 
@@ -26,10 +28,15 @@ them with fixtures written from the tree before the move.
 
 ## How it works
 
-- **Mount.** `./config:/config:ro` in `orchestrator`, `orchestrator-dev`,
-  `tool_service` and `tool_service-dev`. Production and dev read the same
-  files. `KRONK_CONFIG_DIR` overrides the path (tests point it at the
-  repo's `config/`).
+- **Mount.** Since step 2 each instance reads its own **live config
+  directory** at `/config`, not the repo's `config/` (see "Live config
+  directories" below): production's through the release's `config` link,
+  dev's from `../kronk-config/dev` (`KRONK_DEV_CONFIG_DIR`). Long-syntax
+  binds with `create_host_path: false`, so a missing directory stops the
+  container instead of starting it on an empty root-owned one. Writable in
+  the orchestrators (the editor), read-only in the tool_services.
+  `KRONK_CONFIG_DIR` overrides the path; tests always point it at the
+  repo's `config/` (`tests/conftest.py`).
 - **Loaders.** `orchestrator/config_loader.py` (PyYAML) and
   `tool_service/config_loader.py` (ruamel.yaml). Two small modules rather
   than a shared package: each service builds its own image from its own
@@ -130,6 +137,12 @@ them with fixtures written from the tree before the move.
 - **An invalid file never takes effect.** Loads are all or nothing. At
   startup a bad file means the service runs on the built-in defaults and
   says so; after a bad reload the last good values stay in effect.
+- **Reload isolation (step 2).** A request keeps the config it started
+  with: `config_loader.PinConfig`, an ASGI middleware outermost in both
+  services, pins `current()` for the whole request (streamed body and the
+  tasks it starts included), and a run reads its prompt and round budget
+  through `agents.prompt_and_rounds()` from that pin. A reload takes effect
+  for requests that start after it. `latest()` is the unpinned value.
 - **Reload.** `POST /config/reload` on each service re-reads the files and
   answers 200 with what changed (`tuning.yaml:agent_loop.max_rounds.research:
   8 -> 6`, or `prompts/home.md: changed (3637 -> 3645 chars)`) or 422 with
@@ -150,6 +163,150 @@ them with fixtures written from the tree before the move.
   is read at use: `config_loader.current().tuning…` in the orchestrator,
   `config_loader.current().music…` and `music_resolve.policy()` in
   tool_service.
+
+## Live config directories (step 2)
+
+| Instance | Directory | Mounted | Edited on |
+|---|---|---|---|
+| Production | `kronk-config/prod` (next to `kronk-releases/`) | via `<release>/config -> kronk-config/prod` | `/settings` |
+| Dev | `kronk-config/dev` | `../kronk-config/dev` from the working tree's compose file | `/dev/settings` |
+
+Each is its own git repository with local commits only. The repo's
+`config/` is the shipped defaults: the seed of a new live directory and
+what the tests and the pins read. Nobody edits a live file in the repo.
+
+- **Seeding.** `scripts/deploy_tag.sh seed prod|dev <tag or commit>`
+  creates one from `<rev>:config/`, byte for byte, with a first commit
+  `Seed from <rev> (<commit>)`. It refuses an existing directory. A deploy
+  seeds any that is absent from the deployed tag.
+- **What a deploy does.** `scripts/deploy_tag.sh deploy <tag>` never
+  overwrites a live file. Keys the new code adds take the loaders' built-in
+  defaults until someone writes them. Before anything is built it validates
+  production's live directory with the tag's own loaders
+  (`scripts/config_check.py`, run by `tests/.venv/bin/python`, which has
+  the images' pinned pydantic and YAML libraries) and refuses with file and
+  line when it fails. It prints, for information, the shipped defaults that
+  differ from the live files, then moves the release's `config/` to
+  `config.shipped/` and links `config` to the live directory. `plan` shows
+  all of it and changes nothing.
+- **Rollback.** Deploying an older tag runs the same validation with the
+  older loaders. A live file using a key the older code does not know is
+  refused, naming file and line, with what to do: revert that edit in the
+  live directory (`git -C kronk-config/prod revert <commit>`) or edit and
+  commit by hand, then `plan` again. A tag older than step 1 reads no
+  `config/`; the live directory does not affect it.
+- **Trying a config change on dev (agents).** Edit it on `/dev/settings`,
+  or edit the file in `kronk-config/dev`, commit it there with
+  `git -C ../kronk-config/dev commit`, and run
+  `scripts/config_reload.sh dev`. Do not edit the repo's `config/` to try a
+  value: that changes the shipped defaults (and the pins).
+
+## The `/settings` page (step 2)
+
+`/settings` (production) and `/dev/settings` (dev), linked from
+`/services`. No framework, no build step; every string from the server is
+put on the page as text, never as HTML.
+
+**Viewing needs nothing.** Every file of the live directory with its
+description; per key the value in effect, its source (the file, an
+environment variable, or the code default), the comment above it in the
+file, its bounds, and the commit that last changed it (from the live
+directory's log, the last 100 commits of the file); prompts whole. Read
+only, each with where to change it: the routing rules in order (name,
+route, the words, the pattern in effect), both services' environment
+settings (allow-lists: no secret is ever read), model servers with what
+the running llama servers report, tool descriptions, model-facing text in
+code, the structural guards, host-side settings. The instance, the
+release, whether editing is on and any config error in effect. Read
+endpoints: `GET /api/settings`, `/api/settings/file`, `/history`, `/diff`,
+`/digests`.
+
+The llama servers listen on the host's loopback, which the containers
+cannot reach; `scripts/llama_props_export.py` (host timer
+`systemd/llama-props-export.timer`, every 60 s) writes each server's
+`GET /props` and its process flags to `data/llama_props.json` and
+`data/dev/llama_props.json`. Without the timer the page says so.
+
+**Turning editing on.** `scripts/settings_passphrase.sh` on kronk asks for
+a passphrase twice without echo and writes
+`SETTINGS_PASSPHRASE_HASH=scrypt:15:8:1:<salt>:<key>` to `.env`, replacing
+an old line; it prints neither the passphrase nor the hash. Redeploy
+(`scripts/deploy_tag.sh deploy <tag>`; for dev, the dev up line). Both
+instances read the same line. Delete it and redeploy to turn editing off.
+The page is plain HTTP on the LAN: the passphrase crosses the network
+unencrypted when you unlock; use one you use nowhere else. Editing also
+needs a usable git repository and a writable live directory; the page says
+which is missing.
+
+**Sessions.** Unlocking sets an `HttpOnly`, `SameSite=Strict` cookie
+(`kronk_settings_production`, path `/`; `kronk_settings_dev`, path
+`/dev/`), kept in memory: 15 minutes idle, 2 hours at most, Lock ends it, a
+restart ends all. Every state-changing request needs the cookie, the
+session's second token in `X-Settings-Token` and the page's own `Origin`.
+Five wrong passphrases from one address, or twenty from all, in 15 minutes
+lock unlocking for 15 minutes.
+
+**A save** (`POST /api/settings/save`, `settings_save.py`): the editor's
+base version (git blob id of what it loaded) must be the file on disk, else
+409 with what changed meanwhile and the difference, nothing merged;
+validation with the loader's own schema (tool_service's `/config/validate`
+for `music.yaml`), refused with file and line; the corpus check (below);
+an atomic write (temp file in the same directory, fsync, rename); reload of
+the service that reads the file and a check that the digest in effect is
+the one written; reload of the other service; one git commit naming the
+file, the keys and who (instance and client address); an audit line in
+`data/settings_audit.jsonl` (dev: `data/dev/`). If the reload refuses the
+file, the digest differs or the commit fails, the previous bytes go back,
+the owner reloads, nothing is committed, and the page names the step. The
+other service failing its reload is a warning. Size limits: 64 KiB per
+file. Only the known file names can be written (no path from a request is
+ever joined); no file can be created, renamed or deleted.
+
+**Guardrails before a save reaches the household.**
+- `music.yaml` and `lead_in.yaml`: the voice corpus's offline layer runs
+  with the values in effect and with the candidate. Routing and the direct
+  call run in the orchestrator (`corpus_routing.py`, the candidate pinned);
+  the parser and the decision order run in a child process of tool_service
+  (`corpus_check.py` via `POST /config/corpus`: the MA/HA snapshot, dry run
+  on, every socket blocked). The page lists rows whose outcome changes; a
+  row that newly fails blocks the save until the editor ticks it, and the
+  overrides go in the commit message. The test suite runs the same two
+  modules; the images carry `tests/voice_corpus.jsonl` and
+  `tests/fixtures/music_snapshot.json` from the same commit (compose
+  additional context `corpus`, `tests/.dockerignore`), and the answer shows
+  the corpus digest.
+- Prompts: the editor says the edit reaches the household at once and the
+  next request re-reads the whole prompt (one slower request). Production's
+  page offers **Apply to dev first** (a request signed with a key derived
+  from the shared hash, to dev's `/api/settings/peer/save` over the compose
+  network, refused through nginx; dev runs its own save path) and **Bring
+  over from dev** (dev's file into production's editor, saved through
+  production's path). A file where dev differs is marked.
+
+**History and revert.** Per file: the commits (date, message, who), the
+diff of any one, and Revert, which takes that commit's change back out of
+the file as it is now (`git merge-file`, so later edits to other lines
+stay) and saves the result through the save path as a new commit. Refused
+with the reason when later edits touched the same lines, for the seed
+commit, or when the result no longer validates against the running code.
+
+**Recovering by hand.** The live directory is an ordinary git repository
+owned by the host user:
+
+```bash
+cd ~/git-repos/drawsmcgraw/kronk-config/prod      # or dev
+git log --oneline -- tuning.yaml                  # what changed, by whom
+git show <commit>                                 # one change
+git revert <commit>                               # undo it (or edit + git commit)
+git status                                        # an uncommitted hand edit?
+git checkout -- tuning.yaml                       # drop it
+cd -; scripts/config_reload.sh prod               # make it take effect
+```
+
+A reload answers 422 with file and line if the result is invalid, and the
+last good values stay. A missing or corrupt `.git` turns editing off with
+the reason on the page; viewing and loading are unaffected; restore it
+from a backup or re-seed into a new directory and copy the files over.
 
 ## Precedence
 
@@ -173,16 +330,17 @@ report has the full inventory and the reason for each.
 
 ## Gotchas
 
-- **The pins guard the migration, not the future.** `test_m21_pins.py`
-  compares the shipped files with the pre-move rendering. The first real
-  edit to a prompt or a moved value (by hand, or by step 2's `/settings`)
-  makes it fail by design; that edit must retarget the pin (see the build
-  report). `test_builtin_defaults_render_the_pinned_prompts_and_values`
-  keeps guarding the defaults.
+- **The pins hold the shipped defaults.** `test_m21_pins.py` compares the
+  repo's `config/` (and the loaders' built-in defaults, which must equal
+  it) with the pre-move rendering. Edits on `/settings` change live
+  directories, not the repo, so they fail no test. A deliberate change of a
+  shipped default changes `config/`, the code default and the fixtures in
+  one commit.
+- **Two writers.** The page and a hand edit can meet: the page refuses a
+  save based on an older version (409), and a hand edit left uncommitted is
+  marked on the page and is committed with the next save of that file.
 - **A restart reloads too.** Reload is the only *runtime* trigger, but a
-  container restart reads the files fresh. With `config/` linked from the
-  working tree into a release, an uncommitted edit reaches production on
-  its next restart.
+  container restart reads the live files fresh, committed or not.
 - **Cross-file coupling.** The orchestrator's `tool_timeouts` for the
   music tools must stay above `music.yaml verify.timeout_s`; no loader
   checks across files.
@@ -198,6 +356,15 @@ report has the full inventory and the reason for each.
   once; the next request pays for it.
 
 ## Blog hooks
+
+- A settings page that cannot loosen a guard: replace every prompt with
+  "ignore your limits" and watch the mirror pin, the devops tool set, the
+  fetch block, dry run and the exec classifier hold (step 2, criterion 11).
+- The regression corpus as a save button's gatekeeper: 160 utterances run
+  offline in two seconds before a music-policy edit reaches the household.
+- Two git repositories per house: shipped defaults in the code repo, the
+  live values in their own, and a deploy that refuses to roll back past a
+  key the old code does not know.
 
 - Moving 7 prompts out of Python without changing a byte: pin 3390
   rendered variants first, then move one piece per commit.

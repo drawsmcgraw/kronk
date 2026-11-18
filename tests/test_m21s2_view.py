@@ -240,3 +240,11 @@ def test_a_broken_git_repository_never_blocks_viewing(live):
     assert d["editing"]["enabled"] is False
     assert all(f["last_change"] is None for f in d["files"])
     assert next(f for f in d["files"] if f["name"] == "tuning.yaml")["keys"]
+
+
+def test_nginx_serves_the_page_like_the_ui_and_refuses_reload_and_peer_routes():
+    conf = (REPO / "nginx" / "nginx.conf").read_text()
+    for path in ("/config/", "/dev/config/", "/api/settings/peer/", "/dev/api/settings/peer/"):
+        assert f"location ^~ {path}" in conf and "return 404" in conf.split(f"location ^~ {path}", 1)[1].split("\n")[0]
+    assert "location /settings" not in conf and "location /api/settings " not in conf   # served by location /
+    assert "listen 80;" in conf and conf.count("listen ") == 1                          # nothing new listens
