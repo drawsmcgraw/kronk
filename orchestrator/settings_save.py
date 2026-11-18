@@ -340,3 +340,60 @@ async def check(rel: str, text) -> dict:
     if settings_corpus.applies(rel):
         out["corpus"] = await settings_corpus.check(rel, new_text)
     return out
+
+
+async def revert(rel: str, commit: str, base_blob: str | None, who: str, client: str, overrides=()) -> dict:
+    """Undo one commit's change to rel, as a new commit through save(): the
+    change the commit made is taken back out of the file as it is now (a
+    three-way merge, so later edits to other lines stay). Refused when a
+    later edit touched the same lines, when the commit created the file
+    (the seed), or when the result does not validate against the running
+    code (with the reason)."""
+    try:
+        settings_store.check_name(rel)
+    except settings_store.StoreError as e:
+        raise SaveRefused(404, str(e))
+    base = config_loader.config_dir()
+    problem = editing_problem(base)
+    if problem:
+        raise SaveRefused(403, problem)
+    try:
+        log = settings_git.file_log(base, rel)
+        entry = next((c for c in log if c["commit"] == commit or (len(commit) >= 7 and c["commit"].startswith(commit))),
+                     None)
+        if entry is None:
+            raise SaveRefused(404, f"commit {config_files.quote(commit)} did not change {rel} "
+                                   f"(or is older than the last {settings_git.MAX_LOG} commits of it)")
+        full = entry["commit"]
+        parent = settings_git.parent(base, full)
+        after = settings_git.show_file(base, full, rel)
+        before = settings_git.show_file(base, parent, rel) if parent else None
+    except settings_git.GitError as e:
+        raise SaveRefused(409, f"not reverted: {e}")
+    if before is None or after is None:
+        raise SaveRefused(409, f"not reverted: {full[:7]} created {rel} (it is the seed of the live directory "
+                               "or added the file); there is nothing before it to go back to")
+    current = settings_store.read_bytes(base, rel) or b""
+    if current == after:
+        merged, conflicts = before, 0
+    else:
+        merged, conflicts = settings_git.merge3(current, after, before)
+    if conflicts:
+        later = [c["short"] for c in log[:log.index(entry)]]
+        raise SaveRefused(409, f"not reverted: the lines {full[:7]} changed were edited again later "
+                               f"({', '.join(later) or 'uncommitted change'}); revert by editing the file",
+                          conflict={"commit": full})
+    try:
+        text = merged.decode("utf-8")
+    except UnicodeDecodeError:
+        raise SaveRefused(409, "not reverted: the result is not UTF-8")
+    try:
+        return await save(rel, text, base_blob, who, client, overrides=overrides, event="revert",
+                          extra=[f"Revert of: {full} ({entry['subject']})"])
+    except SaveRefused as e:
+        if e.status == 422 and e.body.get("errors") and "does not validate" in e.body.get("message", ""):
+            msg = (f"not reverted: going back to before {full[:7]} no longer validates against the running "
+                   "code: " + "; ".join(f"{p.get('file')}{':' + str(p['line']) if p.get('line') else ''}: "
+                                        f"{p.get('message')}" for p in e.body["errors"]))
+            e.body["message"] = e.body["detail"] = msg
+        raise

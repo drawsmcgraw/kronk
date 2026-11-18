@@ -424,3 +424,31 @@ async def settings_peer_save(request: Request):
     except settings_save.SaveRefused as e:
         return _refused(e)
     return JSONResponse(config_files.renderable(result, lambda s: {"ok": True, "detail": s}))
+
+
+
+# ── revert (criterion 15) ────────────────────────────────────────────────────
+
+@router.post("/api/settings/revert")
+async def settings_revert(request: Request):
+    """{"name", "commit", "base"} -> a new commit that takes that commit's
+    change back out, through the save path (validate, write, reload,
+    verify, commit)."""
+    import settings_auth
+    import settings_save
+    settings_auth.require(request)
+    body = await _json(request)
+    commit = body.get("commit")
+    if not isinstance(commit, str):
+        raise HTTPException(status_code=400, detail="commit must be a commit id")
+    try:
+        settings_git._check_commit(commit)
+    except settings_git.GitError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    try:
+        result = await settings_save.revert(body.get("name"), commit, body.get("base"), who(request),
+                                            client_of(request), overrides=body.get("overrides") or [])
+    except settings_save.SaveRefused as e:
+        return _refused(e)
+    result["message"] = f"reverted {commit[:7]}: " + result["message"]
+    return JSONResponse(config_files.renderable(result, lambda s: {"ok": True, "detail": s}))

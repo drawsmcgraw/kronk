@@ -159,6 +159,26 @@ def commit_file(base: Path, rel: str, message: str) -> str:
     return head(base)
 
 
+def merge3(current: bytes, base: bytes, other: bytes) -> tuple[bytes, int]:
+    """git merge-file: apply the change base -> other to current. (merged
+    bytes, number of conflicts). Temporary files outside the live directory."""
+    import tempfile
+    with tempfile.TemporaryDirectory(prefix="kronk-revert-") as d:
+        paths = []
+        for name, data in (("current", current), ("base", base), ("other", other)):
+            p = Path(d) / name
+            p.write_bytes(data)
+            paths.append(str(p))
+        try:
+            r = subprocess.run(["git", "merge-file", "-p", "-L", "now", "-L", "the commit", "-L", "before it",
+                                *paths], capture_output=True, timeout=15, env=_env())
+        except FileNotFoundError:
+            raise GitError("git is not installed in this image")
+    if r.returncode < 0 or r.returncode > 127:
+        raise GitError(f"git merge-file failed: {r.stderr.decode('utf-8', 'replace').strip()[:200]}")
+    return r.stdout, r.returncode
+
+
 # ── per-key last change ───────────────────────────────────────────────────────
 
 def _flat(data, prefix="") -> dict:
