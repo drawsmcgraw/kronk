@@ -1840,7 +1840,9 @@ def ha_up(ctx: Ctx, comp: dict, frm: str, to: str) -> str | None:
 
 def _ha_steps(ctx: Ctx, comp: dict, steps) -> str | None:
     for kind, args in steps:
-        step(ctx, f"ha-{args[0]}")
+        # ha_stopped: from the run's own `docker stop` of HA on, the hourly
+        # command may start a stopped HA for this record (H3).
+        step(ctx, f"ha-{args[0]}", **({"ha_stopped": True} if args[0] == "stop" else {}))
         if kind == "docker" and args[0] == "stop":
             ctx.ha_restart_at = ctx.ops.now().strftime("%Y-%m-%dT%H:%M:%SZ")
             ctx.touched = True
@@ -2382,16 +2384,19 @@ def notice_once(ops: Ops, status: dict, key: str, notice: dict, now: dt.datetime
     deliver(ops, status, notice, now, log)
 
 
-def start_stopped_ha(ctx: Ctx, comp: dict) -> str | None:
+def start_stopped_ha(ctx: Ctx, comp: dict, timeout: float = 300, wait_s: float = 300, started=None) -> str | None:
     """`docker start` the stopped container itself (no compose, no
     recreate, no pin or git change) and wait for HA to answer. None when it
-    runs and answers; else why not."""
+    runs and answers; else why not. `started` runs between the start and
+    the wait (the hourly command writes the status there, H3)."""
     c = comp["container"]
-    r = ctx.ops.docker("start", c, timeout=300)
+    r = ctx.ops.docker("start", c, timeout=timeout)
     ctx.log(f"  docker start {c}: exit {r.rc}")
     if not r.ok:
         return f"docker start {c} failed: {r.tail(200)}"
-    problems = health(ctx, comp)
+    if started:
+        started()
+    problems = health(ctx, comp, wait_s=wait_s)
     return f"{c} started, but HA does not answer: {'; '.join(problems)}" if problems else None
 
 
@@ -2613,12 +2618,11 @@ def _recovered(ctx: Ctx, status: dict, o: Outcome, log_rel: str, dry_run: bool) 
     m = status.setdefault("months", {}).setdefault(month, {"attempts": 0, "done": False})
     if o.result == "deferred":
         add_attention(status, "interrupted", f"Upgrade interrupted inside {o.name}: {o.state} ({o.detail})", now)
-        if not status["intent"].get("noticed"):
-            status["intent"]["noticed"] = now.isoformat(timespec="seconds")
-            deliver(ctx.ops, status, {"id": f"interrupted-{o.name}-{ctx.stamp}", "tag": NOTIFY_TAG,
-                                      "title": f"Kronk upgrade: interrupted ({o.name}); rollback waiting",
-                                      "body": f"{o.name} {o.frm} -> {o.to}: {o.state} (now: {_cut(o.detail, 300)}). "
-                                              f"Log: {log_rel}", "created": now.isoformat(timespec="seconds")}, now, log)
+        notice_once(ctx.ops, status, "deferred", {
+            "id": f"interrupted-{o.name}-{ctx.stamp}", "tag": NOTIFY_TAG,
+            "title": f"Kronk upgrade: interrupted ({o.name}); rollback waiting",
+            "body": f"{o.name} {o.frm} -> {o.to}: {o.state} (now: {_cut(o.detail, 300)}). Log: {log_rel}",
+            "created": now.isoformat(timespec="seconds")}, now, log)
         status["last_run"] = {"kind": "minor", "at": now.isoformat(timespec="seconds"), "result": "deferred",
                               "summary": o.state, "log": log_rel}
         save_status(ctx.sd, status, now)
@@ -3560,35 +3564,70 @@ def _major_write(ops: Ops, rules: Rules, sd: Path, now: dt.datetime, date: str, 
 # /services warning and sends one notice. The next monthly run (or
 # `scripts/upgrade_minor.sh --ignore-window`) does the recovery itself.
 
-def hourly_start_ha(ops: Ops, rules: Rules, sd: Path, status: dict, log: RunLog) -> str | None:
+# The hourly command's wait for HA after a start, and its `docker start`
+# timeout: together, with every ha-api GET taking its full 15 s, well
+# inside kronk-upgrade-notices.service's TimeoutStartSec (H3).
+HOURLY_START_TIMEOUT_S, HOURLY_HA_WAIT_S = 120, 240
+
+
+def hourly_start_ha(ops: Ops, rules: Rules, sd: Path, status: dict, log: RunLog) -> tuple[str, str] | None:
+    """Start a stopped HA when the record is HA's and the run itself had
+    stopped HA (its `ha_stopped` flag, H3); for any other record, nothing.
+    Returns (state, sentence) when something was tried or could not be read."""
     it = status["intent"]
     try:
         comp = rules.component(it.get("component"))
     except KeyError:
         return None
-    if comp.get("deploy") != "ha" or container_state(ops, comp)[0] != "stopped":
+    if comp.get("deploy") != "ha" or not it.get("ha_stopped"):
+        return None
+    kind, _, runs = container_state(ops, comp)
+    if kind == "unknown":
+        return "unknown", f"could not read what {comp['container']} runs: {runs}; will look again in an hour"
+    if kind != "stopped":
         return None
     ctx = Ctx(ops, rules, log, sd, "hourly", ops.now())
-    err = start_stopped_ha(ctx, comp)
-    return f"Home Assistant is down: {err}" if err else "Home Assistant was down; started again"
+
+    def started():                       # written before the wait: a kill in it still leaves the fact
+        t = ops.now().isoformat(timespec="seconds")
+        it["ha_started_at"] = t
+        add_attention(status, "interrupted", f"Upgrade interrupted inside {it.get('component')}: Home Assistant was "
+                      f"stopped; the hourly command started it at {t} and is waiting for it to answer", ops.now())
+        save_status(sd, status, ops.now())
+    err = start_stopped_ha(ctx, comp, timeout=HOURLY_START_TIMEOUT_S, wait_s=HOURLY_HA_WAIT_S, started=started)
+    if err:
+        return "ha-start-failing", f"Home Assistant is down: {err}"
+    return "ha-started", "Home Assistant was down; started again"
 
 
-def hourly_notice(ops: Ops, status: dict, now: dt.datetime, log: RunLog, back: str | None) -> None:
+def hourly_notice(ops: Ops, status: dict, now: dt.datetime, log: RunLog, back: tuple[str, str] | None) -> None:
+    """The warning, and at most one notice per record per distinct state
+    (interrupted; HA started again; HA start failing; a read that failed):
+    a start that keeps failing is reported once, and once when it works (H3)."""
     it = status["intent"]
     name = it.get("component")
-    text = (f"Upgrade interrupted inside {name} {it.get('from')} -> {it.get('to')} at step {it.get('step')!r} "
-            f"({it.get('at')}, run {it.get('run')}). The next monthly run recovers it, or "
-            f"scripts/upgrade_minor.sh --ignore-window now; `python3 scripts/upgrades.py ack` drops the record "
-            f"for a person to take over. Until then scripts/deploy_tag.sh deploy refuses." + (f" {back}." if back else ""))
-    if it.get("blocked") and not back:
+    key, said = back or ("interrupted", None)
+    if it.get("blocked") and key == "interrupted":
         return                          # the block's own warning and notice stand (H2)
+    if it.get("blocked"):
+        nxt = f"It is blocked ({it['blocked']}): put it right by hand, then `python3 scripts/upgrades.py ack`."
+    else:
+        nxt = ("The next monthly run recovers it, or scripts/upgrade_minor.sh --ignore-window now; "
+               "`python3 scripts/upgrades.py ack` drops the record for a person to take over.")
+    text = (f"Upgrade interrupted inside {name} {it.get('from')} -> {it.get('to')} at step {it.get('step')!r} "
+            f"({it.get('at')}, run {it.get('run')}). {nxt} Until then scripts/deploy_tag.sh deploy refuses."
+            + (f" {said}." if said else "")
+            + (f" The hourly command started HA at {it['ha_started_at']}." if it.get("ha_started_at") else ""))
     add_attention(status, "interrupted", text, now)
-    if it.get("noticed") and not back:
-        return
-    it["noticed"] = now.isoformat(timespec="seconds")
-    deliver(ops, status, {"id": f"interrupted-{name}-{now.strftime('%Y%m%dT%H%M%SZ')}", "tag": NOTIFY_TAG,
-                          "title": f"Kronk upgrade: a run was interrupted ({name})" + (f": {back}" if back else ""),
-                          "body": text, "created": now.isoformat(timespec="seconds")}, now, log)
+    sent = it.setdefault("notices", [])
+    other = {"ha-started": "ha-start-failing", "ha-start-failing": "ha-started"}.get(key)
+    if other in sent:
+        sent.remove(other)              # a change of state is reported again
+    if key != "interrupted" and "interrupted" not in sent:
+        sent.append("interrupted")      # every state's notice says the run was interrupted
+    notice_once(ops, status, key, {"id": f"interrupted-{name}-{now.strftime('%Y%m%dT%H%M%SZ')}", "tag": NOTIFY_TAG,
+                                   "title": f"Kronk upgrade: a run was interrupted ({name})" + (f": {said}" if said else ""),
+                                   "body": text, "created": now.isoformat(timespec="seconds")}, now, log)
 
 
 # ═══ CLI ═════════════════════════════════════════════════════════════════

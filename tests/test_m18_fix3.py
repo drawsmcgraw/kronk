@@ -267,3 +267,83 @@ def test_a_blocked_record_is_shown_as_needing_ack_by_the_api_and_deploy(tmp_path
                             "KRONK_UPGRADE_STATE": str(tmp_path / "st"), "KRONK_RELEASES": str(tmp_path / "rel"),
                             "KRONK_LIVE_CONFIG": str(tmp_path / "cfg")})
     assert r.returncode == 1 and "blocked (out_of_step)" in r.stderr and "--ignore-window" not in r.stderr
+
+
+# ── H3 (Y2, Y3, Y6): the hourly command ──────────────────────────────────
+
+def notices_cmd(ops, sd, monkeypatch):
+    monkeypatch.setenv("KRONK_UPGRADE_STATE", str(sd))
+    return U.main(["notices"], ops=ops)
+
+
+def test_the_hourly_command_does_not_start_an_ha_the_run_never_stopped(house, monkeypatch):
+    """The tester's Y3: HA's record at `ha-pull` (the run never stopped
+    HA); a person stops HA later. The hourly command only warns."""
+    ops, sd = house
+    killed(ops, sd, ["homeassistant"], kill_on(ops, "docker", lambda a: a[0] == "pull"))
+    assert status(sd)["intent"]["step"] == "ha-pull"
+    ops.stopped.add("homeassistant")
+    for _ in range(3):
+        notices_cmd(ops, sd, monkeypatch)
+        ops.clock += _dt.timedelta(hours=1)
+    assert mutating(ops) == [] and "homeassistant" in ops.stopped
+    assert [t for _, t, _ in ops.notices] == ["Kronk upgrade: a run was interrupted (homeassistant)"]
+
+
+def test_a_start_that_keeps_failing_is_tried_every_hour_and_reported_once_then_once_when_it_works(house, monkeypatch):
+    """The tester's Y2: HA's record, HA stopped, `docker start` failing."""
+    ops, sd = house
+    killed(ops, sd, ["homeassistant"], _kill_after_ha_stop(ops))
+    orig = ops.docker
+    failing = [True]
+    ops.docker = lambda *a, **kw: (U.Result(1, "", "Error response from daemon: busy") if a[0] == "start" and failing
+                                   else orig(*a, **kw))
+    for _ in range(5):
+        notices_cmd(ops, sd, monkeypatch)
+        ops.clock += _dt.timedelta(hours=1)
+    titles = [t for _, t, _ in ops.notices]
+    assert titles == ["Kronk upgrade: a run was interrupted (homeassistant): Home Assistant is down: "
+                      "docker start homeassistant failed: Error response from daemon: busy"]
+    failing.clear()
+    notices_cmd(ops, sd, monkeypatch)
+    ops.clock += _dt.timedelta(hours=1)
+    notices_cmd(ops, sd, monkeypatch)
+    assert "homeassistant" not in ops.stopped
+    assert [t for _, t, _ in ops.notices][1:] == [
+        "Kronk upgrade: a run was interrupted (homeassistant): Home Assistant was down; started again"]
+
+
+def test_the_hourly_wait_for_ha_fits_inside_its_unit_and_the_status_is_written_first(house, monkeypatch):
+    from tests.m18_helpers import ROOT
+    unit = (ROOT / "systemd" / "kronk-upgrade-notices.service").read_text()
+    limit = int(__import__("re").search(r"^TimeoutStartSec=(\d+)m$", unit, __import__("re").M).group(1)) * 60
+    tries = U.HOURLY_HA_WAIT_S // 10 + 1
+    worst = U.HOURLY_START_TIMEOUT_S + tries * 15 + (tries - 1) * 10      # each ha-api GET may take 15 s
+    assert worst + 300 <= limit, (worst, limit)
+    ops, sd = house
+    killed(ops, sd, ["homeassistant"], _kill_after_ha_stop(ops))
+    ops.ha_up = False                                                    # HA starts and does not answer yet
+
+    def die(*a, **kw):
+        raise Killed("the unit's timeout")
+    monkeypatch.setattr(ops, "sleep", die)
+    with pytest.raises(Killed):
+        notices_cmd(ops, sd, monkeypatch)
+    st = status(sd)
+    assert st["intent"]["ha_started_at"] and "started it at" in st["attention"][-1]["text"]
+
+
+def test_the_nightly_rollback_waiting_notice_is_sent_after_the_hourly_one(house, monkeypatch):
+    """The tester's Y6."""
+    ops, sd = house
+    killed(ops, sd, ["litellm"], _kill_litellm_in_verify(ops))
+    notices_cmd(ops, sd, monkeypatch)
+    assert ops.notices[-1][1] == "Kronk upgrade: a run was interrupted (litellm)"
+    ops.states[2]["state"] = "playing"
+    assert run(ops, sd, ["litellm"]) == 0
+    assert ops.notices[-1][1] == "Kronk upgrade: interrupted (litellm); rollback waiting"
+    n = len(ops.notices)
+    ops.clock += _dt.timedelta(days=1)
+    run(ops, sd, ["litellm"])
+    notices_cmd(ops, sd, monkeypatch)
+    assert len(ops.notices) == n                                         # once each

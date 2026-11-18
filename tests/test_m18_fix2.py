@@ -409,7 +409,7 @@ def test_the_hourly_unit_starts_a_stopped_ha_and_says_so_within_the_hour(house, 
     assert [c for c in mutating(ops)] == [("docker", "start", "homeassistant")]
     assert git(ops.repo, "rev-parse", "HEAD") == head
     st = status(sd)
-    assert st["intent"]["component"] == "homeassistant" and st["intent"]["noticed"]
+    assert st["intent"]["component"] == "homeassistant" and "ha-started" in st["intent"]["notices"]
     assert any(a["id"] == "interrupted" for a in st["attention"])
     (_, title, body), = ops.notices
     assert title == "Kronk upgrade: a run was interrupted (homeassistant): Home Assistant was down; started again"
