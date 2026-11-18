@@ -21,6 +21,12 @@ container. Stubbed: HA's states, the voice_tracer probe and nginx's log (the
 house is reported quiet), the offline corpus and the live replay (reported
 passing), the notifier (printed, never sent). Each scenario needs its own
 empty directory under the scratch dir. Sprint M18, docs/sprint/M18-build.md.
+
+Since M18 fix 1 every run here passes ignore_window=True (the rehearsal runs
+by day; the night window is the monthly timer's). The quiet-house stubs mean
+the rehearsal does not exercise how the run tells its own traffic from the
+household's: tests/test_m18_fix1.py does, against a fake house that records
+the run's own requests and held runs (docs/sprint/M18-fix1.md).
 """
 import json, subprocess, sys, importlib.util, textwrap
 from pathlib import Path
@@ -135,12 +141,12 @@ def show(repo, state):
 if SCEN == "A-upgrade-kept":
     repo, state, rules = setup(None)
     ops = RehearsalOps(repo)
-    print("=== dry run first"); print("exit", U.minor_run(ops, rules, state, dry_run=True)); print("state dir exists after dry run:", state.exists())
-    print("=== real run"); print("exit", U.minor_run(ops, rules, state)); show(repo, state)
+    print("=== dry run first"); print("exit", U.minor_run(ops, rules, state, dry_run=True, ignore_window=True)); print("state dir exists after dry run:", state.exists())
+    print("=== real run"); print("exit", U.minor_run(ops, rules, state, ignore_window=True)); show(repo, state)
 elif SCEN == "B-forced-failure-rollback":
     repo, state, rules = setup("1.36.1")
     ops = RehearsalOps(repo)
-    print("exit", U.minor_run(ops, rules, state)); show(repo, state)
+    print("exit", U.minor_run(ops, rules, state, ignore_window=True)); show(repo, state)
 elif SCEN == "C-rollback-fails":
     repo, state, rules = setup("1.36.1", pull_policy="never")
     sh("docker", "pull", "-q", "busybox:1.36.1")       # pull_policy never: the new tag must be local
@@ -150,9 +156,9 @@ elif SCEN == "C-rollback-fails":
         if args[:1] == ("up",) and r.ok and "1.36.1" in sh("docker", "inspect", CONTAINER, "-f", "{{.Config.Image}}"):
             print("[rehearsal hook] removing busybox:1.36.0 to force the rollback to fail:", sh("docker", "rmi", "busybox:1.36.0", check=False).strip()[:80])
     ops = RehearsalOps(repo, hook)
-    print("exit", U.minor_run(ops, rules, state)); show(repo, state)
+    print("exit", U.minor_run(ops, rules, state, ignore_window=True)); show(repo, state)
     print("=== next run (by hand, --ignore-month): must decline")
-    print("exit", U.minor_run(ops, rules, state, ignore_month=True))
+    print("exit", U.minor_run(ops, rules, state, ignore_month=True, ignore_window=True))
     print("last_run:", json.loads((state / "status.json").read_text())["last_run"]["summary"][:300])
     import os; os.environ["KRONK_UPGRADE_STATE"] = str(state)
     print("=== ack"); print("exit", U.main(["ack"], ops=ops))

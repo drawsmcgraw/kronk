@@ -1186,7 +1186,7 @@ def run_declines_blocked(status: dict) -> list[str]:
     why = []
     if status.get("rollback_failed"):
         rf = status["rollback_failed"]
-        why.append(f"the last rollback failed ({rf.get('component')}: {rf.get('state') or ''} {rf.get('detail', '')[:160]}); "
+        why.append(f"the last rollback failed ({rf.get('component')}: {'; '.join(x for x in (rf.get('state'), _cut(rf.get('detail', ''), 160)) if x)}); "
                    f"fix it, then `python3 scripts/upgrades.py ack`")
     if status.get("out_of_step"):
         oo = status["out_of_step"]
