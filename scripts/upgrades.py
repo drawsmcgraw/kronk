@@ -1734,16 +1734,27 @@ def gather_majors(ops: Ops, rules: Rules, now: dt.datetime) -> list[dict]:
     return out
 
 
-def scan_notes(text: str, points: dict[str, list[str]]) -> dict[str, list[str]]:
-    """Lines of release-note text that mention each integration point."""
+_LINKDEF = re.compile(r"^\[[^\]]+\]:\s*https?://")
+
+
+def _has_word(low: str, w: str) -> bool:
+    """`w` in `low` at the start of a word ('tts' is not in 'watts'; the
+    stem 'deprecat' and 'callback' still match 'deprecated', 'callbacks')."""
+    return re.search(r"(?<![a-z0-9])" + re.escape(w), low) is not None
+
+
+def scan_notes(text: str, points: dict[str, list[str]], skip: str | None = None) -> dict[str, list[str]]:
+    """Lines of release-note text that mention each integration point.
+    Markdown link definitions and lines matching `skip` are ignored."""
     hits: dict[str, list[str]] = {}
+    skip_re = re.compile(skip) if skip else None
     for line in (text or "").splitlines():
         s = line.strip(" -*\t")
-        if len(s) < 8:
+        if len(s) < 8 or _LINKDEF.match(s) or (skip_re and skip_re.search(s)):
             continue
         low = s.lower()
         for point, words in points.items():
-            if any(w in low for w in words):
+            if any(_has_word(low, w) for w in words):
                 hits.setdefault(point, []).append(s[:300])
     return hits
 
@@ -1806,7 +1817,8 @@ def write_major_report(ops: Ops, rules: Rules, now: dt.datetime, majors: list[di
         if not e or not e.get("newest") or e["comp"]["kind"] in ("lockfile",):
             continue
         c = e["comp"]
-        L += [f"### {name}: {e['pin']} -> {e['newest'].version}", ""]
+        pin_s = e["pin"] if len(str(e["pin"])) <= 60 else "see the table"
+        L += [f"### {name}: {pin_s} -> {e['newest'].version}", ""]
         texts: list[tuple[str, str, str | None]] = []
         if c.get("releases", "").startswith("github:"):
             for r in e["between"]:
@@ -1820,15 +1832,15 @@ def write_major_report(ops: Ops, rules: Rules, now: dt.datetime, majors: list[di
                          + (" …" if len(missing) > 30 else "") + ".")
         else:
             L.append(f"No release-note source for {name} ({c.get('releases', 'none')}); read the project's changelog by hand.")
-        kw = points if name == "homeassistant" else {"General (breaking, deprecated, removed, security)": generic,
-                                                       **c.get("report_points", {})}
+        kw = points if name == "homeassistant" else {
+            "General (breaking, deprecated, removed, security)": c.get("report_keywords", generic)}
         found: dict[str, list[tuple[str, str, str]]] = {}
         unreadable = []
         for ver, url, text in texts:
             if text is None:
                 unreadable.append(f"{ver} ({url})")
                 continue
-            for point, lines in scan_notes(text, kw).items():
+            for point, lines in scan_notes(text, kw, c.get("report_skip")).items():
                 for ln in lines:
                     found.setdefault(point, []).append((ver, url, ln))
         if unreadable:
@@ -1871,7 +1883,7 @@ def major_run(ops: Ops, rules: Rules, sd: Path, dry_run: bool = False, out: Path
               notify: bool = True) -> int:
     now = ops.now()
     date = now.strftime("%Y-%m-%d")
-    log = RunLog(None if dry_run else sd / "runs" / f"{now.strftime('%Y%m%dT%H%M%SZ')}-major.log")
+    log = RunLog(None if (dry_run or out is not None) else sd / "runs" / f"{now.strftime('%Y%m%dT%H%M%SZ')}-major.log")
     log(f"upgrade_major_check {'DRY RUN ' if dry_run else ''}{now.isoformat(timespec='seconds')}")
     majors = gather_majors(ops, rules, now)
     text = write_major_report(ops, rules, now, majors)

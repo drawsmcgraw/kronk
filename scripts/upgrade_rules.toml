@@ -94,15 +94,17 @@ generic_keywords = ["breaking", "deprecat", "removed", "no longer", "security", 
 
 [report.integration_points]
 "Ollama conversation integration" = ["ollama"]
-"Assist pipelines and satellites" = ["assist_pipeline", "assist pipeline", "assist_satellite", "assist satellite", "voice assistant", "voice pe", "esphome", "wake word", "debug_recording"]
+"Assist pipelines and satellites" = ["assist_pipeline", "assist pipeline", "assist_satellite", "assist satellite", "voice pe", "satellite", "wake word", "debug_recording", "debug_recording_dir"]
+"ESPHome (the pucks' integration)" = ["esphome"]
 "Wyoming" = ["wyoming"]
 "Conversation and sentence triggers" = ["conversation", "sentence trigger", "trigger: conversation", "intent_script", "default agent", "prefer_local_intents", "local intents"]
 "Music Assistant integration" = ["music_assistant", "music assistant"]
 "Matter" = ["matter"]
-"Text-to-speech and speech-to-text" = ["tts", "stt", "text-to-speech", "speech-to-text", "streaming"]
+"Text-to-speech and speech-to-text" = ["tts", "stt", "text-to-speech", "speech-to-text", "piper", "whisper"]
 
 [report.affects]
 "Ollama conversation integration" = "the conversation entities behind the kronk and kronk-dev pipelines, which call /api/chat and /dev/voice"
+"ESPHome (the pucks' integration)" = "how HA talks to the two Voice PEs and the Satellite1 (firmware stays as it is: no firmware changes)"
 "Assist pipelines and satellites" = "the three satellites (two Voice PEs, a Satellite1), the two pipelines, voice_tracer's pipeline websocket, M12's debug_recording_dir"
 "Wyoming" = "the Whisper entries (10300, dev 10301) and the Piper entry (10200)"
 "Conversation and sentence triggers" = "the Music Assistant voice blueprint (mass_assist_kronk), prefer_local_intents, voice_replay's sentence-match debug"
@@ -239,6 +241,10 @@ same = 2
 minor = "auto"
 releases = "github:BerriAI/litellm"
 registry = "ghcr:berriai/litellm"
+# The quarterly report: Kronk uses the proxy, one config file, a callback
+# hook (litellm/hooks.py) and the health routes; the price-table bots are noise.
+report_keywords = ["breaking", "needs action", "removed", "security", "cve-", "callback", "custom_logger", "health", "cosign", "config.yaml", "proxy_config"]
+report_skip = '^chore\(prices\)|sync .* prices|^test|^ci\('
 deploy = "kronk"
 container = "kronk-litellm-1"
 health = [
