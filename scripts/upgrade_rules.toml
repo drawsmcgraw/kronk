@@ -58,7 +58,10 @@ quiet_minutes = 5
 # HA's selects (wake word / assistant slots) must be this old (M12 H6).
 select_quiet_minutes = 15
 # The timer fires on days 1-7 of the month; a run that declines tries again
-# the next day, at most this many attempts per month.
+# the next day, at most this many attempts per month. A component not
+# started (the house got busy, the window closed, a precondition) is tried
+# again the next night; the month is done when every planned component has
+# another outcome, or the attempts run out (the last notice lists the rest).
 max_attempts = 7
 # The monthly run works only inside this local-time window (start, end;
 # may cross midnight). Started outside it (the timer's boot catch-up,

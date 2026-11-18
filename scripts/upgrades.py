@@ -2556,6 +2556,9 @@ def minor_run(ops: Ops, rules: Rules, sd: Path, dry_run: bool = False, ignore_mo
                 p.action, p.detail = mm
             elif p.comp["name"] in (m.get("held_back") or {}) and p.action == "upgrade":
                 p.action, p.detail = "skip", f"held back this month: {m['held_back'][p.comp['name']]}"
+            elif not ignore_month and p.comp["name"] in (m.get("components") or {}) and p.action == "upgrade":
+                done = m["components"][p.comp["name"]]
+                p.action, p.detail = "skip", f"done this month: {done.get('result')} ({done.get('to')})"
         log("plan:")
         for p in plans:
             log(f"  {p.comp['name']:<26} {str(p.pin or '-'):<22} {p.action.upper():<9} {p.detail}")
@@ -2650,6 +2653,10 @@ def minor_run(ops: Ops, rules: Rules, sd: Path, dry_run: bool = False, ignore_mo
                 o = error_outcome(ctx, p, e)
             outcomes.append(o)
             if o.result != "not_started":
+                # This month has an outcome for it; one not started (house
+                # busy, the window closed, a precondition) goes again the
+                # next night while attempts remain (K6).
+                m.setdefault("components", {})[o.name] = {"result": o.result, "to": o.to}
                 # Written when the component ends: a run killed before its
                 # notice leaves them for the next run to report (K3).
                 status["unreported"] = {"run": stamp, "log": log_rel, "redeploys": ctx.redeploys,
@@ -2667,7 +2674,9 @@ def minor_run(ops: Ops, rules: Rules, sd: Path, dry_run: bool = False, ignore_mo
         result = next((r for r in ("rollback_failed", "out_of_step", "rolled_back", "not_applied")
                        if any(o.result == r for o in outcomes)), "upgraded" if changed else "not_started")
         title, body = notice_text(outcomes, plans, log_rel, ctx.redeploys)
-        m["done"] = result != "not_started" or m["attempts"] >= rules.settings["max_attempts"]
+        pending = [p.comp["name"] for p in todo if p.comp["name"] not in (m.get("components") or {})]
+        last_try = m["attempts"] >= rules.settings["max_attempts"]
+        m["done"] = not pending or last_try
         status["last_run"] = {"kind": "minor", "at": now.isoformat(timespec="seconds"), "result": result,
                               "summary": title, "log": log_rel,
                               "outcomes": [o.__dict__ for o in outcomes]}
@@ -2677,7 +2686,15 @@ def minor_run(ops: Ops, rules: Rules, sd: Path, dry_run: bool = False, ignore_mo
             deliver(ops, status, {"id": f"minor-{stamp}", "tag": NOTIFY_TAG, "title": title, "body": body,
                                   "created": now.isoformat(timespec="seconds")}, now, log)
             status.pop("unreported", None)          # sent, or pending (retried hourly)
-        elif m["attempts"] >= rules.settings["max_attempts"]:
+        elif last_try and m.get("components"):
+            # Earlier nights applied something; these never started (K6).
+            deliver(ops, status, {"id": f"minor-{month}-ended", "tag": NOTIFY_TAG,
+                                  "title": f"Kronk upgrade: this month's patch run ended with {len(pending)} not started "
+                                           f"(attempts ran out)", "body": body,
+                                  "created": now.isoformat(timespec="seconds")}, now, log)
+            add_attention(status, f"declined:{month}", f"Monthly upgrade: {', '.join(pending)} never started in {month}; "
+                          f"see {log_rel}", now)
+        elif last_try:
             # The month ends with nothing applied: say so, as a month of declines does (F7).
             month_ended_empty(ops, status, m, month, rules, now, log, log_rel,
                               "applied nothing: every pending component was not started",

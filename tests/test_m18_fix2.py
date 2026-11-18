@@ -590,3 +590,70 @@ def test_a_stopped_baseline_still_declines_the_night(house):
     ops.replay_stops.append(1)
     assert run(ops, sd, ["tempo"]) == 0
     assert status(sd)["last_run"]["result"] == "declined" and subjects(ops.repo) == ["initial"]
+
+
+# ── K6: components not started are tried the next night ─────────────────
+
+def _player_starts_after(ops, label):
+    orig = ops.replay
+
+    def replay(lbl, out, check_only=False, ids=None):
+        r = orig(lbl, out, check_only, ids)
+        if lbl == label:
+            ops.states[2]["state"] = "playing"
+        return r
+    ops.replay = replay
+    return lambda: setattr(ops, "replay", orig)
+
+
+def test_components_not_started_because_the_house_got_busy_go_the_next_night(house):
+    """The tester's K6: tempo kept, then a player starts."""
+    ops, sd = house
+    undo = _player_starts_after(ops, "upgrade-tempo")
+    run(ops, sd, ["tempo", "grafana", "litellm"])
+    undo()
+    o = {x["name"]: x["result"] for x in status(sd)["last_run"]["outcomes"]}
+    assert o == {"tempo": "kept", "grafana": "not_started", "litellm": "not_started"}
+    assert status(sd)["months"]["2026-12"]["done"] is False
+    ops.states[2]["state"] = "idle"
+    ops.clock += _dt.timedelta(days=1)
+    run(ops, sd, ["tempo", "grafana", "litellm"])
+    assert subjects(ops.repo)[-2:] == ["upgrade: grafana 13.2.4 -> 13.2.6", "upgrade: litellm v1.88.1 -> v1.88.6"]
+    m = status(sd)["months"]["2026-12"]
+    assert m["done"] is True and set(m["components"]) == {"tempo", "grafana", "litellm"}
+    ops.clock += _dt.timedelta(days=1)
+    n = len(ops.notices)
+    run(ops, sd, ["tempo", "grafana", "litellm"])
+    assert len(ops.notices) == n and "done; nothing to do" in next(
+        (sd / "runs").glob("20261203*-minor.log")).read_text()
+
+
+def test_the_window_closing_between_components_leaves_the_rest_for_the_next_night(house):
+    ops, sd = house
+    orig = ops.replay
+
+    def replay(lbl, out, check_only=False, ids=None):
+        r = orig(lbl, out, check_only, ids)
+        if lbl == "upgrade-tempo":
+            ops.clock = ops.clock.replace(hour=10, minute=1)                 # 05:01 local
+        return r
+    ops.replay = replay
+    run(ops, sd, ["tempo", "grafana"])
+    ops.replay = orig
+    assert status(sd)["months"]["2026-12"]["done"] is False
+    ops.clock = NOW + _dt.timedelta(days=1)
+    run(ops, sd, ["tempo", "grafana"])
+    assert subjects(ops.repo)[-1] == "upgrade: grafana 13.2.4 -> 13.2.6"
+
+
+def test_when_attempts_run_out_the_notice_lists_what_never_started(house):
+    ops, sd = house
+    for night in range(7):
+        ops.clock = NOW + _dt.timedelta(days=night)
+        ops.states[2]["state"] = "idle"
+        undo = _player_starts_after(ops, "upgrade-tempo" if night == 0 else "upgrade-baseline")
+        run(ops, sd, ["tempo", "grafana"])
+        undo()
+    m = status(sd)["months"]["2026-12"]
+    assert m["done"] is True and m["attempts"] == 7
+    assert "grafana 13.2.4 -> 13.2.6: not started (house busy" in ops.notices[-1][2]
