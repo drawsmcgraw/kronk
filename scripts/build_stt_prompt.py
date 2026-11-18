@@ -230,12 +230,19 @@ def build(categories: list[tuple[str, list[str]]], count: Callable[[str], int],
     kept: list[list[str]] = [[] for _ in categories]
     offered = [0] * len(categories)
     seen: set[str] = set()
+    dropped: list[str] = []
     for i, raw in candidates(categories):
         name = clean(raw)
         if categories[i][0] == "stations":
             name = re.sub(r"(?i)\s+radio$", "", name) or name
         key = fold(name)
         if not key or key in seen:
+            continue
+        words = re.findall(r"[a-z]+", name.casefold())
+        if words and all(w in COMMAND_WORDS for w in words):
+            # A name that is nothing but command words ("Stop", "Next") would
+            # put the bare command into the prompt (M13-e2e D5): left out.
+            dropped.append(name)
             continue
         offered[i] += 1
         trial = [g + [name] if j == i else g for j, g in enumerate(kept)]
@@ -247,7 +254,8 @@ def build(categories: list[tuple[str, list[str]]], count: Callable[[str], int],
     line = render(kept)
     flagged = sorted({n for g in kept for n in g if command_words_in(n)}, key=str.casefold)
     return line, {"tokens": count(line) if line else 0, "names": sum(map(len, kept)),
-                  "categories": stats, "command_word_names": flagged}
+                  "categories": stats, "command_word_names": flagged,
+                  "command_only_names_dropped": sorted(set(dropped), key=str.casefold)}
 
 
 def whisper_counter(tokenizer_path: Path | None) -> Callable[[str], int]:
@@ -283,16 +291,21 @@ def write_if_changed(out: Path, content: str) -> bool:
     return True
 
 
+DEV_UNIT = "wyoming-whisper-dev.service"
+
+
 def check_unit(unit: str) -> str:
-    if unit == PRODUCTION_UNIT or unit.removesuffix(".service") == PRODUCTION_UNIT.removesuffix(".service"):
-        raise RefusedUnit(f"refusing to restart production's {PRODUCTION_UNIT}")
-    if not re.fullmatch(r"[A-Za-z0-9@_.-]+-dev\.service", unit):
-        raise RefusedUnit(f"refusing to restart {unit!r}: only a *-dev.service unit")
+    """The one unit this script may restart is the dev Whisper instance, by
+    its exact name (M13-e2e observation 2: a name pattern would also accept
+    a future *-dev unit, an alias of production, or a string systemctl
+    reads as an option)."""
+    if unit != DEV_UNIT:
+        raise RefusedUnit(f"refusing to restart {unit!r}: only {DEV_UNIT}")
     return unit
 
 
 def restart(unit: str, run: Callable[[list[str]], int]) -> int:
-    return run(["systemctl", "--user", "try-restart", check_unit(unit)])
+    return run(["systemctl", "--user", "try-restart", "--", check_unit(unit)])
 
 
 def _run(cmd: list[str]) -> int:

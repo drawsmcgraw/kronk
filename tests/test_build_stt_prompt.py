@@ -316,7 +316,7 @@ def test_default_budget_is_100_tokens():
 def test_restart_only_when_changed(tmp_path):
     rec = []
     rc, out, _ = run(tmp_path, "--restart-unit", "wyoming-whisper-dev.service", restarts=rec)
-    assert rc == 0 and rec == [["systemctl", "--user", "try-restart", "wyoming-whisper-dev.service"]]
+    assert rc == 0 and rec == [["systemctl", "--user", "try-restart", "--", "wyoming-whisper-dev.service"]]
     rc, _, _ = run(tmp_path, "--restart-unit", "wyoming-whisper-dev.service", restarts=rec, out=out)
     assert rc == 0 and len(rec) == 1                                    # unchanged: no restart
     changed = Sources(artists={"artists": [{"name": "New Artist"}]})
@@ -383,3 +383,27 @@ def test_regeneration_unit_restarts_only_the_dev_instance():
     assert bsp.check_unit("wyoming-whisper-dev.service")
     timer = (SYSTEMD / "kronk-stt-prompt.timer").read_text()
     assert "OnCalendar=*-*-* 04:00" in timer
+
+
+# ── after the end-to-end test (M13-e2e observation 2, D5) ──
+
+@pytest.mark.parametrize("unit", [
+    "wyoming-whisper.service", "wyoming-whisper", "wyoming-whisper.service-dev.service",
+    "wyoming-whisper@x-dev.service", "llama-gemma4-e4b-dev.service", "homeassistant-dev.service",
+    "x-dev.service", "..-dev.service", "-Hsomehost-dev.service", "--system-dev.service",
+    "wyoming-whisper-dev.service ", "Wyoming-Whisper-Dev.service", "wyoming-whisper-dev", ""])
+def test_only_the_dev_unit_by_its_exact_name(unit):
+    with pytest.raises(bsp.RefusedUnit):
+        bsp.check_unit(unit)
+    assert bsp.check_unit("wyoming-whisper-dev.service") == "wyoming-whisper-dev.service"
+
+
+def test_a_name_that_is_only_command_words_is_left_out():
+    cats = [("kronk", ["Kronk"]), ("rooms", ["Kitchen"]),
+            ("stations", ["Stop Radio", "Next", "Mushroom Jazz Radio"]),
+            ("artists", ["Play", "Shuffle", "Stop Making Sense", "Orbital"]), ("players", ["Pause"])]
+    line, summary = bsp.build(cats, lambda s: len(s.split()), 100)
+    names = [n.strip() for n in line.rstrip(".").split(",")]
+    assert names == ["Kronk", "Kitchen", "Mushroom Jazz", "Orbital", "Stop Making Sense"]
+    assert summary["command_only_names_dropped"] == ["Next", "Pause", "Play", "Shuffle", "Stop"]
+    assert summary["command_word_names"] == ["Stop Making Sense"]

@@ -442,7 +442,7 @@ The `render` group is required for `/dev/kfd` access — verify with `groups dre
 `wyoming-whisper.service` (production, `0.0.0.0:10300`, no prompt) and
 `wyoming-whisper-dev.service` (sprint M13, `127.0.0.1:10301`) run the same
 `large-v3-turbo` model from `~/services/wyoming-whisper/`; each loads it
-once, on its first transcription (about 2.1 GB GTT each). The dev unit adds
+once, at start (about 2.1 GB GTT each). The dev unit adds
 `--initial-prompt` from `~/services/wyoming-whisper/dev-prompt.env`, written
 by `scripts/build_stt_prompt.py` and rebuilt nightly by
 `kronk-stt-prompt.timer`. Reference copies in [`systemd/`](systemd/); install,

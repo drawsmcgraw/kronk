@@ -132,10 +132,20 @@ voice check:
 3. Add `EnvironmentFile=` for that file and `--initial-prompt
    ${WHISPER_INITIAL_PROMPT}` to `systemd/wyoming-whisper.service`, copy it,
    `daemon-reload`, restart `wyoming-whisper` (Okay Nabu is down for a few
-   seconds; the model reloads on the next request).
+   seconds while the model reloads at start).
 4. The nightly rebuild cannot restart production's unit (the script
    refuses it); widening that guard is part of the same decision.
 5. Then retire the dev instance or keep it for the next experiment.
+
+**Found on synthetic speech (M13, `docs/sprint/M13-e2e.md` D1 to D5); to
+check on real clips before the prompt goes to production.** The
+comma-separated prompt makes Whisper join sentences with commas, so the
+M14 messy gate, which counts sentences, caught 16 of 33 multi-sentence
+captures instead of 24. A player name in the prompt replaced a command
+verb twice in 714 clips ("Shuffle …" heard as "SHIELD, …"). "Kronk" came
+back on 2 of 40 non-speech clips. A name made only of command words
+("Stop", "Next") is left out of the prompt and listed in the nightly
+service's log line (`command_only_names_dropped`).
 
 **Gotchas.**
 

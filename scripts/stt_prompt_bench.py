@@ -420,7 +420,7 @@ def summarize(rows: list[dict]) -> dict:
 # ── sheets and runs ─────────────────────────────────────────────────────────
 
 def read_sheet(path: Path) -> list[dict]:
-    with open(path, newline="", encoding="utf-8") as f:
+    with open(path, newline="", encoding="utf-8-sig") as f:   # a spreadsheet's byte-order mark
         rows = list(csv.DictReader(f))
     if rows and not {"sample_id", "audio_file", "correct_text"} <= set(rows[0]):
         raise BenchError(f"{path}: not a labelling sheet (needs sample_id, audio_file, correct_text)")

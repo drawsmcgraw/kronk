@@ -5,9 +5,9 @@
 # "Kronk Whisper STT dev", 127.0.0.1:10301). Production's unit and port
 # 10300 are separate and carry no prompt.
 #
-# The model loads on the first transcription, not at start: a running but
-# unused instance holds about 0.1 GB; after one request about 2.1 GB GTT
-# plus 0.7 GB RSS (docs/sprint/M13-build.md, memory table).
+# The model loads at start (M13-e2e observation 1): a running instance
+# holds about 1.9 GB GTT before any request and about 2.1 GB GTT plus
+# 0.7 GB RSS after (docs/sprint/M13-build.md, memory table).
 # HF_HUB_OFFLINE: the installed wyoming-faster-whisper 3.1.0 does not pass
 # --local-files-only to faster-whisper, which would otherwise ask the
 # Hugging Face Hub for updates at each model load.
