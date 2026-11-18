@@ -35,7 +35,8 @@ def summarize(raw: dict) -> dict:
         # says (sprint M18 fix 2, G2).
         attention.insert(0, f"An upgrade run was interrupted inside {it.get('component')} {it.get('from')} -> "
                             f"{it.get('to')} (step {it.get('step')}, {it.get('at')}). The next monthly run "
-                            f"recovers it, or scripts/upgrade_minor.sh --ignore-window now.")
+                            f"recovers it, or scripts/upgrade_minor.sh --ignore-window now; until then "
+                            f"scripts/deploy_tag.sh deploy refuses.")
     return {
         "present": True,
         "warnings": attention,

@@ -3377,7 +3377,7 @@ def hourly_notice(ops: Ops, status: dict, now: dt.datetime, log: RunLog, back: s
     text = (f"Upgrade interrupted inside {name} {it.get('from')} -> {it.get('to')} at step {it.get('step')!r} "
             f"({it.get('at')}, run {it.get('run')}). The next monthly run recovers it, or "
             f"scripts/upgrade_minor.sh --ignore-window now; `python3 scripts/upgrades.py ack` drops the record "
-            f"for a person to take over." + (f" {back}." if back else ""))
+            f"for a person to take over. Until then scripts/deploy_tag.sh deploy refuses." + (f" {back}." if back else ""))
     add_attention(status, "interrupted", text, now)
     if it.get("noticed") and not back:
         return
@@ -3402,7 +3402,8 @@ def main(argv=None, ops: Ops | None = None) -> int:
     ma.add_argument("--out", help="write the report here; no commit, no notice")
     sub.add_parser("inventory", help="pins, what runs, what is newest (markdown)")
     sub.add_parser("notices", help="retry notices HA did not take")
-    sub.add_parser("ack", help="clear the /services warning and a failed-rollback block")
+    sub.add_parser("ack", help="clear the /services warning, a failed-rollback or out-of-step block, "
+                               "and an interrupted run's record")
     sub.add_parser("status", help="print the status file")
     sub.add_parser("test-notice", help="send one notice now, marked TEST (install check)")
     args = ap.parse_args(argv)
@@ -3448,14 +3449,18 @@ def main(argv=None, ops: Ops | None = None) -> int:
             return 1
         try:
             status = load_status(sd)
+            it = status.get("intent")
             print(f"cleared: {len(status.get('attention', []))} warning(s)"
                   + (", the failed-rollback block" if status.get("rollback_failed") else "")
-                  + (", the out-of-step block" if status.get("out_of_step") else ""))
+                  + (", the out-of-step block" if status.get("out_of_step") else "")
+                  + (f", the interrupted run's record ({it.get('component')} {it.get('from')} -> {it.get('to')}, "
+                     f"step {it.get('step')}): no recovery will act on it; what runs is yours to put right" if it else ""))
             status["acknowledged"] = {"at": ops.now().isoformat(timespec="seconds"),
                                       "attention": status.get("attention", []),
                                       "rollback_failed": status.get("rollback_failed"),
-                                      "out_of_step": status.get("out_of_step")}
+                                      "out_of_step": status.get("out_of_step"), "intent": it}
             status["attention"], status["rollback_failed"], status["out_of_step"] = [], None, None
+            status.pop("intent", None)
             if sd.exists():
                 save_status(sd, status, ops.now())
             return 0

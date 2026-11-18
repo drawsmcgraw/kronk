@@ -783,3 +783,69 @@ def test_a_failed_read_of_music_assistants_start_time_after_the_restart_fails_th
     assert run(ops, sd, ["homeassistant"]) == 1
     o, = status(sd)["last_run"]["outcomes"]
     assert o["result"] == "rolled_back" and "cannot read Music Assistant's start time" in o["detail"]
+
+
+# ── G3: deploy_tag.sh deploy refuses while an unfinished record exists ───
+
+import os as _os  # noqa: E402
+import subprocess as _sp  # noqa: E402
+
+
+def _deploy_tag_sh(tmp_path, cmd, env=None):
+    """The real script, with a tag that cannot exist: past the checks it
+    stops at once at `no such tag` (no docker reached)."""
+    return _sp.run(["bash", str(ROOT / "scripts" / "deploy_tag.sh"), cmd, "m18-fix2-no-such-tag-x"],
+                   capture_output=True, text=True, timeout=30,
+                   env={"PATH": _os.environ["PATH"], "HOME": str(tmp_path), "KRONK_UPGRADE_STATE": str(tmp_path / "st"),
+                        "KRONK_RELEASES": str(tmp_path / "rel"), "KRONK_LIVE_CONFIG": str(tmp_path / "cfg"), **(env or {})})
+
+
+INTENT = {"intent": {"component": "litellm", "from": "v1.88.1", "to": "v1.88.6", "step": "verify",
+                     "run": "20261201T083000Z", "at": "2026-12-01T08:41:00+00:00"}}
+
+
+def test_deploy_refuses_while_an_unfinished_record_exists_and_names_the_ways_out(tmp_path):
+    (tmp_path / "st").mkdir()
+    U.save_status(tmp_path / "st", dict(INTENT), NOW)
+    r = _deploy_tag_sh(tmp_path, "deploy")
+    assert r.returncode == 1
+    assert "refused: an upgrade run was interrupted (litellm v1.88.1 -> v1.88.6, step verify, run 20261201T083000Z" in r.stderr
+    assert "python3 scripts/upgrades.py minor --ignore-window" in r.stderr and "python3 scripts/upgrades.py ack" in r.stderr
+    assert str(tmp_path / "st" / "status.json") in r.stderr
+    r = _deploy_tag_sh(tmp_path, "plan")                                  # plan is not refused
+    assert "refused" not in r.stderr and "no such tag" in r.stderr
+    src = (ROOT / "scripts" / "deploy_tag.sh").read_text()
+    assert '[ "$cmd" != deploy ] || upgrade_lock_check' in src           # status, seed, plan: untouched
+
+
+def test_the_run_itself_deploys_past_its_own_record(tmp_path):
+    (tmp_path / "st").mkdir()
+    U.save_status(tmp_path / "st", dict(INTENT), NOW)
+    fd = U.take_lock(tmp_path / "st", "pid=4242\nrun=upgrade_minor 20261202T083000Z\ntoken=abc123\n")
+    try:
+        r = _deploy_tag_sh(tmp_path, "deploy", {"KRONK_UPGRADE_TOKEN": "abc123"})
+        assert "refused" not in r.stderr and "no such tag" in r.stderr
+        r = _deploy_tag_sh(tmp_path, "deploy")
+        assert "refused: an upgrade run holds" in r.stderr
+    finally:
+        _os.close(fd)
+
+
+def test_deploy_refuses_when_the_status_file_cannot_be_read(tmp_path):
+    (tmp_path / "st").mkdir()
+    (tmp_path / "st" / "status.json").write_text("{not json")
+    r = _deploy_tag_sh(tmp_path, "deploy")
+    assert r.returncode == 1 and "cannot tell whether an upgrade run was interrupted" in r.stderr
+
+
+def test_ack_drops_the_record_and_deploy_goes_ahead(tmp_path, monkeypatch):
+    sd = tmp_path / "st"
+    sd.mkdir()
+    U.save_status(sd, {**INTENT, "attention": [{"id": "interrupted", "text": "x"}]}, NOW)
+    monkeypatch.setenv("KRONK_UPGRADE_STATE", str(sd))
+    repo = make_repo(tmp_path, base_files())
+    assert U.main(["ack"], ops=FakeOps(repo, standard_web())) == 0
+    st = status(sd)
+    assert "intent" not in st and st["acknowledged"]["intent"]["component"] == "litellm"
+    r = _deploy_tag_sh(tmp_path, "deploy")
+    assert "refused" not in r.stderr and "no such tag" in r.stderr

@@ -266,14 +266,31 @@ verify() {
 # lock file while it works; a deploy by anyone else in that time would race
 # it, so `deploy` refuses and says who holds it. The run's own deploys carry
 # the token it wrote into the file (KRONK_UPGRADE_TOKEN).
+#
+# With the lock free, an unfinished intent record in the status file means a
+# run died inside a component (sprint M18 fix 2, G3): its recovery compares
+# what runs with the record, and a deploy by hand in between is exactly what
+# it then cannot account for. `deploy` refuses until the record is dealt
+# with, by the recovery or by `ack`.
 UPGRADE_LOCK="${KRONK_UPGRADE_STATE:-$REPO/data/upgrades}/lock"
+UPGRADE_STATUS="${KRONK_UPGRADE_STATE:-$REPO/data/upgrades}/status.json"
 upgrade_lock_check() {
-    [ -e "$UPGRADE_LOCK" ] || return 0
-    flock -n "$UPGRADE_LOCK" true 2>/dev/null && return 0
-    if [ -n "${KRONK_UPGRADE_TOKEN:-}" ] && grep -qxF "token=$KRONK_UPGRADE_TOKEN" "$UPGRADE_LOCK"; then
-        return 0
+    if [ -e "$UPGRADE_LOCK" ] && ! flock -n "$UPGRADE_LOCK" true 2>/dev/null; then
+        if [ -n "${KRONK_UPGRADE_TOKEN:-}" ] && grep -qxF "token=$KRONK_UPGRADE_TOKEN" "$UPGRADE_LOCK"; then
+            return 0        # the run itself
+        fi
+        die "refused: an upgrade run holds $UPGRADE_LOCK ($(grep -v '^token=' "$UPGRADE_LOCK" | tr '\n' ' ')); wait for it to finish (journalctl --user -u kronk-upgrade-minor.service -f)"
     fi
-    die "refused: an upgrade run holds $UPGRADE_LOCK ($(grep -v '^token=' "$UPGRADE_LOCK" | tr '\n' ' ')); wait for it to finish (journalctl --user -u kronk-upgrade-minor.service -f)"
+    [ -e "$UPGRADE_STATUS" ] || return 0
+    local rec
+    rec=$(python3 -I -c 'import json, sys
+d = json.loads(open(sys.argv[1], encoding="utf-8").read())
+it = d.get("intent")
+if it:
+    print("%s %s -> %s, step %s, run %s" % tuple(it.get(k) for k in ("component", "from", "to", "step", "run")))' \
+        "$UPGRADE_STATUS" 2>&1) \
+        || die "refused: cannot tell whether an upgrade run was interrupted: $UPGRADE_STATUS cannot be read (${rec##*$'\n'}); python3 scripts/upgrades.py status says why"
+    [ -z "$rec" ] || die "refused: an upgrade run was interrupted ($rec; the record is in $UPGRADE_STATUS). Its recovery compares what runs with that record, so nothing is deployed by hand until it is dealt with. Either let it recover now: python3 scripts/upgrades.py minor --ignore-window (scripts/upgrade_minor.sh --ignore-window); or drop the record and take over by hand: python3 scripts/upgrades.py ack"
 }
 
 cmd=${1:-}; tag=${2:-}
