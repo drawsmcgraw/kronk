@@ -152,6 +152,16 @@ def load_rules(path: Path = RULES_FILE, env: dict | None = None) -> Rules:
             raise RulesError(f"component {c['name']}: a {c['kind']} is never deployed by this script")
         if c["name"] in ("music-assistant", "llama.cpp") and c["minor"] not in ("excluded", "none"):
             raise RulesError(f"component {c['name']}: may only be excluded or none")
+        # The Kronk stack is deployed only from a tag by deploy_tag.sh, never
+        # by a compose command (M12, M17); the Music Assistant stack, by
+        # stack and not by name, is never touched (Drew 2026-11-14) (F10).
+        if c.get("deploy") in ("compose", "ha") and c.get("project") in (None, "", "kronk"):
+            raise RulesError(f"component {c['name']}: deploy = {c['deploy']} with project {c.get('project')!r}: "
+                             f"the Kronk stack is deployed only through deploy_tag.sh (deploy = \"kronk\")")
+        in_ma = c.get("file") == "docker-compose.ma.yml" or c.get("project") == "kronk-ma"
+        if in_ma and (c["minor"] not in ("excluded", "none") or c.get("deploy")):
+            raise RulesError(f"component {c['name']}: part of the Music Assistant stack; may only be excluded or none, "
+                             f"with no deploy")
     comps.sort(key=lambda c: c["order"])
     return Rules(settings, data.get("replay", {}), data.get("report", {}), comps)
 
@@ -670,6 +680,20 @@ class Ops:
     def path_exists(self, path: str) -> bool:
         return os.path.exists(path)
 
+    def files_changed_since(self, sources: list[str], since: dt.datetime) -> list[tuple[str, dt.datetime]]:
+        """Files under each source path (a file or a directory) modified after `since`."""
+        out = []
+        for src in sources:
+            paths = [Path(src)] if Path(src).is_file() else [q for q in Path(src).rglob("*") if q.is_file()]
+            for q in paths:
+                try:
+                    t = dt.datetime.fromtimestamp(q.stat().st_mtime, dt.timezone.utc)
+                except OSError:
+                    continue
+                if t > since:
+                    out.append((str(q), t))
+        return out
+
     def wyoming(self, host: str, port: int) -> bool:
         if host not in LOCAL_HOSTS:
             raise StepFailed(f"refused: {host} is not this host's loopback")
@@ -1121,6 +1145,35 @@ def undeployed(ops: Ops, rules: Rules, tag: str) -> list[str]:
     return [n for n in names if not any(fnmatch.fnmatch(n, p) for p in pats)]
 
 
+def bind_files_unreleased(ops: Ops, comp: dict) -> str | None:
+    """None when no file the container bind-mounts from the working tree
+    changed after the container started; else why not (F10). The config
+    hash does not cover the contents of bind-mounted files, and a recreate
+    loads whatever the working tree holds: a file modified after the start
+    is one the running service may never have loaded. Compared by
+    modification time with the container's start (a touched but unchanged
+    file declines too: errs toward not starting)."""
+    c = comp["container"]
+    st = ops.docker("inspect", c, "-f", "{{.State.StartedAt}}", timeout=30)
+    mi = ops.docker("inspect", c, "-f", "{{json .Mounts}}", timeout=30)
+    try:
+        started = _date(st.out.strip()) if st.ok else None
+        mounts = json.loads(mi.out) if mi.ok else None
+        repo = ops.repo.resolve()
+        srcs = [m["Source"] for m in mounts if m.get("Type") == "bind" and Path(m["Source"]).resolve().is_relative_to(repo)]
+    except (ValueError, TypeError, KeyError, AttributeError, LookupFailed) as e:
+        return f"cannot read {c}'s start time and mounts ({e})"
+    if started is None or mounts is None:
+        return f"cannot read {c}'s start time and mounts"
+    changed = ops.files_changed_since(srcs, started)
+    if not changed:
+        return None
+    names = [shown_path(Path(f), ops.repo) for f, _ in sorted(changed, key=lambda x: x[1])]
+    return (f"{', '.join(names[:4])}{' …' if len(names) > 4 else ''} changed after {c} started "
+            f"({started.isoformat(timespec='seconds')}; last change {max(t for _, t in changed).isoformat(timespec='seconds')}): "
+            f"a recreate would load {'it' if len(names) == 1 else 'them'} unreleased")
+
+
 def compose_hash_ok(ops: Ops, comp: dict) -> str | None:
     """None when the file at HEAD describes what runs; else why not."""
     r = ops.compose(comp["project"], comp["file"], "config", "--hash", comp["service"], env_file=comp.get("env_file"),
@@ -1567,7 +1620,7 @@ def _apply_one(ctx: Ctx, p: Plan) -> Outcome:
                            f"HEAD has changes not deployed to production ({ctx.prod_tag}): {', '.join(left[:6])}; "
                            f"an unattended deploy would ship them")
     if comp["deploy"] in ("ha", "compose"):
-        why = compose_hash_ok(ops, comp)
+        why = compose_hash_ok(ops, comp) or bind_files_unreleased(ops, comp)
         if why:
             return Outcome(name, frm, to, "not_started", why)
     if comp["deploy"] == "ha":
@@ -2097,6 +2150,8 @@ def minor_run(ops: Ops, rules: Rules, sd: Path, dry_run: bool = False, ignore_mo
             for p in todo:
                 if p.comp["deploy"] in ("ha", "compose"):
                     log(f"{p.comp['file']} vs running {p.comp['container']}: {compose_hash_ok(ops, p.comp) or 'matches (config hash)'}")
+                    log(f"bind-mounted files of {p.comp['container']}: "
+                        f"{bind_files_unreleased(ops, p.comp) or 'none changed since it started'}")
             if declines:
                 log("a real run now would DECLINE: " + "; ".join(declines))
             else:

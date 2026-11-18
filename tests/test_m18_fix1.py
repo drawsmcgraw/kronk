@@ -950,3 +950,101 @@ def test_deploy_tag_refuses_while_the_upgrade_lock_is_held_and_says_who(tmp_path
         _os.close(fd)
     r = _deploy_tag_sh(tmp_path, {})                                      # free again
     assert "refused" not in r.stderr and "no such tag" in r.stderr
+
+
+# ── F10: the loader's guards, and bind-mounted files ─────────────────────
+
+def _rules_with(tmp_path, old, new):
+    text = U.RULES_FILE.read_text()
+    assert text.count(old) == 1
+    p = tmp_path / "r.toml"
+    p.write_text(text.replace(old, new))
+    return p
+
+
+@pytest.mark.parametrize("old, new", [
+    # grafana pointed at the Kronk project
+    ('project = "kronk-telemetry"\nservice = "grafana"', 'project = "kronk"\nservice = "grafana"'),
+    # grafana with no project at all
+    ('project = "kronk-telemetry"\nservice = "grafana"', 'service = "grafana"'),
+    # Home Assistant's restart against the Kronk project
+    ('deploy = "ha"\nproject = "kronk-ha"', 'deploy = "ha"\nproject = "kronk"'),
+])
+def test_the_rules_refuse_a_compose_command_against_the_kronk_project(tmp_path, old, new):
+    with pytest.raises(U.RulesError, match="only through deploy_tag.sh"):
+        U.load_rules(_rules_with(tmp_path, old, new), env={})
+
+
+@pytest.mark.parametrize("old, new", [
+    # the PO-token helper (same file as MA, another name) as automatic
+    ('minor = "excluded"\nwhy = "part of the Music Assistant stack', 'minor = "auto"\ndeploy = "kronk"\nwhy = "part of the Music Assistant stack'),
+    # the helper as report only, with a deploy
+    ('minor = "excluded"\nwhy = "part of the Music Assistant stack', 'minor = "report"\nwhy = "part of the Music Assistant stack'),
+])
+def test_the_rules_refuse_anything_in_the_music_assistant_stack(tmp_path, old, new):
+    with pytest.raises(U.RulesError, match="Music Assistant stack"):
+        U.load_rules(_rules_with(tmp_path, old, new), env={})
+
+
+def test_a_component_in_project_kronk_ma_is_refused_whatever_its_name(tmp_path):
+    p = tmp_path / "r.toml"
+    p.write_text(U.RULES_FILE.read_text() + '''
+[[component]]
+# a new MA-stack service under a new name
+name = "ma-sidecar"
+kind = "image"
+order = 302
+file = "docker-compose.extra.yml"
+match = 'x:(\\S+)'
+pattern = '^(\\d+)\\.(\\d+)\\.(\\d+)$'
+same = 2
+minor = "auto"
+deploy = "compose"
+project = "kronk-ma"
+service = "x"
+''')
+    with pytest.raises(U.RulesError, match="Music Assistant stack"):
+        U.load_rules(p, env={})
+
+
+def test_a_bind_mounted_file_changed_after_the_start_declines_that_component(house):
+    ops, sd = house
+    ops.mtimes[str(ops.repo / "telemetry/tempo.yaml")] = _dt.datetime(2026, 11, 20, 9, 0, tzinfo=_dt.timezone.utc)
+    ops.mtimes[str(ops.repo / "telemetry/grafana/provisioning/datasources/tempo.yaml")] = \
+        _dt.datetime(2026, 11, 1, tzinfo=_dt.timezone.utc)                  # before grafana started: fine
+    run(ops, sd, only=["tempo", "grafana"])
+    o = {x["name"]: x for x in status(sd)["last_run"]["outcomes"]}
+    assert o["tempo"]["result"] == "not_started"
+    assert o["tempo"]["detail"] == ("telemetry/tempo.yaml changed after kronk-telemetry-tempo-1 started "
+                                    "(2026-11-08T22:30:23+00:00; last change 2026-11-20T09:00:00+00:00): "
+                                    "a recreate would load it unreleased")
+    assert o["grafana"]["result"] == "kept"
+
+
+def test_a_changed_file_in_a_bind_mounted_directory_counts(house):
+    ops, sd = house
+    ops.mtimes[str(ops.repo / "telemetry/grafana/provisioning/dashboards/kronk.yaml")] = \
+        _dt.datetime(2026, 11, 30, tzinfo=_dt.timezone.utc)
+    run(ops, sd, only=["grafana"])
+    o, = status(sd)["last_run"]["outcomes"]
+    assert o["result"] == "not_started" and "telemetry/grafana/provisioning/dashboards/kronk.yaml changed after" in o["detail"]
+
+
+def test_binds_outside_the_repo_do_not_count(house):
+    """HA writes into the recordings directory all day: not the working tree."""
+    ops, sd = house
+    ops.mtimes["/home/drew/kronk-voice-recordings/x/01_stt.wav"] = NOW
+    assert run(ops, sd, only=["homeassistant"]) == 0
+    assert status(sd)["last_run"]["outcomes"][0]["result"] == "kept"
+
+
+def test_the_real_ops_finds_files_changed_after_a_time(tmp_path):
+    d = tmp_path / "prov" / "sub"
+    d.mkdir(parents=True)
+    (d / "a.yaml").write_text("a")
+    (tmp_path / "one.yaml").write_text("b")
+    old = _dt.datetime(2000, 1, 1, tzinfo=_dt.timezone.utc)
+    got = U.Ops(tmp_path).files_changed_since([str(tmp_path / "prov"), str(tmp_path / "one.yaml")], old)
+    assert sorted(_os.path.basename(f) for f, _ in got) == ["a.yaml", "one.yaml"]
+    assert U.Ops(tmp_path).files_changed_since([str(tmp_path / "prov")], _dt.datetime.now(_dt.timezone.utc)
+                                               + _dt.timedelta(hours=1)) == []

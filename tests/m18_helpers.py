@@ -193,7 +193,7 @@ class FakeOps(U.Ops):
             "music-assistant-server": "kronk/music-assistant:2.11.0b5-kronk.9",
         }
         self.images = {ref: f"sha256:{abs(hash(ref)) :064x}"[:71] for ref in self.containers.values()}
-        self.ma_started = "2026-11-05T10:00:00Z"
+        self.ma_started = self.ma_started_default = "2026-11-05T10:00:00Z"
         self.prod_tag = "sprint-X"
         git(repo, "tag", self.prod_tag)
         self.hashes_match = True
@@ -202,6 +202,15 @@ class FakeOps(U.Ops):
         self.ha_binds = [("/etc/localtime", "/etc/localtime"), ("/home/drew/kronk-voice-recordings", "/voice_recordings")]
         self.existing_paths = {"/etc/localtime", "/home/drew/kronk-voice-recordings"}
         self.ha_mounted = list(self.ha_binds)  # what the running container mounts
+        # Bind mounts of the other containers, their start times, and the
+        # modification times of files in the working tree (F10).
+        self.mounts = {"kronk-telemetry-tempo-1": [(str(repo / "telemetry/tempo.yaml"), "/etc/tempo.yaml")],
+                       "kronk-telemetry-grafana-1": [(str(repo / "telemetry/grafana/provisioning"), "/etc/grafana/provisioning")]}
+        self.started = {"music-assistant-server": self.ma_started_default,
+                        "kronk-telemetry-tempo-1": "2026-11-08T22:30:23.087882723Z",
+                        "kronk-telemetry-grafana-1": "2026-11-08T22:28:30.647456834Z",
+                        "homeassistant": "2026-11-16T02:00:00.000000000Z"}
+        self.mtimes: dict[str, dt.datetime] = {}
         self.ha_log = "2026-12-01 08:31:00 INFO (MainThread) [homeassistant.bootstrap] Home Assistant initialized\n"
         # failure switches
         self.bad_versions: set[str] = set()        # health fails while one of these runs
@@ -248,9 +257,10 @@ class FakeOps(U.Ops):
             if fmt == "{{.Image}}":
                 return U.Result(0, self.images[ref] + "\n")
             if fmt == "{{.State.StartedAt}}":
-                return U.Result(0, self.ma_started + "\n")
+                return U.Result(0, (self.ma_started if c == "music-assistant-server" else self.started.get(c, self.ma_started)) + "\n")
             if fmt == "{{json .Mounts}}":
-                return U.Result(0, json.dumps([{"Type": "bind", "Source": s, "Destination": t} for s, t in self.ha_mounted]))
+                pairs = self.ha_mounted if c == "homeassistant" else self.mounts.get(c, [])
+                return U.Result(0, json.dumps([{"Type": "bind", "Source": s, "Destination": t} for s, t in pairs]))
             if fmt == "{{.Config.StopTimeout}}":
                 return U.Result(0, "120\n")
             if fmt == "{{.State.Health.Status}}":
@@ -420,6 +430,9 @@ class FakeOps(U.Ops):
 
     def path_exists(self, path):
         return path in self.existing_paths
+
+    def files_changed_since(self, sources, since):
+        return [(f, t) for f, t in self.mtimes.items() if any(f == s or f.startswith(s + "/") for s in sources) and t > since]
 
     def wyoming(self, host, port):
         return self._version_running("wyoming-piper") not in self.bad_versions
