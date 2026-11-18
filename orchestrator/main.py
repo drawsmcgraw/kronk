@@ -28,6 +28,7 @@ import run_state
 import servers
 import sessions
 import settings_api
+import upgrades_api
 import speech_stream
 import telemetry
 import tools
@@ -246,6 +247,8 @@ async def health_probe():
 app.include_router(config_api.router)
 # The /settings page (sprint M21 step 2): its own router, like config_api.
 app.include_router(settings_api.router)
+# The upgrade cadence's status for /services (sprint M18), read-only.
+app.include_router(upgrades_api.router)
 
 
 # ── /message: the main chat endpoint ─────────────────────────────────────────

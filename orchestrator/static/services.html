@@ -150,6 +150,13 @@
   </div>
 
   <div>
+    <div class="section-label">Upgrades</div>
+    <div class="service-grid" id="upgrade-grid">
+      <!-- populated by /api/upgrades (the upgrade cadence's status file) -->
+    </div>
+  </div>
+
+  <div>
     <div class="section-label">Config (config/ prompts and tuning)</div>
     <div class="service-grid" id="config-grid">
       <!-- populated by api/config (orchestrator + tool_service loaders) -->
@@ -296,8 +303,40 @@
     }
   }
 
+  // Upgrade cadence (sprint M18). Absolute URL on purpose: there is one
+  // status file per house (production's data/upgrades/status.json), and a
+  // warning must show on /dev/services too. It stays until acknowledged on
+  // the host (python3 scripts/upgrades.py ack); it does not depend on HA.
+  async function loadUpgrades() {
+    const grid = document.getElementById('upgrade-grid');
+    try {
+      const r = await fetch('/api/upgrades');
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const u = await r.json();
+      const warns = u.warnings || [];
+      const last = u.last_run;
+      const when = last && last.at ? new Date(last.at).toLocaleString() : '';
+      let desc;
+      if (warns.length) {
+        desc = `WARNING: ${warns.join(' | ')}` + (u.ack ? ` — clear with: ${u.ack}` : '');
+      } else if (last) {
+        desc = `last ${last.kind} run ${when}: ${last.summary || last.result}`;
+      } else {
+        desc = u.note || 'no upgrade run yet';
+      }
+      if (u.major && u.major.report) desc += ` · major-upgrade report: ${u.major.report}`;
+      if (u.pending_notices) desc += ` · ${u.pending_notices} notice(s) waiting for HA`;
+      grid.innerHTML = card({ icon: '⬆️', name: 'Upgrade cadence',
+                              badge: warns.length ? 'warning' : 'ok', dotId: 's-upgrade-0',
+                              desc, tag: last ? last.result : 'monthly / quarterly' });
+      setDot('s-upgrade-0', !warns.length);
+    } catch (e) {
+      grid.innerHTML = `<div style="color:var(--text3);font-size:12px;padding:0.5rem">could not load /api/upgrades (${esc(e.message)})</div>`;
+    }
+  }
+
   async function refresh() {
-    await Promise.allSettled([KronkUI.checkDots(checks), loadDynamic(), loadConfig()]);
+    await Promise.allSettled([KronkUI.checkDots(checks), loadDynamic(), loadConfig(), loadUpgrades()]);
   }
 
   refresh();
