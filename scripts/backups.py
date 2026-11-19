@@ -15,7 +15,7 @@ config   One dated tar, <dest>/config/kronk-config-<YYYY-MM-DD>.tar.gz, mode
          written to a temporary name, read back, then renamed. A tar missing
          a required item is named kronk-config-<date>.incomplete.tar.gz, ends
          the job with exit 4, and never counts toward retention. Keeps the
-         newest KRONK_BACKUP_KEEP (12) complete tars.
+         complete tars of the newest KRONK_BACKUP_KEEP (12) dates.
 archive  Moves recordings older than KRONK_ARCHIVE_AGE_DAYS (7) from
          ~/kronk-voice-recordings to <dest>/recordings/<device>/<pipeline>/
          <YYYY-MM>/<run>/<file>: copied (no symlink followed at any level, in
@@ -25,9 +25,11 @@ archive  Moves recordings older than KRONK_ARCHIVE_AGE_DAYS (7) from
          destination copy (size, inode, SHA-256) right before its rm. Never
          deletes or overwrites anything on the destination, its own leftover
          temporary files from an interrupted run included.
-check    The stale check: warns when the newest config tar is older than 35
-         days or the last finished archive run older than its interval plus a
-         margin. One notice when the warnings change, repeated weekly.
+check    The stale check: warns when the last good config run (status file,
+         while its tar is on the destination; else the newest tar by the date
+         in its name, never its mtime) is older than 35 days or the last
+         finished archive run older than its interval plus a margin. One
+         notice when the warnings change, repeated weekly.
 status   Prints the status file.
 
 Exit codes: 0 ok; 1 failed; 2 the destination, the recordings directory or
@@ -42,8 +44,8 @@ writable, or the job writes nothing there and fails: a tar written into an
 unmounted mount point would sit on the local disk and look like a backup.
 
 State: KRONK_BACKUP_STATE (default data/backups): status.json (read by the
-orchestrator's GET /api/backups for /services), lock, model_sums.json (the
-model hash cache). One lock for both jobs; a job waits (up to
+orchestrator's GET /api/backups for /services; every write re-reads it under
+status.lock), lock, model_sums.json (the model hash cache). One lock for both jobs; a job waits (up to
 KRONK_BACKUP_LOCK_WAIT_MIN, 30) while the other runs or while the monthly
 upgrade run holds data/upgrades/lock, then declines.
 
@@ -67,6 +69,7 @@ import os
 import re
 import secrets
 import shlex
+import signal
 import socket
 import sqlite3
 import stat
@@ -90,11 +93,17 @@ CONFIG_TMP_RE = re.compile(r"\.kronk-config-\d{4}-\d{2}-\d{2}(?:\.\d+)?(?:\.inco
 # the job removes only the temporary file it created in this run (same inode).
 ARCHIVE_TMP_PREFIX = ".kronk-archive"
 DELETE_BATCH = 200                      # recordings per delete container
-PROBE = ".kronk-write-probe"            # the writability probe, created and removed at once
+PROBE = ".kronk-write-probe"            # the writability probe: <PROBE>.<pid>.<8 hex>, O_EXCL, only its own file removed
 TAG = "kronk-backup"
 # Every helper container this script starts carries this label, so a run
 # killed while one was being created can find and remove it (and nothing else).
 HELPER_LABEL = "kronk.backup.helper=1"
+# Each delete container is named kronk-backup-delete-<job pid>-<8 hex>: a
+# SIGTERM to the job removes it by that name, and the next job removes a
+# running one whose job pid is gone (it would go on deleting after its job).
+HELPER_NAME_RE = re.compile(r"kronk-backup-delete-(\d+)-[0-9a-f]{8}")
+SQLITE_READ_S = 120                     # a SQLite source still locked after this (plus one 5 s busy wait) is a gap
+HA_TAR_RETRY_S = 5                      # HA's tar exiting 1 is read once more after this
 # What tempfile.TemporaryDirectory(prefix="kronk-bundle-") names (8 random
 # characters from its alphabet), and the only names unpushed_bundle leaves in it.
 BUNDLE_DIR_RE = re.compile(r"kronk-bundle-[a-z0-9_]{8}")
@@ -159,6 +168,7 @@ class Ops:
     def __init__(self, log=print, no_notify: bool = False):
         self.log = log
         self.no_notify = no_notify
+        self.current_helper: str | None = None     # the named delete container running now
 
     def run(self, argv: list[str], timeout: int = 300, stdin: bytes | None = None) -> Result:
         try:
@@ -204,19 +214,25 @@ class Ops:
     def container_cat(self, container: str, path: str) -> Result:
         return self.run(["docker", "exec", container, "cat", "--", path], timeout=120)
 
-    def helper(self, mounts: list[tuple[str, str, bool]], argv: list[str], timeout: int = 300) -> Result:
+    def helper(self, mounts: list[tuple[str, str, bool]], argv: list[str], timeout: int = 300,
+               name: str | None = None) -> Result:
         """A throwaway container of an image already on the host (no pull, no
         network), labelled HELPER_LABEL. Mounts are (source, target, read-only)
         and go in as --mount type=bind, which fails when the source is
-        missing (-v would create it, root-owned, on the local disk)."""
+        missing (-v would create it, root-owned, on the local disk). A named
+        one is current_helper while it runs (the SIGTERM handler removes it)."""
         image = env("KRONK_BACKUP_HELPER_IMAGE", "alpine:3.20")
-        args = []
+        args = ["--name", name] if name else []
         for source, target, ro in mounts:
             if any(c in str(source) for c in ',"\n'):
                 return Result(-1, b"", f"refused: a path docker --mount cannot carry: {str(source)!r}")
             args += ["--mount", f"type=bind,source={source},target={target}" + (",readonly" if ro else "")]
-        return self.run(["docker", "run", "--rm", "--pull=never", "--network", "none", "--label", HELPER_LABEL,
-                         *args, image, *argv], timeout=timeout)
+        self.current_helper = name
+        try:
+            return self.run(["docker", "run", "--rm", "--pull=never", "--network", "none", "--label", HELPER_LABEL,
+                             *args, image, *argv], timeout=timeout)
+        finally:
+            self.current_helper = None
 
     def helper_tar(self, hostdir: Path) -> Result:
         return self.helper([(str(hostdir), "/src", True)], ["tar", "-cf", "-", "-C", "/src", "."])
@@ -238,7 +254,8 @@ class Ops:
                 r = self.run(["sh", "-c", DELETE_SCRIPT, "sh", str(src), str(dst), *args], timeout=600)
             else:
                 r = self.helper([(str(src), "/rec", False), (str(dst), "/dst", True)],
-                                ["sh", "-c", DELETE_SCRIPT, "sh", "/rec", "/dst", *args], timeout=600)
+                                ["sh", "-c", DELETE_SCRIPT, "sh", "/rec", "/dst", *args], timeout=600,
+                                name=f"kronk-backup-delete-{os.getpid()}-{secrets.token_hex(4)}")
             if r.rc != 0 or r.err:
                 err = one_line(r.err, 200) or f"exit {r.rc}"
             for line in r.out.decode("utf-8", "replace").splitlines():
@@ -397,18 +414,45 @@ def write_json(p: Path, data: dict) -> None:
     os.replace(tmp, p)
 
 
+def update_status(sd: Path, change) -> None:
+    """Read status.json, change(st), write it back, all under status.lock
+    (held for the read and the write only, never across a job): one job's
+    entry is never written back stale by another. A lock still held after
+    60 s (a stopped process) is logged on stderr and the write goes ahead."""
+    sd.mkdir(parents=True, exist_ok=True)
+    fd = os.open(sd / "status.lock", os.O_RDWR | os.O_CREAT | os.O_CLOEXEC, 0o644)
+    try:
+        give_up = time.monotonic() + 60
+        while True:
+            try:
+                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except BlockingIOError:
+                if time.monotonic() > give_up:
+                    print(f"{sd / 'status.lock'} held for 60 s; writing the status without it", file=sys.stderr)
+                    break
+                time.sleep(0.05)
+        st = read_status(sd)
+        change(st)
+        write_json(sd / "status.json", st)
+    finally:
+        os.close(fd)
+
+
 def save_run(s: Settings, ops: Ops, job: str, run: dict) -> None:
-    st = read_status(s.state)
-    st["schema"] = SCHEMA
-    entry = st.get(job) if isinstance(st.get(job), dict) else {}
-    entry["last"] = run
-    if run.get("result") == "ok":
-        entry["last_ok_at"] = run["at"]
-    st[job] = entry
-    st["limits"] = {"config_days": s.stale_days,
-                    "archive_days": s.archive_interval_days + s.archive_margin_days}
-    st["updated"] = iso(ops.now())
-    write_json(s.state / "status.json", st)
+    def change(st: dict) -> None:
+        st["schema"] = SCHEMA
+        entry = st.get(job) if isinstance(st.get(job), dict) else {}
+        entry["last"] = run
+        if run.get("result") == "ok":
+            entry["last_ok_at"] = run["at"]
+            if run.get("path"):
+                entry["last_ok_path"] = run["path"]     # the stale check looks for this tar (note 9)
+        st[job] = entry
+        st["limits"] = {"config_days": s.stale_days,
+                        "archive_days": s.archive_interval_days + s.archive_margin_days}
+        st["updated"] = iso(ops.now())
+    update_status(s.state, change)
 
 
 def upgrade_lock_held(sd: Path) -> bool:
@@ -488,17 +532,23 @@ def dest_problem(s: Settings, ops: Ops, probe: bool = True, wait: bool = False) 
             return f"destination {d} is not on the share mounted at {s.mount_root}; nothing was written there"
     if not probe:
         return None if os.access(d, os.W_OK) else f"destination {d} is not writable"
+    # A name of this run's own, created O_EXCL, and removed only while it is
+    # still the file created here: never a file of that name it did not make.
+    name = f"{PROBE}.{os.getpid()}.{secrets.token_hex(4)}"
     try:
-        fd = os.open(d / PROBE, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-        os.close(fd)
-        os.unlink(d / PROBE)
-    except FileExistsError:
-        try:
-            os.unlink(d / PROBE)
-        except OSError as e:
-            return f"destination {d} is not writable: {e.strerror}"
+        fd = os.open(d / name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC, 0o600)
     except OSError as e:
         return f"destination {d} is not writable: {e.strerror}"
+    try:
+        own = os.fstat(fd)
+    finally:
+        os.close(fd)
+    try:
+        st = os.lstat(d / name)
+        if (st.st_dev, st.st_ino) == (own.st_dev, own.st_ino):
+            os.unlink(d / name)
+    except OSError:
+        pass
     return None
 
 
@@ -668,21 +718,36 @@ def read_tree(c: Collected, arc: str, root: Path, secret: bool) -> None:
 
 def read_sqlite(c: Collected, arc: str, p: Path) -> None:
     """A consistent copy of a live SQLite database (the online backup API),
-    without writing a file."""
-    if not p.exists():
-        raise FileNotFoundError(p)
+    without writing a file. Only a regular file is opened (a FIFO would hang
+    the open, a directory or device is no database: "not a regular file"),
+    and a database still locked after SQLITE_READ_S is a gap, not a hang."""
     try:
-        st = p.stat()
-        src = sqlite3.connect(f"file:{p}?mode=ro", uri=True, timeout=30)
+        st = os.lstat(p)
+    except FileNotFoundError:
+        raise
+    except OSError as e:
+        c.unreadable.append((str(p), e.strerror or str(e)))
+        return
+    if not stat.S_ISREG(st.st_mode):
+        c.unreadable.append((str(p), "not a regular file"))
+        return
+    deadline = time.monotonic() + SQLITE_READ_S
+
+    def in_time(_status, _remaining, _total):     # called after each backup step, busy retries included
+        if time.monotonic() > deadline:
+            raise TimeoutError(f"still locked after {SQLITE_READ_S} s")
+    try:
+        # The busy timeout holds one backup step; the deadline is checked between steps.
+        src = sqlite3.connect(f"file:{p}?mode=ro", uri=True, timeout=min(5, SQLITE_READ_S))
         mem = sqlite3.connect(":memory:")
         try:
-            src.backup(mem)
+            src.backup(mem, progress=in_time)
             data = mem.serialize()
         finally:
             src.close()
             mem.close()
         c.add(Member(arc, str(p), "sqlite backup", bytes(data), stat.S_IMODE(st.st_mode), st.st_mtime))
-    except (OSError, sqlite3.Error) as e:
+    except (OSError, sqlite3.Error) as e:          # TimeoutError is an OSError
         c.unreadable.append((str(p), f"sqlite: {e}"))
 
 
@@ -733,6 +798,12 @@ def collect(s: Settings, ops: Ops) -> Collected:
         names = [n for n in present if any(fnmatch.fnmatchcase(n, w) for w in HA_WANTED)]
         c.unknown = [n for n in present if n not in names and not any(fnmatch.fnmatchcase(n, x) for x in HA_LEFT_OUT)]
         r = ops.container_tar("homeassistant", "/config", names) if names else Result(1, b"", "nothing to copy in /config")
+        if names and r.rc == 1:
+            # HA's busybox tar exits 1 when a file changed as it was read (HA
+            # saves .storage by temporary file and rename): read once more.
+            ops.log(f"HA's tar exited 1 ({one_line(r.err, 120)}); reading /config again in {HA_TAR_RETRY_S} s")
+            ops.sleep(HA_TAR_RETRY_S)
+            r = ops.container_tar("homeassistant", "/config", names)
     if r.rc == 0 and r.out:
         try:
             add_tar_stream(c, "ha/config", "homeassistant:/config", "docker exec homeassistant tar", r.out, True)
@@ -797,43 +868,48 @@ def production_tags(s: Settings, ops: Ops) -> tuple[list[str], dict[str, int]]:
     return rows, tags
 
 
-def unpushed_bundle(s: Settings, ops: Ops, branch: str, tags: list[str]) -> tuple[bytes | None, str]:
+def unpushed_bundle(s: Settings, ops: Ops, branch: str, tags: list[str]) -> tuple[bytes | None, str, int | None]:
     """A git bundle of HEAD, the branch and the production tags, less every
     commit some remote-tracking branch has (as of the last fetch; this job
-    never fetches). Nothing when there is nothing unpushed; left out, and
-    said so, when it is over the cap. A production tag that is not a local
-    ref is left out of the bundle (not the bundle out of the tar) and named;
-    the note names the refs the bundle really holds (git leaves out a ref
-    whose commit a remote already has)."""
-    n = git(s, ops, "rev-list", "--count", "HEAD", "--not", "--remotes")
-    if not n.isdigit():
-        return None, f"unknown ({n})"
-    if int(n) == 0:
-        return None, "none needed: every commit of HEAD is on a remote-tracking branch"
+    never fetches). The count, and so whether a bundle is made, covers HEAD
+    and every production tag that is a local ref: a pushed HEAD does not
+    hide an unpushed tag. Nothing when there is nothing unpushed; left out,
+    and said so, when it is over the cap. A production tag that is not a
+    local ref is left out of the bundle (not the bundle out of the tar) and
+    named; the note names the refs the bundle really holds (git leaves out a
+    ref whose commit a remote already has). Returns (bundle or None, note,
+    the number of unpushed commits or None when git could not tell)."""
     refs = ["HEAD"] + ([branch] if branch and branch != "HEAD" and not branch.startswith("(") else [])
-    missing = []
+    tag_refs, missing = [], []
     for t in tags:
         r = ops.run(["git", "-C", str(s.repo), "rev-parse", "--verify", "--quiet", f"refs/tags/{t}"], timeout=60)
         if r.rc == 0 and r.out.strip():
-            refs.append(f"refs/tags/{t}")
+            tag_refs.append(f"refs/tags/{t}")
         else:
             missing.append(t)
+    refs += tag_refs
     gone = f"; left out, not a local tag: {', '.join(missing)}" if missing else ""
+    n = git(s, ops, "rev-list", "--count", "HEAD", *tag_refs, "--not", "--remotes")
+    if not n.isdigit():
+        return None, f"unknown ({n}){gone}", None
+    if int(n) == 0:
+        return None, ("none needed: every commit of HEAD" + (" and of the production tags" if tag_refs else "")
+                      + f" is on a remote-tracking branch{gone}"), 0
     with tempfile.TemporaryDirectory(prefix="kronk-bundle-", dir=s.tmp) as td:      # 0700, local
         p = Path(td) / "unpushed.bundle"
         r = ops.run(["git", "-C", str(s.repo), "bundle", "create", "--quiet", str(p), *refs, "--not", "--remotes"],
                     timeout=300)
         if r.rc != 0 or not p.is_file():
-            return None, f"NOT WRITTEN: git bundle failed ({r.rc}): {one_line(r.err)}{gone}"
+            return None, f"NOT WRITTEN: git bundle failed ({r.rc}): {one_line(r.err)}{gone}", int(n)
         size = p.stat().st_size
         if size > s.bundle_max_bytes:
             return None, (f"OMITTED: {n} commit(s) unpushed, but the bundle is {human(size)}, over the "
-                          f"{human(s.bundle_max_bytes)} cap (KRONK_BACKUP_BUNDLE_MAX_MB); push them")
+                          f"{human(s.bundle_max_bytes)} cap (KRONK_BACKUP_BUNDLE_MAX_MB); push them"), int(n)
         r = ops.run(["git", "-C", str(s.repo), "bundle", "list-heads", str(p)], timeout=60)
         heads = [ln.split(" ", 1)[1] for ln in r.out.decode("utf-8", "replace").splitlines() if " " in ln]
         inside = ", ".join(heads) if r.rc == 0 else f"unknown (git bundle list-heads failed: {one_line(r.err, 120)})"
         data = p.read_bytes()
-    return data, f"repo-unpushed.bundle: {n} commit(s) no remote-tracking branch has, {size} bytes; refs in it: {inside}{gone}"
+    return data, f"repo-unpushed.bundle: {n} commit(s) no remote-tracking branch has, {size} bytes; refs in it: {inside}{gone}", int(n)
 
 
 def clean_own_leftovers(s: Settings, ops: Ops) -> None:
@@ -843,14 +919,28 @@ def clean_own_leftovers(s: Settings, ops: Ops) -> None:
         ops.log(f"leftover check failed: {e.__class__.__name__}: {e}")
 
 
+def pid_alive(pid: int) -> bool:
+    """True unless no process has this pid (another user's process is alive)."""
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except OSError:
+        return True
+    return True
+
+
 def _clean_own_leftovers(s: Settings, ops: Ops) -> None:
     """What a run killed at the wrong moment leaves outside the destination,
     removed at the start of the next job by exact signature only: helper
     containers (label HELPER_LABEL) in state created, never started so never
-    removed by --rm; and bundle directories in s.tmp named like
-    unpushed_bundle's, a plain directory owned by this user, older than a
-    day, holding nothing but the bundle's own files. Anything else is left
-    alone. Never fails the job."""
+    removed by --rm; running delete containers (label HELPER_LABEL, named
+    kronk-backup-delete-<pid>-<8 hex>) whose job pid no longer exists, which
+    would go on deleting after their job (every delete they make is still
+    checked; stopping one mid-batch leaves the rest local for this run); and
+    bundle directories in s.tmp named like unpushed_bundle's, a plain
+    directory owned by this user, older than a day, holding nothing but the
+    bundle's own files. Anything else is left alone. Never fails the job."""
     r = ops.run(["docker", "ps", "-a", "--filter", f"label={HELPER_LABEL}", "--filter", "status=created",
                  "--format", "{{.ID}}"], timeout=60)
     ids = [x for x in r.out.decode("utf-8", "replace").split() if re.fullmatch(r"[0-9a-f]{12,64}", x)] if r.rc == 0 else []
@@ -858,6 +948,19 @@ def _clean_own_leftovers(s: Settings, ops: Ops) -> None:
         rm = ops.run(["docker", "rm", *ids], timeout=60)
         ops.log(f"removed {len(ids)} helper container(s) a killed run left in state created: {' '.join(ids)}"
                 if rm.rc == 0 else f"could not remove leftover helper container(s) {' '.join(ids)}: {one_line(rm.err)}")
+    r = ops.run(["docker", "ps", "--filter", f"label={HELPER_LABEL}", "--filter", "status=running",
+                 "--format", "{{.ID}} {{.Names}}"], timeout=60)
+    orphans = []
+    for line in r.out.decode("utf-8", "replace").splitlines() if r.rc == 0 else []:
+        cid, _, name = line.strip().partition(" ")
+        m = HELPER_NAME_RE.fullmatch(name)
+        if re.fullmatch(r"[0-9a-f]{12,64}", cid) and m and not pid_alive(int(m.group(1))):
+            orphans.append((cid, name))
+    if orphans:
+        rm = ops.run(["docker", "rm", "-f", *(c for c, _ in orphans)], timeout=60)
+        names = " ".join(n for _, n in orphans)
+        ops.log(f"removed {len(orphans)} delete container(s) still running after their job ended: {names}"
+                if rm.rc == 0 else f"could not remove delete container(s) {names}: {one_line(rm.err)}")
     cutoff = time.time() - 86400
     try:
         entries = list(os.scandir(s.tmp))
@@ -883,7 +986,8 @@ def _clean_own_leftovers(s: Settings, ops: Ops) -> None:
             ops.log(f"could not remove {e.path}: {x.strerror}")
 
 
-def repo_state(s: Settings, ops: Ops, rows: list[str], tags: dict[str, int], bundle_note: str) -> str:
+def repo_state(s: Settings, ops: Ops, rows: list[str], tags: dict[str, int], bundle_note: str,
+               on_remote: dict[str, str] | None = None, unpushed: int | None = None) -> str:
     head = git(s, ops, "rev-parse", "HEAD")
     branch = git(s, ops, "rev-parse", "--abbrev-ref", "HEAD")
     remotes = git(s, ops, "branch", "-r", "--contains", "HEAD")
@@ -898,13 +1002,16 @@ def repo_state(s: Settings, ops: Ops, rows: list[str], tags: dict[str, int], bun
                            else "no: no remote-tracking branch contains HEAD") +
              " (as of the last fetch; this run does not contact the remote)",
              f"not pushed: {ahead + ' commits ahead of ' + up if ahead.isdigit() else 'unknown, ' + ahead}",
+             "on no remote-tracking branch (HEAD and the production tags): "
+             + (f"{unpushed} commit(s)" if unpushed is not None else "unknown"),
              f"unpushed bundle: {bundle_note}",
              f"working tree: {'clean' if not dirty else str(len(dirty.splitlines())) + ' changed paths'}",
              f"last commit: {git(s, ops, 'log', '-1', '--format=%ci %s')}",
              "production tag: " + (", ".join(f"{t} ({n} containers)" for t, n in sorted(tags.items()))
                                    if tags else "none (not run from a release directory)")]
     for t in sorted(tags):
-        lines.append(f"production tag {t} on the remote: {tag_on_remote(s, ops, t)}")
+        answer = on_remote[t] if on_remote and t in on_remote else tag_on_remote(s, ops, t)
+        lines.append(f"production tag {t} on the remote: {answer}")
     lines += ["", "production (compose project kronk, the directory each container was created from):"]
     lines += [f"  {x}" for x in rows]
     return "\n".join(lines) + "\n"
@@ -1118,16 +1225,21 @@ def next_name(cfg: Path, day: str, incomplete: bool = False) -> str:
 
 
 def retention(cfg: Path, keep: int, log) -> list[str]:
-    """Remove all but the newest <keep> files named like this job's tars,
-    in <dest>/config only. Returns the names removed."""
+    """Keep every file named like this job's tars whose date is one of the
+    newest <keep> dates (same-day reruns, .2, .3, count as one date, so runs
+    by hand cannot push older months out); remove the rest, in <dest>/config
+    only. Returns the names removed."""
     found = []
     for e in os.scandir(cfg):
         m = CONFIG_RE.fullmatch(e.name)
         if m and e.is_file(follow_symlinks=False):
             found.append(((m.group(1), int(m.group(2) or 1)), e.name))
     found.sort()
+    kept = set(sorted({key[0] for key, _ in found})[-keep:]) if keep > 0 else None
     removed = []
-    for _key, name in found[:-keep] if keep > 0 else []:
+    for (day, _n), name in found if kept is not None else []:
+        if day in kept:
+            continue
         os.unlink(cfg / name)
         log(f"retention: removed {name}")
         removed.append(name)
@@ -1199,6 +1311,17 @@ def _config_run(s: Settings, ops: Ops, run: dict, day: str, hash_models: bool) -
                      + ("the tar holds them as repo-unpushed.bundle)." if run.get("bundle")
                         else f"they exist only on this machine: {run.get('bundle_note')}).")
                      )
+        elif str(run.get("bundle_note", "")).startswith(("unknown", "OMITTED", "NOT WRITTEN")):
+            gaps += f" Repo: unpushed commits {run['bundle_note']}."
+        if run.get("tags_not_pushed"):
+            tg = run["tags_not_pushed"]
+            gaps += (f" Production tag {', '.join(tg)}: "
+                     + ("its commit is" if len(tg) == 1 else "their commits are") + " on no remote-tracking branch ("
+                     + ("in the tar's repo-unpushed.bundle)." if run.get("bundle") else "NOT in the tar: push it).")
+                     )
+        if run.get("dirty"):
+            gaps += (f" Working tree: {run['dirty']} uncommitted or untracked path{'' if run['dirty'] == 1 else 's'}, "
+                     "not in the tar.")
         other = [u for u in run.get("unreadable", []) if u not in run.get("required_gaps", [])]
         if other:
             gaps += f" NOT READ ({len(other)}): " + "; ".join(other[:5]) + "."
@@ -1236,9 +1359,10 @@ def _config(s: Settings, ops: Ops, run: dict, day: str, hash_models: bool) -> tu
     t = ops.now().timestamp()
     rows, tags = production_tags(s, ops)
     branch = git(s, ops, "rev-parse", "--abbrev-ref", "HEAD")
-    bundle, bundle_note = unpushed_bundle(s, ops, branch, sorted(tags))
+    bundle, bundle_note, unpushed = unpushed_bundle(s, ops, branch, sorted(tags))
+    on_remote = {tg: tag_on_remote(s, ops, tg) for tg in sorted(tags)}
     gen = [Member("repo-state.txt", "git, docker ps", "generated",
-                  repo_state(s, ops, rows, tags, bundle_note).encode(), 0o600, t),
+                  repo_state(s, ops, rows, tags, bundle_note, on_remote, unpushed).encode(), 0o600, t),
            Member("images.txt", "compose files, docker inspect", "generated", image_pins(s, ops).encode(), 0o600, t),
            Member("models.tsv", ",".join(s.model_dirs) + ", user units", "generated",
                   model_list(s, ops, hash_models).encode(), 0o600, t),
@@ -1286,9 +1410,15 @@ def _config(s: Settings, ops: Ops, run: dict, day: str, hash_models: bool) -> tu
                required_gaps=gaps, absent=[show(a) for a, _ in c.absent], unknown=[show(n) for n in c.unknown],
                removed=removed, bundle=bundle is not None, bundle_note=bundle_note,
                detail="written and verified" + ("; INCOMPLETE: a required item is missing" if gaps else ""))
-    m = re.search(r"^not pushed: (\d+) commits", gen[0].data.decode(), re.M)
-    if m and int(m.group(1)):
-        run["unpushed"] = int(m.group(1))
+    # The notice's repo sentences: the same --not --remotes count the bundle
+    # uses (any branch, a local-only one too), the production tags no remote
+    # has, and the working tree's uncommitted or untracked paths.
+    if unpushed:
+        run["unpushed"] = unpushed
+    run["tags_not_pushed"] = [tg for tg, a in on_remote.items() if a.startswith("no:")]
+    m = re.search(r"^working tree: (\d+) changed paths", gen[0].data.decode(), re.M)
+    if m:
+        run["dirty"] = int(m.group(1))
     return (4 if gaps else 0), run
 
 
@@ -1655,7 +1785,10 @@ def cmd_archive(s: Settings, ops: Ops, dry_run: bool) -> int:
         recs, skipped = scan_recordings(src) if plain_dir(src) else ([], [(str(src), "not a directory, or a symlink")])
         old = [r for r in recs if r.mtime_ns < cutoff_ns]
         for r in old:
-            month = dt.datetime.fromtimestamp(r.mtime_ns / 1e9).strftime("%Y-%m")
+            month = month_of(r.mtime_ns)
+            if month is None:
+                ops.log(f"  skipped {show(r.path)}: {UNDATED}")
+                continue
             ops.log(f"  would move {r.size:>9}  {show(r.path)} -> recordings/{show(r.rel[0])}/{show(r.rel[1])}/{month}/{show(r.rel[2])}/")
         for p, why in skipped:
             ops.log(f"  skipped {show(p)}: {why}")
@@ -1707,6 +1840,18 @@ def _archive_run(s: Settings, ops: Ops, run: dict, cutoff_ns: int, src: Path) ->
     run["notice_sent"] = ops.notify(title, body)
     save_run(s, ops, "archive", run)
     return rc
+
+
+def month_of(mtime_ns: int) -> str | None:
+    """<YYYY-MM> of an mtime, None when Python cannot date it (a year
+    before 1 or after 9999): that file is reported and skipped."""
+    try:
+        return dt.datetime.fromtimestamp(mtime_ns / 1e9).strftime("%Y-%m")
+    except (ValueError, OverflowError, OSError):
+        return None
+
+
+UNDATED = "its mtime cannot be dated (out of range); skipped, kept locally"
 
 
 def plain_dir(p: Path) -> bool:
@@ -1802,7 +1947,10 @@ def _archive_files(s: Settings, ops: Ops, run: dict, cutoff_ns: int, src_fd: int
         if full_at is not None and rec.size >= full_at:
             problems.append(f"{show(rec.path)}: skipped, does not fit (a {human(full_at)} file did not)")
             continue
-        month = dt.datetime.fromtimestamp(rec.mtime_ns / 1e9).strftime("%Y-%m")
+        month = month_of(rec.mtime_ns)
+        if month is None:
+            problems.append(f"{show(rec.path)}: {UNDATED}")
+            continue
         try:
             outcome, detail, v = copy_verified(src_fd, dst_fd, rec, month)
         except OSError as e:
@@ -1834,24 +1982,61 @@ def _archive_files(s: Settings, ops: Ops, run: dict, cutoff_ns: int, src_fd: int
 # ═══ The stale check ═══════════════════════════════════════════════════════
 
 def newest_config(s: Settings) -> tuple[str, dt.datetime] | None:
+    """The newest complete tar on the destination by the date in its name
+    (then its .n), never by its mtime, and that date at local midnight."""
     best = None
     for e in os.scandir(s.dest / "config") if (s.dest / "config").is_dir() else []:
         m = CONFIG_RE.fullmatch(e.name)
         if m and e.is_file(follow_symlinks=False):
-            t = dt.datetime.fromtimestamp(e.stat(follow_symlinks=False).st_mtime).astimezone()
-            if best is None or t > best[1]:
-                best = (e.name, t)
-    return best
+            key = (m.group(1), int(m.group(2) or 1))
+            if best is None or key > best[0]:
+                best = (key, e.name)
+    if best is None:
+        return None
+    try:
+        day = dt.datetime.fromisoformat(best[0][0]).astimezone()
+    except ValueError:              # 2026-13-45 matches the pattern; dated long ago, so it reads as stale
+        day = dt.datetime.fromtimestamp(0).astimezone()
+    return best[1], day
 
 
-def stale_warnings(s: Settings, ops: Ops, st: dict) -> list[str]:
+def config_age(s: Settings, ops: Ops, st: dict) -> tuple[str, dt.datetime] | None:
+    """The config backup's name and time for the stale check: the newest
+    good run in the status file, while the tar it wrote is still in
+    <dest>/config; otherwise (no good run recorded, the tar gone, or it went
+    to another destination) the newest tar by the date in its name, and a
+    log line says the two disagree. None when no tar is there."""
+    nc = newest_config(s)
+    if nc is None:
+        return None
+    entry = st.get("config") if isinstance(st.get("config"), dict) else {}
+    ok, okp = parse_iso(entry.get("last_ok_at")), entry.get("last_ok_path")
+    if ok is not None and isinstance(okp, str) and os.path.dirname(okp) == str(s.dest / "config"):
+        try:
+            if stat.S_ISREG(os.lstat(okp).st_mode):
+                if nc[0] != os.path.basename(okp):
+                    ops.log(f"{nc[0]} on the share is not the status file's last good run "
+                            f"({os.path.basename(okp)}); the check goes by the status file")
+                return os.path.basename(okp), ok
+        except OSError:
+            pass
+    ops.log(f"the status file's last good config run ({show(okp) if isinstance(okp, str) else 'none recorded'}) "
+            f"is not a tar in {s.dest}/config; going by the newest tar's name, {nc[0]}")
+    return nc
+
+
+def stale_warnings(s: Settings, ops: Ops, st: dict | None = None) -> list[str]:
+    """With st None the status file is read after the wait for the mount,
+    so a run that finished during the wait is seen."""
     now = ops.now()
     w = []
     prob = dest_problem(s, ops, probe=False, wait=True)
+    if st is None:
+        st = read_status(s.state)
     if prob:
         w.append(prob)
     else:
-        nc = newest_config(s)
+        nc = config_age(s, ops, st)
         if nc is None:
             w.append(f"no config backup on {s.dest}/config")
         elif now - nc[1] > dt.timedelta(days=s.stale_days):
@@ -1871,10 +2056,10 @@ def stale_warnings(s: Settings, ops: Ops, st: dict) -> list[str]:
 
 def cmd_check(s: Settings, ops: Ops) -> int:
     s.state.mkdir(parents=True, exist_ok=True)
-    st = read_status(s.state)
     now = ops.now()
-    w = stale_warnings(s, ops, st)
-    prev = st.get("check") if isinstance(st.get("check"), dict) else {}
+    w = stale_warnings(s, ops)
+    prev = read_status(s.state).get("check")
+    prev = prev if isinstance(prev, dict) else {}
     notified = prev.get("notified") or {}
     # Same warnings with a day count one higher are not news: compare without the numbers.
     text = re.sub(r"\d+", "#", " | ".join(w))
@@ -1884,11 +2069,13 @@ def cmd_check(s: Settings, ops: Ops) -> int:
             notified = {"text": text, "at": iso(now)}
     elif not w:
         notified = {}
-    st["check"] = {"at": iso(now), "warnings": w, "notified": notified}
-    st["schema"] = SCHEMA
-    st["limits"] = {"config_days": s.stale_days, "archive_days": s.archive_interval_days + s.archive_margin_days}
-    st["updated"] = iso(now)
-    write_json(s.state / "status.json", st)
+
+    def change(st: dict) -> None:       # re-read under the status lock: only the check's own entry is written
+        st["check"] = {"at": iso(now), "warnings": w, "notified": notified}
+        st["schema"] = SCHEMA
+        st["limits"] = {"config_days": s.stale_days, "archive_days": s.archive_interval_days + s.archive_margin_days}
+        st["updated"] = iso(now)
+    update_status(s.state, change)
     for x in w:
         ops.log(f"WARNING: {x}")
     if not w:
@@ -1897,6 +2084,21 @@ def cmd_check(s: Settings, ops: Ops) -> int:
 
 
 JOB_WORDS = {"config": "config backup", "archive": "recordings archive", "check": "backup check"}
+
+
+def on_sigterm(ops: Ops):
+    """A stopped job (systemctl stop, the unit's timeout) takes its running
+    delete container with it, by that container's exact name, then dies of
+    the signal as it did before the handler existed."""
+    def handler(signum, _frame):
+        name = getattr(ops, "current_helper", None)
+        if name:
+            r = ops.run(["docker", "rm", "-f", name], timeout=30)
+            ops.log(f"stopped by signal {signum}: removed the delete container {name}" if r.rc == 0
+                    else f"stopped by signal {signum}: could not remove {name}: {one_line(r.err)}")
+        signal.signal(signum, signal.SIG_DFL)
+        os.kill(os.getpid(), signum)
+    return handler
 
 
 def main(argv=None, ops: Ops | None = None) -> int:
@@ -1922,6 +2124,12 @@ def main(argv=None, ops: Ops | None = None) -> int:
         for e in s.errors:
             ops.log(f"bad setting: {e}")
         return 2
+    if a.cmd in ("config", "archive") and not a.dry_run:
+        before = signal.signal(signal.SIGTERM, on_sigterm(ops))
+        try:
+            return (cmd_config if a.cmd == "config" else cmd_archive)(s, ops, False)
+        finally:
+            signal.signal(signal.SIGTERM, before)
     if a.cmd == "config":
         return cmd_config(s, ops, a.dry_run)
     if a.cmd == "archive":
@@ -1946,10 +2154,8 @@ def bad_settings(s: Settings, ops: Ops, job: str) -> int:
     try:
         s.state.mkdir(parents=True, exist_ok=True)
         if job == "check":
-            st = read_status(s.state)
-            st["check"] = {"at": now, "warnings": [detail], "notified": {}}
-            st["updated"] = now
-            write_json(s.state / "status.json", st)
+            update_status(s.state, lambda st: st.update(check={"at": now, "warnings": [detail], "notified": {}},
+                                                        updated=now))
         else:
             save_run(s, ops, job, {"at": now, "finished": now, "result": "failed", "detail": detail,
                                    "notice_sent": sent})

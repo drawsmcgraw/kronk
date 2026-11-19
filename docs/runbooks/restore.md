@@ -112,7 +112,7 @@ none exist today.
 ```
 sudo install -m 0644 $R/etc/default/grub /etc/default/grub && sudo update-grub
 sudo install -m 0644 $R/etc/docker/daemon.json /etc/docker/daemon.json && sudo systemctl restart docker
-sudo install -m 0600 -o root -g root $R/etc/kronk/* /etc/kronk/   # the source glob is yours, so it expands
+for f in $R/etc/kronk/*; do [ "${f##*/}" = nas-backup.cred ] || sudo install -m 0600 -o root -g root "$f" /etc/kronk/; done
 sed -n '/network filesystem lines/,$p' $R/host-facts.txt   # the NAS lines to add to /etc/fstab
 sudoedit /etc/fstab                           # add the music share line (the backup line is already there)
 sudo mkdir -p /mnt/nas-music && sudo mount -a
@@ -122,6 +122,12 @@ R=~/restore/$T
 K=~/git-repos/drawsmcgraw/kronk
 cat /proc/cmdline                             # has ttm.pages_limit=... ttm.page_pool_size=...
 ```
+
+The loop copies every file of `etc/kronk/` except `nas-backup.cred`: the
+one typed in step 2 is current, and the tar's copy holds the password as it
+was when the tar was taken. To take the tar's copy anyway, install it by
+name: `sudo install -m 0600 -o root -g root $R/etc/kronk/nas-backup.cred /etc/kronk/`
+(this overwrites the one typed in step 2).
 
 ### 5. Clone the repo
 
@@ -154,10 +160,11 @@ python3 -m venv tests/.venv && tests/.venv/bin/pip install -r tests/requirements
 system `python3` lacks their packages (tested: `ModuleNotFoundError: No
 module named 'pydantic'`).
 
-`repo-state.txt` says how many commits were not pushed when the tar was
-taken and whether they are in the bundle (it is left out, and the notice
-says so, over its size cap). The bundle holds only what no remote-tracking
-branch had: it needs the clone from GitHub first.
+`repo-state.txt` says how many commits no remote-tracking branch had when
+the tar was taken (HEAD and the production tags) and whether they are in
+the bundle; over its size cap the bundle is left out, and that month's
+notice said so, on any branch. The bundle holds only what no
+remote-tracking branch had: it needs the clone from GitHub first.
 
 ### 6. Secrets and local config into the repo
 
@@ -200,6 +207,7 @@ Not in the tar. Fetch each file named in `models.tsv` to the path given
 there, then check them all:
 
 ```
+sudo install -d -o drew -g drew /opt/models   # its parent is root's; the tar has no models
 awk -F'\t' '$1 ~ /^[0-9a-f]{64}$/ {print $1 "  " $4}' $R/models.tsv | sha256sum -c
 ```
 
@@ -242,7 +250,9 @@ cd ~/.config/systemd/user && systemctl --user start $(ls default.target.wants ti
 sudo cp $K/systemd/sp5100-tco-load.service /etc/systemd/system/ && sudo systemctl enable --now sp5100-tco-load
 ```
 
-The `*.target.wants` symlinks come back with the copy, so what was enabled
+The copy also brings back `*.wants` links to snap units (`snap.*`); the
+start line's pattern skips them, and they are harmless when snap is not
+installed. The `*.target.wants` symlinks come back with the copy, so what was enabled
 is enabled again at the next boot; the `start` line starts the same set now
 (the llama and Whisper units, the `kronk-*` services such as the hot tub
 monitor, and every enabled timer). `verify` warns about units whose binary
