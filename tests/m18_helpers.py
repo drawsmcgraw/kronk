@@ -213,6 +213,9 @@ class FakeOps(U.Ops):
         self.local_offset = dt.timedelta(hours=-5)
         self.calls: list[tuple] = []
         self.notices: list[tuple[str, str, str]] = []
+        # The "under way" notice (2026-11-19) is kept apart so the tests
+        # written before it still read `notices` as the run's results.
+        self.start_notices: list[tuple[str, str, str]] = []
         self.notify_ok = True
         self.states = _quiet_states(now)
         self.services = [{"domain": "rest_command", "services": {"kronk_music_voice": {}}}]
@@ -530,6 +533,9 @@ class FakeOps(U.Ops):
         return self._version_running("wyoming-piper") not in self.bad_versions
 
     def notify(self, tag, title, body):
+        if title.endswith("the monthly patch run is under way"):
+            self.start_notices.append((tag, title, body))
+            return self.notify_ok
         self.notices.append((tag, title, body))
         return self.notify_ok
 

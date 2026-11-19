@@ -1039,6 +1039,23 @@ class RunLog:
                 print(f"{stamp} (run log {self.path} not written: {e})", flush=True)
 
 
+def start_notice(ops: Ops, todo: list, log: RunLog, log_rel: str) -> None:
+    """Tell the operator the monthly patch run is under way (Drew,
+    2026-11-19). Sent once the baseline has passed, just before the first
+    component. Best effort and never kept for retry: a "starting" notice
+    that arrives an hour late is noise, and the run's own notice at the end
+    is the one that is retried."""
+    names = ", ".join(f"{p.comp['name']} {p.pin} -> {p.to.version}" for p in todo)
+    try:
+        ok = ops.notify(NOTIFY_TAG, "Kronk upgrade: the monthly patch run is under way",
+                        f"{names[:600]}. One at a time, each verified; a second notice follows when it ends. "
+                        f"Log: {log_rel}")
+    except Exception as e:  # noqa: BLE001 - the run goes on without it
+        log(f"start notice: notifier raised {e!r}")
+        return
+    log("start notice sent" if ok else "start notice NOT delivered (not retried)")
+
+
 def deliver(ops: Ops, status: dict, notice: dict, now: dt.datetime, log: RunLog) -> bool:
     """Send one notice; on failure keep it pending (retried by `notices`)
     and raise the /services warning."""
@@ -1490,6 +1507,9 @@ class Ctx:
     stop_note: str = ""   # how a rollback's own stop of HA ended, when not cleanly (reported, never a failure)
     ha_back: str | None = None             # a recovery brought a stopped or missing HA back (G2)
     replay_note: str = ""                  # verify's replay was stopped and retried (H4): said in the notice
+    start_told: bool = False               # the "under way" notice went out (once per run)
+    todo: list | None = None               # the run's planned components, for that notice
+    log_rel: str = ""                      # the run log's path as shown to the operator
 
 
 # The intent record (F3): before each step that changes git or what runs,
@@ -2137,6 +2157,12 @@ def _apply_one(ctx: Ctx, p: Plan) -> Outcome:
     extra = {"head": ops.git("rev-parse", "HEAD").strip()}
     if comp["deploy"] in ("ha", "compose"):
         extra["hash_from"], _ = config_hash(ops, comp)
+    if not ctx.start_told:
+        # Here and not earlier: every precondition has passed and the first
+        # change of the run is next, so a night that declines stays quiet
+        # and every "under way" is followed by the run's own notice.
+        ctx.start_told = True
+        start_notice(ops, ctx.todo or [p], log, ctx.log_rel)
     set_intent(ctx, comp, frm, to, "pin-commit", **extra)
     try:
         write_pin(ops.repo, comp, frm, to)
@@ -3007,6 +3033,7 @@ def _minor_run(ops: Ops, rules: Rules, sd: Path, dry_run: bool, ignore_month: bo
         return _baseline_declined(ctx, status, m, month, log_rel, f"live replay cannot run: {err}")
     ctx.baseline = rows
 
+    ctx.todo, ctx.log_rel = todo, log_rel      # for the "under way" notice
     outcomes: list[Outcome] = []
     for p in todo:
         if p.comp["deploy"] == "kronk" and kronk_why:

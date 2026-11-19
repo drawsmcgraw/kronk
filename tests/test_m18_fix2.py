@@ -474,7 +474,7 @@ def test_upgrades_kept_before_a_kill_are_reported_by_the_next_run(house):
 
 def test_a_kill_right_before_the_notice_is_reported_the_next_night(house):
     ops, sd = house
-    killed(ops, sd, ["tempo"], kill_before(ops, "notify", lambda a: True))
+    killed(ops, sd, ["tempo"], kill_before(ops, "notify", lambda a: "under way" not in a[1]))
     assert ops.notices == []
     assert run(ops, sd, ["tempo"]) == 0
     (_, title, body), = ops.notices
@@ -1072,3 +1072,47 @@ def test_has_state_diff_fails_the_upgrade_on_its_own(house):
     assert run(ops, sd, ["homeassistant"]) == 1
     o, = status(sd)["last_run"]["outcomes"]
     assert o["result"] == "rolled_back" and "select.kitchen_assistant_2: kronk-dev before, kronk after" in o["detail"]
+
+
+# ── The "under way" notice (Drew, 2026-11-19) ────────────────────────────
+
+def test_a_run_says_it_is_under_way_before_its_first_change_and_once(house):
+    ops, sd = house
+    seen = []
+    orig = ops.notify
+
+    def notify(tag, title, body):
+        if "under way" in title:
+            seen.append(ops.git("log", "--oneline", "-1").strip())
+        return orig(tag, title, body)
+    ops.notify = notify
+    head = ops.git("log", "--oneline", "-1").strip()
+    assert run(ops, sd, ["tempo"]) == 0
+    (_, title, body), = ops.start_notices                      # once
+    assert title == "Kronk upgrade: the monthly patch run is under way"
+    assert "tempo 3.1.1 -> 3.1.2" in body and "a second notice follows" in body
+    assert seen == [head]                                      # before the pin commit
+    assert len(ops.notices) == 1                               # and the run's own notice after
+
+
+def test_a_night_that_declines_or_starts_nothing_sends_no_under_way_notice(house):
+    ops, sd = house
+    ops.hashes_match = False               # the component's own precondition fails
+    assert run(ops, sd, ["tempo"]) == 0
+    assert status(sd)["last_run"]["result"] == "not_started"
+    assert ops.start_notices == [] and ops.notices == []
+
+
+def test_a_failed_under_way_notice_does_not_stop_the_run_and_is_not_kept(house):
+    ops, sd = house
+    orig = ops.notify
+
+    def notify(tag, title, body):
+        if "under way" in title:
+            raise OSError("HA is away")
+        return orig(tag, title, body)
+    ops.notify = notify
+    assert run(ops, sd, ["tempo"]) == 0
+    assert not status(sd).get("pending_notices")
+    (_, title, _), = ops.notices
+    assert title.startswith("Kronk upgrade: 1 upgraded")

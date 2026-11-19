@@ -120,6 +120,11 @@ step (`scripts/upgrades.py`, `minor_run`):
    precondition) goes again the next night; the month is done when every
    planned component has another outcome, or the attempts run out, and
    then the notice lists what never started.
+   Just before the run's first change (the first pin commit, after every
+   precondition and the baseline have passed) it sends "Kronk upgrade: the
+   monthly patch run is under way" with the planned components. That one
+   is best effort and never retried; a night that declines or starts
+   nothing sends none.
 9. One notice through `scripts/lib/notify.sh` when anything was changed or
    tried. A month whose last attempt ends with nothing applied (every
    component not started, or no baseline) also sends one notice and raises
