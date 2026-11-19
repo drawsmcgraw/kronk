@@ -1,7 +1,7 @@
 # Backups: monthly config tar, weekly recordings archive
 
 Sprint M16 (built 2026-11-19; end-to-end fixes the same day,
-`docs/sprint/M16-fix1.md`). Plan: "M16. Backups: small, monthly, config
+`docs/sprint/M16-fix1.md` and `docs/sprint/M16-fix2.md`). Plan: "M16. Backups: small, monthly, config
 only" in `Kronk evaluation findings and implementation plan.md`. Criteria:
 `docs/sprint/M16-criteria.md`. Build report: `docs/sprint/M16-build.md`.
 Restore: `docs/runbooks/restore.md`.
@@ -53,7 +53,10 @@ What is needed to rebuild Kronk, no binaries, no models:
   remote), `repo-unpushed.bundle` (a `git bundle` of HEAD, the branch and the
   production tag less everything a remote-tracking branch has; only when
   something is unpushed; left out over 20 MB, `KRONK_BACKUP_BUNDLE_MAX_MB`,
-  and the notice says so), `images.txt` (compose pins and what runs),
+  and the notice says so; a production tag that is not a local ref is left
+  out of the bundle and named; `repo-state.txt` lists the refs the bundle
+  really holds, from `git bundle list-heads`, since git drops a ref whose
+  commit a remote already has), `images.txt` (compose pins and what runs),
   `models.tsv` (every GGUF under `/opt/models` and `~/model-staging` and
   every GGUF a unit names: path, size, SHA-256), `host-facts.txt` (kernel,
   `/proc/cmdline`, the NAS lines of `/etc/fstab`), and `MANIFEST` (each
@@ -79,6 +82,7 @@ A tar is a backup only when it holds the **required** items:
 | `.env` | every token the stack runs on |
 | the live config directories `kronk-config/prod` and `dev` | prompts and tuning, with their history |
 | `~/.config/systemd/user/` | the units that start everything |
+| `data/solar.db`, `data/music_taste.db` | the only copies of household data in the tar (coordinator ruling, 2026-11-19) |
 
 A run that cannot read any of them (a container down, a permission, a
 file missing) still writes what it read, as
@@ -88,8 +92,8 @@ its own notice title (`Kronk backup: config backup INCOMPLETE`), result
 incomplete tar never counts toward the 12 that retention keeps, retention
 does not run after it (so it never causes a complete tar to be removed),
 and the stale check does not count it as a backup. Everything else
-(`.env.dev`, `.env.telemetry`, `secrets/`, the SQLite files, `/etc/kronk`,
-the runbook copies, ...) is **optional**: a gap is listed in the MANIFEST
+(`.env.dev`, `.env.telemetry`, `secrets/`, `/etc/kronk`, the runbook
+copies, ...) is **optional**: a gap is listed in the MANIFEST
 and the notice ("NOT READ"), and the run is still OK. Anything in HA's
 `/config` this backup neither copies nor knowingly leaves out (a new
 `zigbee.db`, say) is listed as `UNKNOWN` in the MANIFEST and the notice;
@@ -156,8 +160,14 @@ script needs recent clips locally):
   `.kronk-archive.<pid>.<16 hex>.tmp` (created `O_EXCL`; a name already
   taken is skipped, never removed), mtime set, fsynced, page cache dropped,
   read back (size and SHA-256), then linked into place with `link(2)`,
-  which never replaces an existing name (a share without hard links gets a
-  rename after a fresh check that the name is free);
+  which never replaces an existing name. A share without hard links
+  (`link` fails with `EPERM`, `EOPNOTSUPP`, `ENOSYS`) gets
+  `renameat2(RENAME_NOREPLACE)`, which never replaces one either; only where
+  libc, the kernel or the filesystem lacks that (`EINVAL`, `ENOSYS`,
+  `EOPNOTSUPP`) a plain rename after a fresh check that the name is free
+  (residual window: between the check and the rename). Each run logs which
+  path it used: `placement this run: link(2) N, renameat2(RENAME_NOREPLACE)
+  N, rename after a check N`;
 - on the share with the same SHA-256 (a run killed between copy and
   delete): not copied again;
 - on the share with a different SHA-256, or something that is not a
@@ -178,19 +188,30 @@ are deleted by hand (`find /mnt/nas-backup/recordings -name
 '.kronk-archive.*.tmp'`).
 
 Verified files are deleted locally in batches of 200 by a throwaway
-`alpine:3.20` container (`--network none`, the recordings directory and
-`<dest>/recordings` read-only mounted, nothing else). Right before each
-batch the job re-checks each destination copy (a regular file, same size,
-same device and inode as at its verify, reached without a symlink). The
-container's script (`DELETE_SCRIPT` in `scripts/backups.py`, its text
-pinned by a test) then checks each file again, right before its `rm`:
-every directory on both paths is a plain directory; the local file is a
-regular file with the SHA-256, size, mtime and device:inode of the file
-that was copied; the destination copy is a regular file with the copied
-size and its verified device:inode. Only then `rm --` (no `-r`, no `-f`),
-then `rmdir --` of the run directory, which only removes it when empty. A
-swapped, changed or vanished file, on either side, is kept and reported, and
-the run is not OK. Paths are arguments, never part of the script.
+`alpine:3.20` container (`--network none`, label `kronk.backup.helper=1`;
+two bind mounts and nothing else: the recordings directory read-write and
+`<dest>/recordings` read-only, both as `--mount type=bind`, which fails when
+the source is missing instead of creating it). The container's script
+(`DELETE_SCRIPT` in `scripts/backups.py`, its text pinned by a test) checks
+each file right before its `rm`:
+
+- every directory on both paths is a plain directory, not a symlink;
+- the local file is a regular file with the SHA-256, size, mtime (seconds)
+  and device:inode of the file that was copied;
+- the destination copy is a regular file with the copied size, the
+  device:inode recorded at its verify, and the copied SHA-256: it is read
+  again from the share here, and its device:inode is taken after that read,
+  so a copy rewritten in place, truncated, swapped or removed is caught.
+
+Only then `rm --` (no `-r`, no `-f`), then `rmdir --` of the run directory,
+which only removes it when empty. Anything that fails a check is kept
+locally and reported, and the run is not OK. Not checked: the destination
+copy's mtime (a copy found already on the share keeps its own, so it is not
+evidence), and anything after the check: the one shell line between the
+last read and the `rm` is the residual window, and a change to the copy
+after the delete is beyond what any archive job can see. The delete reads
+every copy back from the share a second time. Paths are arguments, never
+part of the script.
 
 The run directory is part of the archive path because HA names every
 recording `01_stt-<engine>.wav`; the directory (HA's monotonic clock) is
@@ -352,12 +373,72 @@ stay; the fstab line and `/etc/kronk/nas-backup.cred` are removed by hand.
 - **Leftover `.kronk-archive.*.tmp` files on the share** come only from a
   killed run, and stay until deleted by hand (the end notice counts them).
   Removing them automatically would mean deleting a destination file the
-  job cannot prove it made.
+  job cannot prove it made. See "Housekeeping on the NAS".
+- **Leftovers on this machine** are removed by the next job (config or
+  archive, after it takes the lock), by exact signature only: a helper
+  container in state `created` carrying the label `kronk.backup.helper=1`
+  (a run killed while `docker run` was creating it; never started, so
+  `--rm` never fired), removed with `docker rm` (no `-f`); and a
+  `kronk-bundle-<8 characters>` directory in the temporary directory, owned
+  by the operator, older than a day, holding only `unpushed.bundle` or its
+  `.lock`. Anything else of a similar name is left alone and logged.
 - **`MA_TOKEN` does not survive a restore** (MA's `auth.db` is not backed
   up); make a new one.
 - **The plan's build recipes** (llama.cpp for gfx1151, the Whisper wheel)
   are docs, not scripts: `docs/CHANGE_2026-06-09_gemma_vulkan_switch.md` and
   `docs/VOICE_SETUP.md`. The runbook points at them.
+
+## Housekeeping on the NAS
+
+The jobs never delete anything on the share except retention's old config
+tars. Two things accumulate there and are removed by hand:
+
+- `recordings/**/.kronk-archive.<pid>.<hex>.tmp`: one per archive run
+  killed mid-copy. Counted in the archive's end notice. Each is a partial
+  copy of a recording that is still local (it was never verified, so never
+  deleted). List them, check no archive run is in progress, then delete:
+
+  ```
+  find /mnt/nas-backup/recordings -name '.kronk-archive.*.tmp' -type f -ls
+  systemctl --user is-active kronk-recordings-archive.service   # inactive
+  find /mnt/nas-backup/recordings -name '.kronk-archive.*.tmp' -type f -delete
+  ```
+
+- `config/kronk-config-<date>[.n].incomplete.tar.gz`: one per INCOMPLETE
+  config run. Retention never removes them. Once a later complete tar
+  exists, delete them by name:
+  `ls -l /mnt/nas-backup/config/*.incomplete.tar.gz`, then `rm` each one.
+
+## First run on the real share (coordinator)
+
+Four things the scratch tests cannot settle. Settle them with one watched
+archive run, on one old recording, after the share is mounted and before
+the timers are installed:
+
+1. Make only the oldest recording due: find its age
+   (`find ~/kronk-voice-recordings -type f -printf '%TY-%Tm-%Td %p\n' | sort | head -3`),
+   pick `A` = its age in whole days, then
+   `KRONK_ARCHIVE_AGE_DAYS=$A scripts/archive_recordings.sh --dry-run`
+   lists only the oldest (or the few from its day; that is fine).
+2. Before: `cat /proc/fs/cifs/Stats > /tmp/cifs-before`.
+3. Run: `KRONK_ARCHIVE_AGE_DAYS=$A scripts/archive_recordings.sh` (the real
+   run sends its notices).
+4. Which placement path ran: the log line `placement this run: link(2) N,
+   renameat2(RENAME_NOREPLACE) N, rename after a check N`
+   (`journalctl --user -u kronk-recordings-archive.service` for a timer
+   run, the terminal for a run by hand).
+5. `fchmod` and `utime` on CIFS: the copies are `-rw-------` and carry the
+   recordings' mtimes (`ls -l --time-style=full-iso` on both sides). A
+   failure there fails every copy loudly ("copy failed: ...").
+6. Inode stability (`serverino`): `stat -c %i` of an archived file, twice,
+   a minute apart, and again after `sudo umount /mnt/nas-backup && sudo
+   mount /mnt/nas-backup`; and `dmesg | grep -i serverino` is empty. A
+   refused delete ("the destination copy is not the verified one") on
+   every file means inode numbers are not stable: deletes are refused,
+   not blind, and the files stay local.
+7. The read-back went over the wire: `cat /proc/fs/cifs/Stats` again; the
+   share's `Reads` count grew during the run (the copy is read back once
+   after its write and once more by the delete).
 
 ## Blog hooks
 

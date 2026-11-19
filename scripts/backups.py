@@ -22,9 +22,9 @@ archive  Moves recordings older than KRONK_ARCHIVE_AGE_DAYS (7) from
          either tree), read back (size and SHA-256, page cache dropped), and
          then deleted locally in batches by a throwaway container whose
          script re-checks each file (size, mtime, inode, SHA-256) and its
-         destination copy (size, inode) right before its rm. Never deletes or
-         overwrites anything on the destination, its own leftover temporary
-         files from an interrupted run included.
+         destination copy (size, inode, SHA-256) right before its rm. Never
+         deletes or overwrites anything on the destination, its own leftover
+         temporary files from an interrupted run included.
 check    The stale check: warns when the newest config tar is older than 35
          days or the last finished archive run older than its interval plus a
          margin. One notice when the warnings change, repeated weekly.
@@ -56,6 +56,7 @@ Guide: docs/features/backups.md. Restore: docs/runbooks/restore.md.
 from __future__ import annotations
 
 import argparse
+import ctypes
 import datetime as dt
 import errno
 import fcntl
@@ -91,6 +92,13 @@ ARCHIVE_TMP_PREFIX = ".kronk-archive"
 DELETE_BATCH = 200                      # recordings per delete container
 PROBE = ".kronk-write-probe"            # the writability probe, created and removed at once
 TAG = "kronk-backup"
+# Every helper container this script starts carries this label, so a run
+# killed while one was being created can find and remove it (and nothing else).
+HELPER_LABEL = "kronk.backup.helper=1"
+# What tempfile.TemporaryDirectory(prefix="kronk-bundle-") names (8 random
+# characters from its alphabet), and the only names unpushed_bundle leaves in it.
+BUNDLE_DIR_RE = re.compile(r"kronk-bundle-[a-z0-9_]{8}")
+BUNDLE_DIR_FILES = ("unpushed.bundle", "unpushed.bundle.lock")
 
 
 def env(name: str, default: str) -> str:
@@ -110,6 +118,12 @@ def human(n: int | float) -> str:
 
 def files(n: int) -> str:
     return f"{n} file" if n == 1 else f"{n} files"
+
+
+def one_line(text: str, n: int = 160) -> str:
+    """The first non-empty line of an error text, cut to n characters: a
+    notice carries one line of a tool's error, never its usage text."""
+    return next((ln.strip() for ln in text.splitlines() if ln.strip()), "")[:n]
 
 
 def show(name: str) -> str:
@@ -190,18 +204,22 @@ class Ops:
     def container_cat(self, container: str, path: str) -> Result:
         return self.run(["docker", "exec", container, "cat", "--", path], timeout=120)
 
-    def helper(self, mounts: list[str], argv: list[str], timeout: int = 300) -> Result:
-        """A throwaway container of an image already on the host (no pull, no network)."""
+    def helper(self, mounts: list[tuple[str, str, bool]], argv: list[str], timeout: int = 300) -> Result:
+        """A throwaway container of an image already on the host (no pull, no
+        network), labelled HELPER_LABEL. Mounts are (source, target, read-only)
+        and go in as --mount type=bind, which fails when the source is
+        missing (-v would create it, root-owned, on the local disk)."""
         image = env("KRONK_BACKUP_HELPER_IMAGE", "alpine:3.20")
-        for m in mounts:
-            if m.count(":") > 2 or "," in m or "\n" in m:
-                return Result(-1, b"", f"refused: a path docker -v cannot carry: {m!r}")
-        vols = [x for m in mounts for x in ("-v", m)]
-        return self.run(["docker", "run", "--rm", "--pull=never", "--network", "none", *vols, image, *argv],
-                        timeout=timeout)
+        args = []
+        for source, target, ro in mounts:
+            if any(c in str(source) for c in ',"\n'):
+                return Result(-1, b"", f"refused: a path docker --mount cannot carry: {str(source)!r}")
+            args += ["--mount", f"type=bind,source={source},target={target}" + (",readonly" if ro else "")]
+        return self.run(["docker", "run", "--rm", "--pull=never", "--network", "none", "--label", HELPER_LABEL,
+                         *args, image, *argv], timeout=timeout)
 
     def helper_tar(self, hostdir: Path) -> Result:
-        return self.helper([f"{hostdir}:/src:ro"], ["tar", "-cf", "-", "-C", "/src", "."])
+        return self.helper([(str(hostdir), "/src", True)], ["tar", "-cf", "-", "-C", "/src", "."])
 
     def remove_recordings(self, src: Path, dst: Path, items: list["Verified"]) -> tuple[dict[int, str], str]:
         """Delete verified recordings, DELETE_BATCH per call of DELETE_SCRIPT,
@@ -219,10 +237,10 @@ class Ops:
             if direct:
                 r = self.run(["sh", "-c", DELETE_SCRIPT, "sh", str(src), str(dst), *args], timeout=600)
             else:
-                r = self.helper([f"{src}:/rec", f"{dst}:/dst:ro"],
+                r = self.helper([(str(src), "/rec", False), (str(dst), "/dst", True)],
                                 ["sh", "-c", DELETE_SCRIPT, "sh", "/rec", "/dst", *args], timeout=600)
             if r.rc != 0 or r.err:
-                err = r.err[:200] or f"exit {r.rc}"
+                err = one_line(r.err, 200) or f"exit {r.rc}"
             for line in r.out.decode("utf-8", "replace").splitlines():
                 word, _, rest = line.partition(" ")
                 k, _, why = rest.partition(" ")
@@ -236,8 +254,10 @@ class Ops:
 # For each file: every directory on both paths must be a plain directory
 # (not a symlink); the local file must be a regular file whose SHA-256, size,
 # mtime (seconds) and device:inode are those of the file that was copied; the
-# destination copy must be a regular file with the copied size and the
-# device:inode recorded at its verify. Only then `rm --` (no -r, no -f: it
+# destination copy must be a regular file with the copied size, the
+# device:inode recorded at its verify and the copied SHA-256 (read again
+# here, then its device:inode checked once more, so a copy rewritten in place
+# or swapped during the read is caught). Only then `rm --` (no -r, no -f: it
 # cannot remove a directory), then `rmdir --` of the run directory, which
 # succeeds only when it is empty. One line per file on stdout: "ok <n>" or
 # "refused <n> <why>". tests/test_m16_backups.py pins this text.
@@ -254,10 +274,12 @@ while [ "$i" -lt "$n" ]; do
     else
       h=$(sha256sum < "$f"); h=${h%% *}
       s=$(stat -c '%s %Y %d:%i' -- "$f")
+      g=$(sha256sum < "$t"); g=${g%% *}
       d=$(stat -c '%s %d:%i' -- "$t")
       if [ "$s" != "$sz $mt $si" ]; then why="size, mtime or inode differ from the copied file"
       elif [ "$h" != "$hs" ]; then why="sha256 differs from the copied file"
       elif [ "$d" != "$sz $di" ]; then why="the destination copy is not the verified one"
+      elif [ "$g" != "$hs" ]; then why="the destination copy's sha256 differs from the copied file"
       fi
     fi
   fi
@@ -289,6 +311,7 @@ class Settings:
     repo: Path = REPO
     etc: Path = Path("/etc")          # host files read for the facts and /etc/kronk (tests point these elsewhere)
     proc: Path = Path("/proc")
+    tmp: Path = Path(tempfile.gettempdir())   # where the bundle is made, and its leftovers looked for
     mount_root: Path | None = None    # the mount point the destination must be on (None: the destination itself)
     mount_wait_s: int = 180
     bundle_max_bytes: int = 20 * 1000 * 1000
@@ -583,7 +606,9 @@ def required_sources(s: Settings) -> list[str]:
     "Required and optional"). A gap at or under any of these makes the run
     INCOMPLETE; every other gap is reported and the run is still OK."""
     return [str(s.repo / ".env"), str(s.live_config / "prod"), str(s.live_config / "dev"),
-            str(HOME / ".config" / "systemd" / "user"), "homeassistant:", "music-assistant-server:"]
+            str(HOME / ".config" / "systemd" / "user"), "homeassistant:", "music-assistant-server:",
+            # The only copies of household data in the tar (coordinator ruling, note 9 of the second e2e).
+            str(s.repo / "data" / "solar.db"), str(s.repo / "data" / "music_taste.db")]
 
 
 def required_gaps(s: Settings, c: Collected) -> list[str]:
@@ -715,7 +740,7 @@ def collect(s: Settings, ops: Ops) -> Collected:
             c.unreadable.append(("homeassistant:/config", f"tar stream unreadable: {e}"))
     else:
         c.unreadable.append(("homeassistant:/config (.storage, YAML, blueprints)",
-                             f"docker exec failed ({r.rc}): {r.err[:200]}"))
+                             f"docker exec failed ({r.rc}): {one_line(r.err, 200)}"))
 
     # Music Assistant: settings.json only (library.db is over 10 MB).
     r = ops.container_cat("music-assistant-server", "/data/settings.json")
@@ -723,7 +748,7 @@ def collect(s: Settings, ops: Ops) -> Collected:
         c.add(Member("ma/settings.json", "music-assistant-server:/data/settings.json",
                      "docker exec music-assistant-server cat", r.out, 0o600, ops.now().timestamp(), secret=True))
     else:
-        c.unreadable.append(("music-assistant-server:/data/settings.json", f"docker exec failed ({r.rc}): {r.err[:200]}"))
+        c.unreadable.append(("music-assistant-server:/data/settings.json", f"docker exec failed ({r.rc}): {one_line(r.err, 200)}"))
 
     # /etc/kronk: root-only on the host; a throwaway container reads it.
     etc = s.etc / "kronk"
@@ -735,7 +760,7 @@ def collect(s: Settings, ops: Ops) -> Collected:
             except tarfile.TarError as e:
                 c.unreadable.append((str(etc), f"tar stream unreadable: {e}"))
         else:
-            c.unreadable.append((str(etc), f"helper container failed ({r.rc}): {r.err[:200]}"))
+            c.unreadable.append((str(etc), f"helper container failed ({r.rc}): {one_line(r.err, 200)}"))
     else:
         c.absent.append((str(etc), "absent"))
 
@@ -755,7 +780,7 @@ def collect(s: Settings, ops: Ops) -> Collected:
 
 def git(s: Settings, ops: Ops, *a: str) -> str:
     r = ops.run(["git", "-C", str(s.repo), *a], timeout=60)
-    return r.out.decode().strip() if r.rc == 0 else f"(git {' '.join(a)} failed: {r.err[:120]})"
+    return r.out.decode().strip() if r.rc == 0 else f"(git {' '.join(a)} failed: {one_line(r.err, 120)})"
 
 
 def production_tags(s: Settings, ops: Ops) -> tuple[list[str], dict[str, int]]:
@@ -776,25 +801,86 @@ def unpushed_bundle(s: Settings, ops: Ops, branch: str, tags: list[str]) -> tupl
     """A git bundle of HEAD, the branch and the production tags, less every
     commit some remote-tracking branch has (as of the last fetch; this job
     never fetches). Nothing when there is nothing unpushed; left out, and
-    said so, when it is over the cap."""
+    said so, when it is over the cap. A production tag that is not a local
+    ref is left out of the bundle (not the bundle out of the tar) and named;
+    the note names the refs the bundle really holds (git leaves out a ref
+    whose commit a remote already has)."""
     n = git(s, ops, "rev-list", "--count", "HEAD", "--not", "--remotes")
     if not n.isdigit():
         return None, f"unknown ({n})"
     if int(n) == 0:
         return None, "none needed: every commit of HEAD is on a remote-tracking branch"
-    refs = ["HEAD"] + ([branch] if branch and branch != "HEAD" and not branch.startswith("(") else []) + tags
-    with tempfile.TemporaryDirectory(prefix="kronk-bundle-") as td:      # 0700, local
+    refs = ["HEAD"] + ([branch] if branch and branch != "HEAD" and not branch.startswith("(") else [])
+    missing = []
+    for t in tags:
+        r = ops.run(["git", "-C", str(s.repo), "rev-parse", "--verify", "--quiet", f"refs/tags/{t}"], timeout=60)
+        if r.rc == 0 and r.out.strip():
+            refs.append(f"refs/tags/{t}")
+        else:
+            missing.append(t)
+    gone = f"; left out, not a local tag: {', '.join(missing)}" if missing else ""
+    with tempfile.TemporaryDirectory(prefix="kronk-bundle-", dir=s.tmp) as td:      # 0700, local
         p = Path(td) / "unpushed.bundle"
         r = ops.run(["git", "-C", str(s.repo), "bundle", "create", "--quiet", str(p), *refs, "--not", "--remotes"],
                     timeout=300)
         if r.rc != 0 or not p.is_file():
-            return None, f"NOT WRITTEN: git bundle failed ({r.rc}): {r.err[:160]}"
+            return None, f"NOT WRITTEN: git bundle failed ({r.rc}): {one_line(r.err)}{gone}"
         size = p.stat().st_size
         if size > s.bundle_max_bytes:
             return None, (f"OMITTED: {n} commit(s) unpushed, but the bundle is {human(size)}, over the "
                           f"{human(s.bundle_max_bytes)} cap (KRONK_BACKUP_BUNDLE_MAX_MB); push them")
+        r = ops.run(["git", "-C", str(s.repo), "bundle", "list-heads", str(p)], timeout=60)
+        heads = [ln.split(" ", 1)[1] for ln in r.out.decode("utf-8", "replace").splitlines() if " " in ln]
+        inside = ", ".join(heads) if r.rc == 0 else f"unknown (git bundle list-heads failed: {one_line(r.err, 120)})"
         data = p.read_bytes()
-    return data, f"repo-unpushed.bundle: {n} commit(s) no remote-tracking branch has, {size} bytes ({', '.join(refs)})"
+    return data, f"repo-unpushed.bundle: {n} commit(s) no remote-tracking branch has, {size} bytes; refs in it: {inside}{gone}"
+
+
+def clean_own_leftovers(s: Settings, ops: Ops) -> None:
+    try:
+        _clean_own_leftovers(s, ops)
+    except Exception as e:  # noqa: BLE001 - housekeeping never fails the job
+        ops.log(f"leftover check failed: {e.__class__.__name__}: {e}")
+
+
+def _clean_own_leftovers(s: Settings, ops: Ops) -> None:
+    """What a run killed at the wrong moment leaves outside the destination,
+    removed at the start of the next job by exact signature only: helper
+    containers (label HELPER_LABEL) in state created, never started so never
+    removed by --rm; and bundle directories in s.tmp named like
+    unpushed_bundle's, a plain directory owned by this user, older than a
+    day, holding nothing but the bundle's own files. Anything else is left
+    alone. Never fails the job."""
+    r = ops.run(["docker", "ps", "-a", "--filter", f"label={HELPER_LABEL}", "--filter", "status=created",
+                 "--format", "{{.ID}}"], timeout=60)
+    ids = [x for x in r.out.decode("utf-8", "replace").split() if re.fullmatch(r"[0-9a-f]{12,64}", x)] if r.rc == 0 else []
+    if ids:
+        rm = ops.run(["docker", "rm", *ids], timeout=60)
+        ops.log(f"removed {len(ids)} helper container(s) a killed run left in state created: {' '.join(ids)}"
+                if rm.rc == 0 else f"could not remove leftover helper container(s) {' '.join(ids)}: {one_line(rm.err)}")
+    cutoff = time.time() - 86400
+    try:
+        entries = list(os.scandir(s.tmp))
+    except OSError:
+        return
+    for e in entries:
+        if not BUNDLE_DIR_RE.fullmatch(e.name):
+            continue
+        try:
+            st = os.lstat(e.path)
+            if not stat.S_ISDIR(st.st_mode) or st.st_uid != os.getuid() or st.st_mtime > cutoff:
+                continue
+            inner = os.listdir(e.path)
+            if any(n not in BUNDLE_DIR_FILES or not stat.S_ISREG(os.lstat(os.path.join(e.path, n)).st_mode)
+                   for n in inner):
+                ops.log(f"left alone: {e.path} holds something other than a bundle")
+                continue
+            for n in inner:
+                os.unlink(os.path.join(e.path, n))
+            os.rmdir(e.path)
+            ops.log(f"removed a bundle directory a killed run left: {e.path}")
+        except OSError as x:
+            ops.log(f"could not remove {e.path}: {x.strerror}")
 
 
 def repo_state(s: Settings, ops: Ops, rows: list[str], tags: dict[str, int], bundle_note: str) -> str:
@@ -1081,6 +1167,7 @@ def cmd_config(s: Settings, ops: Ops, dry_run: bool, hash_models: bool = True) -
         save_run(s, ops, "config", run)
         return 3
     try:
+        clean_own_leftovers(s, ops)
         return _config_run(s, ops, run, day, hash_models)
     finally:
         os.close(fd)          # also on a KeyboardInterrupt: the lock is never kept past the run
@@ -1108,7 +1195,7 @@ def _config_run(s: Settings, ops: Ops, run: dict, day: str, hash_models: bool) -
                      + ". This tar does not count as a backup: it is kept, retention ignores it, "
                        "and no complete tar was removed.")
         if run.get("unpushed"):
-            gaps += (f" Repo: {run['unpushed']} commits not pushed ("
+            gaps += (f" Repo: {run['unpushed']} commit{'' if run['unpushed'] == 1 else 's'} not pushed ("
                      + ("the tar holds them as repo-unpushed.bundle)." if run.get("bundle")
                         else f"they exist only on this machine: {run.get('bundle_note')}).")
                      )
@@ -1229,6 +1316,7 @@ class Verified:
     sha256: str
     dst_dev: int
     dst_ino: int
+    placed: str = ""          # how a new copy was put in place (PLACED); "" when it was already there
 
     def delete_args(self) -> list[str]:
         r = self.rec
@@ -1238,6 +1326,40 @@ class Verified:
 
 class Refused(Exception):
     """A symlink, or something that is not a directory, where a directory must be."""
+
+
+# How a new copy is put under its final name, in the order tried.
+PLACED = ("link(2)", "renameat2(RENAME_NOREPLACE)", "rename after a check")
+RENAME_NOREPLACE = 1
+
+
+def _libc_renameat2():
+    try:
+        f = ctypes.CDLL(None, use_errno=True).renameat2
+    except (OSError, AttributeError):
+        return None                         # a libc without it: the plain rename after a check
+    f.argtypes = (ctypes.c_int, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_uint)
+    f.restype = ctypes.c_int
+    return f
+
+
+RENAMEAT2 = _libc_renameat2()
+
+
+def rename_noreplace(old: str, new: str, dir_fd: int) -> bool:
+    """renameat2(RENAME_NOREPLACE) inside one directory: True when done;
+    False when libc, the kernel or the filesystem does not offer it (EINVAL,
+    ENOSYS, EOPNOTSUPP). FileExistsError when <new> exists (nothing
+    replaced); OSError for anything else."""
+    f = RENAMEAT2
+    if f is None:
+        return False
+    if f(dir_fd, os.fsencode(old), dir_fd, os.fsencode(new), RENAME_NOREPLACE) == 0:
+        return True
+    e = ctypes.get_errno()
+    if e in (errno.EINVAL, errno.ENOSYS, errno.EOPNOTSUPP, errno.ENOTSUP):
+        return False
+    raise OSError(e, os.strerror(e))        # EEXIST comes out as FileExistsError
 
 
 O_DIR = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC
@@ -1459,57 +1581,50 @@ def _copy_new(sfd, sdir, ddir, rec, month) -> tuple[str, str, Verified | None]:
         _unlink_own(tmpname, ddir, own)
         return "mismatch", "the copy read back different; kept locally", None
     # Into place without replacing anything: link(2) fails on an existing
-    # name. A share without hard links gets a rename after a fresh check.
+    # name. A share without hard links gets renameat2(RENAME_NOREPLACE),
+    # which fails on one too; where that is not offered either, a rename
+    # after a fresh check (residual window: between the check and the rename).
+    appeared = "a file of the same name appeared on the destination during the copy (both kept)"
+    placed = PLACED[0]
     try:
         os.link(tmpname, name, src_dir_fd=ddir, dst_dir_fd=ddir, follow_symlinks=False)
         _unlink_own(tmpname, ddir, own)
     except FileExistsError:
         _unlink_own(tmpname, ddir, own)
-        return "conflict", "a file of the same name appeared on the destination during the copy (both kept)", None
+        return "conflict", appeared, None
     except OSError as e:
         if e.errno not in (errno.EPERM, errno.EOPNOTSUPP, errno.ENOTSUP, errno.ENOSYS, errno.EMLINK):
             _unlink_own(tmpname, ddir, own)
             return "error", f"cannot put the copy in place: {e.strerror}", None
         try:
-            os.stat(name, dir_fd=ddir, follow_symlinks=False)
+            done = rename_noreplace(tmpname, name, ddir)
+        except FileExistsError:
             _unlink_own(tmpname, ddir, own)
-            return "conflict", "a file of the same name appeared on the destination during the copy (both kept)", None
-        except FileNotFoundError:
-            os.rename(tmpname, name, src_dir_fd=ddir, dst_dir_fd=ddir)
+            return "conflict", appeared, None
+        except OSError as e2:
+            _unlink_own(tmpname, ddir, own)
+            return "error", f"cannot put the copy in place: {e2.strerror}", None
+        placed = PLACED[1] if done else PLACED[2]
+        if not done:
+            try:
+                os.stat(name, dir_fd=ddir, follow_symlinks=False)
+                _unlink_own(tmpname, ddir, own)
+                return "conflict", appeared, None
+            except FileNotFoundError:
+                os.rename(tmpname, name, src_dir_fd=ddir, dst_dir_fd=ddir)
     try:
         f = os.stat(name, dir_fd=ddir, follow_symlinks=False)
     except OSError as e:
         return "error", f"the archived copy cannot be found after it was placed: {e.strerror}", None
     if (f.st_dev, f.st_ino) != own or f.st_size != n:
         return "error", "the archived copy is not the file that was written; kept locally", None
-    return "copied", "", Verified(rec, month, want, f.st_dev, f.st_ino)
+    return "copied", "", Verified(rec, month, want, f.st_dev, f.st_ino, placed)
 
 
 def _write_all(fd: int, b: bytes) -> None:
     view = memoryview(b)
     while view:
         view = view[os.write(fd, view):]
-
-
-def dest_copy_problem(dst_fd: int, v: Verified) -> str | None:
-    """Right before the local delete: the verified copy is still there, a
-    regular file of the same size and inode, reached without a symlink."""
-    r = v.rec
-    try:
-        d = open_chain(dst_fd, (r.rel[0], r.rel[1], v.month, r.rel[2]))
-    except Refused as e:
-        return f"the destination path changed ({e})"
-    except OSError as e:
-        return f"the destination copy is gone ({e.strerror})"
-    try:
-        st = os.stat(r.rel[3], dir_fd=d, follow_symlinks=False)
-    except OSError as e:
-        return f"the destination copy is gone ({e.strerror})"
-    finally:
-        os.close(d)
-    if not stat.S_ISREG(st.st_mode) or st.st_size != r.size or (st.st_dev, st.st_ino) != (v.dst_dev, v.dst_ino):
-        return "the destination copy is not the verified one"
-    return None
 
 
 def local_exists(src_fd: int, rec: Rec) -> bool:
@@ -1556,6 +1671,7 @@ def cmd_archive(s: Settings, ops: Ops, dry_run: bool) -> int:
         save_run(s, ops, "archive", run)
         return 3
     try:
+        clean_own_leftovers(s, ops)
         return _archive_run(s, ops, run, cutoff_ns, src)
     finally:
         os.close(fd)          # also on a KeyboardInterrupt: the lock is never kept past the run
@@ -1657,15 +1773,12 @@ def _archive_files(s: Settings, ops: Ops, run: dict, cutoff_ns: int, src_fd: int
     moved = [0, 0]                      # count, bytes
     written = 0
     full_at = None                      # the smallest size that did not fit this run
+    placed = dict.fromkeys(PLACED, 0)
 
     def flush() -> None:
-        ready = []
-        for v in pending:
-            why = dest_copy_problem(dst_fd, v)
-            if why:
-                problems.append(f"{show(v.rec.path)}: not deleted locally: {why}; kept")
-            else:
-                ready.append(v)
+        # Every check of the destination copy (path, type, size, inode,
+        # SHA-256) is made by DELETE_SCRIPT right before each rm.
+        ready = list(pending)
         pending.clear()
         if not ready:
             return
@@ -1696,6 +1809,8 @@ def _archive_files(s: Settings, ops: Ops, run: dict, cutoff_ns: int, src_fd: int
             outcome, detail, v = "error", f"{e.strerror or e}", None
         if outcome in ("copied", "same") and v is not None:
             written += rec.size if outcome == "copied" else 0
+            if v.placed:
+                placed[v.placed] += 1
             pending.append(v)
             if len(pending) >= DELETE_BATCH:
                 flush()
@@ -1706,6 +1821,7 @@ def _archive_files(s: Settings, ops: Ops, run: dict, cutoff_ns: int, src_fd: int
             if outcome == "full":
                 full_at = rec.size if full_at is None else min(full_at, rec.size)
     flush()
+    ops.log("placement this run: " + ", ".join(f"{k} {n}" for k, n in placed.items()))
     run.update(moved=moved[0], moved_bytes=moved[1], written_bytes=written,
                left=left[:50], problems=problems[:50], problem_count=len(problems))
     if problems:

@@ -116,7 +116,10 @@ sudo install -m 0600 -o root -g root $R/etc/kronk/* /etc/kronk/   # the source g
 sed -n '/network filesystem lines/,$p' $R/host-facts.txt   # the NAS lines to add to /etc/fstab
 sudoedit /etc/fstab                           # add the music share line (the backup line is already there)
 sudo mkdir -p /mnt/nas-music && sudo mount -a
-sudo reboot                                   # for the kernel parameters; then check:
+sudo reboot                                   # for the kernel parameters; then, logged in again:
+T=kronk-config-2026-11-19                     # the variables (Conventions) are gone after the reboot: set them again
+R=~/restore/$T
+K=~/git-repos/drawsmcgraw/kronk
 cat /proc/cmdline                             # has ttm.pages_limit=... ttm.page_pool_size=...
 ```
 
@@ -324,6 +327,7 @@ run.
 
 ```
 rm -rf ~/restore/kronk-config-2026-11-19    # type the directory's name: it holds every secret in the clear
+rm -f ~/restore/ha-storage-before-restore.tgz   # left by "Restore one thing only" (HA's auth store), if made
 ```
 
 ## Restore one thing only
@@ -345,7 +349,7 @@ docker compose -f docker-compose.ha.yml start homeassistant
 ```
 
 The "before" tar holds HA's auth store: it is written 0600 and owned by
-you, inside the 0700 `~/restore`, and goes with step 16.
+you, inside the 0700 `~/restore`, and step 16 removes it.
 
 To restore a single file (`core.entity_registry`, say), mount that file
 under its own name and copy just it:

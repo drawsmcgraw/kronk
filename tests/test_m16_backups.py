@@ -74,7 +74,10 @@ class FakeOps(B.Ops):
         self.removed: list[list[str]] = []
         self.commands: list[list[str]] = []
         self.bundle = b"# v2 git bundle\n0123abc HEAD\n\nPACK"
+        self.heads = b"0123abc HEAD\n0123abc refs/heads/0123abc\n0123abc refs/tags/sprint-M16\n"
+        self.local_tags = {"sprint-M16"}
         self.unpushed = 3
+        self.leftover_ids: list[str] = []        # helper containers "docker ps" reports in state created
 
     def run(self, argv, timeout=300, stdin=None):
         self.commands.append(argv)
@@ -82,6 +85,11 @@ class FakeOps(B.Ops):
             if "rev-list" in argv:
                 assert argv[-1] in ("origin/0123abc..HEAD", "--remotes")   # no upstream in the fake: origin/<branch>
                 return B.Result(0, f"{self.unpushed}\n".encode(), "")
+            if "list-heads" in argv:
+                return B.Result(0, self.heads, "")
+            if "--verify" in argv and argv[-1].startswith("refs/tags/") and "^{commit}" not in argv[-1]:
+                ok = argv[-1][len("refs/tags/"):] in self.local_tags
+                return B.Result(0 if ok else 1, b"0123abc\n" if ok else b"", "")
             if "bundle" in argv:
                 assert argv[-2:] == ["--not", "--remotes"]
                 Path(argv[argv.index("--quiet") + 1]).write_bytes(self.bundle)
@@ -89,6 +97,10 @@ class FakeOps(B.Ops):
             if "--symbolic-full-name" in argv:
                 return B.Result(128, b"", "fatal: no upstream configured")
             return B.Result(0, b"0123abc\n" if "rev-parse" in argv else b"", "")
+        if argv[:2] == ["docker", "ps"] and f"label={B.HELPER_LABEL}" in argv:
+            return B.Result(0, "".join(f"{i}\n" for i in self.leftover_ids).encode(), "")
+        if argv[:2] == ["docker", "rm"]:
+            return B.Result(0, b"", "")
         if argv[:2] in (["docker", "ps"], ["docker", "inspect"]):
             return B.Result(0, b"kronk-orchestrator-1\t/home/x/kronk-releases/sprint-M16\n", "")
         if argv[:2] == ["sh", "-c"] and argv[2] == B.DELETE_SCRIPT:
@@ -185,11 +197,13 @@ def house(tmp_path, monkeypatch):
     (proc / "cmdline").write_text("BOOT_IMAGE=/vmlinuz ttm.pages_limit=1\n")
     dest = tmp_path / "dest"
     dest.mkdir()
+    (tmp_path / "tmp").mkdir()
     state = repo / "data" / "backups"
     monkeypatch.setattr(B, "HOME", home)
     s = B.Settings(dest=dest, require_mount=False, state=state, repo=repo, live_config=live,
                    upgrade_state=repo / "data" / "upgrades", model_dirs=(str(home / "models"),),
-                   recordings=home / "kronk-voice-recordings", etc=etc, proc=proc, lock_wait_min=2)
+                   recordings=home / "kronk-voice-recordings", etc=etc, proc=proc, lock_wait_min=2,
+                   tmp=tmp_path / "tmp")
     return s
 
 
@@ -295,7 +309,8 @@ def test_what_cannot_be_read_is_listed_in_the_manifest_and_the_notice(house):
         assert st["config"]["last"]["unreadable"] and st["config"]["last"]["result"] == "ok"
 
 
-@pytest.mark.parametrize("break_it", ["ha", "ma", "env", "live-prod", "live-dev", "units", "env-missing"])
+@pytest.mark.parametrize("break_it", ["ha", "ma", "env", "live-prod", "live-dev", "units", "env-missing",
+                                      "solar-corrupt", "taste-db-missing"])
 def test_a_missing_required_item_makes_the_tar_incomplete(house, monkeypatch, break_it):
     """Finding 5: HA, MA, .env, the live config directories, the units."""
     ops = FakeOps()
@@ -314,6 +329,10 @@ def test_a_missing_required_item_makes_the_tar_incomplete(house, monkeypatch, br
         shutil.rmtree(house.live_config / "dev")
     elif break_it == "units":
         (B.HOME / ".config" / "systemd" / "user" / "llama-x.service").chmod(0o000)
+    elif break_it == "solar-corrupt":                    # second e2e, note 9 (coordinator ruling): required
+        (house.repo / "data" / "solar.db").write_bytes(b"not a database" * 100)
+    elif break_it == "taste-db-missing":
+        (house.repo / "data" / "music_taste.db").unlink()
     if os.geteuid() == 0 and break_it in ("env", "live-prod", "units"):
         pytest.skip("root reads a 0000 file")
     cfg = house.dest / "config"
@@ -786,7 +805,8 @@ def test_the_etc_kronk_helper_mount_is_read_only(tmp_path):
             seen.append(argv)
             return B.Result(0, b"", "")
     Capture().helper_tar(tmp_path)
-    assert seen[0][seen[0].index("-v") + 1] == f"{tmp_path}:/src:ro"
+    assert seen[0][seen[0].index("--mount") + 1] == f"type=bind,source={tmp_path},target=/src,readonly"
+    assert "-v" not in seen[0]
 
 
 def test_waits_for_the_other_job_then_declines(house):
@@ -1044,13 +1064,18 @@ def test_the_delete_runs_by_literal_path_in_a_container_that_sees_only_the_two_t
     src, dst = tmp_path / "rec", tmp_path / "dest" / "recordings"
     res, err = Capture().remove_recordings(src, dst, [vrec(["d", "p", "r 1", "a\nb.wav"])])
     argv = seen[0]
-    assert argv[:11] == ["docker", "run", "--rm", "--pull=never", "--network", "none", "-v", f"{src}:/rec",
-                         "-v", f"{dst}:/dst:ro", "alpine:3.20"]
-    assert argv[11:14] == ["sh", "-c", B.DELETE_SCRIPT] and argv[14:17] == ["sh", "/rec", "/dst"]
-    assert argv[17:] == ["1", "d", "p", "r 1", "a\nb.wav", "2026-11", "10", "5", "1:2", "0" * 64, "3:4"]
+    # Second e2e, finding 3: --mount (a missing source fails, -v would create it); note 7: the label.
+    assert argv[:13] == ["docker", "run", "--rm", "--pull=never", "--network", "none",
+                         "--label", "kronk.backup.helper=1",
+                         "--mount", f"type=bind,source={src},target=/rec",
+                         "--mount", f"type=bind,source={dst},target=/dst,readonly", "alpine:3.20"]
+    assert "-v" not in argv
+    assert argv[13:16] == ["sh", "-c", B.DELETE_SCRIPT] and argv[16:19] == ["sh", "/rec", "/dst"]
+    assert argv[19:] == ["1", "d", "p", "r 1", "a\nb.wav", "2026-11", "10", "5", "1:2", "0" * 64, "3:4"]
     assert res == {0: "ok"} and err == ""
-    assert Capture().remove_recordings(tmp_path / "a,b", dst, [vrec(["d", "p", "r", "x"])]) == ({}, \
-        f"refused: a path docker -v cannot carry: '{tmp_path}/a,b:/rec'")
+    for bad in ("a,b", 'a"b'):
+        assert Capture().remove_recordings(tmp_path / bad, dst, [vrec(["d", "p", "r", "x"])]) == ({}, \
+            f"refused: a path docker --mount cannot carry: {str(tmp_path / bad)!r}")
     assert len(seen) == 1
 
 
@@ -1075,10 +1100,12 @@ while [ "$i" -lt "$n" ]; do
     else
       h=$(sha256sum < "$f"); h=${h%% *}
       s=$(stat -c '%s %Y %d:%i' -- "$f")
+      g=$(sha256sum < "$t"); g=${g%% *}
       d=$(stat -c '%s %d:%i' -- "$t")
       if [ "$s" != "$sz $mt $si" ]; then why="size, mtime or inode differ from the copied file"
       elif [ "$h" != "$hs" ]; then why="sha256 differs from the copied file"
       elif [ "$d" != "$sz $di" ]; then why="the destination copy is not the verified one"
+      elif [ "$g" != "$hs" ]; then why="the destination copy's sha256 differs from the copied file"
       fi
     fi
   fi
@@ -1113,6 +1140,7 @@ def test_the_delete_script_removes_only_the_verified_file(tmp_path):
     ("content", "sha256 differs"), ("swap", "size, mtime or inode differ"), ("mtime", "size, mtime or inode differ"),
     ("dir", "not a regular file"), ("symlink", "not a regular file"), ("dest-gone", "the destination copy is gone"),
     ("dest-swapped", "the destination copy is not the verified one"), ("dest-symlink", "the destination copy is gone"),
+    ("dest-content", "the destination copy's sha256 differs"),
     ("run-symlink", "a directory on the way is a symlink"), ("dest-run-symlink", "a directory on the way is a symlink")])
 def test_the_delete_script_refuses_anything_but_the_verified_file(tmp_path, change, why):
     """Finding 2: what is about to be removed is compared with what was copied."""
@@ -1145,6 +1173,9 @@ def test_the_delete_script_refuses_anything_but_the_verified_file(tmp_path, chan
     elif change == "dest-symlink":
         t.unlink()
         t.symlink_to(f)
+    elif change == "dest-content":                            # second e2e, finding 1: same inode, same size
+        with open(t, "r+b") as w:
+            w.write(b"AUDIO")
     elif change == "run-symlink":
         moved = tmp_path / "elsewhere"
         f.parent.rename(moved)
@@ -1166,14 +1197,14 @@ def test_thirty_thousand_deletes_go_in_batches(tmp_path, monkeypatch):
     class Capture(B.Ops):
         def run(self, argv, timeout=300, stdin=None):
             seen.append(argv)
-            n = int(argv[17])
+            n = int(argv[19])
             return B.Result(0, "".join(f"ok {i}\n" for i in range(1, n + 1)).encode(), "")
     items = [vrec(["e0949788663255952ce7778975527882", "kronk", f"{1203688800703734 + i}",
                    "01_stt-stt.faster_whisper.wav"], ino=i) for i in range(30_000)]
     res, err = Capture().remove_recordings(tmp_path / "rec", tmp_path / "dst", items)
     assert len(seen) == 30_000 // B.DELETE_BATCH and res == {i: "ok" for i in range(30_000)}
     assert max(sum(len(a) + 1 for a in argv) for argv in seen) < 128 * 1024
-    names = [argv[17 + 1 + 10 * k + 2] for argv in seen for k in range(int(argv[17]))]
+    names = [argv[19 + 1 + 10 * k + 2] for argv in seen for k in range(int(argv[19]))]
     assert len(set(names)) == 30_000
 
 
@@ -1360,8 +1391,9 @@ def test_finding2_a_destination_copy_that_changes_after_its_verify_stops_the_del
     monkeypatch.setattr(B, "copy_verified", then_break)
     ops = FakeOps()
     assert B.cmd_archive(house, ops, dry_run=False) == 1
-    assert a.read_bytes() == b"a" * 4000 and ops.removed == []
-    assert "not deleted locally: the destination copy" in ops.notices[-1][1]
+    assert a.read_bytes() == b"a" * 4000
+    # The check is DELETE_SCRIPT's, right before the rm (the host's weaker re-check is gone).
+    assert "local delete refused (the destination copy" in ops.notices[-1][1]
 
 
 def test_finding3_a_symlinked_destination_run_directory_never_verifies_a_file_against_itself(house):
@@ -1679,3 +1711,435 @@ def test_api_only_reads():
     assert "write_" not in src and "open(" not in src
     assert "backups_api.router" in (ROOT / "orchestrator" / "main.py").read_text()
     assert "/api/backups" in (ROOT / "orchestrator" / "static" / "services.html").read_text()
+
+
+# ═══ Second end-to-end test (docs/sprint/M16-e2e2.md) ═══════════════════
+
+def no_link(err=errno.EPERM):
+    def link(*a, **k):
+        raise OSError(err, os.strerror(err))
+    return link
+
+
+def force_placement(monkeypatch, path, err=errno.EPERM):
+    """link: the normal path; renameat2: link(2) refused as on a share without
+    hard links; rename: that, and no renameat2 either."""
+    if path == "link":
+        return
+    monkeypatch.setattr(B.os, "link", no_link(err))
+    if path == "rename":
+        monkeypatch.setattr(B, "RENAMEAT2", None)
+    else:
+        assert B.RENAMEAT2 is not None, "this libc has no renameat2"
+
+
+PLACED_BY = {"link": "link(2)", "renameat2": "renameat2(RENAME_NOREPLACE)", "rename": "rename after a check"}
+
+
+def placement_line(ops, path, n):
+    want = {k: (n if k == PLACED_BY[path] else 0) for k in B.PLACED}
+    return "placement this run: " + ", ".join(f"{k} {v}" for k, v in want.items())
+
+
+@pytest.mark.parametrize("path", ["link", "renameat2", "rename"])
+@pytest.mark.parametrize("point", ["after-verify", "before-container"])
+def test_fix2_finding1_a_destination_copy_rewritten_in_place_after_its_verify_is_kept(house, monkeypatch, point, path):
+    """Blocker: same inode, same size, other bytes. The old code deleted the local file."""
+    a = rec(house, "dev1", "kronk", "run1", name="01_a.wav", data=b"a" * 4000)
+    b = rec(house, "dev1", "kronk", "run2", name="01_b.wav", data=b"b" * 4000)
+    ta, tb = archived(house, a), archived(house, b)
+    force_placement(monkeypatch, path)
+    done = []
+
+    def rewrite():
+        st = ta.stat()
+        with open(ta, "r+b") as w:
+            w.write(b"X" * 4000)
+        after = ta.stat()
+        assert (after.st_ino, after.st_size) == (st.st_ino, st.st_size)
+        done.append(1)
+    ops = FakeOps()
+    if point == "after-verify":
+        real = B.copy_verified
+
+        def then_rewrite(src_fd, dst_fd, r, month):
+            out = real(src_fd, dst_fd, r, month)
+            if r.rel[3] == "01_a.wav":
+                rewrite()
+            return out
+        monkeypatch.setattr(B, "copy_verified", then_rewrite)
+    else:
+        real_run = ops.run
+
+        def run(argv, timeout=300, stdin=None):
+            if argv[:2] == ["sh", "-c"] and argv[2] == B.DELETE_SCRIPT:
+                rewrite()                                   # the moment before the container starts
+            return real_run(argv, timeout, stdin)
+        ops.run = run
+    assert B.cmd_archive(house, ops, dry_run=False) == 1
+    assert done == [1]
+    assert a.read_bytes() == b"a" * 4000                       # the recording survives, locally
+    assert ta.read_bytes() == b"X" * 4000
+    assert not b.exists() and tb.read_bytes() == b"b" * 4000   # the other one moved
+    body = ops.notices[-1][1]
+    assert "local delete refused (the destination copy's sha256 differs from the copied file)" in body
+    assert body.startswith("1 problem(s): ") and "Moved 1 recording(s)" in body
+    assert placement_line(ops, path, 2) in ops.logs
+
+
+@pytest.mark.parametrize("err", [errno.EPERM, errno.EOPNOTSUPP, errno.ENOSYS])
+@pytest.mark.parametrize("path", ["renameat2", "rename"])
+def test_fix2_finding2_without_hard_links_the_copy_is_still_placed(house, monkeypatch, err, path):
+    """Mutants v15 (EPERM no longer selects the fallback) and x11 (the rename removed)."""
+    p = rec(house, "dev1", "kronk", "1", data=b"a" * 3000)
+    data, mtime, t = p.read_bytes(), p.stat().st_mtime_ns, archived(house, p)
+    force_placement(monkeypatch, path, err)
+    ops = FakeOps()
+    assert B.cmd_archive(house, ops, dry_run=False) == 0, ops.notices[-1][1]
+    assert t.read_bytes() == data and t.stat().st_mtime_ns == mtime and stat.S_IMODE(t.stat().st_mode) == 0o600
+    assert not p.exists() and [f.name for f in t.parent.iterdir()] == [t.name]      # no temporary file left
+    assert placement_line(ops, path, 1) in ops.logs
+
+
+@pytest.mark.parametrize("err", [errno.EACCES, errno.EIO])
+def test_fix2_finding2_other_link_errors_keep_the_file(house, monkeypatch, err):
+    p = rec(house, "dev1", "kronk", "1", data=b"a" * 3000)
+    monkeypatch.setattr(B.os, "link", no_link(err))
+    ops = FakeOps()
+    assert B.cmd_archive(house, ops, dry_run=False) == 1
+    assert p.exists() and [f for f in house.dest.rglob("*") if f.is_file()] == []
+    assert "cannot put the copy in place" in ops.notices[-1][1]
+
+
+@pytest.mark.parametrize("path", ["renameat2", "rename"])
+def test_fix2_finding2_without_hard_links_a_final_name_that_exists_is_never_replaced(house, monkeypatch, path):
+    """Mutant v14 (the fresh check before the rename removed)."""
+    p = rec(house, "dev1", "kronk", "1", data=b"a" * 100)
+    t = archived(house, p)
+    force_placement(monkeypatch, path)
+    real = B._write_all
+
+    def and_someone_writes(fd, data):
+        real(fd, data)
+        t.write_bytes(b"appeared")
+    monkeypatch.setattr(B, "_write_all", and_someone_writes)
+    ops = FakeOps()
+    assert B.cmd_archive(house, ops, dry_run=False) == 1
+    assert t.read_bytes() == b"appeared" and p.read_bytes() == b"a" * 100
+    assert [f.name for f in t.parent.iterdir()] == [t.name]
+    assert "appeared on the destination during the copy (both kept)" in ops.notices[-1][1]
+
+
+def test_fix2_note8_renameat2_refuses_a_name_that_appears_after_every_check(house, monkeypatch):
+    """The fallback's window, closed: the name appears right before the rename itself."""
+    p = rec(house, "dev1", "kronk", "1", data=b"a" * 100)
+    t = archived(house, p)
+    force_placement(monkeypatch, "renameat2")
+    real = B.rename_noreplace
+
+    def late(old, new, fd):
+        t.write_bytes(b"late")
+        return real(old, new, fd)
+    monkeypatch.setattr(B, "rename_noreplace", late)
+    ops = FakeOps()
+    assert B.cmd_archive(house, ops, dry_run=False) == 1
+    assert t.read_bytes() == b"late" and p.read_bytes() == b"a" * 100
+    assert [f.name for f in t.parent.iterdir()] == [t.name]
+    assert "appeared on the destination during the copy (both kept)" in ops.notices[-1][1]
+
+
+@pytest.mark.parametrize("e", [errno.EINVAL, errno.ENOSYS, errno.EOPNOTSUPP])
+def test_fix2_note8_a_filesystem_without_renameat2_falls_back_to_the_checked_rename(house, monkeypatch, e):
+    p = rec(house, "dev1", "kronk", "1", data=b"a" * 100)
+    t = archived(house, p)
+    monkeypatch.setattr(B.os, "link", no_link())
+    import ctypes
+
+    def refuses(*a):
+        ctypes.set_errno(e)
+        return -1
+    monkeypatch.setattr(B, "RENAMEAT2", refuses)
+    ops = FakeOps()
+    assert B.cmd_archive(house, ops, dry_run=False) == 0, ops.notices[-1][1]
+    assert t.read_bytes() == b"a" * 100 and not p.exists()
+    assert placement_line(ops, "rename", 1) in ops.logs
+
+
+def test_fix2_rename_noreplace_itself(tmp_path):
+    d = os.open(tmp_path, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        (tmp_path / "a").write_bytes(b"a")
+        (tmp_path / "b").write_bytes(b"b")
+        with pytest.raises(FileExistsError):
+            B.rename_noreplace("a", "b", d)
+        assert (tmp_path / "a").read_bytes() == b"a" and (tmp_path / "b").read_bytes() == b"b"
+        assert B.rename_noreplace("a", "c", d) is True
+        assert not (tmp_path / "a").exists() and (tmp_path / "c").read_bytes() == b"a"
+    finally:
+        os.close(d)
+
+
+@pytest.mark.parametrize("path", ["link", "renameat2", "rename"])
+def test_fix2_finding2_the_placed_file_must_be_the_one_written(house, monkeypatch, path):
+    """Mutant v12: whatever ends up under the final name is checked to be ours."""
+    p = rec(house, "dev1", "kronk", "1", data=b"a" * 100)
+    t = archived(house, p)
+    force_placement(monkeypatch, path)
+
+    def swap():
+        n = t.with_name("other")
+        n.write_bytes(b"a" * 100)                           # same bytes, another file
+        os.replace(n, t)
+    if path == "link":
+        real_link = os.link
+
+        def link(*a, **k):
+            real_link(*a, **k)
+            swap()
+        monkeypatch.setattr(B.os, "link", link)
+    elif path == "renameat2":
+        real = B.rename_noreplace
+        monkeypatch.setattr(B, "rename_noreplace", lambda o, n, fd: (real(o, n, fd), swap())[0])
+    else:
+        real_rename = os.rename
+
+        def rename(a, b, **kw):
+            real_rename(a, b, **kw)
+            swap()
+        monkeypatch.setattr(B.os, "rename", rename)
+    ops = FakeOps()
+    assert B.cmd_archive(house, ops, dry_run=False) == 1
+    assert p.read_bytes() == b"a" * 100 and ops.removed == []
+    assert "the archived copy is not the file that was written; kept locally" in ops.notices[-1][1]
+
+
+def test_fix2_finding3_every_helper_mount_is_a_bind_mount_that_needs_its_source(tmp_path, monkeypatch):
+    monkeypatch.delenv("KRONK_ARCHIVE_DELETE", raising=False)
+    seen = []
+
+    class Capture(B.Ops):
+        def run(self, argv, timeout=300, stdin=None):
+            seen.append(argv)
+            return B.Result(0, b"", "")
+    Capture().helper_tar(tmp_path)
+    Capture().remove_recordings(tmp_path / "rec", tmp_path / "dst", [vrec(["d", "p", "r", "x"])])
+    for argv in seen:
+        assert "-v" not in argv and "--volume" not in argv
+        mounts = [argv[i + 1] for i, a in enumerate(argv) if a == "--mount"]
+        assert mounts and all(m.startswith("type=bind,source=") for m in mounts)
+    assert [argv[argv.index("--mount") + 1] for argv in seen][0].endswith(",target=/src,readonly")
+
+
+def test_fix2_finding4_a_production_tag_that_is_not_a_local_ref_is_left_out_and_named(house):
+    ops = FakeOps()
+    ops.local_tags = set()                                  # docker ps names sprint-M16; no such local tag
+    ops.heads = b"0123abc HEAD\n0123abc refs/heads/0123abc\n"
+    assert B.cmd_config(house, ops, dry_run=False) == 0
+    create = next(a for a in ops.commands if a[0] == "git" and "create" in a)
+    assert "sprint-M16" not in " ".join(create) and "refs/tags/sprint-M16" not in create
+    p = house.dest / "config" / "kronk-config-2026-12-10.tar.gz"
+    assert read_member(p, "repo-unpushed.bundle") == ops.bundle
+    state = read_member(p, "repo-state.txt").decode()
+    assert ("unpushed bundle: repo-unpushed.bundle: 3 commit(s) no remote-tracking branch has, "
+            f"{len(ops.bundle)} bytes; refs in it: HEAD, refs/heads/0123abc; left out, not a local tag: sprint-M16") in state
+
+
+def test_fix2_finding4_a_bundle_error_in_the_notice_is_one_line(house):
+    ops = FakeOps()
+    real = ops.run
+
+    def run(argv, timeout=300, stdin=None):
+        if argv[0] == "git" and "create" in argv:
+            return B.Result(128, b"", "fatal: ambiguous argument 'x': unknown revision\nUse '--' to separate paths\n"
+                                      "usage: git bundle create [<options>] <file> <git-rev-list args>")
+        return real(argv, timeout, stdin)
+    ops.run = run
+    assert B.cmd_config(house, ops, dry_run=False) == 0
+    body = ops.notices[-1][1]
+    assert "NOT WRITTEN: git bundle failed (128): fatal: ambiguous argument 'x': unknown revision)." in body
+    assert "\n" not in body and "usage" not in body
+
+
+def test_fix2_finding4_one_line():
+    assert B.one_line("\n\n  first  \nsecond") == "first" and B.one_line("") == "" and B.one_line("x" * 300, 5) == "xxxxx"
+
+
+def test_fix2_finding4_and_note13_a_real_bundle_holds_the_refs_it_names(tmp_path, monkeypatch):
+    """Real git, in a temporary repository with its own user; no remote, no network."""
+    import subprocess
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", os.devnull)
+    monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
+    repo = tmp_path / "repo"
+    repo.mkdir()
+
+    def g(*a):
+        return subprocess.run(["git", "-C", str(repo), *a], check=True, capture_output=True).stdout.decode()
+    g("init", "-q", "-b", "main")
+    g("config", "user.name", "M16 test")
+    g("config", "user.email", "m16-test@example.invalid")
+    (repo / "f").write_text("x\n")
+    g("add", "f")
+    g("commit", "-q", "-m", "one")
+    g("tag", "sprint-M17")
+    s = B.Settings(dest=tmp_path, require_mount=False, state=tmp_path / "state", repo=repo, tmp=tmp_path)
+    data, note = B.unpushed_bundle(s, B.Ops(log=lambda m: None), "main", ["sprint-M17", "sprint-M18"])
+    assert data is not None
+    assert note == (f"repo-unpushed.bundle: 1 commit(s) no remote-tracking branch has, {len(data)} bytes; refs in it: "
+                    "HEAD, refs/heads/main, refs/tags/sprint-M17; left out, not a local tag: sprint-M18")
+    (tmp_path / "b.bundle").write_bytes(data)
+    heads = g("bundle", "list-heads", str(tmp_path / "b.bundle")).split()
+    assert heads[1::2] == ["HEAD", "refs/heads/main", "refs/tags/sprint-M17"]
+    assert not any(p.name.startswith("kronk-bundle-") for p in tmp_path.iterdir())     # its directory is gone
+
+
+def test_fix2_note14_one_commit_not_pushed(house):
+    ops = FakeOps()
+    ops.unpushed = 1
+    B.cmd_config(house, ops, dry_run=False)
+    assert "Repo: 1 commit not pushed (the tar holds them as repo-unpushed.bundle)." in ops.notices[-1][1]
+
+
+def test_fix2_finding5_the_defaults(monkeypatch):
+    """Mutants a05 (archive age), r07 (tars kept), n14 (stale days)."""
+    for n in ("KRONK_ARCHIVE_AGE_DAYS", "KRONK_BACKUP_KEEP", "KRONK_BACKUP_STALE_DAYS"):
+        monkeypatch.delenv(n, raising=False)
+    a = type("A", (), {"dest": "/tmp/x", "require_mount": False})()
+    s = B.Settings.load(a)
+    assert (s.age_days, s.keep, s.stale_days) == (7, 12, 35)
+    s = B.Settings(dest=Path("/tmp/x"), require_mount=False, state=Path("/tmp/x"))
+    assert (s.age_days, s.keep, s.stale_days) == (7, 12, 35)
+
+
+def test_fix2_finding5_a_symlinked_directory_in_a_tree_is_stored_not_followed(house, tmp_path):
+    """Mutants t14 (dropped) and t25 (followed)."""
+    outside = tmp_path / "outside-dir"
+    outside.mkdir()
+    (outside / "not-ours.txt").write_text("outside the tree\n")
+    (house.live_config / "prod" / "shared").symlink_to(outside)
+    B.cmd_config(house, FakeOps(), dry_run=False)
+    p = house.dest / "config" / "kronk-config-2026-12-10.tar.gz"
+    top = "kronk-config-2026-12-10/live-config/prod/shared"
+    with tarfile.open(p, "r:gz") as t:
+        m = t.getmember(top)
+        assert m.issym() and m.linkname == str(outside)
+        assert not any(n.startswith(top + "/") for n in t.getnames())
+
+
+def test_fix2_finding5_a_symlink_in_has_tar_stream_is_kept(house):
+    """Mutant t26."""
+    ops = FakeOps()
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=io.BytesIO(ops.ha)) as src, tarfile.open(fileobj=buf, mode="w") as out:
+        for m in src:
+            out.addfile(m, src.extractfile(m) if m.isfile() else None)
+        ti = tarfile.TarInfo("./themes")
+        ti.type, ti.linkname = tarfile.SYMTYPE, "/config/shared-themes"
+        out.addfile(ti)
+    ops.ha = buf.getvalue()
+    B.cmd_config(house, ops, dry_run=False)
+    with tarfile.open(house.dest / "config" / "kronk-config-2026-12-10.tar.gz", "r:gz") as t:
+        m = t.getmember("kronk-config-2026-12-10/ha/config/themes")
+        assert m.issym() and m.linkname == "/config/shared-themes"
+
+
+def test_fix2_finding5_sqlite_is_read_through_the_online_backup(house, tmp_path):
+    """Mutant t22: the rows are still in the WAL; a raw read of the file has none of them."""
+    import sqlite3
+    db = house.repo / "data" / "solar.db"
+    db.unlink()
+    w = sqlite3.connect(db)
+    try:
+        w.execute("pragma journal_mode=wal")
+        w.execute("pragma wal_autocheckpoint=0")
+        w.execute("create table readings (x)")
+        w.executemany("insert into readings values (?)", [(i,) for i in range(100)])
+        w.commit()
+        raw = tmp_path / "raw.db"
+        raw.write_bytes(db.read_bytes())                 # what a raw read gets: the main file, no WAL
+        c = sqlite3.connect(raw)
+        assert c.execute("select count(*) from sqlite_master").fetchone()[0] == 0
+        c.close()
+        assert B.cmd_config(house, FakeOps(), dry_run=False) == 0
+    finally:
+        w.close()
+    got = tmp_path / "got.db"
+    got.write_bytes(read_member(house.dest / "config" / "kronk-config-2026-12-10.tar.gz", "repo/data/solar.db"))
+    c = sqlite3.connect(got)
+    try:
+        assert c.execute("select count(*) from readings").fetchone()[0] == 100
+    finally:
+        c.close()
+
+
+def test_fix2_finding6_the_runbook():
+    text = (ROOT / "docs" / "runbooks" / "restore.md").read_text()
+    step4 = text[text.index("### 4."):text.index("### 5.")]
+    after = step4[step4.index("sudo reboot"):]
+    assert re.search(r"^T=kronk-config-", after, re.M) and re.search(r"^R=~/restore/\$T", after, re.M) \
+        and re.search(r"^K=", after, re.M)
+    step16 = text[text.index("### 16."):text.index("## Restore one thing only")]
+    assert "~/restore/ha-storage-before-restore.tgz" in step16
+
+
+@pytest.mark.parametrize("job", ["config", "archive"])
+def test_fix2_note7_a_job_removes_its_own_leftovers_by_exact_signature_only(house, job):
+    ops = FakeOps()
+    ops.leftover_ids = ["0123456789ab", "--force", "abc;rm", "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210"]
+    tmp = house.tmp
+    day_ago = (dt.datetime.now() - dt.timedelta(days=2)).timestamp()
+
+    def bundle_dir(name, files=("unpushed.bundle",), old=True):
+        d = tmp / name
+        d.mkdir()
+        for f in files:
+            (d / f).write_bytes(b"bundle")
+        if old:
+            os.utime(d, (day_ago, day_ago))
+        return d
+    own = bundle_dir("kronk-bundle-ab_cd123", ("unpushed.bundle", "unpushed.bundle.lock"))
+    empty = bundle_dir("kronk-bundle-empty123", ())
+    young = bundle_dir("kronk-bundle-young123", old=False)
+    other = bundle_dir("kronk-bundle-other123", ("unpushed.bundle", "notes.txt"))
+    short = bundle_dir("kronk-bundle-abc")
+    upper = bundle_dir("kronk-bundle-ABCDEFGH")
+    target = bundle_dir("not-a-bundle-dir")
+    link = tmp / "kronk-bundle-link1234"
+    link.symlink_to(target)
+    os.utime(link, (day_ago, day_ago), follow_symlinks=False)
+    plain = tmp / "kronk-bundle-file1234"
+    plain.write_bytes(b"x")
+    os.utime(plain, (day_ago, day_ago))
+    if job == "config":
+        B.cmd_config(house, ops, dry_run=False)
+    else:
+        B.cmd_archive(house, ops, dry_run=False)
+    ps = ["docker", "ps", "-a", "--filter", "label=kronk.backup.helper=1", "--filter", "status=created",
+          "--format", "{{.ID}}"]
+    assert ops.commands[0] == ps                             # first thing after the lock
+    rms = [a for a in ops.commands if a[:2] == ["docker", "rm"]]
+    assert rms == [["docker", "rm", "0123456789ab", "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210"]]
+    assert not own.exists() and not empty.exists()
+    for keep in (young, other, short, upper, target, link, plain):
+        assert os.path.lexists(keep), keep
+    assert (other / "notes.txt").exists() and (other / "unpushed.bundle").exists()
+    assert any("left alone: " in m and "other123" in m for m in ops.logs)
+
+
+def test_fix2_note7_nothing_to_remove_runs_no_rm_and_a_dry_run_looks_at_nothing(house):
+    ops = FakeOps()
+    B.cmd_config(house, ops, dry_run=False)
+    assert not any(a[:2] == ["docker", "rm"] for a in ops.commands)
+    ops = FakeOps()
+    ops.leftover_ids = ["0123456789ab"]
+    B.cmd_config(house, ops, dry_run=True)
+    B.cmd_archive(house, ops, dry_run=True)
+    assert not any(B.HELPER_LABEL in " ".join(a) for a in ops.commands)
+
+
+def test_fix2_note7_a_failing_leftover_check_never_fails_the_job(house, monkeypatch):
+    def boom(s, ops):
+        raise RuntimeError("boom")
+    monkeypatch.setattr(B, "_clean_own_leftovers", boom)
+    ops = FakeOps()
+    assert B.cmd_config(house, ops, dry_run=False) == 0
+    assert "leftover check failed: RuntimeError: boom" in ops.logs
