@@ -34,6 +34,8 @@ and coreutils; the HA major upgrade itself.
    file content (with placeholders, never the password) as an install step
    for Drew, and everything is built and tested against a scratch
    directory. The scripts read no password and never see one.
+   The share is `//atlas.local/kronk-backup` (Drew, 2026-11-19, "nearly
+   certain"); the first mount at install is what confirms it.
 2. **A destination that is not a mounted filesystem is a failure, not a
    place to write.** When `KRONK_BACKUP_DIR` is the default (or any path
    flagged as a mount), the scripts check it is a mount point and writable
