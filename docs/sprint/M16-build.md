@@ -516,3 +516,22 @@ deploy that includes `ea5c1a7` (`orchestrator/backups_api.py`,
    (`docs/CHANGE_2026-06-09_gemma_vulkan_switch.md`, `docs/VOICE_SETUP.md`).
 9. **Recordings on the NAS are kept forever** (Drew's "keep everything"):
    about 1.4 MB a day at today's use, 40 to 50 MB a month.
+
+## Corrections
+
+Added 2026-11-19 after the end-to-end test (`docs/sprint/M16-e2e.md`, notes
+21 and 22); the text above is left as written.
+
+- "36 unit files, 34 identical" (check-first table and the units
+  reconciliation): the host has 29 `.service`/`.timer` files in
+  `~/.config/systemd/user`, 28 identical to the repo's copies (rechecked
+  2026-11-19 by the fix round; the directory holds 49 files and symlinks in
+  all, drop-ins and `.wants` entries included).
+- "29 GGUFs": `models.tsv` lists 28 model files.
+- MA `settings.json` "63,229" bytes: the file changes as Music Assistant
+  runs; it was 63,228 bytes at the end-to-end test.
+- CLAUDE.md said the NAS account "is installed as the root-only
+  `/etc/kronk/nas-backup.cred`". It is not yet: `/etc/kronk` holds only
+  `nas-music.cred` until Drew's install step. CLAUDE.md now says so.
+- What changed in the build after the end-to-end test is in
+  `docs/sprint/M16-fix1.md`.
