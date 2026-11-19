@@ -157,6 +157,13 @@
   </div>
 
   <div>
+    <div class="section-label">Backups</div>
+    <div class="service-grid" id="backup-grid">
+      <!-- populated by /api/backups (the backup jobs' status file) -->
+    </div>
+  </div>
+
+  <div>
     <div class="section-label">Config (config/ prompts and tuning)</div>
     <div class="service-grid" id="config-grid">
       <!-- populated by api/config (orchestrator + tool_service loaders) -->
@@ -335,8 +342,36 @@
     }
   }
 
+  // Backups (sprint M16). Absolute URL for the same reason as the upgrade
+  // card: one status file per house (production's data/backups/status.json).
+  async function loadBackups() {
+    const grid = document.getElementById('backup-grid');
+    try {
+      const r = await fetch('/api/backups');
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const b = await r.json();
+      const warns = b.warnings || [];
+      const line = (j, word) => {
+        const last = (b.jobs || {})[j] && b.jobs[j].last;
+        if (!last) return `${word}: no run yet`;
+        const when = last.at ? new Date(last.at).toLocaleString() : '';
+        const size = last.size ? `, ${(last.size / 1e6).toFixed(1)} MB` : '';
+        const moved = j === 'archive' && last.moved !== undefined ? `, moved ${last.moved}, ${last.remaining ?? '?'} local` : '';
+        return `${word} ${when}: ${last.result}${size}${moved}`;
+      };
+      let desc = b.present ? `${line('config', 'config backup')} · ${line('archive', 'recordings archive')}`
+                           : (b.note || 'no backup run yet');
+      if (warns.length) desc = `WARNING: ${warns.join(' | ')} — ` + desc;
+      grid.innerHTML = card({ icon: '💾', name: 'Backups', badge: warns.length ? 'warning' : 'ok',
+                              dotId: 's-backup-0', desc, tag: 'monthly config / weekly recordings' });
+      setDot('s-backup-0', !warns.length);
+    } catch (e) {
+      grid.innerHTML = `<div style="color:var(--text3);font-size:12px;padding:0.5rem">could not load /api/backups (${esc(e.message)})</div>`;
+    }
+  }
+
   async function refresh() {
-    await Promise.allSettled([KronkUI.checkDots(checks), loadDynamic(), loadConfig(), loadUpgrades()]);
+    await Promise.allSettled([KronkUI.checkDots(checks), loadDynamic(), loadConfig(), loadUpgrades(), loadBackups()]);
   }
 
   refresh();

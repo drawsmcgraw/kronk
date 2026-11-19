@@ -1,0 +1,15 @@
+# Fires kronk-backup.service at 01:30 local on the 10th of each month: at
+# night, and away from the upgrade run (02:00-05:00 on days 1-7) and the
+# quarterly check (the 8th, 04:30). Persistent: a month the box was off at
+# that moment fires at the next boot.
+# Install and remove: the Operations block in kronk-backup.service.
+[Unit]
+Description=Kronk — monthly config backup, the 10th at 01:30 (M16)
+
+[Timer]
+OnCalendar=*-*-10 01:30
+Persistent=true
+RandomizedDelaySec=10m
+
+[Install]
+WantedBy=timers.target

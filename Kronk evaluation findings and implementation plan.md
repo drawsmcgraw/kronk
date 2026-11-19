@@ -695,6 +695,8 @@ M16 is deliberately a later task (Drew, 2026-11-14): the changes in this plan wi
 
 ### M16. Backups: small, monthly, config only
 
+**Status: built 2026-11-19 on `refactor`, not installed** (`docs/sprint/M16-build.md`; criteria `docs/sprint/M16-criteria.md`; guide `docs/features/backups.md`; runbook `docs/runbooks/restore.md`). Drew's 2026-11-19 decisions changed two things below: the voice recordings are archived to the NAS weekly (not "not backed up"), and each job sends a start and an end notice. The section is kept as written.
+
 The goal is enough to rebuild Kronk, not a copy of everything. Drew's requirements, 2026-11-14:
 
 - **Configs and values only. No binaries.** He does not want backups measured in megabytes or gigabytes.

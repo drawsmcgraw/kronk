@@ -29,6 +29,7 @@ import servers
 import sessions
 import settings_api
 import upgrades_api
+import backups_api
 import speech_stream
 import telemetry
 import tools
@@ -249,6 +250,8 @@ app.include_router(config_api.router)
 app.include_router(settings_api.router)
 # The upgrade cadence's status for /services (sprint M18), read-only.
 app.include_router(upgrades_api.router)
+# The backup jobs' status for /services (sprint M16), read-only.
+app.include_router(backups_api.router)
 
 
 # ── /message: the main chat endpoint ─────────────────────────────────────────

@@ -1,0 +1,13 @@
+# Fires kronk-recordings-archive.service on Mondays at 01:00 local (before
+# the upgrade window; on the 10th the backup at 01:30 waits for it). Persistent.
+# Install and remove: the Operations block in kronk-backup.service.
+[Unit]
+Description=Kronk — weekly recordings archive, Mondays at 01:00 (M16)
+
+[Timer]
+OnCalendar=Mon *-*-* 01:00
+Persistent=true
+RandomizedDelaySec=10m
+
+[Install]
+WantedBy=timers.target

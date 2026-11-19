@@ -1,0 +1,20 @@
+# Weekly recordings archive (sprint M16): scripts/archive_recordings.sh moves
+# recordings older than 7 days from ~/kronk-voice-recordings to
+# $KRONK_BACKUP_DIR/recordings/ (copied, read back, then deleted locally
+# through a throwaway alpine:3.20 container; nothing on the NAS is deleted),
+# with a start and an end notice. Fired by kronk-recordings-archive.timer.
+# Install, run, remove: the Operations block in kronk-backup.service.
+#   dry run:   scripts/archive_recordings.sh --dry-run
+#   log:       journalctl --user -u kronk-recordings-archive.service -n 100
+[Unit]
+Description=Kronk — weekly voice recordings archive to the NAS (M16)
+
+[Service]
+Type=oneshot
+ExecStart=%h/git-repos/drawsmcgraw/kronk/scripts/archive_recordings.sh
+WorkingDirectory=%h/git-repos/drawsmcgraw/kronk
+Environment=KRONK_REPO_DIR=%h/git-repos/drawsmcgraw/kronk
+EnvironmentFile=-%h/.config/kronk/backup.env
+TimeoutStartSec=2h
+Nice=10
+IOSchedulingClass=idle

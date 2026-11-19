@@ -1,0 +1,38 @@
+# Monthly config backup (sprint M16): scripts/backup.sh writes one dated tar
+# of what is needed to rebuild Kronk to $KRONK_BACKUP_DIR/config/ (default
+# /mnt/nas-backup, the NAS share; it must be mounted, or the run fails and
+# writes nothing there), verifies it, keeps the newest 12, and sends a start
+# and an end notice. The tar holds secrets in the clear (mode 0600).
+# Optional overrides (KRONK_BACKUP_DIR, KRONK_BACKUP_KEEP, ...) go in
+# ~/.config/kronk/backup.env, one NAME=value per line, read by all three
+# backup units. Fired by kronk-backup.timer. Guide: docs/features/backups.md.
+#
+# Operations (the full sequence: docs/features/backups.md, "Installing"):
+#   before:    the NAS share mounted at /mnt/nas-backup (the fstab line in the guide)
+#   install:   cp systemd/kronk-{backup,recordings-archive,backup-check}.{service,timer} ~/.config/systemd/user/
+#              systemd-analyze --user verify ~/.config/systemd/user/kronk-{backup,recordings-archive,backup-check}.{service,timer}
+#              systemctl --user daemon-reload
+#              systemctl --user enable --now kronk-backup.timer kronk-recordings-archive.timer kronk-backup-check.timer
+#   check:     systemctl --user list-timers 'kronk-backup*' 'kronk-recordings-*'
+#   dry run:   scripts/backup.sh --dry-run              (any time; writes and sends nothing)
+#   run now:   systemctl --user start kronk-backup.service    (or scripts/backup.sh by hand, before a risky change)
+#   pause:     systemctl --user disable --now kronk-backup.timer
+#   log:       journalctl --user -u kronk-backup.service -n 100
+#              python3 scripts/backups.py status       (the last run of each job)
+#   remove:    systemctl --user disable --now kronk-backup.timer kronk-recordings-archive.timer kronk-backup-check.timer
+#              rm ~/.config/systemd/user/kronk-{backup,recordings-archive,backup-check}.{service,timer}
+#              systemctl --user daemon-reload
+[Unit]
+Description=Kronk — monthly config backup to the NAS (M16)
+
+[Service]
+Type=oneshot
+ExecStart=%h/git-repos/drawsmcgraw/kronk/scripts/backup.sh
+WorkingDirectory=%h/git-repos/drawsmcgraw/kronk
+Environment=KRONK_REPO_DIR=%h/git-repos/drawsmcgraw/kronk
+EnvironmentFile=-%h/.config/kronk/backup.env
+# The model list hashes every GGUF the first time (about 230 GB; cached by
+# size and mtime afterwards): allow a long first run, at idle priority.
+TimeoutStartSec=3h
+Nice=10
+IOSchedulingClass=idle

@@ -1,0 +1,19 @@
+# Daily stale check for the backups (sprint M16): scripts/backup_check.sh
+# warns when the newest config backup is older than 35 days, the archive has
+# not finished a run in 9 days, the destination is not mounted, or the last
+# run of either job failed: one notice when that changes, repeated weekly,
+# and a warning on /services. Writes only data/backups/status.json.
+# Fired by kronk-backup-check.timer. Install and remove: the Operations
+# block in kronk-backup.service.
+[Unit]
+Description=Kronk — daily backup stale check (M16)
+
+[Service]
+Type=oneshot
+ExecStart=%h/git-repos/drawsmcgraw/kronk/scripts/backup_check.sh
+WorkingDirectory=%h/git-repos/drawsmcgraw/kronk
+Environment=KRONK_REPO_DIR=%h/git-repos/drawsmcgraw/kronk
+EnvironmentFile=-%h/.config/kronk/backup.env
+TimeoutStartSec=10min
+# A warning exits 1; that is the check's answer, not a unit failure.
+SuccessExitStatus=1

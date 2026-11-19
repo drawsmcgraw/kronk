@@ -226,7 +226,12 @@ verbatim — never summarized away.
   thumbs; 1-year expiry, no auto-renew). `.env.telemetry` (gitignored,
   since 2026-11-08) holds the Grafana admin login; its `.example` is the
   template. `searxng/settings.yml` is gitignored; its `.example` is the
-  template. No other secrets exist.
+  template. Since 2026-11-19 `.env` also holds `KRONK_BACKUP_NAME` and
+  `KRONK_BACKUP_PASSWORD` (the NAS backup account), installed as the
+  root-only `/etc/kronk/nas-backup.cred` (beside `nas-music.cred`). The
+  monthly config tar on the NAS (`/mnt/nas-backup/config/`, sprint M16)
+  holds all of these in the clear; treat that share as a secret store.
+  No other secrets exist.
 - **New compose files** get an `# Operations:` comment block (up / restart /
   logs / down recipes) like the existing ones.
 - **Docs lifecycle** (defined in `ROADMAP.md`, follow it): sizeable feature →

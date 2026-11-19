@@ -49,6 +49,14 @@ Conventions:
   for the cloning run and the household listening test; material in
   `~/kronk-tts-trial/samples/`. `docs/sprint/M20-build.md`.
 
+- **Backups** *(sprint M16, built 2026-11-19)* — a monthly config tar
+  (about 5 MB: secrets, HA `.storage`, live config, units, `solar.db`, the
+  model checksum list) and a weekly archive of the voice recordings to the
+  NAS share, with a daily stale check and a tested restore runbook
+  (`docs/runbooks/restore.md`). Waits for Drew's install: the share's fstab
+  line and credentials, then the timers. Open: encryption of the tar
+  (secrets are in the clear on the NAS). `docs/features/backups.md`.
+
 ## Next — agreed, not started
 
 - **Music selection refinement** — Kronk plays what was meant, not the
@@ -64,12 +72,6 @@ Conventions:
   plays a seed only on an explicit create. No new MA code; the song-title seed ranking
   goes upstream (`INVESTIGATION_2026-11-07_ma_pandora_and_ui.md`).
   *Why: four radio misfires in three weeks, two of them wrong successes.*
-- **Backups** — nightly copies of the HA config volume, the MA volume, the
-  orchestrator SQLite, tool_service `/data` (`solar.db` is the only copy of
-  past production history) to the NAS or a second
-  disk. Only hand-taken MA tarballs exist today. Tempo's `tempo-data`
-  volume (traces, 90 days) is a candidate too.
-  *Why: there is no second copy of anything.*
 - **Reclaim storage and memory** — disk: the Ollama blobs
   (`/usr/share/ollama/.ollama/models/blobs/`, 241 GB, unused since the
   llama.cpp migration) and unused GGUFs in `/opt/models`. GPU memory: retire

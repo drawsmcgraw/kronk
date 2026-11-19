@@ -1,0 +1,12 @@
+# Fires kronk-backup-check.service daily at 09:30 local (a waking hour, so a
+# notice is read). Persistent.
+# Install and remove: the Operations block in kronk-backup.service.
+[Unit]
+Description=Kronk — daily backup stale check at 09:30 (M16)
+
+[Timer]
+OnCalendar=*-*-* 09:30
+Persistent=true
+
+[Install]
+WantedBy=timers.target
