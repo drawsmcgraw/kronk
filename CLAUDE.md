@@ -228,7 +228,8 @@ verbatim — never summarized away.
   template. `searxng/settings.yml` is gitignored; its `.example` is the
   template. Since 2026-11-19 `.env` also holds `KRONK_BACKUP_NAME` and
   `KRONK_BACKUP_PASSWORD` (the NAS backup account), installed as the
-  root-only `/etc/kronk/nas-backup.cred` (beside `nas-music.cred`). The
+  root-only `/etc/kronk/nas-backup.cred` (beside `nas-music.cred`) by
+  Drew's install step (pending; until then only `nas-music.cred` exists). The
   monthly config tar on the NAS (`/mnt/nas-backup/config/`, sprint M16)
   holds all of these in the clear; treat that share as a secret store.
   No other secrets exist.

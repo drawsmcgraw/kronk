@@ -7,8 +7,9 @@ which production sees as /data/backups/status.json. The page shows a warning
 when the last run of a job failed or was declined, when its last success is
 older than the limits the script wrote into the file (35 days for the config
 backup, the archive's interval plus a margin), when the stale check found a
-problem (the destination not mounted, no backup on it), or when the last
-config backup could not read something. The NAS is not mounted into this
+problem (the destination not mounted, no backup on it), when the last
+config backup could not read something or was incomplete, and when a job has
+never finished a good run (no status file at all included). The NAS is not mounted into this
 container, so the age comes from the status file; the stale check, which
 runs on the host, looks at the destination itself.
 
@@ -44,17 +45,24 @@ def summarize(raw: dict, now: dt.datetime | None = None) -> dict:
         entry = raw.get(key) if isinstance(raw.get(key), dict) else {}
         last = entry.get("last") if isinstance(entry.get("last"), dict) else None
         jobs[key] = {"last": last, "last_ok_at": entry.get("last_ok_at")}
-        if last and last.get("result") in ("failed", "declined"):
+        if last and last.get("result") in ("failed", "declined", "incomplete"):
             warnings.append(f"the last {word} {last['result']} ({last.get('at')}): {str(last.get('detail'))[:200]}")
         limit = limits.get(limit_key, default)
         ok = _when(entry.get("last_ok_at"))
-        if ok is not None and isinstance(limit, (int, float)) and now - ok > dt.timedelta(days=limit):
+        if ok is None:
+            warnings.append(f"the {word} has never finished a good run")
+        elif isinstance(limit, (int, float)) and now - ok > dt.timedelta(days=limit):
             warnings.append(f"the last good {word} was {(now - ok).days} days ago (limit {limit})")
         if key == "config" and last and last.get("result") == "ok" and last.get("unreadable"):
             warnings.append(f"the last config backup could not read {len(last['unreadable'])} item(s): "
                             + "; ".join(str(x) for x in last["unreadable"][:3]))
     check = raw.get("check") if isinstance(raw.get("check"), dict) else {}
-    for w in check.get("warnings") or []:
+    found = check.get("warnings") or []
+    if isinstance(found, str):          # one warning, not a list of characters
+        found = [found]
+    elif not isinstance(found, list):
+        found = [f"the stale check's warnings are unreadable ({type(found).__name__})"]
+    for w in found:
         if str(w) not in warnings:
             warnings.append(str(w))
     return {"present": True, "warnings": warnings, "jobs": jobs, "check_at": check.get("at"),
@@ -68,7 +76,9 @@ async def backups_status():
     try:
         raw = json.loads(path.read_bytes().decode("utf-8"))
     except FileNotFoundError:
-        return {**base, "present": False, "warnings": [], "jobs": {},
+        return {**base, "present": False, "jobs": {},
+                "warnings": ["no backup job has written a status file yet (the timers are not installed, "
+                             "or no job has ever run)"],
                 "note": "no backup job has written a status file yet"}
     except (OSError, ValueError, RecursionError) as e:
         return {**base, "present": False, "jobs": {},

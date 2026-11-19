@@ -11,6 +11,7 @@
 #   scripts/backup.sh --dry-run              what would go in, with sizes; writes and sends nothing
 #   scripts/backup.sh                        the real run (the timer's job; also before a risky change)
 #   scripts/backup.sh --dest <dir>           another destination (tests, a USB disk by hand)
+#   ... --no-notify                          a test or by-hand run: no notice, whatever the environment says
 #
 # Settings: KRONK_BACKUP_DIR (default /mnt/nas-backup, which must be a mount
 # point), KRONK_BACKUP_KEEP (12), KRONK_BACKUP_MAX_MB (50), KRONK_BACKUP_STATE

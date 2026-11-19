@@ -6,5 +6,6 @@
 # 35 days, the recordings archive has not finished a run in 9 days, the
 # destination is not mounted, or the last run of either job failed.
 # Writes only data/backups/status.json. Fired by systemd/kronk-backup-check.timer.
+# A test or by-hand run: scripts/backup_check.sh --no-notify (no notice is sent).
 set -euo pipefail
 exec /usr/bin/python3 "$(dirname "$0")/backups.py" check "$@"

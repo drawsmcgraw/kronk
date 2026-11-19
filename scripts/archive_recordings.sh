@@ -11,6 +11,7 @@
 # Usage:
 #   scripts/archive_recordings.sh --dry-run  what would move; writes, deletes and sends nothing
 #   scripts/archive_recordings.sh            the real run (the timer's job)
+#   ... --no-notify                          a test or by-hand run: no notice, whatever the environment says
 #
 # Settings: KRONK_BACKUP_DIR (default /mnt/nas-backup), KRONK_RECORDINGS_DIR
 # (~/kronk-voice-recordings), KRONK_ARCHIVE_AGE_DAYS (7),

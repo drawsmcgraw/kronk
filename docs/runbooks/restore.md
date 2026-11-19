@@ -4,20 +4,34 @@ Sprint M16. The backup is one tar a month, written by `scripts/backup.sh`
 to the NAS (`/mnt/nas-backup/config/kronk-config-<YYYY-MM-DD>.tar.gz`;
 guide: `docs/features/backups.md`). This runbook rebuilds Kronk from it on a
 bare machine, or restores one part of it. Tested against scratch containers
-on 2026-11-19 (`docs/sprint/M16-build.md`, "Restore test"); the steps below
-are the corrected ones.
+on 2026-11-19 (`docs/sprint/M16-build.md`, "Restore test"; the fixes and
+re-runs in `docs/sprint/M16-fix1.md`); the steps below are the corrected
+ones.
 
-Conventions: `$D` is the date of the tar you restore, `$R` the directory you
-unpacked it into, `$K` the repo checkout.
+**This runbook travels inside every tar** as `RESTORE.md` (with the feature
+doc as `BACKUPS.md`), so steps 1 to 5 work from the tar alone, before any
+clone. No copy of it at hand? From any computer, download the newest
+`config/kronk-config-*.tar.gz` from the NAS (Synology File Station, the
+`kronk-backup` shared folder), unpack it, and read `RESTORE.md`; or follow
+steps 1 to 3 below, which need nothing else.
+
+Conventions: `$T` is the tar's file name without `.tar.gz` (the directory it
+unpacks into: `kronk-config-2026-11-19`, or `kronk-config-2026-11-19.2` for
+a second tar that day), `$R` the directory you unpacked it into, `$K` the
+repo checkout.
 
 ```
-D=2026-11-19                                  # the tar's date
-R=~/restore/kronk-config-$D                   # where it is unpacked (step 3)
+T=kronk-config-2026-11-19                     # the tar's name without .tar.gz
+R=~/restore/$T                                # where it is unpacked (step 3)
 K=~/git-repos/drawsmcgraw/kronk               # the repo
 ```
 
-The tar holds secrets in the clear. Unpack it into a 0700 directory and
-remove that directory when done (last step).
+A tar named `kronk-config-<date>.incomplete.tar.gz` is missing a required
+item (its MANIFEST's `REQUIRED` lines say which): prefer the newest tar
+without `.incomplete`, and take only what you need from an incomplete one.
+
+The tar holds secrets in the clear. Unpack it into a 0700 directory with
+`umask 077` (step 3) and remove that directory when done (last step).
 
 ## What needs a human, and what to have ready
 
@@ -45,7 +59,7 @@ member `etc/default/grub` (and the running ones in `host-facts.txt`,
 `/proc/cmdline`):
 
 ```
-sudo apt install docker.io docker-compose-v2 git cifs-utils jq curl python3
+sudo apt install docker.io docker-compose-v2 git cifs-utils jq curl python3 python3-venv
 sudo usermod -aG docker drew                  # log out and in again
 sudo loginctl enable-linger drew              # user units start at boot without a login
 ```
@@ -55,14 +69,21 @@ The GRUB file is restored in step 4, after the tar is reachable.
 ### 2. Mount the NAS backup share
 
 The credentials file is inside the tar, so type it once (this is the
-human step). Put the fstab line from `docs/features/backups.md`,
-"Install (Drew)", into `/etc/fstab` and:
+human step). The fstab line (the same as `docs/features/backups.md`,
+"Install (Drew)"; `ip=` because mDNS is not up at boot):
 
 ```
+# Synology backup share for scripts/backup.sh and scripts/archive_recordings.sh (sprint M16).
+# nofail: a NAS outage never blocks boot; the jobs check the mount point and fail loudly.
+//atlas.local/kronk-backup  /mnt/nas-backup  cifs  rw,ip=192.168.1.14,credentials=/etc/kronk/nas-backup.cred,iocharset=utf8,uid=1000,gid=1000,file_mode=0600,dir_mode=0700,_netdev,nofail,x-systemd.mount-timeout=30  0  0
+```
+
+```
+sudoedit /etc/fstab                           # add the two comment lines and the line above
 sudo install -d -m 0700 /etc/kronk
 sudo install -m 0600 /dev/null /etc/kronk/nas-backup.cred
 sudoedit /etc/kronk/nas-backup.cred           # username=<KRONK_BACKUP_NAME> / password=<the password>
-sudo mkdir -p /mnt/nas-backup && sudo mount /mnt/nas-backup
+sudo mkdir -p /mnt/nas-backup && sudo systemctl daemon-reload && sudo mount /mnt/nas-backup
 ls /mnt/nas-backup/config/                    # the tars, newest last
 ```
 
@@ -70,12 +91,17 @@ ls /mnt/nas-backup/config/                    # the tars, newest last
 
 ```
 mkdir -p -m 0700 ~/restore
-tar -xzf /mnt/nas-backup/config/kronk-config-$D.tar.gz -C ~/restore
+(umask 077 && tar -xzf /mnt/nas-backup/config/$T.tar.gz -C ~/restore)
 cd $R
 awk -F'\t' '$1 ~ /^[0-9a-f]{64}$/ {print $1 "  " $4}' MANIFEST | sha256sum -c --quiet && echo all members match
-sed -n '/could not be read/,$p' MANIFEST       # what this backup does NOT have
-cat repo-state.txt                            # commit, branch, not pushed, production tag
+sed -n '/REQUIRED items/,$p' MANIFEST          # what this backup does NOT have
+cat repo-state.txt                            # commit, branch, not pushed, the bundle, production tag
+less RESTORE.md                               # this runbook, as it was when the tar was taken
 ```
+
+`umask 077` makes every unpacked file and directory private to you (the
+tar's own modes are kept only where they are stricter); the top directory
+is 0700 in the tar too.
 
 `sha256sum -c` prints only failures. A member whose name has a control
 character is JSON-escaped in the MANIFEST and fails the check by name only;
@@ -86,7 +112,7 @@ none exist today.
 ```
 sudo install -m 0644 $R/etc/default/grub /etc/default/grub && sudo update-grub
 sudo install -m 0644 $R/etc/docker/daemon.json /etc/docker/daemon.json && sudo systemctl restart docker
-sudo cp $R/etc/kronk/* /etc/kronk/ && sudo chmod 0600 /etc/kronk/* && sudo chown root:root /etc/kronk/*
+sudo install -m 0600 -o root -g root $R/etc/kronk/* /etc/kronk/   # the source glob is yours, so it expands
 sed -n '/network filesystem lines/,$p' $R/host-facts.txt   # the NAS lines to add to /etc/fstab
 sudoedit /etc/fstab                           # add the music share line (the backup line is already there)
 sudo mkdir -p /mnt/nas-music && sudo mount -a
@@ -100,7 +126,23 @@ cat /proc/cmdline                             # has ttm.pages_limit=... ttm.page
 mkdir -p ~/git-repos/drawsmcgraw && cd ~/git-repos/drawsmcgraw
 git clone git@github.com:drawsmcgraw/kronk.git
 cd $K && git checkout <branch from repo-state.txt>
+```
+
+When `repo-state.txt` names `repo-unpushed.bundle` (commits no remote had
+when the tar was taken, the production tag among them when it was not on
+the remote either), bring them in from the tar:
+
+```
+git bundle verify $R/repo-unpushed.bundle     # "is okay": the clone has what it builds on
+git fetch $R/repo-unpushed.bundle '+refs/heads/*:refs/remotes/bundle/*' '+refs/tags/*:refs/tags/*'
+git checkout -B <branch> bundle/<branch>
+```
+
+Then:
+
+```
 git log -1 --format=%H                        # compare with "commit:" in repo-state.txt
+git rev-parse --verify <production tag>       # if missing: the "production tag ... on the remote" line gives `git tag <tag> <commit>`
 python3 -m venv tests/.venv && tests/.venv/bin/pip install -r tests/requirements.txt
 ```
 
@@ -110,8 +152,9 @@ system `python3` lacks their packages (tested: `ModuleNotFoundError: No
 module named 'pydantic'`).
 
 `repo-state.txt` says how many commits were not pushed when the tar was
-taken. Those are lost unless another copy exists; the tar does not hold the
-repo's history.
+taken and whether they are in the bundle (it is left out, and the notice
+says so, over its size cap). The bundle holds only what no remote-tracking
+branch had: it needs the clone from GitHub first.
 
 ### 6. Secrets and local config into the repo
 
@@ -121,7 +164,7 @@ cp -p $R/repo/.env $R/repo/.env.dev $R/repo/.env.telemetry .
 cp -rp $R/repo/secrets .
 mkdir -p data && cp -rp $R/repo/data/. data/
 sudo install -o 977 -g 977 -m 0664 $R/repo/searxng/settings.yml searxng/settings.yml
-chmod 0600 .env.telemetry secrets/mm/kronk-mm-update
+chmod 0600 .env .env.dev .env.telemetry secrets/mm/kronk-mm-update
 [ -e $R/repo/ops/hosts.json ] && cp -p $R/repo/ops/hosts.json ops/
 cmp $R/repo/.env .env && echo .env restored
 ```
@@ -178,18 +221,28 @@ Not in the tar (binaries). The units name the versions:
 
 ### 10. User units
 
+The hot tub monitor's unit runs from its own venv, which is not in the tar:
+
+```
+cd $K && python3 -m venv hottub_monitor/.venv && hottub_monitor/.venv/bin/pip install geckolib==1.0.15
+```
+
+Then the units:
+
 ```
 mkdir -p ~/.config/systemd/user ~/.config/kronk
 cp -a $R/systemd-user/. ~/.config/systemd/user/
 cp -a $R/config-kronk/. ~/.config/kronk/
 systemd-analyze --user verify ~/.config/systemd/user/*.service ~/.config/systemd/user/*.timer
 systemctl --user daemon-reload
-systemctl --user start llama-gemma3-4b llama-gemma4-e4b llama-devstral-q4 wyoming-whisper wyoming-whisper-dev
+cd ~/.config/systemd/user && systemctl --user start $(ls default.target.wants timers.target.wants | grep -E '^(llama|wyoming|kronk|gpu)-.*\.(service|timer)$')
 sudo cp $K/systemd/sp5100-tco-load.service /etc/systemd/system/ && sudo systemctl enable --now sp5100-tco-load
 ```
 
 The `*.target.wants` symlinks come back with the copy, so what was enabled
-is enabled again at the next boot. `verify` warns about units whose binary
+is enabled again at the next boot; the `start` line starts the same set now
+(the llama and Whisper units, the `kronk-*` services such as the hot tub
+monitor, and every enabled timer). `verify` warns about units whose binary
 is not there yet (step 9).
 
 ### 11. Compose stacks, in dependency order
@@ -197,8 +250,8 @@ is not there yet (step 9).
 ```
 cd $K
 mkdir -p ~/kronk-voice-recordings           # HA refuses to start without it (create_host_path: false)
-docker compose -f docker-compose.telemetry.yml --env-file .env.telemetry up -d
-scripts/deploy_tag.sh deploy <production tag from repo-state.txt>   # Kronk stack: nginx, orchestrator, tool_service, ...
+scripts/deploy_tag.sh deploy <production tag from repo-state.txt>   # Kronk stack first: it creates the kronk_kronk network
+docker compose -f docker-compose.telemetry.yml --env-file .env.telemetry up -d   # joins kronk_kronk (external)
 ```
 
 Then Home Assistant (step 12) and Music Assistant (step 13), then the dev
@@ -251,6 +304,10 @@ MagicMirror host key). The labelled voice clips:
 [ -d $R/voice-labels ] && cp -a $R/voice-labels ~/kronk-voice-labels
 ```
 
+The archived voice recordings stay on the NAS
+(`/mnt/nas-backup/recordings/`); nothing needs to come back for Kronk to
+run.
+
 ### 15. Verify
 
 - `/services` (`http://kronk/services`): every probe green, the Backups and
@@ -266,7 +323,7 @@ MagicMirror host key). The labelled voice clips:
 ### 16. Clean up
 
 ```
-rm -rf ~/restore/kronk-config-$D            # it holds every secret in the clear
+rm -rf ~/restore/kronk-config-2026-11-19    # type the directory's name: it holds every secret in the clear
 ```
 
 ## Restore one thing only
@@ -280,15 +337,26 @@ current state first, then replace only `.storage`:
 ```
 cd $K
 docker run --rm --pull=never --network none -v kronk_ha-config:/config:ro -v ~/restore:/out alpine:3.20 \
-  tar -czf /out/ha-storage-before-restore.tgz -C /config .storage
+  sh -c "umask 077 && tar -czf /out/ha-storage-before-restore.tgz -C /config .storage && chown $(id -u):$(id -g) /out/ha-storage-before-restore.tgz"
 docker compose -f docker-compose.ha.yml stop homeassistant
 docker run --rm --pull=never --network none -v kronk_ha-config:/config -v $R/ha/config/.storage:/src:ro alpine:3.20 \
   sh -c 'cp -a /src/. /config/.storage/ && chown -R 0:0 /config/.storage'
 docker compose -f docker-compose.ha.yml start homeassistant
 ```
 
-To restore a single file (`core.entity_registry`, say), put that file's
-path in `/src` instead of the directory.
+The "before" tar holds HA's auth store: it is written 0600 and owned by
+you, inside the 0700 `~/restore`, and goes with step 16.
+
+To restore a single file (`core.entity_registry`, say), mount that file
+under its own name and copy just it:
+
+```
+docker compose -f docker-compose.ha.yml stop homeassistant
+docker run --rm --pull=never --network none -v kronk_ha-config:/config \
+  -v $R/ha/config/.storage/core.entity_registry:/src/core.entity_registry:ro alpine:3.20 \
+  sh -c 'cp -a /src/core.entity_registry /config/.storage/core.entity_registry && chown 0:0 /config/.storage/core.entity_registry'
+docker compose -f docker-compose.ha.yml start homeassistant
+```
 
 **The live config directories.** The dev or production prompts and tuning
 as they were:
