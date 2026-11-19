@@ -1104,10 +1104,10 @@ while [ "$i" -lt "$n" ]; do
     if [ -L "$f" ] || [ ! -f "$f" ]; then why="not a regular file"
     elif [ -L "$t" ] || [ ! -f "$t" ]; then why="the destination copy is gone"
     else
-      h=$(sha256sum < "$f"); h=${h%% *}
-      s=$(stat -c '%s %Y %d:%i' -- "$f")
       g=$(sha256sum < "$t"); g=${g%% *}
       d=$(stat -c '%s %d:%i' -- "$t")
+      h=$(sha256sum < "$f"); h=${h%% *}
+      s=$(stat -c '%s %Y %d:%i' -- "$f")
       if [ "$s" != "$sz $mt $si" ]; then why="size, mtime or inode differ from the copied file"
       elif [ "$h" != "$hs" ]; then why="sha256 differs from the copied file"
       elif [ "$d" != "$sz $di" ]; then why="the destination copy is not the verified one"
@@ -2685,3 +2685,65 @@ def test_fix3_notes14_15_and_finding2_the_doc_and_runbook_wording():
     assert "(this overwrites the one typed in step 2)" in rb
     assert "sudo install -d -o drew -g drew /opt/models" in rb                                       # 15b
     assert "`*.wants` links to snap units" in rb                                                     # 15c
+
+
+# ── After the fourth end-to-end test (coordinator fixes) ─────────────────
+
+def test_e2e4_the_delete_script_reads_the_local_file_last():
+    """Note 5: the last thing read before the rm is the local file (its hash,
+    then its stat), so a file swapped in while the destination copy is being
+    read is caught by the inode or the hash."""
+    lines = B.DELETE_SCRIPT.splitlines()
+    idx = {k: next(i for i, ln in enumerate(lines) if ln.strip().startswith(k))
+           for k in ('g=$(sha256sum < "$t")', "d=$(stat", 'h=$(sha256sum < "$f")', "s=$(stat")}
+    assert idx['g=$(sha256sum < "$t")'] < idx["d=$(stat"] < idx['h=$(sha256sum < "$f")'] < idx["s=$(stat"]
+
+
+def test_e2e4_retention_never_removes_the_tar_the_run_just_wrote(tmp_path):
+    """Finding 4: twelve newer dates already there (a clock set back)."""
+    cfg = tmp_path / "config"
+    cfg.mkdir()
+    newer = [f"kronk-config-2027-{m:02d}-10.tar.gz" for m in range(1, 13)]
+    for n in newer + ["kronk-config-2026-11-19.tar.gz", "kronk-config-2026-10-10.tar.gz"]:
+        (cfg / n).write_bytes(b"x")
+    said = []
+    removed = B.retention(cfg, 12, said.append, protect="kronk-config-2026-11-19.tar.gz")
+    assert removed == ["kronk-config-2026-10-10.tar.gz"]
+    assert (cfg / "kronk-config-2026-11-19.tar.gz").exists()
+    assert all((cfg / n).exists() for n in newer)
+    assert any("just written; kept" in x for x in said)
+    # without the protection the old behaviour is what the finding showed
+    assert B.retention(cfg, 12, said.append) == ["kronk-config-2026-11-19.tar.gz"]
+
+
+def test_e2e4_the_notice_counts_unpushed_commits_on_other_local_branches(house):
+    """Finding 2: HEAD and the production tag pushed, 3 commits on another local branch."""
+    ops = _count_by_refs(FakeOps(), head=0, tag=0)
+    ops.unpushed = 0
+    inner = ops.run
+
+    def run(argv, timeout=300, stdin=None):
+        if argv[0] == "git" and "rev-list" in argv and "--branches" in argv:
+            return B.Result(0, b"3\n", "")
+        return inner(argv, timeout, stdin)
+    ops.run = run
+    assert B.cmd_config(house, ops, dry_run=False) == 0
+    body = ops.notices[-1][1]
+    assert ("Other local branches: 3 commits on no remote and NOT in the tar (the bundle covers the checked-out "
+            "branch and the production tags): push them.") in body
+    # nothing elsewhere: no sentence
+    ops = _count_by_refs(FakeOps(), head=0, tag=0)
+    ops.unpushed = 0
+    assert B.cmd_config(house, ops, dry_run=False) == 0
+    assert "Other local branches" not in ops.notices[-1][1]
+
+
+def test_e2e4_the_notice_names_a_production_tag_that_is_not_a_local_tag(house, monkeypatch):
+    """Finding 1: git cannot answer for the tag; the notice says so instead of nothing."""
+    monkeypatch.setattr(B, "tag_on_remote", lambda s, ops, t: "unknown (no local tag of that name)")
+    ops = _count_by_refs(FakeOps(), head=0, tag=0)
+    ops.unpushed = 0
+    assert B.cmd_config(house, ops, dry_run=False) == 0
+    body = ops.notices[-1][1]
+    assert ("Production tag sprint-M16: not a local tag, so the tar cannot say which commit production runs "
+            "or whether a remote has it.") in body

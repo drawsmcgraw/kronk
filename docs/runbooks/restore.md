@@ -143,9 +143,23 @@ the remote either), bring them in from the tar:
 
 ```
 git bundle verify $R/repo-unpushed.bundle     # "is okay": the clone has what it builds on
+git bundle list-heads $R/repo-unpushed.bundle # what it holds: decides the next lines
 git fetch $R/repo-unpushed.bundle '+refs/heads/*:refs/remotes/bundle/*' '+refs/tags/*:refs/tags/*'
-git checkout -B <branch> bundle/<branch>
+git checkout -B <branch> bundle/<branch>      # only when list-heads shows refs/heads/<branch>
 ```
+
+Three layouts need a different line (tested 2026-11-19, `M16-e2e4.md`
+finding 3):
+
+- **The branch in `repo-state.txt` is not on GitHub** (a local-only
+  branch): the `git checkout <branch>` above fails with "pathspec did not
+  match". Skip it; the bundle block creates the branch.
+- **`list-heads` shows only tags** (the branch was pushed, the production
+  tag was not): run the `fetch`, skip `checkout -B`. The tag is now local.
+- **`list-heads` shows only `HEAD`** (the tar was taken on a detached
+  HEAD): the refspecs above match nothing. Use
+  `git fetch $R/repo-unpushed.bundle HEAD && git checkout FETCH_HEAD`, then
+  `git switch -c restored` to keep it on a branch.
 
 Then:
 

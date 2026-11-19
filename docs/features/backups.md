@@ -228,8 +228,10 @@ Only then `rm --` (no `-r`, no `-f`), then `rmdir --` of the run directory,
 which only removes it when empty. Anything that fails a check is kept
 locally and reported, and the run is not OK. Not checked: the destination
 copy's mtime (a copy found already on the share keeps its own, so it is not
-evidence), and anything after the check: the one shell line between the
-last read and the `rm` is the residual window, and a change to the copy
+evidence), and anything after the check: the script reads the destination
+copy first and the local file last (its hash, then its size, mtime and
+inode), so the one shell line between that last read and the `rm` is the
+residual window, and a change to the copy
 after the delete is beyond what any archive job can see. The delete reads
 every copy back from the share a second time. Paths are arguments, never
 part of the script.

@@ -289,10 +289,10 @@ while [ "$i" -lt "$n" ]; do
     if [ -L "$f" ] || [ ! -f "$f" ]; then why="not a regular file"
     elif [ -L "$t" ] || [ ! -f "$t" ]; then why="the destination copy is gone"
     else
-      h=$(sha256sum < "$f"); h=${h%% *}
-      s=$(stat -c '%s %Y %d:%i' -- "$f")
       g=$(sha256sum < "$t"); g=${g%% *}
       d=$(stat -c '%s %d:%i' -- "$t")
+      h=$(sha256sum < "$f"); h=${h%% *}
+      s=$(stat -c '%s %Y %d:%i' -- "$f")
       if [ "$s" != "$sz $mt $si" ]; then why="size, mtime or inode differ from the copied file"
       elif [ "$h" != "$hs" ]; then why="sha256 differs from the copied file"
       elif [ "$d" != "$sz $di" ]; then why="the destination copy is not the verified one"
@@ -1224,7 +1224,7 @@ def next_name(cfg: Path, day: str, incomplete: bool = False) -> str:
     return name
 
 
-def retention(cfg: Path, keep: int, log) -> list[str]:
+def retention(cfg: Path, keep: int, log, protect: str | None = None) -> list[str]:
     """Keep every file named like this job's tars whose date is one of the
     newest <keep> dates (same-day reruns, .2, .3, count as one date, so runs
     by hand cannot push older months out); remove the rest, in <dest>/config
@@ -1239,6 +1239,12 @@ def retention(cfg: Path, keep: int, log) -> list[str]:
     removed = []
     for (day, _n), name in found if kept is not None else []:
         if day in kept:
+            continue
+        if name == protect:
+            # Twelve newer dates are already there (a clock set back, or
+            # tars with wrong dates in their names): the run never removes
+            # its own result (M16 e2e4 finding 4).
+            log(f"retention: {name} is older than the {keep} dates kept, but it was just written; kept")
             continue
         os.unlink(cfg / name)
         log(f"retention: removed {name}")
@@ -1319,6 +1325,14 @@ def _config_run(s: Settings, ops: Ops, run: dict, day: str, hash_models: bool) -
                      + ("its commit is" if len(tg) == 1 else "their commits are") + " on no remote-tracking branch ("
                      + ("in the tar's repo-unpushed.bundle)." if run.get("bundle") else "NOT in the tar: push it).")
                      )
+        if run.get("tags_unknown"):
+            tg = run["tags_unknown"]
+            gaps += (f" Production tag {', '.join(tg)}: not a local tag, so the tar cannot say which commit "
+                     "production runs or whether a remote has it.")
+        if run.get("other_unpushed"):
+            k = run["other_unpushed"]
+            gaps += (f" Other local branches: {k} commit{'' if k == 1 else 's'} on no remote and NOT in the tar "
+                     "(the bundle covers the checked-out branch and the production tags): push them.")
         if run.get("dirty"):
             gaps += (f" Working tree: {run['dirty']} uncommitted or untracked path{'' if run['dirty'] == 1 else 's'}, "
                      "not in the tar.")
@@ -1404,7 +1418,7 @@ def _config(s: Settings, ops: Ops, run: dict, day: str, hash_models: bool) -> tu
         if os.path.lexists(tmp):
             os.unlink(tmp)
         raise
-    removed = retention(cfg, s.keep, ops.log) if not gaps else []   # an incomplete run never removes a tar
+    removed = retention(cfg, s.keep, ops.log, protect=name) if not gaps else []   # an incomplete run never removes a tar
     run.update(result="incomplete" if gaps else "ok", file=name, path=str(cfg / name), size=size, sha256=sha,
                members=len(members), unreadable=[f"{show(a)}: {b}" for a, b in c.unreadable],
                required_gaps=gaps, absent=[show(a) for a, _ in c.absent], unknown=[show(n) for n in c.unknown],
@@ -1416,6 +1430,13 @@ def _config(s: Settings, ops: Ops, run: dict, day: str, hash_models: bool) -> tu
     if unpushed:
         run["unpushed"] = unpushed
     run["tags_not_pushed"] = [tg for tg, a in on_remote.items() if a.startswith("no:")]
+    # A production tag git cannot answer for (not a local tag), and commits
+    # on other local branches that no remote has: neither is in the tar, so
+    # the notice says so (M16 e2e4 findings 1 and 2).
+    run["tags_unknown"] = [tg for tg, a in on_remote.items() if a.startswith("unknown")]
+    allb = git(s, ops, "rev-list", "--count", "--branches", "HEAD", "--not", "--remotes")
+    if allb.isdigit() and int(allb) > (unpushed or 0):
+        run["other_unpushed"] = int(allb) - (unpushed or 0)
     m = re.search(r"^working tree: (\d+) changed paths", gen[0].data.decode(), re.M)
     if m:
         run["dirty"] = int(m.group(1))
