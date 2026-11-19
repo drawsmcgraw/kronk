@@ -1,10 +1,9 @@
 # M16 fix round 1: end-to-end findings
 
-Status: in progress
-
 Branch `refactor`. Fixes the findings of `docs/sprint/M16-e2e.md` (verdict
 FAILS) under `docs/sprint/M16-criteria.md`. Code commit `779fdf3`; this
-report and the build report's Corrections section follow it.
+report and the build report's Corrections section follow it (`e77328c`,
+then this file's final form).
 
 Tests before: `5506 passed, 3 skipped, 53 xfailed` (the e2e report's run).
 Tests after: `5582 passed, 3 skipped, 53 xfailed, 6 warnings in 75.18s`
@@ -379,7 +378,9 @@ run had `--no-notify` or `no_notify`, and the stub's log was never created.
   tree, the restored `.env`).
 - Removed by literal path: the root-owned parts through `alpine:3.20`
   (`rm -rf /c/sweep /c/home` with `/tmp/kronk-m16-fix1` mounted at `/c`),
-  then `rm -rf /tmp/kronk-m16-fix1`.
+  then `rm -rf /tmp/kronk-m16-fix1`. Checked gone afterwards; no
+  container from `alpine:3.20` and nothing named `restore-test` left; the
+  older `/tmp/kronk-m9-bytes-*` directories were not touched.
 - Containers started by me: throwaway `alpine:3.20` and `python:3.12-slim`
   (`--rm`, `--network none`); two `alpine:3.20` sleepers for the races
   (`--rm`, stopped); compose project `kronk-restore-test` (stand-ins and the
