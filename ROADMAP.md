@@ -53,8 +53,9 @@ Conventions:
   (about 5 MB: secrets, HA `.storage`, live config, units, `solar.db`, the
   model checksum list) and a weekly archive of the voice recordings to the
   NAS share, with a daily stale check and a tested restore runbook
-  (`docs/runbooks/restore.md`). Waits for Drew's install: the share's fstab
-  line and credentials, then the timers. Open: encryption of the tar
+  (`docs/runbooks/restore.md`). Installed 2026-11-20: the share is mounted,
+  the first tar and the first archived recordings are on it, the three
+  timers are on. Open: encryption of the tar
   (secrets are in the clear on the NAS). `docs/features/backups.md`.
 
 ## Next — agreed, not started

@@ -493,8 +493,48 @@ the timers are installed:
    share's `Reads` count grew during the run (the copy is read back once
    after its write and once more by the delete).
 
+### Result of the first run (2026-11-20)
+
+The share is `//atlas.local/kronk-backup` (a Synology, SMB 3.1.1,
+`serverino`), mounted at `/mnt/nas-backup`, 3.3 TB free.
+
+- Placement: `link(2)` for every file (6 of 6). The share supports hard
+  links; the two fallbacks did not run.
+- Read-back over the wire: `/proc/fs/cifs/Stats` went from 0 reads and 0
+  writes to 10 reads and 5 writes for five files: one write, one read-back
+  and one read by the delete, each.
+- Modes: `-rw-------` on every copy. Hashes equal to the ones taken from
+  the local files before the run.
+- **Times: not kept by the first run. Fixed.** Every copy carried the time
+  of the run. An SMB server stamps a file when the handle that wrote it
+  closes and discards a time set through that handle before the close
+  (three orders of `fsync` and `utime` tried on the share; none held). A
+  time set after the close holds, through a path or a read-only handle.
+  The archive now sets the time again through the read-back handle,
+  checks it (2 s slack; the share keeps 100 ns) and fails the copy, keeping
+  the recording, on a share that does not keep it. The five copies of the
+  first run had their times set back by hand from the list taken before the
+  run, to the second (the fractions were not recorded). A sixth recording
+  archived with the fixed script kept its time to 100 ns.
+- Inodes: unchanged over fifteen minutes and across the time repair; no
+  `serverino` message in the kernel log. Not checked across an unmount and
+  mount (needs root); a change there refuses deletes, it does not lose
+  files.
+- First config tar: `kronk-config-2026-11-20.tar.gz`, 5.5 MB, 475 members,
+  written and verified in 3 minutes (nearly all of it hashing 230 GB of
+  models); its `.env` member is byte-identical to the live file. Its notice
+  called `sprint-M17` (still run by `wyoming-piper`; a local tag whose
+  commit is on `origin/refactor`) "not a local tag". `repo-state.txt` was
+  right; the notice's sentence now covers only a tag git cannot resolve.
+- A stray `#recycle` directory on the share is the Synology's recycle bin.
+  The jobs read and write only `config/` and `recordings/`, so it is not in
+  the notices' totals. It was empty after these runs.
+
 ## Blog hooks
 
+- The NAS that changed the time: `utime` before `close` is discarded by an
+  SMB server, and no test against a local directory can show it. Found by
+  the one run the tests could not do.
 - "Small, monthly, config only": what it takes to rebuild a home AI box is
   5 MB, most of it a solar history database; the 230 GB of models is a list
   of checksums.
