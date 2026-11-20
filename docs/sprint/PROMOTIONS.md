@@ -46,3 +46,13 @@ Drew mounted `//atlas.local/kronk-backup` at `/mnt/nas-backup` (the share name w
 - Timers installed and enabled: `kronk-backup.timer` (10th, 01:30), `kronk-recordings-archive.timer` (Mondays 01:00), `kronk-backup-check.timer` (daily 09:30). `GET /api/backups`: `present: true`, no warnings.
 - No redeploy: the two fixes are in `scripts/backups.py`, which runs from the working tree; production's containers stay on `sprint-M16`. Details: `docs/features/backups.md`, "Result of the first run".
 - Not done: inode check across an unmount and mount (needs root). Still open with Drew: encryption of the tar; Music Assistant's `playlists/` and `auth.db`.
+
+### M16b (2026-11-20): Music Assistant's playlists and login database in the tar; the basement device's area
+
+Built by an Opus agent (`docs/sprint/M16b-build.md`), tested by a Fable agent (`docs/sprint/M16b-e2e.md`: PASSES, three should-fix), fixed by the coordinator (`docs/sprint/M16b-fix1.md`). No tag and no deploy: the change is in `scripts/backups.py`, which runs from the working tree. Suite `5683 passed, 3 skipped, 53 xfailed`.
+
+- `ma/auth.db` (read as a main file and WAL pair, replayed by SQLite in a private copy) and `ma/playlists/` are in the config tar. `kronk-config-2026-11-20.2.tar.gz` on the NAS is the first with them.
+- HA device "basement voice pe ma" is in Basement Theater (one registry call; no restart). Drew's live test of "play ... in the basement" is open.
+- `setup-kronk-creds.sh` deleted.
+- Scratch restore from the NAS tar: MA and HA each started with no network and accepted the production tokens. Details and what is not shown: `M16b-fix1.md`.
+

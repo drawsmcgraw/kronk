@@ -41,7 +41,7 @@ The tar holds secrets in the clear. Unpack it into a 0700 directory with
 | GitHub access | the repo comes from the remote | an SSH key on the GitHub account (`git@github.com:drawsmcgraw/kronk.git`) |
 | Model files | not backed up (230 GB); the tar has the list with SHA-256 | Hugging Face access; `models.tsv` names each file |
 | Music Assistant image | `kronk/music-assistant:2.11.0b5-kronk.9` is built locally, not on a registry | the MA fork and `ma/Dockerfile` (`docs/plans/MUSIC_ASSISTANT_PLAN.md`, `MA_UPSTREAM_LESSONS.md`) |
-| `MA_TOKEN` in `.env` | restored in `.env`; it stays valid because MA's `auth.db` (its row, its user and the key that signs it) is restored too, step 13 (since M16b; shown by reading the restored copy of the 2026-11-20 tar, not against a running MA) | nothing; if `auth.db` is not restored, or the token has expired (one year: 2027-10-06), create a long-lived token in MA's UI (Settings, then your profile) and put it in `.env` |
+| `MA_TOKEN` in `.env` | restored in `.env`; it stays valid because MA's `auth.db` (its row, its user and the key that signs it) is restored too, step 13 (since M16b; shown 2026-11-20 on a scratch MA started from the tar on the NAS: the token accepted, an altered one refused) | nothing; if `auth.db` is not restored, or the token has expired (one year: 2027-10-06), create a long-lived token in MA's UI (Settings, then your profile) and put it in `.env` |
 | Music Assistant provider logins | `settings.json` carries most provider settings; cookies and OAuth can be stale | YouTube Music cookie, Pandora and other provider logins, in MA's UI |
 | HA mobile app on the phone | the app trusts the server it paired with | the phone; it reconnects by itself when the HA URL is the same |
 | Voice PE pucks and the Satellite1 | the ESPHome encryption keys are in `.storage` and come back; a puck with a new IP or a reset puck must be re-added | the pucks on the same Wi-Fi; HA, Settings, Devices, ESPHome |
@@ -323,9 +323,13 @@ docker run --rm --pull=never --network none -v kronk-ma_ma-config:/data \
 docker compose -f docker-compose.ma.yml up -d
 ```
 
-`MA_TOKEN` in the restored `.env` works again (table above): check with
-tool_service's Pandora thumbs, or MA's UI, Settings, your profile, where
-the token is listed. Lost by design (Drew, 2026-11-14): MA's library
+`MA_TOKEN` in the restored `.env` works again (table above; shown on a
+scratch MA, 2026-11-20): check with tool_service's Pandora thumbs, or MA's
+UI, Settings, your profile, where the token is listed. A playlist file
+restored into `playlists/` is on disk but was not in MA's library list in
+that scratch run (the library database is not backed up, and the scratch
+MA had no network to sync); whether it comes back by itself after a sync
+is not shown. Lost by design (Drew, 2026-11-14): MA's library
 metadata, play history and favourites. Then redeploy the Kronk stack's
 tool_service with the tag.
 

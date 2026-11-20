@@ -20,6 +20,7 @@ import io
 import json
 import os
 import re
+import shutil
 import sys
 import tempfile
 import unittest.mock as mock_module
@@ -164,6 +165,7 @@ def run_all(main) -> dict:
                         body = r.text
                     out[f"{tname}|{rname}"] = f"{r.status_code}\n" + normalise(body)
     os.environ.pop("VOICE_STREAM", None)
+    shutil.rmtree(tmp, ignore_errors=True)      # it held metrics.db and sessions.db; 510 were left in /tmp
     return out
 
 
