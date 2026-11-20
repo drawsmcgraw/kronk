@@ -69,6 +69,7 @@ import os
 import re
 import secrets
 import shlex
+import shutil
 import signal
 import socket
 import sqlite3
@@ -806,16 +807,43 @@ def read_wal_pair(c: Collected, s: Settings, ops: Ops, container: str, path: str
         if (w1 is None) != (w2 is None) or (w1 is not None and w1[:32] != w2[:32]):
             why = "the write-ahead log was restarted while it was read"
             continue
+        # Each read must also be whole, and rc 0 from `docker exec cat` is
+        # the only word on that (M16b e2e finding 1: a WAL cut short and a
+        # main file checkpointed past the cut replay into a database equal
+        # to no committed state). So the two WAL reads must be the same
+        # bytes, and end on a frame: a short read would have to stop at the
+        # same frame boundary twice. A write between the reads (a few a day
+        # on auth.db) is just read again.
+        if w1 is not None and w1 != w2:
+            why = "the write-ahead log changed while it was read"
+            continue
+        if w1 is not None and not wal_is_whole_frames(w1):
+            why = "the write-ahead log read does not end on a frame"
+            continue
         try:
             data = sqlite_from_pair(s, m1, w1)
         except (OSError, sqlite3.Error) as e:
             why = f"sqlite: {one_line(str(e), 200)}"
             continue
-        how = ("docker exec cat (main file and WAL, each read twice, unchanged), "
+        how = ("docker exec cat (main file and WAL, each read twice, identical), "
                "WAL replayed by SQLite in a private copy, backup API, integrity_check ok")
         c.add(Member(arc, src, how, data, 0o600, ops.now().timestamp(), secret=True))
         return
     c.unreadable.append((src, f"{why} ({WAL_PAIR_TRIES} reads)"))
+
+
+def wal_is_whole_frames(wal: bytes) -> bool:
+    """A WAL file is empty, or a 32-byte header and whole frames of 24 bytes
+    plus one page (the page size is in the header, big-endian, at byte 8)."""
+    if not wal:
+        return True
+    if len(wal) < 32:
+        return False
+    page = int.from_bytes(wal[8:12], "big")
+    return page > 0 and (len(wal) - 32) % (24 + page) == 0
+
+
+PRIVATE_DIRS: set[str] = set()      # the database copies being made now; on_sigterm removes them
 
 
 def sqlite_from_pair(s: Settings, main: bytes, wal: bytes | None) -> bytes:
@@ -825,21 +853,25 @@ def sqlite_from_pair(s: Settings, main: bytes, wal: bytes | None) -> bytes:
     when this returns; one a killed run leaves is removed by the next job
     (_clean_own_leftovers)."""
     with tempfile.TemporaryDirectory(prefix="kronk-sqlite-", dir=s.tmp) as td:      # 0700
-        p = Path(td) / "copy.db"
-        p.write_bytes(main)
-        if wal is not None:
-            (Path(td) / "copy.db-wal").write_bytes(wal)
-        src = sqlite3.connect(str(p))
-        mem = sqlite3.connect(":memory:")
+        PRIVATE_DIRS.add(td)
         try:
-            src.backup(mem)
-            check = [r[0] for r in mem.execute("PRAGMA integrity_check").fetchall()]
-            if check != ["ok"]:
-                raise sqlite3.DatabaseError(f"integrity_check failed ({len(check)} line(s))")
-            return bytes(mem.serialize())
+            p = Path(td) / "copy.db"
+            p.write_bytes(main)
+            if wal is not None:
+                (Path(td) / "copy.db-wal").write_bytes(wal)
+            src = sqlite3.connect(str(p))
+            mem = sqlite3.connect(":memory:")
+            try:
+                src.backup(mem)
+                check = [r[0] for r in mem.execute("PRAGMA integrity_check").fetchall()]
+                if check != ["ok"]:
+                    raise sqlite3.DatabaseError(f"integrity_check failed ({len(check)} line(s))")
+                return bytes(mem.serialize())
+            finally:
+                src.close()
+                mem.close()
         finally:
-            src.close()
-            mem.close()
+            PRIVATE_DIRS.discard(td)
 
 
 def add_tar_stream(c: Collected, arc: str, source: str, how: str, blob: bytes, secret: bool) -> int:
@@ -860,6 +892,10 @@ def add_tar_stream(c: Collected, arc: str, source: str, how: str, blob: bytes, s
                 c.add(Member(a, f"{source}/{name}", how, f.read() if f else b"", ti.mode & 0o7777,
                              ti.mtime, secret=secret))
             else:
+                # A hard link's second name, a FIFO, a device: not in the tar,
+                # so it is said (M16b e2e finding 2), never dropped silently.
+                kind = "a hard link to " + ti.linkname if ti.islnk() else "not a file, directory or symlink"
+                c.unreadable.append((f"{source}/{name}", f"left out: {one_line(kind, 200)}"))
                 continue
             n += 1
     return n
@@ -2247,6 +2283,8 @@ def on_sigterm(ops: Ops):
             r = ops.run(["docker", "rm", "-f", name], timeout=30)
             ops.log(f"stopped by signal {signum}: removed the delete container {name}" if r.rc == 0
                     else f"stopped by signal {signum}: could not remove {name}: {one_line(r.err)}")
+        for td in list(PRIVATE_DIRS):       # a database copy in the making holds secrets
+            shutil.rmtree(td, ignore_errors=True)
         signal.signal(signum, signal.SIG_DFL)
         os.kill(os.getpid(), signum)
     return handler

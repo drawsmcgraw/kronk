@@ -62,14 +62,21 @@ What is needed to rebuild Kronk, no binaries, no models:
   four token rows. So the job reads the pair the way crash recovery finds
   it, by `docker exec cat` only: the main file, the WAL, the main file
   again, the WAL again. It takes the pair when both main-file reads are
-  identical (no checkpoint wrote to it in between) and the WAL's 32-byte
-  header is the same in both WAL reads (its salts change when the WAL
-  restarts). Then SQLite itself opens the pair in a private 0700
+  identical (no checkpoint wrote to it in between) and both WAL reads are
+  identical and end on a whole frame (the WAL did not restart, and neither
+  read came back short: the only other word on that is `cat`'s exit status,
+  and a WAL cut short over a main file checkpointed past the cut replays
+  into a database that never existed; M16b's end-to-end test built one
+  with a fake reader). A write between the reads, a few a day, is read
+  again. Then SQLite itself opens the pair in a private 0700
   `kronk-sqlite-<8>` directory in the temporary directory (tmpfs here),
   replays the committed frames and drops a frame MA was still appending;
   the result goes through the backup API and `PRAGMA integrity_check`, and
   the directory is removed. Nothing is written in MA's `/data`, nothing
-  is checkpointed, MA is not stopped. A pair that changed is read again
+  is checkpointed, MA is not stopped. A job stopped by SIGTERM removes
+  its private copy; one killed outright leaves it for the next job, a day
+  later at the earliest. A playlist that is a hard link or a special file
+  is left out and listed as not read. A pair that changed is read again
   after 5 s, three reads in all; then it is a gap (INCOMPLETE). The
   MANIFEST says how each was read;
 - the live config directories `../kronk-config/prod` and `dev`, whole, with

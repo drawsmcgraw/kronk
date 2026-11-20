@@ -2910,7 +2910,7 @@ def test_m16b_c1_a_playlist_symlink_is_stored_as_a_link_never_followed(house):
 def test_m16b_c2_the_manifest_says_how_each_was_read(house):
     assert B.cmd_config(house, FakeOps(), dry_run=False) == 0
     man = read_member(house.dest / "config" / TAR, "MANIFEST").decode()
-    assert ("\tdocker exec cat (main file and WAL, each read twice, unchanged), WAL replayed by SQLite in a "
+    assert ("\tdocker exec cat (main file and WAL, each read twice, identical), WAL replayed by SQLite in a "
             "private copy, backup API, integrity_check ok\tma/auth.db\t<- music-assistant-server:/data/auth.db") in man
     assert "\tdocker exec music-assistant-server tar\tma/playlists/Road Trip.m3u\t" \
            "<- music-assistant-server:/data/playlists/Road Trip.m3u" in man
@@ -3053,3 +3053,100 @@ def test_m16b_c3_c4_the_docs_say_auth_db_is_a_secret_and_restored():
     assert "auth.db" in ma and "playlists" in ma and "auth.db-wal" in ma
     table = run[run.index("## What needs a human"):run.index("## ", run.index("## What needs a human") + 3)]
     assert "the old token is dead" not in table
+
+
+# ═══ M16b, after the end-to-end test (coordinator) ═════════════════════════
+
+def test_m16b_e2e1_a_wal_read_that_comes_back_short_with_rc_0_is_not_taken(house):
+    """Finding 1: the first WAL read cut short (header intact, rc 0), the
+    second whole. Both headers agree, so the old code replayed the short one."""
+    ops = FakeOps()
+    n = [0]
+
+    def cat(container, path):
+        r = FakeOps.container_cat(ops, container, path)
+        if path == "/data/auth.db-wal":
+            n[0] += 1
+            if n[0] == 1:
+                return B.Result(0, r.out[:132], "")
+        return r
+    ops.container_cat = cat
+    assert B.cmd_config(house, ops, dry_run=False) == 0
+    assert n[0] == 4                    # the first pair refused, the second taken
+    assert token_ids(read_member(house.dest / "config" / TAR, "ma/auth.db")) == ["t-main-1", "t-main-2", "t-wal-1"]
+
+
+def test_m16b_e2e1_a_wal_cut_inside_a_frame_the_same_way_every_time_is_a_gap(house):
+    ops = FakeOps()
+    ops.ma_files["/data/auth.db-wal"] = MA_AUTH[1][:-7]
+    assert B.cmd_config(house, ops, dry_run=False) == 4
+    assert "does not end on a frame" in ops.notices[-1][1]
+    assert B.wal_is_whole_frames(b"") and B.wal_is_whole_frames(MA_AUTH[1])
+    assert not B.wal_is_whole_frames(MA_AUTH[1][:20]) and not B.wal_is_whole_frames(MA_AUTH[1] + b"x")
+
+
+def test_m16b_e2e2_a_hard_linked_member_of_a_container_tar_is_reported_not_dropped():
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w") as t:
+        a = tarfile.TarInfo("playlists/a.m3u")
+        a.size = 3
+        t.addfile(a, io.BytesIO(b"abc"))
+        h = tarfile.TarInfo("playlists/sub-hard.m3u")
+        h.type, h.linkname = tarfile.LNKTYPE, "playlists/a.m3u"
+        t.addfile(h)
+        f = tarfile.TarInfo("playlists/pipe")
+        f.type = tarfile.FIFOTYPE
+        t.addfile(f)
+    c = B.Collected()
+    assert B.add_tar_stream(c, "ma", "music-assistant-server:/data", "tar", buf.getvalue(), False) == 1
+    assert c.unreadable == [
+        ("music-assistant-server:/data/playlists/sub-hard.m3u", "left out: a hard link to playlists/a.m3u"),
+        ("music-assistant-server:/data/playlists/pipe", "left out: not a file, directory or symlink")]
+
+
+def test_m16b_e2e3_a_pair_that_opens_but_fails_the_integrity_check_is_refused(house):
+    """Mutant: the check's result ignored. An index that disagrees with its
+    table opens and copies; only integrity_check says so."""
+    import sqlite3
+    d = house.tmp / "mk"
+    d.mkdir()
+    con = sqlite3.connect(d / "x.db")
+    con.execute("CREATE TABLE t (k TEXT)")
+    con.execute("CREATE INDEX i ON t (k)")
+    con.executemany("INSERT INTO t VALUES (?)", [(f"key-value-{n:04d}",) for n in range(20)])
+    con.commit()
+    root = con.execute("SELECT rootpage FROM sqlite_master WHERE name = 'i'").fetchone()[0]
+    page = con.execute("PRAGMA page_size").fetchone()[0]
+    con.close()
+    blob = bytearray((d / "x.db").read_bytes())
+    at = blob.index(b"key-value-0007", (root - 1) * page, root * page)
+    blob[at:at + 14] = b"kex-value-0007"
+    with pytest.raises(sqlite3.DatabaseError, match=r"integrity_check failed \(\d+ line"):
+        B.sqlite_from_pair(house, bytes(blob), None)
+    assert not list(house.tmp.glob("kronk-sqlite-*")) and not B.PRIVATE_DIRS
+
+
+def test_m16b_e2e3_the_cleanup_leaves_a_young_copy_and_a_longer_name(house):
+    """Mutants: the age test dropped (a running job's copy would go); the
+    name pattern loosened."""
+    old = (dt.datetime.now() - dt.timedelta(days=2)).timestamp()
+    young = house.tmp / "kronk-sqlite-abcd1234"
+    longer = house.tmp / "kronk-sqlite-abcd12345"
+    for d in (young, longer):
+        d.mkdir()
+        (d / "copy.db").write_bytes(b"x")
+    os.utime(longer, (old, old))
+    assert B.cmd_config(house, FakeOps(), dry_run=False) == 0
+    assert young.exists() and longer.exists()
+
+
+def test_m16b_e2e4_a_stopped_job_takes_its_database_copy_with_it(house, monkeypatch):
+    d = house.tmp / "kronk-sqlite-zzzz9999"
+    d.mkdir()
+    (d / "copy.db").write_bytes(b"secret")
+    monkeypatch.setattr(B, "PRIVATE_DIRS", {str(d)})
+    monkeypatch.setattr(B.signal, "signal", lambda *a: None)
+    killed = []
+    monkeypatch.setattr(B.os, "kill", lambda pid, sig: killed.append(sig))
+    B.on_sigterm(FakeOps())(15, None)
+    assert not d.exists() and killed == [15]
