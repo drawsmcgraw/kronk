@@ -108,6 +108,13 @@ HA_TAR_RETRY_S = 5                      # HA's tar exiting 1 is read once more a
 # characters from its alphabet), and the only names unpushed_bundle leaves in it.
 BUNDLE_DIR_RE = re.compile(r"kronk-bundle-[a-z0-9_]{8}")
 BUNDLE_DIR_FILES = ("unpushed.bundle", "unpushed.bundle.lock")
+# Music Assistant's auth.db (read_wal_pair): read this many times before it
+# is a gap, this far apart, and replayed in a private kronk-sqlite-<8>
+# directory holding only these names.
+WAL_PAIR_TRIES = 3
+WAL_PAIR_RETRY_S = 5
+SQLITE_DIR_RE = re.compile(r"kronk-sqlite-[a-z0-9_]{8}")
+SQLITE_DIR_FILES = ("copy.db", "copy.db-wal", "copy.db-shm", "copy.db-journal")
 
 
 def env(name: str, default: str) -> str:
@@ -656,7 +663,10 @@ def required_sources(s: Settings) -> list[str]:
     "Required and optional"). A gap at or under any of these makes the run
     INCOMPLETE; every other gap is reported and the run is still OK."""
     return [str(s.repo / ".env"), str(s.live_config / "prod"), str(s.live_config / "dev"),
-            str(HOME / ".config" / "systemd" / "user"), "homeassistant:", "music-assistant-server:",
+            str(HOME / ".config" / "systemd" / "user"), "homeassistant:",
+            # MA: settings.json, and auth.db (MA_TOKEN and every login live there, M16b).
+            # Its playlists/ are optional: absent, empty or unreadable is reported, not INCOMPLETE.
+            "music-assistant-server:/data/settings.json", "music-assistant-server:/data/auth.db",
             # The only copies of household data in the tar (coordinator ruling, note 9 of the second e2e).
             str(s.repo / "data" / "solar.db"), str(s.repo / "data" / "music_taste.db")]
 
@@ -751,6 +761,87 @@ def read_sqlite(c: Collected, arc: str, p: Path) -> None:
         c.unreadable.append((str(p), f"sqlite: {e}"))
 
 
+def read_wal_pair(c: Collected, s: Settings, ops: Ops, container: str, path: str, arc: str) -> None:
+    """A consistent copy of a SQLite database in a container whose owner
+    keeps it open in WAL mode with locking_mode=exclusive (Music Assistant
+    does this for every database): no other connection can open it, its WAL
+    index lives in the owner's memory (there is no -shm file), and a reader
+    trying anyway would create <db>-shm beside it. So nothing opens it in
+    place. The pair is read the way crash recovery would find it, by
+    docker exec cat only: the main file, the WAL, the main file again, the
+    WAL again. It is accepted when both main-file reads are identical (no
+    checkpoint wrote to it in between) and the WAL's 32-byte header, whose
+    salts change when the WAL restarts, is the same in both WAL reads. The
+    main file then holds every frame a checkpoint took out of the WAL read,
+    and SQLite itself replays that WAL on a private copy (a 0700 directory
+    in s.tmp): it keeps exactly the transactions committed in the bytes read
+    and drops a frame being appended. The result goes through the backup
+    API and PRAGMA integrity_check like every other database. Nothing is
+    written in the container, nothing is checkpointed, the owner is not
+    stopped. A pair that changed is read again (WAL_PAIR_TRIES in all);
+    then it is a gap. The reason never carries the file's content."""
+    src = f"{container}:{path}"
+
+    def got(r: Result) -> tuple[bytes | None, str | None]:     # (content, or None when absent; an error)
+        if r.rc == 0:
+            return r.out, None
+        if "No such file" in r.err:
+            return None, None
+        return None, f"docker exec cat failed ({r.rc}): {one_line(r.err, 200)}"
+    why = ""
+    for attempt in range(WAL_PAIR_TRIES):
+        if attempt:
+            ops.sleep(WAL_PAIR_RETRY_S)
+        (m1, e1), (w1, e2), (m2, e3), (w2, e4) = (got(ops.container_cat(container, f)) for f in
+                                                  (path, path + "-wal", path, path + "-wal"))
+        if e1 or e2 or e3 or e4:
+            why = e1 or e2 or e3 or e4
+            continue
+        if m1 is None and m2 is None:
+            c.unreadable.append((src, "missing: no such file"))
+            return
+        if m1 != m2:
+            why = "the main file changed while it was read (a checkpoint)"
+            continue
+        if (w1 is None) != (w2 is None) or (w1 is not None and w1[:32] != w2[:32]):
+            why = "the write-ahead log was restarted while it was read"
+            continue
+        try:
+            data = sqlite_from_pair(s, m1, w1)
+        except (OSError, sqlite3.Error) as e:
+            why = f"sqlite: {one_line(str(e), 200)}"
+            continue
+        how = ("docker exec cat (main file and WAL, each read twice, unchanged), "
+               "WAL replayed by SQLite in a private copy, backup API, integrity_check ok")
+        c.add(Member(arc, src, how, data, 0o600, ops.now().timestamp(), secret=True))
+        return
+    c.unreadable.append((src, f"{why} ({WAL_PAIR_TRIES} reads)"))
+
+
+def sqlite_from_pair(s: Settings, main: bytes, wal: bytes | None) -> bytes:
+    """The database a main file and its WAL make, as one file: SQLite opens
+    the pair in a private directory (recovery replays the WAL's committed
+    frames), copies it with the backup API and checks it. The directory goes
+    when this returns; one a killed run leaves is removed by the next job
+    (_clean_own_leftovers)."""
+    with tempfile.TemporaryDirectory(prefix="kronk-sqlite-", dir=s.tmp) as td:      # 0700
+        p = Path(td) / "copy.db"
+        p.write_bytes(main)
+        if wal is not None:
+            (Path(td) / "copy.db-wal").write_bytes(wal)
+        src = sqlite3.connect(str(p))
+        mem = sqlite3.connect(":memory:")
+        try:
+            src.backup(mem)
+            check = [r[0] for r in mem.execute("PRAGMA integrity_check").fetchall()]
+            if check != ["ok"]:
+                raise sqlite3.DatabaseError(f"integrity_check failed ({len(check)} line(s))")
+            return bytes(mem.serialize())
+        finally:
+            src.close()
+            mem.close()
+
+
 def add_tar_stream(c: Collected, arc: str, source: str, how: str, blob: bytes, secret: bool) -> int:
     """Re-add the members of a tar stream (from a container) under arc."""
     n = 0
@@ -813,13 +904,31 @@ def collect(s: Settings, ops: Ops) -> Collected:
         c.unreadable.append(("homeassistant:/config (.storage, YAML, blueprints)",
                              f"docker exec failed ({r.rc}): {one_line(r.err, 200)}"))
 
-    # Music Assistant: settings.json only (library.db is over 10 MB).
-    r = ops.container_cat("music-assistant-server", "/data/settings.json")
+    # Music Assistant: settings.json, the playlists MA made itself, and
+    # auth.db (users, login tokens, the key that signs them: MA_TOKEN lives
+    # there). library.db is over 10 MB and left out.
+    ma = "music-assistant-server"
+    r = ops.container_cat(ma, "/data/settings.json")
     if r.rc == 0:
-        c.add(Member("ma/settings.json", "music-assistant-server:/data/settings.json",
+        c.add(Member("ma/settings.json", f"{ma}:/data/settings.json",
                      "docker exec music-assistant-server cat", r.out, 0o600, ops.now().timestamp(), secret=True))
     else:
-        c.unreadable.append(("music-assistant-server:/data/settings.json", f"docker exec failed ({r.rc}): {one_line(r.err, 200)}"))
+        c.unreadable.append((f"{ma}:/data/settings.json", f"docker exec failed ({r.rc}): {one_line(r.err, 200)}"))
+    r = ops.container_ls(ma, "/data")
+    if r.rc != 0:
+        c.unreadable.append((f"{ma}:/data/playlists", f"docker exec ls failed ({r.rc}): {one_line(r.err, 200)}"))
+    elif "playlists" not in r.out.decode("utf-8", "replace").splitlines():
+        c.absent.append((f"{ma}:/data/playlists", "absent"))
+    else:
+        # GNU tar stores a symlink as a symlink: nothing is followed out of the directory.
+        r = ops.container_tar(ma, "/data", ["playlists"])
+        try:
+            if r.rc != 0 or not r.out:
+                raise tarfile.TarError(f"docker exec tar failed ({r.rc}): {one_line(r.err, 200)}")
+            add_tar_stream(c, "ma", f"{ma}:/data", "docker exec music-assistant-server tar", r.out, False)
+        except tarfile.TarError as e:
+            c.unreadable.append((f"{ma}:/data/playlists", str(e)))
+    read_wal_pair(c, s, ops, ma, "/data/auth.db", "ma/auth.db")
 
     # /etc/kronk: root-only on the host; a throwaway container reads it.
     etc = s.etc / "kronk"
@@ -938,9 +1047,11 @@ def _clean_own_leftovers(s: Settings, ops: Ops) -> None:
     kronk-backup-delete-<pid>-<8 hex>) whose job pid no longer exists, which
     would go on deleting after their job (every delete they make is still
     checked; stopping one mid-batch leaves the rest local for this run); and
-    bundle directories in s.tmp named like unpushed_bundle's, a plain
-    directory owned by this user, older than a day, holding nothing but the
-    bundle's own files. Anything else is left alone. Never fails the job."""
+    bundle directories in s.tmp named like unpushed_bundle's, and database
+    copy directories named like sqlite_from_pair's: a plain directory owned
+    by this user, older than a day, holding nothing but that directory's own
+    file names as regular files. Anything else is left alone. Never fails
+    the job."""
     r = ops.run(["docker", "ps", "-a", "--filter", f"label={HELPER_LABEL}", "--filter", "status=created",
                  "--format", "{{.ID}}"], timeout=60)
     ids = [x for x in r.out.decode("utf-8", "replace").split() if re.fullmatch(r"[0-9a-f]{12,64}", x)] if r.rc == 0 else []
@@ -966,22 +1077,25 @@ def _clean_own_leftovers(s: Settings, ops: Ops) -> None:
         entries = list(os.scandir(s.tmp))
     except OSError:
         return
+    kinds = ((BUNDLE_DIR_RE, BUNDLE_DIR_FILES, "a bundle"), (SQLITE_DIR_RE, SQLITE_DIR_FILES, "a database copy"))
     for e in entries:
-        if not BUNDLE_DIR_RE.fullmatch(e.name):
+        kind = next((k for k in kinds if k[0].fullmatch(e.name)), None)
+        if kind is None:
             continue
+        _, allowed, what = kind
         try:
             st = os.lstat(e.path)
             if not stat.S_ISDIR(st.st_mode) or st.st_uid != os.getuid() or st.st_mtime > cutoff:
                 continue
             inner = os.listdir(e.path)
-            if any(n not in BUNDLE_DIR_FILES or not stat.S_ISREG(os.lstat(os.path.join(e.path, n)).st_mode)
+            if any(n not in allowed or not stat.S_ISREG(os.lstat(os.path.join(e.path, n)).st_mode)
                    for n in inner):
-                ops.log(f"left alone: {e.path} holds something other than a bundle")
+                ops.log(f"left alone: {e.path} holds something other than {what}")
                 continue
             for n in inner:
                 os.unlink(os.path.join(e.path, n))
             os.rmdir(e.path)
-            ops.log(f"removed a bundle directory a killed run left: {e.path}")
+            ops.log(f"removed {what} directory a killed run left: {e.path}")
         except OSError as x:
             ops.log(f"could not remove {e.path}: {x.strerror}")
 

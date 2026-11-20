@@ -1,6 +1,7 @@
 # Investigation 2026-11-19 — "Play the album Get a Grip by Aerosmith" in the basement: "I don't know a speaker or room called 'Basement Theater'"
 
-**Status:** root cause determined; nothing fixed (read-only investigation).
+**Status:** root cause determined; fix 1 applied 2026-11-20 (sprint M16b),
+fixes 2 to 5 open.
 Not a sprint regression: the same failure was captured on 2026-11-08, before
 the sprint, and the code and blueprint involved are unchanged since
 2026-11-14.
@@ -357,7 +358,20 @@ defect is upstream of routing.
   off to production Kronk (corpus doc, Gotchas). `--answers` sends the
   transcript, not the hand-off text. So nothing exercised `kronk_text`.
 
-## Proposed fixes (ranked; none applied)
+## Proposed fixes (ranked; fix 1 applied)
+
+**2026-11-20: fix 1 applied** (sprint M16b, Drew's order). Device
+`b91145f1a0afef63089911ffb5ba8b6b` ("basement voice pe ma") went from no
+area to `basement_theater` ("Basement Theater"), the area of
+`1b6bd3b03f90e52f08dd98dca41eac82`, by one WebSocket
+`config/device_registry/update` call (no `.storage` edit, no restart, no
+reload; entity ids unchanged). Read back from the registry; tool_service's
+player template rendered through `/api/template` now gives
+`media_player.home_assistant_voice_0ab117` the area, and `resolve_players`
+resolves "Basement Theater" to it ("the Basement Theater speaker"; it
+refused with this incident's 400 before the change). Nothing was played.
+Not yet run: the voice replay checks named in fix 1, and a live "Okay
+Nabu" test. Undo and details: `docs/sprint/M16b-build.md`.
 
 1. **Assign the "basement voice pe ma" device
    (`b91145f1a0afef63089911ffb5ba8b6b`) to the area Basement Theater in HA.**

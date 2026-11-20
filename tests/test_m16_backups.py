@@ -56,6 +56,49 @@ def tar_of(files: dict[str, bytes]) -> bytes:
     return buf.getvalue()
 
 
+def wal_pair(main_rows=("t-main-1", "t-main-2"), wal_rows=("t-wal-1",)) -> tuple[bytes, bytes]:
+    """A tiny auth.db as Music Assistant leaves it while it runs: WAL mode,
+    some token rows checkpointed into the main file, the newest only in the
+    write-ahead log. Returns (main file, WAL) bytes, read while it is open."""
+    import sqlite3
+    import tempfile
+    with tempfile.TemporaryDirectory() as td:
+        db = Path(td) / "auth.db"
+        con = sqlite3.connect(db)
+        con.execute("PRAGMA journal_mode=WAL")
+        con.execute("PRAGMA wal_autocheckpoint=0")
+        con.execute("CREATE TABLE auth_tokens (token_id TEXT PRIMARY KEY, token_hash TEXT)")
+        con.executemany("INSERT INTO auth_tokens VALUES (?, ?)", [(r, "h-" + r) for r in main_rows])
+        con.commit()
+        con.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        con.executemany("INSERT INTO auth_tokens VALUES (?, ?)", [(r, "h-" + r) for r in wal_rows])
+        con.commit()
+        main, wal = db.read_bytes(), (Path(td) / "auth.db-wal").read_bytes()
+        con.close()
+    return main, wal
+
+
+def token_ids(blob: bytes, wal: bytes | None = None) -> list[str]:
+    """The token ids a database file holds (opened on disk, as a restore
+    would: a WAL-format image cannot be opened in memory), checked first."""
+    import sqlite3
+    import tempfile
+    with tempfile.TemporaryDirectory() as td:
+        db = Path(td) / "auth.db"
+        db.write_bytes(blob)
+        if wal is not None:
+            (Path(td) / "auth.db-wal").write_bytes(wal)
+        con = sqlite3.connect(db)
+        try:
+            assert con.execute("PRAGMA integrity_check").fetchall() == [("ok",)]
+            return sorted(r[0] for r in con.execute("SELECT token_id FROM auth_tokens"))
+        finally:
+            con.close()
+
+
+MA_AUTH = wal_pair()
+
+
 class FakeOps(B.Ops):
     def __init__(self, now=NOW):
         self.t = now
@@ -79,6 +122,12 @@ class FakeOps(B.Ops):
         self.unpushed = 3
         self.leftover_ids: list[str] = []        # helper containers "docker ps" reports in state created
         self.running_helpers: list[str] = []     # "<id> <name>" lines of running labelled helpers
+        # Music Assistant's /data (M16b): what ls shows, what cat reads, the playlists tar.
+        self.ma_names = ["auth.db", "auth.db-wal", "library.db", "playlists", "settings.json"]
+        self.ma_files = {"/data/settings.json": b'{"providers": {}}',
+                         "/data/auth.db": MA_AUTH[0], "/data/auth.db-wal": MA_AUTH[1]}
+        self.ma_playlists = tar_of({"playlists": None, "playlists/Road Trip.m3u": b"#EXTM3U\n/media/nas/a.flac\n"})
+        self.ma_reads: list[str] = []
 
     def run(self, argv, timeout=300, stdin=None):
         self.commands.append(argv)
@@ -124,16 +173,26 @@ class FakeOps(B.Ops):
         return self.notify_ok
 
     def container_ls(self, container, path):
+        if container == "music-assistant-server":
+            assert path == "/data"
+            return B.Result(0, "\n".join(self.ma_names).encode() + b"\n", "")
         if self.ha_rc:
             return B.Result(self.ha_rc, b"", "No such container: homeassistant")
         return B.Result(0, "\n".join(self.ha_names).encode() + b"\n", "")
 
     def container_tar(self, container, cwd, names):
+        if container == "music-assistant-server":
+            assert (cwd, names) == ("/data", ["playlists"])
+            return B.Result(0, self.ma_playlists, "")
         self.ha_tar_names = names
         return B.Result(self.ha_rc, self.ha if self.ha_rc == 0 else b"", "" if self.ha_rc == 0 else "No such container: homeassistant")
 
     def container_cat(self, container, path):
-        return B.Result(0, b'{"providers": {}}', "")
+        assert container == "music-assistant-server"
+        self.ma_reads.append(path)
+        if path in self.ma_files:
+            return B.Result(0, self.ma_files[path], "")
+        return B.Result(1, b"", f"cat: {path}: No such file or directory")
 
     def helper_tar(self, hostdir):
         files = {f"./{p.relative_to(hostdir)}": p.read_bytes() for p in hostdir.rglob("*") if p.is_file()}
@@ -313,7 +372,7 @@ def test_what_cannot_be_read_is_listed_in_the_manifest_and_the_notice(house):
 
 
 @pytest.mark.parametrize("break_it", ["ha", "ma", "env", "live-prod", "live-dev", "units", "env-missing",
-                                      "solar-corrupt", "taste-db-missing"])
+                                      "solar-corrupt", "taste-db-missing", "ma-auth-missing", "ma-auth-corrupt"])
 def test_a_missing_required_item_makes_the_tar_incomplete(house, monkeypatch, break_it):
     """Finding 5: HA, MA, .env, the live config directories, the units."""
     ops = FakeOps()
@@ -321,6 +380,10 @@ def test_a_missing_required_item_makes_the_tar_incomplete(house, monkeypatch, br
         ops.ha_rc = 1
     elif break_it == "ma":
         monkeypatch.setattr(ops, "container_cat", lambda c, p: B.Result(1, b"", "No such container"))
+    elif break_it == "ma-auth-missing":                  # M16b criterion 2: auth.db is required
+        del ops.ma_files["/data/auth.db"], ops.ma_files["/data/auth.db-wal"]
+    elif break_it == "ma-auth-corrupt":
+        ops.ma_files["/data/auth.db"] = b"not a database" * 100
     elif break_it == "env":
         (house.repo / ".env").chmod(0o000)
     elif break_it == "env-missing":
@@ -354,7 +417,10 @@ def test_a_missing_required_item_makes_the_tar_incomplete(house, monkeypatch, br
     assert names == sorted(complete + ["kronk-config-2026-12-10.incomplete.tar.gz"])   # retention never ran
     title, body = ops.notices[-1]
     assert title == "Kronk backup: config backup INCOMPLETE"
-    assert "MISSING REQUIRED (1)" in body and "does not count as a backup" in body
+    # MA down loses both of its required items: settings.json and auth.db (M16b).
+    assert f"MISSING REQUIRED ({2 if break_it == 'ma' else 1})" in body and "does not count as a backup" in body
+    if break_it.startswith("ma-auth"):
+        assert "music-assistant-server:/data/auth.db" in body
     assert "Repo: 3 commits not pushed" in body
     st = json.loads((house.state / "status.json").read_text())
     assert st["config"]["last"]["result"] == "incomplete" and "last_ok_at" not in st["config"]
@@ -2581,6 +2647,8 @@ def test_fix3_note7_ha_tar_exit_1_is_read_once_more_after_a_few_seconds(house):
         calls = []
 
         def tar(container, cwd, names, ops=ops, calls=calls, second=second):
+            if container == "music-assistant-server":
+                return FakeOps.container_tar(ops, container, cwd, names)
             calls.append(ops.t)
             rc = 1 if len(calls) == 1 or second else 0
             return B.Result(rc, ops.ha, "tar: ./.storage/core.entity_registry: file changed as we read it" if rc else "")
@@ -2796,3 +2864,192 @@ def test_first_real_run_a_local_tag_whose_commit_is_on_a_remote_branch_gets_no_w
     ops.unpushed = 0
     assert B.cmd_config(house, ops, dry_run=False) == 0
     assert "not a local tag" not in ops.notices[-1][1]
+
+
+# ═══ M16b: Music Assistant's playlists/ and auth.db in the config tar ═══════
+
+TAR = "kronk-config-2026-12-10.tar.gz"
+
+
+def test_m16b_c1_the_tar_holds_playlists_and_a_consistent_auth_db(house):
+    """Criterion 1: auth.db's newest rows are only in its WAL; the copy in the
+    tar has them, opens and passes integrity_check. A plain copy of the main
+    file (the trap) has not."""
+    ops = FakeOps()
+    assert B.cmd_config(house, ops, dry_run=False) == 0
+    p = house.dest / "config" / TAR
+    assert token_ids(MA_AUTH[0]) == ["t-main-1", "t-main-2"]                  # the main file alone
+    assert token_ids(read_member(p, "ma/auth.db")) == ["t-main-1", "t-main-2", "t-wal-1"]
+    assert read_member(p, "ma/playlists/Road Trip.m3u") == b"#EXTM3U\n/media/nas/a.flac\n"
+    with tarfile.open(p, "r:gz") as t:
+        assert t.getmember("kronk-config-2026-12-10/ma/playlists").isdir()
+        assert t.getmember("kronk-config-2026-12-10/ma/auth.db").mode == 0o600
+    # Read by cat only (nothing opened or written in MA's /data), main file and WAL twice each.
+    assert ops.ma_reads == ["/data/settings.json", "/data/auth.db", "/data/auth.db-wal",
+                            "/data/auth.db", "/data/auth.db-wal"]
+    assert not any(n.startswith("kronk-sqlite-") for n in os.listdir(house.tmp))   # the private copy is gone
+
+
+def test_m16b_c1_a_playlist_symlink_is_stored_as_a_link_never_followed(house):
+    ops = FakeOps()
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w") as t:
+        d = tarfile.TarInfo("playlists")
+        d.type, d.mode = tarfile.DIRTYPE, 0o755
+        t.addfile(d)
+        ln = tarfile.TarInfo("playlists/escape.m3u")
+        ln.type, ln.linkname = tarfile.SYMTYPE, "/data/settings.json"
+        t.addfile(ln)
+    ops.ma_playlists = buf.getvalue()
+    assert B.cmd_config(house, ops, dry_run=False) == 0
+    with tarfile.open(house.dest / "config" / TAR, "r:gz") as t:
+        m = t.getmember("kronk-config-2026-12-10/ma/playlists/escape.m3u")
+        assert m.issym() and m.linkname == "/data/settings.json" and m.size == 0
+
+
+def test_m16b_c2_the_manifest_says_how_each_was_read(house):
+    assert B.cmd_config(house, FakeOps(), dry_run=False) == 0
+    man = read_member(house.dest / "config" / TAR, "MANIFEST").decode()
+    assert ("\tdocker exec cat (main file and WAL, each read twice, unchanged), WAL replayed by SQLite in a "
+            "private copy, backup API, integrity_check ok\tma/auth.db\t<- music-assistant-server:/data/auth.db") in man
+    assert "\tdocker exec music-assistant-server tar\tma/playlists/Road Trip.m3u\t" \
+           "<- music-assistant-server:/data/playlists/Road Trip.m3u" in man
+    assert "directory\t0\tdocker exec music-assistant-server tar\tma/playlists\t" in man
+
+
+@pytest.mark.parametrize("case", ["absent", "empty", "unreadable"])
+def test_m16b_c2_playlists_absent_empty_or_unreadable_is_not_a_failure(house, case):
+    ops = FakeOps()
+    if case == "absent":
+        ops.ma_names.remove("playlists")
+    elif case == "empty":
+        ops.ma_playlists = tar_of({"playlists": None})
+    else:
+        ops.container_tar = lambda c, cwd, n, ops=ops: (B.Result(2, b"", "tar: playlists: Cannot open: Permission denied")
+                                                        if c == "music-assistant-server" else FakeOps.container_tar(ops, c, cwd, n))
+    assert B.cmd_config(house, ops, dry_run=False) == 0
+    man = read_member(house.dest / "config" / TAR, "MANIFEST").decode()
+    assert "REQUIRED items that could not be read (this tar is INCOMPLETE when any is listed):\n(none)" in man
+    if case == "absent":
+        assert "ABSENT\tmusic-assistant-server:/data/playlists" in man
+    elif case == "empty":
+        assert "directory\t0\tdocker exec music-assistant-server tar\tma/playlists\t" in man
+        assert "ma/playlists/" not in man
+    else:
+        assert "UNREADABLE\tmusic-assistant-server:/data/playlists\tdocker exec tar failed (2)" in man
+        assert "NOT READ (1)" in ops.notices[-1][1]
+    assert ops.notices[-1][0] == "Kronk backup: config backup OK"
+
+
+def test_m16b_c1_a_pair_that_changed_while_read_is_read_again(house):
+    """A checkpoint between the two main-file reads, then a WAL restart
+    between the two WAL reads: each pair is refused, the third is taken."""
+    ops = FakeOps()
+    seen = []
+    other_main = MA_AUTH[0][:100] + b"\xff" + MA_AUTH[0][101:]
+    other_wal = MA_AUTH[1][:16] + b"\x00\x00\x00\x09" + MA_AUTH[1][20:]       # salt-1 moved: a restart
+
+    def cat(container, path):
+        seen.append((ops.t, path))
+        n = len(seen)
+        if n == 4:          # second read of the main file, first try
+            return B.Result(0, other_main, "")
+        if n == 9:          # second read of the WAL, second try
+            return B.Result(0, other_wal, "")
+        return FakeOps.container_cat(ops, container, path)
+    ops.container_cat = cat
+    assert B.cmd_config(house, ops, dry_run=False) == 0
+    assert len(seen) == 1 + 3 * 4
+    assert seen[5][0] - seen[4][0] == dt.timedelta(seconds=B.WAL_PAIR_RETRY_S)
+    assert token_ids(read_member(house.dest / "config" / TAR, "ma/auth.db")) == ["t-main-1", "t-main-2", "t-wal-1"]
+
+
+@pytest.mark.parametrize("fault", ["checkpoints", "restarts", "garbage"])
+def test_m16b_c2_a_pair_never_consistent_makes_the_tar_incomplete(house, fault):
+    ops = FakeOps()
+    n = [0]
+
+    def cat(container, path):
+        if path == "/data/auth.db":
+            n[0] += 1
+            if fault == "checkpoints":
+                return B.Result(0, MA_AUTH[0] + bytes([n[0]]), "")
+        if path == "/data/auth.db-wal" and fault == "restarts":
+            n[0] += 1
+            return B.Result(0, MA_AUTH[1][:16] + bytes([n[0]] * 4) + MA_AUTH[1][20:], "")
+        if path == "/data/auth.db" and fault == "garbage":
+            return B.Result(0, b"X" * 16 + MA_AUTH[0][16:], "")      # stable, but no database
+        return FakeOps.container_cat(ops, container, path)
+    ops.container_cat = cat
+    assert B.cmd_config(house, ops, dry_run=False) == 4
+    title, body = ops.notices[-1]
+    assert title == "Kronk backup: config backup INCOMPLETE" and "MISSING REQUIRED (1)" in body
+    why = {"checkpoints": "the main file changed while it was read (a checkpoint)",
+           "restarts": "the write-ahead log was restarted while it was read",
+           "garbage": "sqlite: "}[fault]
+    st = json.loads((house.state / "status.json").read_text())["config"]["last"]
+    assert any(g.startswith("music-assistant-server:/data/auth.db: " + why) and g.endswith("(3 reads)")
+               for g in st["required_gaps"])
+    assert not any(e.name.startswith("kronk-sqlite-") for e in os.scandir(house.tmp))
+
+
+def test_m16b_c1_no_wal_file_means_the_main_file_alone(house):
+    """MA stopped cleanly removes the WAL: the main file is the database."""
+    ops = FakeOps()
+    full = B.Collected()
+    B.read_wal_pair(full, house, FakeOps(), "music-assistant-server", "/data/auth.db", "x")
+    ops.ma_files = {"/data/settings.json": b"{}", "/data/auth.db": full.members[0].data}
+    assert B.cmd_config(house, ops, dry_run=False) == 0
+    assert token_ids(read_member(house.dest / "config" / TAR, "ma/auth.db")) == ["t-main-1", "t-main-2", "t-wal-1"]
+
+
+def test_m16b_c3_auth_db_reaches_no_log_notice_or_status_beyond_its_name_and_size(house):
+    ops = FakeOps()
+    assert B.cmd_config(house, ops, dry_run=False) == 0
+    assert B.cmd_config(house, ops, dry_run=True) == 0
+    text = ("\n".join(ops.logs) + "\n".join(t + b for t, b in ops.notices)
+            + (house.state / "status.json").read_text())
+    for marker in ("h-t-main-1", "h-t-wal-1", "t-wal-1", "auth_tokens"):
+        assert marker not in text
+    size = len(read_member(house.dest / "config" / TAR, "ma/auth.db"))
+    assert any(re.fullmatch(rf"\s+{size}\s+ma/auth\.db", m) for m in ops.logs)     # the dry run: name and size
+
+
+def test_m16b_c3_a_failing_read_reports_no_content(house):
+    ops = FakeOps()
+    ops.ma_files["/data/auth.db"] = b"h-t-secret-row" * 300
+    assert B.cmd_config(house, ops, dry_run=False) == 4
+    text = "\n".join(ops.logs) + "\n".join(t + b for t, b in ops.notices) + (house.state / "status.json").read_text()
+    assert "h-t-secret-row" not in text and "music-assistant-server:/data/auth.db" in text
+
+
+def test_m16b_a_killed_runs_database_copy_is_removed_by_exact_signature_only(house):
+    ops = FakeOps()
+    old = (dt.datetime.now() - dt.timedelta(days=2)).timestamp()
+
+    def mk(name, files):
+        d = house.tmp / name
+        d.mkdir()
+        for f in files:
+            (d / f).write_bytes(b"x")
+        os.utime(d, (old, old))
+        return d
+    own = mk("kronk-sqlite-ab_cd123", ("copy.db", "copy.db-wal", "copy.db-shm"))
+    other = mk("kronk-sqlite-other123", ("copy.db", "notes.txt"))
+    assert B.cmd_config(house, ops, dry_run=False) == 0
+    assert not own.exists() and other.exists()
+    assert any(m == f"removed a database copy directory a killed run left: {own}" for m in ops.logs)
+    assert any(m == f"left alone: {other} holds something other than a database copy" for m in ops.logs)
+
+
+def test_m16b_c3_c4_the_docs_say_auth_db_is_a_secret_and_restored():
+    feat = (ROOT / "docs" / "features" / "backups.md").read_text()
+    run = (ROOT / "docs" / "runbooks" / "restore.md").read_text()
+    claude = (ROOT / "CLAUDE.md").read_text()
+    assert "auth.db" in feat[feat.index("### What is in the tar"):feat.index("### Required and optional")]
+    assert "MA's library, history, auth and" not in feat and "is not backed up" not in run
+    assert "auth.db" in claude[claude.index("- **Secrets**"):claude.index("- **New compose files**")]
+    ma = run[run.index("### 13. Music Assistant"):run.index("### 14.")]
+    assert "auth.db" in ma and "playlists" in ma and "auth.db-wal" in ma
+    table = run[run.index("## What needs a human"):run.index("## ", run.index("## What needs a human") + 3)]
+    assert "the old token is dead" not in table

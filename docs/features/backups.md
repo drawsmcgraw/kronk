@@ -30,7 +30,10 @@ What is needed to rebuild Kronk, no binaries, no models:
 
 - secrets and local config: `.env`, `.env.dev`, `.env.telemetry`,
   `searxng/settings.yml`, `secrets/`, `ops/hosts.json` (absent today),
-  `/etc/kronk/` (read through a throwaway `alpine:3.20` container; root-only);
+  `/etc/kronk/` (read through a throwaway `alpine:3.20` container; root-only),
+  Music Assistant's `settings.json` (provider logins) and `auth.db` (MA's
+  users, every login token including `MA_TOKEN`, and the key that signs
+  them: anyone with this file can sign in to MA; since M16b);
 - household data: `data/solar.db`, `data/music_taste.yaml`,
   `data/music_taste.db`, `data/kronk_state.md`, `data/mm_known_hosts`,
   `data/yt-music-cookie`, `data/upgrades/status.json`, the labelled voice
@@ -45,8 +48,30 @@ What is needed to rebuild Kronk, no binaries, no models:
   (HA saves `.storage` by temporary file and rename); the job reads
   `/config` once more after 5 s, and a second exit 1 makes the run
   INCOMPLETE (loud; the next month's run is whole);
-- Music Assistant: `settings.json` only (`library.db` is 44 MB, over the
-  plan's 10 MB rule);
+- Music Assistant: `settings.json`, `playlists/` (the playlists MA made
+  itself, every file by name; `docker exec music-assistant-server tar`,
+  which stores a symlink as a symlink, so nothing is followed out of the
+  directory; absent, empty or unreadable is reported, not a failure) and
+  `auth.db` (since M16b; `library.db` is 44 MB, over the plan's 10 MB
+  rule). `auth.db` cannot be read like the other databases: MA opens
+  every database in WAL mode with `locking_mode=exclusive`, so no other
+  connection can open it, its WAL index lives in MA's memory (there is no
+  `auth.db-shm`), and a reader that tried would create `auth.db-shm` in
+  MA's `/data`. And a plain copy of the main file is not the database: on
+  2026-11-20 the WAL was 3.1 MB beside a 92 KB file and held one of the
+  four token rows. So the job reads the pair the way crash recovery finds
+  it, by `docker exec cat` only: the main file, the WAL, the main file
+  again, the WAL again. It takes the pair when both main-file reads are
+  identical (no checkpoint wrote to it in between) and the WAL's 32-byte
+  header is the same in both WAL reads (its salts change when the WAL
+  restarts). Then SQLite itself opens the pair in a private 0700
+  `kronk-sqlite-<8>` directory in the temporary directory (tmpfs here),
+  replays the committed frames and drops a frame MA was still appending;
+  the result goes through the backup API and `PRAGMA integrity_check`, and
+  the directory is removed. Nothing is written in MA's `/data`, nothing
+  is checkpointed, MA is not stopped. A pair that changed is read again
+  after 5 s, three reads in all; then it is a gap (INCOMPLETE). The
+  MANIFEST says how each was read;
 - the live config directories `../kronk-config/prod` and `dev`, whole, with
   `.git`;
 - `~/.config/systemd/user/` (units, drop-ins, the `.wants` symlinks as
@@ -78,8 +103,8 @@ What is needed to rebuild Kronk, no binaries, no models:
   read; what was absent).
 
 Not in it: models, llama.cpp and Whisper binaries, Tempo traces, HA's
-recorder DB, `sessions.db`, metrics, MA's library, history, auth and
-playlists, the repo itself (it is on GitHub; only the unpushed commits are in
+recorder DB, `sessions.db`, metrics, MA's library and history (and its
+other databases), the repo itself (it is on GitHub; only the unpushed commits are in
 the bundle). The job reads remote state from local remote-tracking refs
 only: it never runs `git fetch`, so "pushed" means "as of the last fetch".
 Git keeps no remote-tracking refs for tags, so whether the production tag
@@ -93,6 +118,7 @@ A tar is a backup only when it holds the **required** items:
 | --- | --- |
 | Home Assistant's `/config` (`.storage`, YAML, blueprints) | the house: devices, entities, pipelines, auth |
 | Music Assistant's `settings.json` | the players and providers |
+| Music Assistant's `auth.db` | MA's users and tokens: without it `MA_TOKEN` and every MA login die at a restore (M16b) |
 | `.env` | every token the stack runs on |
 | the live config directories `kronk-config/prod` and `dev` | prompts and tuning, with their history |
 | `~/.config/systemd/user/` | the units that start everything |
@@ -114,7 +140,10 @@ and the notice ("NOT READ"), and the run is still OK. Anything in HA's
 `custom_components/`, `www/`, `themes/` and `packages/` are copied when
 they exist.
 
-**The tar holds every secret in the clear.** It is mode 0600 and the share
+**The tar holds every secret in the clear** (the list above, `auth.db`
+included). `auth.db` appears in no log line, notice, status file or API
+answer beyond its name and size, and a failed read names the reason only.
+It is mode 0600 and the share
 is mounted 0600/0700 for the operator, but anyone with the NAS account or
 the NAS's admin can read it. Encryption is Drew's decision, not built.
 
@@ -428,10 +457,21 @@ stay; the fstab line and `/etc/kronk/nas-backup.cred` are removed by hand.
   `kronk-bundle-<8 characters>` directory in the temporary directory, owned
   by the operator, older than a day, holding only `unpushed.bundle` or its
   `.lock` as regular files (a symlink, named like one or inside one, is never
-  followed); and a running delete container whose job is gone (above).
+  followed); a `kronk-sqlite-<8 characters>` directory of the same kind
+  holding only `copy.db` and its `-wal`, `-shm` or `-journal` (a run killed
+  while it replayed `auth.db`; it holds a copy of a secret, in tmpfs); and
+  a running delete container whose job is gone (above).
   Anything else of a similar name is left alone and logged.
-- **`MA_TOKEN` does not survive a restore** (MA's `auth.db` is not backed
-  up); make a new one.
+- **`MA_TOKEN` survives a restore** since M16b, if MA's `auth.db` from the
+  tar goes back in place of the old one with no stale `auth.db-wal` or
+  `auth.db-shm` beside it (SQLite would replay an old WAL onto the restored
+  file). Shown on the 2026-11-20 tar without starting MA: the restored copy
+  passes `integrity_check`, holds MA_TOKEN's row (by its JWT id), its user
+  and the signing key, and MA_TOKEN's signature verifies with that key
+  (`docs/sprint/M16b-build.md`). Not shown against a running MA. Before
+  M16b the tar had no `auth.db` and the token died.
+- **MA's databases cannot be opened while MA runs** (exclusive locking
+  mode). Any check of `auth.db` goes through a copy, never the live file.
 - **The plan's build recipes** (llama.cpp for gfx1151, the Whisper wheel)
   are docs, not scripts: `docs/CHANGE_2026-06-09_gemma_vulkan_switch.md` and
   `docs/VOICE_SETUP.md`. The runbook points at them.
@@ -536,6 +576,11 @@ The share is `//atlas.local/kronk-backup` (a Synology, SMB 3.1.1,
   it.
 
 ## Blog hooks
+
+- The database you cannot open: Music Assistant holds an exclusive lock on
+  its SQLite files, the WAL is thirty times the database, and the backup is
+  crash recovery on purpose: read the pair twice, take it only when nothing
+  moved, let SQLite replay it somewhere private.
 
 - The NAS that changed the time: `utime` before `close` is discarded by an
   SMB server, and no test against a local directory can show it. Found by

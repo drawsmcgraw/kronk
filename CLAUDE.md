@@ -231,7 +231,9 @@ verbatim — never summarized away.
   root-only `/etc/kronk/nas-backup.cred` (beside `nas-music.cred`) by
   Drew's install step (done 2026-11-20). The
   monthly config tar on the NAS (`/mnt/nas-backup/config/`, sprint M16)
-  holds all of these in the clear; treat that share as a secret store.
+  holds all of these in the clear, and since M16b also Music Assistant's
+  `auth.db` (MA's users, every MA login token including `MA_TOKEN`, and
+  the key that signs them); treat that share as a secret store.
   No other secrets exist.
 - **New compose files** get an `# Operations:` comment block (up / restart /
   logs / down recipes) like the existing ones.
