@@ -528,7 +528,12 @@ The share is `//atlas.local/kronk-backup` (a Synology, SMB 3.1.1,
   right; the notice's sentence now covers only a tag git cannot resolve.
 - A stray `#recycle` directory on the share is the Synology's recycle bin.
   The jobs read and write only `config/` and `recordings/`, so it is not in
-  the notices' totals. It was empty after these runs.
+  the notices' totals. The backup account cannot list it (permission
+  denied), but its time moved at each run, so it very likely receives the
+  temporary name of every archived file when the archive unlinks it (a
+  second name for the same data, no extra space while the copy exists).
+  Open with Drew: turn the recycle bin off for this share in DSM, or leave
+  it.
 
 ## Blog hooks
 
