@@ -2783,3 +2783,16 @@ def test_e2e4_the_notice_names_a_production_tag_that_is_not_a_local_tag(house, m
     body = ops.notices[-1][1]
     assert ("Production tag sprint-M16: not a local tag, so the tar cannot say which commit production runs "
             "or whether a remote has it.") in body
+
+
+def test_first_real_run_a_local_tag_whose_commit_is_on_a_remote_branch_gets_no_warning(house, monkeypatch):
+    """First real backup, 2026-11-20: wyoming-piper still ran from sprint-M17,
+    a local tag whose commit is on origin/refactor, and the notice called it
+    "not a local tag"."""
+    monkeypatch.setattr(B, "tag_on_remote", lambda s, ops, t: (
+        "unknown: the tag itself cannot be told without contacting the remote; its commit 55e4bfb is on "
+        "origin/refactor. After a clone without it: git tag sprint-M17 55e4bfb"))
+    ops = _count_by_refs(FakeOps(), head=0, tag=0)
+    ops.unpushed = 0
+    assert B.cmd_config(house, ops, dry_run=False) == 0
+    assert "not a local tag" not in ops.notices[-1][1]

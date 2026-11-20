@@ -1433,7 +1433,11 @@ def _config(s: Settings, ops: Ops, run: dict, day: str, hash_models: bool) -> tu
     # A production tag git cannot answer for (not a local tag), and commits
     # on other local branches that no remote has: neither is in the tar, so
     # the notice says so (M16 e2e4 findings 1 and 2).
-    run["tags_unknown"] = [tg for tg, a in on_remote.items() if a.startswith("unknown")]
+    # Only the two cases git cannot answer at all. A local tag whose commit
+    # is on a remote-tracking branch also reads "unknown:" (git keeps no
+    # remote refs for tags), but repo-state.txt names its commit, so the
+    # notice stays quiet about it (first real run, 2026-11-20).
+    run["tags_unknown"] = [tg for tg, a in on_remote.items() if a.startswith("unknown (")]
     allb = git(s, ops, "rev-list", "--count", "--branches", "HEAD", "--not", "--remotes")
     if allb.isdigit() and int(allb) > (unpushed or 0):
         run["other_unpushed"] = int(allb) - (unpushed or 0)
