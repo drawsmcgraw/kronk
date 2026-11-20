@@ -327,7 +327,7 @@ docker compose -f docker-compose.ma.yml up -d
 scratch MA, 2026-11-20): check with tool_service's Pandora thumbs, or MA's
 UI, Settings, your profile, where the token is listed. A playlist file
 restored into `playlists/` is on disk but was not in MA's library list in
-that scratch run (the library database is not backed up, and the scratch
+that scratch run (the library database is not in the tar, and the scratch
 MA had no network to sync); whether it comes back by itself after a sync
 is not shown. Lost by design (Drew, 2026-11-14): MA's library
 metadata, play history and favourites. Then redeploy the Kronk stack's
