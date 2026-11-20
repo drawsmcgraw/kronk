@@ -852,6 +852,42 @@ def rec(house, device, pipeline, run, name="01_stt-stt.faster_whisper.wav", age_
     return p
 
 
+def test_first_real_run_a_share_that_stamps_the_file_when_the_write_handle_closes_still_keeps_the_time(
+        house, monkeypatch):
+    """First run on the Synology share, 2026-11-20: closing a handle that
+    wrote resets the file's time to now, so a time set before that close is
+    lost. The archive sets it again after the close."""
+    old = rec(house, "dev1", "kronk", "1203688800703734", age_days=10)
+    mtime, target = old.stat().st_mtime_ns, archived(house, old)
+    real_write, real_close, real_utime, wrote = os.write, os.close, os.utime, set()
+
+    def write(fd, b):
+        wrote.add(fd)
+        return real_write(fd, b)
+
+    def close(fd):
+        if fd in wrote:
+            wrote.discard(fd)
+            real_utime(fd, None)          # the server's stamp at close
+        real_close(fd)
+
+    monkeypatch.setattr(B.os, "write", write)
+    monkeypatch.setattr(B.os, "close", close)
+    assert B.cmd_archive(house, FakeOps(), dry_run=False) == 0
+    assert target.stat().st_mtime_ns == mtime and not old.exists()
+
+
+def test_first_real_run_a_share_that_cannot_keep_the_time_fails_the_copy_and_keeps_the_recording(
+        house, monkeypatch):
+    old = rec(house, "dev1", "kronk", "1203688800703734", age_days=10)
+    target = archived(house, old)
+    monkeypatch.setattr(B.os, "utime", lambda *a, **k: None)
+    ops = FakeOps()
+    assert B.cmd_archive(house, ops, dry_run=False) != 0
+    assert old.exists() and not target.exists()
+    assert "did not keep the recording's time" in ops.notices[-1][1]
+
+
 def archived(house, p: Path) -> Path:
     rel = p.relative_to(house.recordings).parts
     month = dt.datetime.fromtimestamp(p.stat().st_mtime).strftime("%Y-%m")

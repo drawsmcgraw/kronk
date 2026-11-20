@@ -1670,6 +1670,9 @@ def _already_there(sfd, sdir, ddir, rec, month, fst) -> tuple[str, str, Verified
     return "same", "already on the destination with the same SHA-256", Verified(rec, month, here, fst.st_dev, fst.st_ino)
 
 
+MTIME_SLACK_NS = 2_000_000_000     # a share may keep times to 100 ns (SMB) or 2 s (FAT), not to the nanosecond
+
+
 def _copy_new(sfd, sdir, ddir, rec, month) -> tuple[str, str, Verified | None]:
     name = rec.rel[3]
     while True:
@@ -1723,6 +1726,12 @@ def _copy_new(sfd, sdir, ddir, rec, month) -> tuple[str, str, Verified | None]:
             return "error", "the temporary file was replaced during the copy; left alone, kept locally", None
         back = sha256_fd(rfd, drop_cache=True)
         back_size = os.fstat(rfd).st_size
+        # The recording's time is set again here, through the read handle,
+        # after the write handle is closed: an SMB server stamps the file
+        # with the time of that close and discards a time set before it
+        # (seen on the Synology share at the first real run, 2026-11-20).
+        os.utime(rfd, ns=(rec.mtime_ns, rec.mtime_ns))
+        kept_ns = os.fstat(rfd).st_mtime_ns
     except OSError as e:
         _unlink_own(tmpname, ddir, own)
         return "error", f"read back failed: {e.strerror}", None
@@ -1731,6 +1740,9 @@ def _copy_new(sfd, sdir, ddir, rec, month) -> tuple[str, str, Verified | None]:
     if back_size != n or back != want:
         _unlink_own(tmpname, ddir, own)
         return "mismatch", "the copy read back different; kept locally", None
+    if abs(kept_ns - rec.mtime_ns) > MTIME_SLACK_NS:
+        _unlink_own(tmpname, ddir, own)
+        return "error", "copy failed: the destination did not keep the recording's time; kept locally", None
     # Into place without replacing anything: link(2) fails on an existing
     # name. A share without hard links gets renameat2(RENAME_NOREPLACE),
     # which fails on one too; where that is not offered either, a rename
