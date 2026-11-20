@@ -1,7 +1,5 @@
 # M16b build report: Music Assistant's playlists and auth.db in the config tar; two chores
 
-Status: in progress
-
 Branch `refactor`. Criteria: `docs/sprint/M16b-criteria.md`; M16 rulings 3
 to 5 stand. Built 2026-11-20 by the build agent.
 
@@ -267,5 +265,14 @@ wyoming-piper 5b97cc70b9ce 2026-11-16T01:05:02.386451415Z running
 | `before-*.txt`, `after-*.txt` | about 14 KB | container, unit and timer lists |
 | `taste/` | 0 | the scratch taste DB path for the tool_service import (nothing written) |
 
-The whole directory is removed at the end with `rm -rf
-/tmp/kronk-m16b-build`. No other `/tmp` directory was touched.
+Removed at the end with `rm -rf /tmp/kronk-m16b-build`; checked gone, with
+no `kronk-sqlite-*` directory, no `kronk-m16b-ma-test` volume and no helper
+container left. No other `/tmp` directory was touched.
+
+## Commits
+
+- `7d6dc5a` M16b: the script, the tests, the feature doc, the runbook,
+  CLAUDE.md, the incident doc, this report in progress.
+- This report, final (the last commit). A test run after `7d6dc5a`, with
+  everything committed: `5677 passed, 3 skipped, 53 xfailed, 6 warnings in
+  81.09s`. Tree clean; no push, no tag.
