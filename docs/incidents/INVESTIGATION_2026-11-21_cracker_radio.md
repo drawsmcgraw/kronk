@@ -476,6 +476,25 @@ Criteria: `docs/sprint/M23-criteria.md`; build report: `docs/sprint/M23-build.md
   (top) → 1.90 (third), Pink Floyd 2nd → top. The real DB is not rewritten
   until the coordinator deploys and rebuilds (`docs/sprint/M23-build.md`).
   Fix 5 (a wake scored as a stop) does not fall out of this; left as is.
+- **2026-11-21, end-to-end test failed** (`docs/sprint/M23-e2e.md`): fix 2
+  refused 55 of the tester's 305 generic sentences ("play some music,
+  thank you", "… tonight", "… buddy"); fix 3 dropped a station row that
+  was asked for by name after its pick.
+- **2026-11-21, fix round 1 (repo only)** (`docs/sprint/M23-fix1.md`).
+  Fix 2 turned round: a sentence is refused only when it holds no word
+  meaning music in general (music…, something, songs, tunes, playlist,
+  radio, again, …; "it" or "that" right after the verb). 341 of 342
+  generic sentences pick exactly as before ("Play some muse sick." stays
+  refused); both captures stay refused. Cost: a stripped request whose
+  sentence also holds such a word ("play the song right here right now")
+  gets the pre-M23 pick. Through the orchestrator the refusal is said
+  once. Fix 3's window now ends at the first play started on the queue
+  after the pick (24 h at most) instead of a fixed 12 h; a named album of
+  the picked artist after the pick counts with its tracks, and the
+  station of pick 13 counts: its 21 plays on 2026-11-08 match, second for
+  second, Kronk named plays of that station logged by tool_service.
+  Recomputed: 14 rows left out instead of 15; Cracker 1.90 (third), as
+  before.
 
 ## Blog hooks
 

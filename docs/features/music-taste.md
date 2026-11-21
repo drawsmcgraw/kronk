@@ -86,30 +86,52 @@ listens to, and Kronk learns from what happens to its picks.
   keep their order, so the household's plays weigh as if Kronk's had not
   happened. MA's history answer carries no time, player or flag, but MA
   filters on them: for each of the last 100 picks the build asks for the
-  rows last played on the pick's queue from 60 s before the pick
-  (`PICK_LEAD_S`: a pick is recorded after its play is verified, MA marks
-  the item at the start) up to 12 h after it (`PICK_WINDOW_S`), and for the
-  ones MA marks user-initiated (the item handed to `play_media`, sticky
-  once set; tracks played out of an artist, album or station are not). A
-  row in that window that the household did not start is Kronk's when it
-  is the picked artist's (the artist itself, or a track or album credited
-  to it) or the picked station or playlist itself. The queue is the
-  player's `active_queue` at the pick (`picks.queue`, since M23); picks
-  recorded before it have none and are read on every queue. Three reads
-  per pick, about 30 a night.
-  What it cannot tell: tracks of an album or artist the household asked
-  for by name, by the same artist, on the same speaker, within the 12 h
-  (only the item asked for is user-initiated, not its tracks); a request
-  by name for the very artist Kronk picked (same row); the tracks a picked
-  station or playlist played (their artists are anyone's; only the station
-  or playlist row is left out); and a row played again after the window,
-  which counts again (MA keeps only the last play). Feedback (thumbs,
-  skips, stops, "not that", listened) is untouched and still applies.
-  Recomputed on a copy of the real data, 2026-11-21: 15 rows left out
-  (ten Cracker tracks and the Cracker artist row from picks 18 and 19, one
-  station and three playlists from picks 13 to 16); Cracker went from
-  4.10 (top) to 1.90 (third), behind Pink Floyd 4.30 and Fatboy Slim 2.55
-  (`docs/sprint/M23-build.md`).
+  rows last played on the pick's queue inside the pick's window, and for
+  the ones MA marks user-initiated (the item handed to `play_media`, sticky
+  once set; tracks played out of an artist, album or station are not). The
+  window opens 60 s before the pick (`PICK_LEAD_S`: a pick is recorded
+  after its play is verified, MA marks the item at the start) and ends at
+  the first play started on that queue after the pick, the household's or
+  another pick, or 24 h after it (`PICK_WINDOW_S`, so a pick left playing
+  all night is covered) (`taste._window_end`, M23 fix round 1). A start is
+  a user-initiated row last played after the pick, except artist rows
+  (every track's credit moves its artists' rows), tracks credited to the
+  picked artist (a sticky flag the pick replayed), and the pick's own item
+  at its own start; a station or playlist row moves only when it is
+  started again, so the picked one asked for again later is a start. MA's
+  answer carries no time, so the first start is found by bisecting
+  `played_after_timestamp` to the second (about 20 reads for a pick with a
+  start after it, about 200 a night). A row in the window that the
+  household did not start is Kronk's when it is the picked artist's (the
+  artist itself, or a track or album credited to it) or the picked station
+  or playlist itself; rows after the window are the household's, tracks
+  included. The queue is the player's `active_queue` at the pick
+  (`picks.queue`, since M23); picks recorded before it have none and are
+  read on every queue, so a start on any queue ends their window.
+  What it cannot tell: a request by name for the very artist Kronk picked,
+  on the same speaker, with nothing else started in between, within the
+  day (one artist row for both, moved by every track); a track the
+  household once asked for by name and the pick replayed (sticky flag: it
+  counts, but does not end the window); a track of the picked artist asked
+  for by name during the pick (it counts; its artist credit stays Kronk's);
+  household tracks of the picked artist that ended in the 60 s before a
+  pick, and a pick whose play took over 60 s to verify (its artist row
+  falls before the lead, `docs/sprint/M23-e2e.md` finding 6); the tracks a
+  picked station or playlist played (their artists are anyone's; only the
+  station or playlist row is left out); and a row played again after the
+  window, which counts again (MA keeps only the last play). Feedback
+  (thumbs, skips, stops, "not that", listened) is untouched and still
+  applies.
+  An MA that fails the pick reads raises and the build keeps the old
+  profile; an MA that answers them empty is read as "no rows", and
+  `kronk_pick_items` in `last_build` is then 0 while picks exist: that
+  count is the only sign (`M23-e2e.md` finding 7).
+  Recomputed on a copy of the real data, 2026-11-21: 14 rows left out
+  (ten Cracker tracks and the Cracker artist row from picks 18 and 19,
+  three playlists from picks 14 to 16; the station of pick 13 counts, as
+  it was asked for by name after the pick); Cracker went from 4.10 (top)
+  to 1.90 (third), behind Pink Floyd 4.30 and Fatboy Slim 2.55
+  (`docs/sprint/M23-build.md`, `docs/sprint/M23-fix1.md`).
 - **Corrected:** feedback only on Kronk's own picks — a watcher polls the
   speaker every 10 s: skipped inside 30 s −0.5, stopped inside 60 s −0.5,
   still playing at 10 minutes +0.3; "not that" −1.0. First outcome wins.
@@ -124,27 +146,39 @@ listens to, and Kronk learns from what happens to its picks.
    through the file's `genres` table. No phrase ("play some music") → the
    first matching `rules` entry, else the top of the profile.
    Since sprint M23 a query with no phrase is checked against the sentence
-   the user spoke (`MusicRequest.said`, `taste.said_request`): if every
-   request clause in it names something ("Play right here, right now,
-   bud. That boy's slow." reached `/music` as "music" after the
-   coordinator's rewrite), `/music` answers 422 "I didn't catch what to
-   play." plus "The closest I found was …" when the resolver finds a match
-   above `resolver.hint_min_score`, and nothing plays or is recorded. A
-   clause is the words after a request verb (play, put on, throw on,
-   listen to, shuffle, queue up, spin) up to the end of its sentence or a
-   stop word (in, on, at, from, for, to, with, through, into, onto); it is
-   generic when every word is in `taste.SAID_GENERIC_WORDS` (request
-   words, articles and amounts, "music" / "something" / "tunes" / "songs"
-   and the like, "good" / "nice" / "random", "me" / "us" / "please" and
-   speech filler). It errs toward generic, so "play some music" keeps
-   picking: any generic clause makes the sentence generic, a room or
-   provider after a stop word is not read, trailing chatter after a full
-   stop is not read, and no sentence (`/music/voice`, a shim turn with no
-   words of its own) or no request verb keeps today's pick. What it cannot
-   tell: "play something from Pink Floyd" stops at "from" and picks, and a
+   the user spoke (`MusicRequest.said`, `taste.said_request`). "Play right
+   here, right now, bud. That boy's slow." reached `/music` as "music"
+   after the coordinator's rewrite; a query with no phrase is "play some
+   music", and the kitchen got the top of the profile. The guard refuses
+   only a sentence that holds no word meaning music in general, anywhere
+   in it: any word starting with "music", or something, anything,
+   everything, whatever, stuff, song(s), tune(s), track(s), jam(s), mix,
+   playlist(s), radio, station, album(s), record(s), library, sounds,
+   vibes, noise, favorites/favourites, usual, more, again
+   (`taste.SAID_MUSIC_WORDS`); that, it, this or one right after the
+   request verb ("play it", "play that again"; elsewhere they are
+   chatter: "That boy's slow."); "some" with only filler after it ("play
+   some"); a request verb with only filler after it ("Play."); "surprise
+   me". Then `/music` answers 422 "I didn't catch what to play." plus "The
+   closest I found was …" when the resolver, given the words after the
+   verb with the room and provider stripped, finds a match above
+   `resolver.hint_min_score`; nothing plays or is recorded. Through the
+   orchestrator it is spoken as tool_service wrote it, without "I
+   couldn't play that." (`agents.STRIPPED_REFUSAL`). No sentence
+   (`/music/voice`, a shim turn with no words of its own) or no request
+   verb (play, put on, throw on, listen to, shuffle, queue up, spin) keeps
+   today's pick. Fix round 1 turned the test round: a list of filler words
+   ("play some music, thank you", "… tonight", "… buddy") cannot be
+   closed, and the first cut refused 55 of the end-to-end tester's 305
+   generic sentences. What it cannot tell: a stripped request whose
+   sentence also holds a word for music ("play the song right here right
+   now", "play something by Orbital") gets the pick it got before M23; a
    genre the model dropped ("play some jazz" sent as "music") is refused,
-   not played as jazz. Tests: `tests/test_music_stripped.py` (39 generic
-   sentences that pick exactly as before, both captures refused).
+   not played as jazz; "Play some muse sick." (no word for music left) is
+   refused. Tests: `tests/test_music_stripped.py`, with the 342 generic
+   sentences of `tests/fixtures/music_generic_sentences.txt` (each picks
+   exactly as before M23 but that one), both captures refused, and the
+   known misses.
 2. Candidates: profile artists with a matching genre (score + feedback, +2
    for `love`, `never` excluded), our own stations named for the genre, and
    MA search playlists/stations whose *name* carries the genre (base

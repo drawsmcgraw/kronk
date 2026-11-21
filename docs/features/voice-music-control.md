@@ -237,7 +237,13 @@ X" has always been a play verb. Pinned by `tests/test_music_enqueue.py`,
 which also counts the call sites (one in tool_service, one in the
 blueprint, none in the orchestrator). HA's own built-in media intents
 (`HassMediaSearchAndPlay`) still use MA's default; Kronk's paths take every
-sentence those would.
+sentence those would. An explicit `replace` clears MA's list of enqueued
+items as soon as the call arrives, before the item resolves (MA
+`queue_loader.py:820`; the default path clears it after the first item
+resolved), so a `play_media` that fails to resolve clears that list on the
+queue that is still playing. The list seeds autoplay ("Don't stop the
+music", off on every queue) and album credit for what is playing; no effect
+on sound (`../sprint/M23-e2e.md` finding 8).
 
 **The two tiers must agree.** The blueprint's Jinja
 (`player_entity_id_by_player_name` → `_by_area_name` → `_by_assist_area`
