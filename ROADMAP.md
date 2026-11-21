@@ -31,13 +31,6 @@ Conventions:
   monthly patch run declines on its branch check
   (`docs/features/upgrade-cadence.md`).
 
-- **A track play keeps the old queue; "play music" means the top artist**
-  *(incident 2026-11-21)* — a single-track request plays, then the earlier
-  queue resumes, because neither play path states `enqueue: replace`; and
-  a request the model strips down to "music" plays the top of the taste
-  profile. Fixes 1 and 2 proposed, waiting for Drew:
-  `docs/incidents/INVESTIGATION_2026-11-21_cracker_radio.md`.
-
 - **Home Assistant major upgrade** — 2026.5.4 to 2026.11.2, the first
   major under the upgrade cadence. Waits for Drew's greenlight and a
   window: `docs/upgrades/2026-11-18.md`, `docs/runbooks/major-upgrade.md`.
@@ -132,6 +125,15 @@ Conventions:
 
 Newest first; feature docs in `docs/features/`.
 
+- **The queue incident** *(2026-11-21, sprint M23)* — every play states
+  `enqueue: replace` (tool_service and blueprint change 15), so a single
+  track no longer hands the speaker back to the earlier queue; Kronk's own
+  picks are left out of what the nightly taste learning reads, so a pick
+  no longer reinforces itself. A guard that refuses a request the model
+  stripped down to "music" is built and off
+  (`stripped_request.refuse`): in two tests it refused ordinary requests
+  for music. `docs/incidents/INVESTIGATION_2026-11-21_cracker_radio.md`,
+  `docs/features/music-taste.md`.
 - **The basement hand-off** *(2026-11-21, sprint M22)* — the blueprint
   (change 14) names the satellite's room only when that room's one speaker
   is the satellite's own, and its own player otherwise; tool_service says

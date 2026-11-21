@@ -66,3 +66,14 @@ Built by an Opus agent (`docs/sprint/M16b-build.md`), tested by a Fable agent (`
 - Not done: a spoken test by Drew; the test report's notes 4 to 17 (among them: the snapshot's player list predates the basement area fix, so the pinned answer for the new corpus row says the player's name where production says the room).
 - Same morning, not part of M22: `docs/incidents/INVESTIGATION_2026-11-21_cracker_radio.md` (a track play keeps the old queue). Nothing from it is built.
 - `refactor` merged to `main` after this entry; `~/.config/kronk/upgrade.env` set to `main`.
+
+## M23 (the queue incident: fixes 1 to 3), 2026-11-21
+
+- Tag `sprint-M23` (`aad0958`). `scripts/deploy_tag.sh deploy sprint-M23` at about 12:53 local: the same six containers; HA, MA, `wyoming-piper` and the dev pair untouched; `/api/status` and the shim ok. Both reachable satellites idle; no Music Assistant player playing.
+- Blueprint change 15 installed: `docker cp -a`, `automation/reload` (HTTP 200), no HA restart. Read back: `version: 20250404-kronk15`, `enqueue: replace` at line 342, sha256 equal to the repo file's, the automation `on`. The file it replaced: `~/backups/mass_assist_kronk.kronk14.2026-11-21.yaml`.
+- Taste profile rebuilt under the new rule (`POST /music/taste/rebuild` inside the tool_service container, after a copy of the DB to `data/backups/music_taste.pre-m23.db` taken BEFORE the deploy): `history_items 486, kronk_pick_items 14`; top of the profile before: Cracker 4.10, Pink Floyd 2.78, Orbital 1.80; after: Pink Floyd 4.30, Fatboy Slim 2.55, Cracker 1.90.
+- Fix 2 (refuse a request stripped to "music") is built and OFF: `stripped_request.refuse`, false by default and when absent; production's live `music.yaml` does not carry the key; `/api/settings` shows it false from the code default. It stays off: two tests found ordinary requests refused.
+- Test: failed twice on fix 2 (`M23-e2e.md`, `M23-e2e2.md`; fix rounds `M23-fix1.md`, `M23-fix2.md`), passed the third with no blocker (`M23-e2e3.md`: 25,993 requests equal to the code before M23 except the `enqueue` key and the pick's queue column). Coordinator fixes after it, not retested by an agent (`d860a83`, `aad0958`): a failed item read is tried again before it can end a pick's window and is logged when it still fails; the 5 s margin is pinned. Suite `7314 passed, 3 skipped, 54 xfailed`.
+- Known limit of fix 3: when Kronk picks an artist and the next thing asked for on that speaker is that artist by name, Music Assistant's records cannot tell the two; that play is not counted (an album of the artist is).
+- Also 2026-11-21, no deploy needed (`scripts/upgrades.py` runs from the working tree): an offline puck no longer makes the monthly patch run decline (`24baf8c`).
+- Not done: a spoken test by Drew; the third report's notes; incident fixes 4 (the track/catch-all trigger race) and 5.
