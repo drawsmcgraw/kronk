@@ -467,7 +467,9 @@ the record of what ran.
   fresh hashes and nobody reads the diff; voice_tracer has no dev twin. The
   report lists the patches; apply them in a window.
 - The HA patch run is the one approved cause of an unannounced HA restart
-  (CLAUDE.md). It still declines while anything is playing or a puck is busy.
+  (CLAUDE.md). It still declines while anything is playing or a puck is busy. A puck
+  that is offline (`unavailable`) is not busy and does not make it decline
+  (2026-11-21).
 
 ## Blog hooks
 

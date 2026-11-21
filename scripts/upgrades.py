@@ -36,7 +36,8 @@ fact):
   4. Decline when the household is busy or the tree is not ours to commit on
      (the run's own replays and deploy checks do not count):
      a voice or chat request in the last quiet_minutes, a satellite not
-     idle, a media player playing, voice_tracer holding a run, a deploy or
+     idle (one that is offline is not
+     counted), a media player playing, voice_tracer holding a run, a deploy or
      another run in progress, the last rollback failed, the tree not clean,
      not on the expected branch. Each reason is logged; the timer tries
      again tomorrow, up to max_attempts a month.
@@ -1235,6 +1236,12 @@ class Own:
     acted: bool = False                         # a component's or a recovery's steps began (O6)
 
 
+# A satellite in one of these states is off or out of reach, not in use: it
+# is no reason to decline (Drew, 2026-11-21: the office puck was unplugged
+# and every night would have declined on it).
+OFFLINE_SATELLITE = {"unavailable", "unknown"}
+
+
 def house_busy(ops: Ops, rules: Rules, now: dt.datetime, own: Own | None = None,
                info: list[str] | None = None) -> list[str]:
     """Reasons the household is busy now (empty = quiet). A check that
@@ -1249,6 +1256,10 @@ def house_busy(ops: Ops, rules: Rules, now: dt.datetime, own: Own | None = None,
         for s in states:
             eid, st = s.get("entity_id", ""), s.get("state")
             if eid.startswith("assist_satellite."):
+                if st in OFFLINE_SATELLITE:
+                    if info is not None:
+                        info.append(f"{eid} is {st}: offline, not counted as busy")
+                    continue
                 if st != "idle":
                     why.append(f"{eid} is {st}")
                 ch = _date(s.get("last_changed"))
@@ -1815,7 +1826,8 @@ def ha_precheck(ctx: Ctx, snap: dict) -> list[str]:
     """H6: satellites idle, nothing playing, selects untouched for 15 min."""
     why, mins = [], ctx.rules.settings["select_quiet_minutes"]
     for eid, s in snap["entities"].items():
-        if eid.startswith("assist_satellite.") and s["state"] != "idle":
+        if (eid.startswith("assist_satellite.") and s["state"] != "idle"
+                and s["state"] not in OFFLINE_SATELLITE):
             why.append(f"{eid} is {s['state']}")
         if eid.startswith("media_player.") and s["state"] in ("playing", "buffering"):
             why.append(f"{eid} is {s['state']}")
@@ -2005,7 +2017,8 @@ def _ha_diff(before: dict, after: dict, flapping=()) -> tuple[list[str], list[st
                 players.append(f"{eid}: {b['state']} before, {a['state']} after")
         elif a is None:
             out.append(f"{eid} missing after the restart")
-        elif eid.startswith("assist_satellite.") and a["state"] == "unavailable":
+        elif (eid.startswith("assist_satellite.") and a["state"] == "unavailable"
+              and b["state"] != "unavailable"):      # one that was already offline is not a loss
             out.append(f"{eid} unavailable")
         elif eid.startswith("select.") and a["state"] != b["state"]:
             out.append(f"{eid}: {b['state']} before, {a['state']} after")

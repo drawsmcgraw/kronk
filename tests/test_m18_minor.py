@@ -532,3 +532,21 @@ def test_the_flapper_list_is_data():
 def test_paths_are_shown_repo_relative_when_inside_the_repo(tmp_path):
     assert U.shown_path(tmp_path / "data" / "upgrades" / "runs" / "x.log", tmp_path) == "data/upgrades/runs/x.log"
     assert U.shown_path(Path("/elsewhere/x.log"), tmp_path) == "/elsewhere/x.log"
+
+
+# --- 2026-11-21: an offline puck is not a busy puck ---
+
+def test_an_offline_satellite_is_no_reason_to_decline(house):
+    ops, sd = house
+    ops.states[0]["state"] = "unavailable"
+    ops.states[0]["last_changed"] = iso(60 / 86400)             # even if it dropped a minute ago
+    info = []
+    why = U.house_busy(ops, rules(), NOW, info=info)
+    assert not any("assist_satellite" in w for w in why), why
+    assert any("offline, not counted as busy" in i for i in info)
+
+
+def test_ha_diff_does_not_count_a_satellite_that_was_already_offline():
+    before = {"entities": {"assist_satellite.office": {"state": "unavailable"}}}
+    after = {"entities": {"assist_satellite.office": {"state": "unavailable"}}}
+    assert U._ha_diff(before, after) == ([], [])
