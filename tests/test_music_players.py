@@ -126,6 +126,101 @@ def test_unknown_speaker_lists_what_exists():
     assert "garage" in err.detail and "Kitchen" in err.detail and "kitchen voice pe" in err.detail
 
 
+# ── sprint M22: an area HA has, with no Music Assistant player ─────────────
+# INVESTIGATION_2026-11-19_basement_aerosmith.md, fix 3. HA_AREAS is what the
+# players template's `areas` answers: every area, players or not.
+
+HA_AREAS = ["Kitchen", "Office", "Basement Theater", "Garage", "Garden"]
+
+
+def _resolve_a(spoken=None, origin=None, **kw):
+    return ts.resolve_players(spoken, origin, kw.pop("players", PLAYERS), kw.pop("default", DEFAULT),
+                              ha_areas=HA_AREAS, **kw)
+
+
+def test_area_without_a_player_says_so():
+    with pytest.raises(HTTPException) as ei:
+        _resolve_a("Basement Theater")
+    err = ei.value
+    assert err.status_code == 400
+    assert err.detail == ("The Basement Theater has no Music Assistant speaker. "
+                          "Rooms with a speaker: Kitchen, Office.")
+
+
+def test_area_without_a_player_matches_like_the_area_rungs():
+    for spoken in ("the basement theater", "basement", "Basement Theater speaker"):
+        with pytest.raises(HTTPException) as ei:
+            _resolve_a(spoken)
+        assert ei.value.detail.startswith("The Basement Theater has no Music Assistant speaker."), spoken
+
+
+def test_area_without_a_player_ambiguous_substring_keeps_the_old_sentence():
+    # "gar" is inside Garage and Garden: no one room named, so no claim about one
+    with pytest.raises(HTTPException) as ei:
+        _resolve_a("gar")
+    assert ei.value.detail.startswith("I don't know a speaker or room called 'gar'.")
+
+
+def test_area_without_a_player_message_is_no_longer_than_the_old_one():
+    # Criterion 4: short enough to speak, lists no more than the old sentence.
+    with pytest.raises(HTTPException) as new:
+        _resolve_a("Basement Theater")
+    with pytest.raises(HTTPException) as old:
+        _resolve("Basement Theater")
+    assert old.value.detail.startswith("I don't know a speaker or room called 'Basement Theater'.")
+    assert len(new.value.detail) < len(old.value.detail)
+    assert "Speakers:" not in new.value.detail
+
+
+def test_unknown_name_with_ha_areas_keeps_the_old_sentence():
+    with pytest.raises(HTTPException) as ei:
+        _resolve_a("attic")
+    assert ei.value.detail.startswith("I don't know a speaker or room called 'attic'.")
+
+
+def test_ha_areas_never_change_a_target():
+    # Every request that resolves without the area list resolves the same with it.
+    cases = [("Office Sonos", None, None), ("office", None, None), ("satellite 01 ma", None, None),
+             ("sonos move", None, None), ("kitchen", "Office", OFFICE["device_key"]),
+             (None, "Office", OFFICE["device_key"]), (None, "Office", "upnobody"), (None, None, None),
+             (None, "Bedroom", None), (None, "Basement Theater", None)]
+    for spoken, origin, key in cases:
+        assert _resolve_a(spoken, origin, origin_key=key)[0] == _resolve(spoken, origin, origin_key=key)[0], spoken
+
+
+def test_own_room_without_a_player_plays_the_default_and_says_why():
+    targets, label = _resolve_a(None, "Basement Theater")
+    assert targets == [KITCHEN]
+    assert label == "the Kitchen speaker (no Music Assistant speaker in the Basement Theater)"
+
+
+def test_own_device_still_wins_when_its_room_has_no_player():
+    # The basement before fix 1: the satellite's room holds no MA player, its own player does.
+    basement = {"entity_id": "media_player.home_assistant_voice_0ab117", "name": "basement voice pe ma",
+                "area": None, "state": "idle", "type": "player", "device_key": "up20f83b0ab117"}
+    targets, label = _resolve_a(None, "Basement Theater", players=PLAYERS + [basement],
+                                origin_key="up20f83b0ab117")
+    assert targets == [basement] and label == "the basement voice pe ma speaker"
+
+
+def test_own_room_without_a_player_and_no_default_names_the_room():
+    with pytest.raises(HTTPException) as ei:
+        _resolve_a(None, "Basement Theater", default="")
+    assert ei.value.status_code == 400
+    assert ei.value.detail == ("The Basement Theater has no Music Assistant speaker "
+                               "and no default speaker is configured.")
+
+
+def test_players_template_asks_for_every_area_in_the_same_call():
+    tmpl = ts._players_template(None)
+    assert "'areas': areas() | map('area_name') | list" in tmpl
+    players, key, areas = ts.parse_player_payload_areas(json.dumps(
+        {"players": [KITCHEN], "origin_key": "", "areas": ["Kitchen", "Basement Theater", "", None]}))
+    assert areas == ["Kitchen", "Basement Theater"] and key is None
+    assert ts.parse_player_payload_areas(json.dumps({"players": [KITCHEN], "origin_key": ""}))[2] == []
+    assert ts.parse_player_payload_areas(json.dumps([KITCHEN]))[2] == []
+
+
 # ── unspoken: own device → own room → default ───────────────────────────────
 
 def test_own_device_wins_over_own_room():
@@ -159,8 +254,10 @@ def test_spoken_name_beats_own_device():
 
 
 def test_origin_area_without_a_player_falls_to_default():
+    # Same target as before sprint M22; the label now says why (fix 3).
     targets, label = _resolve(None, origin="Bedroom")
-    assert targets == [KITCHEN] and label == "the Kitchen speaker"
+    assert targets == [KITCHEN]
+    assert label == "the Kitchen speaker (no Music Assistant speaker in the Bedroom)"
 
 
 def test_default_used_when_nothing_spoken_and_no_origin():
@@ -283,6 +380,43 @@ def test_route_uses_origin_area_when_device_has_no_player(ha):
     assert OFFICE["entity_id"] in _play_calls(ha)[0]["entity_id"]
     tmpl = [j for u, j in ha.last.posts if u.endswith("/api/template")][0]["template"]
     assert "not-a-device-id" not in tmpl and "device_attr(none" in tmpl
+
+
+def test_route_area_without_a_player_is_refused_with_the_cause(ha):
+    ha.template_text = json.dumps({"players": PLAYERS, "origin_key": "", "areas": HA_AREAS})
+    resp = TestClient(ts.app).post("/music", json={"query": "Aerosmith", "player": "Basement Theater"})
+    assert resp.status_code == 400
+    assert resp.json()["detail"] == ("The Basement Theater has no Music Assistant speaker. "
+                                     "Rooms with a speaker: Kitchen, Office.")
+    assert not _play_calls(ha)
+
+
+def test_route_own_room_without_a_player_names_the_cause_in_the_reply(ha):
+    ha.template_text = json.dumps({"players": PLAYERS, "origin_key": "", "areas": HA_AREAS})
+    ha.playing_entity = KITCHEN["entity_id"]
+    resp = TestClient(ts.app).post("/music", json={"query": "Aerosmith", "origin_area": "Basement Theater"})
+    assert resp.status_code == 200, resp.text
+    assert _play_calls(ha)[0]["entity_id"] == [KITCHEN["entity_id"]]
+    assert resp.json()["player"] == "the Kitchen speaker (no Music Assistant speaker in the Basement Theater)"
+
+
+def test_route_unavailable_default_for_a_room_without_a_player_keeps_the_cause(ha):
+    # The own-room fallback lands on a default that is off: the reply still
+    # says why that speaker was chosen.
+    off = dict(KITCHEN, state="unavailable")
+    ha.template_text = json.dumps({"players": [off, OFFICE, OFFICE2, SONOS], "origin_key": "",
+                                   "areas": HA_AREAS})
+    resp = TestClient(ts.app).post("/music", json={"query": "Aerosmith", "origin_area": "Basement Theater"})
+    assert resp.status_code == 503
+    assert resp.json()["detail"] == ("kitchen voice pe is unavailable (no Music Assistant speaker in the "
+                                     "Basement Theater) — it may be powered off or asleep.")
+    assert not _play_calls(ha)
+
+
+def test_unavailable_sentence_without_the_note_is_unchanged():
+    assert ts._unavailable_sentence([SONOS], "the Sonos Move Derp speaker", ".") == "Sonos Move Derp is unavailable."
+    assert ts._unavailable_sentence([OFFICE, OFFICE2], "the Office speakers") == (
+        "satellite-01-ma and Office Sonos are unavailable")
 
 
 def test_route_unavailable_target_is_spoken_clearly(ha):

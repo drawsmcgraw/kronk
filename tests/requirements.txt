@@ -12,3 +12,7 @@ opentelemetry-exporter-otlp-proto-http==1.45.1
 opentelemetry-exporter-otlp-proto-grpc==1.45.1
 opentelemetry-instrumentation-fastapi==0.66b1
 opentelemetry-instrumentation-httpx==0.66b1
+# Rendering the music blueprint's Jinja offline (sprint M22,
+# tests/ha_template_env.py): the versions homeassistant 2026.5.4 runs.
+Jinja2==3.1.6
+MarkupSafe==3.0.3

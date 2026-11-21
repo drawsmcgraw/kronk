@@ -109,6 +109,33 @@ fell through to a provider search and played its first hit, a YouTube
 "Hôtel Costes - Best 50"; the verify step can't tell a wrong success from a
 right one.
 
+**The hand-off to Kronk (changes 9 and 14).** `conversation.process` can't
+carry the device id, so the blueprint writes the target into the text it
+hands Kronk (`kronk_text`). Since change 14 (2026-11-21) the order is:
+
+1. a target the speaker named: the sentence as spoken, nothing added;
+2. the satellite's own MA player: `<sentence> on the <friendly name>`, the
+   player the blueprint's own-device rung picks;
+3. the satellite's room, only when that room holds an MA player:
+   `<sentence> in the <room>`;
+4. the bare sentence (Kronk plays it on `MUSIC_DEFAULT_PLAYER`).
+
+Until change 14 the room came first and was written whether or not it held
+a player. The basement satellite's ESPHome device was in "Basement
+Theater" while its MA device had no area, so every unnamed basement
+hand-off asked Kronk for a room it could not play in
+(`../incidents/INVESTIGATION_2026-11-19_basement_aerosmith.md`).
+`tests/test_blueprint_handoff.py` renders the real `kronk_text` from the
+blueprint file for each satellite shape (own player and room with one, own
+player and room without one, no own player and room with one, neither, a
+named target) over a fake registry and resolves it through
+`resolve_players`; on the old template the basement shape fails. Cost:
+since the hand-off now names the own player, Kronk's reply names it too
+("on the kitchen voice pe ma speaker" where it said "the Kitchen speaker"),
+because tool_service labels a match by name with the player's name. The
+target is the same. Carrying the device id across the hand-off (M11's
+`rest_command` cutover, "Not done" below) retires the workaround.
+
 **Kronk-side radio (2026-11-08).** MA's Pandora `offer_new_stations` is on
 (briefly off the same day, back on by operator decision): a station name the
 account doesn't have, by either tier, creates a station from the first
@@ -143,6 +170,30 @@ providers → audio on the player. The route:
    rooms are errors that say what exists. Spoken labels come from HA: the
    area when matched by area, else the player's friendly name — so
    technical device names never get read aloud for room requests.
+   Since sprint M22 the same template call also lists every HA area
+   (`areas`), players or not, and two cases say the cause
+   (`INVESTIGATION_2026-11-19_basement_aerosmith.md`, fix 3):
+   - a spoken room HA has that holds no MA player (exact, or the only
+     substring hit) is refused with "The Bedroom has no Music Assistant
+     speaker. Rooms with a speaker: Basement Theater, Kitchen, Office."
+     instead of "I don't know a speaker or room called …", which was
+     false;
+   - when the origin's room holds no MA player (and the origin device has
+     none of its own), the request still plays on the default, as before,
+     and the label says why: "Now playing … on the Kitchen speaker (no
+     Music Assistant speaker in the Bedroom)." The parenthesis rides in the
+     label, so every reply that names the target (play, control, now
+     playing, the dry-run line, "did not start") carries it, and so does
+     "<player> is unavailable (no Music Assistant speaker in the Bedroom)"
+     when that default is off. Chosen over
+     refusing because the blueprint tier also falls to the default player
+     here (its confirmation names the room it played in), and the sprint rule was
+     that every request that resolved before resolves the same; the cost
+     is a play in another room, now announced instead of silent. With no
+     default configured the refusal names the room too.
+   Neither changes which players any request picks
+   (`tests/test_music_players.py`, `test_ha_areas_never_change_a_target`,
+   and the live-path pin).
 3. Unavailable targets are caught from the same list (503 "may be
    powered off"); a room with two speakers plays on both.
 4. Calls `play_media`, then **polls the targets for `playing`** before
@@ -153,8 +204,11 @@ providers → audio on the player. The route:
 **The two tiers must agree.** The blueprint's Jinja
 (`player_entity_id_by_player_name` → `_by_area_name` → `_by_assist_area`
 → default) and `resolve_players()` in tool_service cannot share code;
-`tests/test_music_players.py` pins the Python order. If the blueprint's
-rule ever changes, change both.
+`tests/test_music_players.py` pins the Python order, and
+`tests/test_blueprint_handoff.py` renders the blueprint's own Jinja (its
+targeting variables and `kronk_text`) over a fake registry and checks that
+Kronk resolves the hand-off to the player the blueprint itself targeted.
+If the blueprint's rule ever changes, change both.
 
 ## One decision-maker in tool_service: built and shadowed (sprint M11, 2026-11-17)
 
@@ -192,8 +246,9 @@ through nginx (tool_service's ports are bound to loopback; nginx proxies only
    name comes from `radio_name()`, which still stops at a full stop. The
    parser trims nothing else: messy transcripts are the M14 gate's.
 2. **Target**: `resolve_players`, as `/music` does (named player or room, own
-   device, own room, default). The basement Voice PE's player has no area
-   and is reached by its name or the device join.
+   device, own room, default). The basement Voice PE's player had no area
+   until 2026-11-20 (now "Basement Theater"); it is also reached by its
+   name or the device join.
 3. **Decide** (`music_decide.decide`), one function per step, in the order
    `config/music.yaml` `decision.order` gives:
    - `markers`: a type word (album, song, artist, playlist, radio, station)
@@ -334,6 +389,17 @@ docker exec homeassistant cat /config/.storage/core.device_registry \
 Name devices however you like (`satellite-01-ha` / `-ma` is fine); keep
 **area names speakable** — that is what voice addresses. When renaming a
 device in HA, decline the offer to rename entity ids.
+
+**Check the pair (sprint M22).** `python3 scripts/satellite_area_check.py`
+lists every `assist_satellite`, its area, the MA player that carries its
+MAC and that player's area, and says `ok`, `mismatch` (the player is in
+another area or none), `no_area` or `no_player`. Reads only: one render of
+HA's `/api/template` with `HA_TOKEN` from `.env`, never printed. Exit 0 when
+every satellite is ok, 1 otherwise, 2 when HA could not be read. On
+2026-11-21 it listed 3 satellites, all ok (basement, kitchen, office). The
+basement pair was a `mismatch` from 2026-09-04 until fix 1 on 2026-11-20,
+and that is what sent "in the Basement Theater" to Kronk. Run it after
+adding or moving a satellite.
 
 ## The terminal-tool mechanism (the interesting part)
 

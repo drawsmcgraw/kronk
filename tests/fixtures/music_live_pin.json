@@ -4547,5 +4547,59 @@
     }
    ]
   ]
+ },
+ "inc-1119-get-a-grit-aerosmith-basement": {
+  "request": {
+   "query": "Get a Grip by Aerosmith",
+   "said": "Play the album Get a Grit by Aerosmith.",
+   "media_type": "album",
+   "kind": "named",
+   "player": "basement voice pe ma",
+   "origin_area": "Basement Theater",
+   "origin_device": "1b6bd3b03f90e52f08dd98dca41eac82"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the basement voice pe ma speaker",
+   "targets": [
+    "media_player.home_assistant_voice_0ab117"
+   ],
+   "detail": "Dry run: would play the album Get A Grip by Aerosmith on the basement voice pe ma speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "library://album/247",
+    "media_type": "album"
+   },
+   "shuffle": false,
+   "resolved": {
+    "name": "Get A Grip",
+    "artist": "Aerosmith",
+    "media_type": "album"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "Get a Grip by Aerosmith",
+     "media_types": [
+      "album"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "Get a Grip",
+     "media_types": [
+      "album"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
  }
 }

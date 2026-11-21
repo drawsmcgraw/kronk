@@ -1267,6 +1267,9 @@ def failure_kind(message: str | None) -> str | None:
 # device (the ESPHome satellite that heard the request: its MAC under
 # `connections`, keyed the same way) so "own device" is a string compare.
 # `ORIGIN` is substituted with a validated 32-hex HA device id or `none`.
+# `areas` is every area HA has, players or not (sprint M22), so a spoken room
+# that exists but holds no Music Assistant player gets that sentence rather
+# than "I don't know a room called …"; same call, nothing else is read.
 _PLAYERS_TEMPLATE = (
     "{% set ns = namespace(out=[]) %}"
     "{% for e in integration_entities('music_assistant') if e.startswith('media_player.') %}"
@@ -1279,7 +1282,8 @@ _PLAYERS_TEMPLATE = (
     "{% endfor %}"
     "{% set conns = device_attr(ORIGIN, 'connections') if ORIGIN else none %}"
     "{% set mac = (conns | selectattr(0, 'eq', 'mac') | map(attribute=1) | first | default('')) if conns else '' %}"
-    "{{ {'players': ns.out, 'origin_key': ('up' ~ (mac | replace(':', ''))) if mac else ''} | to_json }}"
+    "{{ {'players': ns.out, 'origin_key': ('up' ~ (mac | replace(':', ''))) if mac else '', "
+    "'areas': areas() | map('area_name') | list} | to_json }}"
 )
 _DEVICE_ID_RE = re.compile(r"^[0-9a-f]{32}$")
 
@@ -1324,13 +1328,23 @@ def parse_players(raw: str) -> list[dict]:
 def parse_player_payload(raw: str) -> tuple[list[dict], str | None]:
     """Full template payload → (players, origin_key). A bare list is accepted
     too (no origin)."""
+    players, origin_key, _ = parse_player_payload_areas(raw)
+    return players, origin_key
+
+
+def parse_player_payload_areas(raw: str) -> tuple[list[dict], str | None, list[str]]:
+    """Full template payload → (players, origin_key, every HA area name).
+    The area list is empty when the payload has none (a bare list, or a
+    payload from before sprint M22)."""
     data = json.loads(raw)
     if isinstance(data, list):
-        return parse_players(raw), None
+        return parse_players(raw), None, []
     if not isinstance(data, dict) or not isinstance(data.get("players"), list):
         raise ValueError("player payload is not {players: [...]}")
     players = [_norm_player(p) for p in data["players"] if isinstance(p, dict) and p.get("entity_id")]
-    return players, (data.get("origin_key") or None)
+    areas = data.get("areas")
+    areas = [a for a in areas if isinstance(a, str) and a.strip()] if isinstance(areas, list) else []
+    return players, (data.get("origin_key") or None), areas
 
 
 def _norm(s: str | None) -> str:
@@ -1353,15 +1367,56 @@ def _by_area(players: list[dict], area: str) -> list[dict]:
     return groups or ps
 
 
+def _no_player_room(spoken_key: str, ha_areas: list[str] | None, player_areas: list[str]) -> str | None:
+    """The one HA area the spoken words name (exact, else a single substring
+    hit, like rungs 2 and 4) when it holds no Music Assistant player."""
+    if not spoken_key:
+        return None
+    have = {_norm(a) for a in player_areas}
+    bare = sorted({a for a in (ha_areas or []) if _norm(a) and _norm(a) not in have}, key=str.lower)
+    exact = [a for a in bare if _norm(a) == spoken_key]
+    if exact:
+        return exact[0]
+    sub = [a for a in bare if spoken_key in _norm(a) or _norm(a) in spoken_key]
+    return sub[0] if len(sub) == 1 else None
+
+
+def _no_speaker(area: str, lead: str = "the") -> str:
+    return f"{lead} {area} has no Music Assistant speaker"
+
+
+_NO_SPEAKER_NOTE = " (no Music Assistant speaker in the {area})"
+_NO_SPEAKER_NOTE_RE = re.compile(r" \(no Music Assistant speaker in the [^)]*\)$")
+
+
+def _unavailable_sentence(targets: list[dict], label: str, tail: str = "") -> str:
+    """"<names> is unavailable<tail>", keeping the label's own-room note
+    (resolve_players) when the target is the default for a room with no
+    player: otherwise a basement request hears only that the kitchen speaker
+    is off (sprint M22)."""
+    names = " and ".join(t["name"] for t in targets)
+    note = m.group(0) if (m := _NO_SPEAKER_NOTE_RE.search(label or "")) else ""
+    return f"{names} {'is' if len(targets) == 1 else 'are'} unavailable{note}{tail}"
+
+
 def resolve_players(spoken: str | None, origin_area: str | None,
                     players: list[dict], default_entity: str,
-                    origin_key: str | None = None) -> tuple[list[dict], str]:
+                    origin_key: str | None = None,
+                    ha_areas: list[str] | None = None) -> tuple[list[dict], str]:
     """The Kronk blueprint fork's order (ha/blueprints/mass_assist_kronk.yaml):
     named player → named room (group-preferred) → substring name → substring
     room → OWN DEVICE (origin_key) → own room (group-preferred) → default.
 
     Returns (targets, speakable label). Raises HTTPException carrying the
     sentence the voice pipeline will speak.
+
+    `ha_areas` (every area HA has, from the same template call) only changes
+    what a failure or a fallback says, never which players are picked
+    (sprint M22, INVESTIGATION_2026-11-19_basement_aerosmith.md fix 3): a
+    spoken room HA has but with no Music Assistant player is refused with
+    that cause, and an origin room with no player still plays on the
+    default, with the label saying why: "the Kitchen speaker (no Music
+    Assistant speaker in the Basement Theater)".
     """
     if not players:
         raise HTTPException(
@@ -1408,6 +1463,11 @@ def resolve_players(spoken: str | None, origin_area: str | None,
             return picked                                                   # 4. substring area
         known_names = ", ".join(sorted(p["name"] for p in players))
         known_areas = ", ".join(areas) or "none assigned"
+        if (bare := _no_player_room(key, ha_areas, areas)):
+            raise HTTPException(
+                status_code=400,
+                detail=f"{_no_speaker(bare, 'The')}. Rooms with a speaker: {known_areas}.",
+            )
         raise HTTPException(
             status_code=400,
             detail=(f"I don't know a speaker or room called '{spoken}'. "
@@ -1419,25 +1479,32 @@ def resolve_players(spoken: str | None, origin_area: str | None,
         if own:
             return own, _label(own, own[0]["area"])
     # 6. own room (the satellite's area), group-preferred
+    bare_origin = None
     if origin_area:
         targets = _by_area(players, origin_area)
         if targets:
             return targets, _label(targets, targets[0]["area"])
+        bare_origin = origin_area   # the room that asked has no player: say so (M22)
     # 7. default
     if not default_entity:
-        raise HTTPException(status_code=400, detail="No speaker named and no default speaker is configured.")
+        lead = f"{_no_speaker(bare_origin, 'The')} and" if bare_origin else "No speaker named and"
+        raise HTTPException(status_code=400, detail=f"{lead} no default speaker is configured.")
     dflt = [p for p in players if p["entity_id"] == default_entity]
     if not dflt:
         raise HTTPException(
             status_code=503,
             detail=f"The default speaker '{default_entity}' is not registered with Music Assistant in Home Assistant.",
         )
-    return dflt, _label(dflt, dflt[0]["area"])
+    label = _label(dflt, dflt[0]["area"])
+    # The cause rides in the label as a parenthesis, so every reply that names
+    # the target says it and still reads as one sentence wherever the label
+    # sits ("Now playing X on …", "… did not start on … within 10 s").
+    return dflt, (label + _NO_SPEAKER_NOTE.format(area=bare_origin) if bare_origin else label)
 
 
 async def _fetch_players(client: httpx.AsyncClient, headers: dict,
-                         origin_device: str | None = None) -> tuple[list[dict], str | None]:
-    """(players, origin_key) from one HA template call."""
+                         origin_device: str | None = None) -> tuple[list[dict], str | None, list[str]]:
+    """(players, origin_key, HA area names) from one HA template call."""
     try:
         resp = await client.post(f"{HA_URL}/api/template", headers=headers,
                                  json={"template": _players_template(origin_device)})
@@ -1450,7 +1517,7 @@ async def _fetch_players(client: httpx.AsyncClient, headers: dict,
             detail=f"Home Assistant could not list the music players (HTTP {resp.status_code}).",
         )
     try:
-        return parse_player_payload(resp.text)
+        return parse_player_payload_areas(resp.text)
     except ValueError:
         logger.warning("player list template returned non-JSON: %s", resp.text[:300])
         raise HTTPException(status_code=502, detail="Home Assistant returned an unreadable player list.")
@@ -1507,19 +1574,17 @@ async def _play_music_live(req: MusicRequest):
 
     headers = {"Authorization": f"Bearer {HA_TOKEN}", "Content-Type": "application/json"}
     async with httpx.AsyncClient(timeout=10) as client:
-        players, origin_key = await _fetch_players(client, headers, req.origin_device)
+        players, origin_key, ha_areas = await _fetch_players(client, headers, req.origin_device)
         targets, label = resolve_players(req.player, req.origin_area, players,
-                                         MUSIC_DEFAULT_PLAYER, origin_key=origin_key)
+                                         MUSIC_DEFAULT_PLAYER, origin_key=origin_key, ha_areas=ha_areas)
 
         # The list carries live state, so a powered-off player is caught here
         # with a clear sentence instead of a misleading 200 from the service call.
         live = [t for t in targets if t["state"] != "unavailable"]
         if not live:
-            names = " and ".join(t["name"] for t in targets)
-            verb = "is" if len(targets) == 1 else "are"
             raise HTTPException(
                 status_code=503,
-                detail=f"{names} {verb} unavailable — it may be powered off or asleep.",
+                detail=_unavailable_sentence(targets, label, " — it may be powered off or asleep."),
             )
         entities = [t["entity_id"] for t in live]
         logger.info("music request query=%r media_type=%r player=%r shuffle=%r -> %s",
@@ -2294,7 +2359,7 @@ async def decide_sentence(sentence: str, origin_device: str | None = None, origi
     when the players cannot be listed."""
     headers = {"Authorization": f"Bearer {HA_TOKEN}", "Content-Type": "application/json"}
     async with httpx.AsyncClient(timeout=10) as client:
-        players, origin_key = await _fetch_players(client, headers, origin_device)
+        players, origin_key, ha_areas = await _fetch_players(client, headers, origin_device)
     p = music_resolve.parse_sentence(sentence, players)
     if not p.music:
         return Decided(p, music_decide.Outcome("not_music", decided_by="parser", reason=p.reason), {})
@@ -2302,13 +2367,12 @@ async def decide_sentence(sentence: str, origin_device: str | None = None, origi
     area = None
     try:
         targets, label = resolve_players(p.room, origin_area, players, MUSIC_DEFAULT_PLAYER,
-                                         origin_key=origin_key)
+                                         origin_key=origin_key, ha_areas=ha_areas)
         live = [t for t in targets if t["state"] != "unavailable"]
         if live:
             entities, area = [t["entity_id"] for t in live], live[0].get("area")
         else:
-            names = " and ".join(t["name"] for t in targets)
-            error = f"{names} {'is' if len(targets) == 1 else 'are'} unavailable — it may be powered off or asleep."
+            error = _unavailable_sentence(targets, label, " — it may be powered off or asleep.")
     except HTTPException as e:
         error = e.detail
     outcome, trace = await music_decide.decide(p, ReadOnlyMusic(area=area), ask_model=ask_model)
@@ -2609,14 +2673,12 @@ async def control_music(req: MusicControlRequest):
 
     headers = {"Authorization": f"Bearer {HA_TOKEN}", "Content-Type": "application/json"}
     async with httpx.AsyncClient(timeout=10) as client:
-        players, origin_key = await _fetch_players(client, headers, req.origin_device)
+        players, origin_key, ha_areas = await _fetch_players(client, headers, req.origin_device)
         targets, label = resolve_players(req.player, req.origin_area, players,
-                                         MUSIC_DEFAULT_PLAYER, origin_key=origin_key)
+                                         MUSIC_DEFAULT_PLAYER, origin_key=origin_key, ha_areas=ha_areas)
         live = [t for t in targets if t["state"] != "unavailable"]
         if not live:
-            names = " and ".join(t["name"] for t in targets)
-            raise HTTPException(status_code=503,
-                                detail=f"{names} {'is' if len(targets) == 1 else 'are'} unavailable.")
+            raise HTTPException(status_code=503, detail=_unavailable_sentence(targets, label, "."))
         active = [t for t in live if t["state"] in ("playing", "buffering", "paused")]
         if action in _NEEDS_PLAYBACK and not any(t["state"] in ("playing", "buffering") for t in live):
             if action in ("pause", "stop"):
@@ -2766,9 +2828,9 @@ async def rate_music(req: MusicRateRequest):
 
     headers = {"Authorization": f"Bearer {HA_TOKEN}", "Content-Type": "application/json"}
     async with httpx.AsyncClient(timeout=10) as client:
-        players, origin_key = await _fetch_players(client, headers, req.origin_device)
+        players, origin_key, ha_areas = await _fetch_players(client, headers, req.origin_device)
         targets, label = resolve_players(req.player, req.origin_area, players,
-                                         MUSIC_DEFAULT_PLAYER, origin_key=origin_key)
+                                         MUSIC_DEFAULT_PLAYER, origin_key=origin_key, ha_areas=ha_areas)
 
         async def _state(entity: str) -> dict:
             return (await client.get(f"{HA_URL}/api/states/{entity}", headers=headers)).json()
@@ -2864,9 +2926,9 @@ async def now_playing(req: NowPlayingRequest):
         raise HTTPException(status_code=500, detail="HA_TOKEN not configured")
     headers = {"Authorization": f"Bearer {HA_TOKEN}", "Content-Type": "application/json"}
     async with httpx.AsyncClient(timeout=10) as client:
-        players, origin_key = await _fetch_players(client, headers, req.origin_device)
+        players, origin_key, ha_areas = await _fetch_players(client, headers, req.origin_device)
         targets, label = resolve_players(req.player, req.origin_area, players,
-                                         MUSIC_DEFAULT_PLAYER, origin_key=origin_key)
+                                         MUSIC_DEFAULT_PLAYER, origin_key=origin_key, ha_areas=ha_areas)
         live = [t for t in targets if t["state"] != "unavailable"]
         if not live:
             raise HTTPException(status_code=503, detail=f"{label} is unavailable.")

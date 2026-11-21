@@ -1,7 +1,9 @@
 # Investigation 2026-11-19 — "Play the album Get a Grip by Aerosmith" in the basement: "I don't know a speaker or room called 'Basement Theater'"
 
-**Status:** root cause determined; fix 1 applied 2026-11-20 (sprint M16b),
-fixes 2 to 5 open.
+**Status:** root cause determined; fix 1 applied 2026-11-20 (sprint M16b);
+fixes 2 and 3 built 2026-11-21 (sprint M22: the blueprint change is in the
+repo, not yet installed in HA; the tool_service change is on dev, not yet in
+production); fixes 4 and 5 open (M11 cutover).
 Not a sprint regression: the same failure was captured on 2026-11-08, before
 the sprint, and the code and blueprint involved are unchanged since
 2026-11-14.
@@ -373,6 +375,39 @@ refused with this incident's 400 before the change). Nothing was played.
 Not yet run: the voice replay checks named in fix 1, and a live "Okay
 Nabu" test. Undo and details: `docs/sprint/M16b-build.md`.
 
+**2026-11-21: fix 2 built** (sprint M22, blueprint fork change 14, version
+`20250404-kronk14`). `kronk_text` now names: the target the speaker named;
+else the satellite's own MA player (`on the <friendly name>`); else the
+satellite's room, only when `player_entity_id_by_assist_area` is not empty
+(`in the <room>`); else the bare sentence. The comment that said the
+basement satellite has no area is corrected. In the repo only: the file is
+not copied into HA and no automation was reloaded; the install steps are in
+`docs/sprint/M22-build.md`. `tests/test_blueprint_handoff.py` renders the
+real `kronk_text` over a fake registry for five satellite shapes and
+resolves each through `resolve_players`; with the old template the basement
+shape (own player, room without one) gets this incident's 400. The
+registry check this document asked for is `scripts/satellite_area_check.py`
+(reads only); on 2026-11-21 it listed 3 satellites, all `ok`. Effect on the
+spoken reply: a hand-off from any satellite with its own player is now
+labelled with that player's name ("the kitchen voice pe ma speaker"), not
+its room, as predicted under fix 2 below; fix 5 retires it.
+
+**2026-11-21: fix 3 built** (sprint M22, tool_service; on dev, not yet
+promoted). The players template also lists every HA area (`areas`, same
+call). (a) A spoken room HA has that holds no MA player is refused with "The
+Basement Theater has no Music Assistant speaker. Rooms with a speaker: …"
+instead of "I don't know a speaker or room called …". (b) The own-room rung
+still falls to the default when the origin's room holds no player, and now
+says so in the label: "the Kitchen speaker (no Music Assistant speaker in
+the Basement Theater)", also inside "… is unavailable" when the default is
+off. Chosen over refusing: the blueprint falls to its default in the same
+case, and no request that resolved before was to resolve differently.
+Shown on dev's `/music` with dry run on: `player: "Bedroom"` → `400 The
+Bedroom has no Music Assistant speaker. Rooms with a speaker: Basement
+Theater, Kitchen, Office.`; `origin_area: "Bedroom"`, no player → `503
+satellite 1 ma is unavailable (no Music Assistant speaker in the Bedroom) —
+it may be powered off or asleep.` (dev's default was unavailable).
+
 1. **Assign the "basement voice pe ma" device
    (`b91145f1a0afef63089911ffb5ba8b6b`) to the area Basement Theater in HA.**
    Settings → Devices → the device → Area; decline the entity-id rename. No
@@ -427,15 +462,21 @@ mishearing; the M13 decision waits on the M12 clips); passing a
 conversation id on the hand-off so "play it" has context (one case, and it
 would not have resolved the target).
 
-## Corpus row (to add with the fix commit; not added here)
+## Corpus row (added 2026-11-21, sprint M22)
 
-The transcript as recognised, from the basement satellite. HA's `album`
-trigger takes it, so the live replay checks it read-only and passes; the
-routing and direct-call layers pass offline (checked: `('home', 'music')`,
-no direct call). The parser layer reads `Get a Grit` against the recorded
-snapshot, which holds no Aerosmith (`decided_by not_found`), so it carries
-`xfail.parser` until the snapshot is re-recorded with this row. It does not
-exercise the hand-off text; that is the render test in fix 2.
+In `tests/voice_corpus.jsonl` as `inc-1119-get-a-grit-aerosmith-basement`,
+with no `xfail`. The Music Assistant snapshot was re-recorded for this row
+only (`scripts/music_snapshot_record.py --path both --id …`, reads only,
+merging: 6 new reads, none changed) and the live pin regenerated (the one
+new row added, every other row unchanged). On the snapshot the rules'
+reading resolves `Get a Grit` to the library album Get A Grip by Aerosmith
+(`decided_by named`) on the basement player, so the parser layer passes and
+the `xfail.parser` written below was dropped. What the row checks: routing
+(`home/music`, no direct call), the M11 reading and target, the live
+`/music` pin, and (live replay) the `album` trigger, read-only. What it
+cannot check: the hand-off text; `tests/test_blueprint_handoff.py` does.
+
+The row as first written here:
 
 ```json
 {"id": "inc-1119-get-a-grit-aerosmith-basement", "text": "Play the album Get a Grit by Aerosmith.", "origin": {"area": "Basement Theater", "device": "basement_pe"}, "expect": {"tier": "ha_local", "ha": {"source": "trigger", "trigger": "album"}, "route": "home", "rule": "music", "tool": "play_music", "kind": "named", "media_type": "album", "name": "Get a Grip", "artist": "Aerosmith", "player": "entity:media_player.home_assistant_voice_0ab117"}, "source": ["docs/incidents/INVESTIGATION_2026-11-19_basement_aerosmith.md"], "tags": ["music", "album", "mishearing", "stt-mangled", "incident", "handoff"], "xfail": {"parser": "STT heard 'Grit' for 'Grip'; the recorded Music Assistant snapshot holds no Aerosmith, so the rules' reading keeps the misheard name (decided_by not_found). Re-record the snapshot with this row to test the resolver's tolerance."}, "note": "The blueprint's album play fails on the misheard name and hands off to Kronk with the satellite's room appended ('in the Basement Theater'), a room with no Music Assistant player: 400 unknown room. The player expectation is the basement Voice PE's own player.", "ref": {"trace": "31dc799b602fad030540a0d372cb3600", "first": "2026-11-19"}}

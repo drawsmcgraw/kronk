@@ -1,6 +1,6 @@
 {
 "meta": {
-"recorded": "2026-11-17T12:19:19Z",
+"recorded": "2026-11-21T11:52:08Z",
 "rows": 1,
 "paths": [
 "live",
@@ -494,6 +494,7 @@
 "[\"music/albums/library_items\", {\"limit\": 25, \"search\": \"Destiny Waving\"}]": [],
 "[\"music/albums/library_items\", {\"limit\": 25, \"search\": \"Don't stop me now\"}]": [],
 "[\"music/albums/library_items\", {\"limit\": 25, \"search\": \"Dr. Dre\"}]": [],
+"[\"music/albums/library_items\", {\"limit\": 25, \"search\": \"Get a Grit\"}]": [],
 "[\"music/albums/library_items\", {\"limit\": 25, \"search\": \"Mambo No. 5\"}]": [],
 "[\"music/albums/library_items\", {\"limit\": 25, \"search\": \"Mr. Brightside\"}]": [],
 "[\"music/albums/library_items\", {\"limit\": 25, \"search\": \"Panic! at the Disco\"}]": [],
@@ -6018,6 +6019,511 @@
 "artists": [
 {
 "name": "DJ Wild Bill"
+}
+]
+}
+],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"album\"], \"search_query\": \"Get a Grip by Aerosmith\"}]": {
+"artists": [],
+"albums": [
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_0y9EIfGUt1o",
+"name": "Get A Grip",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_0y9EIfGUt1o",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_wQ4BFLtae5t",
+"name": "Big Ones",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_wQ4BFLtae5t",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_frBTvyWHZm9",
+"name": "Greatest Hits",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_frBTvyWHZm9",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_xtzxdm2mi3K",
+"name": "Get A Grip Tour",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_xtzxdm2mi3K",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_LoRE1lZGjZf",
+"name": "Get Your Wings",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_LoRE1lZGjZf",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_KS6id8XlC18",
+"name": "Pump",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_KS6id8XlC18",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_Oi7NK4V54yb",
+"name": "Nine Lives",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_Oi7NK4V54yb",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_DciERiuADkS",
+"name": "Pablo Honey",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_DciERiuADkS",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Radiohead"
+}
+]
+}
+],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"album\"], \"search_query\": \"Get a Grip\"}]": {
+"artists": [],
+"albums": [
+{
+"uri": "library://album/247",
+"name": "Get A Grip",
+"media_type": "album",
+"provider": "library",
+"item_id": "247",
+"provider_mappings": [
+{
+"provider_domain": "filesystem_local"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_0y9EIfGUt1o",
+"name": "Get A Grip",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_0y9EIfGUt1o",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_53a4WfRLmwR",
+"name": "Get A Grip",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_53a4WfRLmwR",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Amethyst Moths"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_9BIRhB4ORfq",
+"name": "Get A Grip",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_9BIRhB4ORfq",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_WJCaAVnR1lY",
+"name": "Get A Grip",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_WJCaAVnR1lY",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Talion"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_3aFhgWfvgWK",
+"name": "Get a Grip",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_3aFhgWfvgWK",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Stella Getz"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_VucNi8sLVyH",
+"name": "GET A GRIP",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_VucNi8sLVyH",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Rackzombie"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_CMt3gNKwP2i",
+"name": "Get A Grip",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_CMt3gNKwP2i",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Tone Genome"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_nmgp62DIwRs",
+"name": "Get A Grip!",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_nmgp62DIwRs",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Lee Haslam"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_UCiEHghqtLo",
+"name": "Breaking News: Canada Get A Grip",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_UCiEHghqtLo",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Sixfold Serenade"
+}
+]
+}
+],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"album\"], \"search_query\": \"Get a Grit by Aerosmith\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"album\"], \"search_query\": \"Get a Grit\"}]": {
+"artists": [],
+"albums": [
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_BIYYP95INj8",
+"name": "Some get Grace, I got Grit",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_BIYYP95INj8",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Vanilla Name"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_hC7Sb5r6vqu",
+"name": "Get your grit on",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_hC7Sb5r6vqu",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Datblackboy"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_gG2C8HIIo8L",
+"name": "GRIT (Get Ready, It's Time)",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_gG2C8HIIo8L",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Baltimega"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_RmbqiPLplXg",
+"name": "Grit & Get In Mode",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_RmbqiPLplXg",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "TB3 Looney"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_qiNbBsDLyqK",
+"name": "Get bacc on yo Grit",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_qiNbBsDLyqK",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "AintDat3zy"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_s6xLZJq1fNQ",
+"name": "I GET IT",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_s6xLZJq1fNQ",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "GRIT"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_SQfDeqaWRSX",
+"name": "Get In",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_SQfDeqaWRSX",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "YSM Grit"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_PGkBpbhaiTR",
+"name": "Get Off",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_PGkBpbhaiTR",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "GTA Cash"
+},
+{
+"name": "GTA Grit"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_fIIcO0Mb8zg",
+"name": "Grace Not Grit",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_fIIcO0Mb8zg",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Dj Get Right"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_PPWMbuzovfY",
+"name": "When the Grit Gets GRITTY",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_PPWMbuzovfY",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Gritty"
 }
 ]
 }
@@ -20790,6 +21296,870 @@
 ]
 }
 ],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 50, \"media_types\": [\"album\"], \"search_query\": \"Aerosmith\"}]": {
+"artists": [],
+"albums": [
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_5HIwBBDtV1m",
+"name": "Aerosmith",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_5HIwBBDtV1m",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_nWVX4Qp5w18",
+"name": "Aerosmith",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_nWVX4Qp5w18",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Estro Kara"
+}
+]
+},
+{
+"uri": "library://album/247",
+"name": "Get A Grip",
+"media_type": "album",
+"provider": "library",
+"item_id": "247",
+"provider_mappings": [
+{
+"provider_domain": "filesystem_local"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_frBTvyWHZm9",
+"name": "Greatest Hits",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_frBTvyWHZm9",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "library://album/248",
+"name": "Just Push Play",
+"media_type": "album",
+"provider": "library",
+"item_id": "248",
+"provider_mappings": [
+{
+"provider_domain": "filesystem_local"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_DxxOsOYEzAH",
+"name": "The Very Best Of Aerosmith",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_DxxOsOYEzAH",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "library://album/246",
+"name": "Nine Lives",
+"media_type": "album",
+"provider": "library",
+"item_id": "246",
+"provider_mappings": [
+{
+"provider_domain": "filesystem_local"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_wQ4BFLtae5t",
+"name": "Big Ones",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_wQ4BFLtae5t",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "library://album/245",
+"name": "Pandora's Box (disc 1)",
+"media_type": "album",
+"provider": "library",
+"item_id": "245",
+"provider_mappings": [
+{
+"provider_domain": "filesystem_local"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "library://album/244",
+"name": "Pandora's Box (disc 2)",
+"media_type": "album",
+"provider": "library",
+"item_id": "244",
+"provider_mappings": [
+{
+"provider_domain": "filesystem_local"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_VOMghHjJRyh",
+"name": "Toys In The Attic",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_VOMghHjJRyh",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "library://album/243",
+"name": "Pandora's Box (disc 3)",
+"media_type": "album",
+"provider": "library",
+"item_id": "243",
+"provider_mappings": [
+{
+"provider_domain": "filesystem_local"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_0y9EIfGUt1o",
+"name": "Get A Grip",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_0y9EIfGUt1o",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_vUEeimM4xpl",
+"name": "Rocks",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_vUEeimM4xpl",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_LoRE1lZGjZf",
+"name": "Get Your Wings",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_LoRE1lZGjZf",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_KS6id8XlC18",
+"name": "Pump",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_KS6id8XlC18",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_RfOFzgQbyNJ",
+"name": "Permanent Vacation",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_RfOFzgQbyNJ",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_Oi7NK4V54yb",
+"name": "Nine Lives",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_Oi7NK4V54yb",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_tpwHcO9Rfda",
+"name": "Wild Woman",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_tpwHcO9Rfda",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "YUNGBLUD"
+},
+{
+"name": "Aerosmith"
+},
+{
+"name": "Lainey Wilson"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_fYEhmNUZI7U",
+"name": "Draw The Line",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_fYEhmNUZI7U",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_YjttQ4pbEo6",
+"name": "Tribute to Aerosmith",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_YjttQ4pbEo6",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Relaxing Piano Covers"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_7rL4tIMCxlx",
+"name": "The Karaoke Channel - Sing Walk This Way Like Aerosmith & Run-D.M.C.",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_7rL4tIMCxlx",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "The Karaoke Channel"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_y0rbULY6tdr",
+"name": "Back In The Saddle: A 2020 Legends Tribute To Aerosmith",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_y0rbULY6tdr",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Various Artists"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_elcJe6tk3QF",
+"name": "A Tribute To Aerosmith",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_elcJe6tk3QF",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Janie's Got A Gun"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_1rZqdgdQUog",
+"name": "Lullaby Renditions of Aerosmith",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_1rZqdgdQUog",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "The Cat and Owl"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_GnBOJKSDzaA",
+"name": "Interpreta A Aerosmith",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_GnBOJKSDzaA",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Angel"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_ykKg2jcY9dX",
+"name": "The Karaoke Channel - Sing Just Push Play Like Aerosmith",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_ykKg2jcY9dX",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "The Karaoke Channel"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_zIfK5tMFEXr",
+"name": "Karaoke in the Style of Aerosmith, Vol 2",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_zIfK5tMFEXr",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "ProSound Karaoke Band"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_LxwoFQZjHAO",
+"name": "Can't Stop Loving You (Originally Performed By Aerosmith & Carrie Underwood)",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_LxwoFQZjHAO",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Cover Pop"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_8SCj01ukIKP",
+"name": "Mama Kin",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_8SCj01ukIKP",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Aerosmith"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_FVyI0LHiBcG",
+"name": "Tribute to Aerosmith Guitar Hero",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_FVyI0LHiBcG",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "The Hit Co."
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_Bs2ncLyRhC4",
+"name": "Karaoke In the Style of Aerosmith",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_Bs2ncLyRhC4",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Backtrack Professional Karaoke Band"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_kKSypl7GqUD",
+"name": "Lullaby Versions of Aerosmith",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_kKSypl7GqUD",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Lullaby Rock Stars"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_2jkwfQfSs4p",
+"name": "The Karaoke Channel - Sing Crazy Like Aerosmith",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_2jkwfQfSs4p",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "The Karaoke Channel"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_wGYq9H9JWPy",
+"name": "The Karaoke Channel - Sing Cryin' Like Aerosmith",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_wGYq9H9JWPy",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "The Karaoke Channel"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_deU7fhguirN",
+"name": "Karaoke in the Style of Aerosmith, Vol 1",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_deU7fhguirN",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "ProSound Karaoke Band"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_m75ktOQdO3m",
+"name": "The Karaoke Channel - Sing Angel Like Aerosmith",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_m75ktOQdO3m",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "The Karaoke Channel"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_vH8v8RiDVHO",
+"name": "Karaoke in the Style of Aerosmith, Vol 4",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_vH8v8RiDVHO",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "ProSound Karaoke Band"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_GIftXKHrfJI",
+"name": "The Karaoke Channel - Sing Jaded Like Aerosmith",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_GIftXKHrfJI",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "The Karaoke Channel"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_57ZE2Gjal8U",
+"name": "Karaoke in the Style of Aerosmith, Vol 3",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_57ZE2Gjal8U",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "ProSound Karaoke Band"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_67hgDBeJls8",
+"name": "Karaoke Aerosmith",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_67hgDBeJls8",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Mike Smith"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_cYI26AsWVXo",
+"name": "The Karaoke Channel - Sing Eat the Rich Like Aerosmith",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_cYI26AsWVXo",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "The Karaoke Channel"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_1FO51tywdQh",
+"name": "The Karaoke Channel - Sing Dream on Like Aerosmith",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_1FO51tywdQh",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "The Karaoke Channel"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_06vZwb10bld",
+"name": "The Karaoke Channel - Sing Sunshine Like Aerosmith",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_06vZwb10bld",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "The Karaoke Channel"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_5Y5ydhrDqy1",
+"name": "The Karaoke Channel - Sing Livin' on the Edge Like Aerosmith",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_5Y5ydhrDqy1",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "The Karaoke Channel"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_JpNCQ436ArI",
+"name": "The Karaoke Channel - Sing Draw the Line Like Aerosmith",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_JpNCQ436ArI",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "The Karaoke Channel"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_wxvyaydhSXo",
+"name": "The Karaoke Channel - Sing the Other Side Like Aerosmith",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_wxvyaydhSXo",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "The Karaoke Channel"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_cT4yHKqZfWi",
+"name": "Crazy (In the Style of Aerosmith) [Performance Track with Demonstration Vocals]",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_cT4yHKqZfWi",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Done Again"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_qIZZ8SNRj5N",
+"name": "F.I.N.E. - A Tribute To Aerosmith",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_qIZZ8SNRj5N",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "The Dillingers"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_E1PIfGeiiIy",
+"name": "The Karaoke Channel - Sing Sweet Emotion Like Aerosmith",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_E1PIfGeiiIy",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "The Karaoke Channel"
+}
+]
+}
+],
+"tracks": [],
 "playlists": [],
 "radio": []
 },
