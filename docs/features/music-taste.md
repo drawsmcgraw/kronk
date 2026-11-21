@@ -108,11 +108,12 @@ owns "play/put on some {x}", "play something {x}", "play some music".
 Those, and a failed play of a named album/track/artist/playlist (MA
 rejected the words), go to Kronk with `conversation.process`
 (`conversation.ollama_conversation`). That call can't carry the device id,
-so when no target was spoken the blueprint appends the satellite's own MA
-player ("… on the kitchen voice pe ma"), else its room if that room holds an
-MA player ("… in the Office"), else nothing (change 14, 2026-11-21; it
-named the room first until then: `voice-music-control.md`, "The hand-off
-to Kronk"). Radio misses stay a fast failure (change 8).
+so when no target was spoken the blueprint appends the satellite's room
+("… in the Kitchen") when the room's only MA player is the satellite's own,
+else the own player ("… on the kitchen voice pe ma"), else, with no own
+player, the room if it holds an MA player ("… in the Office"), else nothing
+(change 14, 2026-11-21; it wrote the room whether or not it held a player
+until then: `voice-music-control.md`, "The hand-off to Kronk"). Radio misses stay a fast failure (change 8).
 
 ## Latency (measured 2026-10-21, basement Voice PE)
 

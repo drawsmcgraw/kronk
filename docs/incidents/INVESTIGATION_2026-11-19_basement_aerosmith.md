@@ -377,20 +377,26 @@ Nabu" test. Undo and details: `docs/sprint/M16b-build.md`.
 
 **2026-11-21: fix 2 built** (sprint M22, blueprint fork change 14, version
 `20250404-kronk14`). `kronk_text` now names: the target the speaker named;
-else the satellite's own MA player (`on the <friendly name>`); else the
-satellite's room, only when `player_entity_id_by_assist_area` is not empty
-(`in the <room>`); else the bare sentence. The comment that said the
+else the satellite's room (`in the <room>`), only when the MA players in
+that room are exactly the satellite's own player; else the own MA player
+(`on the <friendly name>`); else, with no own player, the room when
+`player_entity_id_by_assist_area` is not empty; else the bare sentence.
+This differs from the order proposed under fix 2 below: putting the own
+player first would have changed the spoken label of every kitchen and
+office hand-off from "the Kitchen speaker" to "the kitchen voice pe ma
+speaker". With the room rung limited to a room whose only MA player is the
+own one, the three real satellites (after fix 1) keep the room wording, and
+the basement before fix 1 (or any room holding other players or a sync
+group with the own one) names the own player. The comment that said the
 basement satellite has no area is corrected. In the repo only: the file is
 not copied into HA and no automation was reloaded; the install steps are in
 `docs/sprint/M22-build.md`. `tests/test_blueprint_handoff.py` renders the
-real `kronk_text` over a fake registry for five satellite shapes and
-resolves each through `resolve_players`; with the old template the basement
-shape (own player, room without one) gets this incident's 400. The
-registry check this document asked for is `scripts/satellite_area_check.py`
-(reads only); on 2026-11-21 it listed 3 satellites, all `ok`. Effect on the
-spoken reply: a hand-off from any satellite with its own player is now
-labelled with that player's name ("the kitchen voice pe ma speaker"), not
-its room, as predicted under fix 2 below; fix 5 retires it.
+real `kronk_text` over a fake registry for eleven satellite shapes and
+checks that `resolve_players` lands on the blueprint's own target for each;
+with the old template the basement shape (own player, room without one)
+gets this incident's 400. The registry check this document asked for is
+`scripts/satellite_area_check.py` (reads only); on 2026-11-21 it listed 3
+satellites, all `ok`.
 
 **2026-11-21: fix 3 built** (sprint M22, tool_service; on dev, not yet
 promoted). The players template also lists every HA area (`areas`, same

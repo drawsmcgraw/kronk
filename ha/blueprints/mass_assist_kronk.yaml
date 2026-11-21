@@ -44,12 +44,13 @@
 #      Costas" played a YouTube "Hôtel Costes - Best 50" playlist, the verify
 #      step called it a success, and Kronk never saw the request
 #      (INVESTIGATION_2026-11-07_ma_pandora_and_ui.md, playlist miss).
-#  14. (2026-11-21) the hand-off text names the satellite's own MA player
-#      before its room, and the room only when it holds an MA player. The
-#      room came first and was written whether or not it held one: the
-#      basement satellite is in "Basement Theater", its MA player was in no
-#      area, and every unnamed basement hand-off asked Kronk for a room it
-#      could not play in (INVESTIGATION_2026-11-19_basement_aerosmith.md).
+#  14. (2026-11-21) the hand-off text names the satellite's room only when
+#      the room's MA players are exactly the satellite's own player; else
+#      the own player by name; else the room when it holds an MA player.
+#      The room was written whether or not it held one: the basement
+#      satellite is in "Basement Theater", its MA player was in no area,
+#      and every unnamed basement hand-off asked Kronk for a room it could
+#      not play in (INVESTIGATION_2026-11-19_basement_aerosmith.md).
 #
 # Resolution: named player → named room (group-preferred) → own device →
 # own device's room (group-preferred) → default.
@@ -372,26 +373,39 @@ actions:
 # KRONK change 9: what Kronk gets is the sentence as spoken, plus where the
 # satellite that heard it is when no room or player was named —
 # conversation.process can't carry the device id, so the target rides in
-# the words. KRONK change 14 (2026-11-21), the order: the target the
-# speaker named (already in the sentence); else the satellite's own MA
-# player by name, the same player this blueprint's own-device rung picks;
-# else the satellite's room, only when that room holds an MA player
-# (player_entity_id_by_assist_area is not empty); else the bare sentence,
-# which Kronk plays on its default. A satellite's room can hold no MA
-# player: the basement satellite's ESPHome device is in "Basement Theater"
-# while its MA device had no area (fixed 2026-11-20), and the room-first
-# text asked Kronk for a room it could not play in. Kronk's player
-# resolution (tool_service resolve_players) matches a player name and a
-# room; tests/test_blueprint_handoff.py renders this text for each
-# satellite shape and resolves it there.
+# the words. KRONK change 14 (2026-11-21), the order:
+#   1. the target the speaker named (already in the sentence);
+#   2. "in the <room>", only when the MA players in the satellite's room
+#      are exactly its own player: one player, and it is the own one;
+#   3. else "on the <own player's friendly name>";
+#   4. else "in the <room>" when there is no own player and the room holds
+#      an MA player (player_entity_id_by_assist_area is not empty);
+#   5. else the bare sentence, which Kronk plays on its default.
+# Rungs 2 and 3 give the player this blueprint's own-device rung picks;
+# rung 2 keeps the room wording the satellites had before change 14.
+# Rung 2 reads the room's MA players directly (in_room) rather than
+# player_entity_id_by_assist_area, which prefers a sync group: the answer
+# is the same while an own player is never a group, but in_room states the
+# rule itself. "in the <room>" for a room holding the own player and a
+# group would make Kronk play on the group; for the own player and another,
+# on both.
+# A satellite's room can hold no MA player: the basement satellite's
+# ESPHome device is in "Basement Theater" while its MA device had no area
+# (fixed 2026-11-20), and the room-first text asked Kronk for a room it
+# could not play in. Kronk's player resolution (tool_service
+# resolve_players) matches a player name and a room, group-preferred like
+# this blueprint; tests/test_blueprint_handoff.py renders this text for
+# each satellite shape and resolves it there.
 - variables:
     kronk_agent: conversation.ollama_conversation
     kronk_text: >-
       {%- set own = player_entity_id_by_assist_device | first | default(none) -%}
-      {%- set room = area_name(assist_device_id) if assist_device_id and player_entity_id_by_assist_area else none -%}
+      {%- set room = area_name(assist_device_id) if assist_device_id else none -%}
+      {%- set in_room = (area_entities(area_id(assist_device_id)) | select('in', ma_players) | list) if room else [] -%}
       {%- if area_or_player_name -%}{{ trigger.sentence }}
+      {%- elif own and in_room == [own] -%}{{ trigger.sentence }} in the {{ room }}
       {%- elif own -%}{{ trigger.sentence }} on the {{ state_attr(own, 'friendly_name') }}
-      {%- elif room -%}{{ trigger.sentence }} in the {{ room }}
+      {%- elif room and player_entity_id_by_assist_area -%}{{ trigger.sentence }} in the {{ room }}
       {%- else -%}{{ trigger.sentence }}{%- endif -%}
 # KRONK change 13: a playlist is the household's own, by exact name, or it
 # goes to Kronk. get_library's search is a substring match, so the exact

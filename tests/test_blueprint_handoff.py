@@ -32,11 +32,17 @@ OFFICE_MA = "media_player.satellite1_d8d1bc"
 DEFAULT = KITCHEN_MA
 
 
-def _registry(basement_ma_area=None) -> Registry:
+KITCHEN_OTHER = "media_player.kitchen_sonos"
+OFFICE_GROUP = "media_player.office_sync_group"
+
+
+def _registry(basement_ma_area=None, kitchen_other=False, office_group=False) -> Registry:
     """Kitchen and office pairs as in HA; the basement pair with its MA
     device's area as given (None: the registry before fix 1); a second
     office satellite with no MA player of its own; a garage satellite with
-    no MA player in a room with none."""
+    no MA player in a room with none. `kitchen_other` adds a second MA
+    player (not a group) in the Kitchen; `office_group` adds an MA sync
+    group in the Office."""
     areas = {"kitchen": "Kitchen", "office": "Office", "basement_theater": "Basement Theater",
              "garage": "Garage"}
     dev, ent = {}, {}
@@ -63,6 +69,16 @@ def _registry(basement_ma_area=None) -> Registry:
     dev["tv"] = Device("SHIELD", None, identifiers=[("music_assistant", "up00044b82ea7c")])
     ent["media_player.shield_2"] = Entity("tv", "music_assistant",
                                           {"friendly_name": "SHIELD", "mass_player_type": "player"})
+    if kitchen_other:
+        dev["kitchen-sonos"] = Device("Kitchen Sonos", "kitchen",
+                                      identifiers=[("music_assistant", "RINCON_000E58000001")])
+        ent[KITCHEN_OTHER] = Entity("kitchen-sonos", "music_assistant",
+                                    {"friendly_name": "Kitchen Sonos", "mass_player_type": "player"})
+    if office_group:
+        dev["office-group"] = Device("Office Sync", "office",
+                                     identifiers=[("music_assistant", "syncgroup_office")])
+        ent[OFFICE_GROUP] = Entity("office-group", "music_assistant",
+                                   {"friendly_name": "Office Sync", "mass_player_type": "group"})
     return Registry(areas, dev, ent)
 
 
@@ -102,16 +118,31 @@ GRIT = "Play the album Get a Grit by Aerosmith."         # tests/voice_corpus.js
 
 SHAPES = [
     # id, registry, satellite, sentence, named target, expected hand-off text, expected player
-    ("own-player-room-with-player", _registry("basement_theater"), "kitchen_pe", GRIT, None,
-     f"{GRIT} on the kitchen voice pe ma", KITCHEN_MA),
+    # Rung 2: the room's MA players are exactly the own player -> the room.
+    ("own-player-alone-in-room", _registry("basement_theater"), "kitchen_pe", GRIT, None,
+     f"{GRIT} in the Kitchen", KITCHEN_MA),
+    ("own-player-alone-in-room-office", _registry("basement_theater"), "office_sat1", GRIT, None,
+     f"{GRIT} in the Office", OFFICE_MA),
+    ("own-player-after-fix-1", _registry("basement_theater"), "basement_pe", GRIT, None,
+     f"{GRIT} in the Basement Theater", BASEMENT_MA),
+    # Rung 3: an own player the room does not hold alone -> the player by name.
     ("own-player-room-without-player", _registry(None), "basement_pe", GRIT, None,
      f"{GRIT} on the basement voice pe ma", BASEMENT_MA),
-    ("own-player-after-fix-1", _registry("basement_theater"), "basement_pe", GRIT, None,
+    ("own-player-plus-another-in-room", _registry("basement_theater", kitchen_other=True), "kitchen_pe",
+     GRIT, None, f"{GRIT} on the kitchen voice pe ma", KITCHEN_MA),
+    ("own-player-room-with-sync-group", _registry("basement_theater", office_group=True), "office_sat1",
+     GRIT, None, f"{GRIT} on the satellite 1 ma", OFFICE_MA),
+    ("own-player-in-another-room", _registry("kitchen"), "basement_pe", GRIT, None,
      f"{GRIT} on the basement voice pe ma", BASEMENT_MA),
+    # Rung 4: no own player, the room holds one -> the room (group-preferred).
     ("no-own-player-room-with-player", _registry(None), "office_sat2", GRIT, None,
      f"{GRIT} in the Office", OFFICE_MA),
+    ("no-own-player-room-with-sync-group", _registry(None, office_group=True), "office_sat2", GRIT, None,
+     f"{GRIT} in the Office", OFFICE_GROUP),
+    # Rung 5: nothing to name -> the bare sentence, Kronk's default.
     ("no-own-player-room-without-player", _registry(None), "garage_sat", GRIT, None,
      GRIT, DEFAULT),
+    # Rung 1: the speaker named a target.
     ("named-target", _registry(None), "kitchen_pe", "Play the artist Aerosmith in the office", "office",
      "Play the artist Aerosmith in the office", OFFICE_MA),
 ]

@@ -114,11 +114,25 @@ carry the device id, so the blueprint writes the target into the text it
 hands Kronk (`kronk_text`). Since change 14 (2026-11-21) the order is:
 
 1. a target the speaker named: the sentence as spoken, nothing added;
-2. the satellite's own MA player: `<sentence> on the <friendly name>`, the
-   player the blueprint's own-device rung picks;
-3. the satellite's room, only when that room holds an MA player:
+2. the satellite's room, only when the MA players in that room are exactly
+   the satellite's own player (one player, and it is the own one):
    `<sentence> in the <room>`;
-4. the bare sentence (Kronk plays it on `MUSIC_DEFAULT_PLAYER`).
+3. else the satellite's own MA player: `<sentence> on the <friendly name>`;
+4. else, with no own player, the room when it holds an MA player:
+   `<sentence> in the <room>` (Kronk targets the room's sync group if it
+   has one, as the blueprint does);
+5. else the bare sentence (Kronk plays it on `MUSIC_DEFAULT_PLAYER`).
+
+Rungs 2 and 3 give the player the blueprint's own-device rung picks.
+Rung 2 keeps the room wording, so Kronk's reply still says "the Kitchen
+speaker" for the kitchen, office and (after the 2026-11-20 area fix)
+basement satellites. Rung 3 covers a room that lacks the own player (the
+basement before that fix) or holds other players or a sync group with it,
+where "in the <room>" would make Kronk play somewhere else or on several
+speakers; the reply then names the player ("the kitchen voice pe ma
+speaker"). Rung 2 reads the room's MA players directly (`in_room` in the
+template), not `player_entity_id_by_assist_area`, which prefers a sync
+group.
 
 Until change 14 the room came first and was written whether or not it held
 a player. The basement satellite's ESPHome device was in "Basement
@@ -126,15 +140,15 @@ Theater" while its MA device had no area, so every unnamed basement
 hand-off asked Kronk for a room it could not play in
 (`../incidents/INVESTIGATION_2026-11-19_basement_aerosmith.md`).
 `tests/test_blueprint_handoff.py` renders the real `kronk_text` from the
-blueprint file for each satellite shape (own player and room with one, own
-player and room without one, no own player and room with one, neither, a
-named target) over a fake registry and resolves it through
-`resolve_players`; on the old template the basement shape fails. Cost:
-since the hand-off now names the own player, Kronk's reply names it too
-("on the kitchen voice pe ma speaker" where it said "the Kitchen speaker"),
-because tool_service labels a match by name with the player's name. The
-target is the same. Carrying the device id across the hand-off (M11's
-`rest_command` cutover, "Not done" below) retires the workaround.
+blueprint file for eleven satellite shapes (the own player alone in its
+room, three times; the own player in a room without it, with another
+player, with a sync group, or in another room; no own player with a room
+holding a player or a sync group; neither; a named target) over a fake
+registry, resolves it through `resolve_players`, and checks that Kronk's
+target equals the blueprint's own `mass_player_entity_id`; on the old
+template the basement shape fails. Carrying the device id across the
+hand-off (M11's `rest_command` cutover, "Not done" below) retires the
+workaround.
 
 **Kronk-side radio (2026-11-08).** MA's Pandora `offer_new_stations` is on
 (briefly off the same day, back on by operator decision): a station name the
