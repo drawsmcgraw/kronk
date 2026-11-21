@@ -18,7 +18,9 @@ Two stores, explicit over learned:
 
 MA's play history carries no timestamps and no player (measured
 2026-10-21), so the learned profile has no room/time patterns; standing
-rules in the file cover that.
+rules in the file cover that. MA filters the history by queue, time and
+user-initiated, though, and the build uses that to leave Kronk's own picks
+out of what it learns (kronk_pick_rows, sprint M23).
 """
 import asyncio
 import io
@@ -285,6 +287,19 @@ HISTORY_LIMIT   = 500
 HISTORY_DECAY   = 0.99     # weight of the n-th most recent play: 0.99**n
 CONCURRENCY     = 8
 
+# Kronk's own picks are not household taste (sprint M23, fix 3). A history
+# row is Kronk's when MA last played it on the pick's queue within this long
+# after the pick, it belongs to the pick (the picked artist's tracks, the
+# artist itself, or the picked station or playlist), and MA does not mark it
+# as one the household started (user_initiated). Such rows are left out of
+# the history the profile learns from. Only the most recent picks are read.
+# The window opens PICK_LEAD_S before the pick's recorded time: a pick is
+# recorded after its play is verified, and MA marks the picked item played
+# when the play starts (pick 19 of 2026-11-21: 13:40:56 against 13:40:57).
+PICK_WINDOW_S   = 12 * 3600
+PICK_LEAD_S     = 60
+PICK_LOOKBACK   = 100
+
 # Weights of the learned score (explicit love/never apply at pick time).
 W_HISTORY = 3.0            # scaled so the most-played artist scores 3
 W_STATION = 1.0            # a Pandora station seeded on the artist
@@ -297,7 +312,7 @@ CREATE TABLE IF NOT EXISTS stations (uri TEXT PRIMARY KEY, name TEXT, provider T
 CREATE TABLE IF NOT EXISTS tags (key TEXT PRIMARY KEY, name TEXT, genres TEXT, ts REAL);
 CREATE TABLE IF NOT EXISTS feedback (key TEXT, delta REAL, reason TEXT, ts REAL);
 CREATE TABLE IF NOT EXISTS picks (id INTEGER PRIMARY KEY AUTOINCREMENT, ts REAL, entity TEXT,
-    phrase TEXT, key TEXT, uri TEXT, label TEXT, outcome TEXT);
+    phrase TEXT, key TEXT, uri TEXT, label TEXT, outcome TEXT, queue TEXT);
 CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT);
 """
 
@@ -308,6 +323,11 @@ def db(path: Path | None = None) -> sqlite3.Connection:
     con = sqlite3.connect(path)
     con.row_factory = sqlite3.Row
     con.executescript(_SCHEMA)
+    # picks.queue (sprint M23): the Music Assistant queue a pick played on.
+    # A DB made before it gains the column; old rows keep NULL.
+    if "queue" not in {r["name"] for r in con.execute("PRAGMA table_info(picks)")}:
+        con.execute("ALTER TABLE picks ADD COLUMN queue TEXT")
+        con.commit()
     return con
 
 
@@ -444,6 +464,10 @@ async def build_profile(ma, path: Path | None = None, tagger=tag_artists) -> dic
     need = [h for h in hist if h.get("media_type") in ("track", "album")]
     fetched = dict(zip([h["uri"] for h in need],
                        await _gather_limited([ma("music/item_by_uri", uri=h["uri"]) for h in need])))
+    # 2b. Kronk's own picks are left out, and the rest keeps its order, so
+    # the household's plays are weighted as if Kronk's had not happened.
+    kronk = await kronk_pick_rows(ma, _recent_picks(path), hist, fetched)
+    hist = [h for h in hist if h.get("uri") not in kronk]
     station_plays: dict[str, float] = {}
     for n, h in enumerate(hist):
         w = HISTORY_DECAY ** n
@@ -513,13 +537,65 @@ async def build_profile(ma, path: Path | None = None, tagger=tag_artists) -> dic
             summary = {
                 "built_at": time.time(), "seconds": round(time.time() - t0, 1),
                 "artists": len(artists), "with_genres": sum(1 for a in artists.values() if a["genres"]),
-                "history_items": len(hist), "stations": len(stations), "model_tagged": len(tagged),
+                "history_items": len(hist), "kronk_pick_items": len(kronk),
+                "stations": len(stations), "model_tagged": len(tagged),
             }
             con.execute("INSERT OR REPLACE INTO meta VALUES ('last_build', ?)", (json.dumps(summary),))
     finally:
         con.close()
     logger.info("taste profile built: %s", summary)
     return summary
+
+
+def _recent_picks(path: Path | None = None) -> list[sqlite3.Row]:
+    with db(path) as con:
+        return con.execute("SELECT * FROM picks ORDER BY id DESC LIMIT ?", (PICK_LOOKBACK,)).fetchall()
+
+
+def _row_artist_keys(h: dict, fetched: dict) -> set[str]:
+    """The artists a history row is credited to, as build_profile credits
+    them: an artist row itself; a track or album row's first two artists."""
+    mt = h.get("media_type")
+    if mt == "artist":
+        return {music_resolve.fold(h.get("name"))}
+    if mt in ("track", "album"):
+        f = fetched.get(h.get("uri"))
+        return {music_resolve.fold(a["name"]) for a in ((f.get("artists") or [])[:2] if isinstance(f, dict) else [])
+                if a.get("name")}
+    return set()
+
+
+async def kronk_pick_rows(ma, picks, hist: list[dict], fetched: dict) -> set[str]:
+    """URIs of the history rows that Kronk's own picks played (fix 3 above).
+
+    MA's history has one row per item, newest first, with no time or player
+    in the answer, but it can be asked for the rows last played on one queue
+    after a time, and for the ones the user started (user_initiated: the
+    item handed to play_media, sticky once set; tracks played out of an
+    artist, album or station are not). So for each pick: the rows played on
+    its queue from PICK_LEAD_S before the pick, minus those played after the window,
+    minus those the household started, except the pick's own item. Of
+    those, the picked artist's rows (or, for a station or playlist pick, the
+    station or playlist itself) are Kronk's. A pick recorded before the
+    queue was (picks.queue NULL) is read on every queue."""
+    in_hist = {h.get("uri") for h in hist}
+    out: set[str] = set()
+    for p in picks:
+        t0 = int(p["ts"]) - PICK_LEAD_S
+        q = {"queue_id": p["queue"]} if "queue" in p.keys() and p["queue"] else {}
+        after = await ma("music/recently_played_items", limit=HISTORY_LIMIT, played_after_timestamp=t0, **q) or []
+        later = await ma("music/recently_played_items", limit=HISTORY_LIMIT,
+                         played_after_timestamp=int(p["ts"]) + PICK_WINDOW_S, **q) or []
+        named = await ma("music/recently_played_items", limit=HISTORY_LIMIT, played_after_timestamp=t0,
+                         user_initiated_only=True, **q) or []
+        skip = {h.get("uri") for h in later} | ({h.get("uri") for h in named} - {p["uri"]})
+        artist = p["key"][len("artist:"):] if (p["key"] or "").startswith("artist:") else None
+        mine = {h.get("uri") for h in after if h.get("uri") in in_hist and h.get("uri") not in skip
+                and (h.get("uri") == p["uri"] or (artist and artist in _row_artist_keys(h, fetched)))}
+        if mine:
+            logger.info("taste pick %d (%s): %d history items left out as Kronk's", p["id"], p["key"], len(mine))
+        out |= mine
+    return out
 
 
 def last_build(path: Path | None = None) -> dict | None:
@@ -832,10 +908,13 @@ def choose(picks: list[Pick], rng=None, top: int = 3) -> list[Pick]:
     return [first] + [p for p in ranked if p is not first]
 
 
-def record_pick(entity: str, phrase: str, pick: Pick, path: Path | None = None) -> int:
+def record_pick(entity: str, phrase: str, pick: Pick, path: Path | None = None, queue: str | None = None) -> int:
+    """`queue`: the MA queue it plays on (the player's `active_queue`), so the
+    nightly build can tell its plays from the household's (kronk_pick_rows)."""
     with db(path) as con:
-        cur = con.execute("INSERT INTO picks (ts, entity, phrase, key, uri, label, outcome) VALUES (?,?,?,?,?,?,?)",
-                          (time.time(), entity, phrase, pick.key, pick.uri, pick.label, None))
+        cur = con.execute("INSERT INTO picks (ts, entity, phrase, key, uri, label, outcome, queue) "
+                          "VALUES (?,?,?,?,?,?,?,?)",
+                          (time.time(), entity, phrase, pick.key, pick.uri, pick.label, None, queue))
         return cur.lastrowid
 
 

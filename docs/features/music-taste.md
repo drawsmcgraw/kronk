@@ -78,6 +78,38 @@ listens to, and Kronk learns from what happens to its picks.
   local model (`gemma-4-e4b`, 25 per call) and cached in `tags`.
   `GET /music/taste/profile` shows the result; `POST /music/taste/rebuild`
   runs it now (~100 s cold, ~20 s with tags cached).
+- **Kronk's own picks are not household taste** (sprint M23,
+  `INVESTIGATION_2026-11-21_cracker_radio.md` fix 3). A no-phrase pick of
+  Cracker played for hours, the history filled with Cracker, and the next
+  no-phrase pick was Cracker again. The build now leaves Kronk's plays out
+  of the history it learns from (`taste.kronk_pick_rows`); the rows left
+  keep their order, so the household's plays weigh as if Kronk's had not
+  happened. MA's history answer carries no time, player or flag, but MA
+  filters on them: for each of the last 100 picks the build asks for the
+  rows last played on the pick's queue from 60 s before the pick
+  (`PICK_LEAD_S`: a pick is recorded after its play is verified, MA marks
+  the item at the start) up to 12 h after it (`PICK_WINDOW_S`), and for the
+  ones MA marks user-initiated (the item handed to `play_media`, sticky
+  once set; tracks played out of an artist, album or station are not). A
+  row in that window that the household did not start is Kronk's when it
+  is the picked artist's (the artist itself, or a track or album credited
+  to it) or the picked station or playlist itself. The queue is the
+  player's `active_queue` at the pick (`picks.queue`, since M23); picks
+  recorded before it have none and are read on every queue. Three reads
+  per pick, about 30 a night.
+  What it cannot tell: tracks of an album or artist the household asked
+  for by name, by the same artist, on the same speaker, within the 12 h
+  (only the item asked for is user-initiated, not its tracks); a request
+  by name for the very artist Kronk picked (same row); the tracks a picked
+  station or playlist played (their artists are anyone's; only the station
+  or playlist row is left out); and a row played again after the window,
+  which counts again (MA keeps only the last play). Feedback (thumbs,
+  skips, stops, "not that", listened) is untouched and still applies.
+  Recomputed on a copy of the real data, 2026-11-21: 15 rows left out
+  (ten Cracker tracks and the Cracker artist row from picks 18 and 19, one
+  station and three playlists from picks 13 to 16); Cracker went from
+  4.10 (top) to 1.90 (third), behind Pink Floyd 4.30 and Fatboy Slim 2.55
+  (`docs/sprint/M23-build.md`).
 - **Corrected:** feedback only on Kronk's own picks — a watcher polls the
   speaker every 10 s: skipped inside 30 s −0.5, stopped inside 60 s −0.5,
   still playing at 10 minutes +0.3; "not that" −1.0. First outcome wins.
@@ -159,8 +191,11 @@ until then: `voice-music-control.md`, "The hand-off to Kronk"). Radio misses sta
   album+track, limit 50 → 7 albums, 49 tracks, and no *Destiny Waiving*;
   playlist+radio for "deep house" returned only the radio. Every search
   here is one type per call.
-- **MA play history has no timestamps and no player.** No learned
-  room/time patterns; `rules` in the file cover that.
+- **MA play history has no timestamps and no player** in its answer
+  (one row per item, its last play). No learned room/time patterns;
+  `rules` in the file cover that. MA does filter on them
+  (`queue_id`, `played_after_timestamp`, `user_initiated_only` on
+  `music/recently_played_items`), which is how Kronk's picks are left out.
 - **`stop` in an HA script discards the conversation response set before
   it** — Assist said "Done". The blueprint nests its own path under
   `else` instead.

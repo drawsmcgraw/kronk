@@ -2081,7 +2081,8 @@ async def _play_genre(client: httpx.AsyncClient, headers: dict, entities: list[s
                 logger.warning("shuffle_set for genre pick failed on %s: %s", entity, e)
         pick_id = None
         try:
-            pick_id = taste.record_pick(entity, plan["phrase"], pick)
+            pick_id = taste.record_pick(entity, plan["phrase"], pick,
+                                        queue=(state.get("attributes") or {}).get("active_queue"))
         except (OSError, sqlite3.Error) as e:
             logger.warning("could not record pick %s: %s", pick, e)
         key = tuple(sorted(entities))

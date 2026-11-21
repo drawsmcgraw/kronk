@@ -465,6 +465,17 @@ Criteria: `docs/sprint/M23-criteria.md`; build report: `docs/sprint/M23-build.md
   "Play some music" and 38 other generic forms pick exactly as before
   (Drew's condition). Both captures (run 1 and "Play back in the Kitchen",
   2026-11-20) are refused in the tests.
+- **2026-11-21, fix 3 built (repo only).** The nightly build leaves Kronk's
+  own picks out of the history it learns from (`taste.kronk_pick_rows`):
+  per pick, MA is asked for the rows last played on the pick's queue in
+  the 12 h after it and for the ones the household started; the picked
+  artist's rows (or the picked station or playlist) that the household did
+  not start are dropped. Picks now record their queue (`picks.queue`);
+  ids 18 and 19 have none and are read on every queue. Recomputed in
+  scratch on a copy of the real taste DB and MA's history: Cracker 4.10
+  (top) → 1.90 (third), Pink Floyd 2nd → top. The real DB is not rewritten
+  until the coordinator deploys and rebuilds (`docs/sprint/M23-build.md`).
+  Fix 5 (a wake scored as a stop) does not fall out of this; left as is.
 
 ## Blog hooks
 
