@@ -595,3 +595,50 @@ async def test_a_start_cut_short_still_ends_the_window(tmp_path):
     ma.rows["library://album/kerosene"]["user_initiated"] = False
     summary, hist, _ = await _build_picked(ma, tmp_path / "t.db")
     assert summary["kronk_pick_items"] == 5 and hist["Cracker"] > 2
+
+
+# --- M23 e2e3 findings (coordinator fixes) ---
+
+STICKY = "library://track/cracker3"
+
+
+def _sticky_pick(tmp_path, ma):
+    household_before(ma)
+    ma.play(STICKY, "track", T - 50 * H, KITCHEN, True, artist="Cracker")   # asked for by name, weeks ago
+    ma.artist_session("Cracker", T, KITCHEN, 20)                            # the pick replays it
+    add_pick(tmp_path / "t.db", "artist:cracker", ARTISTS["Cracker"])
+
+
+@pytest.mark.asyncio
+async def test_e2e3_one_failed_item_read_does_not_hand_the_pick_to_the_profile(tmp_path):
+    ma, failed = FakeMA(), []
+    _sticky_pick(tmp_path, ma)
+
+    async def flaky(command, _timeout=20, **args):
+        if command == "music/item_by_uri" and args.get("uri") == STICKY and not failed:
+            failed.append(1)
+            raise RuntimeError("Music Assistant is unreachable (TimeoutError).")
+        return await ma(command, _timeout, **args)
+    summary, _hist, _ = await build(flaky, tmp_path / "t.db")
+    assert failed and summary["kronk_pick_items"] == 20
+
+
+@pytest.mark.asyncio
+async def test_e2e3_an_item_that_never_reads_is_a_start_and_the_log_says_so(tmp_path, caplog):
+    ma = FakeMA()
+    _sticky_pick(tmp_path, ma)
+
+    async def broken(command, _timeout=20, **args):
+        if command == "music/item_by_uri" and args.get("uri") == STICKY:
+            raise RuntimeError("The requested media item could not be found.")
+        return await ma(command, _timeout, **args)
+    with caplog.at_level("WARNING"):
+        summary, _hist, _ = await build(broken, tmp_path / "t.db")
+    assert summary["kronk_pick_items"] < 20                 # the build still finishes
+    assert any("counted as a start" in r.getMessage() for r in caplog.records)
+
+
+def test_e2e3_the_margin_is_five_seconds():
+    """MA never stamps a track played under 5 s (playback_tracker), so a
+    start by the household is stamped 5 s or more after the pick."""
+    assert taste.PICK_START_MARGIN_S == 5

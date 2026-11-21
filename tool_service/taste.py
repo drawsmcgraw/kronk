@@ -631,8 +631,18 @@ async def _window_end(ma, p, q: dict, fetched: dict) -> int:
             if h.get("media_type") == "artist":
                 continue
             if artist and h.get("media_type") == "track":
-                if uri not in fetched:
-                    fetched[uri] = await ma("music/item_by_uri", uri=uri)
+                if not isinstance(fetched.get(uri), dict):
+                    # Not read yet, or the build's own read of it failed
+                    # (kept as an exception there): one more try. A track
+                    # that still cannot be read has no artist to compare, so
+                    # it counts as a start, which is the pre-M23 reading of
+                    # the rows after it, and the log says so.
+                    try:
+                        fetched[uri] = await ma("music/item_by_uri", uri=uri)
+                    except Exception as e:  # noqa: BLE001 (one bad item never sinks a build)
+                        fetched[uri] = e
+                        logger.warning("taste: pick %s: could not read %s (%s); counted as a start, "
+                                    "so the pick's later rows count as the household's", p.get("id"), uri, e)
                 if artist in _row_artist_keys(h, fetched):
                     continue
             out.add(uri)
