@@ -31,11 +31,12 @@ Conventions:
   monthly patch run declines on its branch check
   (`docs/features/upgrade-cadence.md`).
 
-- **The basement hand-off** *(sprint M22, 2026-11-21)* — the blueprint
-  names the satellite's room only when that room's one speaker is the
-  satellite's own, and its own player otherwise; tool_service says when
-  a room has no Music Assistant speaker instead of "unknown room".
-  `docs/incidents/INVESTIGATION_2026-11-19_basement_aerosmith.md`.
+- **A track play keeps the old queue; "play music" means the top artist**
+  *(incident 2026-11-21)* — a single-track request plays, then the earlier
+  queue resumes, because neither play path states `enqueue: replace`; and
+  a request the model strips down to "music" plays the top of the taste
+  profile. Fixes 1 and 2 proposed, waiting for Drew:
+  `docs/incidents/INVESTIGATION_2026-11-21_cracker_radio.md`.
 
 - **Home Assistant major upgrade** — 2026.5.4 to 2026.11.2, the first
   major under the upgrade cadence. Waits for Drew's greenlight and a
@@ -131,6 +132,14 @@ Conventions:
 
 Newest first; feature docs in `docs/features/`.
 
+- **The basement hand-off** *(2026-11-21, sprint M22)* — the blueprint
+  (change 14) names the satellite's room only when that room's one speaker
+  is the satellite's own, and its own player otherwise; tool_service says
+  "The <room> has no Music Assistant speaker" instead of "unknown room",
+  and a play that falls to the default from a room without a speaker says
+  why. A read-only registry check: `scripts/satellite_area_check.py`.
+  `docs/incidents/INVESTIGATION_2026-11-19_basement_aerosmith.md`,
+  `docs/features/voice-music-control.md`.
 - **Backups** *(2026-11-20, sprint M16 and M16b)* — a monthly config tar
   (about 5 MB: secrets, HA `.storage`, live config, units, `solar.db`,
   Music Assistant's login database and playlists, the model checksum list)

@@ -56,3 +56,13 @@ Built by an Opus agent (`docs/sprint/M16b-build.md`), tested by a Fable agent (`
 - `setup-kronk-creds.sh` deleted.
 - Scratch restore from the NAS tar: MA and HA each started with no network and accepted the production tokens. Details and what is not shown: `M16b-fix1.md`.
 
+
+## M22 (the basement hand-off), 2026-11-21
+
+- Tag `sprint-M22` (`728d756`). `scripts/deploy_tag.sh deploy sprint-M22` at about 09:20 local: the same six containers; HA, MA, `wyoming-piper` and the dev pair untouched; `/api/status` and the shim ok. The kitchen was playing music throughout and kept playing; both reachable satellites were idle.
+- Blueprint change 14 installed in Home Assistant: `docker cp -a` of `ha/blueprints/mass_assist_kronk.yaml`, then `automation/reload` (HTTP 200). No HA restart. Read back: `version: 20250404-kronk14`, owner 1000:1000 mode 664, sha256 equal to the repo file's, the automation `on`. The file it replaced: `~/backups/mass_assist_kronk.kronk13.2026-11-21.yaml`. Undo: copy that back the same way and reload.
+- Verified on production: `POST /music` with `player: "Bedroom"` (from inside the tool_service container; refused before anything is sent) answers 400 "The Bedroom has no Music Assistant speaker. Rooms with a speaker: Basement Theater, Kitchen, Office."; `scripts/satellite_area_check.py`: 3 satellites, 0 not ok.
+- Test: passed with no blocker (`M22-e2e.md`); three should-fix findings fixed by the coordinator and not retested by an agent (`f7d26a4`: an area name inside another word names no room; the registry check's exit code on a stalled answer; no "on the None"). Suite `5736 passed, 3 skipped, 53 xfailed`. On the real registry all three satellites hand off the same text as before, so the change acts only for a satellite whose room lacks its own speaker or holds other speakers.
+- Not done: a spoken test by Drew; the test report's notes 4 to 17 (among them: the snapshot's player list predates the basement area fix, so the pinned answer for the new corpus row says the player's name where production says the room).
+- Same morning, not part of M22: `docs/incidents/INVESTIGATION_2026-11-21_cracker_radio.md` (a track play keeps the old queue). Nothing from it is built.
+- `refactor` merged to `main` after this entry; `~/.config/kronk/upgrade.env` set to `main`.

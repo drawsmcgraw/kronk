@@ -1,9 +1,9 @@
 # Investigation 2026-11-19 — "Play the album Get a Grip by Aerosmith" in the basement: "I don't know a speaker or room called 'Basement Theater'"
 
 **Status:** root cause determined; fix 1 applied 2026-11-20 (sprint M16b);
-fixes 2 and 3 built 2026-11-21 (sprint M22: the blueprint change is in the
-repo, not yet installed in HA; the tool_service change is on dev, not yet in
-production); fixes 4 and 5 open (M11 cutover).
+fixes 2 and 3 applied 2026-11-21 (sprint M22: blueprint change 14 installed
+in HA by an automation reload, tool_service in production from
+`sprint-M22`; `docs/sprint/PROMOTIONS.md`); fixes 4 and 5 open (M11 cutover).
 Not a sprint regression: the same failure was captured on 2026-11-08, before
 the sprint, and the code and blueprint involved are unchanged since
 2026-11-14.
