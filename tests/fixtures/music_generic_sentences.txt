@@ -302,3 +302,43 @@ put on some tunes on Upper Shield
 play some music on the Cameron’s MacBook Pro
 Play music. on the Cameron’s MacBook Pro
 put on some tunes on Cameron’s MacBook Pro
+# The M23 builder's 39 (tests/test_music_stripped.py GENERIC before fix round 1): the blueprint's loose sentences with both hand-off suffixes, then everyday forms.
+play some music
+play music
+play something
+put on some music
+put on something
+play some music in the Kitchen
+play something in the Office
+put on some music in the Basement Theater
+play some music on the kitchen voice pe ma
+Play music. in the Kitchen
+Play some music.
+put on some tunes
+Put on some tunes in the kitchen.
+throw on some tunes
+listen to some music
+let's listen to something
+Can you play some music?
+Kronk, play some music please.
+Hey Kronk, could you put on some music for dinner?
+play me something
+play us something nice
+Play some good music
+play some songs
+play a song
+play anything
+play some random music
+play some background music
+play some music on the Sonos Move
+play some music from YouTube Music
+shuffle some music
+queue up some music
+play something again
+I'm cooking dinner, play some music
+turn on the lights and play some music
+Play some music. That's probably about it.
+Play some music for us, now
+Okay, um, play some music
+ Play some music in the kitchen!
+Let’s play some music

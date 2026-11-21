@@ -35,6 +35,16 @@ HA_ENQUEUE_OPTIONS = ("play", "replace", "next", "replace_next", "add")
 pytestmark = pytest.mark.usefixtures("no_network")
 
 
+@pytest.fixture(autouse=True)
+def _no_state_left_behind():
+    """No last pick or player state leaks into a later file (the end-to-end
+    test's finding 10: test_music_resolve's "something else" succeeded on a
+    pick left in ts._LAST_PICKS)."""
+    yield
+    ts._LAST_PICKS.clear()
+    FakeHA.playing, FakeHA.shuffle, FakeHA.title = False, False, "Glory Box"
+
+
 def test_the_value_is_replace_and_ha_accepts_it():
     assert music_resolve.PLAY_ENQUEUE == "replace"
     assert music_resolve.PLAY_ENQUEUE in HA_ENQUEUE_OPTIONS

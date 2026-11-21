@@ -1628,8 +1628,9 @@ async def _play_music_live(req: MusicRequest):
             return await _play_genre(client, headers, entities, label, req, _another_plan(entities))
         if kind == "genre" or (kind != "named" and not media_type and not nq.uri):
             # No phrase ("music") is "play some music": the top of the
-            # profile. Only when the user's own sentence was generic too; a
-            # sentence that named something lost it on the way (sprint M23).
+            # profile. Not when the user's own sentence holds no word for
+            # music at all: what it named was lost on the way (sprint M23,
+            # taste.said_request).
             if not taste.genre_phrase(nq.text):
                 generic, what = taste.said_request(req.said)
                 if generic is False:

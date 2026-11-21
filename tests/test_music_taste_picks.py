@@ -21,6 +21,18 @@ from tool_service import taste
 
 pytestmark = pytest.mark.usefixtures("no_network")
 
+
+@pytest.fixture(autouse=True)
+def _no_state_left_behind():
+    """No last pick or player state leaks into a later file (the end-to-end
+    test's finding 10: test_music_resolve's "something else" succeeded on a
+    pick left in ts._LAST_PICKS)."""
+    yield
+    import tool_service.main as ts
+    from tests.test_error_surfacing import FakeHA
+    ts._LAST_PICKS.clear()
+    FakeHA.playing, FakeHA.shuffle, FakeHA.title = False, False, "Glory Box"
+
 KITCHEN, BASEMENT = "up20f83b0ac919", "up0ab117"
 T = 1_795_000_000                      # the pick
 H = 3600
@@ -71,6 +83,18 @@ class FakeMA:
             return [{"uri": r["uri"], "media_type": r["media_type"], "name": r["name"]}
                     for r in rows[:args.get("limit", 10)]]
         raise AssertionError(command)
+
+
+    def album_session(self, artist, ts, queue, n, album="library://album/kerosene"):
+        """An album asked for by name: MA credits the album (user-initiated)
+        when its first track completes; the tracks are not user-initiated
+        and credit their artist."""
+        for i in range(n):
+            t = ts + 240 * (i + 1)
+            self.play(f"library://track/{artist.lower()}-album{i}", "track", t, queue, False, artist=artist)
+            if i == 0:
+                self.play(album, "album", t, queue, True, artist=artist, name="Kerosene Hat")
+            self.play(ARTISTS[artist], "artist", t, queue, False, name=artist)
 
 
 def household_before(ma):
@@ -243,6 +267,149 @@ async def test_no_picks_asks_nothing_more(tmp_path):
     summary, _, _ = await build(ma, tmp_path / "t.db")
     assert summary["kronk_pick_items"] == 0
     assert [a for c, a in ma.calls if c == "music/recently_played_items"] == [{"limit": taste.HISTORY_LIMIT}]
+
+
+
+# ── the window ends at the next start (sprint M23 fix round 1, ruling D) ────
+# The end-to-end test's finding 4 table and finding 5, on the same fake: a
+# pick of Cracker on the kitchen queue at T, five tracks.
+
+def _picked(queue=KITCHEN, tracks=5):
+    ma = FakeMA()
+    household_before(ma)
+    ma.artist_session("Cracker", T, queue or KITCHEN, tracks)
+    return ma
+
+
+async def _build_picked(ma, path, queue=KITCHEN):
+    add_pick(path, "artist:cracker", ARTISTS["Cracker"], queue=queue)
+    return await build(ma, path)
+
+
+@pytest.mark.asyncio
+async def test_an_album_of_the_picked_artist_asked_for_after_the_pick_counts_with_its_tracks(tmp_path):
+    """Finding 4, row 3: the album row and its eight tracks, and the
+    artist row they credit, are the household's. Only Kronk's five tracks
+    before the album started are left out."""
+    ma = _picked()
+    ma.album_session("Cracker", T + 2 * H, KITCHEN, 8)
+    summary, hist, _ = await _build_picked(ma, tmp_path / "t.db")
+    assert summary["kronk_pick_items"] == 5
+    kept = _picked(tracks=0)
+    kept.rows.pop(ARTISTS["Cracker"])
+    kept.album_session("Cracker", T + 2 * H, KITCHEN, 8)
+    _, hist_kept, _ = await build(kept, tmp_path / "k.db")
+    assert hist["Cracker"] == pytest.approx(hist_kept["Cracker"]) and hist["Cracker"] > 5
+
+
+@pytest.mark.asyncio
+async def test_the_album_on_another_queue_counts_whether_or_not_the_pick_has_a_queue(tmp_path):
+    """Finding 4, rows 4 and 5. A pick with no queue (every pick before
+    M23) is read on every queue, so the album there ends its window too."""
+    for queue in (KITCHEN, None):
+        ma = _picked()
+        ma.album_session("Cracker", T + 2 * H, BASEMENT, 8)
+        summary, hist, _ = await _build_picked(ma, tmp_path / f"{queue}.db", queue=queue)
+        assert summary["kronk_pick_items"] == 5, queue
+        assert hist["Cracker"] > 5, queue
+
+
+@pytest.mark.asyncio
+async def test_a_track_of_the_picked_artist_asked_for_in_the_window_counts(tmp_path):
+    """Finding 4, row 6: the track asked for by name counts. Its artist
+    credit moves the artist row, which stays Kronk's: a track of the
+    picked artist does not end the window (see the sticky flag below)."""
+    ma = _picked(tracks=10)
+    ma.play("library://track/cracker-asked", "track", T + 1000, KITCHEN, True, artist="Cracker")
+    summary, hist, _ = await _build_picked(ma, tmp_path / "t.db")
+    assert summary["kronk_pick_items"] == 11
+    assert hist["Cracker"] == pytest.approx(taste.HISTORY_DECAY ** 0, abs=0.05)   # the one asked-for row
+
+
+@pytest.mark.asyncio
+async def test_a_request_for_the_picked_artist_itself_cannot_be_told(tmp_path):
+    """Finding 4, rows 1 and 2: the household asks for Cracker by name on
+    the same speaker, 2 h or 13 h after the pick, and starts nothing else
+    between. MA keeps one row per artist, moved by every track's credit,
+    so this play and the pick's look the same: inside the window (a day)
+    it is left out. After the window it counts."""
+    for later, dropped in ((2 * H, 11), (13 * H, 11), (25 * H, 5)):
+        ma = _picked()
+        ma.artist_session("Cracker", T + later, KITCHEN, 5, start=100)
+        summary, hist, _ = await _build_picked(ma, tmp_path / f"{later}.db")
+        assert summary["kronk_pick_items"] == dropped, later
+        assert (hist["Cracker"] > 0) == (later > taste.PICK_WINDOW_S), later
+
+
+@pytest.mark.asyncio
+async def test_a_pick_playing_all_night_is_left_out_whole(tmp_path):
+    """Finding 5: 200 tracks over 13.3 h. The fixed 12 h window counted
+    the last 21 and the artist row, and Cracker topped the profile again."""
+    ma = _picked(tracks=200)
+    summary, hist, score = await _build_picked(ma, tmp_path / "t.db")
+    assert summary["kronk_pick_items"] == 201 and hist["Cracker"] == 0.0
+    assert max(score, key=score.get) != "Cracker"
+
+
+@pytest.mark.asyncio
+async def test_a_track_once_asked_for_by_name_and_replayed_by_the_pick(tmp_path):
+    """Finding 5, the sticky flag: MA keeps user_initiated on a track the
+    household once asked for, so when the pick replays it the row looks
+    like the household's. It counts (MA cannot say otherwise), but it does
+    not end the window: the rest of the pick stays out."""
+    ma = FakeMA()
+    household_before(ma)
+    ma.play("library://track/cracker2", "track", T - 7 * 24 * H, KITCHEN, True, artist="Cracker")
+    ma.artist_session("Cracker", T, KITCHEN, 10)
+    summary, hist, _ = await _build_picked(ma, tmp_path / "t.db")
+    assert summary["kronk_pick_items"] == 10                      # the artist row and 9 of 10 tracks
+    assert 0 < hist["Cracker"] <= 1                               # one row, at most the newest
+
+
+@pytest.mark.asyncio
+async def test_a_start_after_the_pick_ends_its_window(tmp_path):
+    """Anything started on the queue after the pick ends it: Fatboy Slim
+    asked for by name 1 h in, then Cracker's tracks again (the household's
+    own, played after) count."""
+    ma = _picked()
+    ma.play("ytmusic://track/rh", "track", T + H, KITCHEN, True, artist="Fatboy Slim")
+    ma.album_session("Cracker", T + 2 * H, KITCHEN, 3)
+    ma.rows["library://album/kerosene"]["user_initiated"] = False   # no album credit: only the start before it
+    summary, hist, _ = await _build_picked(ma, tmp_path / "t.db")
+    assert summary["kronk_pick_items"] == 5 and hist["Cracker"] > 2
+
+
+@pytest.mark.asyncio
+async def test_a_station_asked_for_by_name_after_its_pick_counts(tmp_path):
+    """Finding 2, the real data's shape (2026-11-08): Kronk picked a station,
+    then a playlist six minutes later, then the station was asked for by
+    name 21 times. MA marks a station only when a play starts it, so its
+    row's last play is a request, not the pick: it counts. The playlist,
+    picked and left, is Kronk's."""
+    ma = FakeMA()
+    household_before(ma)
+    ma.play("library://radio/5", "radio", T - 1, BASEMENT, True, name="Orbital Radio")       # pick 13
+    ma.play("ytmusic://playlist/p14", "playlist", T + 378, BASEMENT, True, name="p14")        # pick 14
+    for i in range(21):
+        ma.play("library://radio/5", "radio", T + 417 + 16 * i, BASEMENT, True, name="Orbital Radio")
+    path = tmp_path / "t.db"
+    add_pick(path, "uri:library://radio/5", "library://radio/5", queue=None)
+    add_pick(path, "uri:ytmusic://playlist/p14", "ytmusic://playlist/p14", ts=T + 383, queue=None)
+    summary, _, _ = await build(ma, path)
+    assert summary["kronk_pick_items"] == 1
+    with sqlite3.connect(path) as con:
+        assert con.execute("SELECT plays FROM stations WHERE uri='library://radio/5'").fetchone()[0] > 0
+
+
+@pytest.mark.asyncio
+async def test_the_window_end_costs_a_bounded_number_of_reads(tmp_path):
+    ma = _picked()
+    ma.play("ytmusic://track/rh", "track", T + H, KITCHEN, True, artist="Fatboy Slim")
+    path = tmp_path / "t.db"
+    add_pick(path, "artist:cracker", ARTISTS["Cracker"])
+    await build(ma, path)
+    reads = [a for c, a in ma.calls if c == "music/recently_played_items" and "played_after_timestamp" in a]
+    assert len(reads) <= 3 + 3 + 17                   # three reads, the start reads, the bisection
 
 
 def test_record_pick_keeps_the_queue(tmp_path):

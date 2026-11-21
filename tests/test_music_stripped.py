@@ -9,6 +9,7 @@ taste profile, so the kitchen got Cracker. The user's own sentence
 and names the closest match; when it is generic, the pick happens exactly
 as before (Drew's condition: "play some music" is a feature).
 """
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -31,78 +32,69 @@ CAPTURES = [
     "Play back in the Kitchen",
 ]
 
-# Generic sentences: the blueprint's own loose sentences (change 9, which
-# hands them to Kronk as "pick something"), with the room suffixes its
-# hand-off adds (change 14), then everyday forms. The corpus holds no
-# generic sentence of the household's own (every play_music row with no
-# name carries a genre). Each must pick from the profile exactly as before.
-GENERIC = [
-    # blueprint loose trigger: (play|put on) [some ](music|something) [(in|on) [the ]{area}]
-    "play some music",
-    "play music",
-    "play something",
-    "put on some music",
-    "put on something",
-    "play some music in the Kitchen",
-    "play something in the Office",
-    "put on some music in the Basement Theater",
-    "play some music on the kitchen voice pe ma",
-    "Play music. in the Kitchen",
-    # everyday forms
-    "Play some music.",
-    "put on some tunes",
-    "Put on some tunes in the kitchen.",
-    "throw on some tunes",
-    "listen to some music",
-    "let's listen to something",
-    "Can you play some music?",
-    "Kronk, play some music please.",
-    "Hey Kronk, could you put on some music for dinner?",
-    "play me something",
-    "play us something nice",
-    "Play some good music",
-    "play some songs",
-    "play a song",
-    "play anything",
-    "play some random music",
-    "play some background music",
-    "play some music on the Sonos Move",
-    "play some music from YouTube Music",
-    "shuffle some music",
-    "queue up some music",
-    "play something again",
-    "I'm cooking dinner, play some music",
-    "turn on the lights and play some music",
-    "Play some music. That's probably about it.",
-    "Play some music for us, now",
-    "Okay, um, play some music",
-    " Play some music in the kitchen!",
-    "Let’s play some music",
-]
+# Generic sentences: the end-to-end tester's 303 and the builder's 39 (the
+# blueprint's loose sentences with the hand-off's room suffixes, then
+# everyday forms), none of them household text. Each must pick from the
+# profile exactly as before M23 (Drew's condition: "play some music" is a
+# feature). Fix round 1 turned the test round: a word list of fillers could
+# not be closed (55 of the tester's sentences were refused).
+FIXTURE = Path(__file__).parent / "fixtures" / "music_generic_sentences.txt"
+GENERIC_ALL = [line.rstrip("\n") for line in FIXTURE.read_text().splitlines(True)
+               if line.strip() and not line.startswith("#")]
+# The one that stays refused: a Whisper form with no word for music left in
+# it. Saving it takes a rule for that one mishearing ("muse" alone is a
+# band), which is the word-list problem again.
+REFUSED_GENERIC = {"Play some muse sick."}
+GENERIC = [s for s in GENERIC_ALL if s not in REFUSED_GENERIC]
 
-# The sentence names something: not generic.
+# The sentence names something and holds no word for music: refused.
 NOT_GENERIC = [
     ("Play right here, right now, bud.  That boy's slow. in the Kitchen", "right here, right now, bud"),
+    ("Play right here, right now, bud.  That boy's slow.", "right here, right now, bud"),
     ("Play back in the Kitchen", "back in the Kitchen"),
+    ("Play back", "back"),
     ("play some jazz", "some jazz"),
-    ("play something by Orbital", "something by Orbital"),
-    ("play music by pink floyd", "music by pink floyd"),
-    ("Play the song Praise You by Fatboy Slim.", "the song Praise You by Fatboy Slim"),
-    ("play some 80s music in the kitchen", "some 80s music in the kitchen"),
+    ("play Praise You by Fatboy Slim", "Praise You by Fatboy Slim"),
+    ("play it's my life", "it's my life"),
+    ("Play some muse sick.", "some muse sick"),
+]
+
+# The known cost of the inversion: a stripped request whose sentence also
+# holds a word for music is read as generic, so it gets the pick it got
+# before M23 (no worse than before).
+MISSED = [
+    "play the song right here right now",
+    "play something by Orbital",
+    "play music by pink floyd",
+    "Play the song Praise You by Fatboy Slim.",
+    "play some 80s music in the kitchen",
+    "play Low by Cracker again",
+    "play this is america",
 ]
 
 # No sentence, or no request verb in it: unknown, so today's behaviour.
 UNKNOWN = [None, "", "   ", "music", "some tunes in the kitchen", "Try playing it from YouTube music",
-           "start some music", "turn on some music"]
+           "start some music", "turn on some music", "surprise me"]
+
+
+@pytest.fixture(autouse=True)
+def _no_state_left_behind():
+    """A last pick left in ts._LAST_PICKS made a later file's "something
+    else" succeed (the end-to-end test's finding 10); FakeHA's class
+    attributes are module state too."""
+    yield
+    ts._LAST_PICKS.clear()
+    FakeHA.playing, FakeHA.shuffle, FakeHA.title = False, False, "Glory Box"
+
+
+def test_the_fixture_holds_both_lists():
+    assert len(GENERIC_ALL) == 342 and len(set(GENERIC_ALL)) == 342
+    assert REFUSED_GENERIC <= set(GENERIC_ALL)
 
 
 @pytest.mark.parametrize("said", GENERIC)
-def test_generic_sentences_are_generic(said):
-    assert taste.said_request(said) == (True, "")
-
-
-def test_the_generic_table_is_at_least_twenty():
-    assert len(GENERIC) >= 20 and len(set(GENERIC)) == len(GENERIC)
+def test_generic_sentences_are_not_refused(said):
+    assert taste.said_request(said) in ((True, ""), (None, ""))
 
 
 @pytest.mark.parametrize("said,what", NOT_GENERIC)
@@ -110,22 +102,43 @@ def test_sentences_that_name_something_are_not(said, what):
     assert taste.said_request(said) == (False, what)
 
 
+@pytest.mark.parametrize("said", MISSED)
+def test_the_known_cost_a_named_request_with_a_word_for_music(said):
+    assert taste.said_request(said) == (True, "")
+
+
 @pytest.mark.parametrize("said", UNKNOWN)
 def test_no_sentence_or_no_verb_is_unknown(said):
     assert taste.said_request(said) == (None, "")
 
 
+@pytest.mark.parametrize("said", ["play it", "play that again", "play this", "play one", "Play.", "play",
+                                  "play some", "play some, please", "Play some music's.", "play a musical",
+                                  "Play, surprise me"])
+def test_the_edges_of_the_rule(said):
+    """A pronoun counts as the thing played; "some" and a bare verb count
+    when only filler follows; any word starting with "music" counts."""
+    assert taste.said_request(said) == (True, "")
+
+
+@pytest.mark.parametrize("said", ["play back, that one's good", "play right here, it is slow",
+                                  "play right here, this boy"])
+def test_a_pronoun_in_chatter_does_not_count(said):
+    assert taste.said_request(said)[0] is False
+
+
 def test_every_word_list_entry_is_one_word():
-    for w in taste.SAID_GENERIC_WORDS | taste.SAID_STOP_WORDS:
+    for w in taste.SAID_MUSIC_WORDS | taste.SAID_MUSIC_PRONOUNS | taste.SAID_FILLER:
         assert taste._said_words(w) == [w], w
-    assert not taste.SAID_GENERIC_WORDS & taste.SAID_STOP_WORDS
+    assert not taste.SAID_MUSIC_WORDS & taste.SAID_FILLER
 
 
-def test_no_genre_word_is_generic():
+def test_no_genre_word_is_a_word_for_music():
     """A genre is something: "play some jazz" stripped to "music" is a
     stripped request, not a generic one."""
     for g in taste.BUILTIN_GENRES:
-        assert not set(g.split()) <= taste.SAID_GENERIC_WORDS, g
+        for w in g.split():
+            assert w not in taste.SAID_MUSIC_WORDS and not w.startswith("music"), g
 
 
 # ── /music ───────────────────────────────────────────────────────────────────
@@ -252,6 +265,33 @@ def test_the_voice_handoff_has_no_sentence_and_picks_as_before(stripped_env):
     assert r.status_code == 200 and r.json()["ok"], r.text
 
 
+def test_the_orchestrator_knows_the_refusal_sentence():
+    import agents
+    assert agents.STRIPPED_REFUSAL == ts.STRIPPED_SENTENCE
+
+
+@pytest.mark.parametrize("hint", ["", " The closest I found was Right Here, Right Now by Fatboy Slim."])
+@pytest.mark.parametrize("style", ["debug", "friendly"])
+def test_the_refusal_is_said_once_through_the_orchestrator(hint, style):
+    """The end-to-end test's finding 11: "I couldn't play that. I didn't
+    catch what to play." said the same thing twice. Other music failures
+    keep their lead-in."""
+    import agents
+    import errors
+    st = errors.FRIENDLY if style == "friendly" else errors.DEBUG
+    line = f"[Could not play music: {ts.STRIPPED_SENTENCE}{hint}]\nPlayback FAILED — tell the user."
+    assert agents._terminal_speech(line, st, tool="play_music") == ts.STRIPPED_SENTENCE + hint
+    other = "[Could not play music: The speaker may be powered off.]\nPlayback FAILED — tell the user."
+    assert agents._terminal_speech(other, st, tool="play_music") == \
+        "I couldn't play that. The speaker may be powered off."
+
+
+@pytest.mark.parametrize("said", sorted(REFUSED_GENERIC))
+def test_the_generic_sentence_that_stays_refused(stripped_env, said):
+    r = _post(query="music", kind="genre", said=said)
+    assert r.status_code == 422 and stripped_env.calls == []
+
+
 # ── the orchestrator: the sentence survives the coordinator's rewrite ──────
 
 @pytest.mark.parametrize("mount", MOUNTS)
@@ -289,3 +329,29 @@ def test_said_reaches_tool_service_through_the_coordinator_rewrite(client, mount
     (path, payload), = fake.posts()
     assert path == "/music" and payload["query"] == "music" and payload["said"] == CAPTURES[0]
     assert taste.said_request(payload["said"])[0] is False
+
+
+@pytest.mark.parametrize("mount", MOUNTS)
+def test_the_refusal_reaches_the_user_once_on_every_mount(client, mount):
+    """Run 1's path end to end, with tool_service's 422: the reply is the
+    refusal, said once."""
+    detail = f"{ts.STRIPPED_SENTENCE} The closest I found was Right Here, Right Now by Fatboy Slim."
+
+    async def stream(messages, model, tools=None):
+        names = {t["function"]["name"] for t in (tools or [])}
+        had_result = any(m.get("role") == "tool" for m in messages)
+        if "ask_home" in names and not had_result:
+            yield {"tool_calls": [{"id": "c1", "function": {
+                "name": "ask_home", "arguments": {"query": "play music in the Kitchen"}}}]}
+        elif "play_music" in names and not had_result:
+            yield {"tool_calls": [{"id": "h1", "function": {
+                "name": "play_music", "arguments": {"player": "Kitchen", "query": "music"}}}]}
+        else:
+            yield {"token": "Done."}
+        yield {"usage": {}}
+
+    fake = FakeToolService(answers={"/music": (422, {"detail": detail})})
+    with patch("agents.llm.stream", new=stream), patch("tools.httpx.AsyncClient", new=fake):
+        reply = send(client, mount, CAPTURES[0], STAMP if mount == "voice_api_chat" else None)
+    assert reply.count(ts.STRIPPED_SENTENCE) == 1 and "I couldn't play that" not in reply, reply
+    assert "Fatboy Slim" in reply

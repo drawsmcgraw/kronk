@@ -122,6 +122,12 @@ def _news_speech(result: str, style: str) -> str:
 _TOOL_BAD_REQUEST = re.compile(r"^(?!Tool )\S+ error: ")
 
 
+# tool_service's refusal of a stripped request (tool_service/main.py
+# STRIPPED_SENTENCE, sprint M23): /music got no terms but the user's sentence
+# named something. Spoken as tool_service wrote it, with no lead-in.
+STRIPPED_REFUSAL = "I didn't catch what to play."
+
+
 def _terminal_speech(result: str, style: str = errors.DEBUG,
                      tool: str | None = None) -> str:
     """Speakable sentence from a terminal tool's structural result line.
@@ -142,8 +148,12 @@ def _terminal_speech(result: str, style: str = errors.DEBUG,
     if line.startswith("Could not play music: "):
         # The detail here is already a human sentence ("The speaker may be
         # powered off") — spoken in both styles.
-        return errors.failure_text(
-            f"I couldn't play that. {line[len('Could not play music: '):]}", style, None)
+        detail = line[len('Could not play music: '):]
+        if detail.startswith(STRIPPED_REFUSAL):
+            # Already says what failed; "I couldn't play that." before it
+            # would say it twice.
+            return errors.failure_text(detail, style, None)
+        return errors.failure_text(f"I couldn't play that. {detail}", style, None)
     if line.startswith("Music control: "):
         # tool_service's detail is already the sentence ("Paused on the
         # Office speaker.") — ends with a period so HA closes the mic.

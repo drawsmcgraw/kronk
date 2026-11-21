@@ -288,15 +288,20 @@ HISTORY_DECAY   = 0.99     # weight of the n-th most recent play: 0.99**n
 CONCURRENCY     = 8
 
 # Kronk's own picks are not household taste (sprint M23, fix 3). A history
-# row is Kronk's when MA last played it on the pick's queue within this long
-# after the pick, it belongs to the pick (the picked artist's tracks, the
-# artist itself, or the picked station or playlist), and MA does not mark it
-# as one the household started (user_initiated). Such rows are left out of
-# the history the profile learns from. Only the most recent picks are read.
+# row is Kronk's when MA last played it on the pick's queue inside the pick's
+# window, it belongs to the pick (the picked artist's tracks, the artist
+# itself, or the picked station or playlist), and MA does not mark it as one
+# the household started (user_initiated). Such rows are left out of the
+# history the profile learns from. Only the most recent picks are read.
 # The window opens PICK_LEAD_S before the pick's recorded time: a pick is
 # recorded after its play is verified, and MA marks the picked item played
 # when the play starts (pick 19 of 2026-11-21: 13:40:56 against 13:40:57).
-PICK_WINDOW_S   = 12 * 3600
+# It ends at the first play started on that queue after the pick (the next
+# request, the household's or Kronk's), and never runs past PICK_WINDOW_S:
+# a day, so a pick left playing all night is covered, and a start MA never
+# saw cannot hand the household's plays to Kronk for longer than that
+# (fix round 1 of sprint M23; kronk_pick_rows).
+PICK_WINDOW_S   = 24 * 3600
 PICK_LEAD_S     = 60
 PICK_LOOKBACK   = 100
 
@@ -570,6 +575,67 @@ def _row_artist_keys(h: dict, fetched: dict) -> set[str]:
     return set()
 
 
+async def _window_end(ma, p, q: dict, fetched: dict) -> int:
+    """When the pick's window ends: the first play started on its queue
+    after the pick, or PICK_WINDOW_S after it.
+
+    A start is a user-initiated row (MA sets the flag on the item handed to
+    play_media, sticky once set) last played after the pick, except rows
+    whose time says nothing about a start:
+    - artist rows: every track played credits its artists, moving their
+      row and keeping its flag (MA's _credit_artist_plays), so an artist
+      row moves while the pick plays; the picked artist's own row with it;
+    - tracks credited to the picked artist: a track the household once
+      asked for by name keeps the flag, and the pick replays it;
+    - the pick's own item while its last play is the pick's own start
+      (within PICK_LEAD_S of it). A station or playlist row moves only when
+      it is started again (MA marks it at the start of a play), so a later
+      one is a new request for it (2026-11-08: the station of pick 13,
+      asked for by name 21 times within six minutes of it).
+    MA's answer carries no time, so the first start's time is found by
+    bisecting played_after_timestamp to the second: about 17 reads, only
+    for a pick that has a start after it."""
+    ts = int(p["ts"])
+    cap = ts + PICK_WINDOW_S
+    artist = p["key"][len("artist:"):] if (p["key"] or "").startswith("artist:") else None
+
+    async def starts(t: int, own: bool) -> set[str]:
+        """The starts last played at or after t; the pick's own item only
+        when `own` (it was started again)."""
+        rows = await ma("music/recently_played_items", limit=HISTORY_LIMIT, played_after_timestamp=t,
+                        user_initiated_only=True, fully_played_only=False, **q) or []
+        out = set()
+        for h in rows:
+            uri = h.get("uri")
+            if uri == p["uri"]:
+                if own:
+                    out.add(uri)
+                continue
+            if h.get("media_type") == "artist":
+                continue
+            if artist and h.get("media_type") == "track":
+                if uri not in fetched:
+                    fetched[uri] = await ma("music/item_by_uri", uri=uri)
+                if artist in _row_artist_keys(h, fetched):
+                    continue
+            out.add(uri)
+        return out
+
+    # The pick's own station or playlist, last played after its own start.
+    own = not artist and p["uri"] in await starts(ts + PICK_LEAD_S, own=True)
+    first = await starts(ts, own)
+    if not first or await starts(cap, own) == first:
+        return cap
+    lo, hi = ts, cap                    # every start is at or after lo; one is before hi
+    while hi - lo > 1:
+        mid = (lo + hi) // 2
+        if await starts(mid, own) == first:
+            lo = mid
+        else:
+            hi = mid
+    return lo
+
+
 async def kronk_pick_rows(ma, picks, hist: list[dict], fetched: dict) -> set[str]:
     """URIs of the history rows that Kronk's own picks played (fix 3 above).
 
@@ -578,27 +644,28 @@ async def kronk_pick_rows(ma, picks, hist: list[dict], fetched: dict) -> set[str
     after a time, and for the ones the user started (user_initiated: the
     item handed to play_media, sticky once set; tracks played out of an
     artist, album or station are not). So for each pick: the rows played on
-    its queue from PICK_LEAD_S before the pick, minus those played after the window,
-    minus those the household started, except the pick's own item. Of
-    those, the picked artist's rows (or, for a station or playlist pick, the
-    station or playlist itself) are Kronk's. A pick recorded before the
+    its queue from PICK_LEAD_S before the pick to the end of its window
+    (_window_end), minus those the household started, except the pick's own
+    item. Of those, the picked artist's rows (or, for a station or playlist
+    pick, the station or playlist itself) are Kronk's. Rows played after the
+    window are the household's, tracks included. A pick recorded before the
     queue was (picks.queue NULL) is read on every queue."""
     in_hist = {h.get("uri") for h in hist}
     out: set[str] = set()
     for p in picks:
         t0 = int(p["ts"]) - PICK_LEAD_S
         q = {"queue_id": p["queue"]} if "queue" in p.keys() and p["queue"] else {}
+        end = await _window_end(ma, p, q, fetched)
         after = await ma("music/recently_played_items", limit=HISTORY_LIMIT, played_after_timestamp=t0, **q) or []
-        later = await ma("music/recently_played_items", limit=HISTORY_LIMIT,
-                         played_after_timestamp=int(p["ts"]) + PICK_WINDOW_S, **q) or []
+        later = await ma("music/recently_played_items", limit=HISTORY_LIMIT, played_after_timestamp=end, **q) or []
         named = await ma("music/recently_played_items", limit=HISTORY_LIMIT, played_after_timestamp=t0,
                          user_initiated_only=True, **q) or []
         skip = {h.get("uri") for h in later} | ({h.get("uri") for h in named} - {p["uri"]})
         artist = p["key"][len("artist:"):] if (p["key"] or "").startswith("artist:") else None
         mine = {h.get("uri") for h in after if h.get("uri") in in_hist and h.get("uri") not in skip
                 and (h.get("uri") == p["uri"] or (artist and artist in _row_artist_keys(h, fetched)))}
-        if mine:
-            logger.info("taste pick %d (%s): %d history items left out as Kronk's", p["id"], p["key"], len(mine))
+        logger.info("taste pick %d (%s): window %+d s, %d history items left out as Kronk's",
+                    p["id"], p["key"], end - int(p["ts"]), len(mine))
         out |= mine
     return out
 
@@ -692,69 +759,80 @@ def genre_phrase(text: str | None) -> str:
 # boy's slow." reached /music as query "music", which is "play some music",
 # which plays the top of the profile (INVESTIGATION_2026-11-21_cracker_radio.md).
 # The user's own sentence (MusicRequest.said) decides whether the request was
-# generic. Erring toward generic: a false refusal of "play some music" is
-# worse than a missed guard, so the check answers "not generic" only when
-# every request clause in the sentence holds a word outside this list.
+# generic. "Play some music" is a feature (Drew, 2026-11-21) and people add
+# anything to it ("..., thank you", "... tonight", "... buddy"), so no list
+# of fillers can say a sentence is generic. The test is the other way round:
+# a sentence is refused only when it holds no word that means music in
+# general, anywhere in it (fix round 1 of sprint M23).
 
 # A request verb anywhere in a sentence segment ("can you play ...", "I'm
-# cooking, play ..."). "start" and "turn on" are left out: "turn on the
-# lights and play some music" must not read "the lights" as the request.
+# cooking, play ..."). A sentence without one is unknown: today's pick.
 _SAID_VERB_RE = re.compile(r"\b(?:play|put\s+on|throw\s+on|listen\s+to|shuffle|queue\s+up|spin)\b",
                            re.IGNORECASE)
-# Where the "what" ends and the "where", "how" or "for whom" begins: "some
-# music in the kitchen", "something on the sonos move", "some music from
-# YouTube", "something for dinner". Everything after one is not read.
-SAID_STOP_WORDS = frozenset({"in", "on", "at", "from", "for", "to", "with", "through", "into", "onto"})
-# Words that ask for nothing in particular.
-SAID_GENERIC_WORDS = frozenset({
-    # request words
-    "play", "playing", "put", "throw", "listen", "shuffle", "queue", "spin", "start", "turn", "up", "hear",
-    # amounts and articles
-    "a", "an", "the", "some", "any", "more", "few", "couple", "of", "bit", "little", "lot", "whatever",
-    "kind", "sort", "all",
-    # what music is called
-    "music", "something", "anything", "stuff", "song", "songs", "tune", "tunes", "track", "tracks", "jams",
-    "vibe", "vibes", "mix", "playlist", "radio", "station", "album", "noise", "sounds",
-    # how it should be
-    "good", "nice", "great", "cool", "fun", "new", "different", "else", "other", "random", "usual",
-    "favorite", "favourite", "favorites", "favourites", "background",
-    # who, please, when, and speech filler
-    "me", "us", "our", "my", "your", "it", "please", "thanks", "now", "here", "again", "just", "also",
-    "then", "and", "or", "so", "maybe", "kronk", "okay", "ok", "hey", "um", "uh", "yeah", "alright",
-    "can", "could", "would", "will", "you", "go", "ahead", "let", "let's", "lets", "i", "we", "want",
-    "wanna", "like", "how", "about",
+# Nouns and pronouns that mean "music in general". Any word starting with
+# "music" counts too (musics, music's, musical).
+SAID_MUSIC_WORDS = frozenset({
+    "something", "anything", "everything", "whatever", "stuff", "song", "songs", "tune", "tunes",
+    "track", "tracks", "jam", "jams", "mix", "playlist", "playlists", "radio", "station", "album", "albums",
+    "record", "records", "library", "sounds", "vibes", "noise", "favorites", "favourites", "usual",
+    "more", "again",
 })
+# Pronouns count only as the thing played: the first word after a request
+# verb ("play it", "play that again"). Anywhere else they are chatter:
+# "That boy's slow." is the end of a stripped title (capture 1).
+SAID_MUSIC_PRONOUNS = frozenset({"that", "it", "this", "one"})
+# "some" counts when nothing but these follows it in its sentence ("play
+# some", "play some, please"); a request verb followed by nothing but these
+# asks for nothing in particular ("Play.").
+SAID_FILLER = frozenset({"please", "thanks", "thank", "you", "now", "kronk", "okay", "ok", "um", "uh"})
+_SAID_SOME = frozenset({"some", "sum"})
 
 
 def _said_words(text: str) -> list[str]:
     return re.findall(r"[a-z0-9]+(?:'[a-z]+)?", text.lower().replace("\u2019", "'"))
 
 
+def _said_generic(said: str) -> bool:
+    """Does the sentence hold a word that means music in general?"""
+    if re.search(r"\bsurprise\s+me\b", said, re.IGNORECASE):
+        return True
+    for seg in re.split(r"[.!?;]+", said):
+        words = _said_words(seg)
+        for i, w in enumerate(words):
+            if w.startswith("music") or w in SAID_MUSIC_WORDS:
+                return True
+            if w in _SAID_SOME and all(x in SAID_FILLER for x in words[i + 1:]):
+                return True
+        for m in _SAID_VERB_RE.finditer(seg):
+            after = _said_words(seg[m.end():])
+            if not after or all(x in SAID_FILLER for x in after):
+                return True
+            if after[0] in SAID_MUSIC_PRONOUNS:
+                return True
+    return False
+
+
 def said_request(said: str | None) -> tuple[bool | None, str]:
     """Is the user's own sentence a generic request ("play some music")?
 
-    (True, "") when any request clause is generic; (False, words) when every
-    request clause names something, with the words after the first clause's
-    verb (to the end of its sentence) for the closest-match lookup; (None,
-    "") when there is no sentence or no request verb in it: unknown, so the
-    caller keeps today's behaviour. A clause is the words after a request
-    verb, up to the end of its sentence or the first stop word."""
+    (None, "") when there is no sentence or no request verb in it: unknown,
+    so the caller keeps today's behaviour. (True, "") when the sentence
+    holds a word that means music in general (_said_generic). Otherwise
+    (False, words): the sentence named something that did not reach the
+    query, with the words after its first request verb, to the end of that
+    sentence, for the closest-match lookup."""
     if not (said or "").strip():
         return None, ""
     what = None
     for seg in re.split(r"[.!?;]+", said):
-        for m in _SAID_VERB_RE.finditer(seg):
-            rest = seg[m.end():]
-            clause = []
-            for w in _said_words(rest):
-                if w in SAID_STOP_WORDS:
-                    break
-                clause.append(w)
-            if all(w in SAID_GENERIC_WORDS for w in clause):
-                return True, ""
-            if what is None:
-                what = rest.strip(" ,:")
-    return (None, "") if what is None else (False, what)
+        if (m := _SAID_VERB_RE.search(seg)):
+            what = seg[m.end():].strip(" ,:")
+            break
+    if what is None:
+        return None, ""
+    if _said_generic(said):
+        return True, ""
+    return False, what
 
 
 def _tokens(s: str) -> set[str]:
