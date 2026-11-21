@@ -1,6 +1,6 @@
 {
 "meta": {
-"recorded": "2026-11-21T11:52:08Z",
+"recorded": "2026-11-21T14:46:50Z",
 "rows": 1,
 "paths": [
 "live",
@@ -2239,6 +2239,7 @@
 ]
 }
 ],
+"[\"music/albums/library_items\", {\"limit\": 25, \"search\": \"right here, right now, bud. That boy's slow\"}]": [],
 "[\"music/albums/library_items\", {\"limit\": 25, \"search\": \"the Albo Daisies of the Galaxy\"}]": [],
 "[\"music/albums/library_items\", {\"limit\": 25, \"search\": \"the beatles\"}]": [
 {
@@ -2862,6 +2863,7 @@
 ]
 }
 ],
+"[\"music/artists/library_items\", {\"limit\": 25, \"search\": \"right here, right now, bud. That boy's slow\"}]": [],
 "[\"music/artists/library_items\", {\"limit\": 25, \"search\": \"the Albo Daisies of the Galaxy\"}]": [],
 "[\"music/artists/library_items\", {\"limit\": 25, \"search\": \"the beatles\"}]": [
 {
@@ -3251,6 +3253,7 @@
 }
 ],
 "[\"music/playlists/library_items\", {\"limit\": 25, \"search\": \"pink floyd\"}]": [],
+"[\"music/playlists/library_items\", {\"limit\": 25, \"search\": \"right here, right now, bud. That boy's slow\"}]": [],
 "[\"music/playlists/library_items\", {\"limit\": 25, \"search\": \"the Albo Daisies of the Galaxy\"}]": [],
 "[\"music/playlists/library_items\", {\"limit\": 25, \"search\": \"the anime bangers\"}]": [],
 "[\"music/playlists/library_items\", {\"limit\": 25, \"search\": \"the beatles\"}]": [],
@@ -9207,6 +9210,187 @@
 "playlists": [],
 "radio": []
 },
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"album\"], \"search_query\": \"right here, right now, bud. That boy's slow\"}]": {
+"artists": [],
+"albums": [
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_7BhsOFvMuO4",
+"name": "Take Care",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_7BhsOFvMuO4",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Drake"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_TW7tEfMcFmH",
+"name": "Backstreet Boys",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_TW7tEfMcFmH",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Backstreet Boys"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_h5via9q1xNy",
+"name": "Flesh Of My Flesh, Blood Of My Blood",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_h5via9q1xNy",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "DMX"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_cwt1ZQ8EgK2",
+"name": "iSouljaBoyTellem",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_cwt1ZQ8EgK2",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Soulja Boy Tell'em"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_uB47eVPk78C",
+"name": "Backstreet's Back",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_uB47eVPk78C",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Backstreet Boys"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_DvPdjxuN5aq",
+"name": "I Hope You're Happy",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_DvPdjxuN5aq",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "BigXthaPlug"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_4RjNy3EUid9",
+"name": "Sweet Boy",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_4RjNy3EUid9",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Malcolm Todd"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_n2Pg2ZnIJ3J",
+"name": "II",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_n2Pg2ZnIJ3J",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Boyz II Men"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_LDFbzmiAolo",
+"name": "Tha Carter III",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_LDFbzmiAolo",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Lil Wayne"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://album/MPREb_iwq1Z3qy90i",
+"name": "blog era boyz",
+"media_type": "album",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MPREb_iwq1Z3qy90i",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "mgk"
+},
+{
+"name": "Wiz Khalifa"
+}
+]
+}
+],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
 "[\"music/search\", {\"limit\": 10, \"media_types\": [\"album\"], \"search_query\": \"the Albo Daisies of the Galaxy\"}]": {
 "artists": [],
 "albums": [],
@@ -11262,6 +11446,38 @@
 "media_type": "artist",
 "provider": "ytmusic--kGmHoQDn",
 "item_id": "UC0VD-Sorq2XpUagaoemRAMA",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+}
+],
+"albums": [],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"artist\"], \"search_query\": \"right here, right now, bud. That boy's slow\"}]": {
+"artists": [
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCNekatqy_ys1SX8NfjpwixA",
+"name": "Fatboy Slim",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCNekatqy_ys1SX8NfjpwixA",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://artist/UCs-2WEOhYtsVUGCxSd4LOjg",
+"name": "Mystikal",
+"media_type": "artist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "UCs-2WEOhYtsVUGCxSd4LOjg",
 "provider_mappings": [
 {
 "provider_domain": "ytmusic"
@@ -14670,6 +14886,262 @@
 ],
 "radio": []
 },
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"playlist\"], \"search_query\": \"right here right now bud that boy s slow\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [],
+"playlists": [
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLcxUDBF3WcNMY2Hghvr_3JxROspapGS9C",
+"name": "Jessica Mauboy: Official Videos",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLcxUDBF3WcNMY2Hghvr_3JxROspapGS9C",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLswP2wadqAEx-rzVxXGs5iloYT4DWyK2e",
+"name": "anh",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLswP2wadqAEx-rzVxXGs5iloYT4DWyK2e",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPL4IHNYd7Tlnn77D0GyLdLEDB9vqEvXYri",
+"name": "Clássicos",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPL4IHNYd7Tlnn77D0GyLdLEDB9vqEvXYri",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLRR1HEv6E3famZpRwcoiE5c-yPfhtL1m2",
+"name": "Songs",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLRR1HEv6E3famZpRwcoiE5c-yPfhtL1m2",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLjCkn2Hh8MY7jyxq4iGwOiMWUuZJsfVDS",
+"name": "Calum Scott",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLjCkn2Hh8MY7jyxq4iGwOiMWUuZJsfVDS",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPL0zt35WxBXAi-3qB7EciMVIjbpw39yDkV",
+"name": "Dopest",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPL0zt35WxBXAi-3qB7EciMVIjbpw39yDkV",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLwIhaWng51dsBEtThRsHQ5bYSm_5MOTMw",
+"name": "Music Mix",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLwIhaWng51dsBEtThRsHQ5bYSm_5MOTMw",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPL569CC0E95B7B98D9",
+"name": "Kushman",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPL569CC0E95B7B98D9",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLi4eSdy1145AGgCKPTABYoXf8LnVtYV5_",
+"name": "Important",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLi4eSdy1145AGgCKPTABYoXf8LnVtYV5_",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLrxDnbLAITgtkCjHags9fgN1FYYx3AIk8",
+"name": "songs that travel through your ears",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLrxDnbLAITgtkCjHags9fgN1FYYx3AIk8",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+}
+],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"playlist\"], \"search_query\": \"right here, right now, bud. That boy's slow\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [],
+"playlists": [
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLGoWuvyH709vpTCVrjaJtaaFfite9U6u8",
+"name": "\"Best no copyright videos\"- Royalty free Drone shots - No copyright Videos - No copyright clips - Videos with no copyright (free to use)",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLGoWuvyH709vpTCVrjaJtaaFfite9U6u8",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLhggFZvui3AAgs86vwb19U1L7XY8zBToK",
+"name": "khasi old song",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLhggFZvui3AAgs86vwb19U1L7XY8zBToK",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLnj4HLXACwk90k_TXrGRr4dMmMb1CHsD7",
+"name": "Telugu Item Songs [Evergreen]",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLnj4HLXACwk90k_TXrGRr4dMmMb1CHsD7",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLHTa5wd9tMaEf--7xz17KrS7iWcv4puHG",
+"name": "😴🌅🔆⭐",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLHTa5wd9tMaEf--7xz17KrS7iWcv4puHG",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLg41MDbgeNkBMo5v10E9sImz2PBMt7fe4",
+"name": "Hi",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLg41MDbgeNkBMo5v10E9sImz2PBMt7fe4",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLHgRgD9zehAVLrhm7jKnfC9Du5YnOA9Mh",
+"name": "Three 6 Mafia Instrumentals",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLHgRgD9zehAVLrhm7jKnfC9Du5YnOA9Mh",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLatsG-yEo3y1ke3XfILlhe4vutZqwj9lT",
+"name": "Weekend",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLatsG-yEo3y1ke3XfILlhe4vutZqwj9lT",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLQtxhrXnoIDo3aNNTBEfMNaeVEV3rI-bE",
+"name": "jura",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLQtxhrXnoIDo3aNNTBEfMNaeVEV3rI-bE",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLc8WI3DnfFXTIM-ObmoTxeosqS1ySLHK8",
+"name": "2",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLc8WI3DnfFXTIM-ObmoTxeosqS1ySLHK8",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://playlist/VLPLarZzww_nUJ8-XnIrrckNsMYH78PPefqn",
+"name": "joe jackson",
+"media_type": "playlist",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "VLPLarZzww_nUJ8-XnIrrckNsMYH78PPefqn",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+]
+}
+],
+"radio": []
+},
 "[\"music/search\", {\"limit\": 10, \"media_types\": [\"playlist\"], \"search_query\": \"the Albo Daisies of the Galaxy\"}]": {
 "artists": [],
 "albums": [],
@@ -15563,6 +16035,13 @@
 "radio": []
 },
 "[\"music/search\", {\"limit\": 10, \"media_types\": [\"radio\"], \"search_query\": \"ninety's two thousands and today's hits\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"radio\"], \"search_query\": \"right here right now bud that boy s slow\"}]": {
 "artists": [],
 "albums": [],
 "tracks": [],
@@ -19128,6 +19607,343 @@
 "playlists": [],
 "radio": []
 },
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"track\"], \"search_query\": \"Right Here, Right Now by Fatboy Slim\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [
+{
+"uri": "ytmusic--kGmHoQDn://track/vqNIeInr9kA",
+"name": "Right Here, Right Now",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "vqNIeInr9kA",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Fatboy Slim"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/E7ONTVx1pj4",
+"name": "Right Here, Right Now",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "E7ONTVx1pj4",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Fatboy Slim"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/h7OEjMnB2WQ",
+"name": "Right Here, Right Now",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "h7OEjMnB2WQ",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Lewis & Friends"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/MQsDAbvyiyE",
+"name": "Right Here, Right Now",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "MQsDAbvyiyE",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Union Of Sound"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/yoULC5EywmY",
+"name": "Right Here, Right Now",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "yoULC5EywmY",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Kylie Minogue"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/RsiuttB-WVs",
+"name": "Right Now",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "RsiuttB-WVs",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Van Halen"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/QEzibxk3euc",
+"name": "Right Here Right Now",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "QEzibxk3euc",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Nerin"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/ep5wG0oy8w4",
+"name": "Right Here, Right Now",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "ep5wG0oy8w4",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "REIGN CITY WORSHIP"
+}
+]
+}
+],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"track\"], \"search_query\": \"Right Here, Right Now\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [
+{
+"uri": "library://track/14086",
+"name": "Right Here, Right Now",
+"media_type": "track",
+"provider": "library",
+"item_id": "14086",
+"provider_mappings": [
+{
+"provider_domain": "filesystem_local"
+}
+],
+"artists": [
+{
+"name": "Jesus Jones"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/vqNIeInr9kA",
+"name": "Right Here, Right Now",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "vqNIeInr9kA",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Fatboy Slim"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/TN42nLpQvM8",
+"name": "Right Here Right Now",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "TN42nLpQvM8",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Jesus Jones"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/g89M9Yay6Eg",
+"name": "Right Here Right Now",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "g89M9Yay6Eg",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Geron Davis"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/id4SwthNwLM",
+"name": "Right Here, Right Now",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "id4SwthNwLM",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "High School Musical Cast"
+},
+{
+"name": "Vanessa Hudgens"
+},
+{
+"name": "Zac Efron"
+},
+{
+"name": "Disney"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/vnEqhR4l3Kk",
+"name": "Right Here Right Now",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "vnEqhR4l3Kk",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Abhishek Bachchan, Sunidhi Chauhan"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/b0hWpXfKzSw",
+"name": "Right Here, Right Now",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "b0hWpXfKzSw",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "San Holo"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/dg2sIlPNMDM",
+"name": "right here, right now",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "dg2sIlPNMDM",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Ni/Co's Covers"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/dAL7bNUhqlM",
+"name": "Right Now Now",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "dAL7bNUhqlM",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Wajid"
+},
+{
+"name": "Sunidhi Chauhan"
+},
+{
+"name": "Suzanne D'mello"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/dYtThnbPy5M",
+"name": "Right Now",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "dYtThnbPy5M",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "LNRT"
+}
+]
+}
+],
+"playlists": [],
+"radio": []
+},
 "[\"music/search\", {\"limit\": 10, \"media_types\": [\"track\"], \"search_query\": \"The Girl with the Sun in Her Head by Orbital\"}]": {
 "artists": [],
 "albums": [],
@@ -20758,6 +21574,173 @@
 "artists": [
 {
 "name": "Mellow"
+}
+]
+}
+],
+"playlists": [],
+"radio": []
+},
+"[\"music/search\", {\"limit\": 10, \"media_types\": [\"track\"], \"search_query\": \"right here, right now, bud. That boy's slow\"}]": {
+"artists": [],
+"albums": [],
+"tracks": [
+{
+"uri": "ytmusic--kGmHoQDn://track/vqNIeInr9kA",
+"name": "Right Here, Right Now",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "vqNIeInr9kA",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Fatboy Slim"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/-3MySCnoxB0",
+"name": "Right Here, Right Now",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "-3MySCnoxB0",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Fatboy Slim"
+},
+{
+"name": "Topic"
+},
+{
+"name": "Marco Generani"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/EnuTOEaWWdQ",
+"name": "Right Here, Right now",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "EnuTOEaWWdQ",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Pizza Head"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/igRq6XGvCwM",
+"name": "Right Here, Right Now",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "igRq6XGvCwM",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Fatboy Slim"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/iCvTrCngwQE",
+"name": "STAY HERE 4 LIFE",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "iCvTrCngwQE",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "A$AP Rocky"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/f0Gx2VTCnr4",
+"name": "Uptown",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "f0Gx2VTCnr4",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Drake"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/f3dLSaTFlqA",
+"name": "Not Today",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "f3dLSaTFlqA",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "BloccRich Monsta"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/5oWyMakvQew",
+"name": "Dreams",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "5oWyMakvQew",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "Fleetwood Mac"
+}
+]
+},
+{
+"uri": "ytmusic--kGmHoQDn://track/OZFckmI2gYM",
+"name": "Juke Dat Juke Dat",
+"media_type": "track",
+"provider": "ytmusic--kGmHoQDn",
+"item_id": "OZFckmI2gYM",
+"provider_mappings": [
+{
+"provider_domain": "ytmusic"
+}
+],
+"artists": [
+{
+"name": "DJ Rashad"
 }
 ]
 }

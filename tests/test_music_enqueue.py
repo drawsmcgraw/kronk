@@ -32,6 +32,8 @@ BLUEPRINT = REPO / "ha/blueprints/mass_assist_kronk.yaml"
 # value to Music Assistant's QueueOption.
 HA_ENQUEUE_OPTIONS = ("play", "replace", "next", "replace_next", "add")
 
+pytestmark = pytest.mark.usefixtures("no_network")
+
 
 def test_the_value_is_replace_and_ha_accepts_it():
     assert music_resolve.PLAY_ENQUEUE == "replace"

@@ -91,6 +91,28 @@ listens to, and Kronk learns from what happens to its picks.
 1. The phrase is cleaned ("some deep house music" → "deep house") and mapped
    through the file's `genres` table. No phrase ("play some music") → the
    first matching `rules` entry, else the top of the profile.
+   Since sprint M23 a query with no phrase is checked against the sentence
+   the user spoke (`MusicRequest.said`, `taste.said_request`): if every
+   request clause in it names something ("Play right here, right now,
+   bud. That boy's slow." reached `/music` as "music" after the
+   coordinator's rewrite), `/music` answers 422 "I didn't catch what to
+   play." plus "The closest I found was …" when the resolver finds a match
+   above `resolver.hint_min_score`, and nothing plays or is recorded. A
+   clause is the words after a request verb (play, put on, throw on,
+   listen to, shuffle, queue up, spin) up to the end of its sentence or a
+   stop word (in, on, at, from, for, to, with, through, into, onto); it is
+   generic when every word is in `taste.SAID_GENERIC_WORDS` (request
+   words, articles and amounts, "music" / "something" / "tunes" / "songs"
+   and the like, "good" / "nice" / "random", "me" / "us" / "please" and
+   speech filler). It errs toward generic, so "play some music" keeps
+   picking: any generic clause makes the sentence generic, a room or
+   provider after a stop word is not read, trailing chatter after a full
+   stop is not read, and no sentence (`/music/voice`, a shim turn with no
+   words of its own) or no request verb keeps today's pick. What it cannot
+   tell: "play something from Pink Floyd" stops at "from" and picks, and a
+   genre the model dropped ("play some jazz" sent as "music") is refused,
+   not played as jazz. Tests: `tests/test_music_stripped.py` (39 generic
+   sentences that pick exactly as before, both captures refused).
 2. Candidates: profile artists with a matching genre (score + feedback, +2
    for `love`, `never` excluded), our own stations named for the genre, and
    MA search playlists/stations whose *name* carries the genre (base

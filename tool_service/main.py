@@ -1627,6 +1627,13 @@ async def _play_music_live(req: MusicRequest):
         if kind == "another":
             return await _play_genre(client, headers, entities, label, req, _another_plan(entities))
         if kind == "genre" or (kind != "named" and not media_type and not nq.uri):
+            # No phrase ("music") is "play some music": the top of the
+            # profile. Only when the user's own sentence was generic too; a
+            # sentence that named something lost it on the way (sprint M23).
+            if not taste.genre_phrase(nq.text):
+                generic, what = taste.said_request(req.said)
+                if generic is False:
+                    raise await _stripped_request(req, what, players)
             plan = await _genre_plan(nq, forced=(kind == "genre"), area=live[0].get("area"))
             if plan:
                 return await _play_genre(client, headers, entities, label, req, plan)
@@ -1662,6 +1669,38 @@ async def _play_music_live(req: MusicRequest):
                         telemetry.text(service_data["media_id"], 120), nq.provider)
         return await _play_named(client, headers, entities, label, service_data, bool(req.shuffle),
                                  resolved, station)
+
+
+STRIPPED_SENTENCE = "I didn't catch what to play."
+
+
+async def _stripped_request(req: MusicRequest, what: str, players: list[dict]) -> HTTPException:
+    """The query reached /music with no terms ("music") but the sentence the
+    user spoke named something: the subject was dropped on the way (the
+    coordinator's rewrite kept "play music in the Kitchen" of "Play right
+    here, right now, bud. That boy's slow."; INVESTIGATION_2026-11-21_cracker_radio.md,
+    fix 2). Do not pick from the profile. Say so, and name the closest match
+    the resolver finds for the sentence's words, when it finds one good
+    enough to hint (resolver.hint_min_score, as "The closest I found was …"
+    elsewhere). Nothing plays."""
+    with telemetry.span("music.stripped_request") as sp:
+        parsed = music_resolve.parse_sentence("play " + what, players)
+        hint = None
+        if parsed.music and (parsed.name or parsed.words):
+            nq = music_resolve.normalize(parsed.name or parsed.words, parsed.artist)
+            resolved, best = await _resolve_named(nq, parsed.type)
+            hint = resolved or best
+        detail = STRIPPED_SENTENCE
+        if hint and hint.score >= music_resolve.policy().hint_min_score:
+            by = f" by {hint.artist}" if hint.artist else ""
+            detail += f" The closest I found was {hint.name}{by}."
+        else:
+            hint = None
+        sp.set(**{"music.outcome": "refused", "music.hint_score": round(hint.score, 3) if hint else None})
+    logger.info("music: query %r has no terms but the sentence %r names something: refused (hint %s)",
+                telemetry.text(req.query, 120), telemetry.text(req.said, 200),
+                f"{hint.media_type} {telemetry.text(hint.name, 120)!r} {hint.score:.2f}" if hint else None)
+    return HTTPException(status_code=422, detail=detail)
 
 
 def _named_play_data(media_id: str, media_type: str | None) -> dict:

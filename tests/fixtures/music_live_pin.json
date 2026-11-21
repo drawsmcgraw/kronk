@@ -4697,5 +4697,59 @@
     }
    ]
   ]
+ },
+ "inc-1121-fatboy-slim-heard-as-two-sentences": {
+  "request": {
+   "query": "Right Here, Right Now by Fatboy Slim",
+   "said": "Play right here, right now, bud.  That boy's slow.",
+   "media_type": "track",
+   "kind": "named",
+   "origin_area": "Kitchen",
+   "origin_device": "e0949788663255952ce7778975527882"
+  },
+  "status": 200,
+  "answer": {
+   "status": "dry_run",
+   "dry_run": true,
+   "action": "play",
+   "player": "the Kitchen speaker",
+   "targets": [
+    "media_player.home_assistant_voice_0ac919_pe_01"
+   ],
+   "detail": "Dry run: would play the track Right Here, Right Now by Fatboy Slim on the Kitchen speaker. Nothing was sent to the speaker.",
+   "would_play": {
+    "media_id": "ytmusic--kGmHoQDn://track/vqNIeInr9kA",
+    "media_type": "track",
+    "enqueue": "replace"
+   },
+   "shuffle": false,
+   "resolved": {
+    "name": "Right Here, Right Now",
+    "artist": "Fatboy Slim",
+    "media_type": "track"
+   }
+  },
+  "ma_reads": [
+   [
+    "music/search",
+    {
+     "search_query": "Right Here, Right Now by Fatboy Slim",
+     "media_types": [
+      "track"
+     ],
+     "limit": 10
+    }
+   ],
+   [
+    "music/search",
+    {
+     "search_query": "Right Here, Right Now",
+     "media_types": [
+      "track"
+     ],
+     "limit": 10
+    }
+   ]
+  ]
  }
 }

@@ -606,6 +606,76 @@ def genre_phrase(text: str | None) -> str:
     return "" if s in GENERIC_WORDS else s
 
 
+# ── a stripped request (sprint M23, fix 2) ──────────────────────────────────
+# The model can drop the subject: "Play right here, right now, bud. That
+# boy's slow." reached /music as query "music", which is "play some music",
+# which plays the top of the profile (INVESTIGATION_2026-11-21_cracker_radio.md).
+# The user's own sentence (MusicRequest.said) decides whether the request was
+# generic. Erring toward generic: a false refusal of "play some music" is
+# worse than a missed guard, so the check answers "not generic" only when
+# every request clause in the sentence holds a word outside this list.
+
+# A request verb anywhere in a sentence segment ("can you play ...", "I'm
+# cooking, play ..."). "start" and "turn on" are left out: "turn on the
+# lights and play some music" must not read "the lights" as the request.
+_SAID_VERB_RE = re.compile(r"\b(?:play|put\s+on|throw\s+on|listen\s+to|shuffle|queue\s+up|spin)\b",
+                           re.IGNORECASE)
+# Where the "what" ends and the "where", "how" or "for whom" begins: "some
+# music in the kitchen", "something on the sonos move", "some music from
+# YouTube", "something for dinner". Everything after one is not read.
+SAID_STOP_WORDS = frozenset({"in", "on", "at", "from", "for", "to", "with", "through", "into", "onto"})
+# Words that ask for nothing in particular.
+SAID_GENERIC_WORDS = frozenset({
+    # request words
+    "play", "playing", "put", "throw", "listen", "shuffle", "queue", "spin", "start", "turn", "up", "hear",
+    # amounts and articles
+    "a", "an", "the", "some", "any", "more", "few", "couple", "of", "bit", "little", "lot", "whatever",
+    "kind", "sort", "all",
+    # what music is called
+    "music", "something", "anything", "stuff", "song", "songs", "tune", "tunes", "track", "tracks", "jams",
+    "vibe", "vibes", "mix", "playlist", "radio", "station", "album", "noise", "sounds",
+    # how it should be
+    "good", "nice", "great", "cool", "fun", "new", "different", "else", "other", "random", "usual",
+    "favorite", "favourite", "favorites", "favourites", "background",
+    # who, please, when, and speech filler
+    "me", "us", "our", "my", "your", "it", "please", "thanks", "now", "here", "again", "just", "also",
+    "then", "and", "or", "so", "maybe", "kronk", "okay", "ok", "hey", "um", "uh", "yeah", "alright",
+    "can", "could", "would", "will", "you", "go", "ahead", "let", "let's", "lets", "i", "we", "want",
+    "wanna", "like", "how", "about",
+})
+
+
+def _said_words(text: str) -> list[str]:
+    return re.findall(r"[a-z0-9]+(?:'[a-z]+)?", text.lower().replace("\u2019", "'"))
+
+
+def said_request(said: str | None) -> tuple[bool | None, str]:
+    """Is the user's own sentence a generic request ("play some music")?
+
+    (True, "") when any request clause is generic; (False, words) when every
+    request clause names something, with the words after the first clause's
+    verb (to the end of its sentence) for the closest-match lookup; (None,
+    "") when there is no sentence or no request verb in it: unknown, so the
+    caller keeps today's behaviour. A clause is the words after a request
+    verb, up to the end of its sentence or the first stop word."""
+    if not (said or "").strip():
+        return None, ""
+    what = None
+    for seg in re.split(r"[.!?;]+", said):
+        for m in _SAID_VERB_RE.finditer(seg):
+            rest = seg[m.end():]
+            clause = []
+            for w in _said_words(rest):
+                if w in SAID_STOP_WORDS:
+                    break
+                clause.append(w)
+            if all(w in SAID_GENERIC_WORDS for w in clause):
+                return True, ""
+            if what is None:
+                what = rest.strip(" ,:")
+    return (None, "") if what is None else (False, what)
+
+
 def _tokens(s: str) -> set[str]:
     return set(music_resolve.fold(s).split())
 

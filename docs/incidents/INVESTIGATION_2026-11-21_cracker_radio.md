@@ -424,7 +424,12 @@ Doc drift found in passing: `voice-music-control.md` says the kitchen queue
 has Don't stop the music on. The live queue says off. The feature-doc line
 should be corrected with fix 1.
 
-## Corpus row (to add with fix 2; not added here)
+## Corpus row (added with fix 2, sprint M23)
+
+Added as `tests/voice_corpus.jsonl` row `inc-1121-fatboy-slim-heard-as-two-sentences`
+with `xfail.live` (the refusal, until the parser or cutover plays the
+track) and `xfail.parser` (the rules' reading is not_found at 0.74). As
+first proposed:
 
 ```json
 {"id": "inc-1121-fatboy-slim-heard-as-two-sentences", "text": "Play right here, right now, bud.  That boy's slow.", "origin": {"area": "Kitchen", "device": "kitchen_pe"}, "expect": {"tier": "ha_local", "ha": {"source": "trigger", "trigger": "catchall"}, "route": "direct", "rule": "messy", "tool": "play_music", "kind": "named", "media_type": "track", "name": "Right Here, Right Now", "artist": "Fatboy Slim", "player": "origin"}, "source": ["docs/incidents/INVESTIGATION_2026-11-21_cracker_radio.md"], "tags": ["music", "track", "mishearing", "stt-mangled", "incident", "messy", "handoff"], "xfail": {"live": "The coordinator delegates 'play music in the Kitchen' and /music plays the top of the taste profile (artist Cracker); fix 2 turns that into a refusal naming the closest match. Remove when the parser or cutover plays the track."}, "note": "STT for 'Play Right Here, Right Now by Fatboy Slim'. Two sentences, so the messy gate sends it to the coordinator, which dropped the title. The rules' reading (M11) is not_found with the closest 'Right Here, Right Now' by Fatboy Slim at 0.74.", "ref": {"trace": "dbe42d6a5dbb100aa95438fafd5ebaad", "first": "2026-11-21"}}
@@ -446,6 +451,20 @@ Criteria: `docs/sprint/M23-criteria.md`; build report: `docs/sprint/M23-build.md
   type already took by default, and no queue overrides a default. Pinned by
   `tests/test_music_enqueue.py` (20 of its 22 tests fail on the old code).
   Not yet deployed; the blueprint is not installed.
+- **2026-11-21, fix 2 built (repo only).** `/music` reads the user's
+  sentence when the query has no phrase: a sentence whose every request
+  clause names something is refused with "I didn't catch what to play."
+  and the closest match, and nothing plays (`taste.said_request`,
+  `main._stripped_request`). The sentence is there on every Kronk path:
+  `origin.said` is set once per turn in `_run_pipeline` and the coordinator
+  → `ask_home` → home agent chain runs inside it, so the rewrite on run 1
+  did not lose it (`test_said_reaches_tool_service_through_the_coordinator_rewrite`,
+  every mount). The blueprint's hand-off arrives on `/api/chat` with its
+  room suffix, which the check does not read. `/music/voice` and a shim
+  turn with no words of its own carry no sentence and pick as before.
+  "Play some music" and 38 other generic forms pick exactly as before
+  (Drew's condition). Both captures (run 1 and "Play back in the Kitchen",
+  2026-11-20) are refused in the tests.
 
 ## Blog hooks
 
