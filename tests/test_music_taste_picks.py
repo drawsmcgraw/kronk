@@ -265,6 +265,28 @@ def test_an_old_taste_db_gains_the_queue_column(tmp_path):
     assert row["queue"] is None and row["key"] == "artist:x"
 
 
+def test_a_read_only_old_taste_db_still_opens_and_picks(tmp_path):
+    """The dev pair reads production's taste DB through a read-only mount.
+    The first cut of the migration raised there, and dev picked with no
+    profile at all ("0 picks"); the DB must open as it is."""
+    import os
+    path = tmp_path / "ro.db"
+    con = sqlite3.connect(path)
+    con.executescript(taste._SCHEMA.replace(", outcome TEXT, queue TEXT)", ", outcome TEXT)"))
+    con.execute("INSERT INTO artists VALUES ('cracker','Cracker','library://artist/639','[\"rock\"]','ma',1,0,1,3.0)")
+    con.commit()
+    con.close()
+    os.chmod(path, 0o444)
+    try:
+        with taste.db(path) as ro:
+            assert "queue" not in {r["name"] for r in ro.execute("PRAGMA table_info(picks)")}
+            picks = taste.local_genre_picks([], ro, {})
+        assert [p.label for p in picks] == ["Cracker"]
+        assert taste._recent_picks(path) == []
+    finally:
+        os.chmod(path, 0o644)
+
+
 def test_the_genre_pick_records_the_players_queue(genre_env):
     """/music passes the player's active_queue (HA's state attribute) to
     record_pick."""

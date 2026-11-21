@@ -324,10 +324,15 @@ def db(path: Path | None = None) -> sqlite3.Connection:
     con.row_factory = sqlite3.Row
     con.executescript(_SCHEMA)
     # picks.queue (sprint M23): the Music Assistant queue a pick played on.
-    # A DB made before it gains the column; old rows keep NULL.
+    # A DB made before it gains the column; old rows keep NULL. A read-only
+    # DB (the dev pair mounts production's data read-only) stays as it is:
+    # everything that reads picks.queue allows it to be missing.
     if "queue" not in {r["name"] for r in con.execute("PRAGMA table_info(picks)")}:
-        con.execute("ALTER TABLE picks ADD COLUMN queue TEXT")
-        con.commit()
+        try:
+            con.execute("ALTER TABLE picks ADD COLUMN queue TEXT")
+            con.commit()
+        except sqlite3.OperationalError as e:
+            logger.info("taste db %s: picks.queue not added (%s)", path, e)
     return con
 
 
