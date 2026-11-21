@@ -152,7 +152,8 @@ included). `auth.db` appears in no log line, notice, status file or API
 answer beyond its name and size, and a failed read names the reason only.
 It is mode 0600 and the share
 is mounted 0600/0700 for the operator, but anyone with the NAS account or
-the NAS's admin can read it. Encryption is Drew's decision, not built.
+the NAS's admin can read it. Not encrypted: Drew decided on 2026-11-21
+that encryption is not needed.
 
 ## How it works
 
@@ -579,8 +580,7 @@ The share is `//atlas.local/kronk-backup` (a Synology, SMB 3.1.1,
   denied), but its time moved at each run, so it very likely receives the
   temporary name of every archived file when the archive unlinks it (a
   second name for the same data, no extra space while the copy exists).
-  Open with Drew: turn the recycle bin off for this share in DSM, or leave
-  it.
+  Drew's decision (2026-11-21): the recycle bin stays on.
 
 ## Blog hooks
 

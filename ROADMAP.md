@@ -55,8 +55,8 @@ Conventions:
   NAS share, with a daily stale check and a tested restore runbook
   (`docs/runbooks/restore.md`). Installed 2026-11-20: the share is mounted,
   the first tar and the first archived recordings are on it, the three
-  timers are on. Open: encryption of the tar
-  (secrets are in the clear on the NAS). `docs/features/backups.md`.
+  timers are on. The tar is not encrypted (Drew's decision, 2026-11-21:
+  not needed; secrets are in the clear on the NAS). `docs/features/backups.md`.
 
 ## Next — agreed, not started
 
