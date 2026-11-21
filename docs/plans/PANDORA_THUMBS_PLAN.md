@@ -1,6 +1,6 @@
 # Pandora thumbs by voice — Plan
 
-Status: **planned 2026-09-05, not started.** Operator scope: Pandora
+Status: **shipped 2026-10-06** (`docs/features/pandora-thumbs.md`); planned 2026-09-05. Operator scope: Pandora
 only (YouTube "like" and NAS favorites deferred — they are the easy
 half and can ride the same tool later). Prerequisite: the Pandora bot
 account (ROADMAP item 17).

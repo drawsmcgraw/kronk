@@ -45,7 +45,7 @@ Drew mounted `//atlas.local/kronk-backup` at `/mnt/nas-backup` (the share name w
 - `scripts/backup_check.sh`: current. Suite `5660 passed, 3 skipped, 53 xfailed`.
 - Timers installed and enabled: `kronk-backup.timer` (10th, 01:30), `kronk-recordings-archive.timer` (Mondays 01:00), `kronk-backup-check.timer` (daily 09:30). `GET /api/backups`: `present: true`, no warnings.
 - No redeploy: the two fixes are in `scripts/backups.py`, which runs from the working tree; production's containers stay on `sprint-M16`. Details: `docs/features/backups.md`, "Result of the first run".
-- Not done: inode check across an unmount and mount (needs root). Still open with Drew: encryption of the tar; Music Assistant's `playlists/` and `auth.db`.
+- Not done: inode check across an unmount and mount (needs root). Decided since: `playlists/` and `auth.db` are in the tar (M16b); the tar stays unencrypted and the share's recycle bin stays on (Drew, 2026-11-21).
 
 ### M16b (2026-11-20): Music Assistant's playlists and login database in the tar; the basement device's area
 

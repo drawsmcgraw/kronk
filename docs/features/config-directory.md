@@ -1,8 +1,8 @@
 # Feature: the config/ directory (prompts and tuning as plain files)
 
 **Shipped:** 2026-11-17 (sprint M21 step 1, branch `refactor`); step 2, the
-`/settings` page and the live config directories, built 2026-11-18 on the
-dev path (promotion by the runbook in `docs/sprint/M21-step2-build.md`) ·
+`/settings` page and the live config directories, promoted 2026-11-18 (`sprint-M21-step2`; live on
+production, read-only until the passphrase is set; `docs/sprint/M21-step2-build.md`) ·
 **Plan:** `Kronk evaluation findings and implementation plan.md`, section
 M21 · **Criteria:** `docs/sprint/M21-step1-criteria.md`,
 `docs/sprint/M21-step2-criteria.md` · **Build reports:**
@@ -225,7 +225,8 @@ The llama servers listen on the host's loopback, which the containers
 cannot reach; `scripts/llama_props_export.py` (host timer
 `systemd/llama-props-export.timer`, every 60 s) writes each server's
 `GET /props` and its process flags to `data/llama_props.json` and
-`data/dev/llama_props.json`. Without the timer the page says so.
+`data/dev/llama_props.json`. Without the timer the page says so. The
+timer is not installed on kronk as of 2026-11-21.
 
 **Turning editing on.** `scripts/settings_passphrase.sh` on kronk asks for
 a passphrase twice without echo and writes

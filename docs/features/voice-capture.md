@@ -12,10 +12,12 @@ Makes speech-recognition accuracy measurable, by Drew's decision of
    `voice.run`, `kronk.input` on the orchestrator's `pipeline.*` span) and
    what Kronk answered (`voice.speech`, `kronk.output`). Kept 90 days
    (Tempo's retention).
-2. **Two weeks of audio from every puck.** Home Assistant's
+2. **Audio from every puck, with no end date** (Drew, 2026-11-19; first
+   planned as two weeks). Home Assistant's
    `assist_pipeline` `debug_recording_dir` writes each satellite run's speech
-   audio to `/home/drew/kronk-voice-recordings` on the host. A daily timer
-   reminds Drew to turn it off from the end date on.
+   audio to `/home/drew/kronk-voice-recordings` on the host. Recordings
+   older than 14 days move to the NAS every Monday
+   (`docs/features/backups.md`). The end-date reminder timer is disabled.
 3. **A wrong-action signal.** `voice_tracer` marks a voice run when the same
    puck, within 60 seconds after it, says "not that", a thumbs down, a stop
    or pause, or the same request again. A wrong-action rate without
@@ -24,7 +26,7 @@ Makes speech-recognition accuracy measurable, by Drew's decision of
    tiers, with what Whisper heard and an empty column for what was said: the
    bench set for M13 and the roadmap's Whisper alternatives.
 
-**Guests:** every puck records audio for two weeks, household and guests
+**Guests:** every puck records audio (no end date since 2026-11-19), household and guests
 alike. Grafana is viewable without a login on the LAN (Drew's decision), so
 transcripts in traces are readable by anyone on the LAN, guest Wi-Fi
 included (M6: guest Wi-Fi reaches this host).
@@ -273,10 +275,14 @@ RFC 4180 quoting, one header row. Columns:
 | `notes` | `no trace`; `ambiguous join: ...` (heard and the run's fields left empty); `joined by time and pipeline only (no device id on one side)` (a certain join, said so); or the labeller's own |
 
 **The labelled set lives at `/home/drew/kronk-voice-labels/`** (one
-directory per sheet). It belongs on M16's backup list; nothing adds it to a
-backup job yet.
+directory per sheet). The monthly config tar includes it when it exists
+(`docs/features/backups.md`).
 
 ### The end date
+
+Not in force: capture continues without an end date and
+`kronk-voice-capture-check.timer` was disabled on 2026-11-19 (the unit
+files remain). What follows describes the reminder as built.
 
 `scripts/voice_capture_check.py`, run daily at 09:00 by
 `kronk-voice-capture-check.timer` (reference copies in `systemd/`). The end
@@ -331,8 +337,9 @@ It never changes HA or deletes recordings.
   catch-all is only recognised from its transcript, with text on.
 - HA writes recordings as root: the operator can read them, not delete
   them, without `sudo` or `docker exec`.
-- The running HA container was created from the `:stable` tag (2026.5.4)
-  and the pinned `:2026.5.4` tag is not on the box; the build report's
+- Until 2026-11-18 the HA container ran from the `:stable` tag (2026.5.4)
+  and the pinned `:2026.5.4` tag was not on the box (it runs the pinned tag
+  since the M12 recreate); the build report's
   runbook tags the local image before the recreate, so nothing is pulled.
 
 ## Blog hooks

@@ -375,7 +375,7 @@ FAILED`. `journalctl --user -u kronk-upgrade-minor.service` has the same lines.
 
 ## Installing the timers
 
-Nothing is installed by the build. At 03:30 the working tree must be clean
+Nothing is installed by the build (installed on kronk 2026-11-18). At 03:30 the working tree must be clean
 and on the expected branch, or every night declines and night 7 says so.
 
 The branch has one source. `scripts/upgrade_rules.toml`'s `expected_branch`
@@ -422,6 +422,12 @@ unit, so systemd's `%` specifiers and quoting never touch it. The leading `-` ma
 for systemd: without the file the script falls back to the rules file's branch and
 declines on it, which is reported, where a unit that cannot start is not. To change the
 branch later, edit the one line in `upgrade.env`; nothing else.
+
+**After `refactor` is merged to `main`:** keep the working tree on `main`,
+then `printf 'KRONK_UPGRADE_BRANCH=main\n' > ~/.config/kronk/upgrade.env`.
+Until that is done every nightly run declines on the branch check. Confirm
+with `scripts/upgrade_minor.sh --dry-run`: its output must not decline on
+the branch.
 
 Remove:
 

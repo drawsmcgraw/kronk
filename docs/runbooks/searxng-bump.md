@@ -1,13 +1,17 @@
 # Runbook: bump the SearXNG image pin
 
 When: the weekly canary alert says the pin is behind, or search quality
-fails, or on update day (ROADMAP 9). About 10 minutes. No HA/MA restart.
+fails. About 10 minutes. No HA/MA restart. Since sprint M18 the monthly
+patch run (`docs/features/upgrade-cadence.md`) applies patch releases; this
+runbook is for a bump by hand.
 
 1. Newest tag: `curl -s "https://hub.docker.com/v2/repositories/searxng/searxng/tags?page_size=10&ordering=last_updated" | jq -r '.results[].name'`
    — take the newest `YYYY.M.D-<sha>`.
 2. Edit `docker-compose.yml`: `image: searxng/searxng:<tag>`; add the date to
    the "Pinned" comment.
-3. `docker compose pull searxng && docker compose up -d searxng`; wait for
+3. Commit the pin, tag, then `scripts/deploy_tag.sh plan <tag>` and
+   `scripts/deploy_tag.sh deploy <tag>` (never `docker compose up` in the
+   working tree: production runs from a release directory); wait for
    `(healthy)` in `docker ps`.
 4. `docker logs --since 2m kronk-searxng-1 | grep -iE "warn|error"` — settings
    incompatibilities show up here (a renamed key, a removed engine).
@@ -25,5 +29,5 @@ fails, or on update day (ROADMAP 9). About 10 minutes. No HA/MA restart.
    `docker exec -u 0 -i kronk-searxng-1 python3 -`), `docker compose restart
    searxng`, canary again.
 7. Probe sparingly: rapid queries CAPTCHA-suspend duckduckgo for 30 min.
-8. Revert path: put the previous tag back, `up -d searxng`.
+8. Revert path: `scripts/deploy_tag.sh deploy <the previous tag>`.
 9. Record: the tag in the compose comment; anything odd in `docs/incidents/`.

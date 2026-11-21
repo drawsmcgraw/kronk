@@ -25,20 +25,20 @@ Conventions:
 
 ## Now — in flight
 
-- **`/settings` page and live config directories** *(sprint M21 step 2,
-  built on dev 2026-11-18)* — every prompt and tuning value in effect on
-  one page, editing behind a passphrase. End-to-end test, then promotion by
-  the migration runbook in `docs/sprint/M21-step2-build.md`; editing turns
-  on when Drew runs `scripts/settings_passphrase.sh`.
-  `docs/features/config-directory.md`.
+- **Merge `refactor` to `main`** *(2026-11-21)* — the sprint's last step.
+  After it: the working tree stays on `main` and
+  `~/.config/kronk/upgrade.env` changes from `refactor` to `main`, or the
+  monthly patch run declines on its branch check
+  (`docs/features/upgrade-cadence.md`).
 
-- **Upgrade cadence** *(sprint M18, built 2026-11-18)* — a monthly run
-  applies patch releases and reports them; a quarterly check writes a
-  major-upgrade report and asks Drew for a window. Timers are installed at
-  promotion (first monthly run 2026-12-01). The first major (Home Assistant
-  2026.5.4 to 2026.11.2) waits for Drew: `docs/upgrades/2026-11-18.md`.
-  Open: the notice path when HA itself failed (built default: status file
-  and `/services` warning). `docs/features/upgrade-cadence.md`.
+- **The basement hand-off** *(sprint M22, 2026-11-21)* — the blueprint
+  names the satellite's own player before its room; tool_service says when
+  a room has no Music Assistant speaker instead of "unknown room".
+  `docs/incidents/INVESTIGATION_2026-11-19_basement_aerosmith.md`.
+
+- **Home Assistant major upgrade** — 2026.5.4 to 2026.11.2, the first
+  major under the upgrade cadence. Waits for Drew's greenlight and a
+  window: `docs/upgrades/2026-11-18.md`, `docs/runbooks/major-upgrade.md`.
 
 - **Kronk's voice: TTS trial** *(sprint M20, bench run 2026-11-18)* —
   a go/no-go on replacing Piper, voice customization counted as a benefit.
@@ -48,15 +48,6 @@ Conventions:
   Pocket TTS (MisterEcks server) passes so far. Waits for Drew's voice clips
   for the cloning run and the household listening test; material in
   `~/kronk-tts-trial/samples/`. `docs/sprint/M20-build.md`.
-
-- **Backups** *(sprint M16, built 2026-11-19)* — a monthly config tar
-  (about 5 MB: secrets, HA `.storage`, live config, units, `solar.db`, the
-  model checksum list) and a weekly archive of the voice recordings to the
-  NAS share, with a daily stale check and a tested restore runbook
-  (`docs/runbooks/restore.md`). Installed 2026-11-20: the share is mounted,
-  the first tar and the first archived recordings are on it, the three
-  timers are on. The tar is not encrypted (Drew's decision, 2026-11-21:
-  not needed; secrets are in the clear on the NAS). `docs/features/backups.md`.
 
 ## Next — agreed, not started
 
@@ -98,9 +89,9 @@ Conventions:
 - **SearXNG stays healthy** — search must not silently degrade (a lapsed pin
   made every search junk for a month). Built 2026-10-05: weekly
   `kronk-searxng-canary.timer` and `docs/runbooks/searxng-bump.md`. Hand-run
-  once so far (2026-11-09, `INVESTIGATION_2026-11-09_search.md`). Next: once
-  the runbook has been run twice by hand, a monthly headless bump (`claude -p`
-  limited to compose pull/up for searxng and the canary).
+  once so far (2026-11-09, `INVESTIGATION_2026-11-09_search.md`). Patch
+  bumps are part of the monthly patch run since sprint M18; the canary
+  stays.
 
 ## Later — wanted
 
@@ -139,6 +130,36 @@ Conventions:
 
 Newest first; feature docs in `docs/features/`.
 
+- **Backups** *(2026-11-20, sprint M16 and M16b)* — a monthly config tar
+  (about 5 MB: secrets, HA `.storage`, live config, units, `solar.db`,
+  Music Assistant's login database and playlists, the model checksum list)
+  and a weekly archive of the voice recordings to the NAS share, with a
+  daily stale check and a restore runbook (`docs/runbooks/restore.md`)
+  shown once from the NAS tar on scratch containers. The share is mounted
+  and the three timers are on. The tar is not encrypted (Drew's decision,
+  2026-11-21: not needed; secrets are in the clear on the NAS).
+  `docs/features/backups.md`.
+- **Upgrade cadence** *(2026-11-18, sprint M18)* — a monthly run applies
+  patch releases and reports them; a quarterly check writes a
+  major-upgrade report and asks Drew for a window. Timers installed; first
+  monthly run 2026-12-01. Open: the notice path when HA itself failed
+  (built default: status file and `/services` warning).
+  `docs/features/upgrade-cadence.md`.
+- **`/settings` page and live config directories** *(2026-11-18, sprint
+  M21)* — every prompt and tuning value in effect on one page. Live on
+  production, read-only until Drew runs `scripts/settings_passphrase.sh`
+  and production is redeployed. `docs/features/config-directory.md`.
+- **Refactor sprint** *(2026-11-15 to 2026-11-21)* — what was promoted,
+  when and from which tag: `docs/sprint/PROMOTIONS.md`. In short: tagged
+  deploys from release directories and a dev pair (M17); removal of the
+  retired services (M1, M1b); ops and fetch guards (M3, M4, M4b, M5;
+  `docs/features/fetch-address-block.md`); the voice signal on its own
+  mount (M2); direct dispatch (M7, `docs/features/direct-dispatch.md`);
+  the lead-in (M19, `docs/features/lead-in.md`); the messy-transcript gate
+  (M14, `docs/features/messy-transcript-gate.md`); the music resolver in
+  shadow (M11); the spoken-reply line, sentence streaming off (M8); one
+  lock per model server (M9, `docs/features/model-locks.md`); voice
+  capture (M12, `docs/features/voice-capture.md`).
 - **Telemetry v2** *(2026-11-08)* — every interaction is one OpenTelemetry
   trace: orchestrator pipeline → agent rounds → LLM calls → tool calls,
   continued into tool_service (MA websocket commands, HA service calls, the
@@ -184,7 +205,7 @@ Newest first; feature docs in `docs/features/`.
   text; streaming API shims keep today's behaviour). Trigger: "pause"
   answered with "5. Construct the tool call…" when the reasoning cap
   closed the channel mid-thought. See
-  `docs/plans/TOOL_ROUND_RETRACT_PLAN.md`; the cap itself is item 19.
+  `docs/plans/TOOL_ROUND_RETRACT_PLAN.md`; the cap itself was item 19 on the page before the 2026-11-04 prune.
 - **Playback control + now-playing by voice (Kronk tier)** *(2026-09-10,
   2026-09-14)* — `control_music` (stop == pause, effect verified) and
   `now_playing` terminal tools on the home agent, origin-aware, with

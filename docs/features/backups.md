@@ -331,7 +331,8 @@ finished a good run, and no status file at all, are warnings too.
 
 ## Install (Drew)
 
-Nothing is installed by the build. Run from the repo.
+Nothing is installed by the build (installed on kronk 2026-11-20; result
+below). Run from the repo.
 
 **1. The share.** The credentials file, root-only, with the account's
 values from `.env` (`KRONK_BACKUP_NAME`, `KRONK_BACKUP_PASSWORD`) typed in:
@@ -391,9 +392,8 @@ Optional overrides (`KRONK_BACKUP_KEEP=24`, `KRONK_ARCHIVE_AGE_DAYS=14`,
 all three units.
 
 **4. `/services`.** The Backups card needs the orchestrator change
-(`orchestrator/backups_api.py`) in production: it ships with the next
-tagged deploy. Until then `/api/backups` is 404 on production and the card
-says "could not load".
+(`orchestrator/backups_api.py`) in production: in production since `sprint-M16`
+(2026-11-19).
 
 **Remove:**
 

@@ -234,7 +234,7 @@ Running as of 2026-11-04:
 | `gemma-3-4b` | `llama-gemma3-4b` | 11439 | Q4_K_M | 8k | ~3.0 GB | None — the LLM router it served was removed 2026-08-18 |
 
 In the LiteLLM catalog but **not running**: `mistral-nemo` (11435), `bonsai-8b`
-(11437, stopped and disabled 2026-11-04), `devstral-2512` Q8 (11436, no unit),
+(11437, stopped and disabled 2026-11-04), `devstral-2512` Q8 (11436, unit `llama-devstral`, disabled),
 and `talkie` (11441, CPU). The `talkie` agent still exists in `AGENTS`, so it
 fails until `llama-talkie` is started; `/services` shows it red.
 
@@ -358,7 +358,7 @@ log line carries the words, apart from the named exceptions in
 `docs/features/voice-capture.md` (failure detail behind a spoken error,
 exception text, a fetched page's URL, nginx's access log). Grafana needs no login, so on the LAN transcripts
 are readable by anyone, guests included. Since M12 every puck also records
-audio for two weeks, and `voice_tracer` marks voice runs the user corrected
+audio (no end date; recordings older than 14 days move to the NAS weekly), and `voice_tracer` marks voice runs the user corrected
 within 60 s: [`docs/features/voice-capture.md`](docs/features/voice-capture.md).
 See [`docs/features/telemetry.md`](docs/features/telemetry.md) and
 [`docs/TELEMETRY_GUIDE.md`](docs/TELEMETRY_GUIDE.md).
@@ -387,8 +387,9 @@ because it runs with `network_mode: host`.
 
 ### Deploy / restart
 
-- **Kronk code change:** `docker compose up -d --build <service>` — *not*
-  `restart`, which reuses the old image.
+- **Kronk code change:** commit, tag, deploy from the tag (next line).
+  Never `docker compose up` in the working tree against the production
+  `kronk` project: it moves production off its tag.
 - **Production from a git tag** (sprint M17): `scripts/deploy_tag.sh plan <tag>`
   previews (changes nothing), `deploy <tag>` builds and starts the kronk
   project from an exported copy of the tag, and `status` says which tag (or
@@ -399,10 +400,16 @@ because it runs with `network_mode: host`.
   Jarvis"): recipes in the comment above those services in
   `docker-compose.yml`.
 - **HA restart:** `docker compose -f docker-compose.ha.yml restart homeassistant`.
-- **HA upgrade:** `docker compose -f docker-compose.ha.yml pull && docker compose -f docker-compose.ha.yml up -d`.
-- **nginx config change:** `docker compose restart nginx` — the config is
-  volume-mounted and `nginx -s reload` won't pick it up.
-- **`litellm/config.yaml`:** bind-mounted and hot-editable; no rebuild needed.
+- **HA upgrade:** never by hand with `pull`. Patch releases: the monthly
+  patch run (`docs/features/upgrade-cadence.md`). Major releases:
+  `docs/runbooks/major-upgrade.md`, in a window Drew names.
+- **Backups and restore:** `docs/features/backups.md` (monthly config tar
+  and weekly recordings archive to the NAS share, timers on since
+  2026-11-20) and `docs/runbooks/restore.md`.
+- **nginx config, `litellm/config.yaml`, `kronk-context.md`,
+  `magicmirror/`:** mounted from the release directory
+  (`../kronk-releases/<tag>`), so a change reaches production only through
+  the next tagged deploy.
 - **Prompts, tuning:** edit on `/settings` (production) or `/dev/settings`
   (dev). By hand: edit the file in `kronk-config/prod` or `kronk-config/dev`,
   commit it there, then `scripts/config_reload.sh prod` (or `dev`). The
@@ -438,7 +445,9 @@ systemctl --user list-units 'llama-*'
 > the GGUF and update the unit when convenient.
 
 Each unit's `ExecStart` sets the GGUF path, `--port`, `--ctx-size`, `-ngl 99`,
-and `--flash-attn on`, plus the runtime environment:
+and `--flash-attn on`, plus the runtime environment. The running units use a
+Vulkan build of llama.cpp (see each unit in `systemd/`); the stopped units
+still carry the ROCm settings:
 
 ```ini
 Environment="HSA_OVERRIDE_GFX_VERSION=11.5.1"
@@ -564,7 +573,10 @@ instructional; no single layer is enough on its own.
 **Secrets: a few files, no manager.** `.env` (gitignored) holds `HA_TOKEN`
 and `MA_TOKEN` (an MA long-lived token, 1-year expiry, no auto-renew), both
 scoped to tool_service; `.env.telemetry` holds the Grafana admin login;
-`searxng/settings.yml` holds the SearXNG secret. NWS, Open-Meteo, SearXNG and
+`searxng/settings.yml` holds the SearXNG secret. `.env` also holds the
+Pandora, UniFi and NAS backup logins; `secrets/` holds the MagicMirror SSH
+key and the YouTube token; the config tar on the NAS holds all of them in
+the clear (`CLAUDE.md`, Secrets). NWS, Open-Meteo, SearXNG and
 the local LLMs are unauthenticated. The old self-hosted Infisical instance was
 retired; reintroduce a secrets manager only if this grows past a handful of
 files.

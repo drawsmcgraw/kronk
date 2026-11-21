@@ -6,7 +6,8 @@ networks:
 # (`latest`, `main-latest`, `stable`) made upgrades happen by accident on the
 # next pull; mem limits keep one runaway container from taking the box down
 # (see docs/incidents/INCIDENT_2026-05-31.md). Bump pins deliberately:
-# update the tag, `docker compose pull <svc> && docker compose up -d <svc>`.
+# update the tag, commit, tag the commit, `scripts/deploy_tag.sh deploy <tag>`
+# (production runs from ../kronk-releases/<tag>, not from this working tree).
 services:
   nginx:
     image: nginx:1.29-alpine

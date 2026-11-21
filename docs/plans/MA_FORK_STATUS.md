@@ -30,7 +30,8 @@ acting (commands at the bottom). Background:
 ## What is running
 
 - MA container `music-assistant-server` (compose service `music-assistant`,
-  stack `kronk-ma`) runs `kronk/music-assistant:2.11.0b5-kronk.7`: stock
+  stack `kronk-ma`) runs `kronk/music-assistant:2.11.0b5-kronk.7` (when written; the current
+  tag is in `docker-compose.ma.yml`): stock
   2.11.0b5 plus the patched Pandora package, built by `ma/build.sh` from
   fork commit f7acc5c62 (label `io.kronk.ma.fork_rev = f7acc5c62`), the
   third review round: the SOCKS session is closed only in `unload()` or

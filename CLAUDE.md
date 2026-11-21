@@ -23,8 +23,13 @@ llama.cpp models, all on one machine (AMD Ryzen AI 375, Radeon 8060S iGPU,
    the repo's `config/` to try a value.
 4. **`orchestrator/tools.py`** — tool definitions + dispatch.
 5. **`orchestrator/main.py`** — the pipeline entrypoints: `/message` (chat UI,
-   SSE), `/v1/chat/completions` (OpenAI shim), `/api/chat` (Ollama shim — this
-   is what Home Assistant's voice pipeline calls).
+   SSE), `/v1/chat/completions` (OpenAI shim), `/voice/api/chat` (the Ollama
+   shim on the speech mount — this is what Home Assistant's voice pipeline
+   calls) and `/api/chat` (the same shim, not marked as voice).
+6. **`orchestrator/routing.py`** — the ordered routing rules table.
+7. **`scripts/deploy_tag.sh`** (its header) and
+   **`docs/sprint/PROMOTIONS.md`** — how production is deployed and what
+   was last promoted.
 
 Then, only when the task touches that area (shipped features each have a
 distilled doc in `docs/features/` — start there, then the build journals):
@@ -53,8 +58,16 @@ distilled doc in `docs/features/` — start there, then the build journals):
 | Music Assistant + YT PO-token helper | `docker-compose.ma.yml` | `kronk-ma` |
 | Telemetry (Tempo + Grafana) | `docker-compose.telemetry.yml` | `kronk-telemetry` |
 
+Production containers of the `kronk` project run from a tagged release
+directory, `../kronk-releases/<tag>` (`scripts/deploy_tag.sh status` shows
+which tag each one runs). The dev pair (`orchestrator-dev`,
+`tool_service-dev`, compose profile `dev`) runs from the working tree.
+
 LLM servers and GPU STT are **not** containers — they're user systemd units on
-the host (`~/.config/systemd/user/llama-*.service`, `wyoming-whisper.service`).
+the host (`~/.config/systemd/user/llama-*.service`, `wyoming-whisper.service`,
+`wyoming-whisper-dev.service`). Host timers (`kronk-*`): backups (3),
+upgrades (3), the music and SearXNG canaries, the STT prompt; list them with
+`systemctl --user list-timers`.
 Reference copies live in `systemd/`. Each compose file carries an
 `# Operations:` comment block with its day-2 commands — read it before
 running compose commands against that stack.
@@ -68,7 +81,7 @@ docker ps --format '{{.Names}}\t{{.Status}}'
 systemctl --user list-units 'llama-*' 'wyoming-*' 'kronk-*' --no-pager
 ```
 
-(Example: the README lists six llama units; typically only a subset is
+(Example: the README lists seven llama units; typically only a subset is
 running.) Live HA state can be queried read-only with the token in `.env`:
 `curl -H "Authorization: Bearer $HA_TOKEN" http://localhost:8123/api/states`.
 
@@ -171,10 +184,11 @@ verbatim — never summarized away.
    `tests/.venv` — bare `pytest` on system python fakes import errors).
    Must pass before suggesting a commit. New behavior lands with a test;
    a bug fix lands with the test that would have caught it.
-2. **Anything deployed** → verify live after `up -d --build`: hit the
-   touched endpoint(s) for real. If the orchestrator was rebuilt, restart
-   nginx, then verify through the **shim** path too (`/api/chat`) — that's
-   the route HA/voice actually uses and it fails independently.
+2. **Anything deployed** → verify live after the deploy
+   (`scripts/deploy_tag.sh deploy <tag>` restarts nginx and checks
+   `/api/status` and the shim itself): hit the touched endpoint(s) for
+   real, and verify through the **shim** paths too (`/voice/api/chat`, the
+   route HA/voice uses, and `/api/chat`) — they fail independently.
 3. **Large features, or anything touching the pipeline, routing, shims, or
    agent loop** → also run the live battery:
    `./scripts/pipeline_bench.sh <label>` (8 prompts, every route + transport,
@@ -192,9 +206,18 @@ verbatim — never summarized away.
 
 ## Ground rules
 
-- **Deploys**: code change → `docker compose up -d --build <service>` (never
-  plain `restart` — it reuses the old image). nginx config → `docker compose
-  restart nginx`. `litellm/config.yaml` is bind-mounted, hot-editable.
+- **Deploys**: production runs from a tagged release under
+  `../kronk-releases`. Commit, tag, then `scripts/deploy_tag.sh plan <tag>`
+  and `scripts/deploy_tag.sh deploy <tag>` (it rebuilds, restarts nginx and
+  checks `/api/status` and the shim). **Never type `docker compose up` in
+  the working tree against the production `kronk` project**: it replaces
+  the service with a working-tree build and moves production off its tag.
+  `nginx/nginx.conf`, `litellm/config.yaml`, `kronk-context.md` and
+  `magicmirror/` are mounted from the release directory, so a change to
+  them reaches production only through the next tagged deploy. The dev
+  pair is the exception: `docker compose --profile dev up -d --build
+  tool_service-dev orchestrator-dev` (never plain `restart` — it reuses
+  the old image).
 - **Never `docker compose down -v`** on the `kronk-ha` or `kronk-ma` stacks —
   their volumes hold all HA integrations / the MA library and auth tokens.
 - **HA and MA restarts are never a side effect** (directive 2026-09-10).
@@ -220,7 +243,10 @@ verbatim — never summarized away.
   `docs/incidents/INVESTIGATION_2026-08-14_mm_banner.md` (tenet-10 note;
   re-scoping the key remains an open operator decision).
 - **Git**: the operator runs `git commit` / `git push` themselves. Suggest a
-  commit at milestones; don't run those commands.
+  commit at milestones; don't run those commands. Two exceptions the
+  operator approved: the monthly patch run commits its own pin bumps on
+  the expected branch (2026-11-19), and sprint agents commit and tag when
+  a sprint plan says so. Only the operator pushes.
 - **Secrets**: `.env` (gitignored) holds `HA_TOKEN` and, since 2026-10-06,
   `MA_TOKEN` (a Music Assistant long-lived token for tool_service's Pandora
   thumbs; 1-year expiry, no auto-renew). `.env.telemetry` (gitignored,
@@ -234,7 +260,11 @@ verbatim — never summarized away.
   holds all of these in the clear, and since M16b also Music Assistant's
   `auth.db` (MA's users, every MA login token including `MA_TOKEN`, and
   the key that signs them); treat that share as a secret store.
-  No other secrets exist.
+  `.env` also holds the Pandora and UniFi logins and, when `/settings`
+  editing is on, `SETTINGS_PASSPHRASE_HASH`. `secrets/` (gitignored) holds
+  the MagicMirror SSH key and the YouTube token. `.env.langfuse` and the
+  two `LANGFUSE_*` lines in `.env` are leftovers of the retired Langfuse
+  stack. No other secrets exist.
 - **New compose files** get an `# Operations:` comment block (up / restart /
   logs / down recipes) like the existing ones.
 - **Docs lifecycle** (defined in `ROADMAP.md`, follow it): sizeable feature →

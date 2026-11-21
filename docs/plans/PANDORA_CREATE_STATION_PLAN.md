@@ -1,6 +1,6 @@
 # Pandora station upsert — "play X radio" creates the station if missing
 
-Status: **planned 2026-10-16, Gate 0 in progress.** Steps 1 (dev re-check)
+Status: **shipped 2026-10-21** (see `ROADMAP.md`, Shipped; upstream PR pending); planned 2026-10-16. The notes below are from the planning stage. Steps 1 (dev re-check)
 and 3 (read-only probe, 2026-10-19) done; step 4 done (`createStation` is
 idempotent); Discussion
 deferred until the PR is ready. Path 1 chosen (Decision 5). Branch

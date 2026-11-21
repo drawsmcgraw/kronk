@@ -15,7 +15,7 @@ tool_service → tool result → agent → speech, instead of dying en route.
 
 ## How it works — the error path, layer by layer
 
-- **tool_service / health_service routes** return specific `detail` strings
+- **tool_service routes** (health_service was removed in sprint M1) return specific `detail` strings
   and status-check their own upstreams (`_check_upstream` for NWS/Open-Meteo;
   `/search` names SearXNG's status + body; `/music` was already the gold
   standard). tool_service finally calls `logging.basicConfig` so its INFO
