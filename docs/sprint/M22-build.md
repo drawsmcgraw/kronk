@@ -3,13 +3,16 @@
 Branch `refactor`. Criteria: `docs/sprint/M22-criteria.md`. Source:
 `docs/incidents/INVESTIGATION_2026-11-19_basement_aerosmith.md`, fixes 2 and
 3 and the corpus row. Built 2026-11-21 by the build agent. Build commit
-`7d18c68`; this report is the commit after it.
+`7d18c68`, first report `aa94a12`. Fix round 0 (the hand-off order, at the
+coordinator's request) is the commit before this revision of the report,
+which is the last commit.
 
 ## Summary
 
 - Blueprint fork change 14 (`20250404-kronk14`): the hand-off text names the
-  spoken target, else the satellite's own MA player, else its room only when
-  that room holds an MA player, else the bare sentence. Repo only. Nothing
+  spoken target; else the satellite's room when the room's MA players are
+  exactly its own player; else the own player; else, with no own player,
+  the room when it holds an MA player; else the bare sentence. Repo only. Nothing
   was installed in HA and nothing was reloaded. The install steps are below.
 - tool_service: the players template also returns every HA area, in the
   same call. A spoken room that HA has but that holds no MA player now gets
@@ -21,8 +24,8 @@ Branch `refactor`. Criteria: `docs/sprint/M22-criteria.md`. Source:
   none changed. The live pin gained exactly that row.
 - Registry check `scripts/satellite_area_check.py` (reads only). On the real
   registry today: 3 satellites, 0 not ok.
-- Tests: before `5683 passed, 3 skipped, 53 xfailed`; after
-  `5724 passed, 3 skipped, 53 xfailed, 6 warnings in 81.49s`.
+- Tests: before `5683 passed, 3 skipped, 53 xfailed`; after fix round 0
+  `5734 passed, 3 skipped, 53 xfailed, 6 warnings in 81.23s`.
 - Production untouched. Only the dev pair was rebuilt, twice, with the
   sanctioned command.
 
@@ -31,25 +34,48 @@ Branch `refactor`. Criteria: `docs/sprint/M22-criteria.md`. Source:
 ### 1. `kronk_text` render test
 
 **Change.** `ha/blueprints/mass_assist_kronk.yaml`:
-- header entry 14: `:47`
-- version `20250404-kronk14`: `:312`
-- corrected comment: `:372-386`
-- template: `:389-395`
+- header entry 14: `:47-53`
+- version `20250404-kronk14`: `:313`
+- comment above the template: `:373-398`
+- template: `:401-409`
 
 The template now reads:
 
 ```jinja
 {%- set own = player_entity_id_by_assist_device | first | default(none) -%}
-{%- set room = area_name(assist_device_id) if assist_device_id and player_entity_id_by_assist_area else none -%}
+{%- set room = area_name(assist_device_id) if assist_device_id else none -%}
+{%- set in_room = (area_entities(area_id(assist_device_id)) | select('in', ma_players) | list) if room else [] -%}
 {%- if area_or_player_name -%}{{ trigger.sentence }}
+{%- elif own and in_room == [own] -%}{{ trigger.sentence }} in the {{ room }}
 {%- elif own -%}{{ trigger.sentence }} on the {{ state_attr(own, 'friendly_name') }}
-{%- elif room -%}{{ trigger.sentence }} in the {{ room }}
+{%- elif room and player_entity_id_by_assist_area -%}{{ trigger.sentence }} in the {{ room }}
 {%- else -%}{{ trigger.sentence }}{%- endif -%}
 ```
 
-`player_entity_id_by_assist_area` is the blueprint's own variable: the MA
-players in the satellite's area, with a sync group preferred. "The room holds
-an MA player" uses the same test as the blueprint's own-room rung.
+The order:
+1. the target the speaker named: the sentence as spoken;
+2. `in the <room>`, only when the room's MA players are exactly the own
+   player (one player, and it is the own one);
+3. else `on the <own player's friendly name>`;
+4. else `in the <room>` when there is no own player and
+   `player_entity_id_by_assist_area` is not empty;
+5. else the bare sentence (Kronk's default).
+
+**Fix round 0.** The first version of change 14 (`7d18c68`) put the own
+player before the room. That fixed the basement but changed the spoken
+label of every kitchen and office hand-off from "the Kitchen speaker" to
+"the kitchen voice pe ma speaker", every day. The coordinator asked for the
+order above. Rung 2 keeps the room wording wherever the room wording plays
+on the own player, and rung 3 names the player only where the room would
+not.
+
+**Rung 2's test.** `player_entity_id_by_assist_area` is the room's MA
+players with a sync group preferred (`gs or ps`, `:360-363`). Comparing it
+with `[own]` would give the same answer today, because the own player is
+never a group: own plus a group reads `[group]`, own plus another reads
+`[own, other]`, and neither equals `[own]`. Rung 2 reads the raw list
+anyway (`in_room`), so the test is the rule as stated and does not depend
+on the group preference.
 
 **Test.** `tests/test_blueprint_handoff.py`. It loads the blueprint file with
 PyYAML (`!input` is kept as a marker). It renders every `variables:` value in
@@ -64,29 +90,42 @@ The test then does what Kronk does with the text. The words after
 nothing, and a named target passes the named words. The player list comes
 from tool_service's own `_players_template`, rendered over the same
 registry. Then `resolve_players` runs with no origin, because the hand-off
-carries none.
+carries none. The registry builder takes two options for the new shapes:
+`kitchen_other` (a second MA player, not a group, in the Kitchen) and
+`office_group` (an MA sync group in the Office).
 
-| Shape | Hand-off suffix | Kronk plays on | Blueprint's own target |
+| Shape | Rung | Hand-off suffix | Kronk plays on = blueprint's own target |
 |---|---|---|---|
-| own player, room with one (kitchen) | ` on the kitchen voice pe ma` | kitchen | kitchen |
-| own player, room without one (basement before fix 1) | ` on the basement voice pe ma` | basement | basement |
-| own player, after fix 1 | ` on the basement voice pe ma` | basement | basement |
-| no own player, room with one (a second Office satellite) | ` in the Office` | satellite 1 ma | satellite 1 ma |
-| no own player, room without one (a Garage satellite) | none (bare) | default (kitchen) | default (kitchen) |
-| named target ("… in the office", from the kitchen) | none (the sentence) | satellite 1 ma | satellite 1 ma |
+| own player alone in its room (kitchen) | 2 | ` in the Kitchen` | kitchen voice pe ma |
+| own player alone in its room (office satellite 1) | 2 | ` in the Office` | satellite 1 ma |
+| own player alone in its room (basement after fix 1) | 2 | ` in the Basement Theater` | basement voice pe ma |
+| own player, room without it (basement before fix 1) | 3 | ` on the basement voice pe ma` | basement voice pe ma |
+| own player plus another MA player in the room (kitchen) | 3 | ` on the kitchen voice pe ma` | kitchen voice pe ma |
+| own player plus a sync group in the room (office satellite 1) | 3 | ` on the satellite 1 ma` | satellite 1 ma |
+| own player in another room (basement player in the Kitchen) | 3 | ` on the basement voice pe ma` | basement voice pe ma |
+| no own player, room with a player (second Office satellite) | 4 | ` in the Office` | satellite 1 ma |
+| no own player, room with a sync group (second Office satellite) | 4 | ` in the Office` | Office Sync (the group) |
+| no own player, room without one (Garage satellite) | 5 | none (bare) | default (kitchen) |
+| named target ("… in the office", from the kitchen) | 1 | none (the sentence) | satellite 1 ma |
 
-`test_handoff_target_is_the_blueprints_own_target` asserts the last two
-columns are equal for every shape. That is the cross-tier test the incident
-asked for.
+`test_handoff_target_is_the_blueprints_own_target` asserts, for every
+shape, that Kronk's target equals the blueprint's `mass_player_entity_id`.
+That is the cross-tier test the incident asked for. 25 tests in the file
+(11 shapes, twice, plus 3).
 
-**On the old template.** I copied the current tree to scratch with only the
-blueprint reverted to HEAD (`f381a2d`). `tests/test_blueprint_handoff.py`
-gave 8 failed, 7 passed. In the tier-agreement test the basement shape fails:
-the text is `… in the Basement Theater`, and resolution raises 400 while the
-blueprint itself targeted `media_player.home_assistant_voice_0ab117`. The
-garage shape fails the same way (`… in the Garage`). The kitchen shape fails
-only on the text (` in the Kitchen`); its target is the same. With the new
-template all 15 tests pass.
+**On older templates.** I copied the tree to scratch with only the
+blueprint swapped and ran the new test file:
+- the first version of change 14 (`aa94a12`): 3 failed, 22 passed. The
+  three rung-2 shapes fail on the text (` on the …` where ` in the …` is
+  wanted); the targets agree.
+- the kronk13 blueprint (`f381a2d`): 12 failed, 13 passed. Besides the
+  basement 400 from the incident (`… in the Basement Theater`), it misses
+  two new shapes: with own plus another in the Kitchen it wrote
+  ` in the Kitchen`, which Kronk plays on both players; with own plus a
+  sync group in the Office it wrote ` in the Office`, which Kronk plays on
+  the group. In both cases the blueprint itself targeted the own player.
+
+With the new template all 25 pass.
 
 ### 2. Registry check
 
@@ -299,8 +338,9 @@ deploy. It works with either blueprint version.
 ### 7. Docs
 
 - `docs/features/voice-music-control.md`:
-  - new "The hand-off to Kronk (changes 9 and 14)" paragraph: the order, why
-    it changed, the render test, and the cost on the spoken label;
+  - new "The hand-off to Kronk (changes 9 and 14)" paragraph: the five-rung
+    order, why it changed, which satellites keep the room wording, and the
+    render test;
   - "How it works (tier 2)" step 2: the two new messages and the choice for
     the own-room rung;
   - "The two tiers must agree": the render test;
@@ -316,11 +356,13 @@ deploy. It works with either blueprint version.
 
 ### 8. Tests and dev
 
-`./scripts/run_tests.sh`: before `5683 passed, 3 skipped, 53 xfailed`, after
-`5724 passed, 3 skipped, 53 xfailed, 6 warnings in 81.49s (0:01:21)`. 41 new
-tests:
+`./scripts/run_tests.sh`: before `5683 passed, 3 skipped, 53 xfailed`; after
+the build `5724 passed, 3 skipped, 53 xfailed, 6 warnings in 81.49s
+(0:01:21)`; after fix round 0 `5734 passed, 3 skipped, 53 xfailed, 6 warnings
+in 81.23s (0:01:21)`. 51 new tests:
 - 14 in `test_music_players.py`
-- 15 in `test_blueprint_handoff.py`
+- 25 in `test_blueprint_handoff.py` (15 at the build; fix round 0 added 5
+  shapes, each in both parametrized tests)
 - 6 in `test_satellite_area_check.py`
 - 6 parametrizations of the new row: 4 in `test_voice_corpus.py`, 1 in
   `test_music_live_pin.py`, 1 in `test_music_shadow.py`
@@ -408,15 +450,14 @@ same 14, none started by me.
 - **ROADMAP:** the M22 line stays where it is until change 14 is installed.
   The roadmap was being edited in this tree by another session during the
   build (committed as `eb68da3`), and I did not touch it.
-- **Spoken label after change 14 (known cost, not fixed):** every
-  hand-off from a satellite with its own player now says the player's name.
-  It used to say "the Kitchen speaker"; it now says "the kitchen voice pe ma
-  speaker". tool_service labels a match by name with the name. The target
-  is the same. Fix 5 (the device id across the hand-off) retires it. A
-  tool_service rule like "an exact-name match on the only MA player in its
-  area is labelled by the area" would also cover it, but it would relabel
-  requests where the speaker named the player. Drew's call; documented in
-  `voice-music-control.md`.
+- **Spoken label after change 14:** fixed in fix round 0. The three real
+  satellites, after fix 1, hand off `in the <room>` as before, so Kronk's
+  reply still says "the Kitchen speaker". A satellite whose room lacks its
+  own player, or holds other players or a sync group with it, hands off
+  `on the <player>`, and the reply names the player ("the kitchen voice pe
+  ma speaker"). No real satellite is in that state today (registry check:
+  3 of 3 `ok`). Fix 5 (the device id across the hand-off) removes the need
+  for any suffix.
 - **Fix 4 (the M11 parser's rooms come only from players):** out of scope.
   The parser does not use `ha_areas`.
 - **Blueprint header:** it still says "Three changes, everything else
