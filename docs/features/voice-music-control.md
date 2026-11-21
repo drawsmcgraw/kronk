@@ -80,6 +80,21 @@ blueprint (change 9) owns "play some …" / "play something …" and hands them,
 and any failed named play, to Kronk — `docs/features/music-taste.md`. "Put on…", "shuffle my…", and other loose
 phrasings are what reach Kronk.
 
+**A stripped request still picks (sprint M23 fix 2: built, off).** When
+the model drops the subject on the way ("Play right here, right now, bud.
+That boy's slow." reached `/music` as "music"), the query is "play some
+music" and Kronk picks from the taste profile. Fix 2 can refuse such a
+request ("I didn't catch what to play.", with the closest match) by
+reading the sentence the user spoke, but it ships off:
+`stripped_request.refuse` in `music.yaml`, false in the shipped defaults
+and when the key is absent. Both end-to-end tests found it refusing
+ordinary requests ("play some music, thank you"; "play whatever's good"),
+and saying just "play some music" and getting a pick is a feature (Drew,
+2026-11-21). A wrong pick now costs less than it did: every play replaces
+the queue (below), and Kronk's own picks no longer feed the profile.
+Turn it on on `/settings` (dev first); the rule and its known misses are in
+`docs/features/music-taste.md`, "Genre requests".
+
 **Radio (change 11, 2026-11-08).** The radio sentences consume the word
 "radio", and MA's library lookup (`get_item_by_name`) is exact-name only,
 so the bare name ("Mushroom Jazz") never hit a Pandora station (named

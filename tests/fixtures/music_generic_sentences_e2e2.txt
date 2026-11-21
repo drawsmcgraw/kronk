@@ -1,0 +1,315 @@
+# Generic 'play some music' requests: the M23 second end-to-end tester's own 314 sentences (docs/sprint/M23-e2e2.md, appendix, in its order; no household text). Each picked from the profile on ff8a7a5 (before M23). With music.yaml stripped_request.refuse off (the default), each, sent to /music with a bare query and the line as `said`, must pick exactly as with no sentence.
+ugh, just play some music
+play some music, I'm beat
+play some music, I'm exhausted
+long day, play some music
+play some music, long day
+just play something, I don't care what
+I don't care, play anything
+play whatever, I'm too tired to pick
+play some music so I can unwind
+play some music while I do the dishes
+play music, I need it
+play some music before I fall asleep
+play me something, anything at all
+play some music and don't ask me questions
+put on some music, I can't think
+put on anything, seriously
+put some music on in here, play whatever
+play something to wake me up
+play something so it's not so quiet
+play some music, it's too quiet in here
+play some tunes, it's been a day
+play a song, any song
+play any song you want
+play us a song
+play songs
+play some songs for a while
+just play songs
+play music for a bit
+play music for an hour
+play some music for the next hour
+play some music till dinner
+play some music until I say stop
+play some music in the background
+play a little background music
+play some quiet music
+play some music kind of low
+play some music at a low volume
+play some music not too loud please
+play music please please please
+play a song please
+play my songs
+play my favorite song
+play the good songs
+play a fun song
+play a silly song
+play music now
+can you play a song
+can you play music for me
+can you please play some music
+I want you to play music
+I want to listen to music
+I want to listen to some songs
+play music, Kronk, play music
+play some music for my mom
+play some music for daddy
+play dance music
+play some music so we can dance
+play the music
+play more songs
+play another song
+play one more song
+play a different song
+play something happy
+hey, could you play some music
+excuse me, can you play some music
+hi there, play some music please
+would you mind playing some music, just play something
+is it possible to play some music
+do you play music
+how do I get you to play music
+play some music, whatever they usually listen to
+play whatever they like around here
+play whatever the house likes
+play the house favorites
+play the family's favorite music
+play what you normally play
+play something everybody likes
+play something everyone will like
+play something for the party
+play some party music
+play some music for the guests
+play some dinner music
+play some music while we wait
+play some nice music for us
+play us some music
+play a few tunes
+play a bunch of songs
+play a random playlist
+play some random stuff
+play your best stuff
+play some decent music
+play something decent
+play something good for once
+play anything but silence
+play music please
+please you play music
+play the some music
+play to me some music
+play for me music
+play a music
+play one music
+play some musics please
+play the musics
+make play music
+you can play music now
+I like you play some music
+play music, yes
+play some song
+play some songs please, thank you very much
+play any kind of music
+play all kind of music
+play music what you want
+play music of your choice
+play a music of your choosing
+I want listen to music
+listen to some music now
+put on the music please
+put on a music
+put on one song
+Play some music. Thanks for watching.
+Play some music. Thanks for watching!
+Play some music. Thank you for watching.
+Play some music. Bye.
+play some music play some music
+Play some music. Play some music.
+play play some music
+play some some music
+Play music.
+Play. Music.
+Play some. Music.
+play some music please thank you
+play some music please thanks
+play 1 song
+play 2 songs
+play a song or 2
+play 10 songs
+play some music 4 me
+play sum music please
+Play sum songs
+play some tunes!
+Play some tunes?
+Play some music?
+Play some music...
+Play some music -
+play some music,
+Play, some music.
+Play some... music.
+Play some musick.
+Play sub music.
+Play some of music.
+Play the some.
+Play song.
+Play anything.
+Play something. you
+play something play something
+Play.  Some music.
+Play some music in the, in the kitchen.
+Play some music in the kitchen. Thank you.
+play some music on the on the kitchen speaker
+Play some
+Play some.
+Play some. Thank you.
+Play some, thank you.
+Play some. Thanks for watching.
+Play. Thank you.
+Play. Thanks for watching.
+Play please.
+Play, please.
+play now
+Play some musik.
+play some mucic
+Play some new sick.
+Play some mew sick.
+Play some musing.
+Play some museum.
+Play some muzak.
+Play some magic.
+Play some too.
+Play a son.
+Play a sung.
+Play some toons.
+Play some twos.
+Play some tombs.
+Play some things.
+Play some thing.
+Play sum thing.
+Play any thing.
+DJ, hit it
+drop the needle
+hit me with some sound
+crank it
+let's dance
+play some jams for me
+play some sounds
+play me a little something
+play our favourites
+play some old favorites
+play me some
+play us some
+play some more
+play some more please
+put on some background noise
+put on a record
+spin a record
+spin it
+shuffle
+shuffle it
+shuffle please
+shuffle some
+shuffle my stuff
+queue up something
+throw on whatever
+throw on a little something
+listen to something
+listen to whatever
+play my usual
+play that one again
+play one
+play it all
+play surprise me
+play, surprise me
+play and surprise me
+play some beats
+put on some background
+play a few bangers
+play me a little number
+play some bops
+play some bangers
+play some hits
+play the hits
+play some melodies
+play a melody
+play a ditty
+play some audio
+play some sound
+play a little somethin'
+play somethin'
+play somethin
+play sumthin
+play anythin
+play whatevs
+play whatever's good
+play what you like
+play what I like
+play what we like
+play my favorite
+play our favorite
+play the classics
+play some oldies
+play some background
+play in the background
+play some in the kitchen
+play in the kitchen
+play here
+play some here
+play some for me
+play some for us
+play for me
+play for us
+play on
+play away
+play some entertainment
+play some ambience
+play some ambiance
+play some atmosphere
+play some mood
+play some mellow
+play a soundtrack
+play a set
+play a mixtape
+play the stereo
+play the speakers
+put on the stereo
+put on the hi-fi
+put on some wax
+spin some vinyl
+spin some discs
+shuffle all
+shuffle the lot
+queue up some bangers
+throw on some beats
+play same as yesterday
+play like yesterday
+play me one
+play us one
+play a good one
+play another
+play another one
+play the next one
+play a few
+play a couple
+play a bunch
+play lots
+play all of it
+play all
+play them all
+play your pick
+play your choice
+play your call
+play dealer's choice
+play you choose
+play you pick
+play you decide
+play I don't care
+play I don't mind
+play I don't know
+play, I dunno
+play idk
+play some jazz music
+play some country songs
+play some reggae tunes
+play some rock and roll
+play some classical
+play some hip hop

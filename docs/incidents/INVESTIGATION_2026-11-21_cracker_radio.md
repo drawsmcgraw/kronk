@@ -495,6 +495,24 @@ Criteria: `docs/sprint/M23-criteria.md`; build report: `docs/sprint/M23-build.md
   second, Kronk named plays of that station logged by tool_service.
   Recomputed: 14 rows left out instead of 15; Cracker 1.90 (third), as
   before.
+- **2026-11-21, second end-to-end test failed** (`docs/sprint/M23-e2e2.md`):
+  fix 2 refused "play whatever's good" (a listed word with `'s`) and, of
+  the tester's 314 generic sentences, 107 in all ("play what I like").
+- **2026-11-21, fix round 2 (repo only)** (`docs/sprint/M23-fix2.md`).
+  Fix 2 ships off, per Drew's condition ("If we need to NOT implement Fix
+  2, then so be it"): `music.yaml` `stripped_request.refuse`, false in the
+  shipped defaults and when the key is absent. Off, `/music` does not read
+  the sentence: all 659 test sentences (342, the captures, the second
+  tester's 314) pick exactly as with none. So the incident's sentence is
+  picked from the profile again; since fix 3 that is the household's
+  taste, and since fix 1 the pick replaces the queue. Two repairs for when
+  it is turned on: a listed word with an apostrophe suffix counts, and a
+  room at the end is dropped before the bare-verb and filler rules (104 of
+  the 314 still refused with it on). Fix 3: a start counts from 5 s after
+  the pick (`PICK_START_MARGIN_S`), so the household track the pick cut
+  short no longer closes the window at once; no such row in the real
+  data, so the recomputed profile is unchanged. The corpus row's
+  `xfail.live` now says the live answer is a pick.
 
 ## Blog hooks
 

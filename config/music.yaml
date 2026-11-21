@@ -132,3 +132,16 @@ decision:
     # Seconds before the question is given up and the rules' reading
     # stands. More than 0, at most 30.
     timeout_s: 4
+
+# The stripped-request guard (sprint M23, fix 2; taste.said_request,
+# docs/features/music-taste.md "Genre requests"). A query that reaches
+# /music with no terms ("music") is "play some music": the top of the
+# profile. With refuse on, /music first reads the sentence the user spoke
+# and refuses ("I didn't catch what to play.") when it holds no word for
+# music in general, because the subject was lost on the way. A key left
+# out is false.
+stripped_request:
+  # Off: the guard refused ordinary requests for music in both end-to-end
+  # tests (docs/sprint/M23-e2e.md, M23-e2e2.md); true refuses a bare 'music'
+  # query whose sentence names something else.
+  refuse: false

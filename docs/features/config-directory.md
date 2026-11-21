@@ -20,7 +20,7 @@ the models are told and how the loop is tuned:
 | `config/tuning.yaml` | orchestrator | Round budgets per agent, the repeat-call nudge threshold, the weather-context age, per-tool HTTP timeouts; since M14 the messy-transcript gate's `max_sentences` and `max_words` (`docs/features/messy-transcript-gate.md`); since M9 `model_lock.max_overtakes` (`docs/features/model-locks.md`) |
 | `config/lead_in.yaml` | orchestrator | The words of the "ask Kronk to" lead-in: verbs, names, leading fillers (sprint M19, `docs/features/lead-in.md`) |
 | `config/voice.yaml` | orchestrator | The speech mount (sprint M8): `spoken_reply`, the line added last to the coordinator's system text on `/voice/api/chat` requests (null leaves it out), and `stream.hold_sentences`, the units held back when `VOICE_STREAM` is on (`docs/features/voice-pipeline.md`); since M9 `deadline_s`, the speech mount's total deadline (`docs/features/model-locks.md`) |
-| `config/music.yaml` | tool_service | The playback verify window and the music resolver's thresholds and bonuses; since M11 the sentence parser's words (`parser`) and the decision order's policy (`decision`: step order and the model step's place, thresholds, provider order, the model question), `docs/features/voice-music-control.md` |
+| `config/music.yaml` | tool_service | The playback verify window and the music resolver's thresholds and bonuses; since M11 the sentence parser's words (`parser`) and the decision order's policy (`decision`: step order and the model step's place, thresholds, provider order, the model question), `docs/features/voice-music-control.md`; since M23 the stripped-request guard's switch (`stripped_request.refuse`, off; `docs/features/music-taste.md`) |
 
 The move changed no behaviour: `tests/test_m21_pins.py` renders 3390
 system-prompt variants, 14 tool menus and every moved value and compares
@@ -210,7 +210,8 @@ put on the page as text, never as HTML.
 **Viewing needs nothing.** Every file of the live directory with its
 description; per key the value in effect, its source (the file, an
 environment variable, or the code default), the comment above it in the
-file, its bounds, and the commit that last changed it (from the live
+file (for a key the file does not carry, the schema's own description:
+`describe_keys`, `Field(description=...)`; since M23 fix round 2), its bounds, and the commit that last changed it (from the live
 directory's log, the last 100 commits of the file); prompts whole. Read
 only, each with where to change it: the routing rules in order (name,
 route, the words, the pattern in effect), both services' environment

@@ -252,7 +252,9 @@ def file_entries(base: Path, ts_effective: dict | None, git_ok: bool) -> list[di
                     entry["keys_error"] = "tool_service did not answer; the values in effect are unknown"
                     keys = []
             for k in keys:
-                k["comment"] = comments.get(k["key"])
+                # A key the live file does not carry (added to the schema
+                # after the file was seeded) shows the schema's description.
+                k["comment"] = comments.get(k["key"]) or k.get("description")
                 parts = k["key"].split(".")
                 k["section_comment"] = next((comments[".".join(parts[:i])] for i in range(len(parts) - 1, 0, -1)
                                              if ".".join(parts[:i]) in comments), None)

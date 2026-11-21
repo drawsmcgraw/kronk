@@ -1628,11 +1628,14 @@ async def _play_music_live(req: MusicRequest):
             return await _play_genre(client, headers, entities, label, req, _another_plan(entities))
         if kind == "genre" or (kind != "named" and not media_type and not nq.uri):
             # No phrase ("music") is "play some music": the top of the
-            # profile. Not when the user's own sentence holds no word for
-            # music at all: what it named was lost on the way (sprint M23,
-            # taste.said_request).
-            if not taste.genre_phrase(nq.text):
-                generic, what = taste.said_request(req.said)
+            # profile. With music.yaml stripped_request.refuse on, not when
+            # the user's own sentence holds no word for music at all: what
+            # it named was lost on the way (sprint M23, taste.said_request).
+            # Off by default, and the sentence is then not read: the guard
+            # refused ordinary requests in both end-to-end tests
+            # (docs/sprint/M23-fix2.md).
+            if config_loader.current().music.stripped_request.refuse and not taste.genre_phrase(nq.text):
+                generic, what = taste.said_request(req.said, players)
                 if generic is False:
                     raise await _stripped_request(req, what, players)
             plan = await _genre_plan(nq, forced=(kind == "genre"), area=live[0].get("area"))

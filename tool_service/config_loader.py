@@ -12,7 +12,8 @@ music.yaml and tuning.yaml are read as the same language.
 Files (docs/features/config-directory.md has the full description):
   music.yaml   the playback verify window, the resolver's thresholds, and
                (sprint M11) the sentence parser's words and the decision
-               order's policy; schema: the Music model below.
+               order's policy, (sprint M23) the stripped-request guard's
+               switch; schema: the Music model below.
 
 Rules:
   - Load at startup (the first current() call). A file that fails
@@ -235,11 +236,26 @@ class Decision(_Strict):
         return v
 
 
+STRIPPED_REFUSE_DESCRIPTION = (
+    "Off: the guard refused ordinary requests for music in both end-to-end tests "
+    "(docs/sprint/M23-e2e.md, M23-e2e2.md); true refuses a bare 'music' query whose sentence "
+    "names something else.")
+
+
+class StrippedRequest(_Strict):
+    # The stripped-request guard (sprint M23, fix 2; taste.said_request).
+    # Off by default and when the key is absent: the description is shown
+    # on /settings when the live file carries no comment for the key
+    # (production's live file predates it).
+    refuse: bool = Field(False, description=STRIPPED_REFUSE_DESCRIPTION)
+
+
 class Music(_Strict):
     verify: Verify = Field(default_factory=Verify)
     resolver: Resolver = Field(default_factory=Resolver)
     parser: Parser = Field(default_factory=Parser)
     decision: Decision = Field(default_factory=Decision)
+    stripped_request: StrippedRequest = Field(default_factory=StrippedRequest)
 
 
 @dataclass

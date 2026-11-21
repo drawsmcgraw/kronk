@@ -93,8 +93,21 @@ listens to, and Kronk learns from what happens to its picks.
   after its play is verified, MA marks the item at the start) and ends at
   the first play started on that queue after the pick, the household's or
   another pick, or 24 h after it (`PICK_WINDOW_S`, so a pick left playing
-  all night is covered) (`taste._window_end`, M23 fix round 1). A start is
-  a user-initiated row last played after the pick, except artist rows
+  all night is covered) (`taste._window_end`, M23 fix round 1). In MA's
+  records "started" means stamped: MA writes a track's row when its play
+  ends or is cut short, and a station's or playlist's when it starts, so
+  the window ends when the first item the household started after the
+  pick finishes its first play or is cut short (or, for a station or
+  playlist, starts). Starts count from 5 s after the pick's recorded
+  second (`PICK_START_MARGIN_S`, M23 fix round 2): the track the pick
+  replaced is stamped when MA sees the new item, about when the pick is
+  verified and recorded, and read as a start it closed the window at once
+  and handed the whole pick to the profile. MA records no item played
+  under 5 s, so no track started after the pick is stamped sooner; the
+  nearest real start after a pick is a station 5.6 s after it (the
+  2026-11-08 bench). A station or playlist started inside the margin is
+  missed. A start is
+  a user-initiated row last played after the margin, except artist rows
   (every track's credit moves its artists' rows), tracks credited to the
   picked artist (a sticky flag the pick replayed), and the pick's own item
   at its own start; a station or playlist row moves only when it is
@@ -145,21 +158,41 @@ listens to, and Kronk learns from what happens to its picks.
 1. The phrase is cleaned ("some deep house music" → "deep house") and mapped
    through the file's `genres` table. No phrase ("play some music") → the
    first matching `rules` entry, else the top of the profile.
-   Since sprint M23 a query with no phrase is checked against the sentence
-   the user spoke (`MusicRequest.said`, `taste.said_request`). "Play right
-   here, right now, bud. That boy's slow." reached `/music` as "music"
-   after the coordinator's rewrite; a query with no phrase is "play some
-   music", and the kitchen got the top of the profile. The guard refuses
+   **The stripped-request guard (sprint M23, fix 2) is built and off.**
+   "Play right here, right now, bud. That boy's slow." reached `/music` as
+   "music" after the coordinator's rewrite; a query with no phrase is
+   "play some music", and the kitchen got the top of the profile. The
+   guard reads the sentence the user spoke (`MusicRequest.said`,
+   `taste.said_request`) and refuses when it names something else. Both
+   end-to-end tests found it refusing ordinary requests ("play some music,
+   thank you" in `docs/sprint/M23-e2e.md`; "play whatever's good", "play
+   what I like" in `M23-e2e2.md`): a word rule has a long tail, and a wrong
+   refusal costs more than a wrong pick now that fix 1 keeps the old queue
+   from coming back and fix 3 keeps the pick from feeding itself. So it
+   sits behind `stripped_request.refuse` in `music.yaml`, false in the
+   shipped defaults and when the key is absent (production's live file has
+   no such key). Off, `/music` never reads the sentence for this: every
+   no-phrase request picks exactly as with no sentence (`tests/test_music_stripped.py`:
+   the 342 sentences of `tests/fixtures/music_generic_sentences.txt`, the
+   two captures, and the second tester's 314 in
+   `tests/fixtures/music_generic_sentences_e2e2.txt`). To turn it on, set
+   `stripped_request: {refuse: true}` on `/settings` (or in the live
+   directory, then `scripts/config_reload.sh`); try it on dev first.
+   With it on, the guard refuses
    only a sentence that holds no word meaning music in general, anywhere
    in it: any word starting with "music", or something, anything,
    everything, whatever, stuff, song(s), tune(s), track(s), jam(s), mix,
    playlist(s), radio, station, album(s), record(s), library, sounds,
    vibes, noise, favorites/favourites, usual, more, again
-   (`taste.SAID_MUSIC_WORDS`); that, it, this or one right after the
+   (`taste.SAID_MUSIC_WORDS`), also with an apostrophe suffix
+   ("whatever's good"); that, it, this or one right after the
    request verb ("play it", "play that again"; elsewhere they are
-   chatter: "That boy's slow."); "some" with only filler after it ("play
-   some"); a request verb with only filler after it ("Play."); "surprise
-   me". Then `/music` answers 422 "I didn't catch what to play." plus "The
+   chatter: "That boy's slow."; "it's" is not "it"); "some" with only
+   filler after it ("play some"); a request verb with only filler after it
+   ("Play."); "surprise me". A room or speaker named at the end ("in the
+   Kitchen", "on the Kitchen speaker") is dropped first for the last two
+   rules, as the M11 parser drops it, so "Play in the Kitchen" is a bare
+   verb. Then `/music` answers 422 "I didn't catch what to play." plus "The
    closest I found was …" when the resolver, given the words after the
    verb with the room and provider stripped, finds a match above
    `resolver.hint_min_score`; nothing plays or is recorded. Through the
@@ -175,10 +208,13 @@ listens to, and Kronk learns from what happens to its picks.
    now", "play something by Orbital") gets the pick it got before M23; a
    genre the model dropped ("play some jazz" sent as "music") is refused,
    not played as jazz; "Play some muse sick." (no word for music left) is
-   refused. Tests: `tests/test_music_stripped.py`, with the 342 generic
-   sentences of `tests/fixtures/music_generic_sentences.txt` (each picks
-   exactly as before M23 but that one), both captures refused, and the
-   known misses.
+   refused; of the second tester's 314, 104 are still refused with the
+   guard on (107 before the two repairs of fix round 2): they hold no
+   listed word ("play what I like", "play some beats", "play some hip
+   hop" sent as "music"). Tests (guard on):
+   `tests/test_music_stripped.py`, with the 342 generic
+   sentences (each picks exactly as with no sentence but that one), both
+   captures refused, the known misses, and one test per listed word.
 2. Candidates: profile artists with a matching genre (score + feedback, +2
    for `love`, `never` excluded), our own stations named for the genre, and
    MA search playlists/stations whose *name* carries the genre (base

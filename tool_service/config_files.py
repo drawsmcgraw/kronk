@@ -535,8 +535,10 @@ def describe_keys(model, data: dict, env: dict | None = None) -> list[dict]:
     object whose class has model_fields): its dotted key, the value in
     effect, where it came from ("environment" when env maps the key to the
     variable that set it, "file" when the parsed file data sets it, else
-    "code default"), the built-in default, the schema's bounds and type.
-    Nested models are walked, not listed."""
+    "code default"), the built-in default, the schema's bounds and type,
+    and the schema's own description of the key (None for most; the page
+    shows it when the file has no comment for the key). Nested models are
+    walked, not listed."""
     env = env or {}
     out: list[dict] = []
 
@@ -552,7 +554,8 @@ def describe_keys(model, data: dict, env: dict | None = None) -> list[dict]:
             out.append({"key": key, "value": _jsonable(value), "source": source,
                         "env": env.get(key),
                         "default": _jsonable(info.get_default(call_default_factory=True)),
-                        "bounds": _bounds(info), "type": _type_name(info.annotation)})
+                        "bounds": _bounds(info), "type": _type_name(info.annotation),
+                        "description": info.description})
 
     walk(model, ())
     return out

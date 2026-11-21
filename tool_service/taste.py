@@ -303,6 +303,20 @@ CONCURRENCY     = 8
 # (fix round 1 of sprint M23; kronk_pick_rows).
 PICK_WINDOW_S   = 24 * 3600
 PICK_LEAD_S     = 60
+# Starts count from PICK_START_MARGIN_S after the pick's recorded second,
+# not from the second itself (fix round 2 of sprint M23). MA stamps a track
+# when its play ends or is cut short, and the track the pick replaced is
+# stamped when MA's tracker sees the new item: about when the verify poll
+# sees it, so a hair before or after the pick is recorded, and the
+# recorded second is truncated. Counted as a start, that household track
+# closed the window at once and handed the whole pick to the profile. MA
+# drops any item played under 5 s (playback_tracker), so no track started
+# after the pick is stamped earlier than 5 s after it. A station or
+# playlist is stamped when it starts: the nearest real start after a pick
+# is a station 5.6 s after pick 16 was recorded (6.1 s after its truncated
+# second; play_history, the 2026-11-08 bench), still a start. One started
+# inside the margin is missed (docs/sprint/M23-fix2.md, ruling D).
+PICK_START_MARGIN_S = 5
 PICK_LOOKBACK   = 100
 
 # Weights of the learned score (explicit love/never apply at pick time).
@@ -577,7 +591,10 @@ def _row_artist_keys(h: dict, fetched: dict) -> set[str]:
 
 async def _window_end(ma, p, q: dict, fetched: dict) -> int:
     """When the pick's window ends: the first play started on its queue
-    after the pick, or PICK_WINDOW_S after it.
+    after the pick, or PICK_WINDOW_S after it. In MA's records that is the
+    first item the household (or another pick) started that was stamped
+    PICK_START_MARGIN_S or more after the pick: a track is stamped when its
+    play ends or is cut short, a station or playlist when it starts.
 
     A start is a user-initiated row (MA sets the flag on the item handed to
     play_media, sticky once set) last played after the pick, except rows
@@ -623,10 +640,11 @@ async def _window_end(ma, p, q: dict, fetched: dict) -> int:
 
     # The pick's own station or playlist, last played after its own start.
     own = not artist and p["uri"] in await starts(ts + PICK_LEAD_S, own=True)
-    first = await starts(ts, own)
+    t0 = ts + PICK_START_MARGIN_S       # not the track the pick cut short
+    first = await starts(t0, own)
     if not first or await starts(cap, own) == first:
         return cap
-    lo, hi = ts, cap                    # every start is at or after lo; one is before hi
+    lo, hi = t0, cap                    # every start is at or after lo; one is before hi
     while hi - lo > 1:
         mid = (lo + hi) // 2
         if await starts(mid, own) == first:
@@ -792,15 +810,35 @@ def _said_words(text: str) -> list[str]:
     return re.findall(r"[a-z0-9]+(?:'[a-z]+)?", text.lower().replace("\u2019", "'"))
 
 
-def _said_generic(said: str) -> bool:
+def _said_music_word(w: str) -> bool:
+    """A word for music in general: one starting with "music", or a listed
+    word, with or without an apostrophe suffix ("whatever's good", the
+    second end-to-end test's finding 1). Pronouns are not read here: "it's"
+    is not "it" ("play it's my life")."""
+    return w.startswith("music") or w in SAID_MUSIC_WORDS or w.split("'", 1)[0] in SAID_MUSIC_WORDS
+
+
+def _said_without_room(seg: str, players: list[dict] | None) -> str:
+    """The segment without a room or speaker named at its right-hand end
+    ("in the Kitchen", "on the Kitchen speaker": the blueprint hand-off's
+    suffix), read as the M11 parser reads it (music_resolve._room_clause),
+    so "Play in the Kitchen" is a bare verb (the second end-to-end test's
+    finding 3)."""
+    rc = music_resolve._room_clause(seg.rstrip(music_resolve._TAIL_PUNCT), players or [],
+                                    music_resolve.parser_words().room_min_score)
+    return rc[0] if rc else seg
+
+
+def _said_generic(said: str, players: list[dict] | None = None) -> bool:
     """Does the sentence hold a word that means music in general?"""
     if re.search(r"\bsurprise\s+me\b", said, re.IGNORECASE):
         return True
     for seg in re.split(r"[.!?;]+", said):
+        if any(_said_music_word(w) for w in _said_words(seg)):
+            return True
+        seg = _said_without_room(seg, players)
         words = _said_words(seg)
         for i, w in enumerate(words):
-            if w.startswith("music") or w in SAID_MUSIC_WORDS:
-                return True
             if w in _SAID_SOME and all(x in SAID_FILLER for x in words[i + 1:]):
                 return True
         for m in _SAID_VERB_RE.finditer(seg):
@@ -812,15 +850,19 @@ def _said_generic(said: str) -> bool:
     return False
 
 
-def said_request(said: str | None) -> tuple[bool | None, str]:
+def said_request(said: str | None, players: list[dict] | None = None) -> tuple[bool | None, str]:
     """Is the user's own sentence a generic request ("play some music")?
+
+    Read only when music.yaml stripped_request.refuse is on (main.py; off
+    by default since fix round 2 of sprint M23).
 
     (None, "") when there is no sentence or no request verb in it: unknown,
     so the caller keeps today's behaviour. (True, "") when the sentence
-    holds a word that means music in general (_said_generic). Otherwise
-    (False, words): the sentence named something that did not reach the
-    query, with the words after its first request verb, to the end of that
-    sentence, for the closest-match lookup."""
+    holds a word that means music in general (_said_generic; `players`
+    lets it drop a room named at the end first). Otherwise (False, words):
+    the sentence named something that did not reach the query, with the
+    words after its first request verb, to the end of that sentence, for
+    the closest-match lookup."""
     if not (said or "").strip():
         return None, ""
     what = None
@@ -830,7 +872,7 @@ def said_request(said: str | None) -> tuple[bool | None, str]:
             break
     if what is None:
         return None, ""
-    if _said_generic(said):
+    if _said_generic(said, players):
         return True, ""
     return False, what
 

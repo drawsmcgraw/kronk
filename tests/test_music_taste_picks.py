@@ -7,10 +7,11 @@ again. The nightly build now leaves out the history rows Kronk's picks
 played (taste.kronk_pick_rows). Named plays, and feedback, still count.
 
 The fake Music Assistant below keeps MA's play history the way MA does
-(media_progress: one row per item, its last play time, queue and a sticky
-user_initiated flag) and answers music/recently_played_items with MA's own
-filters: queue_id, played_after_timestamp, user_initiated_only. The answer
-carries no time, queue or flag, as MA's does.
+(media_progress: one row per item, its last play time, queue, a sticky
+user_initiated flag and whether its last play was played through) and
+answers music/recently_played_items with MA's own filters: queue_id,
+played_after_timestamp, user_initiated_only, fully_played_only (MA's
+default True). The answer carries no time, queue or flag, as MA's does.
 """
 import sqlite3
 from unittest.mock import AsyncMock
@@ -46,12 +47,13 @@ class FakeMA:
         self.rows: dict[str, dict] = {}
         self.calls: list[tuple[str, dict]] = []
 
-    def play(self, uri, media_type, ts, queue, user_initiated, artist=None, name=None):
-        """One play as MA records it: the row is upserted, the flag sticky."""
+    def play(self, uri, media_type, ts, queue, user_initiated, artist=None, name=None, full=True):
+        """One play as MA records it: the row is upserted, the flag sticky;
+        `full` False for a play cut short (MA stamps it when it stops)."""
         old = self.rows.get(uri)
         self.rows[uri] = {"uri": uri, "media_type": media_type, "name": name or uri, "ts": ts, "queue": queue,
                           "user_initiated": user_initiated or bool(old and old["user_initiated"]),
-                          "artist": artist}
+                          "artist": artist, "full": full}
 
     def artist_session(self, artist, ts, queue, n, user_initiated_container=True, start=0):
         """An artist played as MA plays it: the artist row (the container),
@@ -80,6 +82,8 @@ class FakeMA:
                 rows = [r for r in rows if r["ts"] >= args["played_after_timestamp"]]
             if args.get("user_initiated_only"):
                 rows = [r for r in rows if r["user_initiated"]]
+            if args.get("fully_played_only", True):
+                rows = [r for r in rows if r["full"]]
             return [{"uri": r["uri"], "media_type": r["media_type"], "name": r["name"]}
                     for r in rows[:args.get("limit", 10)]]
         raise AssertionError(command)
@@ -476,3 +480,118 @@ def test_the_genre_pick_records_the_players_queue(genre_env):
 
 from tests.test_error_surfacing import music_env  # noqa: E402,F401  (fixture)
 from tests.test_music_taste import genre_env  # noqa: E402,F401  (fixture)
+
+
+# ── fix round 2 of sprint M23 ───────────────────────────────────────────────
+# Ruling D: a start counts from PICK_START_MARGIN_S after the pick. Ruling E:
+# a test that fails without each reading of M23-fix1.md section D.
+
+FATBOY = "ytmusic://track/rh"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("stamp", [0, 1, taste.PICK_START_MARGIN_S - 1])
+async def test_a_track_cut_short_by_the_pick_itself_does_not_end_its_window(tmp_path, stamp):
+    """The household's track was playing when "play some music" replaced
+    it. MA stamps it when it stops: about when the pick is verified and
+    recorded, so in or just after the pick's own second. It is not a
+    start: the whole pick stays out (the second end-to-end test's finding
+    4). Without the margin the window ended at once and the five Cracker
+    tracks counted."""
+    ma = FakeMA()
+    household_before(ma)
+    ma.play(FATBOY, "track", T + stamp, KITCHEN, True, artist="Fatboy Slim", full=False)
+    ma.artist_session("Cracker", T, KITCHEN, 5)
+    summary, hist, _ = await _build_picked(ma, tmp_path / "t.db")
+    assert summary["kronk_pick_items"] == 6 and hist["Cracker"] == 0.0
+
+
+def _pick(key="artist:cracker", uri=ARTISTS["Cracker"]):
+    return {"id": 1, "ts": T + 0.7, "key": key, "uri": uri, "queue": KITCHEN}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("d,end", [(0, None), (taste.PICK_START_MARGIN_S - 1, None),
+                                   (taste.PICK_START_MARGIN_S, taste.PICK_START_MARGIN_S),
+                                   (6, 6), (61, 61), (3_601, 3_601), (43_199, 43_199), (86_399, 86_399),
+                                   (86_400, None)])
+async def test_the_window_ends_at_the_first_start_to_the_second(d, end):
+    """The bisection's end to the second (ruling E): a track asked for at
+    T+d on the pick's queue ends the window at exactly T+d; none inside
+    the margin; the cap (None) otherwise. The pick's recorded time carries
+    a fraction, as a real one does."""
+    ma = FakeMA()
+    ma.artist_session("Cracker", T, KITCHEN, 2)
+    ma.play(FATBOY, "track", T + d, KITCHEN, True, artist="Fatboy Slim")
+    got = await taste._window_end(ma, _pick(), {"queue_id": KITCHEN}, {})
+    assert got == T + (taste.PICK_WINDOW_S if end is None else end)
+
+
+@pytest.mark.asyncio
+async def test_an_artist_row_moved_by_the_picks_tracks_is_not_a_start(tmp_path):
+    """Artist rows are not starts (ruling E). A Cracker track that credits
+    Orbital moves Orbital's artist row, which is user-initiated (sticky,
+    from the household's own Orbital weeks ago), on the pick's queue.
+    Read as a start, it ended the window at the first track and handed the
+    rest of the pick to the profile."""
+    ma = _picked(tracks=5)
+    ma.play(ARTISTS["Orbital"], "artist", T + 240, KITCHEN, False, name="Orbital")    # the co-artist credit
+    assert ma.rows[ARTISTS["Orbital"]]["user_initiated"]
+    summary, hist, _ = await _build_picked(ma, tmp_path / "t.db")
+    assert summary["kronk_pick_items"] == 6 and hist["Cracker"] == 0.0
+
+
+@pytest.mark.asyncio
+async def test_the_picked_station_started_again_is_a_start(tmp_path):
+    """The pick's own station is a start only when started again (ruling
+    E). Kronk picked the station; two hours later it was asked for by name
+    on the same speaker, nothing else started between. MA marks a station
+    when a play starts it, so its row's last play is that request: it
+    counts. Never read as a start, the station stayed Kronk's."""
+    ma = FakeMA()
+    household_before(ma)
+    ma.play("library://radio/5", "radio", T - 1, KITCHEN, True, name="Orbital Radio")
+    ma.play("library://radio/5", "radio", T + 2 * H, KITCHEN, True, name="Orbital Radio")
+    path = tmp_path / "t.db"
+    add_pick(path, "uri:library://radio/5", "library://radio/5")
+    summary, _, _ = await build(ma, path)
+    assert summary["kronk_pick_items"] == 0
+    with sqlite3.connect(path) as con:
+        assert con.execute("SELECT plays FROM stations WHERE uri='library://radio/5'").fetchone()[0] > 0
+
+
+@pytest.mark.asyncio
+async def test_the_picked_station_marked_at_its_own_start_is_not_a_start(tmp_path):
+    """...and not when its row is the pick's own start (within the lead)."""
+    ma = FakeMA()
+    household_before(ma)
+    ma.play("library://radio/5", "radio", T + 30, KITCHEN, True, name="Orbital Radio")
+    add_pick(tmp_path / "t.db", "uri:library://radio/5", "library://radio/5")
+    summary, _, _ = await build(ma, tmp_path / "t.db")
+    assert summary["kronk_pick_items"] == 1
+
+
+@pytest.mark.asyncio
+async def test_a_start_on_another_queue_does_not_end_the_window(tmp_path):
+    """Starts are read on the pick's queue only, when it has one (ruling
+    E): the household's Fatboy Slim in the basement ten minutes in does not
+    end the kitchen pick, which plays on."""
+    ma = _picked(tracks=20)
+    ma.play(FATBOY, "track", T + 600, BASEMENT, True, artist="Fatboy Slim")
+    summary, hist, _ = await _build_picked(ma, tmp_path / "t.db")
+    assert summary["kronk_pick_items"] == 21 and hist["Cracker"] == 0.0
+
+
+@pytest.mark.asyncio
+async def test_a_start_cut_short_still_ends_the_window(tmp_path):
+    """Starts need no full play (ruling E): the household asked for Fatboy
+    Slim by name two hours in and skipped it after 20 s, then played
+    Cracker's album (MA gave the album no credit: the first track was
+    skipped too). The skipped request ends the pick's window, so the
+    album's tracks are the household's."""
+    ma = _picked()
+    ma.play(FATBOY, "track", T + 2 * H + 20, KITCHEN, True, artist="Fatboy Slim", full=False)
+    ma.album_session("Cracker", T + 2 * H + 30, KITCHEN, 3)
+    ma.rows["library://album/kerosene"]["user_initiated"] = False
+    summary, hist, _ = await _build_picked(ma, tmp_path / "t.db")
+    assert summary["kronk_pick_items"] == 5 and hist["Cracker"] > 2
