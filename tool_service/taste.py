@@ -642,7 +642,7 @@ async def _window_end(ma, p, q: dict, fetched: dict) -> int:
                     except Exception as e:  # noqa: BLE001 (one bad item never sinks a build)
                         fetched[uri] = e
                         logger.warning("taste: pick %s: could not read %s (%s); counted as a start, "
-                                    "so the pick's later rows count as the household's", p.get("id"), uri, e)
+                                    "so the pick's later rows count as the household's", p["id"], uri, e)
                 if artist in _row_artist_keys(h, fetched):
                     continue
             out.add(uri)
