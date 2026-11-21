@@ -59,7 +59,7 @@ def test_play_sends_the_query_without_the_provider_hint(music_env):
         resp = TestClient(ts.app).post("/music", json={"query": "Hotel Costes 3 from Atlas", "media_type": "album"})
     assert resp.status_code == 200, resp.text
     _, _, data, _ = music_env.calls[0]
-    assert data == {"media_id": "Hotel Costes 3", "media_type": "album"}
+    assert data == {"media_id": "Hotel Costes 3", "media_type": "album", "enqueue": "replace"}
 
 
 def test_play_a_pasted_link_by_uri(music_env):
@@ -69,7 +69,7 @@ def test_play_a_pasted_link_by_uri(music_env):
     assert resp.status_code == 200, resp.text
     _, _, data, _ = music_env.calls[0]
     assert data == {"media_id": "ytmusic://playlist/OLAK5uy_mR95WuMRvxqS1RiPym7_tb4Xwj4BzTCtU",
-                    "media_type": "playlist"}
+                    "media_type": "playlist", "enqueue": "replace"}
 
 
 def test_radio_station_lookup_gets_the_clean_name(music_env):
@@ -170,7 +170,7 @@ def test_play_resolves_a_misspelled_album_by_uri(search_env):
                                                        "media_type": "album"})
     assert resp.status_code == 200, resp.text
     _, _, data, _ = search_env.calls[0]
-    assert data == {"media_id": "ytmusic://album/MPREb_FZkLnRytAxt", "media_type": "album"}
+    assert data == {"media_id": "ytmusic://album/MPREb_FZkLnRytAxt", "media_type": "album", "enqueue": "replace"}
     assert resp.json()["resolved"] == {"name": "Destiny Waiving", "artist": "Ulrich Schnauss and Mark Peters",
                                        "media_type": "album"}
     # stage 1 searched the title (with and without the artist); stage 2 the artist's works
@@ -215,7 +215,7 @@ def test_play_ma_unreachable_falls_back_to_the_literal_play(search_env):
     with patch.object(ts, "ma_command", new=down), patch.object(ts.config_loader.current().music.verify, "timeout_s", 5):
         resp = TestClient(ts.app).post("/music", json={"query": "Portishead"})
     assert resp.status_code == 200
-    assert search_env.calls[0][2] == {"media_id": "Portishead"}
+    assert search_env.calls[0][2] == {"media_id": "Portishead", "enqueue": "replace"}
 
 
 @pytest.mark.asyncio
@@ -295,7 +295,7 @@ def test_play_radio_miss_by_name_resolves_the_station(search_env):
         resp = TestClient(ts.app).post("/music", json={"query": "90s, 2000's and today's hits",
                                                        "media_type": "radio", "player": "kitchen"})
     assert resp.status_code == 200, resp.text
-    assert search_env.calls[0][2] == {"media_id": "library://radio/263", "media_type": "radio"}
+    assert search_env.calls[0][2] == {"media_id": "library://radio/263", "media_type": "radio", "enqueue": "replace"}
     assert resp.json()["station"] == {"name": "90s, 2000s, Today's Hits Radio", "created": False}
     assert search_env.searches[0][1] == ("radio",)
 
@@ -332,7 +332,7 @@ def test_play_radio_scores_the_library_stations_when_search_finds_none(search_en
         resp = TestClient(ts.app).post("/music", json={"query": "90s, 2000's and today's hits from Pandora",
                                                        "media_type": "radio"})
     assert resp.status_code == 200, resp.text
-    assert search_env.calls[0][2] == {"media_id": "library://radio/263", "media_type": "radio"}
+    assert search_env.calls[0][2] == {"media_id": "library://radio/263", "media_type": "radio", "enqueue": "replace"}
 
 
 # ── spoken numbers (INVESTIGATION_2026-11-07_ma_pandora_and_ui.md) ──────────
@@ -409,7 +409,7 @@ def test_play_sentence_says_radio_when_the_model_did_not(search_env):
             "query": "90s and 2000s", "kind": "named",
             "said": "Play ninety's two thousands and today's hits radio on the basement voice pe ma"})
     assert resp.status_code == 200, resp.text
-    assert search_env.calls[0][2] == {"media_id": "library://radio/263", "media_type": "radio"}
+    assert search_env.calls[0][2] == {"media_id": "library://radio/263", "media_type": "radio", "enqueue": "replace"}
 
 
 def test_play_station_lookup_uses_the_name_from_the_sentence(search_env):
@@ -435,7 +435,7 @@ def test_play_sentence_naming_a_station_overrides_kind_genre(search_env):
             "query": "90s", "kind": "genre",
             "said": "Play ninety's two thousands and today's hits radio on the basement voice pe ma"})
     assert resp.status_code == 200, resp.text
-    assert search_env.calls[0][2] == {"media_id": "library://radio/263", "media_type": "radio"}
+    assert search_env.calls[0][2] == {"media_id": "library://radio/263", "media_type": "radio", "enqueue": "replace"}
 
 
 def test_radio_name_drops_some():
@@ -462,4 +462,4 @@ def test_play_playlist_misheard_name_scores_the_library_playlists(search_env):
     with patch.object(ts, "ma_command", new=with_library), patch.object(ts.config_loader.current().music.verify, "timeout_s", 5):
         resp = TestClient(ts.app).post("/music", json={"query": "Hotel Costas", "media_type": "playlist"})
     assert resp.status_code == 200, resp.text
-    assert search_env.calls[0][2] == {"media_id": "library://playlist/49", "media_type": "playlist"}
+    assert search_env.calls[0][2] == {"media_id": "library://playlist/49", "media_type": "playlist", "enqueue": "replace"}

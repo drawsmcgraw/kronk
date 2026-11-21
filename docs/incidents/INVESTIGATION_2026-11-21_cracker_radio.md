@@ -433,6 +433,20 @@ should be corrected with fix 1.
 Fix 1 needs a unit test on the service data, not a corpus row. The corpus
 checks what plays, not what is left in the queue.
 
+## Fixes (sprint M23)
+
+Criteria: `docs/sprint/M23-criteria.md`; build report: `docs/sprint/M23-build.md`.
+
+- **2026-11-21, fix 1 built (repo only).** tool_service sends `enqueue:
+  replace` on every play (`music_resolve.PLAY_ENQUEUE`: the named play, the
+  literal fallback, stations, links, every pick, "not that"); blueprint fork
+  change 15 (`20250404-kronk15`) puts it in `action_data`. Checked against
+  the running images: HA's `play_media` schema takes `enqueue` and coerces
+  it to MA's `QueueOption`; MA's `replace` path is the one every non-track
+  type already took by default, and no queue overrides a default. Pinned by
+  `tests/test_music_enqueue.py` (20 of its 22 tests fail on the old code).
+  Not yet deployed; the blueprint is not installed.
+
 ## Blog hooks
 
 - "Play the song" means "play the song, then go back": a default nobody set,

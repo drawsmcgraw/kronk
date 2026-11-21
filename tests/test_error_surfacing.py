@@ -196,7 +196,7 @@ def test_music_failure_speaks_ha_message(music_env):
     assert resp.json()["detail"] == MA_MSG                      # verbatim, no "(HTTP 500)"
     domain, service, data, target = music_env.calls[0]
     assert (domain, service) == ("music_assistant", "play_media")
-    assert data == {"media_id": "Portishead Radio", "media_type": "radio"}
+    assert data == {"media_id": "Portishead Radio", "media_type": "radio", "enqueue": "replace"}
     assert target == {"entity_id": ["media_player.kitchen_ma"]}
 
 
@@ -330,7 +330,7 @@ def test_music_radio_names_a_new_pandora_station_and_plays_it_by_uri(music_env):
     assert resp.status_code == 200
     assert resp.json()["station"] == {"name": "Orbital Radio", "created": True}
     assert music_env.ma_calls == [("music/item_by_name", {"name": "Orbital radio", "media_type": "radio"})]
-    assert music_env.calls[0][2] == {"media_id": "pandora://radio/seed:AR:70895", "media_type": "radio"}
+    assert music_env.calls[0][2] == {"media_id": "pandora://radio/seed:AR:70895", "media_type": "radio", "enqueue": "replace"}
 
 
 def test_music_radio_names_an_existing_pandora_station(music_env):

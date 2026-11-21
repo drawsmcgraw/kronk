@@ -40,7 +40,7 @@ def test_a_named_artist_resolves_and_answers_with_what_would_play(say):
     b = say("play Portishead", origin_device=KITCHEN, origin_area="Kitchen")
     assert b["ok"] and b["dry_run"] is True
     assert b["decision"]["decided_by"] == "named" and b["decision"]["via"] == "exact"
-    assert b["result"]["would_play"] == {"media_id": "library://artist/1251", "media_type": "artist"}
+    assert b["result"]["would_play"] == {"media_id": "library://artist/1251", "media_type": "artist", "enqueue": "replace"}
     assert b["result"]["targets"] == ["media_player.home_assistant_voice_0ac919_pe_01"]
     assert b["say"] == ("Dry run: would play the artist Portishead on the Kitchen speaker. "
                         "Nothing was sent to the speaker.")
@@ -123,7 +123,7 @@ def test_off_dry_run_it_plays_the_decided_uri_through_the_existing_path(tmp_path
         b = TestClient(ts.app).post("/music/say", json={"sentence": "play Portishead", "origin_device": KITCHEN,
                                                         "origin_area": "Kitchen"}).json()
     assert played == [(["media_player.home_assistant_voice_0ac919_pe_01"],
-                       {"media_id": "library://artist/1251", "media_type": "artist"})]
+                       {"media_id": "library://artist/1251", "media_type": "artist", "enqueue": "replace"})]
     assert b["ok"] and b["say"] == "Portishead on the Kitchen speaker."
 
 

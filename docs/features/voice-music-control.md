@@ -213,7 +213,31 @@ providers → audio on the player. The route:
 4. Calls `play_media`, then **polls the targets for `playing`** before
    reporting success — MA queues async, so HA's 200 alone proves nothing.
    Expired provider auth (e.g. YouTube Music) surfaces here as a clean
-   failure instead of a silent no-play.
+   failure instead of a silent no-play. Every play carries `enqueue:
+   replace` (below).
+
+**Every play replaces the queue (sprint M23, 2026-11-21).** Music
+Assistant's per-queue default enqueue option is `replace` for every media
+type except a track, whose default is `play`: insert at the current
+position, start it, and keep everything after it. Nothing stated the
+option, so "play the song X" on a speaker with a queue played X and then
+the old queue came back (`../incidents/INVESTIGATION_2026-11-21_cracker_radio.md`).
+Now every `music_assistant.play_media` says `enqueue: replace`: the named
+play, the literal fallback, stations, links, Kronk's picks and "not that"
+in tool_service (`music_resolve.PLAY_ENQUEUE`, sent by
+`main._named_play_data` and `taste.Pick.play_data`, shown in the dry-run
+`would_play`), and the blueprint's one `play_media` (fork change 15,
+`action_data.enqueue`). Albums, artists, playlists, stations and genres
+already replaced by default, and no queue overrides the default
+(`/data/settings.json` in the MA container holds no
+`default_enqueue_option_*`), so only track plays change. "Play X" now means
+X, then whatever X itself holds, then silence. No path adds to a queue
+("play X next", "add X to the queue"): none existed before, and "queue up
+X" has always been a play verb. Pinned by `tests/test_music_enqueue.py`,
+which also counts the call sites (one in tool_service, one in the
+blueprint, none in the orchestrator). HA's own built-in media intents
+(`HassMediaSearchAndPlay`) still use MA's default; Kronk's paths take every
+sentence those would.
 
 **The two tiers must agree.** The blueprint's Jinja
 (`player_entity_id_by_player_name` → `_by_area_name` → `_by_assist_area`
@@ -472,11 +496,13 @@ silent until you ask "what song is this".
   *radio mode* per request (blueprint: "... with radio mode"; Kronk's tool
   does not pass it) seeds the queue with the item and keeps adding the
   provider's song-radio picks; *Don't stop the music* per player queue
-  continues with similar tracks when the queue runs dry. The kitchen
-  queue (`up20f83b0ac919`) has Don't stop the music **on** (set via the MA
-  API `player_queues/dont_stop_the_music`, 2026-09-16); the other six
-  queues are off. Whether MA keeps the flag across its own restart is
-  unverified — check it after the next deliberate MA restart.
+  continues with similar tracks when the queue runs dry. It was turned
+  on for the kitchen queue (`up20f83b0ac919`) via the MA API
+  `player_queues/dont_stop_the_music` on 2026-09-16. On 2026-11-21 every
+  queue read off, the kitchen included
+  (`../incidents/INVESTIGATION_2026-11-21_cracker_radio.md`); whether an MA
+  restart dropped it or someone turned it off is not known. Turning it back
+  on is an MA setting, the operator's call.
 - Gotcha kept from the same day: song titles containing "in"/"on" get
   chopped by the blueprint's optional `[(in|on|using) {area_or_player_name}]`
   clause ("The Girl with the Sun in Her Head by Orbital" → media "The Girl

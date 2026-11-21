@@ -183,6 +183,6 @@ def test_a_room_with_no_player_is_refused_with_the_cause():
                                "Rooms with a speaker: Kitchen, Office.")
 
 
-def test_blueprint_version_names_change_14():
+def test_blueprint_version_names_change_15():
     blocks = hte.blueprint_variable_blocks()
-    assert blocks[0]["version"] == "20250404-kronk14"
+    assert blocks[0]["version"] == "20250404-kronk15"

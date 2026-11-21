@@ -20,7 +20,8 @@
    "detail": "Dry run: would play the Pandora station Anime Pop Radio on the Kitchen speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://radio/253",
-    "media_type": "radio"
+    "media_type": "radio",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "station": {
@@ -59,7 +60,8 @@
    "detail": "Dry run: would play the Pandora station Anime Pop Radio on the Kitchen speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://radio/253",
-    "media_type": "radio"
+    "media_type": "radio",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "station": {
@@ -99,7 +101,8 @@
    "detail": "Dry run: would play the Pandora station Anime Pop Radio on the basement voice pe ma speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://radio/253",
-    "media_type": "radio"
+    "media_type": "radio",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "station": {
@@ -139,7 +142,8 @@
    "detail": "Dry run: would play the Pandora station Mushroom Jazz Radio on the basement voice pe ma speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://radio/258",
-    "media_type": "radio"
+    "media_type": "radio",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "station": {
@@ -179,7 +183,8 @@
    "detail": "Dry run: would play the artist Portishead on the basement voice pe ma speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://artist/1251",
-    "media_type": "artist"
+    "media_type": "artist",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "resolved": {
@@ -222,7 +227,8 @@
    "detail": "Dry run: would play the radio Orbital Radio on the Kitchen speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://radio/294",
-    "media_type": "radio"
+    "media_type": "radio",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "resolved": {
@@ -292,7 +298,8 @@
    "detail": "Dry run: would play the Pandora station Orbital Radio on the Kitchen speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://radio/294",
-    "media_type": "radio"
+    "media_type": "radio",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "station": {
@@ -331,7 +338,8 @@
    "detail": "Dry run: would play the Pandora station Orbital Radio on the Kitchen speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://radio/294",
-    "media_type": "radio"
+    "media_type": "radio",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "station": {
@@ -370,7 +378,8 @@
    "detail": "Dry run: would play the Pandora station Massive Attack Radio on the Kitchen speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://radio/256",
-    "media_type": "radio"
+    "media_type": "radio",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "station": {
@@ -409,7 +418,8 @@
    "detail": "Dry run: would play the Pandora station Orbital Radio on the Kitchen speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://radio/294",
-    "media_type": "radio"
+    "media_type": "radio",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "station": {
@@ -448,7 +458,8 @@
    "detail": "Dry run: would play the Pandora station French Dinner Radio on the Kitchen speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://radio/269",
-    "media_type": "radio"
+    "media_type": "radio",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "station": {
@@ -487,7 +498,8 @@
    "detail": "Dry run: would play the Pandora station French Dinner Radio on the Kitchen speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://radio/269",
-    "media_type": "radio"
+    "media_type": "radio",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "station": {
@@ -526,7 +538,8 @@
    "detail": "Dry run: would play the Pandora station French Cafe Radio on the Kitchen speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://radio/296",
-    "media_type": "radio"
+    "media_type": "radio",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "station": {
@@ -563,7 +576,8 @@
    "detail": "Dry run: would play the track The Girl With The Sun In Her Head by Orbital on the Office speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://track/1520",
-    "media_type": "track"
+    "media_type": "track",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "resolved": {
@@ -615,7 +629,8 @@
    "detail": "Dry run: would play the playlist anime bangers on the Office speaker, shuffled. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://playlist/13",
-    "media_type": "playlist"
+    "media_type": "playlist",
+    "enqueue": "replace"
    },
    "shuffle": true,
    "resolved": {
@@ -661,7 +676,8 @@
    "detail": "Dry run: would play Mushroom Jazz Radio, for jazz, on the Office speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://radio/258",
-    "media_type": "radio"
+    "media_type": "radio",
+    "enqueue": "replace"
    },
    "pick": {
     "label": "Mushroom Jazz Radio",
@@ -714,7 +730,8 @@
    "detail": "Dry run: would play the radio 90s, 2000s, Today's Hits Radio on the basement voice pe ma speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://radio/263",
-    "media_type": "radio"
+    "media_type": "radio",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "resolved": {
@@ -794,7 +811,8 @@
    "detail": "Dry run: would play the album Daisies of the Galaxy by Eels on the Kitchen speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://album/557",
-    "media_type": "album"
+    "media_type": "album",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "resolved": {
@@ -846,7 +864,8 @@
    "detail": "Dry run: would play Deep House Radio, for deep house chill, on the Kitchen speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://radio/280",
-    "media_type": "radio"
+    "media_type": "radio",
+    "enqueue": "replace"
    },
    "pick": {
     "label": "Deep House Radio",
@@ -916,7 +935,8 @@
    "detail": "Dry run: would play the album Destiny Waiving by Ulrich Schnauss and Mark Peters on the Office speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "ytmusic--kGmHoQDn://album/MPREb_FZkLnRytAxt",
-    "media_type": "album"
+    "media_type": "album",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "resolved": {
@@ -968,7 +988,8 @@
    "detail": "Dry run: would play the album Destiny Waiving by Ulrich Schnauss and Mark Peters on the Kitchen speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "ytmusic--kGmHoQDn://album/MPREb_FZkLnRytAxt",
-    "media_type": "album"
+    "media_type": "album",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "resolved": {
@@ -1020,7 +1041,8 @@
    "detail": "Dry run: would play the album Hôtel Costes by Various Artists on the Kitchen speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "ytmusic--kGmHoQDn://album/MPREb_hESvVPVLT1l",
-    "media_type": "album"
+    "media_type": "album",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "resolved": {
@@ -1062,7 +1084,8 @@
    "detail": "Dry run: would play the album Hôtel Costes 3 - Etage 3 by Hôtel Costes on the Kitchen speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "ytmusic--kGmHoQDn://album/MPREb_wt5bvurCWyn",
-    "media_type": "album"
+    "media_type": "album",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "resolved": {
@@ -1103,7 +1126,8 @@
    "detail": "Dry run: would play the album Destiny Waiving by Ulrich Schnauss and Mark Peters on the Office speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "ytmusic--kGmHoQDn://album/MPREb_FZkLnRytAxt",
-    "media_type": "album"
+    "media_type": "album",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "resolved": {
@@ -1146,7 +1170,8 @@
    "detail": "Dry run: would play the Pandora station 90s, 2000s, Today's Hits Radio on the Office speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://radio/263",
-    "media_type": "radio"
+    "media_type": "radio",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "station": {
@@ -1185,7 +1210,8 @@
    "detail": "Dry run: would play the Pandora station 90s, 2000s, Today's Hits Radio on the Office speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://radio/263",
-    "media_type": "radio"
+    "media_type": "radio",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "station": {
@@ -1224,7 +1250,8 @@
    "detail": "Dry run: would play the Pandora station Sounds of Woodstock Radio on the Office speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://radio/264",
-    "media_type": "radio"
+    "media_type": "radio",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "station": {
@@ -1265,7 +1292,8 @@
    "detail": "Dry run: would play the playlist old man sings on the basement voice pe ma speaker, shuffled. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://playlist/12",
-    "media_type": "playlist"
+    "media_type": "playlist",
+    "enqueue": "replace"
    },
    "shuffle": true,
    "resolved": {
@@ -1313,7 +1341,8 @@
    "detail": "Dry run: would play the radio 90s, 2000s, Today's Hits Radio on the Kitchen speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://radio/263",
-    "media_type": "radio"
+    "media_type": "radio",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "resolved": {
@@ -1383,7 +1412,8 @@
    "detail": "Dry run: would play Mushroom Jazz Radio, for jazz, on the Office speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://radio/258",
-    "media_type": "radio"
+    "media_type": "radio",
+    "enqueue": "replace"
    },
    "pick": {
     "label": "Mushroom Jazz Radio",
@@ -1432,7 +1462,8 @@
    "detail": "Dry run: would play Deep House Radio, for deep house chill, on the Office speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://radio/280",
-    "media_type": "radio"
+    "media_type": "radio",
+    "enqueue": "replace"
    },
    "pick": {
     "label": "Deep House Radio",
@@ -1501,7 +1532,8 @@
    "detail": "Dry run: would play italian cooking music, for italian, on the Office speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "ytmusic--kGmHoQDn://playlist/VLPLeffkdQ-r0eBWwi1VqZHDkgcVidR1TJUU",
-    "media_type": "playlist"
+    "media_type": "playlist",
+    "enqueue": "replace"
    },
    "pick": {
     "label": "italian cooking music",
@@ -1550,7 +1582,8 @@
    "detail": "Dry run: would play Deep House Radio, for deep house, on the Office speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://radio/280",
-    "media_type": "radio"
+    "media_type": "radio",
+    "enqueue": "replace"
    },
    "pick": {
     "label": "Deep House Radio",
@@ -1600,7 +1633,8 @@
    "detail": "Dry run: would play the artist Portishead on the Office speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://artist/1251",
-    "media_type": "artist"
+    "media_type": "artist",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "resolved": {
@@ -1642,7 +1676,8 @@
    "detail": "Dry run: would play the artist Pink Floyd on the Sonos Move Derp speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://artist/81",
-    "media_type": "artist"
+    "media_type": "artist",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "resolved": {
@@ -1684,7 +1719,8 @@
    "detail": "Dry run: would play the Pandora station K-Pop Radio, made new on the Sonos Move Derp speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "pandora://radio/seed:AR:8435939",
-    "media_type": "radio"
+    "media_type": "radio",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "station": {
@@ -1723,7 +1759,8 @@
    "detail": "Dry run: would play the playlist anime bangers on the Sonos Move Derp speaker, shuffled. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://playlist/13",
-    "media_type": "playlist"
+    "media_type": "playlist",
+    "enqueue": "replace"
    },
    "shuffle": true,
    "resolved": {
@@ -1770,7 +1807,8 @@
    "detail": "Dry run: would play the artist Pink Floyd on the Office speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://artist/81",
-    "media_type": "artist"
+    "media_type": "artist",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "resolved": {
@@ -1812,7 +1850,8 @@
    "detail": "Dry run: would play the artist Pink Floyd on the Sonos Move Derp speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://artist/81",
-    "media_type": "artist"
+    "media_type": "artist",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "resolved": {
@@ -1853,7 +1892,8 @@
    "detail": "Dry run: would play Mushroom Jazz Radio, for jazz, on the Sonos Move Derp speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://radio/258",
-    "media_type": "radio"
+    "media_type": "radio",
+    "enqueue": "replace"
    },
    "pick": {
     "label": "Mushroom Jazz Radio",
@@ -1904,7 +1944,8 @@
    "detail": "Dry run: would play the artist The Beatles on the Kitchen speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://artist/77",
-    "media_type": "artist"
+    "media_type": "artist",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "resolved": {
@@ -1946,7 +1987,8 @@
    "detail": "Dry run: would play the artist Pink Floyd on the Kitchen speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://artist/81",
-    "media_type": "artist"
+    "media_type": "artist",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "resolved": {
@@ -1987,7 +2029,8 @@
    "detail": "Dry run: would play the track Albuquerque by Weird Al Yankovic on the Office speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://track/14251",
-    "media_type": "track"
+    "media_type": "track",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "resolved": {
@@ -2039,7 +2082,8 @@
    "detail": "Dry run: would play the artist Weird Al Yankovic on the Sonos Move Derp speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://artist/1115",
-    "media_type": "artist"
+    "media_type": "artist",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "resolved": {
@@ -2081,7 +2125,8 @@
    "detail": "Dry run: would play the artist Journey on the Sonos Move Derp speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://artist/1341",
-    "media_type": "artist"
+    "media_type": "artist",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "resolved": {
@@ -2137,7 +2182,8 @@
    "detail": "Dry run: would play the artist Pink Floyd on the Sonos Move Derp speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://artist/81",
-    "media_type": "artist"
+    "media_type": "artist",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "resolved": {
@@ -2179,7 +2225,8 @@
    "detail": "Dry run: would play the track Don't Stop Me Now by Queen on the satellite 1 ma speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "ytmusic--kGmHoQDn://track/1UjLFMg18cY",
-    "media_type": "track"
+    "media_type": "track",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "resolved": {
@@ -2231,7 +2278,8 @@
    "detail": "Dry run: would play the artist Aerosmith on the Office speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://artist/268",
-    "media_type": "artist"
+    "media_type": "artist",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "resolved": {
@@ -2272,7 +2320,8 @@
    "detail": "Dry run: would play the album Toys In The Attic by Aerosmith on the Office speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "ytmusic--kGmHoQDn://album/MPREb_VOMghHjJRyh",
-    "media_type": "album"
+    "media_type": "album",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "resolved": {
@@ -2323,7 +2372,8 @@
    "detail": "Dry run: would play the album Toys In The Attic by Aerosmith on the Office speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "ytmusic--kGmHoQDn://album/MPREb_VOMghHjJRyh",
-    "media_type": "album"
+    "media_type": "album",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "resolved": {
@@ -2365,7 +2415,8 @@
    "detail": "Dry run: would play the playlist anime bangers on the Office speaker, shuffled. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://playlist/13",
-    "media_type": "playlist"
+    "media_type": "playlist",
+    "enqueue": "replace"
    },
    "shuffle": true,
    "resolved": {
@@ -2413,7 +2464,8 @@
    "detail": "Dry run: would play the playlist Old man video games on the Office speaker, shuffled. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "ytmusic--kGmHoQDn://playlist/VLPL0aUO9VyzQxd96o-H3aJjfBsIyRch37F8",
-    "media_type": "playlist"
+    "media_type": "playlist",
+    "enqueue": "replace"
    },
    "shuffle": true,
    "resolved": {
@@ -2461,7 +2513,8 @@
    "detail": "Dry run: would play the playlist anime bangers on the Office speaker, shuffled. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://playlist/13",
-    "media_type": "playlist"
+    "media_type": "playlist",
+    "enqueue": "replace"
    },
    "shuffle": true,
    "resolved": {
@@ -2509,7 +2562,8 @@
    "detail": "Dry run: would play the playlist anime bangers on the Office speaker, shuffled. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://playlist/13",
-    "media_type": "playlist"
+    "media_type": "playlist",
+    "enqueue": "replace"
    },
    "shuffle": true,
    "resolved": {
@@ -2556,7 +2610,8 @@
    "detail": "Dry run: would play the artist Aerosmith on the Office speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://artist/268",
-    "media_type": "artist"
+    "media_type": "artist",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "resolved": {
@@ -2597,7 +2652,8 @@
    "detail": "Dry run: would play the artist Aerosmith on the Office speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://artist/268",
-    "media_type": "artist"
+    "media_type": "artist",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "resolved": {
@@ -2638,7 +2694,8 @@
    "detail": "Dry run: would play the Pandora station Portishead Radio on the Office speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://radio/284",
-    "media_type": "radio"
+    "media_type": "radio",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "station": {
@@ -2712,7 +2769,8 @@
    "detail": "Dry run: would play the Pandora station German Soundscape Radio on the Office speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://radio/255",
-    "media_type": "radio"
+    "media_type": "radio",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "station": {
@@ -2750,7 +2808,8 @@
    "detail": "Dry run: would play the Pandora station Groove Armada Radio on the Kitchen speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://radio/302",
-    "media_type": "radio"
+    "media_type": "radio",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "station": {
@@ -2787,7 +2846,8 @@
    "detail": "Dry run: would play the album Daisies of the Galaxy by Eels on the Office speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://album/557",
-    "media_type": "album"
+    "media_type": "album",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "resolved": {
@@ -2839,7 +2899,8 @@
    "detail": "Dry run: would play the playlist video game pretty songs on the Office speaker, shuffled. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://playlist/8",
-    "media_type": "playlist"
+    "media_type": "playlist",
+    "enqueue": "replace"
    },
    "shuffle": true,
    "resolved": {
@@ -2887,7 +2948,8 @@
    "detail": "Dry run: would play the playlist Old man video games on the Office speaker, shuffled. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "ytmusic--kGmHoQDn://playlist/VLPL0aUO9VyzQxd96o-H3aJjfBsIyRch37F8",
-    "media_type": "playlist"
+    "media_type": "playlist",
+    "enqueue": "replace"
    },
    "shuffle": true,
    "resolved": {
@@ -2935,7 +2997,8 @@
    "detail": "Dry run: would play the playlist Old man video games on the Office speaker, shuffled. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "ytmusic--kGmHoQDn://playlist/VLPL0aUO9VyzQxd96o-H3aJjfBsIyRch37F8",
-    "media_type": "playlist"
+    "media_type": "playlist",
+    "enqueue": "replace"
    },
    "shuffle": true,
    "resolved": {
@@ -2982,7 +3045,8 @@
    "detail": "Dry run: would play the playlist video game pretty songs on the Office speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://playlist/8",
-    "media_type": "playlist"
+    "media_type": "playlist",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "resolved": {
@@ -3030,7 +3094,8 @@
    "detail": "Dry run: would play the Pandora station Deep Chill House Radio, made new on the Kitchen speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "pandora://radio/seed:AR:1499861",
-    "media_type": "radio"
+    "media_type": "radio",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "station": {
@@ -3067,7 +3132,8 @@
    "detail": "Dry run: would play the Pandora station Thievery Corporation Radio on the Office speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://radio/293",
-    "media_type": "radio"
+    "media_type": "radio",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "station": {
@@ -3104,7 +3170,8 @@
    "detail": "Dry run: would play Deep House Radio, for deep house chill, on the Office speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://radio/280",
-    "media_type": "radio"
+    "media_type": "radio",
+    "enqueue": "replace"
    },
    "pick": {
     "label": "Deep House Radio",
@@ -3173,7 +3240,8 @@
    "detail": "Dry run: would play Deep House Radio, for deep chill house, on the Office speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://radio/280",
-    "media_type": "radio"
+    "media_type": "radio",
+    "enqueue": "replace"
    },
    "pick": {
     "label": "Deep House Radio",
@@ -3244,7 +3312,8 @@
    "detail": "Dry run: would play the track Lunchlady Land by Adam Sandler on the Kitchen speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "ytmusic--kGmHoQDn://track/HsqyxsogrvA",
-    "media_type": "track"
+    "media_type": "track",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "resolved": {
@@ -3296,7 +3365,8 @@
    "detail": "Dry run: would play the track Lunchlady Land by Adam Sandler on the Kitchen speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "ytmusic--kGmHoQDn://track/HsqyxsogrvA",
-    "media_type": "track"
+    "media_type": "track",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "resolved": {
@@ -3348,7 +3418,8 @@
    "detail": "Dry run: would play the track Lunchlady Land by Adam Sandler on the Kitchen speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "ytmusic--kGmHoQDn://track/HsqyxsogrvA",
-    "media_type": "track"
+    "media_type": "track",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "resolved": {
@@ -3399,7 +3470,8 @@
    "detail": "Dry run: would play the Pandora station Anime Pop Radio on the Office speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://radio/253",
-    "media_type": "radio"
+    "media_type": "radio",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "station": {
@@ -3436,7 +3508,8 @@
    "detail": "Dry run: would play the Pandora station Justin Johnson Radio on the Office speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://radio/252",
-    "media_type": "radio"
+    "media_type": "radio",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "station": {
@@ -3522,7 +3595,8 @@
    "detail": "Dry run: would play the Pandora station Groove Armada Radio on the Kitchen speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://radio/302",
-    "media_type": "radio"
+    "media_type": "radio",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "station": {
@@ -3561,7 +3635,8 @@
    "detail": "Dry run: would play the Pandora station French Dinner Radio on the Kitchen speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://radio/269",
-    "media_type": "radio"
+    "media_type": "radio",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "station": {
@@ -3599,7 +3674,8 @@
    "detail": "Dry run: would play Deep House Radio, for deep house, on the Office speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://radio/280",
-    "media_type": "radio"
+    "media_type": "radio",
+    "enqueue": "replace"
    },
    "pick": {
     "label": "Deep House Radio",
@@ -3650,7 +3726,8 @@
    "detail": "Dry run: would play Mushroom Jazz Radio, for jazz, on the Office speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://radio/258",
-    "media_type": "radio"
+    "media_type": "radio",
+    "enqueue": "replace"
    },
    "pick": {
     "label": "Mushroom Jazz Radio",
@@ -3702,7 +3779,8 @@
    "detail": "Dry run: would play Mushroom Jazz Radio, for jazz, on the Office speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://radio/258",
-    "media_type": "radio"
+    "media_type": "radio",
+    "enqueue": "replace"
    },
    "pick": {
     "label": "Mushroom Jazz Radio",
@@ -3754,7 +3832,8 @@
    "detail": "Dry run: would play the Pandora station Anime Pop Radio on the Kitchen speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://radio/253",
-    "media_type": "radio"
+    "media_type": "radio",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "station": {
@@ -3793,7 +3872,8 @@
    "detail": "Dry run: would play the track Mr. Brightside by The Killers on the Office speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "ytmusic--kGmHoQDn://track/m2zUrruKjDQ",
-    "media_type": "track"
+    "media_type": "track",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "resolved": {
@@ -3846,7 +3926,8 @@
    "detail": "Dry run: would play the Pandora station St. Vincent Radio, made new on the Office speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "pandora://radio/seed:AR:234976",
-    "media_type": "radio"
+    "media_type": "radio",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "station": {
@@ -3885,7 +3966,8 @@
    "detail": "Dry run: would play the artist R.E.M. on the Office speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "ytmusic--kGmHoQDn://artist/UCZQMYjqm_j5mBVTfPcCy3FA",
-    "media_type": "artist"
+    "media_type": "artist",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "resolved": {
@@ -3928,7 +4010,8 @@
    "detail": "Dry run: would play the artist Dr. Dre on the Office speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "ytmusic--kGmHoQDn://artist/UC1g7JmTw4Gv8W9YINg3M1FA",
-    "media_type": "artist"
+    "media_type": "artist",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "resolved": {
@@ -3971,7 +4054,8 @@
    "detail": "Dry run: would play the artist U2 on the Office speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://artist/782",
-    "media_type": "artist"
+    "media_type": "artist",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "resolved": {
@@ -4014,7 +4098,8 @@
    "detail": "Dry run: would play the track Mambo No. 5 (a Little Bit of...) by Lou Bega on the Office speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "ytmusic--kGmHoQDn://track/RUBvqz3ozv8",
-    "media_type": "track"
+    "media_type": "track",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "resolved": {
@@ -4067,7 +4152,8 @@
    "detail": "Dry run: would play the radio Hotel Costes Radio on the Kitchen speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://radio/274",
-    "media_type": "radio"
+    "media_type": "radio",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "resolved": {
@@ -4137,7 +4223,8 @@
    "detail": "Dry run: would play the Pandora station Anime Pop Radio on the Office speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://radio/253",
-    "media_type": "radio"
+    "media_type": "radio",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "station": {
@@ -4176,7 +4263,8 @@
    "detail": "Dry run: would play the artist Panic! At The Disco on the Office speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "ytmusic--kGmHoQDn://artist/UC5J__UU0Y7ZAVluolcIjrbw",
-    "media_type": "artist"
+    "media_type": "artist",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "resolved": {
@@ -4216,7 +4304,8 @@
    "detail": "Dry run: would play Mushroom Jazz Radio, for jazz, on the Office speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://radio/258",
-    "media_type": "radio"
+    "media_type": "radio",
+    "enqueue": "replace"
    },
    "pick": {
     "label": "Mushroom Jazz Radio",
@@ -4266,7 +4355,8 @@
    "detail": "Dry run: would play the track Jazz Music by De-Phazz on the Office speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://track/8698",
-    "media_type": "track"
+    "media_type": "track",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "resolved": {
@@ -4317,7 +4407,8 @@
    "detail": "Dry run: would play the track Burning Down The House by Talking Heads on the Office speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://track/13021",
-    "media_type": "track"
+    "media_type": "track",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "resolved": {
@@ -4371,7 +4462,8 @@
    "detail": "Dry run: would play the track The Girl With The Sun In Her Head by Orbital on the Office speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://track/1520",
-    "media_type": "track"
+    "media_type": "track",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "resolved": {
@@ -4425,7 +4517,8 @@
    "detail": "Dry run: would play the album Toys In The Attic by Aerosmith on the Kitchen speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "ytmusic--kGmHoQDn://album/MPREb_VOMghHjJRyh",
-    "media_type": "album"
+    "media_type": "album",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "resolved": {
@@ -4478,7 +4571,8 @@
    "detail": "Dry run: would play the Pandora station Handcuffed To A Fence In Mississippi Radio on the Office speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://radio/285",
-    "media_type": "radio"
+    "media_type": "radio",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "station": {
@@ -4517,7 +4611,8 @@
    "detail": "Dry run: would play Mushroom Jazz Radio, for jazz, on the basement voice pe ma speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://radio/258",
-    "media_type": "radio"
+    "media_type": "radio",
+    "enqueue": "replace"
    },
    "pick": {
     "label": "Mushroom Jazz Radio",
@@ -4570,7 +4665,8 @@
    "detail": "Dry run: would play the album Get A Grip by Aerosmith on the basement voice pe ma speaker. Nothing was sent to the speaker.",
    "would_play": {
     "media_id": "library://album/247",
-    "media_type": "album"
+    "media_type": "album",
+    "enqueue": "replace"
    },
    "shuffle": false,
    "resolved": {

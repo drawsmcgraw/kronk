@@ -90,6 +90,6 @@ def test_literal_fallback_unchanged(fail, tmp_path):
     with snapmod.offline_env(SNAP, tmp_path, ma=_EmptyMA(fail)):
         r = TestClient(ts.app).post("/music", json={"query": "Zorblax Fnordwave", "media_type": "album"})
     assert r.status_code == 200, r.text
-    assert r.json()["would_play"] == {"media_id": "Zorblax Fnordwave", "media_type": "album"}
+    assert r.json()["would_play"] == {"media_id": "Zorblax Fnordwave", "media_type": "album", "enqueue": "replace"}
     assert r.json()["detail"] == ("Dry run: would play the album Zorblax Fnordwave on the Office speaker. "
                                   "Nothing was sent to the speaker.")

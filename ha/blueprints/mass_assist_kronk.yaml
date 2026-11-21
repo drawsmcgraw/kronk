@@ -51,6 +51,11 @@
 #      satellite is in "Basement Theater", its MA player was in no area,
 #      and every unnamed basement hand-off asked Kronk for a room it could
 #      not play in (INVESTIGATION_2026-11-19_basement_aerosmith.md).
+#  15. (2026-11-21) every play_media says `enqueue: replace`. Music
+#      Assistant's default for a track is `play`, which keeps the rest of the
+#      queue: "play the song X" played X and then the old queue came back.
+#      Every other type already defaulted to replace, so only tracks change
+#      (INVESTIGATION_2026-11-21_cracker_radio.md, fix 1).
 #
 # Resolution: named player → named room (group-preferred) → own device →
 # own device's room (group-preferred) → default.
@@ -310,7 +315,7 @@ triggers:
 actions:
 - alias: Define variables to be used in the automation
   variables:
-    version: 20250404-kronk14
+    version: 20250404-kronk15
     shuffle: '{{ ''shuffle'' in trigger.sentence | lower }}'
     default_player_entity_id: !input default_player_entity_id_input
     trigger_id: '{{ trigger.id }}'
@@ -330,6 +335,11 @@ actions:
         }}'
       artist: '{{ trigger.slots.artist | default }}'
       radio_mode: '{{ ''radio'' in trigger.slots.radio_mode | default | lower }}'
+      # KRONK change 15: say what happens to the queue. MA's default for a
+      # track is `play` (insert and keep the rest of the queue); replace is
+      # already every other type's default. tool_service sends the same
+      # (music_resolve.PLAY_ENQUEUE).
+      enqueue: replace
     ma_players: '{{  integration_entities(''music_assistant'') | select(''match'',
       ''media_player'') | list }}'
     player_entity_id_by_player_name: "{{ ma_players | expand \n  | selectattr('name',

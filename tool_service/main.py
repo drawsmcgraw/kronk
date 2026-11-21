@@ -1654,16 +1654,25 @@ async def _play_music_live(req: MusicRequest):
             if resolved and is_radio and "pandora" in resolved.providers:
                 station = {"name": resolved.name, "uri": resolved.uri, "created": False}
         if resolved:
-            service_data = {"media_id": resolved.uri, "media_type": resolved.media_type}
+            service_data = _named_play_data(resolved.uri, resolved.media_type)
         else:
-            service_data = {"media_id": nq.uri or (station["uri"] if station else nq.text)}
-            if media_type:
-                service_data["media_type"] = media_type
+            service_data = _named_play_data(nq.uri or (station["uri"] if station else nq.text), media_type)
         if nq.provider or nq.uri:
             logger.info("music query normalized %r -> %r (provider=%s)", telemetry.text(req.query, 120),
                         telemetry.text(service_data["media_id"], 120), nq.provider)
         return await _play_named(client, headers, entities, label, service_data, bool(req.shuffle),
                                  resolved, station)
+
+
+def _named_play_data(media_id: str, media_type: str | None) -> dict:
+    """play_media service data for a named play: the item, its type when
+    known, and enqueue replace (music_resolve.PLAY_ENQUEUE): "play X" means
+    X, not X and then the rest of the old queue."""
+    data = {"media_id": media_id}
+    if media_type:
+        data["media_type"] = media_type
+    data["enqueue"] = music_resolve.PLAY_ENQUEUE
+    return data
 
 
 async def _play_named(client: httpx.AsyncClient, headers: dict, entities: list[str], label: str,
@@ -2436,7 +2445,7 @@ async def music_say(req: MusicSayRequest):
                 info = await _play_genre(client, headers, d.entities, d.label, mreq, o.plan, dry_run=dry)
             else:
                 info = await _play_named(client, headers, d.entities, d.label,
-                                         {"media_id": o.uri, "media_type": o.media_type},
+                                         _named_play_data(o.uri, o.media_type),
                                          d.parsed.shuffle, o.candidate, o.station, dry_run=dry)
     except HTTPException as e:
         return {"ok": False, "say": f"I couldn't play that. {e.detail}", **base}

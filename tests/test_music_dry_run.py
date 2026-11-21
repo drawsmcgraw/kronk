@@ -58,7 +58,7 @@ def test_on_named_play_sends_nothing_and_says_what_it_would_play(music_env, dry)
     body = r.json()
     assert music_env.calls == []                              # no play_media, no shuffle_set
     assert body["dry_run"] is True and body["status"] == "dry_run" and body["action"] == "play"
-    assert body["would_play"] == {"media_id": "Portishead", "media_type": "artist"}
+    assert body["would_play"] == {"media_id": "Portishead", "media_type": "artist", "enqueue": "replace"}
     assert body["targets"] == ["media_player.kitchen_ma"]
     assert body["detail"] == ("Dry run: would play the artist Portishead on the Kitchen speaker, shuffled. "
                               "Nothing was sent to the speaker.")
@@ -70,7 +70,7 @@ def test_on_resolved_album_names_the_record_search_found(search_env, dry):
     assert r.status_code == 200, r.text
     assert search_env.calls == []
     body = r.json()
-    assert body["would_play"] == {"media_id": "ytmusic://album/MPREb_FZkLnRytAxt", "media_type": "album"}
+    assert body["would_play"] == {"media_id": "ytmusic://album/MPREb_FZkLnRytAxt", "media_type": "album", "enqueue": "replace"}
     assert body["resolved"]["name"] == "Destiny Waiving"
     assert body["detail"].startswith("Dry run: would play the album Destiny Waiving by Ulrich Schnauss")
     # the searches themselves still ran: dry run exercises the resolver
@@ -95,7 +95,7 @@ def test_on_genre_pick_is_chosen_but_not_played_or_recorded(genre_env, dry):
     assert genre_env.calls == []                              # no shuffle_set, no play_media
     body = r.json()
     assert body["pick"] == {"label": "Parov Stelar", "phrase": "deep house", "kind": "artist"}
-    assert body["would_play"] == {"media_id": "library://artist/ps", "media_type": "artist"}
+    assert body["would_play"] == {"media_id": "library://artist/ps", "media_type": "artist", "enqueue": "replace"}
     assert body["detail"] == ("Dry run: would play Parov Stelar, for deep house, on the Kitchen speaker. "
                               "Nothing was sent to the speaker.")
     with taste.db(genre_env.db) as con:

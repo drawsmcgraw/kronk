@@ -662,7 +662,7 @@ class Pick:
         has a pandora://artist URI, which can't seed artist radio — play it
         by name and let MA find it in the library or YouTube Music."""
         mid = self.name if self.kind == "artist" and self.uri.startswith("pandora://") else self.uri
-        data = {"media_id": mid, "media_type": self.media_type}
+        data = {"media_id": mid, "media_type": self.media_type, "enqueue": music_resolve.PLAY_ENQUEUE}
         if self.radio_mode:
             data["radio_mode"] = True
         return data

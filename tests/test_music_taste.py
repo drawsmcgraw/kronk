@@ -328,7 +328,7 @@ def test_genre_request_plays_the_households_artist_as_radio(genre_env):
     # an artist's own tracks are shuffled into a mix, set before the play
     assert genre_env.calls[0][:3] == ("media_player", "shuffle_set", {"shuffle": True})
     _, _, data, _ = genre_env.calls[1]
-    assert data == {"media_id": "library://artist/ps", "media_type": "artist"}
+    assert data == {"media_id": "library://artist/ps", "media_type": "artist", "enqueue": "replace"}
     assert r.json()["pick"] == {"label": "Parov Stelar", "phrase": "deep house", "kind": "artist"}
     with taste.db(genre_env.db) as con:
         assert [tuple(r) for r in con.execute("SELECT label, phrase FROM picks")] == [("Parov Stelar", "deep house")]
@@ -361,7 +361,7 @@ def test_not_that_plays_the_next_pick_and_records_the_rejection(genre_env):
     r = _post(query="another", kind="another")
     assert r.status_code == 200, r.text
     assert r.json()["pick"]["label"] == "DEEP HOUSE Radio"
-    assert genre_env.calls[0][2] == {"media_id": "library://radio/dh", "media_type": "radio"}
+    assert genre_env.calls[0][2] == {"media_id": "library://radio/dh", "media_type": "radio", "enqueue": "replace"}
     with taste.db(genre_env.db) as con:
         fb = [tuple(r) for r in con.execute("SELECT key, delta, reason FROM feedback")]
     assert fb == [("artist:parov stelar", ts.FEEDBACK_REJECTED, "rejected")]
@@ -445,7 +445,7 @@ def test_choose_keeps_one_entry_per_uri():
 def test_a_pandora_only_artist_plays_by_name():
     p = taste.Pick("artist", "pandora://artist/Santana", "Santana radio", "artist:santana", 1.0, "artist",
                    radio_mode=True, name="Santana")
-    assert p.play_data() == {"media_id": "Santana", "media_type": "artist", "radio_mode": True}
+    assert p.play_data() == {"media_id": "Santana", "media_type": "artist", "radio_mode": True, "enqueue": "replace"}
 
 
 def test_household_artists_outrank_search_playlists(genre_env):

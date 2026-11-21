@@ -29,6 +29,18 @@ except ImportError:
     import config_loader
 
 
+# What every play does to the player's queue: replace it. Music Assistant's
+# per-queue default for a track is "play" (insert at the current position
+# and keep the rest of the queue); every other type defaults to "replace".
+# Left unset, "play the song X" played X and then went back to whatever was
+# queued (INVESTIGATION_2026-11-21_cracker_radio.md). Sent by every play
+# tool_service makes (main._named_play_data, taste.Pick.play_data) and by
+# the blueprint (ha/blueprints/mass_assist_kronk.yaml, change 15). HA's
+# music_assistant.play_media takes it as `enqueue` (play, replace, next,
+# replace_next, add). No path adds to a queue today.
+PLAY_ENQUEUE = "replace"
+
+
 def policy() -> "config_loader.Resolver":
     """The resolver thresholds in effect: config/music.yaml resolver
     (sprint M21). Read at use, so a reload applies to the next request."""
