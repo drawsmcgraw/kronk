@@ -113,7 +113,9 @@ def main() -> int:
     ha_url = os.environ.get("HA_URL", "http://localhost:8123").rstrip("/")
     try:
         rows = check(read_satellites(ha_url, token))
-    except (urllib.error.URLError, ValueError, json.JSONDecodeError) as e:
+    except (OSError, ValueError, KeyError, AttributeError, TypeError) as e:
+        # OSError covers URLError and a read timeout; the others an answer
+        # whose rows are not what the template returns.
         print(f"satellite_area_check: could not read HA at {ha_url}: {e}", file=sys.stderr)
         return 2
     if args.json:

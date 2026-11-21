@@ -1377,7 +1377,12 @@ def _no_player_room(spoken_key: str, ha_areas: list[str] | None, player_areas: l
     exact = [a for a in bare if _norm(a) == spoken_key]
     if exact:
         return exact[0]
-    sub = [a for a in bare if spoken_key in _norm(a) or _norm(a) in spoken_key]
+    # The spoken words inside an area's name ("basement" in "basement
+    # theater"), or the area's name as whole words inside what was spoken
+    # ("bedroom" in "upstairs bedroom"). Not a bare substring the other way:
+    # "den" inside "garden" names no room.
+    words = f" {spoken_key} "
+    sub = [a for a in bare if spoken_key in _norm(a) or f" {_norm(a)} " in words]
     return sub[0] if len(sub) == 1 else None
 
 

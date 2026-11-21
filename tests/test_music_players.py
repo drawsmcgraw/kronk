@@ -447,3 +447,23 @@ def test_route_playback_never_starting_names_the_target(ha):
         resp = TestClient(ts.app).post("/music", json={"query": "Aerosmith", "player": "kitchen"})
     assert resp.status_code == 502
     assert "did not start on the Kitchen speaker" in resp.json()["detail"]
+
+
+# --- M22 e2e findings (coordinator fixes) ---
+
+def test_e2e3_area_name_inside_another_word_is_not_that_room():
+    """'den' inside 'garden' names no room: the old unknown-target sentence."""
+    import pytest
+    from fastapi import HTTPException
+    with pytest.raises(HTTPException) as e:
+        ts.resolve_players("garden speaker", None, [KITCHEN], KITCHEN["entity_id"], ha_areas=["Den", "Kitchen"])
+    assert "has no Music Assistant speaker" not in str(e.value.detail)
+    assert "don't know" in str(e.value.detail)
+
+
+def test_e2e3_area_name_as_whole_words_in_the_spoken_target_still_matches():
+    import pytest
+    from fastapi import HTTPException
+    with pytest.raises(HTTPException) as e:
+        ts.resolve_players("upstairs bedroom", None, [KITCHEN], KITCHEN["entity_id"], ha_areas=["Bedroom", "Kitchen"])
+    assert "Bedroom has no Music Assistant speaker" in str(e.value.detail)

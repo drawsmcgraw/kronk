@@ -7,7 +7,7 @@
 # Installed to HA as blueprints/automation/kronk/mass_assist_kronk.yaml
 # (docker cp; upstream's file is left untouched).
 #
-# Three changes, everything else verbatim:
+# The numbered changes below, everything else verbatim:
 #   1. device rung — the MA player on the same physical device that heard
 #      the request (MAC join: ESPHome device `connections` → MA identifier
 #      'up' + MAC), placed ahead of the area rung
@@ -404,7 +404,7 @@ actions:
       {%- set in_room = (area_entities(area_id(assist_device_id)) | select('in', ma_players) | list) if room else [] -%}
       {%- if area_or_player_name -%}{{ trigger.sentence }}
       {%- elif own and in_room == [own] -%}{{ trigger.sentence }} in the {{ room }}
-      {%- elif own -%}{{ trigger.sentence }} on the {{ state_attr(own, 'friendly_name') }}
+      {%- elif own and state_attr(own, 'friendly_name') -%}{{ trigger.sentence }} on the {{ state_attr(own, 'friendly_name') }}
       {%- elif room and player_entity_id_by_assist_area -%}{{ trigger.sentence }} in the {{ room }}
       {%- else -%}{{ trigger.sentence }}{%- endif -%}
 # KRONK change 13: a playlist is the household's own, by exact name, or it

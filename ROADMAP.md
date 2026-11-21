@@ -32,7 +32,8 @@ Conventions:
   (`docs/features/upgrade-cadence.md`).
 
 - **The basement hand-off** *(sprint M22, 2026-11-21)* — the blueprint
-  names the satellite's own player before its room; tool_service says when
+  names the satellite's room only when that room's one speaker is the
+  satellite's own, and its own player otherwise; tool_service says when
   a room has no Music Assistant speaker instead of "unknown room".
   `docs/incidents/INVESTIGATION_2026-11-19_basement_aerosmith.md`.
 
