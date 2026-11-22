@@ -30,6 +30,11 @@ llama.cpp models, all on one machine (AMD Ryzen AI 375, Radeon 8060S iGPU,
 7. **`scripts/deploy_tag.sh`** (its header) and
    **`docs/sprint/PROMOTIONS.md`** — how production is deployed and what
    was last promoted.
+8. **`docs/sprint/WORKFLOW.md`** — how sizeable work is run: the session
+   coordinates, an Opus 5.5 build agent and a separate Fable 5.2 test
+   agent each work in their own herdr workspace with permissions skipped,
+   under the guard rails listed there. Follow it when the operator orders
+   a sprint item or asks for an agent to build or investigate.
 
 Then, only when the task touches that area (shipped features each have a
 distilled doc in `docs/features/` — start there, then the build journals):
