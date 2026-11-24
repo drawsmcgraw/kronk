@@ -301,5 +301,53 @@ launcher for agents; charts; notifications; changing the shape of
     list`). Production unchanged; HA and MA untouched; no sound; no
     notification.
 
+## Rulings (coordinator)
+
+- 2026-11-24, before the test: `kronk-work-export.timer` installed and
+  enabled at 18:25 local (first run 0.07 s, 82 KB, 30 items, M27 alone
+  under way, herdr known). Remove: `systemctl --user disable --now
+  kronk-work-export.timer`.
+- 2026-11-24, the coordinator's half of criterion 4: after `m27-test`
+  stopped, two reads of `/dev/api/work` 65 s apart gave "testing, agent
+  m27-test working" (the export of the minute before) and then "to
+  promote, test 1: PASSES", resting on the files.
+- 2026-11-24, on the test (`M27-e2e.md`, PASSES, no blocker): **fix round
+  1**, for what Drew sees first and for what can blank the page:
+  - S1: an agent herdr describes in a shape the exporter cannot read is
+    counted and skipped; the exporter still writes its file.
+  - S2: a file dated in the future shows the route's reason, not the
+    stale sentence.
+  - S3: a test for an open entry linked to a promoted item (today "Kronk's
+    voice: TTS trial", linked to M20): it stays in the backlog.
+  - S4: "For Drew" is counted when a line break falls inside it.
+  - S5: inside a heading entry a table is body, not promotions; item ids
+    match on word boundaries (`ARM64` is no item); a row label
+    `M30-step1` is that item.
+  - S6 and the tester's first change: a backlog entry shows its title,
+    its lead and its first sentence, and opens to the whole entry on a
+    click, as Done rows do; `*( … )*`, `*…*` and `[text](url)` are
+    rendered (a link as a link with `rel="noopener"`, its text set as
+    text), not shown as markup.
+  - The tester's third and fifth changes: a Done row names its item once
+    (id, title, tag, date; the entry heading and the Shipped title only
+    where they add something); the state line says "coordinator: waiting
+    on an agent" when the coordinator is not working and an agent of an
+    item under way is, and "idle" only when nothing is working.
+  - The tester's second change: beside the count, the words "lines
+    addressed to Drew in its promotions entry; some may be settled
+    since".
+  - N8 (temp files left by a kill): the exporter removes its own temp
+    files older than ten minutes.
+  - Left over: N1 to N7, N9 to N13; the suite does not run the page's
+    script.
+- **For Drew, not decided here:** the open `ROADMAP.md` entries are on a
+  page any device on the LAN can open. "Voice accuracy" quotes three
+  mis-heard utterances with a run id; "Build workflow" says agents run
+  with permissions skipped; others name the HA version and what is down.
+  This matches what `/settings` and Grafana already show the LAN. The
+  fix round folds each entry to its first sentence, which hides none of
+  it from a click.
+
 Reports: `docs/sprint/M27-review.md` (done), `docs/sprint/M27-build.md`,
-`docs/sprint/M27-e2e.md`.
+`docs/sprint/M27-e2e.md`, `docs/sprint/M27-fix1.md`,
+`docs/sprint/M27-e2e2.md`.
