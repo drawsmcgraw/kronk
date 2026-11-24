@@ -27,12 +27,6 @@ Conventions:
 
 ## Now — in flight
 
-- **Merge `refactor` to `main`** *(2026-11-21)* — the sprint's last step.
-  After it: the working tree stays on `main` and
-  `~/.config/kronk/upgrade.env` changes from `refactor` to `main`, or the
-  monthly patch run declines on its branch check
-  (`docs/features/upgrade-cadence.md`).
-
 - **Home Assistant major upgrade** — 2026.5.4 to 2026.11.2, the first
   major under the upgrade cadence. Waits for Drew's greenlight and a
   window: `docs/upgrades/2026-11-18.md`, `docs/runbooks/major-upgrade.md`.
@@ -149,6 +143,10 @@ Conventions:
 
 Newest first; feature docs in `docs/features/`.
 
+- **`refactor` merged to `main`** *(2026-11-21)* — the last step of the
+  2026-11 run. The working tree stays on `main`, and
+  `~/.config/kronk/upgrade.env` names `main`, the branch the monthly
+  patch run expects (`docs/features/upgrade-cadence.md`).
 - **The queue incident** *(2026-11-21, sprint M23)* — every play states
   `enqueue: replace` (tool_service and blueprint change 15), so a single
   track no longer hands the speaker back to the earlier queue; Kronk's own
