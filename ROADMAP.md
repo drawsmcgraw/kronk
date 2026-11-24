@@ -55,12 +55,6 @@ Conventions:
   plays a seed only on an explicit create. No new MA code; the song-title seed ranking
   goes upstream (`INVESTIGATION_2026-11-07_ma_pandora_and_ui.md`).
   *Why: four radio misfires in three weeks, two of them wrong successes.*
-- **Nothing depends on the Ollama install** *(work item M26, ordered
-  2026-11-24; starts when M25's build lands)* — both Whisper units and
-  Talkie load ROCm libraries from `/usr/local/lib/ollama/rocm`. They get
-  their own set, taken from the ROCm 7.2 image they were built in (pinned
-  by digest, with a script and a manifest), not copied from Ollama. Then
-  Ollama can be deleted whole (next entry).
 - **`/work`: the work items in a page** *(work item M27, ordered
   2026-11-24; after M26)* — Drew: "i want to be able to track this work in
   a UI. A backlog, currently working (planning/reviewing/implementing/
@@ -69,11 +63,12 @@ Conventions:
   done. Read from the files that already hold it (`ROADMAP.md`,
   `docs/sprint/`'s criteria, review, build, test and fix reports,
   `PROMOTIONS.md`), so there is no second place to keep up to date.
-- **Reclaim storage: Ollama** — the last of the reclaim. Ollama's blobs
-  (`/usr/share/ollama/.ollama/models/`, 241 GB, 16 models, nothing loaded
-  and no caller since October) and its system unit, which listens on every
-  interface at port 11434. Needs Drew's sudo. `/usr/local/lib/ollama` stays:
-  both Whisper units and Talkie load ROCm libraries from it.
+- **Remove Ollama** — nothing of Kronk's loads from it since work item M26
+  (2026-11-24). Drew's, with sudo, in two steps: rename
+  `/usr/local/lib/ollama` aside and stop its unit, the coordinator checks
+  dev Whisper and Talkie on a fresh start, then delete the models
+  (241 GB), the libraries, the binary, the unit, three April unit files
+  and the user. Steps: `docs/sprint/PROMOTIONS.md`, "M26".
 - **Voice accuracy** — track and improve STT accuracy on real household
   speech. Known misses: "Played the album…" (rid `2881890a`), "stop" →
   "What's up?", Satellite1 "pause" → "Pasta". Capture real utterances first,
@@ -157,6 +152,12 @@ Conventions:
 
 Newest first; feature docs in `docs/features/`.
 
+- **Kronk's own ROCm libraries** *(2026-11-24, work item M26)* — both
+  Whisper units and Talkie load ROCm 7.2 libraries extracted from the
+  image they were built in (`scripts/build_rocm_libs.sh`, pinned by
+  digest, with a manifest), in `~/services/rocm-7.2`, in place of the
+  rebuild they had borrowed from Ollama's install. `README.md`,
+  `docs/sprint/PROMOTIONS.md`, "M26".
 - **Reclaim storage and memory; Talkie kept** *(2026-11-24, work item
   M24)* — the retired model servers (gemma-3-4b, bonsai, mistral-nemo,
   devstral Q8) are gone from the host, the repo and the catalog; 212 GB of

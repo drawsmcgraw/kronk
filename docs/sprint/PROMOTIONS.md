@@ -142,3 +142,69 @@ Talkie runs on the CPU and answers when asked for by name.
     `"model": "gemma-4-e4b"` for a reply Talkie wrote. Talkie's context is
     2,048 tokens. Free memory now sits under memwatch's warning line with
     Talkie loaded; the pressure gate keeps it quiet.
+
+## M26 (nothing of Kronk's depends on the Ollama install), 2026-11-24
+
+Whisper and Talkie load ROCm libraries taken from the ROCm 7.2 image they
+were built in, by a script with a manifest, and nothing on the host or in
+the repo points at Ollama.
+
+- Tag `item-M26` (tag only; **production containers not redeployed**:
+  they stay on `item-M24`. Nothing in this item runs in a container. The
+  tagged tree also holds M25's build, which is not tested yet and not
+  deployed).
+- On the host, by the coordinator, each step gated
+  (`M26-criteria.md`, "The switch as run"):
+  `~/services/rocm-7.2` built by `scripts/build_rocm_libs.sh` (1,803
+  files, 10 links, 1.94 GB, all owned by drew; MANIFEST sha256
+  `200d6829…b539`); the three unit files installed; `wyoming-whisper-dev`
+  restarted 15:16, `llama-talkie` 15:35, `wyoming-whisper` (production
+  speech recognition) 15:38:30 local with two satellites idle and one
+  unavailable. The units as they were are in
+  `~/backups/m26-units-2026-11-24/`, with the bench sheets and results.
+- Verified: each unit maps the ten ROCm libraries from the new directory
+  and `libdrm`, `libdrm_amdgpu`, `libelf`, `libnuma` from the host; no
+  process maps anything under Ollama's directory. Dev Whisper, 714
+  synthetic speech clips before and after: 712 texts the same, 2 differ,
+  both with fewer errors after; word errors 499 → 468, command-form errors
+  90 → 89. Production Whisper, 25 clips: 25 texts the same, p50 0.318 →
+  0.317 s. Talkie answers; GPU busy 0 % at seven readings over two minutes
+  idle. No memwatch notice.
+- **This changed the binaries speech recognition runs on.** Ollama's
+  libraries were its own rebuild of ROCm 7.2: all ten libraries and all
+  1,793 rocBLAS kernel files differ by sha256 from the image's. The
+  first plan was to copy Ollama's files; Drew ordered a proper source.
+- Test: a design review before the build (20 points, all taken: it moved
+  the transcription check from the end to a gate at each restart); passed
+  the first test with no blocker (`M26-e2e.md`); one fix round by ruling
+  for two holes in the script (`M26-fix1.md`); passed the second with no
+  blocker and no should-fix (`M26-e2e2.md`). Nothing was changed after the
+  last test. Suite `7487 passed, 3 skipped, 54 xfailed`.
+- Errors of the coordinator's, found by the test: step b was recorded as
+  15:05 and ran 15:11 to 15:12, overlapping the first minute of the dev
+  before run, so the dev latency gain first reported is overstated; a
+  first comparison script matched rows on the wrong key and printed "711
+  differing texts" before it was corrected to 2.
+- Held or left over:
+  - **For Drew, the removal, in two steps** (tenet 11). First `sudo
+    systemctl disable --now ollama.service` and `sudo mv
+    /usr/local/lib/ollama /usr/local/lib/ollama.removed`; the coordinator
+    then restarts `wyoming-whisper-dev` and `llama-talkie`, reruns the 25
+    clips on 10301 and checks Talkie answers. Only then the deletes:
+    `/usr/share/ollama` (241 GB), `/usr/local/lib/ollama.removed`,
+    `/usr/local/bin/ollama`, `/etc/systemd/system/ollama.service`, the
+    three April unit files `/etc/systemd/system/llama-{bonsai,devstral,
+    coordinator}.service`, the user `ollama`. After the rename a rollback
+    of a unit needs the directory renamed back first.
+  - **For Drew:** a production Whisper restart asks huggingface.co for the
+    model's revision (`M26-e2e.md` N1): a request off the box and an
+    unpinned model at every restart with the network up. The dev unit has
+    `HF_HUB_OFFLINE=1`; production does not. One line, and another
+    production Whisper restart.
+  - The ROCm image is local only (29.3 GB). If it is pruned, rebuilding
+    `rocm-7.2` needs a pull of a ten-month-old image by digest.
+  - `build` can still be raced by swapping the directory between its
+    check and its write; `verify` checks `lib/` only and is not a
+    signature; eight mutants of the fix survive (`M26-e2e2.md`, notes).
+    `hipblaslt/library` is left out on purpose.
+
