@@ -309,6 +309,16 @@ units or LiteLLM's routing; Tempo queries.
     eight mutants of the fix survive, among them the reason dropped from a
     `/services` row), N1 to N4.
 
+- 2026-11-24, on the third test (`M25-e2e3.md`, PASSES, no blocker): no
+  further round. Its S1 (the note's "which the kernel counts as
+  available" would be false for a server started with `--mlock`; no unit
+  here uses it) and S2 ("a card's RAM figure includes memory-mapped model
+  files" reads strictly as true of three cards of five; "can include"
+  would hold under both readings) are about one sentence, no figure is
+  wrong, and the conclusion the sentence supports holds. The coordinator
+  reads the sentence as the tester did, as a statement about what the
+  figure counts. Left over, with its notes N1 to N4. Promote.
+
 Reports: `docs/sprint/M25-review.md` (done), `docs/sprint/M25-build.md`,
 `docs/sprint/M25-e2e.md`, `docs/sprint/M25-fix1.md`,
 `docs/sprint/M25-e2e2.md`, `docs/sprint/M25-fix2.md`,
