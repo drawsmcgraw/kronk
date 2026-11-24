@@ -55,6 +55,20 @@ Conventions:
   plays a seed only on an explicit create. No new MA code; the song-title seed ranking
   goes upstream (`INVESTIGATION_2026-11-07_ma_pandora_and_ui.md`).
   *Why: four radio misfires in three weeks, two of them wrong successes.*
+- **Nothing depends on the Ollama install** *(work item M26, ordered
+  2026-11-24; starts when M25's build lands)* — both Whisper units and
+  Talkie load ROCm libraries from `/usr/local/lib/ollama/rocm`. They get
+  their own set, taken from the ROCm 7.2 image they were built in (pinned
+  by digest, with a script and a manifest), not copied from Ollama. Then
+  Ollama can be deleted whole (next entry).
+- **`/work`: the work items in a page** *(work item M27, ordered
+  2026-11-24; after M26)* — Drew: "i want to be able to track this work in
+  a UI. A backlog, currently working (planning/reviewing/implementing/
+  testing/etc), what's already been worked". A page at `kronk/work`
+  showing the backlog, each item under way with its stage, and what is
+  done. Read from the files that already hold it (`ROADMAP.md`,
+  `docs/sprint/`'s criteria, review, build, test and fix reports,
+  `PROMOTIONS.md`), so there is no second place to keep up to date.
 - **Reclaim storage: Ollama** — the last of the reclaim. Ollama's blobs
   (`/usr/share/ollama/.ollama/models/`, 241 GB, 16 models, nothing loaded
   and no caller since October) and its system unit, which listens on every
