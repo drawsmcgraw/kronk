@@ -3,7 +3,7 @@
 Status: root-caused, nothing fixed. YouTube Music streaming is down in
 Music Assistant for every track: MA's bundled yt-dlp can no longer solve
 YouTube's player challenges (player `b485e332`, an upstream yt-dlp bug
-tracked as yt-dlp#18123). The album exists and resolves. None of
+reported as yt-dlp#18123). The album exists and resolves. None of
 today's Kronk or host changes caused it. Five Kronk-side weaknesses,
 all older than today, made the failure harder to see. One of them
 answered "Playing …" when nothing had been played.
@@ -297,3 +297,22 @@ in snapshot`). Recording those takes MA searches and a decision on the
 pin, and both belong with whoever adds the row. With the row removed the
 suite is `7464 passed, 3 skipped, 54 xfailed`. None of the proposed
 fixes would make this row pass: the transcript lost "part 4".
+
+## Added by the coordinator, 2026-11-24 16:10 EST
+
+- Upstream state, read from GitHub's API at 15:55 EST:
+  [yt-dlp#18123](https://github.com/yt-dlp/yt-dlp/issues/18123) is
+  **closed** (opened 2026-11-23); the open tracking issue is
+  [yt-dlp/ejs#79](https://github.com/yt-dlp/ejs/issues/79), and its fix,
+  [yt-dlp/ejs#80](https://github.com/yt-dlp/ejs/pull/80), is open and not
+  merged. Watch the last two.
+- A second observation, from Drew: at 15:41 EST he started the album "No
+  Protection" from Music Assistant's own UI and it played. MA's log: two
+  YouTube copies of its tracks were skipped with the same
+  `addOnDisposeCallback` failure (15:41:14, 15:41:16), then the stream
+  started with no YouTube extraction, on `library://track/9865`. The album
+  is on the NAS as eight MP3 files (`/mnt/nas-music/Massive_Attack/No
+  Protection`). It played from those files, not from a cache. This agrees
+  with the finding above: the NAS library works, YouTube Music does not.
+  An album held by both sources costs about 2.5 s per dead YouTube copy
+  before MA reaches a file.

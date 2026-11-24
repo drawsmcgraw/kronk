@@ -260,7 +260,11 @@ that nothing reads Ollama's directory, kernel data included:
   beside it.
 - Results, sheets and the unit backups are in
   `~/backups/m26-units-2026-11-24/` (`bench/` for the runs).
-- Step b, 15:05: `~/services/rocm-7.2` built; verify passes; MANIFEST
+- Step b, 15:11 to 15:12 (first written here as 15:05, which was wrong:
+  `M26-e2e.md` N2; it overlapped the first minute of the dev before run,
+  so that run's first 150 rows are slower, p50 0.360 s against 0.322 s for
+  the rest, and the after run's latency gain is overstated by that much):
+  `~/services/rocm-7.2` built; verify passes; MANIFEST
   sha256 `200d6829…b539` as the build report predicted; 0 files not
   owned by drew.
 - Step c, 15:16 (dev Whisper): listening after 4 s; the ten libraries from
@@ -282,5 +286,24 @@ that nothing reads Ollama's directory, kernel data included:
   GPU busy back to 0 within 25 s of the run. No process on the host maps
   any file under Ollama's directory. No memwatch notice.
 
+- 2026-11-24, on the test (`M26-e2e.md`, PASSES, no blocker):
+  - S1 (`build` writes into a non-empty directory reached through a
+    symlink or named `<dir>/new/..`) and S2 (`verify` passes with a
+    library missing when a symlink target holds a newline): **fix round
+    1.** S1 is the one that matters: a later `build` could overwrite
+    libraries three running units have loaded. With them: tests that kill
+    the three surviving mutants of N4 (no sort, sort outside `LC_ALL=C`,
+    no `umask 022`).
+  - The hand-off's first step gains a Talkie restart, as the tester
+    advises: after the rename the coordinator restarts
+    `wyoming-whisper-dev` and `llama-talkie`, runs the 25 rows on 10301,
+    and checks Talkie answers.
+  - N1 (a production Whisper restart asks huggingface.co for the model's
+    revision; the dev unit has `HF_HUB_OFFLINE=1`, production does not):
+    older than this item and outside its scope; for Drew, as its own
+    change, since it needs another production Whisper restart.
+  - Left over: N5, N6, N7.
+
 Reports: `docs/sprint/M26-review.md` (done), `docs/sprint/M26-build.md`,
-`docs/sprint/M26-e2e.md`.
+`docs/sprint/M26-e2e.md`, `docs/sprint/M26-fix1.md`,
+`docs/sprint/M26-e2e2.md`.
