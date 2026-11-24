@@ -209,21 +209,57 @@ def split_units(text: str, final: bool = False) -> tuple[list[str], str]:
 
 
 _CLOSERS = "\"')]”’»"
+_TABLE_RULE = re.compile(r"[ \t]*\|?[ \t:|-]*-[ \t:|-]*")
+
+
+def _says_something(units: list[str]) -> bool:
+    """The units are worth speaking without what followed them: a list or
+    table with an item among them, or complete sentences (ending on ".", "?"
+    or "!") of two or more words in all. Blank lines, headings and lead-in
+    lines ("Certainly:", "Kings of England") do not count, and one word on
+    its own ("Certainly!") is not enough."""
+    words = 0
+    for unit in units:
+        s = unit.strip()
+        if not s:
+            continue
+        kind = _kind(s.split("\n", 1)[0])
+        if kind == "list":
+            return True
+        if kind == "table":
+            # A header row and its |---| line are not an item yet.
+            rows = [r for r in s.split("\n") if r.strip() and not _TABLE_RULE.fullmatch(r)]
+            if len(rows) >= 2:
+                return True
+            continue
+        end = s.rstrip(_CLOSERS)
+        if s.startswith("#") or not end or end[-1] not in ".!?":
+            continue
+        words += len(s.split())
+    return words >= 2
 
 
 def unfinished_tail(text: str) -> str:
     """The unfinished last sentence of a reply that stopped at its token cap
     (M24: config/voice.yaml max_reply_tokens), or "" when there is none to
-    drop: the text ends on a sentence end, or it has no complete unit
-    before the tail (then the cut sentence is kept rather than nothing).
-    When the tail spans lines (a list or table not yet closed is one unit),
-    only its unfinished last line goes, so the complete items stay."""
+    drop: the text ends on a sentence end, it has no complete unit before
+    the tail, or what would be left says nothing on its own
+    (_says_something: only blank lines, headings, a lead-in line such as
+    "Certainly:" or a single word). Then the cut sentence is kept rather
+    than leave the reply silent or one word long (M24 fix round 1: the
+    last check only ever keeps more). When the tail spans lines (a list or
+    table not yet closed is one unit), only its unfinished last line goes,
+    so the complete items stay."""
     units, rest = split_units(text)
     body = rest.rstrip()
     end = body.rstrip(_CLOSERS)
     if not units or not end or end[-1] in ".!?":
         return ""
-    return rest[body.rfind("\n") + 1:]
+    tail = rest[body.rfind("\n") + 1:]
+    kept, _ = split_units(text[:len(text) - len(tail)], final=True)
+    if not _says_something(kept):
+        return ""
+    return tail
 
 
 # ── The buffer: one per streamed voice request ───────────────────────────────

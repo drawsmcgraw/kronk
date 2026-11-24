@@ -89,3 +89,53 @@ def test_no_router_label_even_with_the_old_env_var(monkeypatch):
     mapping = servers.agents_by_model()
     assert all("Router" not in labels for labels in mapping.values())
     assert "gemma-3-4b" not in mapping
+
+
+# ── fix round 1 ──────────────────────────────────────────────────────────────
+
+def test_upgrade_rules_name_exactly_the_llama_server_units_in_systemd():
+    """scripts/upgrade_rules.toml's llama.cpp `units` are what the quarterly
+    report reads; a unit that is not in systemd/ prints "unit not installed"
+    (M24-e2e.md "Found" 2: the four retired units were still listed)."""
+    import tomllib
+    rules = tomllib.loads((REPO / "scripts" / "upgrade_rules.toml").read_text())
+    llama = [c for c in rules["component"] if c["kind"] == "llama-build"]
+    assert len(llama) == 1
+    servers_in_systemd = sorted(p.stem for p in SYSTEMD.glob("llama-*.service")
+                                if "llama-server" in p.read_text())
+    assert sorted(llama[0]["units"]) == servers_in_systemd
+    assert (REPO / llama[0]["file"]).is_file()
+
+
+def test_router_model_is_not_a_settings_env_row():
+    """In place of criterion 2's grep (mutant M24)."""
+    import settings_view
+    assert "ROUTER_MODEL" not in [name for name, _, _ in settings_view.ENV]
+
+
+def _compose_environment(service: dict) -> list[str]:
+    env = service.get("environment") or []
+    if isinstance(env, dict):
+        return list(env)
+    return [str(e).split("=", 1)[0] for e in env]
+
+
+def test_router_model_is_not_in_docker_compose():
+    """In place of criterion 2's grep (mutant M26): no service's environment
+    sets it, and the file does not name it at all (an args: or comment line
+    would bring it back too)."""
+    text = (REPO / "docker-compose.yml").read_text()
+    compose = yaml.safe_load(text)
+    for name, service in compose["services"].items():
+        assert "ROUTER_MODEL" not in _compose_environment(service), name
+    assert "ROUTER_MODEL" not in text
+
+
+def test_router_model_is_named_nowhere_in_orchestrator_or_config():
+    """Criterion 2's grep over orchestrator/ and config/, as a test."""
+    hits = [str(p.relative_to(REPO))
+            for top in ("orchestrator", "config")
+            for p in (REPO / top).rglob("*")
+            if p.is_file() and "__pycache__" not in p.parts
+            and "ROUTER_MODEL" in p.read_text(errors="replace")]
+    assert not hits

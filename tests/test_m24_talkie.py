@@ -63,10 +63,62 @@ def _model(text=CUT, finish="length", seen=None):
     # An unclosed list is one unit: only its unfinished last line goes.
     ("The kings, in order:\n\n- William I\n- William II\n- Hen", "- Hen"),
     ("The kings, in order:\n\n1. William I\n2. William II\n3. Henry", "3. Henry"),
+    # Fix round 1: what would be left must say something on its own.
+    ("\n\nThe canal is long. It was op", "It was op"),        # leading blank lines
+    ("Certainly:\n- William I\n- Wil", "- Wil"),            # lead-in, then list items
+    ("Kings:\n\n| King | Year |\n|---|---|\n| William I | 1066 |\n| William II | 10", "| William II | 10"),
+    # A reply that is one unclosed block, with nothing before it, is kept
+    # whole as before fix round 1 (the round only ever keeps more).
+    ("- William I\n- William II\n- Hen", ""),
+    ("| King | Year |\n|---|---|\n| William I | 1066 |\n| William II | 10", ""),
 ])
 def test_unfinished_tail(text, tail):
     assert speech_stream.unfinished_tail(text) == tail
     assert text.endswith(tail)
+
+
+# The test report's texts (M24-e2e.md should-fix 2) and more of their kind:
+# the only complete units before the tail are blank lines, a heading, a
+# lead-in line or one word. Dropping the tail would leave the reply silent
+# or a heading alone, so nothing is dropped.
+NOTHING_TO_STAND_ON = [
+    "\nThe kings were William I, William II, Henry I, Stephen, Henry II",
+    "Certainly:\nThe kings were William I, William II",
+    "Kings of England\n\nWilliam I, William II, Henry I, Steph",
+    "\n\n\nThe kings were William I, William II",
+    "# Kings of England\n\nThe kings were William I, William II",
+    "## Kings\n\nCertainly:\n\nThe kings were William I, William II",
+    "Certainly! The kings were William I, William II",
+    "Here is the list:\n\n- William I, William II, Hen",       # a list with only its cut item
+    "Kings:\n\n| King | Year |\n|---|---|\n| William I | 10",  # a table with only its cut row
+    "  \n\t\nThe kings were William I, William II",
+]
+
+
+@pytest.mark.parametrize("text", NOTHING_TO_STAND_ON)
+def test_nothing_is_dropped_when_what_is_left_says_nothing(text):
+    assert speech_stream.unfinished_tail(text) == ""
+
+
+@pytest.mark.parametrize("stream", [False, True], ids=["buffered", "VOICE_STREAM"])
+@pytest.mark.parametrize("text", NOTHING_TO_STAND_ON[:4] + ["The kings were William I, William II"])
+def test_capped_reply_is_never_spoken_as_nothing_or_a_heading(app, monkeypatch, caplog, text, stream):
+    """Through the app on the speech mount, model faked, finish_reason
+    "length": the test report's four texts. Before fix round 1 the first
+    three were spoken as "", "Certainly:" and "Kings of England."."""
+    caplog.set_level(logging.INFO, logger="kronk.events")
+    monkeypatch.setenv("VOICE_STREAM", "on" if stream else "off")
+    with _route("talkie"), _model(text=text):
+        resp = app.post(VOICE, json={"model": "kronk", "stream": stream,
+                                     "messages": [{"role": "user", "content": ASK}]})
+    if stream:
+        lines = [json.loads(x) for x in resp.text.splitlines() if x.strip()]
+        spoken = "".join(x["message"]["content"] for x in lines if not x.get("done"))
+    else:
+        spoken = resp.json()["message"]["content"]
+    assert "William I, William II" in spoken
+    ev = [json.loads(r.getMessage()) for r in caplog.records if '"reply_capped"' in r.getMessage()]
+    assert ev and ev[0]["dropped_chars"] == 0
 
 
 # ── the cap is sent on the speech mount only ─────────────────────────────────
@@ -202,6 +254,45 @@ async def test_llm_stream_sends_max_tokens_only_when_set(max_tokens):
         assert sent[0]["max_tokens"] == max_tokens
     assert {"token": "Quite so."} in out and {"finish_reason": "length"} in out
 
+
+
+# Fix round 1 (M24-e2e.md should-fix 3, mutants M03 and M04): llm.stream
+# itself, not _stream_body, must hand the cap on, in both lock modes; and
+# end to end, the speech mount's Talkie call reaches LiteLLM with it.
+
+def _litellm_recording(sent, finish="stop"):
+    def handler(request):
+        sent.append(json.loads(request.content))
+        return _sse({"choices": [{"delta": {"content": "Quite so."}, "finish_reason": None}]},
+                    {"choices": [{"delta": {}, "finish_reason": finish}]},
+                    {"choices": [], "usage": {"completion_tokens": 3}})
+    return _fake_litellm(handler)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("lock_mode", ["server", "pipeline"])
+@pytest.mark.parametrize("max_tokens", [120, None])
+async def test_llm_stream_hands_the_cap_on_in_each_lock_mode(monkeypatch, lock_mode, max_tokens):
+    monkeypatch.setenv("MODEL_LOCK", lock_mode)
+    sent = []
+    with _litellm_recording(sent, finish="length"):
+        out = [c async for c in llm.stream([{"role": "user", "content": "q"}], "talkie",
+                                           None, max_tokens=max_tokens)]
+    assert len(sent) == 1
+    assert sent[0].get("max_tokens", "not sent") == (max_tokens if max_tokens else "not sent")
+    assert {"finish_reason": "length"} in out
+
+
+@pytest.mark.parametrize("lock_mode", ["server", "pipeline"])
+@pytest.mark.parametrize("path", ALL_MOUNTS)
+def test_the_cap_reaches_litellm_on_the_speech_mount_only(app, monkeypatch, lock_mode, path):
+    monkeypatch.setenv("MODEL_LOCK", lock_mode)
+    sent = []
+    with _route("talkie"), _litellm_recording(sent):
+        ask(app, path, ASK)
+    talkie = [b for b in sent if b["model"] == "talkie"]
+    assert len(talkie) == 1
+    assert talkie[0].get("max_tokens", "not sent") == (120 if path == VOICE else "not sent")
 
 # ── criterion 7: Talkie's server cannot be reached ───────────────────────────
 # LiteLLM answers 500 for a model whose server is down. The talkie agent
