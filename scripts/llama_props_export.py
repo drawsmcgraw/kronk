@@ -8,7 +8,15 @@ For each running llama-*.service unit: its MainPID's command line (the
 flags actually in effect: --ctx-size, --reasoning-budget, --cache-reuse,
 --swa-full, --parallel, -ngl, the draft model) and the server's own
 GET http://127.0.0.1:<port>/props (n_ctx, total_slots and the default
-sampling parameters). Reads only. Standard library only.
+sampling parameters). Since M25, for /resources: the size of the model
+file and of the draft file (stat on the -m and --model-draft paths, which
+stay out of the file: only base names are written), and under "disk" the
+total size of the loaded model files and the size, used and available
+space of each filesystem holding one (statvfs on the file's directory).
+Reads only. Standard library only.
+
+The keys are read by every deployed orchestrator, older releases included:
+add keys, never rename or repurpose one (M25).
 
     llama_props_export.py [--out FILE ...] [--print]
 
@@ -54,7 +62,11 @@ def units() -> list[tuple[str, int]]:
     return out
 
 
-def flags(pid: int) -> dict:
+FILE_FLAGS = ("model", "model_draft")
+
+
+def raw_flags(pid: int) -> dict:
+    """The flags of the running process, paths as given on its command line."""
     try:
         argv = Path(f"/proc/{pid}/cmdline").read_bytes().split(b"\0")
     except OSError:
@@ -70,10 +82,75 @@ def flags(pid: int) -> dict:
             out[FLAG_NAMES[a]] = argv[i + 1]
             i += 1
         i += 1
+    return out
+
+
+def flags(pid: int, raw: dict | None = None) -> dict:
+    out = dict(raw_flags(pid) if raw is None else raw)
     for k in ("model", "model_draft", "chat_template_file"):
         if k in out:
             out[k] = os.path.basename(out[k])
     return out
+
+
+def file_path(pid: int, given: str) -> Path:
+    """A path from the command line, resolved against the process's working
+    directory when it is relative."""
+    return Path(given) if os.path.isabs(given) else Path(f"/proc/{pid}/cwd") / given
+
+
+def mount_of(path: Path) -> str:
+    """The mount point holding path: the nearest parent that is a mount."""
+    d = os.path.realpath(path)
+    while not os.path.ismount(d):
+        d = os.path.dirname(d)
+    return d
+
+
+def file_sizes(pid: int, raw: dict) -> tuple[dict, list[tuple]]:
+    """{model_bytes, model_draft_bytes} (null with a *_bytes_error when stat
+    fails) and, per file found, (st_dev, st_ino, size, directory, base name)
+    for the disk block."""
+    sizes: dict = {}
+    found: list[tuple] = []
+    for k in FILE_FLAGS:
+        if k not in raw:
+            continue
+        p = file_path(pid, raw[k])
+        try:
+            st = os.stat(p)
+        except OSError as e:
+            sizes[f"{k}_bytes"] = None
+            sizes[f"{k}_bytes_error"] = f"stat failed: {type(e).__name__}"
+            continue
+        sizes[f"{k}_bytes"] = st.st_size
+        found.append((st.st_dev, st.st_ino, st.st_size, p.parent, os.path.basename(raw[k])))
+    return sizes, found
+
+
+def disk(found: list[tuple]) -> dict:
+    """Total size of the loaded model and draft files (a file two servers
+    load counts once) and each filesystem holding one, by statvfs on the
+    file's directory. Sizes in bytes; avail_bytes is what df calls
+    Available."""
+    files: dict = {}
+    for dev, ino, size, parent, name in found:
+        files[(dev, ino)] = (dev, size, parent, name)
+    filesystems: dict = {}
+    for dev, size, parent, name in files.values():
+        fs = filesystems.get(dev)
+        if fs is None:
+            try:
+                v = os.statvfs(parent)
+                fs = {"mount": mount_of(parent), "size_bytes": v.f_blocks * v.f_frsize,
+                      "used_bytes": (v.f_blocks - v.f_bfree) * v.f_frsize,
+                      "avail_bytes": v.f_bavail * v.f_frsize, "files": []}
+            except OSError as e:
+                fs = {"mount": None, "error": f"statvfs failed: {type(e).__name__}", "files": []}
+            filesystems[dev] = fs
+        fs["files"].append(name)
+    return {"model_files_bytes": sum(size for _, size, _, _ in files.values()),
+            "filesystems": list(filesystems.values())}
 
 
 def props(port: int) -> dict:
@@ -91,25 +168,34 @@ def props(port: int) -> dict:
 
 def collect() -> dict:
     servers = []
+    found: list[tuple] = []
     for unit, pid in units():
-        f = flags(pid)
+        raw = raw_flags(pid)
+        f = flags(pid, raw)
         entry = {"unit": unit, "flags": f}
         port = f.get("port")
         if port and str(port).isdigit():
             entry["port"] = int(port)
             entry.update(props(int(port)))
+        sizes, files = file_sizes(pid, raw)
+        entry.update(sizes)
+        found += files
         servers.append(entry)
-    return {"ts": time.time(), "servers": servers}
+    return {"ts": time.time(), "servers": servers, "disk": disk(found)}
 
 
 def write(path: Path, data: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.")
-    with os.fdopen(fd, "w") as f:
-        json.dump(data, f, indent=1)
-        f.write("\n")
-    os.chmod(tmp, 0o644)
-    os.replace(tmp, path)
+    try:
+        with os.fdopen(fd, "w") as f:
+            json.dump(data, f, indent=1)
+            f.write("\n")
+        os.chmod(tmp, 0o644)
+        os.replace(tmp, path)
+    except BaseException:
+        Path(tmp).unlink(missing_ok=True)
+        raise
 
 
 def main(argv=None) -> int:

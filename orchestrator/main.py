@@ -9,7 +9,7 @@ from pathlib import Path
 
 import httpx
 from fastapi import FastAPI, File, HTTPException, UploadFile
-from fastapi.responses import StreamingResponse, HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from pypdf import PdfReader
@@ -156,42 +156,38 @@ async def get_metrics():
 
 @app.get("/api/system")
 async def system_info():
+    """The host block of /resources (M25): RAM from /proc/meminfo and the
+    GPU's GTT and busy figures from sysfs, both read now; the model files'
+    disk figures from llama_props.json, with that file's age."""
     mem = {}
     with open("/proc/meminfo") as f:
         for line in f:
             key, _, val = line.partition(":")
             mem[key.strip()] = int(val.split()[0]) * 1024  # kB → bytes
-
     # GTT (Graphics Translation Table) — the iGPU's memory pool, carved from
     # system RAM. Models loaded into llama.cpp servers live here. This is the
     # pool that ran tight in the 2026-05-31 incident (see docs/INCIDENT_2026-05-31.md).
-    # We scan /sys/class/drm for any amdgpu card with mem_info_gtt_* nodes.
-    gtt_total = 0
-    gtt_used  = 0
-    try:
-        from pathlib import Path as _P
-        for card_dir in sorted(_P("/sys/class/drm").glob("card[0-9]*")):
-            dev = card_dir / "device"
-            total_file = dev / "mem_info_gtt_total"
-            used_file  = dev / "mem_info_gtt_used"
-            if total_file.exists() and used_file.exists():
-                try:
-                    gtt_total = int(total_file.read_text().strip())
-                    gtt_used  = int(used_file.read_text().strip())
-                    break  # first GPU with GTT counters wins
-                except (ValueError, OSError):
-                    continue
-    except Exception:
-        pass  # GTT info is best-effort; CPU memory still useful without it
-
+    gpu = servers.read_gpu()
+    props = servers.llama_props_source()
     return {
         "mem_total":     mem.get("MemTotal", 0),
         "mem_available": mem.get("MemAvailable", 0),
         "mem_free":      mem.get("MemFree", 0),
         "swap_total":    mem.get("SwapTotal", 0),
         "swap_free":     mem.get("SwapFree", 0),
-        "gtt_total":     gtt_total,
-        "gtt_used":      gtt_used,
+        "gtt_total":     gpu["gtt_total"],
+        "gtt_used":      gpu["gtt_used"],
+        # One instant: the GPU's busy figure at the moment of this request.
+        "gpu_busy_percent": gpu["gpu_busy_percent"],
+        "gpu_reasons":   gpu["reasons"],
+        "read_at":       time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        **servers.disk_block(props),
+        "sources": {
+            "memory": "/proc/meminfo, read at this request",
+            "gpu": (f"/sys/class/drm/{gpu['card']}/device, read at this request; "
+                    "gpu_busy_percent is one instant") if gpu["card"] else None,
+            "disk": {k: v for k, v in props.items() if k != "data"},
+        },
     }
 
 
@@ -202,33 +198,22 @@ async def agent_roster():
 
 @app.get("/api/servers")
 async def server_catalog():
-    """Model servers configured in litellm + live health + agent assignments
-    + measured GPU memory (joined by port; vram_gb stays as the static
-    fallback estimate when no measurement is available)."""
-    catalog = servers.load_catalog()
-    health  = await servers.fetch_health(LLM_SERVICE_URL)
-    by_model = servers.agents_by_model()
-    gpu_mem = servers.load_gpu_mem()
+    """Each catalog model server with what the host exporters measured
+    (M25; servers.build_servers). Calls no model server and not LiteLLM."""
+    return servers.build_servers(servers.load_catalog(), servers.gpu_mem_source(),
+                                 servers.llama_props_source(), servers.agents_by_model())
 
-    def measured(entry: dict) -> float | None:
-        m = gpu_mem.get(entry.get("port"))
-        if not m:
-            return None
-        return round((m.get("gtt_bytes", 0) + m.get("vram_bytes", 0)) / 1e9, 1)
 
-    return {
-        "measured_age_s": gpu_mem.get("_age_s"),
-        "servers": [
-            {
-                **entry,
-                "agents":      by_model.get(entry["name"], []),
-                "healthy":     health.get(entry["name"],
-                                          health.get(entry["api_base"])),
-                "measured_gb": measured(entry),
-            }
-            for entry in catalog
-        ],
-    }
+@app.get("/api/activity")
+async def model_activity():
+    """Calls, prompt and completion tokens per model in the last 24 hours,
+    and when each was last used, from this orchestrator's llm_metrics."""
+    try:
+        return metrics.activity([e["name"] for e in servers.load_catalog()])
+    except Exception as e:
+        logger.warning("api/activity: %s", e)
+        return JSONResponse(status_code=503, content={
+            "error": f"{metrics.METRICS_DB} could not be read: {type(e).__name__}: {e}"})
 
 
 @app.get("/api/status")

@@ -360,7 +360,7 @@ function renderReadonly() {
       m.props_error ? el('div', { class: 'msg note' }, m.props_error) : el('div', { class: 'muted' }, `read ${m.props_age_s} s ago`),
       table(['model', 'port', 'agents', 'context', 'slots', 'sampling', 'flags'], m.servers.map(s => [
         el('span', { class: 'mono' }, s.name), String(s.port ?? ''), s.agents.join(', '),
-        `${s.n_ctx ?? '?'} tokens (litellm ctx_k ${s.ctx_k_litellm ?? '?'})`, String(s.slots ?? ''),
+        `${s.n_ctx ?? '?'} tokens`, String(s.slots ?? ''),
         s.sampling ? el('pre', {}, JSON.stringify(s.sampling, null, 1)) : (s.running ? '' : 'not running'),
         s.flags ? el('pre', {}, JSON.stringify(s.flags, null, 1)) : ''
       ]))]),

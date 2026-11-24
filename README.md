@@ -218,23 +218,25 @@ servers already running on the host (see the Operations runbook).
 ### Models
 
 Each model is one llama.cpp server bound to `127.0.0.1` on the host. The LiteLLM
-catalog is `litellm/config.yaml` (bind-mounted, hot-editable); each entry's
-`kronk:` block carries UI metadata the orchestrator reads for the `/resources`
-page. Per-model **memory on that page is measured** (host-side DRM-fdinfo
-exporter on a 30 s timer — `scripts/gpu_mem_export.py`, joined by port into
-`/api/servers`); the `vram_gb` metadata is only the fallback estimate. See
+catalog is `litellm/config.yaml` (bind-mounted, hot-editable). It holds each
+model's name and address only (M25): the `/resources` page reads every other
+fact from the running servers, through two host exporters on timers
+(`scripts/gpu_mem_export.py`: GPU memory and RAM per process;
+`scripts/llama_props_export.py`: context, slots, model and draft files and
+their sizes), joined by port into `/api/servers`. See
 [`docs/features/resources-live-memory.md`](docs/features/resources-live-memory.md).
-The VRAM column below is the static estimate, kept for orientation only.
+The context and memory columns below were read from `/resources` on
+2026-11-24, for orientation; the page has the current values.
 
 Running as of 2026-11-24 (these three are the whole catalog;
 `tests/test_m24_catalog.py` fails if `litellm/config.yaml` names a model no
 unit in `systemd/` serves):
 
-| Model | systemd unit | Port | Quant | Ctx | VRAM | Role |
+| Model | systemd unit | Port | Model file | Context (slots) | GPU memory / RAM, 2026-11-24 | Role |
 |---|---|---|---|---|---|---|
-| `gemma-4-e4b` | `llama-gemma4-e4b` | 11438 | QAT UD-Q4_K_XL + MTP drafter | 32k | ~3.5 GB | Coordinator + research/home/assistant agents |
-| `devstral-2512-q4` | `llama-devstral-q4` | 11440 | Q4_K_M | 128k | ~14 GB | coding + devops agents |
-| `talkie` | `llama-talkie` | 11441 | Q8_0 | 2k | none (CPU only; ~14 GB RAM as page cache) | talkie agent, when asked for by name |
+| `gemma-4-e4b` | `llama-gemma4-e4b` | 11438 | `gemma-4-E4B-it-qat-UD-Q4_K_XL-202607.gguf` + MTP drafter | 32768 (4) | 5.1 GiB / 10.3 GiB | Coordinator + research/home/assistant agents |
+| `devstral-2512-q4` | `llama-devstral-q4` | 11440 | `mistralai_Devstral-Small-2-24B-Instruct-2512-Q4_K_M.gguf` | 131072 (4) | 34.0 GiB / 8.5 GiB | coding + devops agents |
+| `talkie` | `llama-talkie` | 11441 | `talkie-1930-13b-it-Q8_0.gguf` | 2048 (1) | 0.01 GiB / 22.9 GiB (CPU only) | talkie agent, when asked for by name |
 
 Talkie runs on the CPU (`--device none -ngl 0`): about 7.5 tokens a second
 through Kronk, so on the speech mount its reply is capped at

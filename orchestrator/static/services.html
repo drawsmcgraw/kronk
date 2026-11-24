@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Kronk — Services</title>
-<link rel="stylesheet" href="/static/kronk.css">
+<link rel="stylesheet" href="static/kronk.css">
 <style>
   main {
     max-width: 860px;
@@ -133,14 +133,14 @@
   <div>
     <div class="section-label">Agents</div>
     <div class="service-grid" id="agent-grid">
-      <!-- populated by /api/agents + /api/servers -->
+      <!-- populated by api/agents + api/servers -->
     </div>
   </div>
 
   <div>
     <div class="section-label">Model servers</div>
     <div class="service-grid" id="model-grid">
-      <!-- populated by /api/servers (litellm catalog + live health) -->
+      <!-- populated by api/servers (catalog + the host exporters' files) -->
     </div>
   </div>
 
@@ -172,7 +172,7 @@
 
 </main>
 
-<script src="/static/js/kronk.js"></script>
+<script src="static/js/kronk.js"></script>
 <script>
   // Everything below is served through nginx on :80 unless a port is shown.
   // A probe of null means there is no HTTP health check (Wyoming is raw TCP),
@@ -182,7 +182,7 @@
     { icon: '🛒', name: 'Shopping List',    href: '/shopping_list', probe: '/probe/tools',        desc: 'Mobile-friendly shopping list' },
     { icon: '☀️', name: 'Solar',            href: '/solar',         probe: '/probe/tools',        desc: 'Production, daily energy, per-panel health' },
     { icon: '🤝', name: 'Agents',           href: '/agents',        probe: null,                  desc: 'Agents, tools, and assigned models' },
-    { icon: '📊', name: 'Resources',        href: '/resources',     probe: null,                  desc: 'Model memory (measured), system RAM, GTT' },
+    { icon: '📊', name: 'Resources',        href: '/resources',     probe: null,                  desc: 'Model servers as measured, system RAM, GTT, disk, calls in the last 24 hours' },
     { icon: '⏱️', name: 'Performance',      href: '/performance',   probe: null,                  desc: 'Per-turn latency and token metrics' },
     { icon: '🎛️', name: 'Settings',         href: '/settings',      probe: null,                  desc: 'Every prompt and tuning value in effect; editing behind a passphrase' },
   ];
@@ -246,37 +246,45 @@
     dot.classList.toggle('down', !ok);
   }
 
-  // Agents and model servers: health comes from /api/servers, which asks
-  // LiteLLM about each llama.cpp backend. An agent is up only when its
-  // model's server is healthy.
+  // Agents and model servers, from api/servers (M25): state from the host
+  // memory exporter's file, health from the props exporter's (the server
+  // answered GET /props when the file was written). Relative URLs, so
+  // /dev/services shows dev's servers. An agent is up only when its
+  // model's server is answering.
+  const GIB = 2 ** 30;
+  const gib = b => b == null ? null : ((b / GIB) < 1 ? (b / GIB).toFixed(2) : (b / GIB).toFixed(1)) + ' GiB';
+  const STATE_TAG = { running: 'running', not_running: 'not running', unknown: 'state unknown' };
   async function loadDynamic() {
     const agentGrid = document.getElementById('agent-grid');
     const modelGrid = document.getElementById('model-grid');
     let servers = [];
     try {
-      servers = (await (await fetch('/api/servers')).json()).servers;
-      const health = Object.fromEntries(servers.map(s => [s.name, !!s.healthy]));
-      // Assigned and healthy first; unassigned catalog entries last.
+      servers = (await (await fetch('api/servers')).json()).servers;
+      const answering = Object.fromEntries(servers.map(s => [s.name, s.health === 'answering']));
+      // Assigned and running first; unassigned catalog entries last.
+      const rank = s => (s.state === 'running' ? 0 : s.state === 'unknown' ? 1 : 2);
       const ordered = [...servers].sort((a, b) =>
-        (b.agents.length > 0) - (a.agents.length > 0) || (b.healthy - a.healthy));
+        (b.agents.length > 0) - (a.agents.length > 0) || rank(a) - rank(b));
       modelGrid.innerHTML = ordered.map((s, i) => card({
-        icon: '🧠', name: s.name, badge: `:${s.port}`, dotId: `s-model-${i}`,
-        desc: [s.params, s.quant, s.ctx_k && `${s.ctx_k}k ctx`,
-               s.measured_gb != null && `${s.measured_gb} GB measured`,
+        icon: '🧠', name: s.name, badge: s.port ? `:${s.port}` : '', dotId: `s-model-${i}`,
+        desc: [s.model_file,
+               s.n_ctx != null && `${s.n_ctx} ctx`,
+               s.gpu_bytes != null && `${gib(s.gpu_bytes)} GPU memory`,
+               s.state !== 'running' && s.state_reason,
                s.agents.length ? `→ ${s.agents.join(', ')}` : 'unassigned']
               .filter(Boolean).join(' · '),
-        tag: s.healthy ? 'running' : 'not running',
+        tag: STATE_TAG[s.state] || s.state,
       })).join('');
-      ordered.forEach((s, i) => setDot(`s-model-${i}`, !!s.healthy));
+      ordered.forEach((s, i) => setDot(`s-model-${i}`, s.health === 'answering'));
 
-      const { agents } = await (await fetch('/api/agents')).json();
+      const { agents } = await (await fetch('api/agents')).json();
       agentGrid.innerHTML = agents.map((a, i) => card({
         icon: a.icon, name: a.name, badge: a.model, badgeClass: 'model-badge',
         dotId: `s-agent-${i}`, desc: a.desc,
       })).join('');
-      agents.forEach((a, i) => setDot(`s-agent-${i}`, !!health[a.model]));
+      agents.forEach((a, i) => setDot(`s-agent-${i}`, !!answering[a.model]));
     } catch {
-      const msg = '<div style="color:var(--text3);font-size:12px;padding:0.5rem">could not load /api/servers or /api/agents</div>';
+      const msg = '<div style="color:var(--text3);font-size:12px;padding:0.5rem">could not load api/servers or api/agents</div>';
       if (!servers.length) modelGrid.innerHTML = msg;
       agentGrid.innerHTML = msg;
     }

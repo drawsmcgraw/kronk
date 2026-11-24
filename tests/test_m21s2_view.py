@@ -142,7 +142,8 @@ def test_llama_props_from_the_exporter_file(live, tmp_path, monkeypatch):
     monkeypatch.setattr(servers, "LITELLM_CONFIG_PATH", REPO / "litellm" / "config.yaml")
     m = get("/api/settings").json()["readonly"]["models"]
     row = next(s for s in m["servers"] if s["name"] == "gemma-4-e4b")
-    assert row["n_ctx"] == 32768 and row["ctx_k_litellm"] == 128 and row["flags"]["reasoning_budget"] == "256"
+    # The catalog's hand-written ctx_k (128, against 32768 running) left with M25.
+    assert row["n_ctx"] == 32768 and "ctx_k_litellm" not in row and row["flags"]["reasoning_budget"] == "256"
     assert m["props_error"] is None
     p.write_text(json.dumps({"ts": time.time() - 3600, "servers": []}))
     assert "stale" in get("/api/settings").json()["readonly"]["models"]["props_error"]

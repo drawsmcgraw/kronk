@@ -4,7 +4,8 @@
 Runs ON THE HOST (systemd user timer `gpu-mem-export.timer`, every 30 s) —
 the orchestrator container has its own PID namespace and cannot read host
 /proc, so this is the bridge: it measures each model server's real GPU
-memory via DRM fdinfo and writes /data/gpu_mem.json for the orchestrator
+memory via DRM fdinfo and writes data/gpu_mem.json (production) and
+data/dev/gpu_mem.json (the dev pair, since M25) for each orchestrator
 (`servers.load_gpu_mem()`) to join into /api/servers by port.
 
 Why fdinfo: on this iGPU (Radeon 8060S) model weights + KV cache live in
@@ -13,19 +14,30 @@ GTT, which RSS does NOT reflect for the ROCm/HIP servers — devstral's
 accounting (/proc/PID/fdinfo/*, drm-memory-gtt/vram) is authoritative.
 Full write-up: docs/features/resources-live-memory.md.
 
-No dependencies beyond the stdlib. Stdout on --once for eyeballing.
+No dependencies beyond the stdlib. Read-only on the host apart from the
+files it writes, each atomically (temp file in the same directory, rename).
+
+    gpu_mem_export.py [--out FILE ...] [--print | --once]
+
+Default: the repo's data/gpu_mem.json and data/dev/gpu_mem.json, or the one
+path in GPU_MEM_OUT when that is set. --print (or the older --once) prints
+the JSON instead of writing.
+
+The keys are read by every deployed orchestrator, older releases included:
+add keys, never rename or repurpose one (M25).
 """
+import argparse
 import json
 import os
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 
-OUT = Path(os.getenv(
-    "GPU_MEM_OUT",
-    "/home/drew/git-repos/drawsmcgraw/kronk/data/gpu_mem.json",
-))
+REPO = Path(__file__).resolve().parent.parent
+DEFAULT_OUT = ([Path(os.environ["GPU_MEM_OUT"])] if os.getenv("GPU_MEM_OUT")
+               else [REPO / "data" / "gpu_mem.json", REPO / "data" / "dev" / "gpu_mem.json"])
 # User units worth measuring: model servers + GPU STT.
 UNIT_PREFIXES = ("llama-", "wyoming-whisper")
 
@@ -133,14 +145,33 @@ def collect() -> dict:
     return {"ts": time.time(), "processes": procs}
 
 
-def main() -> int:
+def write(path: Path, data: dict) -> None:
+    """Atomic: the orchestrator never sees a torn file, and a run killed
+    mid-write leaves the previous file whole (and a stray temp file)."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.")
+    try:
+        with os.fdopen(fd, "w") as f:
+            json.dump(data, f, indent=1)
+        os.chmod(tmp, 0o644)
+        os.replace(tmp, path)
+    except BaseException:
+        Path(tmp).unlink(missing_ok=True)
+        raise
+
+
+def main(argv=None) -> int:
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap.add_argument("--out", type=Path, action="append", help="file to write (repeatable)")
+    ap.add_argument("--print", "--once", dest="print", action="store_true",
+                    help="print the JSON instead of writing")
+    a = ap.parse_args(argv)
     payload = collect()
-    if "--once" in sys.argv:
+    if a.print:
         print(json.dumps(payload, indent=2))
         return 0
-    tmp = OUT.with_suffix(".tmp")
-    tmp.write_text(json.dumps(payload, indent=1))
-    os.replace(tmp, OUT)  # atomic — the orchestrator never sees a torn file
+    for p in a.out or DEFAULT_OUT:
+        write(p, payload)
     return 0
 
 

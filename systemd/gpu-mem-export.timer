@@ -1,7 +1,7 @@
 # Fires gpu-mem-export.service every 30 s. The orchestrator treats
-# data/gpu_mem.json older than 120 s as stale and falls back to the static
-# estimates, so a dead timer degrades gracefully (and visibly: the page
-# label flips from "measured" back to "est.").
+# data/gpu_mem.json older than 120 s as stale: /resources then shows each
+# server's state as unknown and says STALE with the file's age (M25; there
+# is no estimate to fall back to).
 [Unit]
 Description=Kronk — GPU memory export every 30s
 

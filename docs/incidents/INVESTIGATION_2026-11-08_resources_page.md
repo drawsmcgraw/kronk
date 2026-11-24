@@ -2,6 +2,8 @@
 
 **Status:** audit done (read-only); fix awaiting the operator's choice.
 
+**Closed 2026-11-24:** options B and C built as work item M25 (every figure on /resources measured; the `kronk:` blocks and the frozen timing row gone; activity per model added). See `docs/sprint/M25-criteria.md` and `docs/features/resources-live-memory.md`.
+
 ## Symptom
 
 Operator: the `/resources` page "has been wrong for a long time".

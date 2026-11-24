@@ -1,6 +1,7 @@
 # Exports what each running llama.cpp server reports (GET /props and the
 # running process's flags) to data/llama_props.json and
-# data/dev/llama_props.json, for the /settings page (sprint M21 step 2).
+# data/dev/llama_props.json, for /settings (sprint M21 step 2) and, with the
+# model and draft file sizes and their filesystems, /resources (M25).
 # Fired by llama-props-export.timer every 60 s. Reads only.
 #
 # Operations:

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Kronk — Resources</title>
-<link rel="stylesheet" href="/static/kronk.css">
+<link rel="stylesheet" href="static/kronk.css">
 <style>
   header { position: sticky; top: 0; z-index: 10; gap: 12px; }
 
@@ -102,12 +102,19 @@
   .server-vram { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; font-family: monospace; }
   .server-vram-sub { font-size: 11px; color: var(--text3); }
 
-  .perf-row {
-    display: flex; gap: 20px; margin-top: 8px; padding-top: 8px;
-    border-top: 1px solid var(--border);
-  }
-  .perf-stat { font-size: 11px; color: var(--text3); }
-  .perf-stat strong { color: var(--text2); font-size: 13px; font-family: monospace; }
+  /* ── Sources, stale marks, groups (M25) ─────────────────────────────── */
+  .src { font-size: 11px; color: var(--text3); margin-top: 0.6rem; line-height: 1.5; }
+  .src .stale, .stale { color: #f59e0b; font-weight: 600; }
+  .src code { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; }
+  .group-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin: 4px 0 -4px; }
+  .server-facts { font-size: 12px; color: var(--text2); display: flex; flex-direction: column; gap: 3px; margin-top: 4px; }
+  .server-facts .mono { font-family: 'JetBrains Mono', monospace; font-size: 11px; word-break: break-all; }
+  .reason { font-size: 12px; color: var(--text3); font-style: italic; }
+  .act-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .act-table th { text-align: left; color: var(--text3); font-weight: 500; padding: 4px 8px; border-bottom: 1px solid var(--border); }
+  .act-table td { padding: 5px 8px; color: var(--text2); border-bottom: 1px solid var(--border); }
+  .act-table td.num, .act-table th.num { text-align: right; font-family: monospace; }
+  .act-table tr.apart td { color: var(--text3); }
 
   /* ── Agent chips ───────────────────────────────────────────────────── */
   .agent-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
@@ -139,21 +146,53 @@
       <div class="mem-bar-track" id="mem-bar"></div>
       <div class="mem-legend" id="mem-legend"></div>
       <div class="mem-stats" id="mem-stats"></div>
+      <div class="src" id="mem-src"></div>
     </div>
   </div>
 
-  <!-- LLM Servers -->
+  <!-- Disk used by model files -->
   <div>
-    <div class="section-label">LLM Servers</div>
+    <div class="section-label">Model files on disk</div>
+    <div class="mem-card">
+      <div class="mem-stats" id="disk-stats" style="margin-top:0"></div>
+      <div class="src" id="disk-src"></div>
+    </div>
+  </div>
+
+  <!-- Model servers -->
+  <div>
+    <div class="section-label">Model servers</div>
+    <div class="src" id="server-src" style="margin:0 0 10px"></div>
     <div class="server-grid" id="server-grid">
       <div style="color:var(--text3);font-size:13px;padding:1rem">fetching…</div>
     </div>
   </div>
 
+  <!-- Other GPU processes -->
+  <div>
+    <div class="section-label">Other GPU processes</div>
+    <div class="server-grid" id="other-grid"></div>
+  </div>
+
+  <!-- Activity -->
+  <div>
+    <div class="section-label">Calls from this Kronk, last 24 hours</div>
+    <div class="mem-card">
+      <div id="activity"></div>
+      <div class="src" id="activity-src"></div>
+    </div>
+  </div>
+
 </main>
 
-<script src="/static/js/kronk.js"></script>
+<script src="static/js/kronk.js"></script>
 <script>
+// Every figure on this page is measured (M25): the host exporters' files
+// (gpu_mem.json, llama_props.json), /proc and sysfs read at the request,
+// and this orchestrator's llm_metrics. A fact with no fresh source arrives
+// as null with a reason, and the page shows the reason, never a number.
+// URLs are relative, so /dev/resources shows dev's data.
+// docs/features/resources-live-memory.md
 
 // Deterministic palette keyed by server name, so colors are stable across reloads.
 const PALETTE = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899', '#06b6d4', '#ef4444'];
@@ -163,34 +202,50 @@ function colorFor(name) {
   return PALETTE[h % PALETTE.length];
 }
 
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
 // ── Formatters ────────────────────────────────────────────────────────────────
 
-function fmtBytes(b, decimals = 1) {
-  if (b >= 1e12) return (b / 1e12).toFixed(decimals) + ' TB';
-  if (b >= 1e9)  return (b / 1e9).toFixed(decimals) + ' GB';
-  if (b >= 1e6)  return (b / 1e6).toFixed(decimals) + ' MB';
-  return (b / 1e3).toFixed(0) + ' KB';
+const GIB = 2 ** 30;
+// Sizes arrive in bytes; the page says GiB.
+function fmtGiB(b) {
+  if (b == null) return null;
+  const g = b / GIB;
+  return (g < 1 ? g.toFixed(2) : g.toFixed(1)) + ' GiB';
+}
+const fmtInt = n => Number(n).toLocaleString('en-US');
+const fmtLocal = iso => new Date(iso).toLocaleString();
+
+// One line per source: what it is, how old, and STALE when it is.
+function srcLine(label, src) {
+  if (!src) return '';
+  const name = `<code>${esc(src.file)}</code>`;
+  if (src.state === 'fresh')
+    return `${esc(label)}: ${name}, written ${Math.round(src.age_s)} s ago (every ${src.every_s} s)`;
+  if (src.state === 'stale')
+    return `${esc(label)}: ${name} <span class="stale">STALE, written ${Math.round(src.age_s)} s ago</span>; figures from it are withheld`;
+  return `${esc(label)}: <span class="stale">${esc(src.reason)}</span>`;
 }
 
 // ── Memory bar ────────────────────────────────────────────────────────────────
 
-function renderMemBar(sys, servers) {
+function renderMemBar(sys, srv) {
   const total = sys.mem_total;
   if (!total) return;
-
   const available = sys.mem_available;
-  // Measured GTT+VRAM per server when the host exporter is fresh (see
-  // docs/features/resources-live-memory.md); static estimate otherwise.
-  // Only running servers count toward the bar — an unhealthy server's
-  // estimate would paint memory that isn't actually in use.
-  const memOf = sv => (sv.measured_gb ?? (sv.healthy ? sv.vram_gb : 0) ?? 0) * 1e9;
-  const modelBytes = servers.reduce((s, sv) => s + memOf(sv), 0);
-  const other = Math.max(0, total - available - modelBytes);
+
+  // GPU memory (GTT + VRAM, DRM fdinfo) of every listed process: the
+  // catalog's running servers and the other GPU processes (Whisper, any
+  // llama unit not in the catalog). RAM per process is on its card.
+  const procs = [
+    ...(srv.servers || []).filter(s => s.gpu_bytes > 0).map(s => ({ label: s.name, bytes: s.gpu_bytes })),
+    ...(srv.other_processes || []).filter(o => o.gpu_bytes > 0).map(o => ({ label: o.unit, bytes: o.gpu_bytes })),
+  ];
+  const gpuBytes = procs.reduce((a, p) => a + p.bytes, 0);
+  const other = Math.max(0, total - available - gpuBytes);
 
   const segs = [
-    ...servers.filter(sv => memOf(sv) > 0).map(sv => ({
-      label: sv.name, bytes: memOf(sv), color: colorFor(sv.name),
-    })),
+    ...procs.map(p => ({ ...p, color: colorFor(p.label) })),
     { label: 'System / other', bytes: other,    color: '#2a3044' },
     { label: 'Available',      bytes: available, color: '#1a1f2e' },
   ];
@@ -198,15 +253,15 @@ function renderMemBar(sys, servers) {
   document.getElementById('mem-bar').innerHTML = segs.map(s => {
     const pct = (s.bytes / total * 100).toFixed(2);
     const showLabel = s.bytes / total > 0.05;
-    return `<div class="mem-bar-seg" style="width:${pct}%;background:${s.color}">
-      ${showLabel ? `<span class="seg-label">${fmtBytes(s.bytes, 0)}</span>` : ''}
+    return `<div class="mem-bar-seg" style="width:${pct}%;background:${s.color}" title="${esc(s.label)}: ${fmtGiB(s.bytes)}">
+      ${showLabel ? `<span class="seg-label">${fmtGiB(s.bytes)}</span>` : ''}
     </div>`;
   }).join('');
 
   document.getElementById('mem-legend').innerHTML = segs.slice(0, -1).map(s =>
     `<span class="mem-legend-item">
       <span class="mem-legend-dot" style="background:${s.color}"></span>
-      ${s.label} — ${fmtBytes(s.bytes)}
+      ${esc(s.label)} — ${fmtGiB(s.bytes)}
     </span>`
   ).join('');
 
@@ -217,124 +272,238 @@ function renderMemBar(sys, servers) {
   // so surfacing it explicitly with thresholds is the early-warning signal.
   // See docs/INCIDENT_2026-05-31.md.
   const free = sys.mem_free || 0;
-  const freeGB = free / 1e9;
+  const freeGiB = free / GIB;
   let freeColor = 'var(--text2)';
   let freeNote  = '';
-  if      (freeGB < 2)  { freeColor = '#ef4444'; freeNote = ' ⚠ low'; }   // red
-  else if (freeGB < 4)  { freeColor = '#f59e0b'; freeNote = ' ⚠ tight'; } // amber
-  else if (freeGB < 8)  { freeColor = '#eab308'; }                        // yellow
+  if      (freeGiB < 2)  { freeColor = '#ef4444'; freeNote = ' ⚠ low'; }   // red
+  else if (freeGiB < 4)  { freeColor = '#f59e0b'; freeNote = ' ⚠ tight'; } // amber
+  else if (freeGiB < 8)  { freeColor = '#eab308'; }                        // yellow
 
   // GTT — GPU memory carved from system RAM (shared pool with CPU). Models
   // loaded into llama.cpp servers live here. Pressure here = pressure on
   // CPU memory too on this hardware (Radeon 8060S iGPU).
-  const gttTotal = sys.gtt_total || 0;
-  const gttUsed  = sys.gtt_used  || 0;
+  const gttTotal = sys.gtt_total, gttUsed = sys.gtt_used;
   const gttPct   = gttTotal ? (gttUsed / gttTotal * 100) : 0;
   let gttColor = 'var(--text2)';
   if      (gttPct > 90) gttColor = '#ef4444';
   else if (gttPct > 75) gttColor = '#f59e0b';
 
+  const memFresh = srv.sources && srv.sources.gpu_mem.state === 'fresh';
   document.getElementById('mem-stats').innerHTML = `
-    <span class="mem-stat">Total <strong>${fmtBytes(total)}</strong></span>
-    <span class="mem-stat">Used <strong>${fmtBytes(used)} (${(used/total*100).toFixed(0)}%)</strong></span>
-    <span class="mem-stat">Available <strong>${fmtBytes(available)}</strong></span>
-    <span class="mem-stat" title="Immediately-available pool — dropping below 2 GB precedes hard hangs on this hardware">
-      Free <strong style="color:${freeColor}">${fmtBytes(free)}${freeNote}</strong>
+    <span class="mem-stat">Total <strong>${fmtGiB(total)}</strong></span>
+    <span class="mem-stat">Used <strong>${fmtGiB(used)} (${(used/total*100).toFixed(0)}%)</strong></span>
+    <span class="mem-stat">Available <strong>${fmtGiB(available)}</strong></span>
+    <span class="mem-stat" title="Immediately-available pool — dropping below 2 GiB precedes hard hangs on this hardware">
+      Free <strong style="color:${freeColor}">${fmtGiB(free)}${freeNote}</strong>
     </span>
-    <span class="mem-stat">Models (est.) <strong>${fmtBytes(modelBytes)}</strong></span>
-    ${gttTotal ? `
+    <span class="mem-stat">GPU memory, listed processes <strong>${memFresh ? fmtGiB(gpuBytes) : '<span class="stale">stale</span>'}</strong></span>
+    ${gttTotal != null ? `
     <span class="mem-stat" title="GPU memory pool (shared with CPU on this iGPU)">
-      GTT <strong style="color:${gttColor}">${fmtBytes(gttUsed)} / ${fmtBytes(gttTotal)} (${gttPct.toFixed(0)}%)</strong>
-    </span>` : ''}
+      GTT <strong style="color:${gttColor}">${fmtGiB(gttUsed)} / ${fmtGiB(gttTotal)} (${gttPct.toFixed(0)}%)</strong>
+    </span>` : `<span class="mem-stat">GTT <strong class="reason">${esc(sys.gpu_reasons?.gtt_total)}</strong></span>`}
+    <span class="mem-stat" title="gpu_busy_percent: one instant, not an average">
+      GPU busy <strong>${sys.gpu_busy_percent != null ? sys.gpu_busy_percent + ' % (instant reading)' : esc(sys.gpu_reasons?.gpu_busy_percent || 'unknown')}</strong>
+    </span>
   `;
+  const at = sys.read_at ? new Date(sys.read_at).toLocaleTimeString() : '';
+  document.getElementById('mem-src').innerHTML =
+    `RAM: <code>/proc/meminfo</code>; GTT and GPU busy: <code>${esc(sys.sources?.gpu || 'sysfs')}</code>; read ${at}. ` +
+    srcLine('Per-process GPU memory', srv.sources?.gpu_mem);
+}
+
+// ── Disk ──────────────────────────────────────────────────────────────────────
+
+function renderDisk(sys) {
+  const el = document.getElementById('disk-stats');
+  const d = sys.disk;
+  if (!d) {
+    el.innerHTML = `<span class="reason">${esc(sys.disk_reason || 'no disk figures')}</span>`;
+  } else {
+    el.innerHTML = `<span class="mem-stat">Loaded model and draft files <strong>${fmtGiB(d.model_files_bytes)}</strong></span>` +
+      d.filesystems.map(fs => fs.error
+        ? `<span class="mem-stat">${esc(fs.files.join(', '))} <strong class="reason">${esc(fs.error)}</strong></span>`
+        : `<span class="mem-stat" title="${esc(fs.files.join(', '))}">Filesystem <code>${esc(fs.mount)}</code>
+             <strong>${fmtGiB(fs.avail_bytes)} free of ${fmtGiB(fs.size_bytes)}</strong> (${fs.files.length} model file${fs.files.length === 1 ? '' : 's'})</span>`
+      ).join('');
+  }
+  document.getElementById('disk-src').innerHTML =
+    srcLine('Sizes by stat and statvfs on the host', sys.sources?.disk);
 }
 
 // ── Server cards ──────────────────────────────────────────────────────────────
 
-function renderServers(servers, metrics) {
-  const grid = document.getElementById('server-grid');
+const STATE_LABEL = { running: 'running', not_running: 'configured, not running', unknown: 'state unknown' };
+const HEALTH = {
+  answering:     { cls: 'ok',    text: 'answering /props', color: 'var(--green)' },
+  not_answering: { cls: 'error', text: 'not answering',    color: 'var(--red)' },
+  unknown:       { cls: '',      text: 'health unknown',   color: 'var(--text3)' },
+};
 
+function factOr(sv, key, render) {
+  return sv[key] != null ? render(sv[key]) : `<span class="reason">${esc(sv.reasons?.[key] || 'unknown')}</span>`;
+}
+
+function fileLine(sv, word, fileKey, bytesKey) {
+  if (sv[fileKey] == null) {
+    const why = sv.reasons?.[fileKey];
+    return why === 'the server runs no draft model' ? '' :
+      `<div>${word}: <span class="reason">${esc(why || 'unknown')}</span></div>`;
+  }
+  const size = sv[bytesKey] != null ? fmtGiB(sv[bytesKey]) : `<span class="reason">${esc(sv.reasons?.[bytesKey])}</span>`;
+  return `<div>${word} <span class="mono">${esc(sv[fileKey])}</span> · ${size}</div>`;
+}
+
+function serverCard(sv) {
+  const color = colorFor(sv.name);
+  const h = HEALTH[sv.health] || HEALTH.unknown;
+  const chips = (sv.agents || []).map(a =>
+    `<span class="agent-chip"><span class="agent-chip-dot" style="background:${color}"></span>${esc(a)}</span>`
+  ).join('') || `<span class="agent-chip" style="opacity:0.5">unassigned</span>`;
+
+  let facts;
+  const r = sv.reasons || {};
+  if (sv.state === 'not_running') {
+    facts = `<div class="reason">${esc(sv.state_reason)}</div>`;
+  } else if (sv.n_ctx == null && sv.model_file == null && r.n_ctx && r.n_ctx === r.model_file) {
+    // No props facts, one cause (stale file, not answering): say it once.
+    facts = `<div>context, slots, files: <span class="reason">${esc(r.n_ctx)}</span></div>
+      ${sv.state === 'unknown' ? `<div class="reason">state unknown: ${esc(sv.state_reason)}</div>` : ''}
+      ${sv.health_reason && sv.health_reason !== r.n_ctx ? `<div class="reason">${esc(sv.health_reason)}</div>` : ''}`;
+  } else {
+    facts = `
+      <div>context ${factOr(sv, 'n_ctx', v => `<strong>${v}</strong> tokens`)} ·
+           slots ${factOr(sv, 'total_slots', v => `<strong>${v}</strong>`)}</div>
+      ${fileLine(sv, 'model', 'model_file', 'model_bytes')}
+      ${fileLine(sv, 'draft', 'draft_file', 'draft_bytes')}
+      ${sv.state === 'unknown' ? `<div class="reason">state unknown: ${esc(sv.state_reason)}</div>` : ''}
+      ${sv.health !== 'answering' && sv.health_reason ? `<div class="reason">${esc(sv.health_reason)}</div>` : ''}`;
+  }
+  const gpu = fmtGiB(sv.gpu_bytes), ram = fmtGiB(sv.rss_bytes);
+
+  return `
+    <div class="server-card">
+      <div class="server-card-top">
+        <div class="server-color-bar" style="background:${color}"></div>
+        <div class="server-main">
+          <div class="server-name-row">
+            <span class="status-dot ${h.cls}"></span>
+            <span class="server-name">${esc(sv.name)}</span>
+            ${sv.unit ? `<span class="badge badge-quant">${esc(sv.unit)}</span>` : ''}
+          </div>
+          <div class="server-meta">
+            ${sv.port ? `<span>:${sv.port}</span>` : ''}
+            <span>${STATE_LABEL[sv.state] || esc(sv.state)}</span>
+            <span style="color:${h.color}">${h.text}</span>
+          </div>
+          <div class="server-facts">${facts}</div>
+          <div class="agent-chips">${chips}</div>
+        </div>
+        <div class="server-right">
+          ${gpu != null ? `
+            <div class="server-vram" style="color:${color}">${gpu}</div>
+            <div class="server-vram-sub">GPU memory (GTT + VRAM)</div>
+            <div class="server-vram-sub">RAM ${ram ?? '—'}</div>` : ''}
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderServers(srv) {
+  const grid = document.getElementById('server-grid');
+  const servers = srv.servers || [];
+  document.getElementById('server-src').innerHTML =
+    srcLine('State and memory', srv.sources?.gpu_mem) + '<br>' +
+    srcLine('Health, context, slots and files', srv.sources?.llama_props);
   if (!servers.length) {
-    grid.innerHTML = `<div style="color:var(--text3);font-size:13px;padding:1rem">No servers configured.</div>`;
+    grid.innerHTML = `<div style="color:var(--text3);font-size:13px;padding:1rem">No servers in the catalog.</div>`;
     return;
   }
+  grid.innerHTML = ['running', 'unknown', 'not_running'].map(state => {
+    const group = servers.filter(s => s.state === state);
+    if (!group.length) return '';
+    return `<div class="group-label">${STATE_LABEL[state]}</div>` + group.map(serverCard).join('');
+  }).join('');
+}
 
-  grid.innerHTML = servers.map(sv => {
-    const ok = sv.healthy;
-    const dotCls = ok === true ? 'ok' : ok === false ? 'error' : '';
-    const statusLabel = ok === true ? 'running' : ok === false ? 'unreachable' : 'unknown';
-    const color = colorFor(sv.name);
-
-    const mrow = (metrics.by_model || []).find(r => r.model === sv.name);
-    const tokS  = mrow?.avg_tok_s   ? mrow.avg_tok_s  + ' tok/s'    : '—';
-    const ttft  = mrow?.avg_ttft_ms ? mrow.avg_ttft_ms + ' ms TTFT' : '—';
-    const reqs  = mrow?.requests ?? '—';
-
-    const chips = (sv.agents || []).map(a =>
-      `<span class="agent-chip">
-        <span class="agent-chip-dot" style="background:${color}"></span>${a}
-      </span>`
-    ).join('') || `<span class="agent-chip" style="opacity:0.5">unassigned</span>`;
-
-    const portStr  = sv.port    ? `:${sv.port}` : '';
-    const ctxStr   = sv.ctx_k   ? `ctx ${sv.ctx_k}k` : '';
-    const paramStr = sv.params  ? `${sv.params} params` : '';
-    const quantStr = sv.quant   || '';
-    // Measured (host exporter, GTT+VRAM via DRM fdinfo) beats estimated
-    // (hand-written vram_gb in litellm/config.yaml — model size only, no
-    // KV cache; devstral's real footprint was 2.4x its estimate).
-    const isMeasured = sv.measured_gb != null;
-    const vramStr  = isMeasured ? `${sv.measured_gb} GB`
-                   : sv.vram_gb != null ? `${sv.vram_gb} GB` : '—';
-    const vramSub  = isMeasured ? 'GPU mem (measured)' : 'model size (est.)';
-
+function renderOthers(srv) {
+  const grid = document.getElementById('other-grid');
+  const others = srv.other_processes || [];
+  if (!others.length) {
+    const fresh = srv.sources?.gpu_mem?.state === 'fresh';
+    grid.innerHTML = `<div class="reason" style="padding:0.5rem">${fresh ? 'none' : esc(srv.sources?.gpu_mem?.reason || 'unknown')}</div>`;
+    return;
+  }
+  grid.innerHTML = others.map(o => {
+    const color = colorFor(o.unit);
+    const file = o.unit.startsWith('llama-')
+      ? `<div class="server-facts">${fileLine(o, 'model', 'model_file', 'model_bytes')}${fileLine(o, 'draft', 'draft_file', 'draft_bytes')}</div>` : '';
     return `
       <div class="server-card">
         <div class="server-card-top">
           <div class="server-color-bar" style="background:${color}"></div>
           <div class="server-main">
-            <div class="server-name-row">
-              <span class="status-dot ${dotCls}"></span>
-              <span class="server-name">${sv.name}</span>
-              ${quantStr ? `<span class="badge badge-quant">${quantStr}</span>` : ''}
-            </div>
-            <div class="server-meta">
-              ${paramStr ? `<span>${paramStr}</span>` : ''}
-              ${ctxStr   ? `<span>${ctxStr}</span>`   : ''}
-              ${portStr  ? `<span>${portStr}</span>`  : ''}
-              <span style="color:${ok === true ? 'var(--green)' : ok === false ? 'var(--red)' : 'var(--text3)'}">${statusLabel}</span>
-            </div>
-            <div class="agent-chips">${chips}</div>
+            <div class="server-name-row"><span class="server-name">${esc(o.unit)}</span></div>
+            <div class="server-meta"><span>${esc(o.kind)}</span>${o.port ? `<span>:${o.port}</span>` : ''}</div>
+            ${file}
           </div>
           <div class="server-right">
-            <div class="server-vram" style="color:${color}">${vramStr}</div>
-            <div class="server-vram-sub">${vramSub}</div>
+            <div class="server-vram" style="color:${color}">${fmtGiB(o.gpu_bytes) ?? '—'}</div>
+            <div class="server-vram-sub">GPU memory (GTT + VRAM)</div>
+            <div class="server-vram-sub">RAM ${fmtGiB(o.rss_bytes) ?? '—'}</div>
           </div>
-        </div>
-        <div class="perf-row">
-          <div class="perf-stat">Avg TTFT <strong>${ttft}</strong></div>
-          <div class="perf-stat">Avg tok/s <strong>${tokS}</strong></div>
-          <div class="perf-stat">Requests <strong>${reqs}</strong></div>
         </div>
       </div>`;
   }).join('');
 }
 
+// ── Activity ──────────────────────────────────────────────────────────────────
+
+function renderActivity(act) {
+  const el = document.getElementById('activity');
+  if (act.error) {
+    el.innerHTML = `<span class="reason">${esc(act.error)}</span>`;
+    document.getElementById('activity-src').textContent = '';
+    return;
+  }
+  const row = (m, cls = '') => `<tr class="${cls}">
+      <td>${esc(m.model)}</td>
+      <td class="num">${fmtInt(m.requests)}</td>
+      <td class="num">${fmtInt(m.prompt_tokens)}</td>
+      <td class="num">${fmtInt(m.completion_tokens)}</td>
+      <td title="${esc(m.last_used || '')}">${m.last_used ? esc(fmtLocal(m.last_used)) : 'never'}</td>
+    </tr>`;
+  const apart = act.not_in_catalog || [];
+  el.innerHTML = `<table class="act-table">
+      <tr><th>model</th><th class="num">calls</th><th class="num">prompt tokens</th>
+          <th class="num">completion tokens</th><th>last used (any time)</th></tr>
+      ${(act.models || []).map(m => row(m)).join('')}
+      ${apart.length ? `<tr><th colspan="5">not in the catalog</th></tr>` + apart.map(m => row(m, 'apart')).join('') : ''}
+    </table>`;
+  document.getElementById('activity-src').innerHTML =
+    `Source: ${esc(act.source)}. Window ${esc(fmtLocal(act.since))} to ${esc(fmtLocal(act.now))}, read at this request. Times are this browser's local time.`;
+}
+
 // ── Main load ─────────────────────────────────────────────────────────────────
 
+async function getJSON(url) {
+  try {
+    const r = await fetch(url);
+    const body = await r.json().catch(() => ({}));
+    if (!r.ok) return { error: body.error || body.detail || `${url}: HTTP ${r.status}` };
+    return body;
+  } catch (e) {
+    return { error: `${url}: ${e.message}` };
+  }
+}
+
 async function loadAll() {
-  const [sysResp, metricsResp, serversResp] = await Promise.allSettled([
-    fetch('/api/system'),
-    fetch('/api/metrics'),
-    fetch('/api/servers'),
-  ]);
+  const [sys, srv, act] = await Promise.all([getJSON('api/system'), getJSON('api/servers'), getJSON('api/activity')]);
 
-  const sys      = sysResp.status      === 'fulfilled' && sysResp.value.ok      ? await sysResp.value.json()      : {};
-  const metrics  = metricsResp.status  === 'fulfilled' && metricsResp.value.ok  ? await metricsResp.value.json()  : {};
-  const servers  = serversResp.status  === 'fulfilled' && serversResp.value.ok  ? (await serversResp.value.json()).servers || [] : [];
-
-  if (sys.mem_total) renderMemBar(sys, servers);
-  renderServers(servers, metrics);
+  if (sys.mem_total) { renderMemBar(sys, srv); renderDisk(sys); }
+  else document.getElementById('mem-src').textContent = sys.error || 'api/system gave no memory figures';
+  if (srv.error) document.getElementById('server-grid').innerHTML = `<div class="reason">${esc(srv.error)}</div>`;
+  else { renderServers(srv); renderOthers(srv); }
+  renderActivity(act);
 
   document.getElementById('last-updated').textContent =
     'updated ' + new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });

@@ -28,7 +28,7 @@ The brain. Manages conversation history, routes requests to specialist agents, s
 OpenAI-compatible proxy in front of the llama.cpp servers.
 - Runs with `network_mode: host`, binds to `0.0.0.0:8002` so bridge containers can reach it via `host.docker.internal:8002`
 - Host networking is required because the llama.cpp servers bind to `127.0.0.1` on the host — only a host-network process can reach them
-- Config: `litellm/config.yaml` (bind-mounted). Each `model_list` entry has a `kronk:` block (`params`, `quant`, `vram_gb`, `ctx_k`) that LiteLLM ignores but the orchestrator reads for the Resources page
+- Config: `litellm/config.yaml` (bind-mounted): each model's name and `api_base` only. The Resources page reads context, slots, model files and memory from the running servers (host exporters `scripts/gpu_mem_export.py` and `scripts/llama_props_export.py`)
 - `GET /health` is authoritative for per-backend health
 
 ### tool_service — port 8003

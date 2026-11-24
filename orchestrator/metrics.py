@@ -122,3 +122,50 @@ def dashboard_payload() -> dict:
         "daily":    [dict(r) for r in daily_rows],
         "recent":   [dict(r) for r in recent_rows],
     }
+
+
+# ── /api/activity (M25) ──────────────────────────────────────────────────────
+
+ACTIVITY_WINDOW_H = 24
+_TS_FORMAT = "%Y-%m-%d %H:%M:%S"  # how SQLite's datetime('now') writes timestamp: UTC, no zone mark
+
+
+def _iso_z(ts: str | None) -> str | None:
+    """'2026-11-24 19:03:20' (UTC, as stored) -> '2026-11-24T19:03:20Z'."""
+    if not ts:
+        return None
+    from datetime import datetime, timezone
+    return datetime.strptime(ts[:19], _TS_FORMAT).replace(tzinfo=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def activity(catalog_names: list[str], now=None, hours: int = ACTIVITY_WINDOW_H) -> dict:
+    """What this orchestrator asked of each model: per model, the calls,
+    prompt tokens and completion tokens recorded in llm_metrics with
+    timestamp >= now - hours (the boundary row counts), and the last call
+    over the whole table. Every catalog model is listed; a model outside
+    the catalog is listed apart when it has calls inside the window and
+    left out otherwise. now is a timezone-aware datetime (default: now)."""
+    from datetime import datetime, timedelta, timezone
+    now = datetime.now(timezone.utc) if now is None else now.astimezone(timezone.utc)
+    since = now - timedelta(hours=hours)
+    with sqlite3.connect(f"{Path(METRICS_DB).resolve().as_uri()}?mode=ro", uri=True) as conn:
+        rows = conn.execute("""
+            SELECT model,
+                   SUM(CASE WHEN timestamp >= :since THEN 1 ELSE 0 END),
+                   SUM(CASE WHEN timestamp >= :since THEN COALESCE(prompt_tokens, 0) ELSE 0 END),
+                   SUM(CASE WHEN timestamp >= :since THEN COALESCE(completion_tokens, 0) ELSE 0 END),
+                   MAX(timestamp)
+            FROM llm_metrics
+            GROUP BY model
+        """, {"since": since.strftime(_TS_FORMAT)}).fetchall()
+    by_model = {m: {"model": m, "requests": r, "prompt_tokens": p, "completion_tokens": c,
+                    "last_used": _iso_z(last)} for m, r, p, c, last in rows}
+    models = [by_model.get(name) or {"model": name, "requests": 0, "prompt_tokens": 0,
+                                     "completion_tokens": 0, "last_used": None}
+              for name in catalog_names]
+    outside = sorted((v for m, v in by_model.items() if m not in set(catalog_names) and v["requests"]),
+                     key=lambda v: -v["requests"])
+    return {"window_hours": hours,
+            "since": since.strftime("%Y-%m-%dT%H:%M:%SZ"), "now": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "source": "llm_metrics in this orchestrator's metrics.db: calls from this Kronk only",
+            "models": models, "not_in_catalog": outside}

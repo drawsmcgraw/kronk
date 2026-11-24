@@ -5,11 +5,6 @@ model_list:
       api_base: http://127.0.0.1:11440/v1
       api_key: "dummy"
       supports_function_calling: true
-    kronk:
-      params:  "24B"
-      quant:   "Q4_K_M"
-      vram_gb: 14
-      ctx_k:   128
 
   - model_name: gemma-4-e4b
     litellm_params:
@@ -17,22 +12,12 @@ model_list:
       api_base: http://127.0.0.1:11438/v1
       api_key: "dummy"
       supports_function_calling: true
-    kronk:
-      params:  "4B"
-      quant:   "Q4_K_M"
-      vram_gb: 3.5
-      ctx_k:   128
 
   - model_name: talkie
     litellm_params:
       model: openai/talkie
       api_base: http://127.0.0.1:11441/v1
       api_key: "dummy"
-    kronk:
-      params:  "13B"
-      quant:   "Q8_0"
-      vram_gb: 0
-      ctx_k:   2
 
 litellm_settings:
   drop_params: true       # silently drop unsupported params

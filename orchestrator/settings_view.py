@@ -164,7 +164,7 @@ def models() -> dict:
     rows = []
     for entry in catalog:
         p = by_port.get(entry.get("port")) or {}
-        rows.append({"name": entry["name"], "port": entry.get("port"), "ctx_k_litellm": entry.get("ctx_k"),
+        rows.append({"name": entry["name"], "port": entry.get("port"),
                      "agents": by_model.get(entry["name"], []), "running": bool(p),
                      "n_ctx": p.get("n_ctx"), "slots": p.get("total_slots"),
                      "sampling": p.get("sampling"), "flags": p.get("flags"), "unit": p.get("unit")})
