@@ -34,7 +34,26 @@ llama.cpp models, all on one machine (AMD Ryzen AI 375, Radeon 8060S iGPU,
    coordinates, an Opus 5.5 build agent and a separate Fable 5.2 test
    agent each work in their own herdr workspace with permissions skipped,
    under the guard rails listed there. Follow it when the operator orders
-   a sprint item or asks for an agent to build or investigate.
+   a work item or asks for an agent to build or investigate. ("Sprint"
+   named the 2026-11 run through the backlog; the word is not used for
+   new work, though `docs/sprint/` keeps its name.) For such
+   an item you are the coordinator, and four of its rules bind you
+   (revised 2026-11-24):
+   - From the item's criteria file to its promotions entry you write no
+     code into the repo. A fix to the item, however small, is a fix
+     agent's, and a fresh test agent checks it. (A small fix outside any
+     item is still made inline, under "Definition of done".)
+   - You check the premise of an order against the running system before
+     you write criteria.
+   - You decide plumbing and record it. You ask the operator only when two
+     readings of the order lead to different features, or the step is the
+     operator's by rule.
+   - At the start of the session you read the open "Held or left over"
+     entries in `docs/sprint/PROMOTIONS.md` and the corrected voice runs,
+     and report what needs a decision.
+
+   The file's last section says why each rule exists and what was
+   considered and not adopted. Do not reopen those without new evidence.
 
 Then, only when the task touches that area (shipped features each have a
 distilled doc in `docs/features/` — start there, then the build journals):
@@ -248,10 +267,14 @@ verbatim — never summarized away.
   `docs/incidents/INVESTIGATION_2026-08-14_mm_banner.md` (tenet-10 note;
   re-scoping the key remains an open operator decision).
 - **Git**: the operator runs `git commit` / `git push` themselves. Suggest a
-  commit at milestones; don't run those commands. Two exceptions the
+  commit at milestones; don't run those commands. Three exceptions the
   operator approved: the monthly patch run commits its own pin bumps on
-  the expected branch (2026-11-19), and sprint agents commit and tag when
-  a sprint plan says so. Only the operator pushes.
+  the expected branch (2026-11-19); build, fix and test agents commit and
+  tag for a work item run under `docs/sprint/WORKFLOW.md`; and the
+  coordinator commits its own files (criteria, rulings, promotions
+  entries, docs, and agreed changes to the workflow file and this one;
+  2026-11-24). Code the session writes inline, outside a work item, is
+  still the operator's to commit. Only the operator pushes.
 - **Secrets**: `.env` (gitignored) holds `HA_TOKEN` and, since 2026-10-06,
   `MA_TOKEN` (a Music Assistant long-lived token for tool_service's Pandora
   thumbs; 1-year expiry, no auto-renew). `.env.telemetry` (gitignored,
@@ -273,7 +296,8 @@ verbatim — never summarized away.
 - **New compose files** get an `# Operations:` comment block (up / restart /
   logs / down recipes) like the existing ones.
 - **Docs lifecycle** (defined in `ROADMAP.md`, follow it): sizeable feature →
-  plan doc in `docs/plans/` first → build → distill into
+  plan doc in `docs/plans/` first (for a work item, its criteria file in
+  `docs/sprint/` is the plan doc) → build → distill into
   `docs/features/<name>.md` (what/how/gotchas + a "Blog hooks" section — the
   operator blogs from these) → update the plan doc's status header and move
   the `ROADMAP.md` line to Shipped. Never add a roadmap section to any other

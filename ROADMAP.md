@@ -14,7 +14,9 @@ Conventions:
 - An entry is at most a few lines: what, status, why, a link. History and
   evidence live in the plan and incident docs.
 - **Now** holds only work in flight. Items move Later → Next → Now → Shipped;
-  anything bigger than a day gets a plan doc in `docs/plans/` before build.
+  anything bigger than a day gets a plan doc in `docs/plans/` before build
+  (for a work item run under `docs/sprint/WORKFLOW.md`, its criteria file
+  is the plan doc).
 - When something ships: distill the plan/journal into `docs/features/<name>.md`
   (including a "blog hooks" section), mark the plan doc shipped, move the line
   here to Shipped, and add/refresh the `docs/BLOG_TOPICS.md` entry.
