@@ -1,0 +1,28 @@
+# Exports the state of the work items (the backlog in ROADMAP.md, each
+# item's step files in docs/sprint/ with its stage, the promotions log, and
+# which agents herdr shows working) to data/work.json and
+# data/dev/work.json, for /work (work item M27). Fired by
+# kronk-work-export.timer every 60 s. Reads the working tree; runs only
+# `git log`, `git for-each-ref` and `git rev-parse` with
+# GIT_OPTIONAL_LOCKS=0 (never `git status`, which takes the index lock an
+# agent's commit needs) and `herdr agent list`. The script itself stops
+# waiting for herdr after 5 s; TimeoutStartSec stops a hung run here.
+# See docs/features/work-page.md.
+#
+# Operations:
+#   install:  cp systemd/kronk-work-export.{service,timer} ~/.config/systemd/user/
+#             systemctl --user daemon-reload
+#             systemctl --user enable --now kronk-work-export.timer
+#   check:    systemctl --user list-timers kronk-work-export.timer
+#             journalctl --user -u kronk-work-export.service -n 20
+#   one-shot: python3 scripts/work_export.py --print
+#   remove:   systemctl --user disable --now kronk-work-export.timer
+#             rm ~/.config/systemd/user/kronk-work-export.{service,timer}
+#             systemctl --user daemon-reload
+[Unit]
+Description=Kronk — export the work items for /work
+
+[Service]
+Type=oneshot
+TimeoutStartSec=30
+ExecStart=/usr/bin/python3 -B /home/drew/git-repos/drawsmcgraw/kronk/scripts/work_export.py

@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kronk — Work</title>
+<link rel="stylesheet" href="static/kronk.css">
+<style>
+  header { position: sticky; top: 0; z-index: 10; gap: 12px; flex-wrap: wrap; }
+  .header-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+  .last-updated { font-size: 11px; color: var(--text3); font-family: monospace; }
+  .refresh-btn {
+    background: var(--bg3); border: 1px solid var(--border); border-radius: 6px;
+    color: var(--text2); font-size: 12px; padding: 4px 12px; cursor: pointer; transition: all 0.15s;
+  }
+  .refresh-btn:hover { border-color: var(--blue); color: var(--blue); }
+
+  main { max-width: 1000px; margin: 0 auto; padding: 1.5rem 1rem; display: flex; flex-direction: column; gap: 1.8rem; }
+  main, main * { overflow-wrap: anywhere; }
+
+  .state-line { font-size: 12px; color: var(--text2); line-height: 1.6; }
+  .state-line .sep { color: var(--text3); margin: 0 6px; }
+  .banner { border: 1px solid #f59e0b; background: rgba(245, 158, 11, 0.08); color: #f59e0b;
+            border-radius: 8px; padding: 0.7rem 1rem; font-size: 13px; line-height: 1.5; }
+  .banner strong { font-weight: 700; }
+  .banner.bad { border-color: var(--red); background: rgba(239, 68, 68, 0.08); color: var(--red); }
+  .src { font-size: 11px; color: var(--text3); line-height: 1.5; }
+  .reason { font-size: 12px; color: var(--text3); font-style: italic; }
+  .mono, code { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; }
+  code { background: var(--bg3); border-radius: 3px; padding: 0 3px; }
+
+  .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.2rem; }
+  .card + .card { margin-top: 10px; }
+  .item-head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+  .item-id { font-family: monospace; font-weight: 700; font-size: 15px; color: var(--text); }
+  .item-title { font-size: 14px; font-weight: 600; min-width: 0; }
+  .stage { margin-top: 8px; font-size: 13px; display: flex; gap: 8px; flex-wrap: wrap; align-items: baseline; }
+  .stage-word { font-weight: 700; border-radius: 4px; padding: 1px 8px; font-size: 12px; }
+  .st-active  { background: rgba(59, 130, 246, 0.15); color: var(--blue); }
+  .st-plan    { background: rgba(139, 92, 246, 0.15); color: var(--purple); }
+  .st-wait    { background: rgba(245, 158, 11, 0.15); color: var(--amber); }
+  .st-ready   { background: rgba(31, 168, 118, 0.15); color: var(--green); }
+  .st-done    { background: var(--bg3); color: var(--text2); }
+  .st-blocked { background: rgba(239, 68, 68, 0.2); color: var(--red); }
+  .stage-detail { color: var(--text2); }
+  .blocked-line { color: var(--red); font-weight: 700; }
+  .handoff { margin-top: 6px; font-size: 12px; color: var(--text2); font-style: italic; }
+  .notes { margin-top: 6px; font-size: 12px; color: var(--text3); }
+
+  .steps { margin-top: 10px; display: flex; flex-direction: column; gap: 3px; font-size: 12px; }
+  .step { display: flex; gap: 10px; flex-wrap: wrap; color: var(--text2); }
+  .step .k { min-width: 4.5em; color: var(--text); }
+  .step .t { color: var(--text3); font-family: monospace; font-size: 11px; }
+  .v-pass { color: var(--green); font-weight: 600; }
+  .v-fail { color: var(--red); font-weight: 600; }
+  .v-nd   { color: var(--amber); font-weight: 600; }
+  .v-none { color: var(--text3); font-style: italic; }
+
+  .entry { font-size: 13px; line-height: 1.5; color: var(--text2); }
+  .entry + .entry { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+  .entry strong { color: var(--text); }
+  .entry em { color: var(--text3); }
+  .linked { margin-top: 10px; padding: 8px 10px; background: var(--bg3); border-radius: 6px; }
+  .sub-label { font-size: 12px; color: var(--text2); font-weight: 600; margin: 14px 0 6px; }
+  .note-line { font-size: 12px; color: var(--text3); margin: -2px 0 8px; }
+
+  .done-row { padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12.5px; }
+  .done-row:last-child { border-bottom: 0; }
+  .done-top { display: flex; gap: 8px 14px; flex-wrap: wrap; align-items: baseline; }
+  .done-top .item-id { font-size: 13px; }
+  .done-meta { display: flex; gap: 4px 12px; flex-wrap: wrap; color: var(--text3); font-size: 11.5px; margin-top: 2px; }
+  .for-drew { color: var(--amber); font-weight: 600; }
+  details summary { cursor: pointer; color: var(--text3); font-size: 11.5px; margin-top: 3px; }
+  details[open] summary { color: var(--text2); }
+  .agents-line { font-size: 12.5px; color: var(--text2); }
+  .not-read li { font-size: 11.5px; color: var(--text3); margin-left: 1.2em; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-dot"></div>
+  <h1>Work</h1>
+  <div class="header-right">
+    <span class="last-updated" id="last-updated">—</span>
+    <button class="refresh-btn" onclick="loadAll()">↻ Refresh</button>
+  </div>
+</header>
+
+<main>
+  <div>
+    <div id="banner"></div>
+    <div class="state-line" id="state-line">fetching…</div>
+  </div>
+
+  <section>
+    <div class="section-label">Under way</div>
+    <div class="note-line" id="under-way-note"></div>
+    <div id="under-way"></div>
+  </section>
+
+  <section id="others-section" hidden>
+    <div class="section-label">Other agents</div>
+    <div class="card agents-line" id="others"></div>
+  </section>
+
+  <section>
+    <div class="section-label">Backlog</div>
+    <div class="note-line">The open entries of <code>ROADMAP.md</code>, under its own section names. An entry that names a work item under way is shown with the item above.</div>
+    <div id="backlog"></div>
+  </section>
+
+  <section>
+    <div class="section-label">Done</div>
+    <div class="note-line">The promotions log (<code>docs/sprint/PROMOTIONS.md</code>), newest entry first; dates as written there.</div>
+    <div class="card" id="done"></div>
+    <div class="sub-label">Shipped, not linked to a work item</div>
+    <div class="card" id="shipped"></div>
+  </section>
+
+  <section>
+    <div class="section-label">Not read by the exporter</div>
+    <div class="card"><ul class="not-read" id="not-read"></ul></div>
+    <div class="src" id="src-line" style="margin-top:8px"></div>
+  </section>
+</main>
+
+<script>
+// /work (work item M27): the outline scripts/work_export.py writes on the
+// host every 60 s, served by /api/work with its freshness. The stage of
+// each item and its text are computed by the exporter (stage(), tested in
+// tests/test_m27_work_export.py); this page only lays them out. Every
+// string from the repo is set with textContent (never innerHTML), so a
+// title holding markup shows as text. URLs are relative, so /dev/work
+// shows dev's file. docs/features/work-page.md
+//
+// The page's own state-to-text decisions are the JSON literals below;
+// tests/test_m27_work_page.py reads them as JSON (the suite has no
+// JavaScript runtime).
+
+// The banner for a source that is not fresh. "{age}" is the file's age in
+// seconds, "{reason}" the route's reason. show: whether the outline is shown.
+const SOURCE_BANNER = {
+  "fresh": null,
+  "stale": {"word": "STALE", "text": "work.json was written {age} s ago (the exporter runs every 60 s; older than 180 s is stale). Shown below: the last known state.", "show": true, "bad": false},
+  "missing": {"word": "MISSING", "text": "{reason}", "show": false, "bad": true},
+  "unreadable": {"word": "UNREADABLE", "text": "{reason}", "show": false, "bad": true},
+  "unknown_schema": {"word": "UNKNOWN SCHEMA", "text": "{reason}", "show": false, "bad": true}
+};
+
+// The colour of a stage, by the exporter's stage key.
+const STAGE_CLASS = {
+  "reviewing": "st-active", "implementing": "st-active", "testing": "st-active", "fixing": "st-active",
+  "planning": "st-plan", "waiting": "st-wait", "to_promote": "st-ready", "promoting": "st-ready",
+  "promoted": "st-done"
+};
+
+const VERDICT_CLASS = {"PASSES": "v-pass", "FAILS": "v-fail", "NOT DETERMINED": "v-nd"};
+
+// A step's label by its kind; "{n}" is its number, "{name}" its suffix.
+const STEP_LABEL = {
+  "criteria": "criteria", "review": "review", "build": "build", "test": "test {n}", "fix": "fix {n}",
+  "other": "{name}"
+};
+
+// The top line's agent parts. "{seen}", "{word}", "{reason}", "{n}" from the file.
+const AGENT_TEXT = {
+  "known": "herdr: {seen} agents seen",
+  "not_known": "herdr not reachable: agent state not known ({reason})",
+  "coordinator": "coordinator: {word}",
+  "elsewhere": "{n} more in other directories (not named)"
+};
+
+const UNDER_WAY_NOTE = "Work items only: an item with a step file in docs/sprint/ and no promotions entry.";
+
+function fill(tpl, vals) {
+  return tpl.replace(/\{(\w+)\}/g, (_, k) => (vals[k] == null ? '' : String(vals[k])));
+}
+function stepLabel(s) {
+  return fill(STEP_LABEL[s.kind] || '{name}', { n: s.n, name: s.name || s.file });
+}
+// "PASSES", or "RESTORE PASSES" when the line names another subject.
+function verdictText(v) {
+  return v.subject === 'item' ? v.verdict : `${v.written || v.subject} ${v.verdict}`;
+}
+
+// ── DOM helpers: text only ───────────────────────────────────────────────────
+
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = String(text);
+  return e;
+}
+function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); return node; }
+const arr = x => (Array.isArray(x) ? x : []);
+
+// Markdown-ish text from the repo: `code` and **bold** become elements
+// whose content is set as text; everything else stays as written. Bold
+// may hold code ("**`/work`: …**"); an unpaired ** is shown as written.
+function mdText(parent, s) {
+  const toks = String(s ?? '').split(/(`[^`]*`|\*\*)/);
+  const stars = toks.filter(t => t === '**').length;
+  const honoured = stars - (stars % 2);
+  let seen = 0, cur = parent;
+  for (const t of toks) {
+    if (!t) continue;
+    if (t === '**' && seen < honoured) {
+      seen++;
+      cur = (seen % 2 === 1) ? parent.appendChild(el('strong')) : parent;
+    } else if (t.length > 1 && t.startsWith('`') && t.endsWith('`')) {
+      cur.appendChild(el('code', null, t.slice(1, -1)));
+    } else {
+      cur.appendChild(document.createTextNode(t));
+    }
+  }
+  return parent;
+}
+
+const fmtTime = iso => {
+  const d = new Date(iso);
+  return isNaN(d) ? String(iso) : d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+};
+
+// ── sections ─────────────────────────────────────────────────────────────────
+
+function renderState(resp) {
+  const src = resp.source || {};
+  const banner = clear(document.getElementById('banner'));
+  const b = SOURCE_BANNER[src.state] ?? (src.state === 'fresh' ? null :
+            { word: String(src.state).toUpperCase(), text: '{reason}', show: false, bad: true });
+  if (b) {
+    const box = el('div', 'banner' + (b.bad ? ' bad' : ''));
+    box.appendChild(el('strong', null, b.word + ': '));
+    box.appendChild(document.createTextNode(fill(b.text, { age: src.age_s == null ? '?' : Math.round(src.age_s), reason: src.reason })));
+    banner.appendChild(box);
+    banner.style.marginBottom = '10px';
+  }
+  if (src.schema_note) {
+    const box = el('div', 'banner', src.schema_note);
+    banner.appendChild(box);
+  }
+  const w = resp.work;
+  const line = clear(document.getElementById('state-line'));
+  if (!w) { line.textContent = 'No outline to show.'; return false; }
+  const parts = [];
+  const repo = w.repo || {};
+  const where = repo.detached ? `detached HEAD @ ${repo.head || '?'}` : `${repo.branch || '?'} @ ${repo.head || '?'}`;
+  parts.push(`export made ${fmtTime(w.made_at)}, ${src.age_s == null ? '?' : Math.round(src.age_s)} s ago, from ${where}` +
+             (repo.rebase ? ' (rebase in progress)' : ''));
+  const h = w.herdr || {};
+  parts.push(fill(AGENT_TEXT.coordinator, { word: (h.coordinator || {}).word || 'not known' }));
+  parts.push(h.known ? fill(AGENT_TEXT.known, { seen: h.seen }) : fill(AGENT_TEXT.not_known, { reason: h.reason }));
+  if (h.known && h.elsewhere) parts.push(fill(AGENT_TEXT.elsewhere, { n: h.elsewhere }));
+  parts.forEach((p, i) => {
+    if (i) line.appendChild(el('span', 'sep', '·'));
+    line.appendChild(el('span', null, p));
+  });
+  for (const e of arr(w.errors)) line.appendChild(el('div', 'reason', e));
+  if (repo.error) line.appendChild(el('div', 'reason', repo.error));
+  return b ? b.show : true;
+}
+
+function stepRow(s) {
+  const row = el('div', 'step');
+  row.appendChild(el('span', 'k', stepLabel(s)));
+  row.appendChild(el('span', 't', s.committed_at ? fmtTime(s.committed_at) : 'written, not committed'));
+  if (s.kind === 'test') {
+    const vs = arr(s.verdicts);
+    if (!vs.length) row.appendChild(el('span', 'v-none', 'verdict not read'));
+    for (const v of vs) row.appendChild(el('span', VERDICT_CLASS[v.verdict] || 'v-none', verdictText(v)));
+  }
+  row.appendChild(el('span', 't', s.file));
+  return row;
+}
+
+function stepsBlock(it) {
+  const box = el('div', 'steps');
+  for (const s of arr(it.steps)) box.appendChild(stepRow(s));
+  for (const s of arr(it.uncommitted)) box.appendChild(stepRow(s));
+  return box;
+}
+
+// An open entry is shown whole; a Shipped one by its title and lead only.
+function entryBlock(e, cls) {
+  const box = el('div', cls || 'entry');
+  if (e.text != null) return mdText(box, e.text);
+  mdText(box.appendChild(el('strong')), e.title ?? 'entry with no title');
+  if (e.lead) { box.appendChild(document.createTextNode(' ')); mdText(box.appendChild(el('em')), `(${e.lead})`); }
+  return box;
+}
+
+function itemCard(it) {
+  const card = el('div', 'card');
+  const head = el('div', 'item-head');
+  head.appendChild(el('span', 'item-id', it.id));
+  head.appendChild(mdText(el('span', 'item-title'), it.title ?? 'no title line'));
+  card.appendChild(head);
+  const st = it.stage || {};
+  const line = el('div', 'stage');
+  line.appendChild(el('span', 'stage-word ' + (st.blocked ? 'st-blocked' : (STAGE_CLASS[st.stage] || 'st-done')), st.words ?? st.stage));
+  if (st.detail) line.appendChild(el('span', st.blocked ? 'blocked-line' : 'stage-detail', st.detail));
+  card.appendChild(line);
+  if (it.handoff) card.appendChild(mdText(el('div', 'handoff'), it.handoff));
+  for (const n of arr(it.notes)) card.appendChild(el('div', 'notes', n));
+  card.appendChild(stepsBlock(it));
+  for (const e of arr(it.roadmap)) {
+    const box = el('div', 'linked');
+    box.appendChild(el('div', 'src', 'Backlog entry'));
+    box.appendChild(entryBlock(e, 'entry'));
+    card.appendChild(box);
+  }
+  return card;
+}
+
+function renderUnderWay(w, items) {
+  document.getElementById('under-way-note').textContent = UNDER_WAY_NOTE;
+  const box = clear(document.getElementById('under-way'));
+  const ids = arr(w.under_way);
+  if (!ids.length) box.appendChild(el('div', 'reason', 'none'));
+  for (const id of ids) if (items[id]) box.appendChild(itemCard(items[id]));
+}
+
+function renderOthers(w) {
+  const sec = document.getElementById('others-section');
+  const box = clear(document.getElementById('others'));
+  const others = arr(w.other_agents);
+  sec.hidden = !others.length;
+  others.forEach((a, i) => {
+    if (i) box.appendChild(el('span', 'sep', ' · '));
+    box.appendChild(el('span', 'mono', a.name ?? 'unnamed'));
+    box.appendChild(document.createTextNode(`: ${a.status}`));
+    if (a.why) box.appendChild(el('span', 'reason', ` (${a.why})`));
+  });
+}
+
+function renderBacklog(w) {
+  const box = clear(document.getElementById('backlog'));
+  for (const s of arr(w.backlog)) {
+    box.appendChild(el('div', 'sub-label', s.section));
+    const card = el('div', 'card');
+    const entries = arr(s.entries);
+    if (!entries.length) card.appendChild(el('div', 'reason', 'none'));
+    for (const e of entries) card.appendChild(entryBlock(e));
+    box.appendChild(card);
+  }
+}
+
+// A done item's tests in order, as their item verdicts: "FAILS → PASSES".
+function verdictTrail(it) {
+  return arr(it.steps).filter(s => s.kind === 'test')
+    .map(s => arr(s.verdicts).map(verdictText).join(' + ') || 'verdict not read').join(' → ');
+}
+
+function renderDone(w, items) {
+  const box = document.getElementById('done');
+  // Keep the rows a reader opened across the 30 s refresh.
+  const open = new Set([...box.querySelectorAll('details[open]')].map(d => d.dataset.key));
+  clear(box);
+  const rows = arr(w.done);
+  if (!rows.length) box.appendChild(el('div', 'reason', 'none'));
+  for (const r of rows) {
+    const it = items[r.id] || { id: r.id, steps: [] };
+    const row = el('div', 'done-row');
+    const top = el('div', 'done-top');
+    top.appendChild(el('span', 'item-id', r.id));
+    top.appendChild(mdText(el('span', 'item-title'), it.title ?? 'no title line'));
+    row.appendChild(top);
+    const meta = el('div', 'done-meta');
+    const tag = r.tag ? r.tag + (r.tag_only ? ' (tag only)' : '') : `no tag${r.tag_written ? ` (“${r.tag_written}”)` : ''}`;
+    meta.appendChild(el('span', 'mono', tag));
+    meta.appendChild(el('span', null, r.date ?? 'no date'));
+    if (r.heading && r.heading !== r.id) meta.appendChild(mdText(el('span'), r.heading));
+    if (r.for_drew_total) meta.appendChild(el('span', 'for-drew', `${r.for_drew_total} line${r.for_drew_total === 1 ? '' : 's'} for Drew`));
+    row.appendChild(meta);
+    for (const s of arr(it.shipped)) row.appendChild(mdText(el('div', 'notes'), `Shipped: **${s.title ?? ''}**` + (s.lead ? ` (${s.lead})` : '')));
+    for (const n of arr(r.notes)) row.appendChild(mdText(el('div', 'notes'), `Note: ${n.heading}`));
+    const det = el('details');
+    det.dataset.key = `${r.id}@${r.line}`;
+    det.open = open.has(det.dataset.key);
+    const steps = arr(it.steps).length + arr(it.uncommitted).length;
+    const trail = verdictTrail(it);
+    det.appendChild(el('summary', null, `${steps} step${steps === 1 ? '' : 's'}` + (trail ? ` · ${trail}` : '')));
+    det.appendChild(stepsBlock(it));
+    row.appendChild(det);
+    box.appendChild(row);
+  }
+  const sh = clear(document.getElementById('shipped'));
+  const unl = arr(w.shipped_unlinked);
+  if (!unl.length) sh.appendChild(el('div', 'reason', 'none'));
+  for (const e of unl) sh.appendChild(entryBlock(e));
+}
+
+function renderNotRead(w, src) {
+  const ul = clear(document.getElementById('not-read'));
+  const nr = arr(w.not_read);
+  if (!nr.length) ul.appendChild(el('li', null, 'nothing'));
+  for (const n of nr) {
+    const li = el('li');
+    li.appendChild(el('span', 'mono', n.file));
+    li.appendChild(document.createTextNode(`: ${n.why}`));
+    ul.appendChild(li);
+  }
+  document.getElementById('src-line').textContent =
+    `Source: ${src.file || 'work.json'}, written by scripts/work_export.py on the host every ${src.every_s || 60} s` +
+    (w.run_s != null ? ` (last run took ${w.run_s} s)` : '') + '. Times are this browser’s local time.';
+}
+
+function renderEmpty() {
+  for (const id of ['under-way', 'backlog', 'done', 'shipped', 'not-read']) clear(document.getElementById(id));
+  document.getElementById('under-way-note').textContent = UNDER_WAY_NOTE;
+  document.getElementById('others-section').hidden = true;
+}
+
+async function loadAll() {
+  let resp;
+  try {
+    const r = await fetch('api/work');
+    resp = await r.json();
+    if (!r.ok) resp = { source: { state: 'unreadable', reason: `api/work: HTTP ${r.status}` }, work: null };
+  } catch (e) {
+    resp = { source: { state: 'unreadable', reason: `api/work: ${e.message}` }, work: null };
+  }
+  const show = renderState(resp);
+  const w = resp.work;
+  if (show && w) {
+    const items = {};
+    for (const it of arr(w.items)) items[it.id] = it;
+    renderUnderWay(w, items);
+    renderOthers(w);
+    renderBacklog(w);
+    renderDone(w, items);
+    renderNotRead(w, resp.source || {});
+  } else {
+    renderEmpty();
+  }
+  document.getElementById('last-updated').textContent =
+    'updated ' + new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+loadAll();
+setInterval(loadAll, 30000);
+</script>
+</body>
+</html>

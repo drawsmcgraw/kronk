@@ -18,7 +18,7 @@ Reverse proxy. Single entry point for all browser traffic.
 
 ### orchestrator — port 8000
 The brain. Manages conversation history, routes requests to specialist agents, streams responses.
-- Serves: chat UI (`/`), services (`/services`), agents (`/agents`), resources (`/resources`), performance (`/performance`), shopping list (`/shopping_list`), solar (`/solar`)
+- Serves: chat UI (`/`), services (`/services`), agents (`/agents`), resources (`/resources`), performance (`/performance`), shopping list (`/shopping_list`), solar (`/solar`), work items (`/work`)
 - Pipeline: Phase 1 routing rules (`orchestrator/routing.py`, no model; there has been no LLM router since 2026-08-18) pin a request to a specialist or send it to the coordinator → Phase 2 specialist agent runs its tool-calling loop and streams synthesis → Phase 3 coordinator (`gemma-4-e4b`) answers or delegates, and takes over when a specialist fails (not for Talkie: its failure is the reply)
 - Agent → model assignments come from env vars (`COORDINATOR_MODEL`, `RESEARCH_AGENT_MODEL`, `CODING_AGENT_MODEL`, `DEVOPS_AGENT_MODEL`, `TALKIE_MODEL`)
 - `/api/servers` reads `litellm/config.yaml` + probes LiteLLM `/health` → powers the Resources page
@@ -62,6 +62,7 @@ Units in `~/.config/systemd/user/llama-*.service`. GPU: AMD Radeon 8060S (gfx115
 | `metrics.db` | `/data/metrics.db` | orchestrator | TTFT / tok/s per agent and model |
 | `shopping_list.json` | `/data/shopping_list.json` | tool_service | JSON |
 | Generated diagrams | `/data/generated/` | tool_service writes, orchestrator serves | Graphviz PNGs |
+| `work.json` | `/data/work.json` | host timer `kronk-work-export` writes, orchestrator serves at `/api/work` | The work items' outline for `/work` |
 
 ---
 

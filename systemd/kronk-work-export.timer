@@ -1,0 +1,14 @@
+# Fires kronk-work-export.service every 60 s. The orchestrator treats
+# data/work.json older than 180 s as stale: /work then says STALE with the
+# file's age and shows the last known state. A STALE /work right after an
+# edit under docs/sprint/ means the exporter threw: check its journal.
+[Unit]
+Description=Kronk — work items export every 60s
+
+[Timer]
+OnBootSec=60
+OnUnitActiveSec=60
+AccuracySec=10
+
+[Install]
+WantedBy=timers.target

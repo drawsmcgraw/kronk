@@ -100,6 +100,16 @@ One agent runs at a time. They share one working tree.
 8. **Close.** Each agent's workspace is closed once its report is
    committed. Only the coordinator's workspace stays.
 
+`/work` (work item M27, `docs/features/work-page.md`) shows this workflow's
+state, read every minute from the step files in `docs/sprint/`, the
+promotions log, git, and the names and statuses `herdr agent list` gives.
+Two habits are therefore load-bearing: an agent is named `<item>-<role>`
+(`m27-build`, `m27-test2`, `m27-fix1`; review, build, test or fix), or it
+is shown under "Other agents" and not on its item; and a finished agent's
+workspace is closed, or the item shows it as "done, workspace still
+open". The coordinator's own pane is the one unnamed agent in the repo;
+it is shown as "coordinator: working" or "idle".
+
 ## Start of every working session
 
 Before taking up an item the coordinator reads the "Held or left over"

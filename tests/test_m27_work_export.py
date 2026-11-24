@@ -1,0 +1,868 @@
+"""scripts/work_export.py, the host exporter behind /work (work item M27).
+
+It runs from the working tree on a timer every minute while agents commit
+in the same tree, and production reads what it writes. So these tests pin:
+the verdict rule and the file grammar (criteria 1, 2), the stage table
+(criterion 3), the backlog, done and link rules (5, 6, 7), that nothing
+but the outline leaves the repo (8), and that a run takes no git lock,
+writes nothing else, survives files it cannot parse and a herdr that is
+absent, failing or hung (9).
+
+Fixture trees are temporary git repositories (user set per repo); herdr
+is a fake script on PATH. No socket is opened by the tests; the exporter
+talks to herdr through the fake, which opens none either.
+"""
+import importlib.util
+import json
+import os
+import shutil
+import signal
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+import pytest
+
+pytestmark = pytest.mark.usefixtures("no_network")
+
+REPO = Path(__file__).resolve().parent.parent
+# M27_WORK_EXPORT points the tests at a scratch copy: the exporter is
+# built and fixed outside scripts/ and moved in when these pass, because
+# the installed timer runs the working tree's copy every minute.
+SCRIPT = Path(os.environ.get("M27_WORK_EXPORT", REPO / "scripts" / "work_export.py"))
+BASE_PATH = "/usr/bin:/bin"
+MARKER = "QQ-SECRET-MARKER-7731"
+
+
+def _load():
+    spec = importlib.util.spec_from_file_location("m27_work_export", SCRIPT)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+@pytest.fixture
+def we():
+    return _load()
+
+
+# ── fixture trees ──────────────────────────────────────────────────────────
+
+ROADMAP = """# Roadmap
+
+Conventions:
+- **Admission:** a convention bullet, not an entry.
+- An entry is at most a few lines.
+
+---
+
+## Now — in flight
+
+- **One-line entry** *(work item M9, ordered 2026-11-01)* — on one line.
+
+- **Wrapped lead** *(sprint
+  M7, bench run)* — the lead wraps a line.
+## Next — agreed, not started
+
+- **`/work`: a title with backticks** *(work item
+  M8; after M7)* — Drew: "words". A body mention of M2 is not a link.
+- **Nested list** *(admitted 2026-11-24)* — in this order:
+  1. **First.** one.
+  2. **Second.** two.
+- **Old numbering** *(item 11, 2026-09-03)* — names item 3 and sprint M2 in the body.
+
+## Later — wanted
+
+- **Later entry** — a dash, no lead.
+
+## Chores
+
+- **A chore** — tidy.
+
+## Shipped
+
+Newest first.
+
+- **Backups** *(2026-11-20, sprint M2 and M2b)* — shipped body text.
+- **Split item** *(2026-11-18, sprint
+  M5)* — both steps.
+- **Old shipped thing** *(item 1, 2026-07-05)* — an old body.
+- **Plain paren** (2026-05) — no lead.
+"""
+
+PROMOTIONS = """# Promotions
+
+| Item | Tag | Promoted | What changed | Held or left over |
+| --- | --- | --- | --- | --- |
+| M1 | `sprint-M1` | 2026-11-15 | changed. | For Drew: one. |
+| M2, M1 restore | `sprint-M2-M1` (`abc1234`) | 2026-11-16 00:02 UTC | x | for Drew's go, not addressed |
+| M3 (gate only) | none | 2026-11-17 | audit | nothing |
+| M5 step 1 | `sprint-M5-step1` | 2026-11-17 07:22 UTC | x | **Known regression, for Drew:** y. For Drew: z. |
+| M6 | `sprint-M6` (tag only; **production not redeployed**) | 2026-11-18 | x | x |
+
+## After the sprint (decisions)
+
+- not an entry. For Drew: not counted.
+
+### M2b (2026-11-20): a heading entry, no tag
+
+- body line.
+
+## M4 (a heading entry), 2026-11-21
+
+- Tag `item-M4` (`1733285`). deployed.
+- **For Drew:** one.
+  - **For Drew, the second** line.
+
+### M4, a later note (2026-11-22)
+
+- note body. For Drew to look at.
+"""
+
+
+def git(tree: Path, *args, env=None, date=None):
+    e = dict(os.environ, GIT_CONFIG_NOSYSTEM="1", HOME=str(tree.parent))
+    if date:
+        e.update(GIT_AUTHOR_DATE=date, GIT_COMMITTER_DATE=date)
+    e.update(env or {})
+    return subprocess.run(["git", *args], cwd=tree, env=e, check=True, capture_output=True, text=True)
+
+
+def make_tree(root: Path, commits, roadmap=ROADMAP, promotions=PROMOTIONS, untracked=None) -> Path:
+    """commits: [(date, {file name: text}), ...] in order, each one commit
+    under docs/sprint/; untracked: {file name: text} left uncommitted."""
+    tree = root / "tree"
+    (tree / "docs" / "sprint").mkdir(parents=True)
+    git(tree, "init", "-q", "-b", "main")
+    git(tree, "config", "user.name", "Fixture")
+    git(tree, "config", "user.email", "fixture@example.invalid")
+    (tree / "ROADMAP.md").write_text(roadmap)
+    (tree / "docs" / "sprint" / "PROMOTIONS.md").write_text(promotions)
+    git(tree, "add", "ROADMAP.md", "docs/sprint/PROMOTIONS.md")
+    git(tree, "commit", "-q", "-m", "base", date="2026-11-01T09:00:00-05:00")
+    for date, files in commits:
+        for name, text in files.items():
+            p = tree / "docs" / "sprint" / name
+            if isinstance(text, bytes):
+                p.write_bytes(text)
+            else:
+                p.write_text(text)
+            git(tree, "add", f"docs/sprint/{name}")
+        git(tree, "commit", "-q", "-m", "step", date=date)
+    for name, text in (untracked or {}).items():
+        (tree / "docs" / "sprint" / name).write_text(text)
+    return tree
+
+
+def report(verdict_line: str, item: str = "M9", n_blank: int = 1) -> str:
+    return f"# {item} test\n" + "\n" * n_blank + verdict_line + "\nBody text of the report.\n"
+
+
+def crit(item: str, title: str = None, handoff: str = None) -> str:
+    t = f"# {title or item + ' pass criteria'}\n\nSource: words.\n"
+    if handoff:
+        t += f"\nHandoff line: {handoff}\n\n## Scope\n"
+    return t
+
+
+def herdr_bin(root: Path, agents=None, *, rc=0, body=None, sleep=None) -> Path:
+    """A fake herdr on PATH: prints the agent list (or body) and exits rc."""
+    bindir = root / "bin"
+    bindir.mkdir(exist_ok=True)
+    if body is None:
+        body = json.dumps({"id": "cli:agent:list", "result": {"agents": agents or [], "type": "agent_list"}})
+    (bindir / "answer.json").write_text(body)
+    script = "#!/bin/sh\n" + (f"sleep {sleep}\n" if sleep else "") + f'cat "{bindir}/answer.json"\nexit {rc}\n'
+    (bindir / "herdr").write_text(script)
+    (bindir / "herdr").chmod(0o755)
+    return bindir
+
+
+def agent(name, status, cwd, **extra):
+    a = {"agent": "claude", "agent_status": status, "cwd": str(cwd), "pane_id": "w1:p1", "workspace_id": "w1",
+         "terminal_title": "◐ a title", "agent_session": {"value": "00000000-session"}}
+    if name is not None:
+        a["name"] = name
+    a.update(extra)
+    return a
+
+
+@pytest.fixture
+def path_with(monkeypatch):
+    def set_(bindir=None):
+        monkeypatch.setenv("PATH", (f"{bindir}:" if bindir else "") + BASE_PATH)
+    set_()
+    return set_
+
+
+def by_id(out):
+    return {it["id"]: it for it in out["items"]}
+
+
+# ── criterion 2: verdicts ────────────────────────────────────────────────────
+
+@pytest.mark.parametrize("line,expected", [
+    ("Verdict: PASSES", [("item", None, "PASSES")]),
+    ("Verdict: FAILS", [("item", None, "FAILS")]),
+    ("**Verdict: ITEM PASSES.** Criteria 1 to 20 pass.", [("item", None, "PASSES")]),
+    ("**M9 FAILS.**", [("item", "M9", "FAILS")]),
+    ("**m9 NOT DETERMINED.**", [("item", "m9", "NOT DETERMINED")]),
+    ("**RESTORE PASSES.** All eleven criteria.", [("RESTORE", "RESTORE", "PASSES")]),
+    ("First test (FAILS): `docs/sprint/M23-e2e.md`.", []),
+    ("The verdict: PASSES, said in a sentence.", []),
+    ("  Verdict: PASSES", []),
+    ("See Verdict: PASSES in the next file.", []),
+    ("Earlier: **M9 FAILS.** was the first test.", []),
+    ("**M9 PASSED.**", []),
+])
+def test_verdict_forms_anchored_at_line_start(we, line, expected):
+    got = [(v["subject"], v["written"], v["verdict"]) for v in we.verdicts(["# t", "", line], "M9")]
+    assert got == expected
+
+
+def test_step_id_in_capitals_is_the_item(we):
+    (v,) = we.verdicts(["# t", "", "**M21 STEP 1 FAILS.**"], "M21-step1")
+    assert (v["subject"], v["written"], v["verdict"], v["line"]) == ("item", "M21 STEP 1", "FAILS", 3)
+    (v,) = we.verdicts(["**M4B PASSES.** text"], "M4b")
+    assert v["subject"] == "item" and v["written"] == "M4B"
+
+
+def test_two_subjects_yield_both_first_per_subject(we):
+    lines = ["# M4b retest", "", "**RESTORE PASSES.** All.", "", "**M4B FAILS.** one hole", "**M4B PASSES.** later"]
+    got = [(v["subject"], v["written"], v["verdict"], v["line"]) for v in we.verdicts(lines, "M4b")]
+    assert got == [("RESTORE", "RESTORE", "PASSES", 3), ("item", "M4B", "FAILS", 5)]
+
+
+def test_verdict_on_line_41_is_not_read(we, tmp_path, path_with):
+    tree = make_tree(tmp_path, [
+        ("2026-11-02T10:00:00-05:00", {"M9-criteria.md": crit("M9")}),
+        ("2026-11-02T11:00:00-05:00", {"M9-e2e.md": report("Verdict: FAILS", n_blank=39),
+                                       "M9-e2e2.md": report("Verdict: PASSES", n_blank=38)}),
+    ])
+    out = we.collect(tree)
+    steps = {s["file"]: s for s in by_id(out)["M9"]["steps"]}
+    assert steps["M9-e2e.md"]["verdicts"] == []            # line 41
+    assert steps["M9-e2e2.md"]["verdicts"][0]["line"] == 40
+    assert {"file": "M9-e2e.md", "why": "no verdict line in the first 40 lines"} in out["not_read"]
+
+
+def test_report_with_no_verdict_and_a_word_in_a_sentence(we, tmp_path, path_with):
+    tree = make_tree(tmp_path, [
+        ("2026-11-02T10:00:00-05:00", {"M9-criteria.md": crit("M9"),
+                                       "M9-e2e.md": "# M9 test\n\nFirst test (FAILS): see below.\nNo verdict.\n"}),
+    ])
+    out = we.collect(tree)
+    (t,) = [s for s in by_id(out)["M9"]["steps"] if s["kind"] == "test"]
+    assert t["verdicts"] == []
+    assert any(n["file"] == "M9-e2e.md" for n in out["not_read"])
+    assert by_id(out)["M9"]["stage"]["detail"] == "test 1: verdict not read"
+
+
+# ── criterion 1/4: the file grammar ───────────────────────────────────────────
+
+@pytest.mark.parametrize("name,item,kind,n", [
+    ("M9-criteria.md", "M9", "criteria", None), ("M9-review.md", "M9", "review", None),
+    ("M9-build.md", "M9", "build", None), ("M9-e2e.md", "M9", "test", 1), ("M9-e2e3.md", "M9", "test", 3),
+    ("M9-fix2.md", "M9", "fix", 2), ("M21-step1-e2e2.md", "M21-step1", "test", 2),
+    ("M16b-fix1.md", "M16b", "fix", 1), ("M6-audit.md", "M6", "other", None),
+    ("M5-change1.md", "M5", "other", None), ("M3-e2e2-rows.md", "M3", "other", None),
+    ("M1b-restore-criteria.md", "M1b", "other", None), ("M1b-restore-build.md", "M1b", "other", None),
+])
+def test_file_grammar(we, name, item, kind, n):
+    m = we.FILE_RE.match(name)
+    assert m and m.group(1) == item
+    assert we.step_kind(m.group(2)) == (kind, n)
+
+
+def test_other_suffixes_are_steps_and_named_never_tests(we, tmp_path, path_with):
+    tree = make_tree(tmp_path, [
+        ("2026-11-02T10:00:00-05:00", {"M3-criteria.md": crit("M3")}),
+        ("2026-11-02T11:00:00-05:00", {"M3-e2e2.md": report("**M3 NOT DETERMINED.**", "M3"),
+                                       "M3-e2e2-rows.md": "# rows\n\nVerdict: PASSES\n"}),
+        ("2026-11-02T12:00:00-05:00", {"M6-audit.md": "# M6 audit: what listens\n\nbody\n"}),
+    ])
+    out = we.collect(tree)
+    m3 = by_id(out)["M3"]
+    assert [s["file"] for s in m3["steps"]] == ["M3-criteria.md", "M3-e2e2.md", "M3-e2e2-rows.md"]
+    rows = m3["steps"][2]
+    assert rows["kind"] == "other" and rows["verdicts"] is None and rows["name"] == "e2e2-rows"
+    assert m3["steps"][1]["verdicts"][0]["verdict"] == "NOT DETERMINED"
+    named = {n["file"] for n in out["not_read"]}
+    assert {"M3-e2e2-rows.md", "M6-audit.md"} <= named
+    assert by_id(out)["M6"]["title"] == "M6 audit: what listens"
+
+
+# ── criterion 3: the stage table ──────────────────────────────────────────────
+
+def S(kind, n=None, verdict=None):
+    s = {"file": f"M9-{kind}{n or ''}.md", "kind": kind, "n": n, "name": kind}
+    if kind == "test":
+        s["verdicts"] = [{"subject": "item", "written": None, "verdict": verdict, "line": 3}] if verdict else []
+    return s
+
+
+def A(name, status, role):
+    return {"name": name, "status": status, "role": role}
+
+
+@pytest.mark.parametrize("role,word", [("review", "reviewing"), ("build", "implementing"),
+                                       ("test", "testing"), ("fix", "fixing")])
+def test_stage_one_agent_working(we, role, word):
+    st = we.stage([S("criteria")], False, False, [A(f"m9-{role}", "working", role)])
+    assert (st["stage"], st["detail"], st["blocked"], st["by"]) == (word, f"{word}, agent m9-{role} working", False, "agents")
+
+
+def test_stage_one_agent_blocked_is_prominent(we):
+    st = we.stage([S("build")], False, False, [A("m9-test", "blocked", "test")])
+    assert (st["stage"], st["detail"], st["blocked"]) == ("testing", "testing, agent m9-test BLOCKED", True)
+
+
+def test_stage_two_agents_working_shows_both(we):
+    st = we.stage([S("build")], False, False, [A("m9-test", "working", "test"), A("m9-fix1", "working", "fix")])
+    assert st["detail"] == "fixing, agent m9-fix1 working; testing, agent m9-test working"
+    assert st["words"] == "fixing; testing"
+
+
+@pytest.mark.parametrize("status", ["idle", "done", "unknown"])
+def test_stage_idle_done_unknown_do_not_decide(we, status):
+    st = we.stage([S("criteria"), S("build")], False, False, [A("m9-build", status, "build")])
+    assert (st["stage"], st["detail"], st["by"]) == ("waiting", "build in, not tested", "files")
+
+
+@pytest.mark.parametrize("steps,stage,detail", [
+    ([S("criteria")], "planning", "criteria written"),
+    ([S("criteria"), S("review")], "planning", "review in; criteria being revised"),
+    ([S("criteria"), S("build")], "waiting", "build in, not tested"),
+    ([S("criteria"), S("build"), S("test", 1, "FAILS"), S("fix", 1)], "waiting", "fix 1 in, not retested"),
+    ([S("criteria"), S("build"), S("test", 1, "FAILS")], "waiting", "test 1: FAILS"),
+    ([S("criteria"), S("build"), S("test", 2, "NOT DETERMINED")], "waiting", "test 2: NOT DETERMINED"),
+    ([S("criteria"), S("build"), S("test", 3, "PASSES")], "to_promote", "test 3: PASSES"),
+    ([S("criteria"), S("build"), S("test", 1)], "waiting", "test 1: verdict not read"),
+    ([], "planning", "files written, not committed"),
+])
+def test_stage_no_agent_by_last_step(we, steps, stage, detail):
+    for agents in (None, []):          # herdr not reachable, or no agent
+        st = we.stage(steps, False, False, agents)
+        assert (st["stage"], st["detail"]) == (stage, detail)
+    assert we.STAGE_WORDS["waiting"] == "waiting for the coordinator"
+
+
+def test_stage_tag_without_promotion_is_promoting_whatever_the_agents(we):
+    st = we.stage([S("test", 1, "PASSES")], True, False, [A("m9-test", "working", "test")])
+    assert st["stage"] == "promoting" and st["words"] == "promoting"
+
+
+def test_stage_promotion_entry_is_promoted(we):
+    st = we.stage([S("build")], True, True, [A("m9-fix1", "working", "fix")])
+    assert st["stage"] == "promoted"
+
+
+def test_agent_name_pattern(we):
+    assert we.agent_for("m27-build") == ("M27", "build")
+    assert we.agent_for("m25-test2") == ("M25", "test")
+    assert we.agent_for("m21-step2-fix1") == ("M21-step2", "fix")
+    assert we.agent_for("m16b-review") == ("M16b", "review")
+    for bad in ("kronk-claude", "m27", "m27-investigate", "M27-build", "m27-build-x", None, ""):
+        assert we.agent_for(bad) == (None, None)
+
+
+UNDER_WAY_TREE = [
+    ("2026-11-02T10:00:00-05:00", {"M9-criteria.md": crit("M9", handoff="M9 does the thing,\nwrapped.")}),
+    ("2026-11-02T11:00:00-05:00", {"M9-build.md": "# M9 build\n"}),
+    ("2026-11-02T12:00:00-05:00", {"M1-criteria.md": crit("M1")}),
+]
+
+
+def test_live_agents_through_a_fake_herdr(we, tmp_path, path_with):
+    tree = make_tree(tmp_path, UNDER_WAY_TREE)
+    other = tmp_path / "other-repo"
+    other.mkdir()
+    path_with(herdr_bin(tmp_path, [
+        agent(None, "working", tree),                      # the coordinator's pane
+        agent("m9-test", "working", tree),
+        agent("m9-build", "done", tree),                   # finished, workspace open
+        agent("m1-fix1", "working", tree),                 # its item is promoted
+        agent("m77-build", "working", tree),               # no such item
+        agent("investigator", "idle", tree),               # name not <item>-<role>
+        agent("m9-review", "working", other),              # another repo: counted only
+    ]))
+    out = we.collect(tree)
+    m9 = by_id(out)["M9"]
+    assert out["under_way"] == ["M9"]
+    assert m9["stage"]["detail"] == "testing, agent m9-test working"
+    assert m9["notes"] == ["m9-build: done, workspace still open"]
+    assert m9["handoff"] == "M9 does the thing, wrapped."
+    assert out["herdr"]["known"] and out["herdr"]["seen"] == 7 and out["herdr"]["elsewhere"] == 1
+    assert out["herdr"]["coordinator"]["word"] == "working"
+    others = {a["name"]: (a["status"], a["why"]) for a in out["other_agents"]}
+    assert others == {"m1-fix1": ("working", "its item is promoted"),
+                      "m77-build": ("working", "no item of that name"),
+                      "investigator": ("idle", "name is not <item>-<role>")}
+    assert "m9-review" not in json.dumps(out)
+
+
+@pytest.mark.parametrize("status,word", [("working", "working"), ("done", "idle"), ("idle", "idle"),
+                                         ("blocked", "blocked"), ("unknown", "unknown")])
+def test_coordinator_word(we, tmp_path, path_with, status, word):
+    tree = make_tree(tmp_path, UNDER_WAY_TREE)
+    path_with(herdr_bin(tmp_path, [agent(None, status, tree)]))
+    assert we.collect(tree)["herdr"]["coordinator"]["word"] == word
+
+
+def test_zero_agents_is_not_the_same_as_not_known(we, tmp_path, path_with):
+    tree = make_tree(tmp_path, UNDER_WAY_TREE)
+    path_with(herdr_bin(tmp_path, []))
+    out = we.collect(tree)
+    assert out["herdr"]["known"] is True and out["herdr"]["seen"] == 0
+    assert out["herdr"]["coordinator"]["word"] == "not seen"
+    assert by_id(out)["M9"]["stage"]["detail"] == "build in, not tested"
+
+
+def test_two_unnamed_panes_make_the_coordinator_not_known(we, tmp_path, path_with):
+    tree = make_tree(tmp_path, UNDER_WAY_TREE)
+    path_with(herdr_bin(tmp_path, [agent(None, "working", tree), agent(None, "done", tree)]))
+    c = we.collect(tree)["herdr"]["coordinator"]
+    assert c["word"] == "not known" and "2 unnamed agents" in c["reason"]
+
+
+@pytest.mark.parametrize("how", ["absent", "json_error", "not_json", "no_list"])
+def test_herdr_unreachable_means_agent_state_not_known(we, tmp_path, path_with, how):
+    tree = make_tree(tmp_path, UNDER_WAY_TREE)
+    if how == "json_error":
+        path_with(herdr_bin(tmp_path, rc=1, body='{"error":{"code":"server_not_running","message":"/x/y.sock"}}'))
+    elif how == "not_json":
+        path_with(herdr_bin(tmp_path, rc=0, body="herdr: something went wrong"))
+    elif how == "no_list":
+        path_with(herdr_bin(tmp_path, rc=0, body='{"result":{}}'))
+    out = we.collect(tree)
+    h = out["herdr"]
+    assert h["known"] is False and h["seen"] is None and h["coordinator"]["word"] == "not known"
+    assert by_id(out)["M9"]["stage"]["by"] == "files"
+    if how == "json_error":
+        assert h["reason"] == "herdr agent list: server_not_running (exit 1)"
+        assert "/x/y.sock" not in json.dumps(out)
+    if how == "absent":
+        assert h["reason"] == "herdr is not on PATH"
+
+
+def test_hung_herdr_is_cut_at_5_s_and_the_file_is_written_within_10(tmp_path):
+    tree = make_tree(tmp_path, UNDER_WAY_TREE)
+    bindir = herdr_bin(tmp_path, [], sleep=30)
+    out = tmp_path / "out" / "work.json"
+    env = dict(os.environ, PATH=f"{bindir}:{BASE_PATH}")
+    t0 = time.monotonic()
+    subprocess.run([sys.executable, "-B", str(SCRIPT), "--repo", str(tree), "--out", str(out)],
+                   env=env, check=True, timeout=20)
+    took = time.monotonic() - t0
+    data = json.loads(out.read_text())
+    assert 4.5 <= took < 10
+    assert data["herdr"]["known"] is False
+    assert data["herdr"]["reason"] == "herdr agent list: no answer within 5 s"
+    assert by_id(data)["M9"]["stage"]["detail"] == "build in, not tested"
+
+
+def test_only_name_and_status_leave_herdr(we, tmp_path, path_with):
+    tree = make_tree(tmp_path, UNDER_WAY_TREE)
+    path_with(herdr_bin(tmp_path, [
+        agent("m9-test", "working", tree, terminal_title=f"◐ {MARKER} title",
+              agent_session={"value": f"{MARKER}-sess"}, foreground_cwd=f"/home/{MARKER}"),
+        agent("m9-fix1", "idle", f"/home/{MARKER}/elsewhere"),
+    ]))
+    out = we.collect(tree)
+    assert MARKER not in json.dumps(out)
+    assert by_id(out)["M9"]["agents"] == [{"name": "m9-test", "status": "working", "role": "test"}]
+
+
+# ── criterion 5: the backlog ──────────────────────────────────────────────────
+
+def test_backlog_sections_and_entries(we):
+    nr = []
+    secs = we.parse_roadmap(ROADMAP, nr)
+    assert [s["name"] for s in secs] == ["Now — in flight", "Next — agreed, not started", "Later — wanted",
+                                         "Chores", "Shipped"]
+    titles = {s["name"]: [e["title"] for e in s["entries"]] for s in secs}
+    assert titles["Now — in flight"] == ["One-line entry", "Wrapped lead"]
+    assert titles["Next — agreed, not started"] == ["`/work`: a title with backticks", "Nested list", "Old numbering"]
+    assert titles["Later — wanted"] == ["Later entry"] and titles["Chores"] == ["A chore"]
+    assert "Admission:" not in json.dumps(secs)                    # the Conventions bullets
+    now = secs[0]["entries"]
+    assert now[0]["text"] == "**One-line entry** *(work item M9, ordered 2026-11-01)* — on one line."
+    assert now[1]["lead"] == "sprint M7, bench run"
+    nested = secs[1]["entries"][1]
+    assert nested["text"] == ("**Nested list** *(admitted 2026-11-24)* — in this order: "
+                              "1. **First.** one. 2. **Second.** two.")
+    assert nr == []
+
+
+def test_paragraph_at_column_0_after_a_blank_line_ends_an_entry(we):
+    text = "## Now — in flight\n\n- **A** — one.\n\nA loose paragraph.\n- **B** — two.\n"
+    (s,) = we.parse_roadmap(text, [])
+    assert [e["text"] for e in s["entries"]] == ["**A** — one.", "**B** — two."]
+
+
+def test_unknown_section_is_not_exported_and_is_named(we):
+    nr = []
+    secs = we.parse_roadmap("## Parked\n\n- **X** — secret plans.\n", nr)
+    assert secs == [] and nr == [{"file": "ROADMAP.md", "why": "section 'Parked' is not a known section"}]
+
+
+def test_shipped_entries_carry_title_and_lead_only(we):
+    secs = we.parse_roadmap(ROADMAP, [])
+    shipped = secs[-1]["entries"]
+    assert all("text" not in e for e in shipped)
+    assert [(e["title"], e["lead"]) for e in shipped] == [
+        ("Backups", "2026-11-20, sprint M2 and M2b"), ("Split item", "2026-11-18, sprint M5"),
+        ("Old shipped thing", "item 1, 2026-07-05"), ("Plain paren", None)]
+
+
+# ── criterion 7: links ───────────────────────────────────────────────────────
+
+def test_links_only_inside_the_leading_lead(we):
+    secs = we.parse_roadmap(ROADMAP, [])
+    links = {e["title"]: e["links"] for s in secs for e in s["entries"]}
+    assert links["One-line entry"] == ["M9"]
+    assert links["Wrapped lead"] == ["M7"]                       # "sprint\n  M7"
+    assert links["`/work`: a title with backticks"] == ["M8"]    # "work item\n  M8; after M7"
+    assert links["Old numbering"] == []                          # body mentions, "item 11"
+    assert links["Nested list"] == [] and links["Later entry"] == []
+    assert links["Backups"] == ["M2", "M2b"]                     # "sprint M2 and M2b"
+    assert links["Old shipped thing"] == []
+
+
+def test_a_bare_step_id_links_both_steps(we):
+    assert we.resolve_links(["M5"], ["M5-step1", "M5-step2", "M50"]) == ["M5-step1", "M5-step2"]
+    assert we.resolve_links(["M2", "M2b"], ["M2", "M2b", "M20"]) == ["M2", "M2b"]
+
+
+DONE_TREE = [
+    ("2026-11-02T10:00:00-05:00", {"M1-criteria.md": crit("M1", "M1 pass criteria: first")}),
+    ("2026-11-02T11:00:00-05:00", {"M2-criteria.md": crit("M2"), "M2b-criteria.md": crit("M2b")}),
+    ("2026-11-02T12:00:00-05:00", {"M3-criteria.md": crit("M3"), "M4-criteria.md": crit("M4"),
+                                   "M5-step1-criteria.md": crit("M5-step1"), "M6-criteria.md": crit("M6")}),
+    ("2026-11-02T13:00:00-05:00", {"M4-e2e.md": report("Verdict: PASSES", "M4")}),
+    ("2026-11-03T09:00:00-05:00", {"M5-step2-criteria.md": crit("M5-step2"),
+                                   "M7-criteria.md": crit("M7"), "M8-criteria.md": crit("M8")}),
+]
+
+
+def test_open_entry_linked_to_an_item_under_way_moves_to_it(we, tmp_path, path_with):
+    tree = make_tree(tmp_path, DONE_TREE)
+    out = we.collect(tree)
+    assert out["under_way"] == ["M5-step2", "M7", "M8"]
+    items = by_id(out)
+    assert [e["title"] for e in items["M7"]["roadmap"]] == ["Wrapped lead"]
+    assert [e["title"] for e in items["M8"]["roadmap"]] == ["`/work`: a title with backticks"]
+    backlog = [e["title"] for s in out["backlog"] for e in s["entries"]]
+    # "One-line entry" links M9, which is not under way: it stays.
+    assert backlog == ["One-line entry", "Nested list", "Old numbering", "Later entry", "A chore"]
+
+
+# ── criterion 6: done ────────────────────────────────────────────────────────
+
+def test_done_is_promotions_in_reverse_file_order(we, tmp_path, path_with):
+    tree = make_tree(tmp_path, DONE_TREE)
+    out = we.collect(tree)
+    got = [(r["id"], r["tag"], r["date"], r["for_drew"], r["for_drew_total"], [n["heading"] for n in r["notes"]])
+           for r in out["done"]]
+    assert got == [
+        ("M4", "item-M4", "2026-11-21", 2, 3, ["M4, a later note (2026-11-22)"]),
+        ("M2b", None, "2026-11-20", 0, 0, []),
+        ("M6", "sprint-M6", "2026-11-18", 0, 0, []),
+        ("M5-step1", "sprint-M5-step1", "2026-11-17 07:22 UTC", 2, 2, []),
+        ("M3", None, "2026-11-17", 0, 0, []),
+        ("M2", "sprint-M2-M1", "2026-11-16 00:02 UTC", 0, 0, []),
+        ("M1", "sprint-M2-M1", "2026-11-16 00:02 UTC", 0, 0, []),     # M1's second promotion
+        ("M1", "sprint-M1", "2026-11-15", 1, 1, []),
+    ]
+    rows = {(r["id"], r["line"]): r for r in out["done"]}
+    m3 = next(r for r in out["done"] if r["id"] == "M3")
+    assert m3["tag_written"] == "none" and m3["heading"] == "M3 (gate only)"
+    m6 = next(r for r in out["done"] if r["id"] == "M6")
+    assert m6["tag_only"] is True
+    assert rows[("M2b", 15)]["kind"] == "heading" and rows[("M2b", 15)]["heading"].startswith("M2b (2026-11-20)")
+    # A heading that starts with no id is no entry.
+    assert all("After the sprint" not in (r["heading"] or "") for r in out["done"])
+    assert {it["id"] for it in out["items"] if it["stage"]["stage"] == "promoted"} == \
+        {"M1", "M2", "M2b", "M3", "M4", "M5-step1", "M6"}
+
+
+def test_linked_shipped_entries_go_on_the_items_row_not_below(we, tmp_path, path_with):
+    tree = make_tree(tmp_path, DONE_TREE)
+    out = we.collect(tree)
+    items = by_id(out)
+    assert [s["title"] for s in items["M2"]["shipped"]] == ["Backups"]
+    assert [s["title"] for s in items["M2b"]["shipped"]] == ["Backups"]
+    assert [s["title"] for s in items["M5-step1"]["shipped"]] == ["Split item"]
+    assert [s["title"] for s in items["M5-step2"]["shipped"]] == ["Split item"]
+    assert [e["title"] for e in out["shipped_unlinked"]] == ["Old shipped thing", "Plain paren"]
+
+
+def test_for_drew_counts(we):
+    entries = we.parse_promotions(PROMOTIONS)
+    counts = {(tuple(e["ids"]), e["line"]): e["for_drew"] for e in entries}
+    assert counts == {(("M1",), 5): 1, (("M2", "M1"), 6): 0, (("M3",), 7): 0, (("M5-step1",), 8): 2,
+                      (("M6",), 9): 0, (("M2b",), 15): 0, (("M4",), 19): 2, (("M4",), 25): 1}
+    note = [e for e in entries if e["line"] == 25][0]
+    assert note["note"] is True and note["note_on"] == ["M4"]
+
+
+# ── criterion 8: nothing but the outline leaves the repo ──────────────────────
+
+def test_marker_in_every_body_is_nowhere_in_the_export(we, tmp_path, path_with):
+    M = MARKER
+    roadmap = ROADMAP.replace("shipped body text.", f"shipped body {M}.").replace("an old body.", f"old {M}.")
+    promotions = (PROMOTIONS.replace("| changed. | For Drew: one. |", f"| {M} cell four | {M} cell five |")
+                  .replace("- body line.", f"- {M} heading body.")
+                  .replace("- note body.", f"- {M} note body.")
+                  .replace("- Tag `item-M4` (`1733285`). deployed.", f"- Tag `item-M4` (`1733285`). {M}."))
+    tree = make_tree(tmp_path, [
+        ("2026-11-02T10:00:00-05:00", {"M9-criteria.md": f"# M9 pass criteria\n\n{M} criteria body\n\n"
+                                                         f"Handoff line: the handoff.\n\n{M} more\n"}),
+        ("2026-11-02T11:00:00-05:00", {"M9-build.md": f"# M9 build\n\n{M} build body\n",
+                                       "M9-e2e.md": f"# M9 test\n\nVerdict: FAILS {M}\n{M} report body\n",
+                                       "M9-review.md": f"# M9 review\n\n{M}\n"}),
+        ("2026-11-02T12:00:00-05:00", {"M6-audit.md": f"# M6 audit\n\n{M}\n", "M5-change1.md": f"# change\n{M}\n",
+                                       "M9-e2e2-rows.md": f"# rows\n{M}\n", "M9-fix1.md": f"# fix\n{M}\n"}),
+    ], roadmap=roadmap, promotions=promotions)
+    path_with(herdr_bin(tmp_path, [agent("m9-fix1", "working", tree, terminal_title=M,
+                                         agent_session={"value": M})]))
+    text = json.dumps(we.collect(tree), ensure_ascii=False)
+    assert M not in text
+    assert "the handoff." in text and "M9 pass criteria" in text
+
+
+def _strings(x):
+    if isinstance(x, str):
+        yield x
+    elif isinstance(x, dict):
+        for v in x.values():
+            yield from _strings(v)
+    elif isinstance(x, list):
+        for v in x:
+            yield from _strings(v)
+
+
+def leaked_lines(repo: Path, export: dict) -> list[str]:
+    """Lines of 20 characters or more from an item file's body,
+    PROMOTIONS.md's body or a Shipped entry's body that appear in the
+    export, outside the fields the outline carries on purpose."""
+    # What is exported by design is left out of the blob: titles, handoff
+    # lines (a promotions entry opens with its item's handoff line, so the
+    # same words are in PROMOTIONS.md's body), leads, and the open entries,
+    # which are exported whole. The rest is checked.
+    def strip(x):
+        if isinstance(x, dict):
+            return {k: strip(v) for k, v in x.items() if k not in ("title", "handoff", "lead", "text")}
+        if isinstance(x, list):
+            return [strip(v) for v in x]
+        return x
+    blob = "\n".join(_strings(strip(export)))
+    sprint = repo / "docs" / "sprint"
+    candidates: list[str] = []
+    for p in sorted(sprint.glob("M*.md")):
+        lines = p.read_text(errors="replace").splitlines()
+        in_handoff = False
+        for i, line in enumerate(lines):
+            if line.startswith("Handoff line:"):
+                in_handoff = True
+            elif in_handoff and not line.strip():
+                in_handoff = False
+            if i == 0 or in_handoff:
+                continue
+            candidates.append(line)
+    for line in (sprint / "PROMOTIONS.md").read_text().splitlines():
+        if line.startswith("#"):
+            continue
+        if line.startswith("|"):
+            candidates.extend(line.split("|")[4:])
+        candidates.append(line)
+    shipped = (repo / "ROADMAP.md").read_text().split("\n## Shipped", 1)[1]
+    candidates.extend(shipped.splitlines()[1:])
+    return sorted({c.strip() for c in candidates if len(c.strip()) >= 20 and c.strip() in blob})
+
+
+# ── criterion 9: safe to run every minute ─────────────────────────────────────
+
+def test_git_commands_are_the_three_and_lockless(we, tmp_path, path_with, monkeypatch):
+    tree = make_tree(tmp_path, UNDER_WAY_TREE)
+    calls = []
+    real = we.run
+
+    def spy(cmd, cwd, timeout, env=None):
+        calls.append((cmd, env))
+        return real(cmd, cwd, timeout, env)
+    monkeypatch.setattr(we, "run", spy)
+    we.collect(tree)
+    gits = [c for c in calls if c[0][0] == "git"]
+    assert {c[0][2] for c in gits} == {"rev-parse", "log", "for-each-ref"}
+    for cmd, env in gits:
+        assert cmd[1] == "--no-optional-locks" and env["GIT_OPTIONAL_LOCKS"] == "0"
+        assert not {"status", "diff", "add", "stash", "commit", "gc"} & set(cmd)
+    (log,) = [c[0] for c in gits if c[0][2] == "log"]
+    assert log[2:] == ["log", "--no-renames", "--diff-filter=A", "--name-only", "--format=@%H%x09%aI",
+                       "--reverse", "--", "docs/sprint"]
+
+
+@pytest.mark.skipif(not shutil.which("strace"), reason="strace not installed")
+def test_under_strace_no_lock_no_other_write_no_socket(tmp_path):
+    tree = make_tree(tmp_path, UNDER_WAY_TREE)
+    bindir = herdr_bin(tmp_path, [agent("m9-test", "working", tree)])
+    outdir = tmp_path / "out"
+    (outdir / "dev").mkdir(parents=True)
+    trace = tmp_path / "trace.txt"
+    env = dict(os.environ, PATH=f"{bindir}:{BASE_PATH}")
+    r = subprocess.run(["strace", "-f", "-qq", "-o", str(trace), "-e",
+                        "trace=openat,open,creat,socket,connect,rename,renameat,renameat2,unlink,unlinkat,mkdir,mkdirat",
+                        sys.executable, "-B", str(SCRIPT), "--repo", str(tree),
+                        "--out", str(outdir / "work.json"), "--out", str(outdir / "dev" / "work.json")],
+                       env=env, capture_output=True, text=True, timeout=30)
+    if r.returncode != 0 and "ptrace" in (r.stderr or ""):
+        pytest.skip("ptrace not permitted here")
+    assert r.returncode == 0, r.stderr
+    lines = trace.read_text().splitlines()
+    assert not [l for l in lines if '.lock"' in l]
+    writes = [l for l in lines if ("O_WRONLY" in l or "O_RDWR" in l or "O_CREAT" in l) and "= -1" not in l]
+    allowed = (f'"{outdir}/.work.json.', f'"{outdir}/dev/.work.json.', '"/dev/null"')
+    assert all(any(a in l for a in allowed) for l in writes), [l for l in writes if not any(a in l for a in allowed)]
+    renames = [l for l in lines if "rename" in l and "= 0" in l]
+    assert len(renames) == 2
+    assert not [l for l in lines if l.split(" ", 1)[-1].startswith(("socket(", "connect("))]
+    assert not [l for l in lines if "unlink" in l and "= 0" in l]
+    assert json.loads((outdir / "work.json").read_text())["under_way"] == ["M9"]
+
+
+KILL_CHILD = r"""
+import importlib.util, json, sys, time
+from pathlib import Path
+spec = importlib.util.spec_from_file_location("m", sys.argv[1])
+m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+target, marker = Path(sys.argv[2]), Path(sys.argv[3])
+def slow(data, f, **kw):
+    f.write('{"schema": 1, "ts": 2, "half')
+    f.flush()
+    marker.write_text("mid-write")
+    time.sleep(60)
+m.json.dump = slow
+m.write(target, {"ts": 2})
+"""
+
+
+def test_kill_in_the_middle_of_a_write_leaves_the_old_file_whole(tmp_path):
+    target = tmp_path / "work.json"
+    old = '{"schema": 1, "ts": 1, "items": []}'
+    target.write_text(old)
+    marker = tmp_path / "marker"
+    child = subprocess.Popen([sys.executable, "-I", "-c", KILL_CHILD, str(SCRIPT), str(target), str(marker)])
+    try:
+        deadline = time.time() + 20
+        while not marker.exists():
+            assert child.poll() is None, "child exited before the write"
+            assert time.time() < deadline, "child never reached the write"
+            time.sleep(0.02)
+        os.kill(child.pid, signal.SIGKILL)
+        child.wait(10)
+    finally:
+        if child.poll() is None:
+            child.kill()
+            child.wait(10)
+    assert child.returncode == -signal.SIGKILL
+    assert target.read_text() == old
+
+
+def test_does_not_fail_on_bad_files_and_lists_untracked(we, tmp_path, path_with):
+    tree = make_tree(tmp_path, [
+        ("2026-11-02T10:00:00-05:00", {"M9-criteria.md": "no title line here\n\nbody\n"}),
+        ("2026-11-02T11:00:00-05:00", {"M9-build.md": "", "M9-e2e.md": b"\x00\x01\xff binary\x00",
+                                       "notes.md": "# not an item\n"}),
+    ], untracked={"M9-fix1.md": "# M9 fix 1\n", "M10-criteria.md": "# M10 pass criteria\n"})
+    out = we.collect(tree)
+    m9 = by_id(out)["M9"]
+    assert [s["file"] for s in m9["steps"]] == ["M9-criteria.md", "M9-build.md", "M9-e2e.md"]
+    assert [(s["file"], s["committed_at"]) for s in m9["uncommitted"]] == [("M9-fix1.md", None)]
+    assert m9["title"] == "M9 fix 1"                      # the criteria file has no title line
+    why = {n["file"]: n["why"] for n in out["not_read"]}
+    assert why["M9-criteria.md"] == "no title line"
+    assert why["M9-build.md"] == "empty"
+    assert why["M9-e2e.md"] == "binary"
+    assert why["notes.md"] == "not an item file name"
+    assert "M10" in out["under_way"]
+    m10 = by_id(out)["M10"]
+    assert m10["steps"] == [] and m10["stage"]["detail"] == "files written, not committed"
+
+
+def test_missing_roadmap_and_promotions_are_named_not_fatal(we, tmp_path, path_with):
+    tree = make_tree(tmp_path, UNDER_WAY_TREE)
+    (tree / "ROADMAP.md").unlink()
+    (tree / "docs" / "sprint" / "PROMOTIONS.md").write_bytes(b"\x00binary")
+    out = we.collect(tree)
+    why = {n["file"]: n["why"] for n in out["not_read"]}
+    assert why["ROADMAP.md"] == "missing" and why["PROMOTIONS.md"] == "binary"
+    assert out["backlog"] == [] and out["done"] == []
+    assert out["under_way"] == ["M1", "M9"]
+
+
+def test_detached_head_and_rebase_in_progress(we, tmp_path, path_with):
+    tree = make_tree(tmp_path, UNDER_WAY_TREE)
+    git(tree, "checkout", "-q", "--detach", "HEAD~1")      # before M1-criteria.md
+    (tree / ".git" / "rebase-merge").mkdir()
+    out = we.collect(tree)
+    assert out["repo"]["detached"] is True and out["repo"]["branch"] is None
+    assert out["repo"]["rebase"] is True and len(out["repo"]["head"]) >= 7
+    m1 = by_id(out)["M1"]                                  # named by PROMOTIONS.md only
+    assert m1["steps"] == [] and m1["uncommitted"] == []
+    assert [s["file"] for s in by_id(out)["M9"]["steps"]] == ["M9-criteria.md", "M9-build.md"]
+
+
+def test_not_a_git_repo_still_writes(we, tmp_path, path_with):
+    tree = tmp_path / "plain"
+    (tree / "docs" / "sprint").mkdir(parents=True)
+    (tree / "docs" / "sprint" / "M9-criteria.md").write_text("# M9\n")
+    out = we.collect(tree)
+    assert out["repo"]["error"] and out["errors"]
+    assert by_id(out)["M9"]["uncommitted"][0]["file"] == "M9-criteria.md"
+
+
+def test_default_outputs_are_data_and_data_dev(we, tmp_path, path_with, monkeypatch):
+    tree = make_tree(tmp_path, UNDER_WAY_TREE)
+    written = []
+    monkeypatch.setattr(we, "write", lambda p, d: written.append(p))
+    assert we.main(["--repo", str(tree)]) == 0
+    assert written == [tree / "data" / "work.json", tree / "data" / "dev" / "work.json"]
+    assert we.SCHEMA == 1 and we.HERDR_TIMEOUT_S == 5
+
+
+# ── the real tree (read only; herdr left off PATH) ────────────────────────────
+
+@pytest.fixture(scope="module")
+def real():
+    if not (REPO / ".git").exists():
+        pytest.skip("not a git working tree")
+    env = dict(os.environ, PATH=BASE_PATH)
+    t0 = time.monotonic()
+    r = subprocess.run([sys.executable, "-B", str(SCRIPT), "--repo", str(REPO), "--print"],
+                       env=env, capture_output=True, text=True, timeout=30, check=True)
+    return json.loads(r.stdout), time.monotonic() - t0
+
+
+def test_real_tree_runs_under_1_s(real):
+    data, took = real
+    assert took < 1.0 and data["run_s"] < 1.0
+    assert data["errors"] == []
+
+
+def test_real_tree_every_test_report_has_a_verdict(real):
+    data, _ = real
+    tests = [s for it in data["items"] for s in it["steps"] + it["uncommitted"] if s["kind"] == "test"]
+    assert len(tests) >= 49
+    assert [s["file"] for s in tests if not s["verdicts"]] == []
+    m4b = {s["file"]: s for s in by_id(data)["M4b"]["steps"]}["M4b-e2e.md"]
+    assert [(v["written"], v["verdict"], v["line"]) for v in m4b["verdicts"]] == \
+        [("RESTORE", "PASSES", 11), ("M4B", "FAILS", 13)]
+    assert {"file": "M3-e2e2-rows.md", "why": "step 'e2e2-rows' is not a known step (listed under its name)"} \
+        in data["not_read"]
+
+
+def test_real_tree_outline_only(real):
+    data, _ = real
+    assert leaked_lines(REPO, data) == []

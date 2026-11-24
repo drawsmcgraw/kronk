@@ -30,6 +30,7 @@ import sessions
 import settings_api
 import upgrades_api
 import backups_api
+import work_api
 import speech_stream
 import telemetry
 import tools
@@ -142,6 +143,8 @@ async def resources_page():return _serve("resources.html")
 async def performance_page(): return _serve("performance.html")
 @app.get("/solar",       response_class=HTMLResponse)
 async def solar_page():    return _serve("solar.html")
+@app.get("/work",        response_class=HTMLResponse)
+async def work_page():     return _serve("work.html")
 
 
 # ── API: metrics / system / status / agents ──────────────────────────────────
@@ -237,6 +240,8 @@ app.include_router(settings_api.router)
 app.include_router(upgrades_api.router)
 # The backup jobs' status for /services (sprint M16), read-only.
 app.include_router(backups_api.router)
+# The work items' state for /work (work item M27), read-only.
+app.include_router(work_api.router)
 
 
 # ── /message: the main chat endpoint ─────────────────────────────────────────

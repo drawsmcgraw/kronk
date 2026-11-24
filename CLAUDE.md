@@ -90,7 +90,8 @@ which tag each one runs). The dev pair (`orchestrator-dev`,
 LLM servers and GPU STT are **not** containers — they're user systemd units on
 the host (`~/.config/systemd/user/llama-*.service`, `wyoming-whisper.service`,
 `wyoming-whisper-dev.service`). Host timers (`kronk-*`): backups (3),
-upgrades (3), the music and SearXNG canaries, the STT prompt; list them with
+upgrades (3), the music and SearXNG canaries, the STT prompt, the work
+export for `/work`; list them with
 `systemctl --user list-timers`.
 Reference copies live in `systemd/`. Each compose file carries an
 `# Operations:` comment block with its day-2 commands — read it before

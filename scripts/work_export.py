@@ -1,0 +1,826 @@
+#!/usr/bin/env python3
+"""Export the state of the work items for /work (work item M27). Runs ON
+THE HOST (systemd user timer kronk-work-export.timer, every 60 s): the
+production orchestrator runs from a release snapshot and cannot see the
+working tree, where an item under way exists, so this file is the bridge,
+as gpu_mem.json and llama_props.json are for /resources.
+
+What it reads, and nothing else:
+
+- ROADMAP.md and docs/sprint/PROMOTIONS.md, from the tree;
+- the first 40 lines of each item file in docs/sprint/;
+- git, with GIT_OPTIONAL_LOCKS=0, by three commands only: one `git log`
+  for every file's first commit in docs/sprint/, `git for-each-ref
+  refs/tags`, `git rev-parse` (branch and short HEAD). Never `status`,
+  `diff`, `add` or `stash`: `git status` takes .git/index.lock, and an
+  agent's commit in that instant fails;
+- `herdr agent list`, once, with a 5 s limit.
+
+What it writes: an outline, not the documents. Titles, handoff lines and
+verdict words from item files; ids, tags, dates as written, headings and a
+count of "For Drew" lines from PROMOTIONS.md; the whole open entries and,
+for Shipped, the title and leading *( ... )* from ROADMAP.md; agents' names
+and statuses from herdr (never terminal_title, agent_session or cwd; an
+agent outside this repo is counted, not named). The stage of each item is
+computed here, by stage() and the tables above it
+(docs/sprint/M27-criteria.md, "Stage is a pure function").
+
+It never fails on a file it cannot parse: the file is named in "not_read"
+and the rest is written. Standard library only, no network.
+
+The keys are read by every deployed orchestrator: once item-M27 is
+deployed, add keys, never rename or repurpose one, and raise SCHEMA when
+keys are added.
+
+    work_export.py [--repo DIR] [--out FILE ...] [--print]
+
+Each --out file is written atomically (temp file, rename). Default: the
+repo's data/work.json and data/dev/work.json (production's and dev's
+orchestrators read /data/work.json). See docs/features/work-page.md.
+"""
+import argparse
+import datetime as dt
+import json
+import os
+import re
+import shutil
+import signal
+import subprocess
+import sys
+import tempfile
+import time
+from pathlib import Path
+
+SCHEMA = 1
+REPO = Path(__file__).resolve().parent.parent
+HEAD_LINES = 40
+HERDR_TIMEOUT_S = 5
+GIT_TIMEOUT_S = 5
+TITLE_MAX = 300
+HANDOFF_MAX = 600
+ENTRY_MAX = 4000
+GIT_ENV = {"GIT_OPTIONAL_LOCKS": "0", "GIT_TERMINAL_PROMPT": "0", "LC_ALL": "C"}
+
+ID = r"M\d+[a-z]?(?:-step\d+)?"
+FILE_RE = re.compile(rf"^({ID})-(.+)\.md$")
+KNOWN_SUFFIX = re.compile(r"^(criteria|review|build|e2e(\d+)?|fix(\d+))$")
+NOT_ITEM_FILES = {"PROMOTIONS.md", "WORKFLOW.md"}
+
+# ── Verdicts: anchored at the start of a line, in the first 40 lines ────────
+VERDICT_WORD = r"(PASSES|FAILS|NOT DETERMINED)"
+VERDICT_FORMS = [
+    re.compile(rf"^Verdict:\s*{VERDICT_WORD}(?![\w])"),
+    re.compile(rf"^\*\*Verdict: ITEM {VERDICT_WORD}\.\*\*"),
+    re.compile(rf"^\*\*(RESTORE) {VERDICT_WORD}\.\*\*"),
+    re.compile(rf"^\*\*([Mm]\d+[A-Za-z]?(?: [Ss][Tt][Ee][Pp] \d+)?) {VERDICT_WORD}\.\*\*"),
+]
+
+# ── Stage: the table of M27-criteria.md, as data ──────────────────────────
+AGENT_RE = re.compile(r"^(m\d+[a-z]?(?:-step\d+)?)-(review|build|test|fix)\d*$")
+ROLE_STAGE = {"review": "reviewing", "build": "implementing", "test": "testing", "fix": "fixing"}
+STAGE_WORDS = {
+    "reviewing": "reviewing", "implementing": "implementing", "testing": "testing", "fixing": "fixing",
+    "planning": "planning", "waiting": "waiting for the coordinator", "to_promote": "to promote",
+    "promoting": "promoting", "promoted": "promoted",
+}
+# Last committed step file, no agent working or blocked: (stage, detail).
+FILE_STAGE = {
+    "criteria": ("planning", "criteria written"),
+    "review": ("planning", "review in; criteria being revised"),
+    "build": ("waiting", "build in, not tested"),
+    "fix": ("waiting", "fix {n} in, not retested"),
+    "test": ("waiting", "test {n}: {verdict}"),
+    "test_passes": ("to_promote", "test {n}: PASSES"),
+    "other": ("waiting", "last file {file}"),
+    "none": ("planning", "files written, not committed"),
+}
+DECIDING = ("working", "blocked")      # the only statuses that decide a stage
+COORDINATOR_WORD = {"working": "working", "blocked": "blocked", "idle": "idle", "done": "idle",
+                    "unknown": "unknown"}
+
+# ── PROMOTIONS.md ───────────────────────────────────────────────────────────
+LABEL_ID = re.compile(r"M\d+[a-z]?(?: step \d+)?")
+HEADING_ID = re.compile(r"^(#{2,3}) (M\d+[a-z]?(?: step \d+|-step\d+)?)(?![\w])")
+DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
+FOR_DREW = re.compile(r"\b[Ff]or Drew\b(?!['’]s)")
+TAG_LINE = re.compile(r"^- Tag `([^`]+)`(.*)")
+
+# ── ROADMAP.md ──────────────────────────────────────────────────────────────
+OPEN_SECTIONS = ("Now", "Next", "Later", "Chores")
+LINK_RE = re.compile(r"\b(?:work item|sprint item|sprint)\s+(M\d+[a-z]?)((?:\s*(?:,|and)\s*M\d+[a-z]?)*)", re.I)
+
+
+# ═════════════════════════════════ helpers ═════════════════════════════════
+
+def norm_id(s: str) -> str:
+    """'M21 step 1', 'm21-STEP1' -> 'M21-step1'; 'M4B' -> 'M4b'."""
+    m = re.match(r"^[Mm](\d+)([A-Za-z]?)(?:[ -]?[Ss][Tt][Ee][Pp] ?(\d+))?$", s.strip())
+    if not m:
+        return s.strip()
+    out = f"M{m.group(1)}{m.group(2).lower()}"
+    return out + (f"-step{m.group(3)}" if m.group(3) else "")
+
+
+def id_key(item_id: str):
+    m = re.match(r"^M(\d+)([a-z]?)(?:-step(\d+))?$", item_id)
+    if not m:
+        return (10**9, item_id, 0)
+    return (int(m.group(1)), m.group(2), int(m.group(3) or 0))
+
+
+def read_head(path: Path, n: int = HEAD_LINES) -> tuple[list[str] | None, str | None]:
+    """The first n lines of a file as text, or (None, why)."""
+    try:
+        with open(path, "rb") as f:
+            raw = f.read(256 * 1024)
+    except OSError as e:
+        return None, f"cannot be read: {type(e).__name__}"
+    if not raw.strip():
+        return None, "empty"
+    if b"\0" in raw:
+        return None, "binary"
+    text = raw.decode("utf-8", "replace")
+    return text.splitlines()[:n], None
+
+
+def read_text(path: Path) -> tuple[str | None, str | None]:
+    try:
+        raw = path.read_bytes()
+    except FileNotFoundError:
+        return None, "missing"
+    except OSError as e:
+        return None, f"cannot be read: {type(e).__name__}"
+    if b"\0" in raw:
+        return None, "binary"
+    return raw.decode("utf-8", "replace"), None
+
+
+def clip(s: str | None, n: int) -> str | None:
+    if s is None:
+        return None
+    s = s.strip()
+    return s if len(s) <= n else s[: n - 1] + "…"
+
+
+def joined(lines: list[str]) -> str:
+    return re.sub(r"\s+", " ", " ".join(l.strip() for l in lines)).strip()
+
+
+def run(cmd: list[str], cwd: Path, timeout: float, env: dict | None = None) -> tuple[int | None, str, str]:
+    """Run a command in its own process group; on timeout kill the group.
+    Returns (returncode or None on timeout/absent, stdout, why)."""
+    full_env = dict(os.environ)
+    full_env.update(env or {})
+    try:
+        p = subprocess.Popen(cmd, cwd=cwd, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                             stderr=subprocess.DEVNULL, env=full_env, start_new_session=True)
+    except FileNotFoundError:
+        return None, "", "not found"
+    except OSError as e:
+        return None, "", f"could not start: {type(e).__name__}"
+    try:
+        out, _ = p.communicate(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        try:
+            os.killpg(p.pid, signal.SIGKILL)
+        except OSError:
+            pass
+        try:
+            p.communicate(timeout=1)
+        except Exception:
+            pass
+        return None, "", f"no answer within {timeout:g} s"
+    return p.returncode, out.decode("utf-8", "replace"), ""
+
+
+# ═══════════════════════════════════ git ═══════════════════════════════════
+
+def git(repo: Path, *args: str) -> tuple[int | None, str, str]:
+    return run(["git", "--no-optional-locks", *args], repo, GIT_TIMEOUT_S, GIT_ENV)
+
+
+def git_first_commits(repo: Path) -> tuple[dict, str | None]:
+    """{file name: (short sha, author date ISO, commit index)} for every
+    file in docs/sprint: its first commit, in commit order."""
+    rc, out, why = git(repo, "log", "--no-renames", "--diff-filter=A", "--name-only",
+                       "--format=@%H%x09%aI", "--reverse", "--", "docs/sprint")
+    if rc != 0:
+        return {}, f"git log failed: {why or f'exit {rc}'}"
+    first: dict = {}
+    sha = date = None
+    n = -1
+    for line in out.splitlines():
+        if line.startswith("@"):
+            sha, _, date = line[1:].partition("\t")
+            n += 1
+        elif line.strip() and sha:
+            name = line.strip()
+            if name.startswith("docs/sprint/") and "/" not in name[len("docs/sprint/"):]:
+                first.setdefault(name[len("docs/sprint/"):], (sha[:7], date, n))
+    return first, None
+
+
+def git_tags(repo: Path) -> tuple[set, str | None]:
+    rc, out, why = git(repo, "for-each-ref", "refs/tags", "--format=%(refname:short)")
+    if rc != 0:
+        return set(), f"git for-each-ref failed: {why or f'exit {rc}'}"
+    return {l.strip() for l in out.splitlines() if l.strip()}, None
+
+
+def git_head(repo: Path) -> dict:
+    head = {"branch": None, "head": None, "detached": None, "rebase": False, "error": None}
+    rc, out, why = git(repo, "rev-parse", "--absolute-git-dir", "--symbolic-full-name", "HEAD")
+    if rc != 0:
+        head["error"] = f"git rev-parse failed: {why or f'exit {rc}'}"
+        return head
+    lines = out.splitlines()
+    gitdir = Path(lines[0]) if lines else None
+    ref = lines[1] if len(lines) > 1 else ""
+    if ref.startswith("refs/heads/"):
+        head["branch"], head["detached"] = ref[len("refs/heads/"):], False
+    else:
+        head["branch"], head["detached"] = None, True
+    if gitdir:
+        head["rebase"] = (gitdir / "rebase-merge").is_dir() or (gitdir / "rebase-apply").is_dir()
+    rc, out, why = git(repo, "rev-parse", "--short", "HEAD")
+    if rc == 0:
+        head["head"] = out.strip() or None
+    else:
+        head["error"] = f"git rev-parse --short failed: {why or f'exit {rc}'}"
+    return head
+
+
+# ══════════════════════════════════ herdr ══════════════════════════════════
+
+def herdr_agents(repo: Path) -> dict:
+    """{"known", "seen", "reason", "agents": [{name, status, in_repo}]}.
+    Only name and agent_status leave this function, and an agent outside
+    the repo loses its name."""
+    out = {"known": False, "seen": None, "reason": None, "agents": [], "elsewhere": 0}
+    exe = shutil.which("herdr")
+    if not exe:
+        out["reason"] = "herdr is not on PATH"
+        return out
+    rc, text, why = run([exe, "agent", "list"], repo, HERDR_TIMEOUT_S)
+    if rc is None:
+        out["reason"] = f"herdr agent list: {why}"
+        return out
+    try:
+        data = json.loads(text)
+    except ValueError:
+        out["reason"] = f"herdr agent list answered no JSON (exit {rc})"
+        return out
+    if not isinstance(data, dict):
+        out["reason"] = f"herdr agent list answered {type(data).__name__}, not an object (exit {rc})"
+        return out
+    err = data.get("error")
+    if err is not None or rc != 0:
+        code = err.get("code") if isinstance(err, dict) else None
+        code = code if isinstance(code, str) and re.fullmatch(r"[\w.-]{1,64}", code) else "error"
+        out["reason"] = f"herdr agent list: {code} (exit {rc})"
+        return out
+    agents = (data.get("result") or {}).get("agents") if isinstance(data.get("result"), dict) else None
+    if not isinstance(agents, list):
+        out["reason"] = "herdr agent list: no agents list in the answer"
+        return out
+    root = os.path.realpath(repo)
+    out["known"], out["seen"] = True, len(agents)
+    for a in agents:
+        if not isinstance(a, dict):
+            continue
+        cwd = a.get("cwd")
+        in_repo = isinstance(cwd, str) and (os.path.realpath(cwd) == root
+                                            or os.path.realpath(cwd).startswith(root + os.sep))
+        if not in_repo:
+            out["elsewhere"] += 1
+            continue
+        name = a.get("name") if isinstance(a.get("name"), str) and a.get("name") else None
+        status = a.get("agent_status") if a.get("agent_status") in COORDINATOR_WORD else "unknown"
+        out["agents"].append({"name": clip(name, 80), "status": status})
+    return out
+
+
+def coordinator(h: dict) -> dict:
+    """The coordinator's pane carries no agent name (agents are named
+    <item>-<role> by the coordinator; its own pane is not). herdr's agent
+    list does not carry the workspace label, so the coordinator is the one
+    unnamed agent in this repo."""
+    if not h["known"]:
+        return {"status": None, "word": "not known", "reason": h["reason"]}
+    unnamed = [a for a in h["agents"] if a["name"] is None]
+    if len(unnamed) == 1:
+        s = unnamed[0]["status"]
+        return {"status": s, "word": COORDINATOR_WORD.get(s, "unknown"), "reason": None}
+    if not unnamed:
+        return {"status": None, "word": "not seen",
+                "reason": "no unnamed agent in this repo (the coordinator's pane is the unnamed one)"}
+    return {"status": None, "word": "not known",
+            "reason": f"{len(unnamed)} unnamed agents in this repo; the coordinator cannot be told apart"}
+
+
+# ═══════════════════════════════ item files ════════════════════════════════
+
+def step_kind(suffix: str) -> tuple[str, int | None]:
+    """('criteria'|'review'|'build'|'test'|'fix'|'other', number)."""
+    m = KNOWN_SUFFIX.match(suffix)
+    if not m:
+        return "other", None
+    if suffix.startswith("e2e"):
+        return "test", int(m.group(2) or 1)
+    if suffix.startswith("fix"):
+        return "fix", int(m.group(3))
+    return suffix, None
+
+
+def step_rank(kind: str, n: int | None) -> int:
+    """Order of steps added in one commit: criteria, review, build, then
+    test 1, fix 1, test 2, fix 2, ..."""
+    if kind == "criteria":
+        return 0
+    if kind == "review":
+        return 1
+    if kind == "build":
+        return 2
+    if kind == "test":
+        return 3 + 2 * (n - 1)
+    if kind == "fix":
+        return 4 + 2 * (n - 1)
+    return 1000
+
+
+def verdicts(lines: list[str], item_id: str) -> list[dict]:
+    """Every anchored verdict in the lines, the first per subject. Subject
+    "item" when the line names the file's own item (or none)."""
+    found: list[dict] = []
+    seen: set = set()
+    for i, line in enumerate(lines[:HEAD_LINES], start=1):
+        for form in VERDICT_FORMS:
+            m = form.match(line)
+            if not m:
+                continue
+            if m.lastindex == 1:
+                written, word = None, m.group(1)
+            else:
+                written, word = m.group(1), m.group(2)
+            if written is None or norm_id(written).lower() == item_id.lower():
+                subject = "item"
+            else:
+                subject = written
+            if subject not in seen:
+                seen.add(subject)
+                found.append({"subject": subject, "written": written, "verdict": word, "line": i})
+            break
+    return found
+
+
+def title_of(lines: list[str]) -> str | None:
+    if lines and lines[0].startswith("# "):
+        return clip(lines[0][2:], TITLE_MAX)
+    return None
+
+
+def handoff_of(lines: list[str]) -> str | None:
+    for i, line in enumerate(lines):
+        if line.startswith("Handoff line:"):
+            para = [line[len("Handoff line:"):]]
+            for nxt in lines[i + 1:]:
+                if not nxt.strip() or nxt.startswith("#"):
+                    break
+                para.append(nxt)
+            return clip(joined(para), HANDOFF_MAX)
+    return None
+
+
+def scan_items(repo: Path, first: dict, not_read: list) -> dict:
+    sprint = repo / "docs" / "sprint"
+    items: dict = {}
+    try:
+        names = sorted(p.name for p in sprint.iterdir() if p.is_file() and p.suffix == ".md")
+    except OSError as e:
+        not_read.append({"file": "docs/sprint/", "why": f"cannot be listed: {type(e).__name__}"})
+        names = []
+    for name in names:
+        if name in NOT_ITEM_FILES:
+            continue
+        m = FILE_RE.match(name)
+        if not m:
+            not_read.append({"file": name, "why": "not an item file name"})
+            continue
+        item_id, suffix = m.group(1), m.group(2)
+        kind, n = step_kind(suffix)
+        item = items.setdefault(item_id, {"id": item_id, "steps": [], "uncommitted": []})
+        lines, why = read_head(sprint / name)
+        step = {"file": name, "kind": kind, "n": n, "name": suffix, "title": None,
+                "verdicts": [] if kind == "test" else None}
+        if lines is None:
+            not_read.append({"file": name, "why": why})
+        else:
+            step["title"] = title_of(lines)
+            if kind == "criteria":
+                handoff = handoff_of(lines)
+                if handoff:
+                    item["handoff"] = handoff
+                if step["title"] is None:
+                    not_read.append({"file": name, "why": "no title line"})
+            if kind == "test":
+                step["verdicts"] = verdicts(lines, item_id)
+                if not step["verdicts"]:
+                    not_read.append({"file": name, "why": f"no verdict line in the first {HEAD_LINES} lines"})
+        if kind == "other":
+            not_read.append({"file": name, "why": f"step '{suffix}' is not a known step (listed under its name)"})
+        if name in first:
+            sha, date, n_commit = first[name]
+            step.update({"commit": sha, "committed_at": date, "_order": n_commit})
+            item["steps"].append(step)
+        else:
+            step.update({"commit": None, "committed_at": None})
+            item["uncommitted"].append(step)
+    for item in items.values():
+        item["steps"].sort(key=lambda s: (s["_order"], step_rank(s["kind"], s["n"]), s["file"]))
+        for s in item["steps"]:
+            s.pop("_order", None)
+        crit = next((s for s in item["steps"] + item["uncommitted"] if s["kind"] == "criteria"), None)
+        titled = [s for s in item["steps"] + item["uncommitted"] if s["title"]]
+        item["title"] = (crit or {}).get("title") or (titled[0]["title"] if titled else None)
+        item.setdefault("handoff", None)
+    return items
+
+
+# ═══════════════════════════════ PROMOTIONS.md ═════════════════════════════
+
+def tag_from_cell(cell: str) -> tuple[str | None, bool]:
+    m = re.search(r"`([^`]+)`", cell)
+    return (m.group(1) if m else None), ("tag only" in cell.lower())
+
+
+def bare_word(cell: str) -> str | None:
+    """A tag cell with no tag in backticks: its text only when it is one
+    word ("none"); anything longer is cell text and stays in the file."""
+    w = cell.strip()
+    return w if re.fullmatch(r"[\w-]{1,20}", w) else None
+
+
+def parse_promotions(text: str) -> list[dict]:
+    """Entries in file order: a table row, or a ## / ### heading starting
+    with an item id. A later entry for an id already promoted is a note on
+    it when it is a heading; a later row is a second promotion (M1b)."""
+    lines = text.splitlines()
+    entries: list[dict] = []
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        if line.startswith("|"):
+            cells = line.split("|")
+            if len(cells) >= 4:
+                label = cells[1].strip()
+                head_part = label.split("(", 1)[0]
+                ids = [norm_id(x) for x in LABEL_ID.findall(head_part)]
+                if ids and not set(label) <= set("-: "):
+                    tag, tag_only = tag_from_cell(cells[2])
+                    entries.append({"kind": "row", "ids": ids, "heading": clip(label, TITLE_MAX),
+                                    "tag": tag, "tag_written": bare_word(cells[2]) if tag is None else None,
+                                    "tag_only": tag_only, "date": clip(cells[3].strip(), 120),
+                                    "for_drew": len(FOR_DREW.findall("|".join(cells[4:]))), "line": i + 1})
+            i += 1
+            continue
+        m = HEADING_ID.match(line)
+        if m:
+            body: list[str] = []
+            j = i + 1
+            while j < len(lines) and not re.match(r"^#{1,3} ", lines[j]) and not lines[j].startswith("|"):
+                body.append(lines[j])
+                j += 1
+            tag = None
+            tag_only = False
+            for b in body:
+                t = TAG_LINE.match(b)
+                if t:
+                    tag, tag_only = t.group(1), "tag only" in t.group(2).lower()
+                    break
+            d = DATE_RE.search(line)
+            entries.append({"kind": "heading", "ids": [norm_id(m.group(2))],
+                            "heading": clip(line.lstrip("#").strip(), TITLE_MAX), "tag": tag,
+                            "tag_written": None, "tag_only": tag_only, "date": d.group(0) if d else None,
+                            "for_drew": len(FOR_DREW.findall("\n".join(body))), "line": i + 1})
+            i = j
+            continue
+        i += 1
+    promoted: set = set()
+    for e in entries:
+        e["note_on"] = []
+        for item_id in e["ids"]:
+            if item_id in promoted and e["kind"] == "heading":
+                e["note_on"].append(item_id)
+            promoted.add(item_id)
+        e["note"] = bool(e["note_on"]) and len(e["note_on"]) == len(e["ids"])
+    return entries
+
+
+# ═════════════════════════════════ ROADMAP.md ══════════════════════════════
+
+def parse_roadmap(text: str, not_read: list) -> list[dict]:
+    """Sections under '## ' headings, each with its entries: a '- ' bullet
+    at column 0 and its continuation (indented lines, or lines straight
+    after it). Text before the first '## ' (the Conventions) is not read."""
+    sections: list[dict] = []
+    cur = None
+    entry: list[str] | None = None
+    entry_line = 0
+
+    def close():
+        nonlocal entry
+        if cur is not None and entry is not None:
+            while entry and not entry[-1].strip():
+                entry.pop()
+            cur["entries"].append((entry_line, entry))
+        entry = None
+
+    lines = text.splitlines()
+    for i, line in enumerate(lines):
+        if line.startswith("## "):
+            close()
+            cur = {"name": line[3:].strip(), "entries": []}
+            sections.append(cur)
+            continue
+        if cur is None:
+            continue
+        if line.startswith("- "):
+            close()
+            entry, entry_line = [line[2:]], i + 1
+            continue
+        if entry is None:
+            continue
+        if not line.strip():
+            entry.append(line)
+            continue
+        if line[0].isspace() or (entry and entry[-1].strip()):
+            entry.append(line)
+            continue
+        close()          # a paragraph at column 0 after a blank line ends it
+    close()
+    out = []
+    for s in sections:
+        first = s["name"].split()[0] if s["name"].split() else ""
+        if first in OPEN_SECTIONS:
+            s["open"] = True
+        elif first == "Shipped":
+            s["open"] = False
+        else:
+            not_read.append({"file": "ROADMAP.md", "why": f"section '{clip(s['name'], 60)}' is not a known section"})
+            continue
+        s["entries"] = [roadmap_entry(line, body, s["open"]) for line, body in s["entries"]]
+        out.append(s)
+    return out
+
+
+def roadmap_entry(line: int, body: list[str], open_: bool) -> dict:
+    text = joined(body)
+    m = re.match(r"^\*\*(.+?)\*\*", text)
+    title = m.group(1) if m else None
+    rest = text[m.end():] if m else text
+    lm = re.match(r"^\s*\*\((.*?)\)\*", rest)
+    lead = lm.group(1) if lm else None
+    links: list[str] = []
+    for lk in LINK_RE.finditer(lead or ""):
+        ids = [lk.group(1)] + re.findall(r"M\d+[a-z]?", lk.group(2) or "")
+        for x in ids:
+            x = norm_id(x)
+            if x not in links:
+                links.append(x)
+    e = {"line": line, "title": clip(title, TITLE_MAX), "lead": clip(lead, 400), "links": links}
+    if open_:
+        e["text"] = clip(text, ENTRY_MAX)
+    return e
+
+
+def resolve_links(links: list[str], item_ids) -> list[str]:
+    """'M21' links both of its steps."""
+    out = []
+    for x in links:
+        hits = [i for i in item_ids if i == x or i.startswith(x + "-step")]
+        for h in sorted(hits, key=id_key):
+            if h not in out:
+                out.append(h)
+    return out
+
+
+# ══════════════════════════════════ stage ══════════════════════════════════
+
+def agent_for(name: str | None) -> tuple[str | None, str | None]:
+    """(item id, role) parsed from an agent's name, or (None, None)."""
+    m = AGENT_RE.match(name or "")
+    if not m:
+        return None, None
+    return norm_id(m.group(1)), m.group(2)
+
+
+def stage(steps: list[dict], tag: bool, promoted: bool, agents: list[dict] | None) -> dict:
+    """The stage of one item: a pure function of its committed step files,
+    whether the tag item-<id> exists, whether it has a promotions entry,
+    and the agents named for it with their status (None: herdr not
+    reachable, so the agent rows are skipped). Returns {"stage", "words",
+    "detail", "blocked", "by"}; stage is a key of STAGE_WORDS."""
+    if promoted:
+        return {"stage": "promoted", "words": STAGE_WORDS["promoted"], "detail": None, "blocked": False,
+                "by": "promotions"}
+    if tag:
+        return {"stage": "promoting", "words": STAGE_WORDS["promoting"], "detail": "tag item-<id> exists",
+                "blocked": False, "by": "tag"}
+    active = [a for a in (agents or []) if a["status"] in DECIDING and a.get("role") in ROLE_STAGE]
+    if active:
+        parts = []
+        for a in sorted(active, key=lambda a: (a["status"] != "blocked", a["name"])):
+            st = ROLE_STAGE[a["role"]]
+            how = "BLOCKED" if a["status"] == "blocked" else "working"
+            parts.append({"stage": st, "text": f"{STAGE_WORDS[st]}, agent {a['name']} {how}"})
+        return {"stage": parts[0]["stage"], "words": "; ".join(STAGE_WORDS[p["stage"]] for p in parts),
+                "detail": "; ".join(p["text"] for p in parts),
+                "blocked": any(a["status"] == "blocked" for a in active), "by": "agents"}
+    if not steps:
+        st, detail = FILE_STAGE["none"]
+    else:
+        last = steps[-1]
+        k = last["kind"]
+        if k in ("criteria", "review", "build"):
+            st, detail = FILE_STAGE[k]
+        elif k == "fix":
+            st, detail = FILE_STAGE["fix"][0], FILE_STAGE["fix"][1].format(n=last["n"])
+        elif k == "test":
+            vs = last.get("verdicts") or []
+            v = next((x for x in vs if x["subject"] == "item"), vs[0] if vs else None)
+            word = v["verdict"] if v else "verdict not read"
+            key = "test_passes" if word == "PASSES" else "test"
+            st, detail = FILE_STAGE[key][0], FILE_STAGE[key][1].format(n=last["n"], verdict=word)
+        else:
+            st, detail = FILE_STAGE["other"][0], FILE_STAGE["other"][1].format(file=last["file"])
+    return {"stage": st, "words": STAGE_WORDS[st], "detail": detail, "blocked": False, "by": "files"}
+
+
+# ═════════════════════════════════ collect ═════════════════════════════════
+
+def collect(repo: Path) -> dict:
+    t0 = time.monotonic()
+    not_read: list = []
+    errors: list = []
+    head = git_head(repo)
+    first, err = git_first_commits(repo)
+    if err:
+        errors.append(err)
+    tags, err = git_tags(repo)
+    if err:
+        errors.append(err)
+    items = scan_items(repo, first, not_read)
+
+    ptext, why = read_text(repo / "docs" / "sprint" / "PROMOTIONS.md")
+    if ptext is None:
+        not_read.append({"file": "PROMOTIONS.md", "why": why})
+        ptext = ""
+    promotions = parse_promotions(ptext)
+    for e in promotions:
+        e["tag_in_git"] = e["tag"] in tags if e["tag"] else None
+        for item_id in e["ids"]:
+            items.setdefault(item_id, {"id": item_id, "steps": [], "uncommitted": [], "title": None,
+                                       "handoff": None})
+
+    rtext, why = read_text(repo / "ROADMAP.md")
+    if rtext is None:
+        not_read.append({"file": "ROADMAP.md", "why": why})
+        rtext = ""
+    sections = parse_roadmap(rtext, not_read)
+
+    h = herdr_agents(repo)
+    coord = coordinator(h)
+
+    promoted_ids = {i for e in promotions for i in e["ids"]}
+    under_way = sorted((i for i, it in items.items() if i not in promoted_ids and (it["steps"] or it["uncommitted"])),
+                       key=id_key)
+
+    # Agents: each named agent in the repo goes to its item when that item
+    # is under way; every other one is "other".
+    other_agents: list = []
+    per_item: dict = {i: [] for i in items}
+    for a in h["agents"]:
+        if a["name"] is None:
+            continue
+        item_id, role = agent_for(a["name"])
+        if item_id in per_item and item_id in under_way:
+            per_item[item_id].append({**a, "role": role})
+        else:
+            why_other = ("no item of that name" if item_id and item_id not in items else
+                         "its item is promoted" if item_id else "name is not <item>-<role>")
+            other_agents.append({**a, "why": why_other})
+
+    item_ids = list(items)
+    for e in (en for s in sections for en in s["entries"]):
+        e["links"] = resolve_links(e["links"], item_ids)
+
+    out_items = []
+    for item_id in sorted(items, key=id_key):
+        it = items[item_id]
+        agents = per_item[item_id] if h["known"] else None
+        it["tag_ref"] = f"item-{item_id}" in tags
+        it["promoted"] = item_id in promoted_ids
+        it["stage"] = stage(it["steps"], it["tag_ref"], it["promoted"], agents)
+        it["agents"] = per_item[item_id]
+        it["notes"] = [f"{a['name']}: {a['status']}, workspace still open" for a in per_item[item_id]
+                       if a["status"] not in DECIDING]
+        out_items.append(it)
+
+    backlog = []
+    shipped_unlinked = []
+    for s in sections:
+        if s["open"]:
+            entries = []
+            for e in s["entries"]:
+                if any(l in under_way for l in e["links"]):
+                    for l in e["links"]:
+                        if l in under_way:
+                            items[l].setdefault("roadmap", []).append(e)
+                else:
+                    entries.append(e)
+            backlog.append({"section": s["name"], "entries": entries})
+        else:
+            for e in s["entries"]:
+                if e["links"]:
+                    for l in e["links"]:
+                        items[l].setdefault("shipped", []).append({"title": e["title"], "lead": e["lead"],
+                                                                   "line": e["line"]})
+                else:
+                    shipped_unlinked.append({"title": e["title"], "lead": e["lead"], "line": e["line"]})
+    for it in out_items:
+        it.setdefault("roadmap", [])
+        it.setdefault("shipped", [])
+
+    # Done: PROMOTIONS.md in reverse file order; a note is shown on the
+    # item's row of the promotion before it.
+    done = []
+    last_row: dict = {}
+    rows = []
+    for idx, e in enumerate(promotions):
+        for item_id in e["ids"]:
+            if item_id in e["note_on"] and item_id in last_row:
+                last_row[item_id]["notes"].append({"heading": e["heading"], "date": e["date"],
+                                                   "for_drew": e["for_drew"], "line": e["line"]})
+            else:
+                row = {"id": item_id, "entry": idx, "notes": []}
+                rows.append(row)
+                last_row[item_id] = row
+    for row in sorted(rows, key=lambda r: -r["entry"]):      # stable: label order kept
+        e = promotions[row["entry"]]
+        row.update({"heading": e["heading"], "tag": e["tag"], "tag_written": e["tag_written"],
+                    "tag_only": e["tag_only"], "tag_in_git": e["tag_in_git"], "date": e["date"],
+                    "for_drew": e["for_drew"], "line": e["line"], "kind": e["kind"]})
+        row["for_drew_total"] = e["for_drew"] + sum(n["for_drew"] for n in row["notes"])
+        done.append(row)
+
+    return {
+        "schema": SCHEMA,
+        "ts": time.time(),
+        "made_at": dt.datetime.now().astimezone().isoformat(timespec="seconds"),
+        "repo": head,
+        "herdr": {"known": h["known"], "seen": h["seen"], "reason": h["reason"],
+                  "elsewhere": h["elsewhere"], "coordinator": coord},
+        "items": out_items,
+        "under_way": under_way,
+        "other_agents": other_agents,
+        "backlog": backlog,
+        "done": done,
+        "shipped_unlinked": shipped_unlinked,
+        "not_read": not_read,
+        "errors": errors,
+        "run_s": round(time.monotonic() - t0, 3),
+    }
+
+
+def write(path: Path, data: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.")
+    try:
+        with os.fdopen(fd, "w") as f:
+            json.dump(data, f, indent=1, ensure_ascii=False)
+            f.write("\n")
+        os.chmod(tmp, 0o644)
+        os.replace(tmp, path)
+    except BaseException:
+        Path(tmp).unlink(missing_ok=True)
+        raise
+
+
+def main(argv=None) -> int:
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap.add_argument("--repo", type=Path, default=REPO, help="the working tree to read (default: this repo)")
+    ap.add_argument("--out", type=Path, action="append", help="file to write (repeatable)")
+    ap.add_argument("--print", action="store_true", help="print the JSON instead of writing")
+    a = ap.parse_args(argv)
+    data = collect(a.repo)
+    if a.print:
+        json.dump(data, sys.stdout, indent=1, ensure_ascii=False)
+        print()
+        return 0
+    for p in a.out or [a.repo / "data" / "work.json", a.repo / "data" / "dev" / "work.json"]:
+        write(p, data)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
