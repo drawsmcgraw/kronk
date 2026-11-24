@@ -17,6 +17,7 @@ from __future__ import annotations
 import hashlib
 import os
 import re
+import shutil
 import stat
 import subprocess
 import sys
@@ -92,9 +93,9 @@ def test_units_load_the_extracted_directory_in_the_old_order(unit):
 
 # ── criterion 3: the script, offline ────────────────────────────────────────
 
-def _run(*args, env=None, check=False):
+def _run(*args, env=None, check=False, **kw):
     proc = subprocess.run(["bash", str(SCRIPT), *args], capture_output=True,
-                          text=True, env=env)
+                          text=True, env=env, **kw)
     if check:
         assert proc.returncode == 0, proc.stderr
     return proc
@@ -185,6 +186,80 @@ def test_build_refuses_a_non_empty_directory(tmp_path):
     assert "not empty" in proc.stderr
     assert _calls(log) == []
     assert sorted(p.name for p in out.iterdir()) == ["stray"]
+
+
+def _non_empty(tmp_path: Path) -> Path:
+    real = tmp_path / "real"
+    (real / "lib").mkdir(parents=True)
+    (real / "notes.txt").write_text("keep")
+    (real / "lib" / "libroctx64.so.4.1.70200").write_bytes(b"OLD")
+    return real
+
+
+def _tree(root: Path) -> dict[str, bytes | None]:
+    return {str(p.relative_to(root)): (None if p.is_dir() else p.read_bytes())
+            for p in sorted(root.rglob("*"))}
+
+
+# S1 of docs/sprint/M26-e2e.md: the emptiness test must see the directory
+# the build would write into, however it is named.
+@pytest.mark.parametrize("name", [
+    "link",            # a symlink to a non-empty directory
+    "link/",
+    "link/.",
+    "real/",
+    "real/new/..",     # "new" does not exist; mkdir -p used to create it
+    "link/new/..",
+    "real/lib/..",
+])
+def test_build_refuses_a_non_empty_directory_however_named(tmp_path, name):
+    real = _non_empty(tmp_path)
+    os.symlink("real", tmp_path / "link")
+    before = _tree(real)
+    env, log = _fake_docker(tmp_path, _source_tree(tmp_path / "src"))
+    proc = _run("build", str(tmp_path) + "/" + name, env=env)
+    assert proc.returncode == 2, proc.stderr
+    assert "not empty" in proc.stderr
+    assert str(real) in proc.stderr  # says what it resolved to
+    assert _calls(log) == []
+    assert _tree(real) == before
+    assert not (real / "new").exists()
+
+
+def test_build_refuses_a_directory_whose_parent_does_not_exist(tmp_path):
+    env, log = _fake_docker(tmp_path, _source_tree(tmp_path / "src"))
+    proc = _run("build", str(tmp_path / "nope" / "rocm-7.2"), env=env)
+    assert proc.returncode == 2
+    assert f"parent directory {tmp_path / 'nope'} does not exist" in proc.stderr
+    assert _calls(log) == []
+    assert not (tmp_path / "nope").exists()
+
+
+def test_build_through_a_symlink_to_an_empty_directory_fills_the_target(tmp_path):
+    (tmp_path / "disk" / "rocm-7.2").mkdir(parents=True)
+    os.symlink("disk/rocm-7.2", tmp_path / "rocm-7.2")
+    env, _ = _fake_docker(tmp_path, _source_tree(tmp_path / "src"))
+    proc = _run("build", str(tmp_path / "rocm-7.2"), env=env)
+    assert proc.returncode == 0, proc.stderr
+    assert (tmp_path / "rocm-7.2").is_symlink()
+    assert sorted(p.name for p in (tmp_path / "disk" / "rocm-7.2").iterdir()) == ["MANIFEST", "lib"]
+
+
+def test_build_sets_umask_022_whatever_the_callers(tmp_path):
+    # tar -cf - rocblas/library does not carry rocblas/ itself, so its mode
+    # (recorded in the manifest) comes from the umask. The source's own
+    # rocblas/ is 711 to show it is not copied from there.
+    src = _source_tree(tmp_path / "src")
+    (src / "rocblas").chmod(0o711)
+    env, _ = _fake_docker(tmp_path, src)
+    out = tmp_path / "out"
+    proc = _run("build", str(out), env=env, umask=0o077)
+    assert proc.returncode == 0, proc.stderr
+    for d in (out, out / "lib", out / "lib" / "rocblas"):
+        assert stat.S_IMODE(d.stat().st_mode) == 0o755, d
+    rows = {r[0]: r for r in _entries((out / "MANIFEST").read_text())}
+    assert rows["rocblas"] == ["rocblas", "d", "755", "-", "-"]
+    assert stat.S_IMODE((out / "MANIFEST").stat().st_mode) == 0o644
 
 
 def test_build_refuses_a_local_image_with_another_id(tmp_path):
@@ -337,6 +412,61 @@ def test_manifest_format_is_sorted_relative_and_complete(tmp_path):
     assert not re.search(r"\b20\d\d-\d\d-\d\d\b", text)
 
 
+# N4 of docs/sprint/M26-e2e.md: the order must come from the sort, not
+# from the directory listing, and from the C locale, not the caller's.
+SORT_NAMES = ["libZ.so", "_priv", "liba.so", "B.dat", "a.dat", "libA.so", "-x", "Z"]
+
+
+def test_manifest_is_sorted_whatever_order_the_directory_lists(tmp_path):
+    lib = tmp_path / "lib"
+    lib.mkdir()
+    for n in SORT_NAMES:
+        (lib / n).write_bytes(n.encode())
+    listed = os.listdir(lib)  # readdir order, which find follows
+    assert listed != sorted(listed, key=os.fsencode), "precondition: listing unsorted"
+    rows = [r[0] for r in _entries(_run("manifest", str(lib), check=True).stdout)]
+    assert rows == sorted(SORT_NAMES, key=os.fsencode)
+
+
+def _gnu_sort() -> str | None:
+    for cand in ("gnusort", "sort"):
+        path = shutil.which(cand, path="/usr/bin:/bin")
+        if path and b"GNU coreutils" in subprocess.run(
+                [path, "--version"], capture_output=True).stdout:
+            return path
+    return None
+
+
+def _utf8_locale() -> str | None:
+    out = subprocess.run(["locale", "-a"], capture_output=True, text=True).stdout.split()
+    for loc in ("en_US.utf8", "en_US.UTF-8", *out):
+        if loc in out and re.search(r"utf-?8", loc, re.I) and not loc.startswith("C."):
+            return loc
+    return None
+
+
+def test_manifest_sorts_under_lc_all_c_whatever_the_callers_locale(tmp_path):
+    # uutils sort (this host's default) ignores the locale, so a sort the
+    # script forgot to pin would pass unseen; put GNU sort first on PATH.
+    gnu, loc = _gnu_sort(), _utf8_locale()
+    if not gnu or not loc:
+        pytest.skip(f"needs GNU sort and a UTF-8 locale (sort={gnu}, locale={loc})")
+    bindir = tmp_path / "bin"
+    bindir.mkdir()
+    os.symlink(gnu, bindir / "sort")
+    env = dict(os.environ, PATH=f"{bindir}:/usr/bin:/bin", LC_ALL=loc, LANG=loc)
+    c_order = sorted(SORT_NAMES, key=os.fsencode)
+    loc_order = subprocess.run(["sort"], input="\n".join(SORT_NAMES) + "\n",
+                               capture_output=True, text=True, env=env).stdout.split()
+    assert loc_order != c_order, f"precondition: {loc} orders the names otherwise"
+    lib = tmp_path / "lib"
+    lib.mkdir()
+    for n in reversed(c_order):
+        (lib / n).write_bytes(b"x")
+    rows = [r[0] for r in _entries(_run("manifest", str(lib), env=env, check=True).stdout)]
+    assert rows == c_order
+
+
 def test_manifests_of_equal_trees_are_byte_identical(tmp_path):
     _lib(tmp_path / "x")
     _lib(tmp_path / "deeper" / "y")
@@ -384,6 +514,60 @@ def test_verify_fails_on_a_manifest_for_another_image(tmp_path):
     proc = _run("verify", str(tmp_path))
     assert proc.returncode == 1
     assert "header:" in proc.stderr and "image" in proc.stderr
+
+
+# S2 of docs/sprint/M26-e2e.md: a link target holding a newline could
+# carry a forged manifest line and hide a missing library.
+def test_verify_refuses_a_link_target_carrying_a_forged_line(tmp_path):
+    lib = _lib(tmp_path)
+    text = _write_manifest(tmp_path)
+    real = "libroctx64.so.4.1.70200"
+    forged = next(l for l in text.splitlines() if l.startswith(real + "\t"))
+    (lib / real).unlink()
+    (lib / "libroctx64.so.4").unlink()
+    os.symlink(real + "\n" + forged, lib / "libroctx64.so.4")
+    proc = _run("verify", str(tmp_path))
+    assert proc.returncode == 1
+    assert "matches" not in proc.stdout
+    assert "refusing entry libroctx64.so.4: its link target" in proc.stderr
+    assert proc.stderr.count("\n") <= 3  # the refusal, not a wall of "missing:"
+
+
+@pytest.mark.parametrize("target", [
+    "libroctx64.so.4.1.70200\n",       # $(...) would strip it and match
+    "libroctx64.so.4.1.70200\nx",
+    "libroctx64.so.4.1.70200\tx",
+    "libroctx64.so.4.1.70200 x",
+    "libroctx64.so.4.1.70200\r",
+])
+def test_verify_and_manifest_refuse_a_link_target_with_whitespace(tmp_path, target):
+    lib = _lib(tmp_path)
+    _write_manifest(tmp_path)
+    (lib / "libroctx64.so.4").unlink()
+    os.symlink(target, lib / "libroctx64.so.4")
+    for args in (("verify", str(tmp_path)), ("manifest", str(lib))):
+        proc = _run(*args)
+        assert proc.returncode != 0, args
+        assert "refusing entry libroctx64.so.4: its link target" in proc.stderr, args
+        assert "matches" not in proc.stdout
+
+
+@pytest.mark.parametrize("name, shown", [
+    ("a\nb", "$'a\\nb'"),
+    ("evil\n", "$'evil\\n'"),
+    ("a\tb", "$'a\\tb'"),
+    ("a b", "a\\ b"),
+    ("rocblas/library/x\ny", "$'rocblas/library/x\\ny'"),
+])
+def test_verify_and_manifest_refuse_a_name_with_whitespace(tmp_path, name, shown):
+    lib = _lib(tmp_path)
+    _write_manifest(tmp_path)
+    (lib / name).write_bytes(b"x")
+    for args in (("verify", str(tmp_path)), ("manifest", str(lib))):
+        proc = _run(*args)
+        assert proc.returncode != 0, args
+        assert f"refusing entry {shown}: its name holds whitespace" in proc.stderr, (args, proc.stderr)
+        assert "matches" not in proc.stdout
 
 
 def test_verify_fails_without_a_manifest(tmp_path):

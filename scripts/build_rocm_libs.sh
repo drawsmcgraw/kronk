@@ -6,11 +6,14 @@
 # Usage:
 #   scripts/build_rocm_libs.sh build <dir> [--image <ref>]
 #                     extract into <dir>/lib and write <dir>/MANIFEST;
-#                     refuses a <dir> that exists and is not empty
+#                     <dir> is resolved first (symlinks, "..", a trailing
+#                     slash); refuses one that exists and is not empty, or
+#                     whose parent does not exist
 #   scripts/build_rocm_libs.sh verify <dir>
 #                     check <dir>/lib against <dir>/MANIFEST; exit 1 on a
-#                     missing, extra or changed entry, or a manifest written
-#                     for another image
+#                     missing, extra or changed entry, a manifest written
+#                     for another image, or an entry whose name or link
+#                     target holds whitespace or a control character
 #   scripts/build_rocm_libs.sh manifest <libdir>
 #                     print the manifest a directory would have (no docker)
 #   scripts/build_rocm_libs.sh list
@@ -117,19 +120,34 @@ list_members() {
 }
 
 # One line per entry under $1, sorted, relative paths, no times or owners.
+# The listing is read NUL-separated, so a name or a link target holding a
+# newline or a tab cannot pose as another manifest line: such an entry is
+# refused (exit 1) and named, escaped. errexit does not hold here when the
+# caller tests the result (`got=$(manifest …) || die`), so every step
+# checks its own status.
 manifest_body() {
     local dir=$1 p t m s h
     [ -d "$dir" ] || die 2 "no such directory: $dir"
     (
-        cd "$dir"
-        find . -mindepth 1 -printf '%P\t%y\t%m\t%s\n' |
-        while IFS=$'\t' read -r p t m s; do
-            case $p in *[[:space:]]*) echo "build_rocm_libs: whitespace in a name: $p" >&2; exit 1 ;; esac
+        cd -- "$dir" || exit 1
+        find . -mindepth 1 -printf '%P\0%y\0%m\0%s\0' |
+        while IFS= read -r -d '' p && IFS= read -r -d '' t &&
+              IFS= read -r -d '' m && IFS= read -r -d '' s; do
+            case $p in *[[:space:]]* | *[[:cntrl:]]*)
+                printf 'build_rocm_libs: refusing entry %q: its name holds whitespace or a control character\n' "$p" >&2
+                exit 1 ;;
+            esac
             case $t in
                 f) h=$(sha256sum -- "$p") || exit 1; h=${h%% *} ;;
-                l) h=$(readlink -- "$p") || exit 1; s=- ;;
+                # The trailing "x" keeps a target's own trailing newlines,
+                # which $(...) would strip.
+                l) h=$(readlink -- "$p" && echo x) || exit 1; h=${h%$'\nx'}; s=-
+                   case $h in *[[:space:]]* | *[[:cntrl:]]*)
+                       printf 'build_rocm_libs: refusing entry %q: its link target %q holds whitespace or a control character\n' "$p" "$h" >&2
+                       exit 1 ;;
+                   esac ;;
                 d) h=-; s=- ;;
-                *) echo "build_rocm_libs: unexpected file type '$t': $p" >&2; exit 1 ;;
+                *) printf 'build_rocm_libs: refusing entry %q: unexpected file type %q\n' "$p" "$t" >&2; exit 1 ;;
             esac
             printf '%s\t%s\t%s\t%s\t%s\n' "$p" "$t" "$m" "$s" "$h"
         done
@@ -139,7 +157,7 @@ manifest_body() {
 # The whole manifest for $1: the header from the pinned constants, then the body.
 manifest() {
     local body files links dirs bytes
-    body=$(manifest_body "$1")
+    body=$(manifest_body "$1") || return 1
     files=$(awk -F'\t' '$2=="f"' <<<"$body" | wc -l)
     links=$(awk -F'\t' '$2=="l"' <<<"$body" | wc -l)
     dirs=$(awk -F'\t' '$2=="d"' <<<"$body" | wc -l)
@@ -195,10 +213,19 @@ cmd_build() {
     [ -n "$dir" ] || usage
     check_image_ref "$image"
     [ "$(id -u)" != 0 ] || die 2 "run as the user who owns the services, not root (the files are the caller's)"
+    # Resolve first, then test: a symlink to a non-empty directory, or
+    # "<dir>/new/..", must be refused like the directory itself.
+    local given=$dir parent first
+    dir=$(realpath -m -- "$given") || die 2 "cannot resolve $given"
+    [ "$dir" != / ] || die 2 "refusing /"
+    parent=$(dirname -- "$dir")
+    [ -d "$parent" ] || die 2 "refusing $given: its parent directory $parent does not exist (create it first)"
     if [ -e "$dir" ]; then
-        [ -d "$dir" ] || die 2 "$dir exists and is not a directory"
-        [ -z "$(find "$dir" -mindepth 1 -maxdepth 1 -print -quit)" ] ||
-            die 2 "refusing $dir: it exists and is not empty (build into a new directory)"
+        [ -d "$dir" ] || die 2 "refusing $given: $dir exists and is not a directory"
+        first=$(find "$dir" -mindepth 1 -maxdepth 1 -print -quit) ||
+            die 2 "refusing $given: cannot read $dir"
+        [ -z "$first" ] ||
+            die 2 "refusing $given: $dir exists and is not empty (build into a new directory)"
     fi
 
     command -v docker >/dev/null || die 3 "docker not found"
@@ -213,7 +240,8 @@ cmd_build() {
         die 3 "could not read the image's ROCm version"
     [ "$version" = "$ROCM_VERSION" ] || die 3 "image reports ROCm '$version', pinned $ROCM_VERSION"
 
-    mkdir -p -- "$dir/lib"
+    [ -d "$dir" ] || mkdir -- "$dir"
+    mkdir -- "$dir/lib"
     echo "build_rocm_libs: extracting from $IMAGE into $dir/lib" >&2
     "${run[@]}" --entrypoint tar "$IMAGE" -C "$SRC" -cf - "${LIBS[@]}" "$DATA" |
         tar -x -p --no-same-owner -f - -C "$dir/lib" ||
