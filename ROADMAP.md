@@ -163,6 +163,14 @@ Conventions:
 
 Newest first; feature docs in `docs/features/`.
 
+- **/resources shows real usage** *(2026-11-24, work item M25)* — every
+  figure on the page is measured or read from the running server (context,
+  slots, model file, GPU memory and RAM per process, model files on disk,
+  GPU busy), with its source and age, and withheld when the source is
+  stale; calls and tokens per model over 24 hours; loading it no longer
+  runs a model completion on every server. The hand-written `kronk:`
+  blocks are gone from the catalog. `docs/features/resources-live-memory.md`,
+  `docs/sprint/PROMOTIONS.md`, "M25".
 - **Kronk's own ROCm libraries** *(2026-11-24, work item M26)* — both
   Whisper units and Talkie load ROCm 7.2 libraries extracted from the
   image they were built in (`scripts/build_rocm_libs.sh`, pinned by

@@ -231,3 +231,63 @@ local). Then, by the coordinator:
 
 Nothing reads Ollama's directory. The deletes are Drew's.
 
+## M25 (/resources shows real usage), 2026-11-24
+
+/resources shows only measured facts about each model server, and what
+this Kronk asked of each one in the last 24 hours.
+
+- Tag `item-M25` (`1c4cb55`). `scripts/deploy_tag.sh deploy item-M25` at about
+  17:42 local: the same six containers; HA (up 6 days), MA (up 2 weeks),
+  `wyoming-piper` and the dev pair untouched; `/api/status` and the shim
+  ok. Two satellites idle, one unavailable; nothing playing; no
+  production request in the 90 s before. This deploy also carries M26's
+  repo changes (no container reads them).
+- Before the build, by the coordinator: `llama-props-export.timer`
+  installed and enabled (14:04; a read-only exporter from M21 step 2).
+  During the build both exporter scripts changed in the working tree,
+  which is where the timers run them: additive keys only; production
+  (then `item-M24`) kept reading the files throughout.
+- Verified on production: `/api/servers` has both sources fresh (15 s),
+  three servers `running` and `answering` with context 131072, 32768 and
+  2048 as each server reports it, the model files by name, GPU memory
+  34.01, 5.10 and 0.01 GiB, and both Whisper processes listed at 1.93 GiB
+  each; 20 requests to it put 0 completion lines in the three llama
+  units' journals (on `item-M24` each request ran one completion per
+  server); `/api/system` answers with GPU busy and the disk block, and
+  memwatch reads it as before; `/api/activity` is production's own (gemma
+  46 calls, talkie 2, devstral none, last used 2026-08-29); `/resources`,
+  `/services` and `/settings` 200, no "(est.)", no `ctx_k_litellm`; a
+  question answers on `/api/chat` (1.1 s) and `/voice/api/chat` (0.9 s).
+- Test: a design review before the build (23 points, all taken; it found
+  that the page's route ran a model completion on every server at each
+  load, and that `/dev/resources` showed production's data); passed the
+  first test with no blocker (`M25-e2e.md`); fix round 1 by ruling for
+  two misleading displays; **failed the second test** (`M25-e2e2.md`) on a
+  sentence fix round 1 added that the page's own figures contradicted;
+  fix round 2; passed the third (`M25-e2e3.md`). Nothing was changed
+  after the last test. Suite `7504 passed, 3 skipped, 54 xfailed`.
+- The failed round was the coordinator's doing: the first test said a
+  process's RAM sits inside the bar's "other" segment, the ruling
+  repeated it unchecked, and the fix agent wrote it on the page. RSS
+  counts memory-mapped model files, which the kernel counts as available.
+- Not checked on production: the pages in a browser (the tests rendered
+  dev's; production's were fetched, not rendered). For Drew to look at.
+- Held or left over:
+  - **For Drew:** what the page still does not show (`M25-e2e.md`, "Does
+    the page do what Drew asked?"): activity is what this orchestrator
+    recorded, not what a server did (the other instance, tool_service's
+    own model call and LiteLLM's health rounds are not counted); GPU busy
+    is one instant and nearly always 0; nothing shows what a server is
+    doing now, though `GET /slots` answers; Whisper has memory and no
+    usage count; no timing figures.
+  - `/services`' orchestrator dot, and `deploy_tag.sh`'s own check, still
+    run a completion on every model server through `/api/status`
+    (Talkie's on the CPU included). A candidate for its own item.
+  - One sentence under the memory bar: "which the kernel counts as
+    available" would be false for a server started with `--mlock` (none
+    here); "includes memory-mapped model files" is true of three cards of
+    five read strictly (`M25-e2e3.md`, S1 and S2).
+  - No test runs the pages' script; the page pin reads its text
+    (`M25-e2e2.md`, S2). On `/dev/services` the probe dots are
+    production's. `README.md`'s model table no longer carries memory.
+
