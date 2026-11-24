@@ -1,5 +1,9 @@
 # M26 pass criteria: nothing depends on the Ollama install
 
+Revised 2026-11-24 after the design review (`docs/sprint/M26-review.md`):
+all 20 of its points are taken; where this file and the review disagree,
+this file decides.
+
 Source: Drew's orders of 2026-11-24: "Make sure no one depends on any of
 the ollama stuff. Then let me know when we can actually delete it", and
 on the first plan (copy the borrowed files): "copying the existing files
@@ -55,6 +59,35 @@ the host or in the repo points at Ollama.
 - The other four files the units map from Ollama's directory (`libdrm`,
   `libdrm_amdgpu`, `libelf`, `libnuma`) are ordinary system libraries; in
   the image they are Ubuntu 24.04's, under `/lib/x86_64-linux-gnu`.
+- **The kernels differ too** (reviewer). The 1,793 names under
+  `rocblas/library` are the same on both sides and all 1,793 files differ
+  by sha256, the `.hsaco` kernel objects included. So the code the GPU
+  runs for every matrix product changes, not only the host-side
+  libraries. Both sides carry 96 gfx1151 files.
+- The link closure is the ten files and nothing else (reviewer, from
+  `readelf -d`): `libctranslate2.so.4` needs `libhipblas.so.3` and
+  `libamdhip64.so.7`; Talkie's `libggml-hip.so.0` needs those and
+  `librocblas.so.5`; the rest follow from them. The image's libraries need
+  at most `GLIBC_2.38` and `GLIBCXX_3.4.32`; the host has glibc 2.42.
+- Ollama's `libdrm`, `libelf` and `libnuma` are neither the image's nor
+  the host's. The host has libdrm 2.4.125, libelf 0.193, libnuma 2.0.19,
+  and exports every symbol the image's `libhsa-runtime64` imports.
+- The image has `/opt/rocm/lib/hipblaslt/library` (2,932 files, 4.5 GB).
+  Ollama's directory has no `hipblaslt` directory, so the units run today
+  with `libhipblaslt.so.1` loaded and its kernel data absent.
+- No unit sets `ROCM_PATH`, `HIP_PATH` or a Tensile path variable.
+  rocBLAS reads its data files and closes them, so `/proc/<pid>/maps`
+  cannot show where the kernel data came from; it locates the directory
+  relative to `librocblas` itself (an inference from its strings).
+- `~/services/wyoming-whisper/runtime-libs` already holds three files
+  that are the image's by sha256 (`libhiprand`, `librocrand`, `libomp`).
+  It is left alone.
+- The clips exist: `~/kronk-m13-bench/synthetic/` holds `labels.csv` and
+  754 audio files; `scripts/stt_prompt_bench.py run --sheet … --port N`
+  sends files to a loopback Wyoming port and nowhere else. In M13, 714 of
+  714 speech rows repeated exactly; some non-speech rows did not. The dev
+  prompt is rebuilt at 04:00 and the dev unit restarted when it changes.
+- Docker here is rootful: files written through a bind mount are root's.
 
 ## Done and undone by the coordinator before this item
 
@@ -64,94 +97,161 @@ the host or in the repo points at Ollama.
 
 ## Plumbing, decided by the coordinator
 
-- **The libraries come from the ROCm image, pinned by digest**, not from
-  Ollama and not from the network at run time: the image is already
-  local. A script in the repo (`scripts/build_rocm_libs.sh`) extracts them
-  from a throwaway container run with `--network none`, into a directory
-  given on the command line, and writes a manifest beside them: the
-  image's digest, the ROCm version, and the sha256 of every file. Run
-  again on the same image it produces the same manifest.
-- **What is extracted is what the programs need, found, not guessed:** the
-  closure of `ldd` for Whisper's `libctranslate2.so.4` (with its
-  `runtime-libs`) and for Talkie's `llama-server` and `libggml-hip.so`,
-  resolved inside the image, plus the data directories those libraries
-  open at run time (`rocblas/library`; `hipblaslt/library` if the image
-  has one and a library asks for it). System libraries the host already
-  provides at the same soname are left to the host unless a program
-  fails without the image's copy; the report says which way each went and
-  why.
-- **The directory is `%h/services/rocm-7.2/lib`**: beside
-  `%h/services/wyoming-whisper/`, named for the ROCm release, so a later
-  release sits beside it and a unit names the one it was built against.
-- **This changes the binaries the three programs run against** (same
-  version, ROCm's own build in place of Ollama's). It is done one unit at
-  a time, dev first (tenet 9).
+- **The libraries come from the ROCm image, run by digest**
+  (`rocm/dev-ubuntu-24.04@sha256:86e11093…683a`), not from Ollama and not
+  from the network: the image is local. If it is ever pruned, a rebuild
+  needs a pull by that digest; the docs say so.
+- **The script holds the list**: the ten sonames (each as its versioned
+  file plus its soname symlink) and `rocblas/library`. No `ldd` inside
+  the image. That the list is enough is a test (criterion 4), not a
+  computation. A new ROCm release edits the list and the digest together.
+- **`hipblaslt/library` is not extracted.** The layout matches what runs
+  today, so the change stays one variable. The manifest and the docs say
+  it is left out on purpose.
+- **`libdrm`, `libdrm_amdgpu`, `libelf` and `libnuma` are the host's.** No
+  copy from the image. This is a second change riding on the same restart
+  (the units move from Ollama's copies to the host's); criterion 5 tests
+  it before any unit is touched.
+- **Extraction mounts nothing writable.** The files leave the container
+  as a tar stream on stdout (`docker run --rm --network none --entrypoint
+  tar <image@digest> -C /opt/rocm-7.2.0/lib -cf - <list>`) and are
+  unpacked by the caller, so every file is the caller's. The script
+  refuses a directory that exists and is not empty.
+- **Layout**: `%h/services/rocm-7.2/lib/` holds only what was extracted;
+  the manifest is beside it, `%h/services/rocm-7.2/MANIFEST`.
+- **The manifest** records the image digest, the ROCm version, and for
+  every entry its relative path, mode, and sha256 or symlink target,
+  sorted under `LC_ALL=C`. No timestamp, host name, user or destination
+  path.
+- **Search order in the units is unchanged**: Whisper `runtime-libs` first
+  then the ROCm directory; Talkie the ROCm directory first then its own.
+  No new `Environment` line.
+- `scripts/model_bench.py` is deleted: it can only talk to Ollama, and
+  nothing imports it.
 - The build writes the script and changes the unit files in `systemd/`,
-  and runs the script only into its scratch directory. The coordinator
-  runs it for the real directory, installs the units and restarts, in
-  this order, checking each before the next: `wyoming-whisper-dev`,
-  `llama-talkie`, then `wyoming-whisper` (production speech recognition: a
-  restart of about ten seconds, when no satellite is listening). Rollback
-  for any of them is the old unit file, which still works while Ollama's
-  directory exists; that is why the delete waits for this item's test.
-- `scripts/model_bench.py` is deleted: it can only talk to Ollama.
+  and runs the script only into its scratch directory.
+
+## The switch, by the coordinator, with a gate at each step
+
+The coordinator runs existing scripts and installs; it writes no code.
+
+a. Before: copy the three installed unit files to
+   `~/backups/m26-units-2026-11-24/`. After 04:05 on the day of the
+   switch, record the sha256 of `dev-prompt.env`, a run of the 714 speech
+   rows of `~/kronk-m13-bench/synthetic/labels.csv` on port 10301, and a
+   run of 25 of them on port 10300 (all satellites idle, no production
+   voice request in flight). Count rocBLAS, hipBLASLt and Tensile lines in
+   both Whisper journals.
+b. Run `scripts/build_rocm_libs.sh` into `~/services/rocm-7.2/`; check
+   the directory against its manifest.
+c. Install and restart `wyoming-whisper-dev`. Gate: active, port 10301
+   listening, the 714 rows again with the same `dev-prompt.env` hash,
+   latency, journal lines.
+d. Install and restart `llama-talkie`. Gate: one answer on the dev route;
+   GPU busy 0 % at each of at least six readings over two minutes with it
+   idle (its known failure is the idle spin of 2026-06-09).
+e. Only then `wyoming-whisper` (production speech recognition; about ten
+   seconds; all satellites idle). Gate: listening on 10300 within 60 s,
+   then the 25 rows again. If it is not listening in 60 s or the run
+   fails: the backed-up unit file goes back at once, and the ruling comes
+   after.
+
+**Pass rule for a transcription run:** every speech row has the same text
+as the before run. If any differ, the rows are listed and the item passes
+only on the coordinator's ruling that word error rate and command-form
+errors are not worse; production is not switched before that ruling. p50
+and p95 latency are within 20 % of the before run (tenet 12). Non-speech
+rows are not compared. These runs go straight to a loopback Wyoming port
+and are exempt from the briefs' "no STT run" rail; nothing goes through
+Home Assistant and no household audio is used.
 
 ## Scope
 
-1. `scripts/build_rocm_libs.sh` and its manifest format.
-   The three unit files use `%h/services/rocm-7.2/lib` (Talkie's unit
+1. `scripts/build_rocm_libs.sh`, its list and its manifest format.
+2. The three unit files use `%h/services/rocm-7.2/lib` (Talkie's unit
    spells the home path as it does today) in place of
    `/usr/local/lib/ollama/rocm`, each with a comment naming the script.
-2. No file in the repo outside `docs/` history names
-   `/usr/local/lib/ollama`, `/usr/share/ollama` or port 11434 as something
-   in use.
-3. `README.md` (the llama.cpp units section, the Whisper units section)
-   and `docs/features/voice-pipeline.md` where it describes the Whisper
-   units' libraries.
+3. No file in the repo names `/usr/local/lib/ollama`, `/usr/share/ollama`
+   or port 11434, leaving out `docs/`, `ROADMAP.md` and `Kronk evaluation
+   findings and implementation plan.md` (history and the open removal
+   entry).
+4. Docs: `README.md` (the llama.cpp units section, the Whisper units
+   section), `docs/features/voice-pipeline.md` where it describes the
+   Whisper units' libraries: where the libraries come from, how
+   `rocm-7.2/` is rebuilt, that the image is local only and what a rebuild
+   needs if it is pruned, that `hipblaslt/library` is left out on purpose,
+   that CTranslate2 and Talkie's server were built in the same image, and
+   how a new ROCm release would be pinned.
 
 Out of scope: any change to what the units run or to their flags;
-rebuilding CTranslate2 or Talkie's server; a newer ROCm release; the
-Ollama removal itself (Drew's sudo).
+`runtime-libs`; rebuilding CTranslate2 or Talkie's server; a newer ROCm
+release; a start limit for the Whisper unit; the Ollama removal itself
+(Drew's sudo).
 
 ## Criteria
 
 1. A test fails if any file under `systemd/` names `ollama`, and it fails
-   on the tree before this item.
+   on the tree before this item. The test does not carry the path as a
+   literal that criterion 6's grep would find.
 2. Each changed unit passes `systemd-analyze --user verify`. `ExecStart`
    and every `Environment` line other than `LD_LIBRARY_PATH` are byte for
-   byte as before.
-3. `scripts/build_rocm_libs.sh`: refuses an image whose digest is not the
-   pinned one (and says how to pin a new one on purpose); runs its
-   container with `--network none`; writes only inside the directory it
-   is given; two runs into two scratch directories give byte-identical
-   manifests; every file in the directory is in the manifest and matches
-   it. Tests for the manifest check and the digest refusal run offline
-   (no docker in the test suite).
-4. Offline proof that the extracted set is enough, in scratch: for each
-   of the three programs, `ldd` with the new `LD_LIBRARY_PATH` resolves
-   everything, with no path under `/usr/local/lib/ollama` and no "not
-   found"; and every library the running processes map from Ollama's
-   directory today has its counterpart either in the extracted set (from
-   the image) or on the host (named).
-5. A load test in scratch that touches no running unit: Whisper's
-   CTranslate2 imported and Talkie's `llama-server --version` (or
-   `--list-devices`) run with the new path and with `/usr/local/lib/ollama`
-   absent from `LD_LIBRARY_PATH`. No model is loaded on the GPU by either.
-6. `grep -rn "usr/local/lib/ollama\|usr/share/ollama\|11434"` over the
-   repo outside `docs/` finds nothing.
-7. Docs changed as scope 3 says, including how `rocm-7.2/lib` is rebuilt
-   if it is lost and how a new ROCm release would be pinned.
-8. `./scripts/run_tests.sh` passes.
+   byte as before; the order of directories in `LD_LIBRARY_PATH` is as
+   before with only the one path replaced.
+3. The script: runs the image by digest and refuses any other (and says
+   how to pin a new one on purpose); `--network none`; mounts nothing
+   writable; extracts by tar stream; refuses a non-empty directory; two
+   runs into two scratch directories give byte-identical manifests; a
+   verify mode checks a directory against its manifest and fails on a
+   missing, extra or changed file. The manifest lists
+   `rocblas/library/TensileLibrary_lazy_gfx1151.dat`, 1,793 files under
+   `rocblas/library`, ten versioned libraries and their ten symlinks, and
+   nothing under `hipblaslt/`. The manifest parsing, the verify mode and
+   the digest refusal are tested offline (no docker in the suite).
+4. The set is enough, shown in scratch: for `libctranslate2.so.4` (with
+   `runtime-libs` first), Talkie's `llama-server` and its
+   `libggml-hip.so`, host `ldd` with the new `LD_LIBRARY_PATH` resolves
+   everything with no path under Ollama's directory and no "not found";
+   and each of the 14 files the running units map from Ollama's directory
+   today has its counterpart in the extracted set (ten) or on the host
+   (four, named with their versions).
+5. The runtime starts, shown in scratch with each unit's own
+   `Environment` lines and the scratch directory in place of Ollama's
+   path: `ctranslate2.get_cuda_device_count()` from Whisper's venv
+   returns 1, and Talkie's `llama-server --list-devices` lists one ROCm
+   device. Each process's own `/proc/self/maps` (or `LD_DEBUG=libs`) shows
+   the ten libraries came from the scratch directory and none from
+   Ollama's. Neither loads a model or allocates on the GPU; no running
+   unit is touched.
+6. `grep -rn` for the two Ollama paths and for port 11434 over the repo,
+   leaving out `docs/`, `ROADMAP.md` and `Kronk evaluation findings and
+   implementation plan.md`, finds nothing.
+7. Docs changed as scope 4 says.
+8. `./scripts/run_tests.sh` passes (before: the count at the build's
+   start, quoted in the report).
 9. Nothing is installed, restarted or stopped by the build or the test.
-   The test agent, after the coordinator's installs and restarts, checks
-   on the host: the real directory matches its manifest; no process maps
-   any file under `/usr/local/lib/ollama` (every `/proc/<pid>/maps` the
-   agent can read); each of the three units maps the ROCm libraries from
-   the new directory, is active, and has `NRestarts=0` since its restart;
-   dev Whisper transcribes the M13 bench's synthetic clips with the same
-   text as before the change (the coordinator records the before run),
-   sent straight to the dev Wyoming port, not through Home Assistant;
-   GPU busy is 0 % with all three idle for two minutes; Talkie answers
-   one request on the dev route.
+10. After the coordinator's switch, the test agent checks on the host:
+    `~/services/rocm-7.2/lib` verifies against its manifest and every file
+    is owned by drew; each of the three units is active, maps the ten ROCm
+    libraries from the new directory and the four system libraries from
+    the host, and has `NRestarts=0` since its restart; no process the
+    agent can read maps any file under Ollama's directory; the
+    coordinator's before and after runs are re-read and the pass rule
+    re-applied from the result files, and the agent repeats the 25-row run
+    on 10301 itself; neither Whisper journal has a new rocBLAS, hipBLASLt
+    or Tensile line; GPU busy is 0 % with all three idle for two minutes;
+    Talkie answers one request on the dev route. The report says plainly
+    that the maps check is silent about kernel data files and that their
+    source is inferred from `librocblas`'s location.
 
-Reports: `docs/sprint/M26-build.md`, `docs/sprint/M26-e2e.md`.
+## Hand-off to Drew, after the test passes
+
+The removal is done in two steps (tenet 11), and the first is the proof
+that nothing reads Ollama's directory, kernel data included:
+
+1. `sudo mv /usr/local/lib/ollama /usr/local/lib/ollama.removed`; the
+   coordinator restarts `wyoming-whisper-dev`, repeats the 25-row run, and
+   checks Talkie answers.
+2. Only then the deletes.
+
+Reports: `docs/sprint/M26-review.md` (done), `docs/sprint/M26-build.md`,
+`docs/sprint/M26-e2e.md`.
