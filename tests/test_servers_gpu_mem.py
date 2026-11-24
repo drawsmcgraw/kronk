@@ -223,6 +223,37 @@ def test_running_server_absent_from_fresh_props_file_shows_memory_and_not_answer
         assert s[f] is None and s["reasons"][f].startswith("not answering")
 
 
+def test_running_is_decided_by_the_memory_file_alone_where_the_two_files_disagree(tmp_path):
+    """M25 fix round 1, S4. Both files fresh, and they disagree: one
+    catalog server is in llama_props.json but not in gpu_mem.json, another
+    the reverse. Running is the memory file's word; a server it does not
+    list is configured, not running, and carries no figure from the props
+    file either."""
+    catalog = CATALOG + [{"name": "props-only", "api_base": "http://127.0.0.1:11460/v1", "port": 11460}]
+    props = _props()
+    props["servers"].append(_server("llama-props-only", 11460, "props-only-Q4_K_M.gguf", 5_000_000_000,
+                                    8192, 2, draft="props-only-draft.gguf", draft_bytes=90_000_000))
+    props["servers"] = [x for x in props["servers"] if x["port"] != 11441]  # talkie: memory only
+    s = _by_name(_build(tmp_path, _gpu(), props, catalog=catalog))
+
+    p = s["props-only"]
+    assert p["state"] == "not_running"
+    assert p["state_reason"] == "configured, not running: port 11460 is not in gpu_mem.json (written 10 s ago)"
+    for f in ("gpu_bytes", "gtt_bytes", "vram_bytes", "rss_bytes", "memory_age_s",
+              "n_ctx", "total_slots", "model_file", "model_bytes", "draft_file", "draft_bytes", "props_age_s"):
+        assert p[f] is None, f
+        assert p["reasons"][f] == p["state_reason"], f
+    assert p["unit"] is None
+
+    t = s["talkie"]
+    assert (t["state"], t["state_reason"]) == ("running", None)
+    assert (t["gpu_bytes"], t["rss_bytes"], t["memory_age_s"]) == (6_328_320 + 57_344, 24_559_325_184, 10.0)
+    assert t["health"] == "not_answering"
+    assert t["health_reason"] == "not answering: port 11441 is not in llama_props.json (written 20 s ago)"
+    for f in ("n_ctx", "total_slots", "model_file", "model_bytes", "props_age_s"):
+        assert t[f] is None and t["reasons"][f] == t["health_reason"], f
+
+
 def test_props_error_is_not_answering_but_the_file_from_the_command_line_stands(tmp_path):
     props = _props()
     err = {"unit": "llama-talkie.service", "flags": {"model": "talkie-1930-13b-it-Q8_0.gguf", "port": "11441"},

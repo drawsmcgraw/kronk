@@ -145,6 +145,7 @@
     <div class="mem-card">
       <div class="mem-bar-track" id="mem-bar"></div>
       <div class="mem-legend" id="mem-legend"></div>
+      <div class="src" id="mem-note"></div>
       <div class="mem-stats" id="mem-stats"></div>
       <div class="src" id="mem-src"></div>
     </div>
@@ -229,26 +230,57 @@ function srcLine(label, src) {
 
 // ── Memory bar ────────────────────────────────────────────────────────────────
 
+// The bar's labels by the state of gpu_mem.json (M25 fix round 1, S2).
+// Fresh: one segment per listed process, its GPU memory (GTT + VRAM, DRM
+// fdinfo); the next segment is used RAM minus those, which holds each
+// process's own RAM. Stale, missing or unreadable: no per-process segment,
+// and the one used segment says it is all used RAM, GPU memory included.
+// Kept as a JSON literal: tests/test_m25_fix1_pages.py reads it (the
+// suite has no JavaScript runtime). "{name}" is the process.
+const MEM_BAR_LABELS = {
+  "fresh": {
+    "proc": "{name} GPU memory",
+    "other": "Other used RAM",
+    "note": "Per-process segments are GPU memory (GTT + VRAM). Other used RAM is used RAM minus them: the system, caches, and each process's own RAM (the RAM figure on its card)."
+  },
+  "withheld": {
+    "proc": null,
+    "other": "Used RAM, all of it (per-process GPU memory not known)",
+    "note": "Per-process GPU memory is not known (gpu_mem.json, below), so it is not split out: the model servers' GPU memory is inside used RAM."
+  }
+};
+
+function memBarLabels(gpuMemSource) {
+  return MEM_BAR_LABELS[gpuMemSource?.state === 'fresh' ? 'fresh' : 'withheld'];
+}
+
+// Pure: the bar's segments from the two payloads. The listed processes
+// are the catalog's running servers and the other GPU processes (Whisper,
+// any llama unit not in the catalog).
+function memBarSegments(sys, srv) {
+  const total = sys.mem_total, available = sys.mem_available;
+  const L = memBarLabels(srv.sources?.gpu_mem);
+  const procs = L.proc == null ? [] : [
+    ...(srv.servers || []).filter(s => s.gpu_bytes > 0).map(s => ({ name: s.name, bytes: s.gpu_bytes })),
+    ...(srv.other_processes || []).filter(o => o.gpu_bytes > 0).map(o => ({ name: o.unit, bytes: o.gpu_bytes })),
+  ];
+  const gpuBytes = procs.reduce((a, p) => a + p.bytes, 0);
+  const other = Math.max(0, total - available - gpuBytes);
+  return {
+    gpuBytes, note: L.note,
+    segs: [
+      ...procs.map(p => ({ label: L.proc.replace('{name}', p.name), bytes: p.bytes, color: colorFor(p.name) })),
+      { label: L.other,      bytes: other,     color: '#2a3044' },
+      { label: 'Available',  bytes: available, color: '#1a1f2e' },
+    ],
+  };
+}
+
 function renderMemBar(sys, srv) {
   const total = sys.mem_total;
   if (!total) return;
   const available = sys.mem_available;
-
-  // GPU memory (GTT + VRAM, DRM fdinfo) of every listed process: the
-  // catalog's running servers and the other GPU processes (Whisper, any
-  // llama unit not in the catalog). RAM per process is on its card.
-  const procs = [
-    ...(srv.servers || []).filter(s => s.gpu_bytes > 0).map(s => ({ label: s.name, bytes: s.gpu_bytes })),
-    ...(srv.other_processes || []).filter(o => o.gpu_bytes > 0).map(o => ({ label: o.unit, bytes: o.gpu_bytes })),
-  ];
-  const gpuBytes = procs.reduce((a, p) => a + p.bytes, 0);
-  const other = Math.max(0, total - available - gpuBytes);
-
-  const segs = [
-    ...procs.map(p => ({ ...p, color: colorFor(p.label) })),
-    { label: 'System / other', bytes: other,    color: '#2a3044' },
-    { label: 'Available',      bytes: available, color: '#1a1f2e' },
-  ];
+  const { segs, gpuBytes, note } = memBarSegments(sys, srv);
 
   document.getElementById('mem-bar').innerHTML = segs.map(s => {
     const pct = (s.bytes / total * 100).toFixed(2);
@@ -264,6 +296,7 @@ function renderMemBar(sys, srv) {
       ${esc(s.label)} — ${fmtGiB(s.bytes)}
     </span>`
   ).join('');
+  document.getElementById('mem-note').textContent = note;
 
   const used = total - available;
   // mem_free is the immediately-available pool (not counting reclaimable
@@ -370,13 +403,17 @@ function serverCard(sv) {
       ${sv.state === 'unknown' ? `<div class="reason">state unknown: ${esc(sv.state_reason)}</div>` : ''}
       ${sv.health_reason && sv.health_reason !== r.n_ctx ? `<div class="reason">${esc(sv.health_reason)}</div>` : ''}`;
   } else {
+    // Context and slots null for one cause (a /props error): say it once,
+    // and not again as the health line (M25 fix round 1, N9).
+    const propsWhy = sv.n_ctx == null && sv.total_slots == null && r.n_ctx && r.n_ctx === r.total_slots ? r.n_ctx : null;
     facts = `
+      ${propsWhy ? `<div>context, slots: <span class="reason">${esc(propsWhy)}</span></div>` : `
       <div>context ${factOr(sv, 'n_ctx', v => `<strong>${v}</strong> tokens`)} ·
-           slots ${factOr(sv, 'total_slots', v => `<strong>${v}</strong>`)}</div>
+           slots ${factOr(sv, 'total_slots', v => `<strong>${v}</strong>`)}</div>`}
       ${fileLine(sv, 'model', 'model_file', 'model_bytes')}
       ${fileLine(sv, 'draft', 'draft_file', 'draft_bytes')}
       ${sv.state === 'unknown' ? `<div class="reason">state unknown: ${esc(sv.state_reason)}</div>` : ''}
-      ${sv.health !== 'answering' && sv.health_reason ? `<div class="reason">${esc(sv.health_reason)}</div>` : ''}`;
+      ${sv.health !== 'answering' && sv.health_reason && sv.health_reason !== propsWhy ? `<div class="reason">${esc(sv.health_reason)}</div>` : ''}`;
   }
   const gpu = fmtGiB(sv.gpu_bytes), ram = fmtGiB(sv.rss_bytes);
 

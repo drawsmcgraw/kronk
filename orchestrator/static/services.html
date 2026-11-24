@@ -82,6 +82,7 @@
   }
   .status-dot.up   { background: var(--green); }
   .status-dot.down { background: var(--red); }
+  .status-dot.unknown { background: var(--text3); }
 
   .model-badge {
     font-size: 10px;
@@ -246,43 +247,90 @@
     dot.classList.toggle('down', !ok);
   }
 
+  // A dot in one of three states (up, down, unknown), with its reason as
+  // the tooltip.
+  function setDotState(id, cls, title) {
+    const dot = document.getElementById(id);
+    if (!dot) return;
+    for (const c of ['up', 'down', 'unknown']) dot.classList.toggle(c, c === cls);
+    if (title) dot.title = title; else dot.removeAttribute('title');
+  }
+
   // Agents and model servers, from api/servers (M25): state from the host
   // memory exporter's file, health from the props exporter's (the server
   // answered GET /props when the file was written). Relative URLs, so
-  // /dev/services shows dev's servers. An agent is up only when its
-  // model's server is answering.
+  // /dev/services shows dev's servers.
+  //
+  // Three states, never two (M25 fix round 1, S3): answering is up, not
+  // answering is down, and unknown (llama_props.json stale or missing) is
+  // a neutral dot with the reason, not down. An agent's dot is its model
+  // server's. The tables are JSON literals: tests/test_m25_fix1_pages.py
+  // reads them (the suite has no JavaScript runtime).
   const GIB = 2 ** 30;
   const gib = b => b == null ? null : ((b / GIB) < 1 ? (b / GIB).toFixed(2) : (b / GIB).toFixed(1)) + ' GiB';
-  const STATE_TAG = { running: 'running', not_running: 'not running', unknown: 'state unknown' };
+  const HEALTH_DOT = {"answering": "up", "not_answering": "down", "unknown": "unknown"};
+  const SERVER_TAG = {
+    "state_unknown": "state unknown",
+    "not_running": "not running",
+    "health_unknown": "health unknown",
+    "answering": "running",
+    "not_answering": "running, not answering"
+  };
+
+  // Pure: a model server row's dot, tag and reasons from its payload row.
+  function serverView(s) {
+    const key = s.state === 'unknown' ? 'state_unknown'
+              : s.state === 'not_running' ? 'not_running'
+              : s.health === 'unknown' ? 'health_unknown'
+              : s.health === 'answering' ? 'answering' : 'not_answering';
+    const reasons = [];
+    if (s.state !== 'running' && s.state_reason) reasons.push(s.state_reason);
+    // Not running implies not answering; that reason would say it twice.
+    if (s.state !== 'not_running' && s.health !== 'answering' && s.health_reason
+        && !reasons.includes(s.health_reason)) reasons.push(s.health_reason);
+    return { dot: HEALTH_DOT[s.health] || 'unknown', tag: SERVER_TAG[key], reasons };
+  }
+
+  // Pure: an agent's dot follows its model server's health; a model with
+  // no server row is unknown.
+  function agentView(server, model) {
+    if (!server) return { dot: 'unknown', title: `model ${model} is not in api/servers` };
+    const v = serverView(server);
+    return { dot: v.dot, title: `${server.name}: ${v.tag}` + (v.reasons.length ? ` (${v.reasons.join('; ')})` : '') };
+  }
   async function loadDynamic() {
     const agentGrid = document.getElementById('agent-grid');
     const modelGrid = document.getElementById('model-grid');
     let servers = [];
     try {
       servers = (await (await fetch('api/servers')).json()).servers;
-      const answering = Object.fromEntries(servers.map(s => [s.name, s.health === 'answering']));
+      const byName = Object.fromEntries(servers.map(s => [s.name, s]));
       // Assigned and running first; unassigned catalog entries last.
       const rank = s => (s.state === 'running' ? 0 : s.state === 'unknown' ? 1 : 2);
       const ordered = [...servers].sort((a, b) =>
         (b.agents.length > 0) - (a.agents.length > 0) || rank(a) - rank(b));
+      const views = ordered.map(serverView);
       modelGrid.innerHTML = ordered.map((s, i) => card({
         icon: '🧠', name: s.name, badge: s.port ? `:${s.port}` : '', dotId: `s-model-${i}`,
         desc: [s.model_file,
                s.n_ctx != null && `${s.n_ctx} ctx`,
                s.gpu_bytes != null && `${gib(s.gpu_bytes)} GPU memory`,
-               s.state !== 'running' && s.state_reason,
+               ...views[i].reasons,
                s.agents.length ? `→ ${s.agents.join(', ')}` : 'unassigned']
               .filter(Boolean).join(' · '),
-        tag: STATE_TAG[s.state] || s.state,
+        tag: views[i].tag,
       })).join('');
-      ordered.forEach((s, i) => setDot(`s-model-${i}`, s.health === 'answering'));
+      ordered.forEach((s, i) => setDotState(`s-model-${i}`, views[i].dot, views[i].reasons.join('; ')));
 
       const { agents } = await (await fetch('api/agents')).json();
       agentGrid.innerHTML = agents.map((a, i) => card({
         icon: a.icon, name: a.name, badge: a.model, badgeClass: 'model-badge',
         dotId: `s-agent-${i}`, desc: a.desc,
       })).join('');
-      agents.forEach((a, i) => setDot(`s-agent-${i}`, !!answering[a.model]));
+      agents.forEach((a, i) => {
+        const v = agentView(byName[a.model], a.model);
+        setDotState(`s-agent-${i}`, v.dot, v.title);
+      });
     } catch {
       const msg = '<div style="color:var(--text3);font-size:12px;padding:0.5rem">could not load api/servers or api/agents</div>';
       if (!servers.length) modelGrid.innerHTML = msg;

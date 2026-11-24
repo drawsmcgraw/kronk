@@ -225,18 +225,19 @@ fact from the running servers, through two host exporters on timers
 `scripts/llama_props_export.py`: context, slots, model and draft files and
 their sizes), joined by port into `/api/servers`. See
 [`docs/features/resources-live-memory.md`](docs/features/resources-live-memory.md).
-The context and memory columns below were read from `/resources` on
-2026-11-24, for orientation; the page has the current values.
+The table holds what changes only when a unit file changes. GPU memory and
+RAM drift by the hour and are not written down here: `/resources` has them,
+measured.
 
 Running as of 2026-11-24 (these three are the whole catalog;
 `tests/test_m24_catalog.py` fails if `litellm/config.yaml` names a model no
 unit in `systemd/` serves):
 
-| Model | systemd unit | Port | Model file | Context (slots) | GPU memory / RAM, 2026-11-24 | Role |
-|---|---|---|---|---|---|---|
-| `gemma-4-e4b` | `llama-gemma4-e4b` | 11438 | `gemma-4-E4B-it-qat-UD-Q4_K_XL-202607.gguf` + MTP drafter | 32768 (4) | 5.1 GiB / 10.3 GiB | Coordinator + research/home/assistant agents |
-| `devstral-2512-q4` | `llama-devstral-q4` | 11440 | `mistralai_Devstral-Small-2-24B-Instruct-2512-Q4_K_M.gguf` | 131072 (4) | 34.0 GiB / 8.5 GiB | coding + devops agents |
-| `talkie` | `llama-talkie` | 11441 | `talkie-1930-13b-it-Q8_0.gguf` | 2048 (1) | 0.01 GiB / 22.9 GiB (CPU only) | talkie agent, when asked for by name |
+| Model | systemd unit | Port | Model file | Context (slots) | Role |
+|---|---|---|---|---|---|
+| `gemma-4-e4b` | `llama-gemma4-e4b` | 11438 | `gemma-4-E4B-it-qat-UD-Q4_K_XL-202607.gguf` + MTP drafter | 32768 (4) | Coordinator + research/home/assistant agents |
+| `devstral-2512-q4` | `llama-devstral-q4` | 11440 | `mistralai_Devstral-Small-2-24B-Instruct-2512-Q4_K_M.gguf` | 131072 (4) | coding + devops agents |
+| `talkie` | `llama-talkie` | 11441 | `talkie-1930-13b-it-Q8_0.gguf` (CPU only) | 2048 (1) | talkie agent, when asked for by name |
 
 Talkie runs on the CPU (`--device none -ngl 0`): about 7.5 tokens a second
 through Kronk, so on the speech mount its reply is capped at

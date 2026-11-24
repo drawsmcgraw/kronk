@@ -14,8 +14,12 @@ Criteria and evidence: `docs/sprint/M25-criteria.md`, `M25-build.md`.
 - **System memory**: RAM total, used, available and free from
   `/proc/meminfo`; GTT total and used and GPU busy from sysfs, all read
   at the request. GPU busy is one instant reading, labelled as such. The
-  memory bar has one segment per GPU process (its GTT + VRAM), then
-  "System / other" and "Available".
+  memory bar has one segment per GPU process, labelled "<name> GPU
+  memory" (its GTT + VRAM), then "Other used RAM" (used RAM minus those:
+  the system, caches, and each process's own RAM) and "Available". With
+  `gpu_mem.json` stale, missing or unreadable there is no per-process
+  segment, and the used segment reads "Used RAM, all of it (per-process
+  GPU memory not known)" (fix round 1, S2).
 - **Model files on disk**: the total size of the model and draft files
   the running llama servers loaded, and the size and free space of each
   filesystem holding one.
@@ -106,6 +110,17 @@ model servers are shared, so production's and dev's pages differ.
 - **Both pages use relative URLs** (`api/servers`, `static/kronk.css`),
   so `/dev/resources` and `/dev/services` show dev's data. The probes and
   `/api/upgrades`, `/api/backups` on `/services` stay absolute on purpose.
+- **`/services` dots have three states** (fix round 1, S3). A model
+  server's dot is its health: green answering, red not answering, grey
+  unknown (`llama_props.json` stale or missing). Its tag says "state
+  unknown", "health unknown", "running, not answering", "running" or
+  "not running", and the row carries the reason (which file, how old).
+  An agent's dot is its model server's. A stopped props timer greys the
+  dots; it does not turn them red.
+- **The pages' label decisions are JSON literals** (`MEM_BAR_LABELS` in
+  `resources.html`; `HEALTH_DOT`, `SERVER_TAG` in `services.html`) so
+  `tests/test_m25_fix1_pages.py` can read them: the suite has no
+  JavaScript runtime, and nothing runs the pages' script.
 - **`/services`' orchestrator dot still costs completions.** Its
   `/probe/orchestrator` is production's `/api/status`, which calls
   LiteLLM's `/health`. Out of M25's scope; noted in `M25-build.md`.

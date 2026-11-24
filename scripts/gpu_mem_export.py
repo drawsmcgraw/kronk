@@ -6,7 +6,7 @@ the orchestrator container has its own PID namespace and cannot read host
 /proc, so this is the bridge: it measures each model server's real GPU
 memory via DRM fdinfo and writes data/gpu_mem.json (production) and
 data/dev/gpu_mem.json (the dev pair, since M25) for each orchestrator
-(`servers.load_gpu_mem()`) to join into /api/servers by port.
+(`servers.gpu_mem_source()`) to join into /api/servers by port.
 
 Why fdinfo: on this iGPU (Radeon 8060S) model weights + KV cache live in
 GTT, which RSS does NOT reflect for the ROCm/HIP servers — devstral's
