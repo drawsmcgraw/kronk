@@ -27,7 +27,13 @@ tool_service → tool result → agent → speech, instead of dying en route.
 - **Specialist failure → coordinator** (`main.py`): the error context block
   says `FAILED`, instructs "report the failure and its cause plainly — do
   NOT invent an answer," and sets `pipeline_error`. The old block labeled
-  the error a "specialist result — use this to answer."
+  the error a "specialist result — use this to answer." Exception (M24): an
+  agent with `coordinator_fallback=False` (only `talkie`) is asked for by
+  name and no other model can answer as it, so its failure is the reply,
+  rendered like an unreachable or refusing model server (table below, with
+  `talkie` in place of `coordinator` in the debug text). Before M24 the
+  coordinator, told Talkie had failed, answered "ask talkie …" itself 2
+  times in 10 on dev and named the failure in 4 (`docs/sprint/M24-build.md`).
 - **Trace marking**: `_run_pipeline` tracks `pipeline_error` on every path
   (router failure, specialist failure — even when the coordinator recovers —
   coordinator error, unexpected crash) and passes
@@ -157,7 +163,8 @@ span inside the trace). The invented-answer ban never relaxes.
   should be able to find," not "a tool returned non-200."
 - The specialist-failure path still runs the coordinator (a transient LLM
   5xx deserves a recovery attempt); honesty comes from the FAILED label +
-  ERROR trace, not from skipping recovery.
+  ERROR trace, not from skipping recovery. Not for `talkie` (M24, above):
+  a recovery there is an answer in Talkie's name that Talkie did not give.
 - 25 tests pin these behaviors (`test_hooks.py`, `test_tool_service_search.py`,
   and additions across the suite) — the failure *strings* are contracts now.
 

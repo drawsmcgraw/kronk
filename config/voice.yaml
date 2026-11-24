@@ -43,3 +43,18 @@ stream:
 # the slowest replay row 13.1 s; CLAUDE.md tenet 12 puts the worst tolerable
 # case at 15 to 25 s. 5 to 120, or null for no deadline.
 deadline_s: 25
+
+# The most tokens an agent may generate per model call on the speech mount
+# (M24; docs/sprint/M24-build.md), by agent name; null is no cap. When a
+# reply stops at its cap, its unfinished last sentence is dropped before it
+# is spoken; a reply with no complete sentence is kept as it is. Only agents
+# that call no tools are listed here: a cap can cut a tool call short. Typed
+# requests (/message, /api/chat, /v1) are never capped.
+max_reply_tokens:
+  # Talkie runs on the CPU at about 7.5 tokens a second, after 1 to 5 s of
+  # prompt (systemd/llama-talkie.service). Measured uncapped on dev
+  # 2026-11-24, 16 long and short questions: replies of 8 to 181 tokens; a
+  # 181-token reply took 23.5 s and one longer one passed the 25 s deadline
+  # above. 120 tokens is about 16 s of generation, which leaves room for an
+  # uncached prompt inside the deadline. 16 to 2048, or null.
+  talkie: 120

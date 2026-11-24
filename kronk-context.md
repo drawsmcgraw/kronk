@@ -19,8 +19,8 @@ Reverse proxy. Single entry point for all browser traffic.
 ### orchestrator — port 8000
 The brain. Manages conversation history, routes requests to specialist agents, streams responses.
 - Serves: chat UI (`/`), services (`/services`), agents (`/agents`), resources (`/resources`), performance (`/performance`), shopping list (`/shopping_list`), solar (`/solar`)
-- Pipeline: Phase 1 router classifies (`gemma-3-4b`) → Phase 2 specialist agent runs its tool-calling loop and streams synthesis → Phase 3 coordinator fallback (`gemma-4-e4b`) when the router returns `direct` or the specialist fails
-- Agent → model assignments come from env vars (`ROUTER_MODEL`, `COORDINATOR_MODEL`, `RESEARCH_AGENT_MODEL`, `CODING_AGENT_MODEL`, `DEVOPS_AGENT_MODEL`)
+- Pipeline: Phase 1 routing rules (`orchestrator/routing.py`, no model; there has been no LLM router since 2026-08-18) pin a request to a specialist or send it to the coordinator → Phase 2 specialist agent runs its tool-calling loop and streams synthesis → Phase 3 coordinator (`gemma-4-e4b`) answers or delegates, and takes over when a specialist fails (not for Talkie: its failure is the reply)
+- Agent → model assignments come from env vars (`COORDINATOR_MODEL`, `RESEARCH_AGENT_MODEL`, `CODING_AGENT_MODEL`, `DEVOPS_AGENT_MODEL`, `TALKIE_MODEL`)
 - `/api/servers` reads `litellm/config.yaml` + probes LiteLLM `/health` → powers the Resources page
 - Serves generated diagrams at `/static/generated/`
 
@@ -47,13 +47,11 @@ Each model runs as a separate `llama-server` instance bound to `127.0.0.1` on th
 
 | Service | Model | Port | GGUF | Agents |
 |---|---|---|---|---|
-| `llama-gemma3-4b` | gemma-3-4b | 11439 | `google/gemma-3-4b-it-Q4_K_M.gguf` | router |
-| `llama-gemma4-e4b` | gemma-4-e4b | 11438 | `google/google_gemma-4-E4B-it-Q4_K_M.gguf` | coordinator, research, home, assistant |
-| `llama-devstral` | devstral-2512 | 11436 | `mistralai/mistralai_Devstral-Small-2-24B-Instruct-2512-Q8_0.gguf` | coding, devops |
-| `llama-mistral-nemo` | mistral-nemo | 11435 | Mistral-NeMo Q8_0 | (available; no current agent) |
-| `llama-bonsai` | bonsai-8b | 11437 | `bonsai/Bonsai-8B.gguf` | (available; no current agent) |
+| `llama-gemma4-e4b` | gemma-4-e4b | 11438 | `google/gemma-4-E4B-it-qat-UD-Q4_K_XL-202607.gguf` (+ MTP drafter) | coordinator, research, home, assistant |
+| `llama-devstral-q4` | devstral-2512-q4 | 11440 | `mistralai/mistralai_Devstral-Small-2-24B-Instruct-2512-Q4_K_M.gguf` | coding, devops |
+| `llama-talkie` | talkie | 11441 | `talkie-1930-13b-it-Q8_0.gguf` (in `~/model-staging/talkie-lm/`), CPU only | talkie (only when asked for by name) |
 
-Units in `~/.config/systemd/user/llama-*.service`. GPU: AMD Radeon 8060S (gfx1151), ROCm via `HSA_OVERRIDE_GFX_VERSION=11.5.1`. Bind to `127.0.0.1` — only the host-network `litellm` can reach them.
+Units in `~/.config/systemd/user/llama-*.service`. GPU: AMD Radeon 8060S (gfx1151); the two GPU units use a Vulkan build of llama.cpp, Talkie a ROCm build run on the CPU only (`--device none -ngl 0`). Bind to `127.0.0.1` — only the host-network `litellm` can reach them. The four other servers (gemma-3-4b, bonsai-8b, mistral-nemo, devstral-2512 Q8) were retired 2026-11-24.
 
 ---
 
@@ -74,10 +72,9 @@ User (browser)
   └─► nginx :80
         └─► orchestrator :8000
               │
-              ├─► Phase 1: route
-              │     └─► litellm :8002 → llama-gemma3-4b :11439  (gemma-3-4b)
+              ├─► Phase 1: route (routing rules, no model)
               │         returns one of: research | home | coding | devops |
-              │                         assistant | direct
+              │                         assistant | talkie | direct
               │
               ├─► Phase 2: specialist agent (if routed to one)
               │     ├─► plan rounds (non-streaming, tool-calling)
@@ -97,15 +94,16 @@ User (browser)
 
 ## Agents
 
-Defined in `orchestrator/agents.py` (`AGENTS` dict — single source of truth). Router prompt, valid-route set, and `/api/agents` roster are all derived from it. Each agent's system prompt is a plain file, `prompts/<name>.md`; round budgets and tool timeouts are in `tuning.yaml`, music thresholds in `music.yaml`, all in the instance's live config directory (`kronk-config/prod`; the repo's `config/` holds the shipped defaults). The `/settings` page shows every value in effect and edits them behind a passphrase.
+Defined in `orchestrator/agents.py` (`AGENTS` dict — single source of truth). The valid-route set and the `/api/agents` roster are derived from it. Each agent's system prompt is a plain file, `prompts/<name>.md`; round budgets and tool timeouts are in `tuning.yaml`, music thresholds in `music.yaml`, all in the instance's live config directory (`kronk-config/prod`; the repo's `config/` holds the shipped defaults). The `/settings` page shows every value in effect and edits them behind a passphrase.
 
 | Agent | Tools | Default model |
 |---|---|---|
 | research | `web_search`, `fetch_url` | gemma-4-e4b |
 | home | `get_weather`, `shopping_list_*` | gemma-4-e4b |
 | assistant | `get_kronk_context`, `generate_diagram` | gemma-4-e4b |
-| coding | `web_search`, `fetch_url` | devstral-2512 |
-| devops | `remote_exec` (read-only, audited), `http_check` (one GET to any address the host can reach; no body returned); no web tools — research looks things up first | devstral-2512 |
+| coding | `web_search`, `fetch_url` | devstral-2512-q4 |
+| devops | `remote_exec` (read-only, audited), `http_check` (one GET to any address the host can reach; no body returned); no web tools — research looks things up first | devstral-2512-q4 |
+| talkie | none; a 1930s persona, only when asked for by name ("ask talkie …") | talkie |
 
 Each specialist runs a tool-calling loop (up to 3 plan rounds) then streams a final synthesis. The old regex-based intent detection has been fully replaced by this agentic loop.
 

@@ -19,18 +19,22 @@ async def stream(
     messages: list[dict],
     model: str,
     tools: list[dict] | None = None,
+    max_tokens: int | None = None,
 ) -> AsyncIterator[dict]:
     """Streaming chat completion, holding the model server's lock for the
     whole generation (sprint M9 step 2; model_lock). Yields what
     _stream_body yields. With MODEL_LOCK=pipeline (rollback) no lock is
-    taken here: main._run_pipeline holds the pipeline-wide one instead."""
+    taken here: main._run_pipeline holds the pipeline-wide one instead.
+    max_tokens caps the generation (M24: config/voice.yaml
+    max_reply_tokens); None sends no cap."""
+    cap = {"max_tokens": max_tokens} if max_tokens is not None else {}
     if model_lock.mode() == "pipeline":
-        async for chunk in _stream_body(messages, model, tools):
+        async for chunk in _stream_body(messages, model, tools, **cap):
             yield chunk
         return
     name, lock = model_lock.for_model(model)
     async with model_lock.held(lock, name):
-        async for chunk in _stream_body(messages, model, tools):
+        async for chunk in _stream_body(messages, model, tools, **cap):
             yield chunk
 
 
@@ -38,6 +42,7 @@ async def _stream_body(
     messages: list[dict],
     model: str,
     tools: list[dict] | None = None,
+    max_tokens: int | None = None,
 ) -> AsyncIterator[dict]:
     """Streaming chat completion.
 
@@ -45,6 +50,7 @@ async def _stream_body(
       {"token": str}          — incremental content delta
       {"tool_calls": [...]}   — accumulated tool_calls (once, at end of stream, if any)
       {"usage": {...}}        — token counts (sent by include_usage, usually last)
+      {"finish_reason": str}  — why the generation stopped ("length": max_tokens)
     Terminates when the server sends [DONE] or the connection closes.
 
     The tool_call accumulator merges streamed deltas keyed by their `index`:
@@ -61,6 +67,8 @@ async def _stream_body(
     if tools:
         payload["tools"] = tools
         payload["tool_choice"] = "auto"
+    if max_tokens is not None:
+        payload["max_tokens"] = max_tokens
 
     # index -> {"id": str|None, "function": {"name": str, "arguments": str}}
     tool_acc: dict[int, dict] = {}
@@ -124,6 +132,9 @@ async def _stream_body(
                         entry["function"]["name"] += fn_delta["name"]
                     if fn_delta.get("arguments"):
                         entry["function"]["arguments"] += fn_delta["arguments"]
+
+                if choices[0].get("finish_reason"):
+                    yield {"finish_reason": choices[0]["finish_reason"]}
 
     if tool_acc:
         finalized = []

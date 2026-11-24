@@ -208,6 +208,24 @@ def split_units(text: str, final: bool = False) -> tuple[list[str], str]:
     return units, rest
 
 
+_CLOSERS = "\"')]”’»"
+
+
+def unfinished_tail(text: str) -> str:
+    """The unfinished last sentence of a reply that stopped at its token cap
+    (M24: config/voice.yaml max_reply_tokens), or "" when there is none to
+    drop: the text ends on a sentence end, or it has no complete unit
+    before the tail (then the cut sentence is kept rather than nothing).
+    When the tail spans lines (a list or table not yet closed is one unit),
+    only its unfinished last line goes, so the complete items stay."""
+    units, rest = split_units(text)
+    body = rest.rstrip()
+    end = body.rstrip(_CLOSERS)
+    if not units or not end or end[-1] in ".!?":
+        return ""
+    return rest[body.rfind("\n") + 1:]
+
+
 # ── The buffer: one per streamed voice request ───────────────────────────────
 
 class SpeechBuffer:

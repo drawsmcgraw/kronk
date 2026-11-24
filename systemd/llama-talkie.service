@@ -1,5 +1,20 @@
 [Unit]
-Description=llama.cpp server — Talkie-1930 13B (vintage 1930s language model, ROCm gfx1151)
+# Talkie runs on the CPU only (M24, 2026-11-24). Its server is a ROCm (HIP)
+# build of a llama.cpp fork (pai_workspace/llama-cpp/Dockerfile.talkie-hip),
+# the only build that loads this model. `--device none -ngl 0` keeps it off
+# the GPU: an idle ROCm process on the GPU is the idle-spin of
+# docs/incidents/INVESTIGATION_2026-06-09_hangs.md, and memwatch alerts on it.
+# Do not raise -ngl. The build still loads ROCm libraries from
+# /usr/local/lib/ollama/rocm (LD_LIBRARY_PATH below), as both Whisper units
+# do: removing Ollama must leave that directory.
+#
+# Measured on CPU (docs/sprint/M24-criteria.md, docs/sprint/M24-build.md):
+# healthy 6 s after start; 60 tokens in 7.2 s (8.3 tokens a second); through
+# Kronk about 7.5 tokens a second, a 390-token prompt in about 5 s uncached
+# and 1 to 2 s cached; GPU 0 % while idle; about 14 GB of RAM as page cache.
+# On the speech mount its replies are capped (config/voice.yaml
+# max_reply_tokens) to stay inside the 25 s deadline.
+Description=llama.cpp server — Talkie-1930 13B (vintage 1930s language model, CPU only)
 After=default.target
 
 [Service]
@@ -9,7 +24,8 @@ ExecStart=/home/drew/pai/pai_workspace/llama-cpp/talkie-gfx1151-rocm7/llama-serv
     -m /home/drew/model-staging/talkie-lm/talkie-1930-13b-it-Q8_0.gguf \
     --host 127.0.0.1 \
     --port 11441 \
-    -ngl 20 \
+    --device none \
+    -ngl 0 \
     --ctx-size 2048 \
     --parallel 1 \
     --no-warmup

@@ -18,6 +18,8 @@ import config_loader
 import errors
 import llm
 import metrics
+import origin
+import speech_stream
 import telemetry
 import tools
 from events import emit
@@ -239,6 +241,12 @@ class AgentConfig:
     # Structural guardrail — small models otherwise re-call the tool or
     # contradict its result (hallucinated "now playing" after a failure).
     terminal_tools: frozenset = field(default=frozenset())
+    # False: when this agent was routed to and fails, its failure is the
+    # reply (errors.render, M2 wording), instead of the coordinator being
+    # told and answering. For an agent asked for by name whose answer no
+    # other model can give (talkie, M24): on dev the coordinator answered
+    # "ask talkie ..." itself 2 times in 10 and named the failure in 4.
+    coordinator_fallback: bool = True
 
     def __post_init__(self):
         if not self.model:
@@ -298,6 +306,7 @@ AGENTS: dict[str, AgentConfig] = {
         # system prompt: config/prompts/talkie.md
         tool_names=[],
         model=TALKIE_MODEL,
+        coordinator_fallback=False,   # M24: a failure is said, not answered around
     ),
     "devops": AgentConfig(
         name="devops",
@@ -654,6 +663,13 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
     seen_calls: set[str] = set()
     tool_call_counts: dict[str, int] = {}
     last_usage: dict = {}
+    # The reply-length cap on the speech mount (M24, config/voice.yaml
+    # max_reply_tokens): Talkie generates about 8 tokens a second on the
+    # CPU, so an uncapped long answer passes the voice deadline. Sent only
+    # when set, so a call without one is unchanged.
+    max_tokens = (config_loader.current().voice.max_reply_tokens.for_agent(agent.name)
+                  if origin.voice.get() else None)
+    cap = {"max_tokens": max_tokens} if max_tokens is not None else {}
 
     # Parent: the current span (an ask_* tool span when delegated, the
     # pipeline root otherwise) so a delegation nests under its ask_* call.
@@ -669,6 +685,7 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
         for round_idx in range(max_rounds):
             round_content: list[str] = []
             round_tool_calls: list[dict] = []
+            finish_reason: str | None = None
             t_llm = time.monotonic()
             gen = agent_span.child_generation(
                 f"llm.{agent.model}", model=agent.model, input=messages,
@@ -677,7 +694,7 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
 
             try:
                 with gen.current():   # the LLM HTTP call hangs under this round
-                    async with aclosing(llm.stream(messages, agent.model, agent_tool_defs)) as chunks:
+                    async with aclosing(llm.stream(messages, agent.model, agent_tool_defs, **cap)) as chunks:
                         async for chunk in chunks:
                             if "token" in chunk:
                                 gen.first_token()
@@ -690,6 +707,8 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
                                 round_tool_calls = chunk["tool_calls"]
                             elif "usage" in chunk:
                                 last_usage = chunk["usage"]
+                            elif "finish_reason" in chunk:
+                                finish_reason = chunk["finish_reason"]
             except (asyncio.CancelledError, GeneratorExit):
                 gen.end(status_message="stopped: the request ended (deadline or client gone)")   # sprint M9: close it, then go
                 raise
@@ -731,6 +750,17 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
             if not round_tool_calls:
                 # Stream ended with no tool_calls → final answer. Content already streamed.
                 last_round_text = "".join(round_content)
+                if max_tokens is not None and finish_reason == "length":
+                    # Stopped at the cap: the unfinished last sentence is
+                    # dropped (still held on the speech mount, so it is
+                    # never spoken); a reply with no complete sentence is
+                    # kept as it is.
+                    tail = speech_stream.unfinished_tail(last_round_text)
+                    emit("reply_capped", agent=agent.name, model=agent.model,
+                         max_tokens=max_tokens, dropped_chars=len(tail))
+                    if tail:
+                        last_round_text = last_round_text[:-len(tail)]
+                        yield {"type": "retract", "chars": len(tail), "preview": tail[:160]}
                 if not round_content:
                     # "empty" tells run_delegated the text is a failure marker.
                     yield {"type": "token", "text": _empty_reply(agent, user_style)}

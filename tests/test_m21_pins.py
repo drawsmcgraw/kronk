@@ -115,7 +115,9 @@ class _Capture:
         self.calls = []
         self.script = []    # per-call behaviour, popped in order; default "token"
 
-    async def stream(self, messages, model, tools=None):
+    async def stream(self, messages, model, tools=None, **kw):
+        # **kw: max_tokens, sent on the speech mount for talkie since M24;
+        # the pinned prompts and tool menus do not include it.
         self.calls.append({"messages": json.loads(json.dumps(messages)),
                            "tools": json.loads(json.dumps(tools)) if tools else None})
         how = self.script.pop(0) if self.script else "token"

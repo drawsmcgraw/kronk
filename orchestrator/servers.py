@@ -139,12 +139,10 @@ async def fetch_health(llm_service_url: str) -> dict[str, bool]:
 
 
 def agents_by_model() -> dict[str, list[str]]:
-    """Map model_name → list of agent labels that use it (includes Router)."""
+    """Map model_name → list of agent labels that use it (the roster only:
+    there has been no LLM router since 2026-08-18, M24)."""
     import agents  # local import to avoid circular
     mapping: dict[str, list[str]] = {}
     for item in agents.roster():
         mapping.setdefault(item["model"], []).append(item["name"])
-    router_model = os.getenv("ROUTER_MODEL")
-    if router_model:
-        mapping.setdefault(router_model, []).append("Router")
     return mapping

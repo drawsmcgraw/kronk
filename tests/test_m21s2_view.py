@@ -117,7 +117,7 @@ def test_readonly_sections(live):
     assert talkie["patterns"][0]["source"] == routing._TALKIE_PHRASES.pattern
     env_names = {e["name"] for e in ro["env"]["orchestrator"]} | {e["name"] for e in ro["env"]["tool_service"]}
     for name in ("VOICE_STREAM", "MODEL_LOCK", "MUSIC_SHADOW", "MUSIC_DRY_RUN", "ERROR_STYLE",
-                 "TELEMETRY_RECORD_TEXT", "COORDINATOR_MODEL", "DEVOPS_AGENT_MODEL", "ROUTER_MODEL"):
+                 "TELEMETRY_RECORD_TEXT", "COORDINATOR_MODEL", "DEVOPS_AGENT_MODEL", "TALKIE_MODEL"):
         assert name in env_names, name
     assert all(e["change"]["production"] and e["change"]["dev"] for e in ro["env"]["orchestrator"])
     tools = {t["name"]: t for t in ro["tools"]}

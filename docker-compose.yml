@@ -251,7 +251,6 @@ services:
       - SETTINGS_PASSPHRASE_HASH=${SETTINGS_PASSPHRASE_HASH:-}
       - SETTINGS_DEV_URL=http://orchestrator-dev:8100
       - KRONK_RELEASE=${KRONK_RELEASE:-working tree}
-      - ROUTER_MODEL=gemma-3-4b
       - COORDINATOR_MODEL=gemma-4-e4b
       - RESEARCH_AGENT_MODEL=gemma-4-e4b
       - CODING_AGENT_MODEL=devstral-2512-q4

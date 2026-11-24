@@ -544,6 +544,18 @@ async def _run_pipeline(
                     # (review P1.1). The trace is marked ERROR even if the
                     # coordinator recovers, so the failure stays findable.
                     pipeline_error = f"{agent_name} specialist: {agent_error}"
+                    if not agent_cfg.coordinator_fallback:
+                        # Asked for by name (talkie, M24): no other model
+                        # can answer as this agent, so the failure is the
+                        # reply, in the request's error style.
+                        msg = errors.render("llm", agent_error, rid, error_style)
+                        if len(assistant_reply) > reply_mark:
+                            msg = " " + msg
+                        assistant_reply.append(msg)
+                        yield {"type": "token", "text": msg}
+                        emit("request_complete", route=agent_name,
+                             duration_s=round(time.monotonic() - t_request, 2))
+                        return
                     extra_parts.append(
                         errors.specialist_failed_block(agent_name, agent_error, error_style)
                     )

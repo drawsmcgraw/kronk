@@ -27,7 +27,6 @@ WHERE_DEV = ".env.dev or docker-compose.yml (orchestrator-dev); then the dev up 
 # The orchestrator's environment settings that shape behaviour: (name,
 # default in code, what it does). An allow-list: nothing else is read.
 ENV = (
-    ("ROUTER_MODEL", "(none)", "Model listed as the router on /services (no LLM router since 2026-08-18)"),
     ("COORDINATOR_MODEL", "mistral-nemo:12b", "The coordinator's model (and the default for the agents)"),
     ("RESEARCH_AGENT_MODEL", "COORDINATOR_MODEL", "The research agent's model"),
     ("CODING_AGENT_MODEL", "devstral-2512", "The coding agent's model"),

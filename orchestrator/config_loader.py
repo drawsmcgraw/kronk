@@ -276,6 +276,18 @@ class VoiceStream(_Strict):
     hold_sentences: int = Field(1, ge=1, le=5)
 
 
+class MaxReplyTokens(_Strict):
+    """The most tokens an agent may generate per model call on the speech
+    mount (M24), by agent name; None is no cap. Only agents that call no
+    tools are listed: a cap can cut a tool call short. agents.run_stream
+    sends it as max_tokens and, when a reply stops at the cap, drops the
+    unfinished last sentence. Read per request."""
+    talkie: int | None = Field(120, ge=16, le=2048)
+
+    def for_agent(self, name: str) -> int | None:
+        return getattr(self, name) if name in type(self).model_fields else None
+
+
 class Voice(_Strict):
     # One line; None leaves it out. main._run_pipeline appends it, last, to
     # the coordinator's system_extra when origin.voice is set.
@@ -284,6 +296,7 @@ class Voice(_Strict):
     # Total seconds a speech-mount request may run (sprint M9 step 4;
     # main._with_deadline). None switches the deadline off. Read per request.
     deadline_s: int | None = Field(25, ge=5, le=120)
+    max_reply_tokens: MaxReplyTokens = Field(default_factory=MaxReplyTokens)   # M24
 
 
 # Env vars that set a value before the move keep working, and win over the
