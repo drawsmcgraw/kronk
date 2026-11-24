@@ -55,11 +55,11 @@ Conventions:
   plays a seed only on an explicit create. No new MA code; the song-title seed ranking
   goes upstream (`INVESTIGATION_2026-11-07_ma_pandora_and_ui.md`).
   *Why: four radio misfires in three weeks, two of them wrong successes.*
-- **Reclaim storage and memory** — disk: the Ollama blobs
-  (`/usr/share/ollama/.ollama/models/blobs/`, 241 GB, unused since the
-  llama.cpp migration) and unused GGUFs in `/opt/models`. GPU memory: retire
-  the unassigned `llama-bonsai` (6.1 GiB GTT) and the dead llama units
-  (mistral-nemo, devstral Q8, talkie). One careful look before each delete.
+- **Reclaim storage: Ollama** — the last of the reclaim. Ollama's blobs
+  (`/usr/share/ollama/.ollama/models/`, 241 GB, 16 models, nothing loaded
+  and no caller since October) and its system unit, which listens on every
+  interface at port 11434. Needs Drew's sudo. `/usr/local/lib/ollama` stays:
+  both Whisper units and Talkie load ROCm libraries from it.
 - **Voice accuracy** — track and improve STT accuracy on real household
   speech. Known misses: "Played the album…" (rid `2881890a`), "stop" →
   "What's up?", Satellite1 "pause" → "Pasta". Capture real utterances first,
@@ -143,6 +143,12 @@ Conventions:
 
 Newest first; feature docs in `docs/features/`.
 
+- **Reclaim storage and memory; Talkie kept** *(2026-11-24, work item
+  M24)* — the retired model servers (gemma-3-4b, bonsai, mistral-nemo,
+  devstral Q8) are gone from the host, the repo and the catalog; 212 GB of
+  unused GGUF files deleted; about 4 GB of GPU memory freed. Talkie runs
+  again, on the CPU, and answers "ask talkie …" on every route, capped at
+  120 tokens when spoken. `docs/sprint/PROMOTIONS.md`, "M24".
 - **`refactor` merged to `main`** *(2026-11-21)* — the last step of the
   2026-11 run. The working tree stays on `main`, and
   `~/.config/kronk/upgrade.env` names `main`, the branch the monthly

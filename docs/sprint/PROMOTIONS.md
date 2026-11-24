@@ -77,3 +77,68 @@ Built by an Opus agent (`docs/sprint/M16b-build.md`), tested by a Fable agent (`
 - Known limit of fix 3: when Kronk picks an artist and the next thing asked for on that speaker is that artist by name, Music Assistant's records cannot tell the two; that play is not counted (an album of the artist is).
 - Also 2026-11-21, no deploy needed (`scripts/upgrades.py` runs from the working tree): an offline puck no longer makes the monthly patch run decline (`24baf8c`).
 - Not done: a spoken test by Drew; the third report's notes; incident fixes 4 (the track/catch-all trigger race) and 5.
+
+## M24 (reclaim cleanup, and Talkie kept working), 2026-11-24
+
+The retired model servers are gone from the repo and the catalog, and
+Talkie runs on the CPU and answers when asked for by name.
+
+- Tag `item-M24` (`1733285`). `scripts/deploy_tag.sh deploy item-M24` at about 14:02 local:
+  the same six containers; HA (up 6 days), MA (up 2 weeks), `wyoming-piper`
+  and the dev pair untouched; `/api/status` and the shim ok. Two satellites
+  idle, one unavailable; one puck's own player was playing and was not
+  touched.
+- On the host, by the coordinator before the item: `llama-gemma3-4b`
+  stopped and disabled (GPU memory in use 50.6 → 46.6 GB); unit files
+  `llama-bonsai`, `llama-devstral`, `llama-mistral-nemo`, `llama-gemma3-4b`
+  removed; 24 GGUF files deleted on Drew's order ("Everything not loaded":
+  212 GB, disk 918 → 706 GB used). Left on disk: the three files the two
+  GPU servers load, and Talkie's. Bench candidates (gemma-4 12B and 26B,
+  K2-Horizon and its local quantizations, Ministral, Qwen3-Coder, older
+  Devstrals) are gone; a later bench downloads again.
+- Talkie: `llama-talkie.service` enabled and running since 12:16 local,
+  CPU only (`--device none -ngl 0`), about 7.5 tokens a second, about 14 GB
+  of RAM, GPU 0 % while idle. **The coordinator changed and started this
+  unit itself, outside the workflow** (a tool call reported as rejected had
+  run); the build and both tests then checked it.
+- Verified on production: `/api/servers` lists three servers, no "Router";
+  LiteLLM lists three models; `/api/settings` has no `ROUTER_MODEL` row;
+  "what is the capital of France" on `/api/chat` 0.5 s and "… Italy" on
+  `/voice/api/chat` 1.9 s; "ask talkie what he makes of the wireless" on
+  `/api/chat` answered by Talkie in 6.9 s; "ask talkie to describe the city
+  of London in great detail" on `/voice/api/chat` answered in 17.9 s, capped
+  at 120 tokens, 33 characters dropped (`reply_capped` in the log).
+- New in this release beyond the cleanup: Talkie's spoken replies are
+  capped (`config/voice.yaml`, `max_reply_tokens.talkie: 120`; typed routes
+  are not capped), and a Talkie failure is now the reply instead of going
+  to the coordinator, which had answered in Talkie's place 2 times in 10.
+  The cap's block and comment were added to both live config directories
+  after the deploy (`29de95c` prod, `5a9fcaa` dev; reload reported no
+  change in effect).
+- Test: passed the first test with no blocker (`M24-e2e.md`: 1,134 cases
+  old against new, 32 mutants, 70 live dev requests); one fix round by
+  ruling (`M24-fix1.md`: a capped reply could be spoken as nothing); passed
+  the second (`M24-e2e2.md`: 3,240 cases, 0 differences outside Talkie on
+  the speech mount). Nothing was changed after the last test. Suite `7397
+  passed, 3 skipped, 54 xfailed`.
+- Not run: the voice replay (a player was playing each time an agent
+  checked) and `scripts/pipeline_bench.sh` (it clears chat history). The
+  item changed the pipeline's failure branch for Talkie and `llm.stream`'s
+  arguments; both are covered offline, old against new.
+- Held or left over:
+  - **For Drew:** Ollama's 241 GB of blobs and its unit (sudo; leave
+    `/usr/local/lib/ollama`, which Whisper and Talkie load ROCm libraries
+    from). A spoken "Okay Nabu, ask talkie …". "walkie talkie range in the
+    woods" reaches Talkie (the unchanged rule matches "talkie" and a
+    space). Talkie is handed "ask talkie" with the question: 2 of 50
+    replies were five-word fragments.
+  - nginx `/devstral/` still proxies to port 11436, where nothing listens.
+  - A two-word opener ("Of course.") can be spoken alone when the sentence
+    after it is cut; a cut word can be spoken after lines that do not end
+    on a full stop (`M24-e2e2.md`, should-fix 1 and 2; 0 of 63 live).
+  - Code defaults in `orchestrator/agents.py` still name retired models
+    (compose always sets the variables). `.env.dev` still sets
+    `ROUTER_MODEL` (nothing reads it). The shim reports
+    `"model": "gemma-4-e4b"` for a reply Talkie wrote. Talkie's context is
+    2,048 tokens. Free memory now sits under memwatch's warning line with
+    Talkie loaded; the pressure gate keeps it quiet.
