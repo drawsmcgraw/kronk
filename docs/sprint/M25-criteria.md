@@ -246,5 +246,42 @@ units or LiteLLM's routing; Tempo queries.
     the installed timers write. Production containers unchanged; HA and MA
     untouched; no sound; no notification.
 
+## Rulings (coordinator)
+
+- 2026-11-24, on the test (`M25-e2e.md`, PASSES, no blocker):
+  - S1 (`/dev/services` makes 13 requests outside `/dev/`: the `/probe/*`
+    dots, `/api/upgrades`, `/api/backups`): **accepted as it is.**
+    Criterion 10 was worded too wide by the coordinator. What was meant,
+    and what holds: every request this item changed (`api/servers`,
+    `api/agents`, the static files, and all of `/resources`) is relative.
+    The probes have no `/dev/` route and the upgrade and backup status is
+    one file per house. On `/dev/services` the orchestrator and tools
+    dots are production's; left over.
+  - S2 (the memory bar's labels: with the memory file stale "System /
+    other" swallows about 43 GiB of withheld GPU memory under a label
+    that does not say so; fresh, the legend's per-process figures do not
+    say they are GPU memory), S3 (`/services` shows "unknown" and "not
+    answering" as a red dot with no reason, so a stopped props timer
+    turns every agent red while the servers work) and S4 (no test pins
+    the definition of running where the two files disagree): **fix round
+    1.** S2 and S3 are a page saying something untrue, which is what
+    this item exists to end.
+  - In the same round: N5 (`README.md`'s model table carries RAM figures
+    that were already stale an hour later: the table keeps what does not
+    drift, and points at the page for the rest), N6 (a docstring names a
+    function that no longer exists), N9 (a `/props` error printed three
+    times on one card).
+  - Left over: N1 to N4, N7, N8, N10 (no test runs the pages' script;
+    eight page mutants survive), N11, N12.
+  - For Drew, from the tester's "what is still missing": activity is what
+    this orchestrator recorded, not what a server did (the other
+    instance's calls, tool_service's own model call and LiteLLM's health
+    rounds are not counted); GPU busy is one instant and nearly always 0;
+    nothing shows what a server is doing now, though `GET /slots` answers;
+    Whisper has memory and no usage count. And the build's found item 3:
+    `/services`' orchestrator dot, and the deploy script's check, still
+    run a completion on every model server.
+
 Reports: `docs/sprint/M25-review.md` (done), `docs/sprint/M25-build.md`,
-`docs/sprint/M25-e2e.md`.
+`docs/sprint/M25-e2e.md`, `docs/sprint/M25-fix1.md`,
+`docs/sprint/M25-e2e2.md`.
