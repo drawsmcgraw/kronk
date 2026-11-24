@@ -140,4 +140,28 @@ any new routing rule.
 - The build report's "Found" items 1 to 7 are not ruled on yet; the test
   may weigh them.
 
-Reports: `docs/sprint/M24-build.md`, `docs/sprint/M24-e2e.md`.
+- 2026-11-24, on the first test (`M24-e2e.md`, PASSES, no blocker):
+  - Should-fix 1 (the installed Talkie unit differed in its comments):
+    closed by the coordinator, 13:40 EST. Copied, `daemon-reload`, no
+    restart (`NRestarts=0`, active since 12:16:05); `diff` empty.
+  - Should-fix 2 (a capped reply can be dropped whole, spoken as nothing
+    or one word) and should-fix 3 (no test pins that `llm.stream` hands
+    the cap on, in either lock mode): **fix round 1.** A silent reply with
+    no error is a tenet 7 failure on the feature Drew asked to keep.
+  - In the same round: `scripts/upgrade_rules.toml` still lists the four
+    removed units ("Found" 2), and tests in place of criterion 2's grep
+    (mutants M24 and M26: `ROUTER_MODEL` put back in `settings_view.ENV`
+    or `docker-compose.yml`).
+  - Should-fix 4 (the cap's comment is not on `/settings`): the
+    coordinator adds the block to both live config directories at promote
+    (production's only after the deploy: the running code rejects a key it
+    does not know).
+  - Left over, not fixed in this item: notes 1 (the other surviving
+    mutants), 2, 3, 5, 6, 7; "Found" 1, 3, 4, 6, 7.
+  - For Drew: note 4 ("walkie talkie range in the woods" reaches Talkie
+    now that Talkie answers; the rule is unchanged) and "Found" 5 (Talkie
+    is handed "ask talkie" with the question; 2 of 50 replies were
+    fragments).
+
+Reports: `docs/sprint/M24-build.md`, `docs/sprint/M24-e2e.md`,
+`docs/sprint/M24-fix1.md`, `docs/sprint/M24-e2e2.md`.
