@@ -7,7 +7,10 @@ Type=simple
 WorkingDirectory=%h/services/wyoming-whisper
 Environment=HSA_OVERRIDE_GFX_VERSION=11.5.1
 Environment=ROCR_VISIBLE_DEVICES=0
-Environment=LD_LIBRARY_PATH=%h/services/wyoming-whisper/runtime-libs:/usr/local/lib/ollama/rocm
+# ROCm libraries: %h/services/rocm-7.2/lib, extracted from the ROCm 7.2 image
+# CTranslate2 was built in, by scripts/build_rocm_libs.sh (work item M26;
+# check: scripts/build_rocm_libs.sh verify ~/services/rocm-7.2).
+Environment=LD_LIBRARY_PATH=%h/services/wyoming-whisper/runtime-libs:%h/services/rocm-7.2/lib
 ExecStart=%h/services/wyoming-whisper/.venv/bin/python -m wyoming_faster_whisper \
     --model large-v3-turbo \
     --language en \

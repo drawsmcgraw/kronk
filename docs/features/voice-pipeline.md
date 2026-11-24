@@ -40,7 +40,23 @@ Key design decisions (full rationale in the build journal):
   share one transport-agnostic core generator.
 - **STT on the host, not a container** — GPU passthrough is just `/dev/kfd` +
   group membership. Built CTranslate2 from source with `WITH_HIP=ON` for
-  gfx1151.
+  gfx1151, inside `rocm/dev-ubuntu-24.04:7.2-complete`
+  (`~/services/wyoming-whisper/build/build-in-container.sh`; Talkie's
+  llama-server was built in the same image).
+- **The Whisper units' libraries** (`LD_LIBRARY_PATH`, both units, same
+  order): `~/services/wyoming-whisper/runtime-libs` first (CTranslate2 itself,
+  OpenBLAS, and hiprand, rocrand and libomp, which are the image's builds
+  copied by hand), then `~/services/rocm-7.2/lib`: ten ROCm libraries and
+  rocBLAS's kernel data, taken from that same image by
+  `scripts/build_rocm_libs.sh`, with a `MANIFEST` beside `lib/` (work item
+  M26; before it, the units loaded the Ollama install's rebuild of the same
+  versions). Check it with `scripts/build_rocm_libs.sh verify
+  ~/services/rocm-7.2`. `hipblaslt/library` is left out on purpose, as it was
+  before M26; libdrm, libelf and libnuma are the host's. The image is local
+  only and the script never pulls: if it is pruned, a rebuild needs a pull by
+  the digest pinned in the script. A new ROCm release means rebuilding
+  CTranslate2 in the new image and editing the script's digest and list
+  together. README.md, "ROCm runtime libraries", has the rebuild recipe.
 - **HA in its own compose project** (`docker-compose.ha.yml`, `kronk-ha`) so
   orchestrator rebuilds never cycle HA. Volume `kronk_ha-config` holds all
   integrations — never `down -v`.

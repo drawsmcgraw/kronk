@@ -4,9 +4,11 @@
 # the only build that loads this model. `--device none -ngl 0` keeps it off
 # the GPU: an idle ROCm process on the GPU is the idle-spin of
 # docs/incidents/INVESTIGATION_2026-06-09_hangs.md, and memwatch alerts on it.
-# Do not raise -ngl. The build still loads ROCm libraries from
-# /usr/local/lib/ollama/rocm (LD_LIBRARY_PATH below), as both Whisper units
-# do: removing Ollama must leave that directory.
+# Do not raise -ngl. The build still loads ROCm libraries (LD_LIBRARY_PATH
+# below), as both Whisper units do: /home/drew/services/rocm-7.2/lib, the
+# libraries of the ROCm 7.2 image the server was built in, extracted by
+# scripts/build_rocm_libs.sh (work item M26; check:
+# scripts/build_rocm_libs.sh verify ~/services/rocm-7.2).
 #
 # Measured on CPU (docs/sprint/M24-criteria.md, docs/sprint/M24-build.md):
 # healthy 6 s after start; 60 tokens in 7.2 s (8.3 tokens a second); through
@@ -19,7 +21,7 @@ After=default.target
 
 [Service]
 Environment="HSA_OVERRIDE_GFX_VERSION=11.5.1"
-Environment="LD_LIBRARY_PATH=/usr/local/lib/ollama/rocm:/home/drew/pai/pai_workspace/llama-cpp/talkie-gfx1151-rocm7"
+Environment="LD_LIBRARY_PATH=/home/drew/services/rocm-7.2/lib:/home/drew/pai/pai_workspace/llama-cpp/talkie-gfx1151-rocm7"
 ExecStart=/home/drew/pai/pai_workspace/llama-cpp/talkie-gfx1151-rocm7/llama-server \
     -m /home/drew/model-staging/talkie-lm/talkie-1930-13b-it-Q8_0.gguf \
     --host 127.0.0.1 \

@@ -461,12 +461,13 @@ Vulkan build of llama.cpp (see each unit in `systemd/`). Talkie's unit uses a
 ROCm (HIP) build of a llama.cpp fork, the only build that loads its model,
 held off the GPU with `--device none -ngl 0` (an idle ROCm process on the GPU
 spins it: `docs/incidents/INVESTIGATION_2026-06-09_hangs.md`). It still
-carries the ROCm environment, and loads ROCm libraries from Ollama's
-directory, as the Whisper units do:
+carries the ROCm environment, and loads the ROCm libraries of
+`~/services/rocm-7.2/lib`, as the Whisper units do (see "ROCm runtime
+libraries" below):
 
 ```ini
 Environment="HSA_OVERRIDE_GFX_VERSION=11.5.1"
-Environment="LD_LIBRARY_PATH=/usr/local/lib/ollama/rocm:/home/drew/pai/pai_workspace/llama-cpp/talkie-gfx1151-rocm7"
+Environment="LD_LIBRARY_PATH=/home/drew/services/rocm-7.2/lib:/home/drew/pai/pai_workspace/llama-cpp/talkie-gfx1151-rocm7"
 ```
 
 The `render` group is required for `/dev/kfd` access — verify with `groups drew`.
@@ -483,12 +484,69 @@ by `scripts/build_stt_prompt.py` and rebuilt nightly by
 stop and removal recipes in each unit's header and in
 `docs/features/voice-pipeline.md` ("The dev Whisper instance").
 
+Both load CTranslate2 from `~/services/wyoming-whisper/runtime-libs` (searched
+first) and the ROCm libraries from `~/services/rocm-7.2/lib` (next section).
+
+### ROCm runtime libraries (`~/services/rocm-7.2/`)
+
+Three units load ROCm libraries through `LD_LIBRARY_PATH`: both Whisper units
+and `llama-talkie`. The two GPU model servers are Vulkan builds and load none.
+CTranslate2 (`~/services/wyoming-whisper/build/build-in-container.sh`) and
+Talkie's server (`pai_workspace/llama-cpp/Dockerfile.talkie-hip`) were both
+compiled inside `rocm/dev-ubuntu-24.04:7.2-complete`, and
+`~/services/rocm-7.2/lib` holds the libraries of that same image (work item
+M26). Until M26 the units loaded the `rocm` directory of the Ollama install,
+Ollama's own rebuild of the same ROCm versions: every file differed by sha256,
+the rocBLAS kernels included.
+
+`scripts/build_rocm_libs.sh` fills the directory. It holds a fixed list: ten
+ROCm sonames (`libamdhip64`, `libhsa-runtime64`, `librocblas`, `libhipblas`,
+`libhipblaslt`, `librocsolver`, `libamd_comgr`, `librocroller`, `libroctx64`,
+`librocprofiler-register`; each as its versioned file and its soname link) and
+rocBLAS's kernel data, `rocblas/library` (1,793 files). About 1.9 GB.
+It runs the image by digest with no network and nothing mounted, and takes
+the files out as a tar stream, so they are the caller's. `MANIFEST` beside
+`lib/` records the image digest, the ROCm version, and each entry's path,
+mode, and sha256 or link target.
+
+```bash
+scripts/build_rocm_libs.sh verify ~/services/rocm-7.2      # check against MANIFEST
+# rebuild: into a new, empty directory (the script refuses a non-empty one)
+scripts/build_rocm_libs.sh build ~/services/rocm-7.2.new
+# then swap it in and restart one unit at a time, dev first, checking each
+# (the order of docs/sprint/M26-criteria.md, "The switch"); production STT last:
+mv ~/services/rocm-7.2 ~/services/rocm-7.2.old && mv ~/services/rocm-7.2.new ~/services/rocm-7.2
+systemctl --user restart wyoming-whisper-dev   # then llama-talkie, then wyoming-whisper
+```
+
+The manifest names no destination, so a moved directory still verifies.
+
+- **`hipblaslt/library` is left out on purpose.** The image has it (4.5 GB);
+  the units ran without it before M26, so `libhipblaslt` loads with its kernel
+  data absent, as before. Adding it could change which GEMM path rocBLAS
+  takes. The manifest records the omission.
+- **libdrm, libdrm_amdgpu, libelf and libnuma are the host's**
+  (`/usr/lib/x86_64-linux-gnu`), not copies.
+- **The image is local only** (29.3 GB). The script never pulls. If the image
+  is pruned, a rebuild needs `docker pull
+  rocm/dev-ubuntu-24.04@sha256:86e11093b4a7ec2a79b1b6701d10e840a6994f21c7e05929b51eb9be361c683a`
+  first, by that digest.
+- **A new ROCm release** is pinned on purpose: rebuild CTranslate2 and
+  Talkie's server in the new image, then edit `ROCM_VERSION`, `IMAGE_DIGEST`
+  and the list in the script together (its header, "Pinning a new ROCm
+  image"), build into a new directory and point the units at it. The script
+  refuses any image but the pinned one.
+- rocBLAS finds `rocblas/library` next to `librocblas` itself; no unit sets
+  `ROCM_PATH`, `HIP_PATH` or a Tensile path, and none should.
+
 ### Building llama.cpp for gfx1151
 
 Pre-built ROCm binaries on GitHub don't include gfx1151 — they report "no
 ROCm-capable device" even with `HSA_OVERRIDE_GFX_VERSION=11.5.1`. Build from
 source inside a ROCm 7.2 container (`rocm/dev-ubuntu-24.04:7.2-complete`), then
-copy the binary + shared libs out to `pai_workspace/llama-cpp/`:
+copy the binary + shared libs out to `pai_workspace/llama-cpp/`. The ROCm
+libraries it runs against come from the same image ("ROCm runtime libraries"
+above):
 
 ```bash
 cmake -B build -DGGML_HIP=ON -DAMDGPU_TARGETS="gfx1151" \
