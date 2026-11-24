@@ -62,14 +62,61 @@ def test_withheld_memory_file_shows_no_process_and_says_the_segment_is_all_used_
     assert w["proc"] is None
     assert w["other"] == "Used RAM, all of it (per-process GPU memory not known)"
     assert "System / other" not in json.dumps(LABELS)
-    assert "GPU memory" in w["note"] and "inside used RAM" in w["note"]
+    # Fix round 2: the claim is about GTT, which is system RAM; VRAM is a
+    # 512 MiB firmware carve-out outside MemTotal.
+    assert w["note"] == ("Per-process GPU memory is not known (gpu_mem.json, below), so it is "
+                         "not split out. GTT is system RAM: the GTT in use (below) is inside used RAM.")
 
 
-def test_fresh_legend_says_gpu_memory_and_that_process_ram_is_in_the_other_segment():
+FRESH_NOTE = ("Per-process segments are GPU memory (GTT + VRAM). Other used RAM is used RAM "
+              "minus them. A card's RAM figure includes memory-mapped model files, which the "
+              "kernel counts as available, so the cards' RAM need not fit inside Other used RAM.")
+
+
+def test_fresh_legend_says_gpu_memory_and_what_the_other_segment_is():
     f = LABELS["fresh"]
     assert f["proc"] == "{name} GPU memory"
     assert f["other"] == "Other used RAM"
-    assert "each process's own RAM" in f["note"] and f["other"] in f["note"]
+    assert f["note"] == FRESH_NOTE
+
+
+def test_fresh_note_does_not_claim_the_cards_ram_is_inside_the_other_segment():
+    # Fix round 2, B1: a card's RAM is RSS, which counts mapped model files
+    # (page cache, counted as available). On the host the five cards' RAM
+    # summed to 34.2 GiB against a 28.6 GiB segment; Talkie's mapped model
+    # file was 13.2 GiB of its 14.9 GiB. The round-1 note said otherwise.
+    note = LABELS["fresh"]["note"]
+    for wrong in ("each process's own RAM", "caches", "holds", "the system,"):
+        assert wrong not in note, wrong
+    assert "memory-mapped model files" in note and "counts as available" in note
+    assert "need not fit" in note
+
+
+# ── /resources: the stats line's word when the memory file is not fresh (S1)
+
+MEM_STAT_WORD = _literal(RESOURCES, "MEM_STAT_WORD")
+
+
+def test_stats_line_says_the_sources_own_state():
+    # One word per state that is not fresh, each its own; never "stale"
+    # for all three (fix round 2, S1).
+    assert MEM_STAT_WORD == {"stale": "stale", "missing": "missing", "unreadable": "unreadable"}
+    assert "MEM_STAT_WORD[gpuMemSource?.state] || 'not known'" in _function(RESOURCES, "memStatWord")
+    body = _function(RESOURCES, "renderMemBar")
+    assert "memStatWord(srv.sources?.gpu_mem)" in body
+    assert '<span class="stale">stale</span>' not in body
+
+
+def test_every_state_the_payload_can_carry_has_its_word(tmp_path):
+    def state():
+        return _build(tmp_path, None, _props())["sources"]["gpu_mem"]["state"]
+    seen = {_build(tmp_path, _gpu(ts=NOW - 200), _props())["sources"]["gpu_mem"]["state"],
+            _build(tmp_path, _gpu(ts=NOW + 3600), _props())["sources"]["gpu_mem"]["state"]}
+    (tmp_path / "gpu_mem.json").unlink()
+    seen.add(state())
+    (tmp_path / "gpu_mem.json").write_text("{ torn")
+    seen.add(state())
+    assert set(seen) == set(MEM_STAT_WORD)
 
 
 def test_the_bar_takes_fresh_labels_only_from_a_fresh_memory_file():

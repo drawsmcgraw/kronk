@@ -232,26 +232,38 @@ function srcLine(label, src) {
 
 // The bar's labels by the state of gpu_mem.json (M25 fix round 1, S2).
 // Fresh: one segment per listed process, its GPU memory (GTT + VRAM, DRM
-// fdinfo); the next segment is used RAM minus those, which holds each
-// process's own RAM. Stale, missing or unreadable: no per-process segment,
-// and the one used segment says it is all used RAM, GPU memory included.
+// fdinfo); the next segment is used RAM minus those. A card's RAM figure
+// is RSS, which counts memory-mapped model files; those are page cache,
+// which the kernel counts as available, so the cards' RAM need not fit
+// inside that segment (fix round 2, B1: Talkie's mapped model file is
+// 13.2 GiB of its 14.9 GiB). Stale, missing or unreadable: no per-process
+// segment, and the one used segment says it is all used RAM; GTT is
+// system RAM and the GTT in use is inside it.
 // Kept as a JSON literal: tests/test_m25_fix1_pages.py reads it (the
 // suite has no JavaScript runtime). "{name}" is the process.
 const MEM_BAR_LABELS = {
   "fresh": {
     "proc": "{name} GPU memory",
     "other": "Other used RAM",
-    "note": "Per-process segments are GPU memory (GTT + VRAM). Other used RAM is used RAM minus them: the system, caches, and each process's own RAM (the RAM figure on its card)."
+    "note": "Per-process segments are GPU memory (GTT + VRAM). Other used RAM is used RAM minus them. A card's RAM figure includes memory-mapped model files, which the kernel counts as available, so the cards' RAM need not fit inside Other used RAM."
   },
   "withheld": {
     "proc": null,
     "other": "Used RAM, all of it (per-process GPU memory not known)",
-    "note": "Per-process GPU memory is not known (gpu_mem.json, below), so it is not split out: the model servers' GPU memory is inside used RAM."
+    "note": "Per-process GPU memory is not known (gpu_mem.json, below), so it is not split out. GTT is system RAM: the GTT in use (below) is inside used RAM."
   }
 };
 
 function memBarLabels(gpuMemSource) {
   return MEM_BAR_LABELS[gpuMemSource?.state === 'fresh' ? 'fresh' : 'withheld'];
+}
+
+// The stats line's word for a gpu_mem.json that is not fresh: the
+// source's own state, never "stale" for all three (fix round 2, S1).
+const MEM_STAT_WORD = {"stale": "stale", "missing": "missing", "unreadable": "unreadable"};
+
+function memStatWord(gpuMemSource) {
+  return MEM_STAT_WORD[gpuMemSource?.state] || 'not known';
 }
 
 // Pure: the bar's segments from the two payloads. The listed processes
@@ -329,7 +341,7 @@ function renderMemBar(sys, srv) {
     <span class="mem-stat" title="Immediately-available pool — dropping below 2 GiB precedes hard hangs on this hardware">
       Free <strong style="color:${freeColor}">${fmtGiB(free)}${freeNote}</strong>
     </span>
-    <span class="mem-stat">GPU memory, listed processes <strong>${memFresh ? fmtGiB(gpuBytes) : '<span class="stale">stale</span>'}</strong></span>
+    <span class="mem-stat">GPU memory, listed processes <strong>${memFresh ? fmtGiB(gpuBytes) : `<span class="stale">${esc(memStatWord(srv.sources?.gpu_mem))}</span>`}</strong></span>
     ${gttTotal != null ? `
     <span class="mem-stat" title="GPU memory pool (shared with CPU on this iGPU)">
       GTT <strong style="color:${gttColor}">${fmtGiB(gttUsed)} / ${fmtGiB(gttTotal)} (${gttPct.toFixed(0)}%)</strong>

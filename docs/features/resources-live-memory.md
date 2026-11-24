@@ -15,11 +15,15 @@ Criteria and evidence: `docs/sprint/M25-criteria.md`, `M25-build.md`.
   `/proc/meminfo`; GTT total and used and GPU busy from sysfs, all read
   at the request. GPU busy is one instant reading, labelled as such. The
   memory bar has one segment per GPU process, labelled "<name> GPU
-  memory" (its GTT + VRAM), then "Other used RAM" (used RAM minus those:
-  the system, caches, and each process's own RAM) and "Available". With
-  `gpu_mem.json` stale, missing or unreadable there is no per-process
-  segment, and the used segment reads "Used RAM, all of it (per-process
-  GPU memory not known)" (fix round 1, S2).
+  memory" (its GTT + VRAM), then "Other used RAM" (used RAM minus those)
+  and "Available". A card's RAM figure includes memory-mapped model
+  files, which the kernel counts as available, so the cards' RAM need not
+  fit inside Other used RAM (fix round 2, B1: Talkie's mapped model file
+  is 13.2 GiB of its 14.9 GiB). With `gpu_mem.json` stale, missing or
+  unreadable there is no per-process segment, the used segment reads
+  "Used RAM, all of it (per-process GPU memory not known)" (fix round 1,
+  S2), and the stats line's "GPU memory, listed processes" says which of
+  the three it is (fix round 2, S1).
 - **Model files on disk**: the total size of the model and draft files
   the running llama servers loaded, and the size and free space of each
   filesystem holding one.
