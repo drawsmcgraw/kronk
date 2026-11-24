@@ -123,4 +123,21 @@ any new routing rule.
     containers unchanged; HA and MA untouched; no sound; no notification.
     Install and deploy steps for the coordinator are in the build report.
 
+## Rulings (coordinator)
+
+- 2026-11-24, on the build report's question 1: the change that makes a
+  routed Talkie failure the reply (`AgentConfig.coordinator_fallback`,
+  False for `talkie` only) is accepted as the way criterion 7 is met. It
+  is a change to the pipeline's failure branch, so it is tested as one:
+  every other agent's failure must reach the coordinator exactly as
+  before.
+- 2026-11-24: the reply cap (`max_reply_tokens.talkie`, voice mount only)
+  and the dropping of a capped reply's unfinished last sentence are inside
+  scope 3. The `llm.stream` change that carries them (a `max_tokens`
+  argument, a `finish_reason` event) reaches every model call, so
+  criterion 6 is read widely: no request that does not name Talkie may
+  change in what is sent to a model or in what is answered.
+- The build report's "Found" items 1 to 7 are not ruled on yet; the test
+  may weigh them.
+
 Reports: `docs/sprint/M24-build.md`, `docs/sprint/M24-e2e.md`.
