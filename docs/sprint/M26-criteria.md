@@ -253,5 +253,34 @@ that nothing reads Ollama's directory, kernel data included:
    checks Talkie answers.
 2. Only then the deletes.
 
+## Rulings and the switch as run (coordinator, 2026-11-24)
+
+- Latency in the pass rule is the overall p50 and p95 of a run, computed
+  from the result file's rows; the bench's per-variant table is shown
+  beside it.
+- Results, sheets and the unit backups are in
+  `~/backups/m26-units-2026-11-24/` (`bench/` for the runs).
+- Step b, 15:05: `~/services/rocm-7.2` built; verify passes; MANIFEST
+  sha256 `200d6829…b539` as the build report predicted; 0 files not
+  owned by drew.
+- Step c, 15:16 (dev Whisper): listening after 4 s; the ten libraries from
+  the new directory, the four system ones from the host, none from
+  Ollama's. 714 rows: 712 texts the same, 2 differ, both with fewer word
+  errors after (`m13-0022-noise10`, `m13-0102-room`). Word errors 499 →
+  468, command-form errors 90 → 89, p50 0.327 → 0.323 s, p95 0.407 →
+  0.381 s, 0 journal lines. **Ruled a pass**: nothing is worse.
+- The switch was paused from about 15:20 to 15:33 for an unrelated
+  incident (`docs/incidents/INVESTIGATION_2026-11-24_griz_album.md`,
+  which rules today's changes out as its cause).
+- Step d, 15:35 (Talkie): healthy after 2 s; same library sources; one
+  answer on `/dev/api/chat`; GPU busy 0 at seven readings over two
+  minutes.
+- Step e, 15:38:30 (production Whisper; two satellites idle, one
+  unavailable, no production request in 90 s): listening after 3 s; ten
+  libraries from the new directory, none from Ollama's. 25 rows: 25 texts
+  the same; p50 0.318 → 0.317 s, p95 0.365 → 0.364 s; 0 journal lines.
+  GPU busy back to 0 within 25 s of the run. No process on the host maps
+  any file under Ollama's directory. No memwatch notice.
+
 Reports: `docs/sprint/M26-review.md` (done), `docs/sprint/M26-build.md`,
 `docs/sprint/M26-e2e.md`.
