@@ -90,6 +90,28 @@ Conventions:
   bumps are part of the monthly patch run since sprint M18; the canary
   stays.
 
+- **Build workflow: agent isolation and code gates** *(admitted
+  2026-11-24)* — four changes to how work items are built, from the
+  comparison recorded in `docs/sprint/WORKFLOW.md` ("Where the steps came
+  from"). In this order, each its own work item:
+  1. **Auto permission mode for agents**, in place of skipped permissions.
+     Trial on one work item first: does an unattended agent in a herdr
+     pane stall on a refused action. *Why: three guard-rail breaches in
+     the 2026-11 run (M5, M16, M20), none stopped by the brief.*
+  2. **A git worktree per build and fix agent.** Work reaches `main` only
+     by merge, so `main` stays clean for the monthly patch run. Open: the
+     one dev pair builds from the working tree, so tests stay one at a
+     time unless it can be pointed at a worktree.
+  3. **A land gate in code.** Rebase the agent's branch, run the suite
+     once, merge on green, refuse on red, record the run. Needs 2.
+  4. **Release as code.** A merge is tagged, deployed, verified and, on a
+     failed check, rolled back to the previous tag with no session in the
+     loop. First piece: automatic rollback in `scripts/deploy_tag.sh`
+     (today it stops and says to redeploy the previous tag). Open before
+     the rest is designed: picking a quiet moment (the patch run's check),
+     and items that also need an HA change or a host unit, which code may
+     not do.
+
 ## Later — wanted
 
 - **Shopping list** — HA owns the list, Kronk speaks and shows it, an

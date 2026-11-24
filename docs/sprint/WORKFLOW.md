@@ -144,12 +144,12 @@ Considered in the same comparison and not adopted:
   code-written signals (the corrected-run mark, failed traces) are read in
   the session-start sweep instead.
 
-Four changes from the comparison need a build and are not decided. They
-are in no plan until Drew admits them to `ROADMAP.md`: a git worktree per
-agent; Claude Code's auto permission mode in place of skipped permissions
-(three guard-rail breaches in the 2026-11 run: M5, M16, M20); a gate in code
-that runs the suite and refuses a red merge; tag, deploy, verify and roll
-back run by code with no session in the loop.
+Four changes from the comparison need a build. Drew admitted all four to
+`ROADMAP.md` on 2026-11-24 ("Build workflow: agent isolation and code
+gates", under Next), where their order and open questions are kept: auto
+permission mode in place of skipped permissions, a git worktree per
+agent, a land gate in code, and release as code. Until each one ships,
+the steps above stand as written.
 
 What this workflow has that the other system lacked, and should keep: the
 fresh test agent every round, criteria committed before the build, the
