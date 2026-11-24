@@ -163,5 +163,14 @@ any new routing rule.
     is handed "ask talkie" with the question; 2 of 50 replies were
     fragments).
 
+- 2026-11-24, on the second test (`M24-e2e2.md`, PASSES, no blocker): no
+  further fix round. Its should-fix 1 (a two-word opener such as "Of
+  course." can still be spoken alone when the long sentence after it is
+  cut) and should-fix 2 (when no complete line before the cut ends on a
+  full stop, the cut word is now spoken where the old code dropped it)
+  pull opposite ways, were seen in 0 of 63 live Talkie replies, and cost a
+  short or ragged spoken reply, not a silent one. Left over, with the
+  second test's notes 1 to 4. Promote.
+
 Reports: `docs/sprint/M24-build.md`, `docs/sprint/M24-e2e.md`,
 `docs/sprint/M24-fix1.md`, `docs/sprint/M24-e2e2.md`.
