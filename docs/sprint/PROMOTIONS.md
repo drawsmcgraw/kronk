@@ -208,3 +208,26 @@ the repo points at Ollama.
     signature; eight mutants of the fix survive (`M26-e2e2.md`, notes).
     `hipblaslt/library` is left out on purpose.
 
+### M26, the removal's first step (2026-11-24)
+
+Drew stopped and disabled `ollama.service` and renamed
+`/usr/local/lib/ollama` to `/usr/local/lib/ollama.removed` (about 16:40
+local). Then, by the coordinator:
+
+- Without a restart: 25 clips on dev Whisper (10301), 25 texts the same as
+  the run after the switch; Talkie answered on its own port.
+- `wyoming-whisper-dev` restarted 16:45:27 (listening after 3 s) and
+  `llama-talkie` 16:45:29 (healthy after 2 s), both with the old directory
+  gone: each maps the ten libraries from `~/services/rocm-7.2/lib`,
+  nothing from the renamed directory. 25 clips again: 25 texts the same,
+  p50 0.326 s, p95 0.376 s. Talkie answered. No rocBLAS, Tensile or
+  "not found" line in either journal. GPU busy 0. No process maps the
+  renamed directory. Port 11434 no longer listens.
+- Production Whisper was not restarted for this (it runs the same binary
+  and libraries as dev). Its next restart is its own test.
+- These two restarts happened while M25's test agent was working; a
+  moment's gap in Talkie's or dev Whisper's figures in its report at
+  16:45 is this.
+
+Nothing reads Ollama's directory. The deletes are Drew's.
+

@@ -63,12 +63,23 @@ Conventions:
   done. Read from the files that already hold it (`ROADMAP.md`,
   `docs/sprint/`'s criteria, review, build, test and fix reports,
   `PROMOTIONS.md`), so there is no second place to keep up to date.
-- **Remove Ollama** — nothing of Kronk's loads from it since work item M26
-  (2026-11-24). Drew's, with sudo, in two steps: rename
-  `/usr/local/lib/ollama` aside and stop its unit, the coordinator checks
-  dev Whisper and Talkie on a fresh start, then delete the models
-  (241 GB), the libraries, the binary, the unit, three April unit files
-  and the user. Steps: `docs/sprint/PROMOTIONS.md`, "M26".
+- **Remove Ollama: the deletes** — the unit is stopped and the library
+  directory renamed aside (Drew, 2026-11-24); dev Whisper and Talkie
+  started clean without it. Left, with sudo: `/usr/share/ollama` (241 GB),
+  `/usr/local/lib/ollama.removed`, `/usr/local/bin/ollama`, the unit file,
+  three April unit files and the user. `docs/sprint/PROMOTIONS.md`, "M26".
+- **YouTube Music is down; wait for upstream** *(Drew, 2026-11-24)* —
+  since 2026-11-24 Music Assistant cannot stream any YouTube Music track:
+  its bundled yt-dlp fails YouTube's new player
+  (`INVESTIGATION_2026-11-24_griz_album.md`). Pandora and the NAS library
+  work. Decided: no patch to our MA image; wait for the fix to reach a
+  stock MA release. The chain to watch, in order:
+  [yt-dlp/ejs#80](https://github.com/yt-dlp/ejs/pull/80) merges; a
+  yt-dlp-ejs and a yt-dlp release carry it; a Music Assistant release
+  bundles that yt-dlp. Then an MA update on a day and at a moment Drew
+  picks (an MA restart), checked by streaming one YouTube track with no
+  `[jsc]` error in MA's log. Checked at the start of each working session
+  until then.
 - **Voice accuracy** — track and improve STT accuracy on real household
   speech. Known misses: "Played the album…" (rid `2881890a`), "stop" →
   "What's up?", Satellite1 "pause" → "Pasta". Capture real utterances first,

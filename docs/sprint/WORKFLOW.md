@@ -105,7 +105,9 @@ One agent runs at a time. They share one working tree.
 Before taking up an item the coordinator reads the "Held or left over"
 entries of `docs/sprint/PROMOTIONS.md` that are still open and, in
 Grafana, the voice runs marked as corrected since the last session
-(`docs/features/voice-capture.md`). Each one is fixed (inline when it is
+(`docs/features/voice-capture.md`). It also checks every `ROADMAP.md`
+entry that waits on something outside the repo (an upstream release, a
+merge) against its source, and says what moved. Each one is fixed (inline when it is
 a small fix to nothing under way, by a fix agent otherwise), proposed to
 Drew for `ROADMAP.md`, or struck with a dated line. A list nobody reads is
 worse than no list.

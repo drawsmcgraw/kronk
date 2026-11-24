@@ -316,3 +316,7 @@ fixes would make this row pass: the transcript lost "part 4".
   with the finding above: the NAS library works, YouTube Music does not.
   An album held by both sources costs about 2.5 s per dead YouTube copy
   before MA reaches a file.
+- Decision (Drew, 2026-11-24, about 16:40 EST): "wait for upstream for the
+  ma fix". Fix A above. Tracked in `ROADMAP.md`, "YouTube Music is down;
+  wait for upstream". The Kronk-side weaknesses 1 to 5 are not decided.
+
