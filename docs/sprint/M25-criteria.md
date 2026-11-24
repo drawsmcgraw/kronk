@@ -282,6 +282,34 @@ units or LiteLLM's routing; Tempo queries.
     `/services`' orchestrator dot, and the deploy script's check, still
     run a completion on every model server.
 
+- 2026-11-24, on the second test (`M25-e2e2.md`, FAILS on B1; the first
+  failed fix round of three allowed):
+  - B1 stands. The note fix round 1 put under the memory bar says each
+    process's RAM is inside "Other used RAM". It is not: a card's RAM
+    figure is RSS, which counts memory-mapped model files, and those are
+    page cache that the kernel counts as available (Talkie: 1.6 GiB
+    anonymous, 13.2 GiB mapped). The cards' RAM adds to 34.2 GiB against a
+    29.0 GiB segment. **The premise was wrong before it reached the fix
+    agent**: the first test said so, the coordinator's ruling repeated it
+    without checking it against the host, and the fix agent wrote on the
+    page what it was told. **Fix round 2.**
+  - What the note must do: say what the segment is (used RAM minus the
+    GPU memory of the listed processes) and claim nothing about what is in
+    it that the host does not bear out. If it mentions the cards' RAM
+    figures, it says they include memory-mapped model files, which the
+    kernel counts as available, so they need not fit inside the segment.
+    The same sentence in `docs/features/resources-live-memory.md`, the
+    comment above `MEM_BAR_LABELS`, and the test that pins the wrong text.
+  - S1 in the same round: the stats line says "stale" for every state
+    that is not fresh; it says what the source says (missing, unreadable,
+    stale).
+  - The fix agent checks each sentence it writes against the host, with
+    the numbers in its report.
+  - Left over: S2 (the page pin reads the page's text and does not run it;
+    eight mutants of the fix survive, among them the reason dropped from a
+    `/services` row), N1 to N4.
+
 Reports: `docs/sprint/M25-review.md` (done), `docs/sprint/M25-build.md`,
 `docs/sprint/M25-e2e.md`, `docs/sprint/M25-fix1.md`,
-`docs/sprint/M25-e2e2.md`.
+`docs/sprint/M25-e2e2.md`, `docs/sprint/M25-fix2.md`,
+`docs/sprint/M25-e2e3.md`.
