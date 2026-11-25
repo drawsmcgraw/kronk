@@ -170,3 +170,9 @@ Plan doc: this file. Design review before build.
   1). "the file" in the criteria below reads as "the database". M29
   (page-script tests in a browser) was dropped by Drew on 2026-11-24;
   criterion 6 is checked by the test agent in a browser by hand.
+- 2026-11-24, coordinator, on Drew's "be sure that the db you're using is
+  added to any backup routines": `voice_runs.db` is a copy of what Tempo
+  holds and is rebuilt from it by one full read (about 18 s), so it is
+  not added to the backup sets; adding it would put household speech on
+  the NAS share in the clear for the first time. The work-state database
+  (M33) is backed up. Reported to Drew to reverse if he wants it.
