@@ -60,6 +60,11 @@
   .entry + .entry { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
   .entry strong { color: var(--text); }
   .entry em { color: var(--text3); }
+  .entry a { color: var(--blue); }
+  .entry details summary { font-size: 13px; color: var(--text2); margin-top: 0; }
+  .entry details[open] .more { display: none; }
+  .entry .more { color: var(--text3); font-size: 11.5px; }
+  .entry-rest { margin-top: 4px; }
   .linked { margin-top: 10px; padding: 8px 10px; background: var(--bg3); border-radius: 6px; }
   .sub-label { font-size: 12px; color: var(--text2); font-weight: 600; margin: 14px 0 6px; }
   .note-line { font-size: 12px; color: var(--text3); margin: -2px 0 8px; }
@@ -106,7 +111,7 @@
 
   <section>
     <div class="section-label">Backlog</div>
-    <div class="note-line">The open entries of <code>ROADMAP.md</code>, under its own section names. An entry that names a work item under way is shown with the item above.</div>
+    <div class="note-line">The open entries of <code>ROADMAP.md</code>, under its own section names. An entry that names a work item under way is shown with the item above. Each shows its title, lead and first sentence; click it for the whole entry.</div>
     <div id="backlog"></div>
   </section>
 
@@ -138,11 +143,13 @@
 // tests/test_m27_work_page.py reads them as JSON (the suite has no
 // JavaScript runtime).
 
-// The banner for a source that is not fresh. "{age}" is the file's age in
-// seconds, "{reason}" the route's reason. show: whether the outline is shown.
+// The banner for a source that is not fresh. "{reason}" is the route's
+// reason with "strip" taken off its front (the route says why a file is
+// stale: too old, or dated in the future). show: whether the outline is
+// shown.
 const SOURCE_BANNER = {
   "fresh": null,
-  "stale": {"word": "STALE", "text": "work.json was written {age} s ago (the exporter runs every 60 s; older than 180 s is stale). Shown below: the last known state.", "show": true, "bad": false},
+  "stale": {"word": "STALE", "text": "{reason}. Shown below: the last known state.", "strip": "stale: ", "show": true, "bad": false},
   "missing": {"word": "MISSING", "text": "{reason}", "show": false, "bad": true},
   "unreadable": {"word": "UNREADABLE", "text": "{reason}", "show": false, "bad": true},
   "unknown_schema": {"word": "UNKNOWN SCHEMA", "text": "{reason}", "show": false, "bad": true}
@@ -163,13 +170,26 @@ const STEP_LABEL = {
   "other": "{name}"
 };
 
-// The top line's agent parts. "{seen}", "{word}", "{reason}", "{n}" from the file.
+// The top line's agent parts. "{seen}", "{word}", "{reason}", "{n}" from the
+// file; "{word}" is the exporter's herdr.coordinator.shown (working, waiting
+// on an agent, idle, not known).
 const AGENT_TEXT = {
   "known": "herdr: {seen} agents seen",
   "not_known": "herdr not reachable: agent state not known ({reason})",
   "coordinator": "coordinator: {word}",
-  "elsewhere": "{n} more in other directories (not named)"
+  "elsewhere": "{n} more in other directories (not named)",
+  "skipped": "{n} not readable (skipped)"
 };
+
+// Beside a Done row's count of lines addressed to Drew ("{n}").
+const DONE_TEXT = {
+  "for_drew_one": "1 line addressed to Drew in its promotions entry; it may be settled since",
+  "for_drew_many": "{n} lines addressed to Drew in its promotions entry; some may be settled since"
+};
+
+// [text](url) in repo text becomes a link only when url starts with
+// "prefix"; anything else is shown as written.
+const MD_LINK = {"prefix": "https://", "rel": "noopener"};
 
 const UNDER_WAY_NOTE = "Work items only: an item with a step file in docs/sprint/ and no promotions entry.";
 
@@ -195,25 +215,52 @@ function el(tag, cls, text) {
 function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); return node; }
 const arr = x => (Array.isArray(x) ? x : []);
 
-// Markdown-ish text from the repo: `code` and **bold** become elements
-// whose content is set as text; everything else stays as written. Bold
-// may hold code ("**`/work`: …**"); an unpaired ** is shown as written.
+// Markdown-ish text from the repo: `code`, **bold**, *emphasis* (so
+// *( … )* and *Why: …*) and [text](https://…) become elements whose content
+// is set as text; everything else stays as written. An unpaired ** or * is
+// shown as written; a * opens only before a non-space and closes only after
+// one. A link whose url does not start with MD_LINK.prefix is shown as
+// written.
 function mdText(parent, s) {
-  const toks = String(s ?? '').split(/(`[^`]*`|\*\*)/);
+  const toks = String(s ?? '').split(/(`[^`]*`|\*\*|\[[^\]\n]*\]\([^()\s]*\)|\*)/).filter(t => t);
   const stars = toks.filter(t => t === '**').length;
   const honoured = stars - (stars % 2);
-  let seen = 0, cur = parent;
-  for (const t of toks) {
-    if (!t) continue;
+  // Pair the single stars: an opener before a non-space, a closer after one.
+  const em = new Set();
+  let opener = -1;
+  toks.forEach((t, i) => {
+    if (t !== '*') return;
+    const before = i > 0 ? toks[i - 1].slice(-1) : '';
+    const after = i + 1 < toks.length ? toks[i + 1].charAt(0) : '';
+    if (opener >= 0 && before && !/\s/.test(before)) { em.add(opener); em.add(i); opener = -1; }
+    else if (after && !/\s/.test(after)) opener = i;
+  });
+  let seen = 0;
+  const stack = [parent];
+  const top = () => stack[stack.length - 1];
+  const close = tag => { const k = stack.findIndex((n, j) => j > 0 && n.tagName === tag); if (k > 0) stack.length = k; };
+  toks.forEach((t, i) => {
     if (t === '**' && seen < honoured) {
       seen++;
-      cur = (seen % 2 === 1) ? parent.appendChild(el('strong')) : parent;
+      if (seen % 2 === 1) stack.push(top().appendChild(el('strong'))); else close('STRONG');
+    } else if (t === '*' && em.has(i)) {
+      if (stack.slice(1).some(n => n.tagName === 'EM')) close('EM'); else stack.push(top().appendChild(el('em')));
     } else if (t.length > 1 && t.startsWith('`') && t.endsWith('`')) {
-      cur.appendChild(el('code', null, t.slice(1, -1)));
+      top().appendChild(el('code', null, t.slice(1, -1)));
+    } else if (/^\[[^\]\n]*\]\([^()\s]*\)$/.test(t)) {
+      const k = t.indexOf('](');
+      const url = t.slice(k + 2, -1);
+      if (url.startsWith(MD_LINK.prefix)) {
+        const a = top().appendChild(el('a', null, t.slice(1, k)));
+        a.href = url;
+        a.rel = MD_LINK.rel;
+      } else {
+        top().appendChild(document.createTextNode(t));
+      }
     } else {
-      cur.appendChild(document.createTextNode(t));
+      top().appendChild(document.createTextNode(t));
     }
-  }
+  });
   return parent;
 }
 
@@ -232,7 +279,9 @@ function renderState(resp) {
   if (b) {
     const box = el('div', 'banner' + (b.bad ? ' bad' : ''));
     box.appendChild(el('strong', null, b.word + ': '));
-    box.appendChild(document.createTextNode(fill(b.text, { age: src.age_s == null ? '?' : Math.round(src.age_s), reason: src.reason })));
+    let reason = String(src.reason ?? '');
+    if (b.strip && reason.toLowerCase().startsWith(b.strip.toLowerCase())) reason = reason.slice(b.strip.length);
+    box.appendChild(document.createTextNode(fill(b.text, { reason })));
     banner.appendChild(box);
     banner.style.marginBottom = '10px';
   }
@@ -249,9 +298,10 @@ function renderState(resp) {
   parts.push(`export made ${fmtTime(w.made_at)}, ${src.age_s == null ? '?' : Math.round(src.age_s)} s ago, from ${where}` +
              (repo.rebase ? ' (rebase in progress)' : ''));
   const h = w.herdr || {};
-  parts.push(fill(AGENT_TEXT.coordinator, { word: (h.coordinator || {}).word || 'not known' }));
+  parts.push(fill(AGENT_TEXT.coordinator, { word: (h.coordinator || {}).shown || 'not known' }));
   parts.push(h.known ? fill(AGENT_TEXT.known, { seen: h.seen }) : fill(AGENT_TEXT.not_known, { reason: h.reason }));
   if (h.known && h.elsewhere) parts.push(fill(AGENT_TEXT.elsewhere, { n: h.elsewhere }));
+  if (h.known && h.skipped) parts.push(fill(AGENT_TEXT.skipped, { n: h.skipped }));
   parts.forEach((p, i) => {
     if (i) line.appendChild(el('span', 'sep', '·'));
     line.appendChild(el('span', null, p));
@@ -281,16 +331,32 @@ function stepsBlock(it) {
   return box;
 }
 
-// An open entry is shown whole; a Shipped one by its title and lead only.
-function entryBlock(e, cls) {
+// An open entry is folded to its title, lead and first sentence (the
+// exporter's fold) and opens to the whole entry on a click; `open` holds the
+// keys of the entries a reader opened, kept across the 30 s refresh. A
+// Shipped entry is shown by its title and lead only.
+function entryBlock(e, cls, key, open) {
   const box = el('div', cls || 'entry');
+  const f = e.fold;
+  if (f && f.head != null && f.rest) {
+    const det = box.appendChild(el('details'));
+    det.dataset.key = key;
+    det.open = !!(open && open.has(key));
+    const sum = mdText(det.appendChild(el('summary')), f.head);
+    sum.appendChild(el('span', 'more', ' … more'));
+    mdText(det.appendChild(el('div', 'entry-rest')), f.rest);
+    return box;
+  }
+  if (f && f.head != null) return mdText(box, f.head);
   if (e.text != null) return mdText(box, e.text);
   mdText(box.appendChild(el('strong')), e.title ?? 'entry with no title');
   if (e.lead) { box.appendChild(document.createTextNode(' ')); mdText(box.appendChild(el('em')), `(${e.lead})`); }
   return box;
 }
 
-function itemCard(it) {
+const openKeys = box => new Set([...box.querySelectorAll('details[open]')].map(d => d.dataset.key));
+
+function itemCard(it, open) {
   const card = el('div', 'card');
   const head = el('div', 'item-head');
   head.appendChild(el('span', 'item-id', it.id));
@@ -307,7 +373,7 @@ function itemCard(it) {
   for (const e of arr(it.roadmap)) {
     const box = el('div', 'linked');
     box.appendChild(el('div', 'src', 'Backlog entry'));
-    box.appendChild(entryBlock(e, 'entry'));
+    box.appendChild(entryBlock(e, 'entry', `card:${it.id}:${e.line}`, open));
     card.appendChild(box);
   }
   return card;
@@ -315,10 +381,12 @@ function itemCard(it) {
 
 function renderUnderWay(w, items) {
   document.getElementById('under-way-note').textContent = UNDER_WAY_NOTE;
-  const box = clear(document.getElementById('under-way'));
+  const box = document.getElementById('under-way');
+  const open = openKeys(box);
+  clear(box);
   const ids = arr(w.under_way);
   if (!ids.length) box.appendChild(el('div', 'reason', 'none'));
-  for (const id of ids) if (items[id]) box.appendChild(itemCard(items[id]));
+  for (const id of ids) if (items[id]) box.appendChild(itemCard(items[id], open));
 }
 
 function renderOthers(w) {
@@ -335,13 +403,15 @@ function renderOthers(w) {
 }
 
 function renderBacklog(w) {
-  const box = clear(document.getElementById('backlog'));
+  const box = document.getElementById('backlog');
+  const open = openKeys(box);
+  clear(box);
   for (const s of arr(w.backlog)) {
     box.appendChild(el('div', 'sub-label', s.section));
     const card = el('div', 'card');
     const entries = arr(s.entries);
     if (!entries.length) card.appendChild(el('div', 'reason', 'none'));
-    for (const e of entries) card.appendChild(entryBlock(e));
+    for (const e of entries) card.appendChild(entryBlock(e, 'entry', `backlog:${e.line}`, open));
     box.appendChild(card);
   }
 }
@@ -355,7 +425,7 @@ function verdictTrail(it) {
 function renderDone(w, items) {
   const box = document.getElementById('done');
   // Keep the rows a reader opened across the 30 s refresh.
-  const open = new Set([...box.querySelectorAll('details[open]')].map(d => d.dataset.key));
+  const open = openKeys(box);
   clear(box);
   const rows = arr(w.done);
   if (!rows.length) box.appendChild(el('div', 'reason', 'none'));
@@ -364,16 +434,25 @@ function renderDone(w, items) {
     const row = el('div', 'done-row');
     const top = el('div', 'done-top');
     top.appendChild(el('span', 'item-id', r.id));
-    top.appendChild(mdText(el('span', 'item-title'), it.title ?? 'no title line'));
+    top.appendChild(mdText(el('span', 'item-title'), it.short_title ?? it.title ?? 'no title line'));
     row.appendChild(top);
     const meta = el('div', 'done-meta');
     const tag = r.tag ? r.tag + (r.tag_only ? ' (tag only)' : '') : `no tag${r.tag_written ? ` (“${r.tag_written}”)` : ''}`;
     meta.appendChild(el('span', 'mono', tag));
     meta.appendChild(el('span', null, r.date ?? 'no date'));
-    if (r.heading && r.heading !== r.id) meta.appendChild(mdText(el('span'), r.heading));
-    if (r.for_drew_total) meta.appendChild(el('span', 'for-drew', `${r.for_drew_total} line${r.for_drew_total === 1 ? '' : 's'} for Drew`));
+    // The entry's heading and the Shipped title only where they add to the
+    // title (the exporter's heading_adds and adds).
+    if (r.heading && r.heading_adds) meta.appendChild(mdText(el('span'), r.heading));
+    if (r.for_drew_total) meta.appendChild(el('span', 'for-drew',
+      fill(r.for_drew_total === 1 ? DONE_TEXT.for_drew_one : DONE_TEXT.for_drew_many, { n: r.for_drew_total })));
     row.appendChild(meta);
-    for (const s of arr(it.shipped)) row.appendChild(mdText(el('div', 'notes'), `Shipped: **${s.title ?? ''}**` + (s.lead ? ` (${s.lead})` : '')));
+    for (const s of arr(it.shipped)) {
+      if (!s.adds) continue;
+      const line = row.appendChild(el('div', 'notes'));
+      line.appendChild(document.createTextNode('Shipped as: '));
+      mdText(line.appendChild(el('strong')), s.title ?? '');
+      if (s.lead) { line.appendChild(document.createTextNode(' ')); mdText(line.appendChild(el('em')), `(${s.lead})`); }
+    }
     for (const n of arr(r.notes)) row.appendChild(mdText(el('div', 'notes'), `Note: ${n.heading}`));
     const det = el('details');
     det.dataset.key = `${r.id}@${r.line}`;

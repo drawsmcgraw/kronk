@@ -16,7 +16,8 @@ What it reads, and nothing else:
   agent's commit in that instant fails;
 - `herdr agent list`, once, with a 5 s limit.
 
-What it writes: an outline, not the documents. Titles, handoff lines and
+What it writes: an outline, not the documents (and it removes its own
+temp files older than ten minutes, which a run killed in mid-write leaves). Titles, handoff lines and
 verdict words from item files; ids, tags, dates as written, headings and a
 count of "For Drew" lines from PROMOTIONS.md; the whole open entries and,
 for Shipped, the title and leading *( ... )* from ROADMAP.md; agents' names
@@ -45,6 +46,7 @@ import os
 import re
 import shutil
 import signal
+import stat
 import subprocess
 import sys
 import tempfile
@@ -59,6 +61,8 @@ GIT_TIMEOUT_S = 5
 TITLE_MAX = 300
 HANDOFF_MAX = 600
 ENTRY_MAX = 4000
+FOLD_MAX = 320          # a folded backlog entry: title, lead and first sentence, at most this
+TEMP_MAX_AGE_S = 600    # a temp file of ours older than this was left by a kill: removed
 GIT_ENV = {"GIT_OPTIONAL_LOCKS": "0", "GIT_TERMINAL_PROMPT": "0", "LC_ALL": "C"}
 
 ID = r"M\d+[a-z]?(?:-step\d+)?"
@@ -97,12 +101,14 @@ FILE_STAGE = {
 DECIDING = ("working", "blocked")      # the only statuses that decide a stage
 COORDINATOR_WORD = {"working": "working", "blocked": "blocked", "idle": "idle", "done": "idle",
                     "unknown": "unknown"}
+# The state line's word for the coordinator ("shown"): the four the page uses.
+COORDINATOR_SHOWN = ("working", "waiting on an agent", "idle", "not known")
 
 # ── PROMOTIONS.md ───────────────────────────────────────────────────────────
-LABEL_ID = re.compile(r"M\d+[a-z]?(?: step \d+)?")
+LABEL_ID = re.compile(r"(?<![\w-])M\d+[a-z]?(?: step \d+|-step\d+)?(?![\w-])")
 HEADING_ID = re.compile(r"^(#{2,3}) (M\d+[a-z]?(?: step \d+|-step\d+)?)(?![\w])")
 DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
-FOR_DREW = re.compile(r"\b[Ff]or Drew\b(?!['’]s)")
+FOR_DREW = re.compile(r"\b[Ff]or\s+Drew\b(?!['’]s)")
 TAG_LINE = re.compile(r"^- Tag `([^`]+)`(.*)")
 
 # ── ROADMAP.md ──────────────────────────────────────────────────────────────
@@ -253,10 +259,12 @@ def git_head(repo: Path) -> dict:
 # ══════════════════════════════════ herdr ══════════════════════════════════
 
 def herdr_agents(repo: Path) -> dict:
-    """{"known", "seen", "reason", "agents": [{name, status, in_repo}]}.
-    Only name and agent_status leave this function, and an agent outside
-    the repo loses its name."""
-    out = {"known": False, "seen": None, "reason": None, "agents": [], "elsewhere": 0}
+    """{"known", "seen", "reason", "agents": [{name, status}], "elsewhere",
+    "skipped"}. Only name and agent_status leave this function, and an
+    agent outside the repo loses its name. An agent described in a shape
+    this cannot read (not an object, a status that is not a string, a cwd
+    that is no path) is counted in "skipped" and left out."""
+    out = {"known": False, "seen": None, "reason": None, "agents": [], "elsewhere": 0, "skipped": 0}
     exe = shutil.which("herdr")
     if not exe:
         out["reason"] = "herdr is not on PATH"
@@ -286,18 +294,52 @@ def herdr_agents(repo: Path) -> dict:
     root = os.path.realpath(repo)
     out["known"], out["seen"] = True, len(agents)
     for a in agents:
-        if not isinstance(a, dict):
-            continue
-        cwd = a.get("cwd")
-        in_repo = isinstance(cwd, str) and (os.path.realpath(cwd) == root
-                                            or os.path.realpath(cwd).startswith(root + os.sep))
-        if not in_repo:
-            out["elsewhere"] += 1
-            continue
-        name = a.get("name") if isinstance(a.get("name"), str) and a.get("name") else None
-        status = a.get("agent_status") if a.get("agent_status") in COORDINATOR_WORD else "unknown"
-        out["agents"].append({"name": clip(name, 80), "status": status})
+        try:
+            where, rec = herdr_agent(a, root)
+        except Exception:                   # a shape not foreseen: counted, never fatal
+            where, rec = "skipped", None
+        if where == "repo":
+            out["agents"].append(rec)
+        else:
+            out[where] += 1
     return out
+
+
+def herdr_agent(a, root: str) -> tuple[str, dict | None]:
+    """("repo", {name, status}), ("elsewhere", None) or ("skipped", None)
+    for one entry of herdr's list."""
+    if not isinstance(a, dict):
+        return "skipped", None
+    status = a.get("agent_status")
+    if status is not None and not isinstance(status, str):
+        return "skipped", None
+    cwd = a.get("cwd")
+    if isinstance(cwd, str) and "\0" in cwd:
+        return "skipped", None
+    if not isinstance(cwd, str):
+        return "elsewhere", None
+    real = os.path.realpath(cwd)
+    if not (real == root or real.startswith(root + os.sep)):
+        return "elsewhere", None
+    name = a.get("name") if isinstance(a.get("name"), str) and a.get("name") else None
+    return "repo", {"name": clip(name, 80), "status": status if status in COORDINATOR_WORD else "unknown"}
+
+
+def coordinator_shown(coord: dict, agents: list[dict]) -> str:
+    """The state line's word, one of COORDINATOR_SHOWN: "working" when the
+    coordinator's pane works; "waiting on an agent" when it does not and a
+    named agent in this repo does (an item's agent, or an investigator);
+    "idle" only when nothing here is working; "not known" when herdr is
+    not reachable or the coordinator's pane cannot be told (or herdr says
+    its status is unknown)."""
+    s = coord.get("status")
+    if s is None or s == "unknown":
+        return "not known"
+    if s == "working":
+        return "working"
+    if any(a["name"] is not None and a["status"] == "working" for a in agents):
+        return "waiting on an agent"
+    return "idle"
 
 
 def coordinator(h: dict) -> dict:
@@ -446,6 +488,44 @@ def scan_items(repo: Path, first: dict, not_read: list) -> dict:
     return items
 
 
+# ═══════════════════════════════ Done rows ═════════════════════════════════
+
+ID_WRITTEN = re.compile(r"(?<![\w-])[Mm]\d+[a-z]?(?:[ -]?[Ss]tep ?\d+)?(?![\w-])")
+DATE_WRITTEN = re.compile(r"\d{4}-\d{2}-\d{2}(?:[ T]\d{2}:\d{2}(?::\d{2})?)?(?: ?UTC)?")
+SMALL_WORDS = {"the", "and", "for", "its", "with", "from", "into", "pass", "criteria"}
+
+
+def short_title(title: str | None, item_id: str) -> str | None:
+    """An item's title without its own id and "pass criteria:" in front
+    ("M25 pass criteria: /resources shows real usage" -> "/resources shows
+    real usage"), so a Done row names the item once. Any other title is
+    returned as it is."""
+    if not title:
+        return title
+    m = re.match(r"^([Mm]\d+[A-Za-z]?(?:[ -]?[Ss][Tt][Ee][Pp] ?\d+)?)(?![\w-])\s*", title)
+    if not m or norm_id(m.group(1)) != item_id:
+        return title
+    rest = re.sub(r"^pass criteria:\s*", "", title[m.end():], flags=re.I)
+    return rest or title
+
+
+def _words(s: str) -> list[str]:
+    s = DATE_WRITTEN.sub(" ", ID_WRITTEN.sub(" ", s.lower().replace("’", "'")))
+    return [w for w in re.findall(r"[a-z0-9']+", s) if len(w) >= 3 and w not in SMALL_WORDS]
+
+
+def adds_to(text: str | None, title: str | None) -> bool:
+    """Whether a promotions heading or a Shipped title says something the
+    item's title does not: a word of three letters or more, other than ids,
+    dates and a few small words, that the title lacks."""
+    if not text:
+        return False
+    if not title:
+        return True
+    have = set(_words(title))
+    return any(w not in have for w in _words(text))
+
+
 # ═══════════════════════════════ PROMOTIONS.md ═════════════════════════════
 
 def tag_from_cell(cell: str) -> tuple[str | None, bool]:
@@ -463,7 +543,9 @@ def bare_word(cell: str) -> str | None:
 def parse_promotions(text: str) -> list[dict]:
     """Entries in file order: a table row, or a ## / ### heading starting
     with an item id. A later entry for an id already promoted is a note on
-    it when it is a heading; a later row is a second promotion (M1b)."""
+    it when it is a heading; a later row is a second promotion (M1b). A
+    heading entry's body runs to the next heading of level 1 to 3, tables
+    included: a table inside an entry is its body, not promotions."""
     lines = text.splitlines()
     entries: list[dict] = []
     i = 0
@@ -487,7 +569,7 @@ def parse_promotions(text: str) -> list[dict]:
         if m:
             body: list[str] = []
             j = i + 1
-            while j < len(lines) and not re.match(r"^#{1,3} ", lines[j]) and not lines[j].startswith("|"):
+            while j < len(lines) and not re.match(r"^#{1,3} ", lines[j]):
                 body.append(lines[j])
                 j += 1
             tag = None
@@ -590,7 +672,48 @@ def roadmap_entry(line: int, body: list[str], open_: bool) -> dict:
     e = {"line": line, "title": clip(title, TITLE_MAX), "lead": clip(lead, 400), "links": links}
     if open_:
         e["text"] = clip(text, ENTRY_MAX)
+        e["fold"] = fold(e["text"])
     return e
+
+
+SENTENCE_END = re.compile(r"[.?!][)*\"'’”]*(?=\s)")
+
+
+def _balanced(s: str) -> bool:
+    """No `code`, **bold**, *emphasis* or [link] left open in s."""
+    if s.count("`") % 2:
+        return False
+    bare = re.sub(r"`[^`]*`", "", s)
+    stars = bare.count("**")
+    return stars % 2 == 0 and bare.replace("**", "").count("*") % 2 == 0 and bare.count("[") == bare.count("]")
+
+
+def fold(text: str) -> dict:
+    """An open entry folded for the backlog: {"head": its title, lead and
+    first sentence, "rest": the remainder or None}; text is head + " " +
+    rest. The first sentence ends at . ? or ! (and closing quotes, brackets
+    or stars) before a space, after the title and lead, where no markup is
+    left open and the word before is not a bare number ("1." of a list).
+    Longer than FOLD_MAX: cut at the last space before it that leaves no
+    markup open."""
+    m = re.match(r"^\*\*.+?\*\*(\s*\*\(.*?\)\*)?", text)
+    start = m.end() if m else 0
+    end = None
+    for se in SENTENCE_END.finditer(text, start):
+        if re.search(r"(?:^|\s)\d+$", text[:se.start()]):
+            continue
+        if _balanced(text[:se.end()]):
+            end = se.end()
+            break
+    if end is not None and end <= FOLD_MAX:
+        head, rest = text[:end], text[end:].strip()
+        return {"head": head, "rest": rest or None}
+    if len(text) <= FOLD_MAX:
+        return {"head": text, "rest": None}
+    for i in range(FOLD_MAX, start, -1):
+        if text[i] == " " and _balanced(text[:i]):
+            return {"head": text[:i], "rest": text[i + 1:]}
+    return {"head": text, "rest": None}
 
 
 def resolve_links(links: list[str], item_ids) -> list[str]:
@@ -688,8 +811,13 @@ def collect(repo: Path) -> dict:
         rtext = ""
     sections = parse_roadmap(rtext, not_read)
 
-    h = herdr_agents(repo)
+    try:
+        h = herdr_agents(repo)
+    except Exception as e:                  # never fatal: the file is still written
+        h = {"known": False, "seen": None, "agents": [], "elsewhere": 0, "skipped": 0,
+             "reason": f"herdr agent list: the answer could not be read ({type(e).__name__})"}
     coord = coordinator(h)
+    coord["shown"] = coordinator_shown(coord, h["agents"])
 
     promoted_ids = {i for e in promotions for i in e["ids"]}
     under_way = sorted((i for i, it in items.items() if i not in promoted_ids and (it["steps"] or it["uncommitted"])),
@@ -744,12 +872,14 @@ def collect(repo: Path) -> dict:
                 if e["links"]:
                     for l in e["links"]:
                         items[l].setdefault("shipped", []).append({"title": e["title"], "lead": e["lead"],
-                                                                   "line": e["line"]})
+                                                                   "line": e["line"],
+                                                                   "adds": adds_to(e["title"], items[l]["title"])})
                 else:
                     shipped_unlinked.append({"title": e["title"], "lead": e["lead"], "line": e["line"]})
     for it in out_items:
         it.setdefault("roadmap", [])
         it.setdefault("shipped", [])
+        it["short_title"] = short_title(it["title"], it["id"])
 
     # Done: PROMOTIONS.md in reverse file order; a note is shown on the
     # item's row of the promotion before it.
@@ -769,7 +899,8 @@ def collect(repo: Path) -> dict:
         e = promotions[row["entry"]]
         row.update({"heading": e["heading"], "tag": e["tag"], "tag_written": e["tag_written"],
                     "tag_only": e["tag_only"], "tag_in_git": e["tag_in_git"], "date": e["date"],
-                    "for_drew": e["for_drew"], "line": e["line"], "kind": e["kind"]})
+                    "for_drew": e["for_drew"], "line": e["line"], "kind": e["kind"],
+                    "heading_adds": adds_to(e["heading"], items[row["id"]]["title"])})
         row["for_drew_total"] = e["for_drew"] + sum(n["for_drew"] for n in row["notes"])
         done.append(row)
 
@@ -779,7 +910,7 @@ def collect(repo: Path) -> dict:
         "made_at": dt.datetime.now().astimezone().isoformat(timespec="seconds"),
         "repo": head,
         "herdr": {"known": h["known"], "seen": h["seen"], "reason": h["reason"],
-                  "elsewhere": h["elsewhere"], "coordinator": coord},
+                  "elsewhere": h["elsewhere"], "skipped": h["skipped"], "coordinator": coord},
         "items": out_items,
         "under_way": under_way,
         "other_agents": other_agents,
@@ -792,8 +923,31 @@ def collect(repo: Path) -> dict:
     }
 
 
+def remove_old_temps(path: Path, now: float | None = None) -> None:
+    """Remove this file's own temp files (".<name>.XXXXXXXX", as mkstemp
+    names them in write()) older than TEMP_MAX_AGE_S: a run killed in
+    mid-write leaves one. Regular files only; any error is ignored."""
+    now = time.time() if now is None else now
+    pat = re.compile(rf"^\.{re.escape(path.name)}\.[a-z0-9_]{{8}}$")
+    try:
+        names = os.listdir(path.parent)
+    except OSError:
+        return
+    for name in names:
+        if not pat.match(name):
+            continue
+        p = path.parent / name
+        try:
+            st = os.lstat(p)
+            if stat.S_ISREG(st.st_mode) and now - st.st_mtime > TEMP_MAX_AGE_S:
+                os.unlink(p)
+        except OSError:
+            pass
+
+
 def write(path: Path, data: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
+    remove_old_temps(path)
     fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.")
     try:
         with os.fdopen(fd, "w") as f:

@@ -5,7 +5,7 @@
 currently working (planning/reviewing/implementing/testing/etc), what's
 already been worked, and so forth. I should able to visit kronk/work and
 the page displays." Criteria and evidence: `docs/sprint/M27-criteria.md`,
-`M27-review.md`, `M27-build.md`.
+`M27-review.md`, `M27-build.md`, `M27-e2e.md`, `M27-fix1.md`.
 
 ## What it does
 
@@ -13,9 +13,15 @@ the page displays." Criteria and evidence: `docs/sprint/M27-criteria.md`,
 
 1. **One state line**: when the export was made, from which branch and
    commit (or "detached HEAD", and "rebase in progress"), the
-   coordinator's state ("coordinator: working" or "idle"), and "herdr: N
-   agents seen". With herdr not reachable it says agent state is not
-   known, and why.
+   coordinator's state, and "herdr: N agents seen" (and "N not readable
+   (skipped)" when herdr described an agent in a shape the exporter cannot
+   read). The coordinator reads "working" when its pane works, "waiting on
+   an agent" when it does not and a named agent in this repo does, "idle"
+   only when nothing here is working, and "not known" otherwise (herdr not
+   reachable, no single unnamed pane, or status `unknown`). A coordinator
+   pane that herdr calls `blocked` reads "idle" or "waiting on an agent".
+   With herdr not reachable the line says agent state is not known, and
+   why.
 2. **Under way**: every work item that has a step file in `docs/sprint/`
    and no entry in `docs/sprint/PROMOTIONS.md`, with its stage, its
    steps in commit order (time of each file's first commit, each test's
@@ -24,13 +30,23 @@ the page displays." Criteria and evidence: `docs/sprint/M27-criteria.md`,
    matches no item under way (an investigator, an agent for a promoted
    item, a name that is not `<item>-<role>`).
 4. **Backlog**: the open entries of `ROADMAP.md` (Now, Next, Later,
-   Chores), under the file's own section names, whole. An entry linked to
-   an item under way is shown with the item instead.
-5. **Done**: the promotions log, newest entry first, each item with its
-   title, tag, date as written, its steps and verdicts (collapsed), and
-   "N lines for Drew" when its entry has any; then the Shipped entries of
-   `ROADMAP.md` that are linked to no item, by title and leading
-   `*( … )*` only.
+   Chores), under the file's own section names, each folded to its title,
+   its leading `*( … )*` and its first sentence; a click opens the whole
+   entry, and an opened entry stays open across the 30 s refresh.
+   `` `code` ``, `**bold**`, `*emphasis*` (so the leads and `*Why: …*`) and
+   `[text](url)` are rendered; a link is made only for a url that starts
+   with `https://` (with `rel="noopener"`), anything else is shown as
+   written. An entry linked to an item under way is shown with the item
+   instead; one linked to a promoted item stays in the backlog.
+5. **Done**: the promotions log, newest entry first, each item named
+   once: its id, its title without the id and "pass criteria:" in front,
+   tag, date as written, its steps and verdicts (collapsed), and "N lines
+   addressed to Drew in its promotions entry; some may be settled since"
+   when its entry has any (a count of words in a log, not a list of what
+   is open). The entry's heading and a linked Shipped title are shown only
+   where they add a word the title lacks (ids, dates and a few small words
+   aside). Then the Shipped entries of `ROADMAP.md` that are linked to no
+   item, by title and leading `*( … )*` only.
 6. **Not read**: the files the exporter listed but did not read as a
    known step (`-audit`, `-change1`, `-restore-*`, `-e2e2-rows`), a test
    report with no verdict line, a file it could not parse.
@@ -64,6 +80,22 @@ orchestrator: GET /api/work  → the file and its freshness (fresh / stale / mis
   decide a stage; `blocked` is shown in red.
 - **An agent's item and role** are parsed from its herdr name:
   `^(m\d+[a-z]?(-step\d+)?)-(review|build|test|fix)\d*$`.
+- **The state line's word for the coordinator** (`herdr.coordinator.shown`)
+  is decided in the exporter, `coordinator_shown()`, and tested there.
+- **The fold of a backlog entry** (`fold`: `head`, `rest`) is decided in
+  the exporter, `fold()`: the first `.`, `?` or `!` (with closing quotes,
+  brackets or stars) before a space, after the title and lead, where no
+  `code`, bold, emphasis or link is left open and the word before is not a
+  bare number ("1." of a list); at most 320 characters, else cut at a
+  space. `text` is `head` + " " + `rest`.
+- **A Done row's words** (`short_title`, `heading_adds`, a Shipped
+  entry's `adds`) are decided in the exporter, `short_title()` and
+  `adds_to()`.
+- **An agent herdr describes in a shape the exporter cannot read** (not
+  an object, a status that is not a string, a `cwd` holding a NUL) is
+  counted in `herdr.skipped` and left out; an error while reading herdr's
+  answer makes agent state "not known". Neither stops the file being
+  written.
 - **The coordinator** is the one agent in this repo with no name.
   `herdr agent list` carries no workspace label, so `kronk-claude` cannot
   be read by name; two unnamed panes in the repo make it "not known".
@@ -71,6 +103,13 @@ orchestrator: GET /api/work  → the file and its freshness (fresh / stale / mis
   report's first 40 that starts with `Verdict: X`, `**Verdict: ITEM X.**`,
   `**<ID> X.**` or `**RESTORE X.**`; a report with two subjects yields
   both (`M4b-e2e.md`).
+- **Promotions entries**: a table row, or a `##`/`###` heading that starts
+  with an item id. A heading entry's body runs to the next heading, tables
+  included: a table inside an entry is its body, not promotions (a
+  heading with no id, "After the sprint", ends the entry, so its table is
+  read). Ids in a row's label match on word boundaries (`ARM64` is no
+  item) and take `M30-step1` as written. "For Drew" is counted with any
+  white space, a line break included, between the two words.
 - **Links** from a ROADMAP entry to an item: only `work item Mxx`,
   `sprint Mxx` or `sprint item Mxx` (and "and Mxx") inside the entry's
   leading `*( … )*`, after its lines are joined. `M21` links both steps.
@@ -80,8 +119,15 @@ orchestrator: GET /api/work  → the file and its freshness (fresh / stale / mis
   agents' names and statuses. Never a report body, a promotions cell, a
   Shipped body, or herdr's `terminal_title`, `agent_session` or `cwd`; an
   agent outside this repo is counted, not named.
-- **Freshness**: older than 180 s is stale. A stale outline is still
-  shown, marked STALE (it is the last known state).
+- **Freshness**: older than 180 s is stale, and so is a file dated more
+  than the route's slack in the future. A stale outline is still shown,
+  marked STALE (it is the last known state); the banner gives the route's
+  reason ("written N s ago" or "dated N s in the future: the host clock or
+  the file is wrong").
+- **Temp files**: each write goes to `.work.json.XXXXXXXX` and is renamed;
+  a run killed in mid-write leaves its temp file, and the next run removes
+  its own temp files older than ten minutes (regular files of that exact
+  name form only).
 - **Schema**: `schema` is 1. Once `item-M27` is deployed the exporter
   only adds keys and raises the number when it does; an orchestrator
   that knows a lower schema still reads the file and says that keys were
@@ -136,4 +182,7 @@ orchestrator: GET /api/work  → the file and its freshness (fresh / stale / mis
 - `git status` is not read-only: it takes the index lock, and an
   unattended agent's commit in the same instant fails.
 - What a LAN page may show: the outline of a document, not the document.
+- Folding a markdown paragraph to its first sentence without a markdown
+  parser: where a sentence ends when `2026.11.2`, `1.` and `` `a. b` ``
+  are not ends.
 - The terminal multiplexer as the source of truth for "who is working".

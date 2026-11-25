@@ -155,7 +155,7 @@ def test_source_banner_covers_every_state_the_route_gives():
     assert set(banner) == {"fresh", "stale", "missing", "unreadable", "unknown_schema"}
     assert banner["fresh"] is None
     assert banner["stale"]["word"] == "STALE" and banner["stale"]["show"] is True
-    assert "{age} s ago" in banner["stale"]["text"] and "last known state" in banner["stale"]["text"]
+    assert banner["stale"]["text"] == "{reason}. Shown below: the last known state."
     for k in ("missing", "unreadable", "unknown_schema"):
         assert banner[k]["show"] is False and banner[k]["text"] == "{reason}" and banner[k]["bad"] is True
     assert banner["unknown_schema"]["word"] == "UNKNOWN SCHEMA"
@@ -214,3 +214,60 @@ def test_unit_files():
     for op in ("install:", "check:", "one-shot:", "remove:"):
         assert op in svc, op
     assert "OnUnitActiveSec=60" in tmr and "WantedBy=timers.target" in tmr
+
+
+# ── fix round 1 (docs/sprint/M27-fix1.md) ─────────────────────────────────
+
+def _banner_text(state: dict) -> str:
+    """What the page's renderState() puts in the banner, done in Python from
+    the same table: strip, then fill {reason}."""
+    b = _literal(PAGE, "SOURCE_BANNER")[state["state"]]
+    reason = state["reason"] or ""
+    if b.get("strip") and reason.lower().startswith(b["strip"].lower()):
+        reason = reason[len(b["strip"]):]
+    return f'{b["word"]}: ' + b["text"].replace("{reason}", reason)
+
+
+def test_s2_a_file_dated_in_the_future_shows_the_routes_reason(work_file):
+    now = 1_800_000_000.0
+    work_file.write_text(json.dumps(_outline(now + 3600)))
+    src = work_api.work_source(now)["source"]
+    assert src["state"] == "stale"
+    text = _banner_text(src)
+    assert text == ("STALE: work.json is dated 3600 s in the future: the host clock or the file is wrong. "
+                    "Shown below: the last known state.")
+    assert "-3600" not in text and "ago" not in text
+
+
+def test_s2_an_old_file_still_reads_as_before(work_file):
+    now = 1_800_000_000.0
+    work_file.write_text(json.dumps(_outline(now - 400)))
+    src = work_api.work_source(now)["source"]
+    assert _banner_text(src) == ("STALE: work.json was written 400 s ago (the exporter runs every 60 s; older "
+                                 "than 180 s is stale). Shown below: the last known state.")
+
+
+def test_the_words_beside_the_for_drew_count():
+    t = _literal(PAGE, "DONE_TEXT")
+    assert t["for_drew_many"] == "{n} lines addressed to Drew in its promotions entry; some may be settled since"
+    assert t["for_drew_one"] == "1 line addressed to Drew in its promotions entry; it may be settled since"
+
+
+def test_links_only_to_https_and_with_noopener():
+    assert _literal(PAGE, "MD_LINK") == {"prefix": "https://", "rel": "noopener"}
+    script = PAGE.split("<script>", 1)[1]
+    assert "url.startsWith(MD_LINK.prefix)" in script and "a.rel = MD_LINK.rel" in script
+
+
+def test_skipped_agents_are_said_on_the_state_line():
+    assert _literal(PAGE, "AGENT_TEXT")["skipped"] == "{n} not readable (skipped)"
+
+
+def test_the_page_reads_the_keys_this_round_added():
+    # The exporter decides these (tested in test_m27_work_export.py); the page
+    # must read them, not decide again. Text checks only: no JS runtime here.
+    script = PAGE.split("<script>", 1)[1]
+    for needle in ("(h.coordinator || {}).shown", "h.skipped", "e.fold", "r.heading_adds", "s.adds",
+                   "it.short_title", "details[open]"):
+        assert needle in script, needle
+    assert "(h.coordinator || {}).word" not in script

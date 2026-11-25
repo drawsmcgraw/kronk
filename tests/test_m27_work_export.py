@@ -650,10 +650,11 @@ def leaked_lines(repo: Path, export: dict) -> list[str]:
     # What is exported by design is left out of the blob: titles, handoff
     # lines (a promotions entry opens with its item's handoff line, so the
     # same words are in PROMOTIONS.md's body), leads, and the open entries,
-    # which are exported whole. The rest is checked.
+    # which are exported whole ("text", and "fold", the same text in two
+    # parts). The rest is checked.
     def strip(x):
         if isinstance(x, dict):
-            return {k: strip(v) for k, v in x.items() if k not in ("title", "handoff", "lead", "text")}
+            return {k: strip(v) for k, v in x.items() if k not in ("title", "handoff", "lead", "text", "fold")}
         if isinstance(x, list):
             return [strip(v) for v in x]
         return x
@@ -866,3 +867,302 @@ def test_real_tree_every_test_report_has_a_verdict(real):
 def test_real_tree_outline_only(real):
     data, _ = real
     assert leaked_lines(REPO, data) == []
+
+
+# ── fix round 1 (docs/sprint/M27-fix1.md) ─────────────────────────────────────
+
+# S1: an agent herdr describes in a shape the exporter cannot read is
+# counted and skipped, and the file is still written.
+
+@pytest.mark.parametrize("bad", [{"agent_status": ["working"]}, {"agent_status": {"s": "working"}},
+                                 {"cwd": "/home/x\u0000y"}, {"cwd": ["/x"]}])
+def test_an_agent_in_a_shape_not_read_is_counted_and_skipped(tmp_path, bad):
+    tree = make_tree(tmp_path, UNDER_WAY_TREE)
+    odd = agent("m9-fix1", "working", tree)
+    odd.update(bad)
+    bindir = herdr_bin(tmp_path, [agent(None, "done", tree), agent("m9-test", "working", tree), odd])
+    out = tmp_path / "out" / "work.json"
+    env = dict(os.environ, PATH=f"{bindir}:{BASE_PATH}")
+    r = subprocess.run([sys.executable, "-B", str(SCRIPT), "--repo", str(tree), "--out", str(out)],
+                       env=env, capture_output=True, text=True, timeout=20)
+    assert r.returncode == 0, r.stderr
+    data = json.loads(out.read_text())
+    h = data["herdr"]
+    assert h["known"] is True and h["seen"] == 3
+    if "cwd" in bad and isinstance(bad["cwd"], list):
+        assert (h["skipped"], h["elsewhere"]) == (0, 1)        # a cwd that is not a path: elsewhere, as before
+    else:
+        assert (h["skipped"], h["elsewhere"]) == (1, 0)
+    m9 = by_id(data)["M9"]
+    assert [a["name"] for a in m9["agents"]] == ["m9-test"]
+    assert m9["stage"]["detail"] == "testing, agent m9-test working"
+    assert "\u0000" not in out.read_text() and "\\u0000" not in out.read_text()
+
+
+@pytest.mark.parametrize("a,where", [
+    ({"agent_status": ["working"], "cwd": "/r"}, "skipped"), ({"agent_status": {"s": 1}, "cwd": "/r"}, "skipped"),
+    ({"agent_status": "working", "cwd": "/r/x\u0000y"}, "skipped"), (["not", "an", "object"], "skipped"),
+    ({"agent_status": None, "cwd": "/r"}, "repo"), ({"agent_status": "working", "cwd": 5}, "elsewhere"),
+    ({"agent_status": "working", "cwd": "/elsewhere"}, "elsewhere"),
+])
+def test_herdr_agent_reads_one_entry_without_raising(we, a, where):
+    got, rec = we.herdr_agent(a, "/r")
+    assert got == where
+    assert (rec is not None) == (where == "repo")
+
+
+def test_an_agent_entry_that_raises_is_skipped(we, tmp_path, path_with, monkeypatch):
+    tree = make_tree(tmp_path, UNDER_WAY_TREE)
+    path_with(herdr_bin(tmp_path, [agent("m9-test", "working", tree), agent("m9-fix1", "working", tree)]))
+    real = we.herdr_agent
+
+    def flaky(a, root):
+        if a.get("name") == "m9-fix1":
+            raise RuntimeError("a shape not foreseen")
+        return real(a, root)
+    monkeypatch.setattr(we, "herdr_agent", flaky)
+    h = we.collect(tree)["herdr"]
+    assert (h["known"], h["seen"], h["skipped"]) == (True, 2, 1)
+
+
+def test_a_herdr_reader_that_throws_still_writes_the_file(we, tmp_path, path_with, monkeypatch):
+    tree = make_tree(tmp_path, UNDER_WAY_TREE)
+
+    def boom(repo):
+        raise TypeError("unhashable type: 'list'")
+    monkeypatch.setattr(we, "herdr_agents", boom)
+    out = we.collect(tree)
+    assert out["herdr"]["known"] is False and out["herdr"]["coordinator"]["shown"] == "not known"
+    assert out["herdr"]["reason"] == "herdr agent list: the answer could not be read (TypeError)"
+    assert by_id(out)["M9"]["stage"]["by"] == "files"
+
+
+# S4: "For Drew" with a line break inside it is counted.
+
+def test_for_drew_broken_across_a_line_is_counted(we):
+    text = ("# P\n\n## M9 (a heading entry), 2026-11-21\n\n- **For\n  Drew:** one.\n"
+            "- left for\nDrew to decide.\n- waits for\n  Drew's go (not addressed to him).\n")
+    (e,) = we.parse_promotions(text)
+    assert e["for_drew"] == 2
+
+
+# S5: inside a heading entry a table is body, not promotions; ids match on
+# word boundaries; a row label M30-step1 is that item.
+
+TABLE_IN_ENTRY = """# Promotions
+
+| Item | Tag | Promoted | What changed | Held or left over |
+| --- | --- | --- | --- | --- |
+| M1 | `sprint-M1` | 2026-11-15 | x | y |
+| M33 (see M9) | `sprint-M33` | 2026-11-16 | x | y |
+
+## M2 (a heading entry), 2026-11-21
+
+- Tag `item-M2`.
+
+| Step | What |
+| --- | --- |
+| M39 (next item) | waits on this one |
+| ARM64 build | x |
+
+- **For Drew:** after the table.
+
+## After the sprint (decisions)
+
+| Item | Tag | Promoted | What changed | Held or left over |
+| --- | --- | --- | --- | --- |
+| M16 (backups) | `sprint-M16` | 2026-11-19 | x | y |
+| M30-step1 | `item-M30-step1` | 2026-11-25 | x | y |
+| ARM64 build, M31 | `item-M31` | 2026-11-26 | x | y |
+"""
+
+
+def test_a_table_inside_a_heading_entry_is_its_body(we):
+    entries = we.parse_promotions(TABLE_IN_ENTRY)
+    assert [(e["kind"], e["ids"], e["tag"]) for e in entries] == [
+        ("row", ["M1"], "sprint-M1"), ("row", ["M33"], "sprint-M33"), ("heading", ["M2"], "item-M2"),
+        ("row", ["M16"], "sprint-M16"), ("row", ["M30-step1"], "item-M30-step1"), ("row", ["M31"], "item-M31")]
+    assert entries[2]["for_drew"] == 1                        # the line after the table
+
+
+def test_an_item_named_in_a_table_inside_an_entry_stays_under_way(we, tmp_path, path_with):
+    tree = make_tree(tmp_path, [
+        ("2026-11-02T10:00:00-05:00", {"M2-criteria.md": crit("M2"), "M39-criteria.md": crit("M39")}),
+    ], promotions=TABLE_IN_ENTRY)
+    out = we.collect(tree)
+    assert out["under_way"] == ["M39"]
+    ids = set(by_id(out))
+    assert "M64" not in ids and "M9" not in ids and {"M30-step1", "M31"} <= ids
+
+
+# N8: the exporter removes its own temp files older than ten minutes.
+
+def test_its_own_temp_files_older_than_ten_minutes_are_removed(we, tmp_path):
+    d = tmp_path / "out"
+    d.mkdir()
+    old, fresh = d / ".work.json.ab_d1234", d / ".work.json.wxyz5678"
+    other = d / ".other.json.abcd1234"            # another file's temp name
+    keep = d / ".work.json.keep-me"               # not a name mkstemp makes
+    olddir = d / ".work.json.dir12345"            # a directory
+    target = tmp_path / "target.txt"
+    target.write_text("not ours")
+    link = d / ".work.json.lnk12345"              # a symlink: left alone
+    for p in (old, fresh, other, keep):
+        p.write_text('{"half')
+    olddir.mkdir()
+    link.symlink_to(target)
+    t = time.time() - 11 * 60
+    for p in (old, other, keep, olddir, target):
+        os.utime(p, (t, t))
+    os.utime(link, (t, t), follow_symlinks=False)
+    os.utime(fresh, (time.time() - 9 * 60,) * 2)
+    we.write(d / "work.json", {"ts": 1})
+    assert sorted(p.name for p in d.iterdir()) == sorted(
+        [".work.json.wxyz5678", ".other.json.abcd1234", ".work.json.keep-me", ".work.json.dir12345",
+         ".work.json.lnk12345", "work.json"])
+    assert target.read_text() == "not ours"
+    assert json.loads((d / "work.json").read_text()) == {"ts": 1}
+
+
+# Change 5: the coordinator's word on the state line.
+
+@pytest.mark.parametrize("coord,named,shown", [
+    ("working", [], "working"),
+    ("working", [("m9-test", "working")], "working"),
+    ("done", [("m9-test", "working")], "waiting on an agent"),
+    ("idle", [("m9-fix1", "working")], "waiting on an agent"),
+    ("done", [("investigator", "working")], "waiting on an agent"),   # any named agent here working
+    ("done", [("m9-test", "done")], "idle"),
+    ("done", [("m9-test", "blocked")], "idle"),
+    ("done", [], "idle"),
+    ("idle", [], "idle"),
+    ("blocked", [], "idle"),
+    ("unknown", [("m9-test", "working")], "not known"),
+    (None, [("m9-test", "working")], "not known"),                 # no unnamed pane: not seen
+    ("two", [("m9-test", "working")], "not known"),                # two unnamed panes
+])
+def test_coordinator_shown_word(we, tmp_path, path_with, coord, named, shown):
+    tree = make_tree(tmp_path, UNDER_WAY_TREE)
+    other = tmp_path / "other-repo"
+    other.mkdir()
+    agents = [agent(n, s, tree) for n, s in named] + [agent("m9-build", "working", other)]
+    if coord == "two":
+        agents += [agent(None, "done", tree), agent(None, "done", tree)]
+    elif coord is not None:
+        agents.append(agent(None, coord, tree))
+    path_with(herdr_bin(tmp_path, agents))
+    assert we.collect(tree)["herdr"]["coordinator"]["shown"] == shown
+
+
+def test_coordinator_shown_word_with_herdr_not_reachable(we, tmp_path, path_with):
+    tree = make_tree(tmp_path, UNDER_WAY_TREE)
+    assert we.collect(tree)["herdr"]["coordinator"]["shown"] == "not known"
+
+
+# Change 3: a Done row names its item once.
+
+@pytest.mark.parametrize("title,item,short", [
+    ("M25 pass criteria: /resources shows real usage", "M25", "/resources shows real usage"),
+    ("M21 step 2 pass criteria: the `/settings` page", "M21-step2", "the `/settings` page"),
+    ("M4b pass criteria: the mirror update", "M4b", "the mirror update"),
+    ("M6 audit: what is listening on the Kronk host", "M6", "audit: what is listening on the Kronk host"),
+    ("M60 pass criteria: another item", "M6", "M60 pass criteria: another item"),
+    ("Something else", "M9", "Something else"),
+    (None, "M9", None),
+])
+def test_short_title(we, title, item, short):
+    assert we.short_title(title, item) == short
+
+
+@pytest.mark.parametrize("text,title,adds", [
+    ("M25 (/resources shows real usage), 2026-11-24", "M25 pass criteria: /resources shows real usage", False),
+    ("M23 (the queue incident: fixes 1 to 3), 2026-11-21", "M23 pass criteria: the queue incident (fixes 1, 2 and 3)", False),
+    ("M21 step 2", "M21 step 2 pass criteria: the `/settings` page", False),
+    ("M14 (gate only)", "M14 pass criteria: the messy-transcript gate (gate only)", False),
+    ("M3, M4, M4b, M1b restore", "M1b pass criteria: remove the hot tub feature", True),
+    ("M8 (line on, streaming off)", "M8 pass criteria: sentence-level streaming on the voice mount", True),
+    ("Backups", "M16 pass criteria: backups (config, monthly) and the recordings archive", False),
+    ("Backups", "M16b pass criteria: Music Assistant's playlists", True),
+    ("The queue incident", "M23 pass criteria: the queue incident (fixes 1, 2 and 3)", False),
+    ("M18 (the upgrade cadence)", "M18 pass criteria: an upgrade cadence", False),
+    (None, "M9 pass criteria", False),
+    ("Anything", None, True),
+])
+def test_adds_to_title(we, text, title, adds):
+    assert we.adds_to(text, title) is adds
+
+
+def test_done_rows_say_what_adds_something(we, tmp_path, path_with):
+    tree = make_tree(tmp_path, DONE_TREE)
+    out = we.collect(tree)
+    items = by_id(out)
+    rows = {(r["id"], r["line"]): r for r in out["done"]}
+    assert rows[("M3", 7)]["heading_adds"] is True             # "M3 (gate only)"
+    assert rows[("M1", 5)]["heading_adds"] is False            # "M1"
+    assert items["M1"]["short_title"] == "first"
+    assert [s["adds"] for s in items["M2"]["shipped"]] == [True]   # "Backups" beside "M2 pass criteria"
+
+
+# S6 and change 1: a backlog entry folds to its title, lead and first sentence.
+
+@pytest.mark.parametrize("text,head,rest", [
+    ("**One-line entry** *(work item M9, ordered 2026-11-01)* — on one line.",
+     "**One-line entry** *(work item M9, ordered 2026-11-01)* — on one line.", None),
+    ("**A** — 2026.5.4 to 2026.11.2, the first. Waits for `docs/x.md`. More.",
+     "**A** — 2026.5.4 to 2026.11.2, the first.", "Waits for `docs/x.md`. More."),
+    ("**A** — see `a. b` here. Then.", "**A** — see `a. b` here.", "Then."),
+    ("**A** — in this order: 1. **First.** one. 2. two.", "**A** — in this order: 1. **First.**", "one. 2. two."),
+    ("**A** — known: \"stop\" → \"What's up?\", then more. Rest.", "**A** — known: \"stop\" → \"What's up?\", then more.", "Rest."),
+    ("**A** — *Why: one. two.* Three.", "**A** — *Why: one. two.*", "Three."),
+    ("**A** *(lead. with a stop)* — body. Rest.", "**A** *(lead. with a stop)* — body.", "Rest."),
+    ("**A** *(ordered 2026-11-24. after M26.)* — body. Rest.", "**A** *(ordered 2026-11-24. after M26.)* — body.", "Rest."),
+    ("**A** — [a.b](https://x.example/a.b) done. Rest.", "**A** — [a.b](https://x.example/a.b) done.", "Rest."),
+])
+def test_fold_of_an_open_entry(we, text, head, rest):
+    f = we.fold(text)
+    assert (f["head"], f["rest"]) == (head, rest)
+    assert text == (f["head"] if f["rest"] is None else f"{f['head']} {f['rest']}")
+
+
+def test_fold_of_a_long_sentence_is_cut_at_a_space(we):
+    text = "**A** — " + " ".join(["word"] * 200) + "."
+    f = we.fold(text)
+    assert len(f["head"]) <= we.FOLD_MAX and f["head"].endswith("word") and f["rest"]
+    assert text == f"{f['head']} {f['rest']}"
+
+
+def test_open_entries_carry_their_fold_and_shipped_do_not(we):
+    secs = we.parse_roadmap(ROADMAP, [])
+    nested = secs[1]["entries"][1]
+    assert nested["fold"] == {"head": "**Nested list** *(admitted 2026-11-24)* — in this order: 1. **First.**",
+                              "rest": "one. 2. **Second.** two."}
+    assert all("fold" not in e for e in secs[-1]["entries"])
+
+
+# S3: an open entry linked to a promoted item stays in the backlog.
+
+def test_open_entry_linked_to_a_promoted_item_stays_in_the_backlog(we, tmp_path, path_with):
+    roadmap = ROADMAP.replace("*(work item M9, ordered 2026-11-01)*", "*(work item M1, ordered 2026-11-01)*")
+    tree = make_tree(tmp_path, DONE_TREE, roadmap=roadmap)
+    out = we.collect(tree)
+    assert by_id(out)["M1"]["stage"]["stage"] == "promoted"
+    (now,) = [s for s in out["backlog"] if s["section"] == "Now — in flight"]
+    assert [(e["title"], e["links"]) for e in now["entries"]] == [("One-line entry", ["M1"])]
+    assert by_id(out)["M1"]["roadmap"] == []
+
+
+def test_real_tree_tts_trial_stays_in_the_backlog(real):
+    data, _ = real
+    entries = [e for s in data["backlog"] for e in s["entries"]]
+    (tts,) = [e for e in entries if e["title"] == "Kronk's voice: TTS trial"]
+    assert tts["links"] == ["M20"] and by_id(data)["M20"]["stage"]["stage"] == "promoted"
+
+
+def test_real_tree_done_rows_name_the_item_once(real):
+    data, _ = real
+    items = by_id(data)
+    m25 = next(r for r in data["done"] if r["id"] == "M25")
+    assert m25["heading_adds"] is False and [s["adds"] for s in items["M25"]["shipped"]] == [False]
+    assert items["M25"]["short_title"] == "/resources shows real usage"
+    m1b = [r for r in data["done"] if r["id"] == "M1b"]
+    assert [r["heading_adds"] for r in m1b] == [True, False]   # "M3, M4, M4b, M1b restore"; "M1b"
