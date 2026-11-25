@@ -184,9 +184,10 @@ S=<scratchpad directory>
 A=scripts/agent.py
 $A launch M24 build --brief $S/m24-build.txt --report docs/sprint/M24-build.md
 $A status m24-build           # where the agent and its work stand
-$A wait m24-build             # run in the background; exit 0 done, 2 time limit, 3 stopped
+$A wait m24-build             # run in the background; exit 0 done, 2 time limit, 3 stopped, 1 error
 $A peek m24-build             # the last 40 lines of its pane
 $A prompt m24-build --file $S/m24-followup.txt
+$A wait m24-build --expect-commit   # after a follow-up that asks for a commit
 $A close m24-build            # once its report is committed
 $A list                       # every agent the tool launched and still knows
 ```
@@ -200,12 +201,17 @@ name `/work` reads a stage from. An `investigate` agent is shown under
 "Other agents". `--probe` names an agent `<item>-probe-<role>`, which
 `/work` does not put on the item, for trying the tool itself.
 
-`launch` refuses, changing nothing, when an agent or workspace of that
-name exists, when another agent the tool launched is `working`
-(`--parallel` allows it, for an investigation beside a build), and when
-the brief or the guard rails section is missing or empty. The
-coordinator's own pane and agents started by hand are not in the tool's
-state and do not count.
+`build`, `fix`, `test` and `review` launch with `--report PATH` (the
+file the agent commits; not a directory) or `--no-report`; without either
+the launch is refused. `launch` refuses, changing nothing, when an agent
+or workspace of that name exists, when another agent the tool launched is
+`working` (`--parallel` allows it, for an investigation beside a build),
+when the brief or the guard rails section is missing or empty, when the
+brief holds a NUL byte, and when its state directory cannot be written.
+The coordinator's own pane and agents started by hand are not in the
+tool's state and do not count. An agent of the tool's name in a pane
+other than the one it launched is `gone` to `status`, `wait`, `list` and
+`close`.
 
 `done` in `status` and `wait` is: herdr says `idle` or `done`, `git status
 --porcelain` is empty, and the report named with `--report` (at launch,
@@ -213,8 +219,18 @@ state and do not count.
 `wait` exits 3 when the agent is `blocked` or gone, or has sat idle for
 five minutes (`--idle-limit`) with that not true: an agent that stopped
 early or stopped to ask. The coordinator then peeks and decides. The
-default time limit is 3 h (`--timeout`, seconds). Git is read with
-optional locks off, so a poll never makes an agent's commit fail.
+default time limit is 3 h (`--timeout`, seconds). Exit 1 is a refusal or
+herdr failing three polls running. Git is read with optional locks off,
+so a poll never makes an agent's commit fail.
+
+A follow-up does not reset `done`: a report committed in the first round
+still counts. `prompt` records HEAD as it sends; `status` then shows
+`report.changed_since_prompt`, and `wait --expect-commit` waits for a
+commit of the agent's since the last prompt. `agent_commits` is the
+commits since launch without a `Claude-Session:` trailer, which the
+coordinator's commits carry and the agents' do not; `commits_since`
+counts both. `agent_commits` is `null` where no recent commit carries the
+trailer.
 
 Things that went wrong, and what to do:
 

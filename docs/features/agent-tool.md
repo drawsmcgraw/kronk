@@ -3,7 +3,7 @@
 **Shipped:** work item M28 (2026-11-24 build). **Origin:** Drew, 2026-11-24,
 on seeing the coordinator write a shell and Python loop for every agent:
 "checking in on an agent should be a tool, right?" Criteria and evidence:
-`docs/sprint/M28-criteria.md`, `M28-build.md`.
+`docs/sprint/M28-criteria.md`, `M28-build.md`, `M28-e2e.md`, `M28-fix1.md`.
 
 ## What it does
 
@@ -13,11 +13,11 @@ command that runs build, test and fix in sequence (Drew ruled that out).
 
 | Subcommand | Does | Answers |
 | :-- | :-- | :-- |
-| `launch <item> <role> --brief FILE` | workspace, agent, prompt; confirms `working` | name, ids, model, effort, HEAD, prompt file, `sent` once/twice |
-| `status <name>` | reads herdr and git | `agent_status`, `minutes`, `commits_since`, `last_commit`, `tree_clean`, `report`, `done`, `verdict` |
-| `wait <name>` | polls `status` (20 s) | exit 0 done, 2 time limit (3 h), 3 blocked, gone, or idle 5 min with the work not done; last line is the `status` JSON |
+| `launch <item> <role> --brief FILE (--report PATH \| --no-report)` | workspace, agent, prompt; confirms `working` | name, ids, model, effort, HEAD, prompt file, `sent` once/twice |
+| `status <name> [--expect-commit]` | reads herdr and git | `agent_status`, `minutes`, `commits_since`, `agent_commits`, `last_commit`, `tree_clean`, `report` (`path`, `committed`, `changed_since_prompt`), `done`, `verdict` |
+| `wait <name> [--expect-commit]` | polls `status` (20 s) | exit 0 done, 2 time limit (3 h), 3 blocked, gone, or idle 5 min with the work not done; last line is the `status` JSON |
 | `peek <name> [--lines N]` | `herdr agent read`, last 40 lines | text |
-| `prompt <name> --file FILE` | sends, confirms `working`, resends once | `before`, `sent`, `agent_status` |
+| `prompt <name> --file FILE` | records HEAD, sends, confirms `working`, resends once | `before`, `sent`, `agent_status` |
 | `close <name> [--force]` | closes the recorded workspace, checks it is gone, removes the state | `workspace` closed / already gone |
 | `list` | one line per agent in the state directory | name, item, role, workspace, live status |
 
@@ -46,21 +46,45 @@ traceback.
 - **Refusals before any change.** Not in herdr; an agent or a workspace
   label of that name in herdr, or a state file of that name; another agent
   in the state directory that herdr calls `working` (unless `--parallel`);
-  a brief that is missing or blank; an unknown role, a bad item id,
-  `--round` below 1, a report path outside the repo. If `agent start`
-  fails after the workspace was made, the workspace is closed and the
-  state removed.
+  a brief that is missing, blank or holds a NUL byte; an unknown role, a
+  bad item id, `--round` below 1, a report path outside the repo or that
+  is a directory (on disk or a tree in HEAD); `build`, `fix`, `test` or
+  `review` with neither `--report` nor `--no-report`; a state directory
+  that cannot be written (it is made and test-written before anything is
+  created in herdr). If `agent start` or a state write fails after the
+  workspace was made, the workspace is closed and the state removed; the
+  message says what, if anything, was left.
 - **State.** `~/.local/state/kronk-agents/` (`KRONK_AGENT_STATE`
   overrides), mode 700: `<name>.json` (item, role, ids, model, effort,
-  repo, HEAD and time at launch, report path) and `<name>.prompt.txt`, the
+  repo, HEAD and time at launch, report path; after a follow-up, HEAD when
+  it was sent and the count of follow-ups) and `<name>.prompt.txt`, the
   prompt as sent, the only place the brief's text is kept. Both mode 600;
-  `close` removes both.
+  `close` removes both. Follow-ups are not stored.
+- **Identity.** An agent is its name and the pane recorded at launch.
+  `status`, `wait`, `list` and `close` call an agent of that name in
+  another pane `gone` (it was started by hand after the tool's closed).
+  `peek` and `prompt` still go by name.
 - **Git.** `--no-optional-locks` and `GIT_OPTIONAL_LOCKS=0` on every call,
   and only `rev-parse`, `rev-list`, `log`, `status`, `diff` (commit to
   commit) and `cat-file`. "Report committed" means the file is in HEAD and
   differs from the launch HEAD, so a report left from an earlier round
-  does not count. The verdict is read from the committed file by
+  does not count; a git error (a launch HEAD git no longer knows) is not
+  committed. The verdict is read from the committed file by
   `work_export.verdicts()`, so `/work` and the tool agree on it.
+  `work_export.py` is loaded with `sys.dont_write_bytecode` set, so no
+  `__pycache__` is written beside it.
+- **Follow-ups.** `prompt` records HEAD as it sends. `status` then gives
+  `report.changed_since_prompt` (the report in HEAD differs from that
+  HEAD; `null` until a follow-up is sent). `done` is unchanged by a
+  follow-up: an old committed report still satisfies it. `--expect-commit`
+  on `status` or `wait` makes `done` also need a commit of the agent's
+  since the last prompt (the launch prompt if no follow-up was sent).
+- **Whose commit.** The coordinator's session stamps its commits with a
+  `Claude-Session:` trailer; the agents' commits carry none.
+  `agent_commits` counts the commits since launch without it. It is
+  `null` when no commit since the launch, nor any of the 50 up to it,
+  carries the trailer: in that repo the rule cannot tell the two apart,
+  and `--expect-commit` then counts every commit.
 
 ## Gotchas
 
@@ -79,6 +103,12 @@ traceback.
   the brief.
 - `wait` sleeps in the foreground of its own process; the coordinator runs
   it in the background with its shell tool and is told when it exits.
+- `agent_commits` trusts the trailer. A coordinator session that does not
+  stamp its commits, in a repo whose history has stamped ones, has its
+  commits counted as the agent's.
+- Python counts `\x1c`–`\x1f` as whitespace: `str.strip()` on a
+  `git log` record split on `\x1e` eats the `\x1f` field separator of a
+  commit with no trailer. The parser strips newlines only.
 
 ## Blog hooks
 
