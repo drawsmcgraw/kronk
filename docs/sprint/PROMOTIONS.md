@@ -390,3 +390,50 @@ Held or left over:
 - Some of the tool's tests do not fail when the job they cover is undone
   (`M28-e2e2.md`, S5).
 
+## M31 (devstral retired), 2026-11-24
+
+The coding and devops agents run on `gemma-4-e4b`, the devstral server is
+stopped and gone from the catalog, and 42 GB of memory is free. Tag
+`item-M31`, deployed 2026-11-24 22:53 EST (six Kronk containers; HA and
+MA not touched: up 7 days and 2 weeks after). Tier 1: build, one test
+(PASSES). No bench, by Drew's order.
+
+Verified on production by the coordinator:
+
+- `kronk-orchestrator-1` env: `CODING_AGENT_MODEL=gemma-4-e4b`,
+  `DEVOPS_AGENT_MODEL=gemma-4-e4b`. `/api/status`: 2 healthy, 0
+  unhealthy.
+- "check the uptime on the mirror" through `/api/chat`: "The mirror has
+  been up for 20 hours and 52 minutes." in 4.4 s; `metrics.db` shows the
+  two `devops` calls on `gemma-4-e4b`. `/voice/api/chat`: "Four."
+- Then `systemctl --user disable --now llama-devstral-q4.service`; the
+  installed unit file moved to `~/backups/m31-units-2026-11-24/`.
+- 75 s later: `free -g` used 71 to 29, available 51 to 93. GPU memory
+  held by Kronk's processes (`data/gpu_mem.json`): 8.96 GiB, from about
+  43. `/api/servers`: two catalog rows, devstral in neither list, both
+  sources fresh. `/api/status` still 2 healthy. `systemctl --user
+  --failed`: none. `/resources`, `/services`, `/work`: 200.
+- The suite at the tag: `7796 passed, 3 skipped, 54 xfailed` (build and
+  test agents; not rerun by the coordinator, no change since).
+
+Way back: start the unit from the backed-up file and deploy `item-M27`.
+
+Held or left over:
+
+- **Voice can wait behind a coding or devops answer.** They share
+  Gemma's model lock now and a running generation is not interrupted. A
+  typed coding answer has no token limit (bound: the 32,768 context,
+  about 268 s at 122 tok/s); a voice request has 25 s in all, so one that
+  arrives behind a coding answer of more than about 3,000 tokens would
+  time out. Not seen; the two agents last ran in August and May. For
+  Drew: cap those agents' answers, or accept.
+- The model file (`/opt/models/mistralai/…Q4_K_M.gguf`, 14.3 GB) and its
+  template are still on disk. Deleting them is Drew's.
+- `.env.dev` lines 26 and 27 still name devstral; compose overrides them.
+- `COORDINATOR_MODEL`'s default in code is `mistral-nemo:12b`, a server
+  retired in M24; every compose service sets the variable.
+- `/api/status` makes LiteLLM send a five-token generation to every
+  model (already listed under M25).
+- On dev the devops answer said the mirror was "unreachable" where the
+  tool said the host was not configured (one sample; tenet 7).
+

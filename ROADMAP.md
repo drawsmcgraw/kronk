@@ -155,6 +155,10 @@ Conventions:
 
 Newest first; feature docs in `docs/features/`.
 
+- **Devstral retired** *(2026-11-24, work item M31)* — coding and
+  devops run on `gemma-4-e4b`; the server, its catalog entry and the
+  `/devstral/` route are gone; 42 GB of memory freed.
+  `docs/sprint/PROMOTIONS.md`, "M31".
 - **A tool for launching and checking on agents** *(2026-11-24, work
   item M28)* — `scripts/agent.py`: `launch`, `status`, `wait`, `peek`,
   `prompt`, `close`, `list`, one line of JSON each, the guard rails added

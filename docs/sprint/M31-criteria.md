@@ -85,4 +85,6 @@ variable and the removal of one server). No bench, by Drew's order.
 
 ## Rulings
 
-(none yet)
+- 2026-11-24, coordinator: tier 1. One test (`M31-e2e.md`, PASSES, no
+  blocker, no should-fix, six notes). Promote; deploy before the unit
+  stops, as the test advised.
