@@ -241,6 +241,10 @@ def run(at, capsys, *argv):
 
 
 def launch(at, capsys, repo, brief, item="M9", role="build", *extra):
+    """launch, with --no-report added for a role that needs a report choice
+    when the test names neither (the refusal has its own test)."""
+    if role in ("build", "fix", "test", "review") and not {"--report", "--no-report"} & set(map(str, extra)):
+        extra = (*extra, "--no-report")
     return run(at, capsys, "launch", item, role, "--brief", brief, "--repo", repo, *extra)
 
 
@@ -559,10 +563,11 @@ def test_status_done_when_settled_clean_and_report_committed(at, capsys, repo, h
         herdr.set_status(launched, s)
         got = status(at, capsys)
         assert got["done"] is True and got["agent_status"] == s
-    assert set(got) == {"name", "agent_status", "minutes", "commits_since", "last_commit", "tree_clean",
-                        "report", "done", "verdict"}
+    assert set(got) == {"name", "agent_status", "minutes", "commits_since", "agent_commits", "last_commit",
+                        "tree_clean", "report", "done", "verdict"}
     assert got["commits_since"] == 1 and got["last_commit"].endswith(" M9: build")
-    assert got["tree_clean"] is True and got["report"] == {"path": REPORT, "committed": True}
+    assert got["tree_clean"] is True
+    assert got["report"] == {"path": REPORT, "committed": True, "changed_since_prompt": None}
     assert got["verdict"] == "PASSES" and isinstance(got["minutes"], float)
 
 
@@ -586,7 +591,8 @@ def test_not_done_with_a_dirty_tree(at, capsys, repo, herdr, launched):
 def test_not_done_without_the_report_committed(at, capsys, repo, herdr, launched):
     herdr.set_status(launched, "idle")
     got = status(at, capsys)
-    assert (got["done"], got["tree_clean"], got["report"]) == (False, True, {"path": REPORT, "committed": False})
+    assert (got["done"], got["tree_clean"], got["report"]) == \
+        (False, True, {"path": REPORT, "committed": False, "changed_since_prompt": None})
     assert got["commits_since"] == 0 and got["verdict"] is None
 
 
@@ -603,7 +609,7 @@ def test_a_report_from_before_the_launch_is_not_committed_until_changed(at, caps
     herdr.set_status("m9-build", "idle")
     commit(repo, {"other.txt": "x\n"}, "unrelated commit")
     got = status(at, capsys)
-    assert got["report"] == {"path": REPORT, "committed": False} and got["done"] is False
+    assert got["report"]["committed"] is False and got["done"] is False
     commit(repo, {REPORT: "# M9 build\n\nVerdict: PASSES\n"}, "new report")
     got = status(at, capsys)
     assert got["report"]["committed"] is True and got["done"] is True and got["verdict"] == "PASSES"
@@ -613,7 +619,8 @@ def test_report_can_be_named_at_status_and_is_kept(at, capsys, repo, brief, herd
     assert launch(at, capsys, repo, brief, "M9", "test")[0] == 0
     herdr.set_status("m9-test", "idle")
     assert status(at, capsys, "m9-test", "--report", "docs/sprint/M9-e2e.md")["done"] is False
-    assert status(at, capsys, "m9-test")["report"] == {"path": "docs/sprint/M9-e2e.md", "committed": False}
+    assert status(at, capsys, "m9-test")["report"] == {"path": "docs/sprint/M9-e2e.md", "committed": False,
+                                                       "changed_since_prompt": None}
     commit(repo, {"docs/sprint/M9-e2e.md": "# M9 test\n\nVerdict: NOT DETERMINED\n"})
     got = status(at, capsys, "m9-test")
     assert got["done"] is True and got["verdict"] == "NOT DETERMINED"
@@ -713,7 +720,7 @@ def test_under_strace_status_opens_no_lock_and_writes_nothing_in_the_repo(at, ca
     env = dict(os.environ)
     r = subprocess.run(["strace", "-f", "-qq", "-o", str(trace), "-e",
                         "trace=openat,open,creat,rename,renameat,renameat2,unlink,unlinkat,mkdir,mkdirat",
-                        sys.executable, "-B", str(SCRIPT), "status", "m9-build"],
+                        sys.executable, str(SCRIPT), "status", "m9-build"],
                        env=env, capture_output=True, text=True, timeout=60)
     if r.returncode != 0 and "ptrace" in (r.stderr or ""):
         pytest.skip("ptrace not permitted here")
@@ -834,16 +841,16 @@ def test_list_prints_one_line_per_known_agent(at, capsys, repo, brief, herdr):
 # ── exit codes and errors: one line, never a traceback ─────────────────────
 
 def cli(*argv, env=None):
-    return subprocess.run([sys.executable, "-B", str(SCRIPT), *map(str, argv)], capture_output=True,
+    return subprocess.run([sys.executable, str(SCRIPT), *map(str, argv)], capture_output=True,
                           text=True, env=env, timeout=60)
 
 
 def test_herdr_absent_is_one_line_exit_1(tmp_path, repo, brief):
     env = dict(os.environ, PATH=BASE_PATH, HERDR_ENV="1", KRONK_AGENT_STATE=str(tmp_path / "s"))
-    for argv in (["launch", "M9", "build", "--brief", brief, "--repo", repo], ["list"]):
+    for argv in (["launch", "M9", "build", "--brief", brief, "--repo", repo, "--no-report"], ["list"]):
         r = cli(*argv, env=env)
         assert r.returncode in (0, 1) and "Traceback" not in r.stderr
-    r = cli("launch", "M9", "build", "--brief", brief, "--repo", repo, env=env)
+    r = cli("launch", "M9", "build", "--brief", brief, "--repo", repo, "--no-report", env=env)
     assert r.returncode == 1 and r.stderr.count("\n") == 1 and "herdr agent list: unreachable" in r.stderr
 
 
@@ -867,3 +874,276 @@ def test_bad_names_and_usage_are_one_line(at, capsys, herdr):
     for argv in (["status", "../etc/passwd"], ["status", "Bad Name"], ["bogus"], [], ["wait"]):
         rc, out, err = run(at, capsys, *argv)
         assert rc == 1 and err.count("\n") == 1 and "Traceback" not in err, argv
+
+
+# ── fix round 1 (M28-criteria.md, Rulings) ─────────────────────────────────
+
+def no_herdr_change(herdr):
+    assert herdr.mutations() == [] and herdr.load()["workspaces"] == []
+
+
+# B1: nothing is created in herdr before the state directory is proven
+# writable; a state write failing after workspace create closes it.
+
+@pytest.mark.skipif(os.geteuid() == 0, reason="root writes through mode bits")
+@pytest.mark.parametrize("how", ["read-only", "a file", "parent read-only"])
+def test_b1_launch_refused_before_herdr_when_the_state_directory_cannot_be_written(
+        at, capsys, repo, brief, herdr, monkeypatch, tmp_path, how):
+    if how == "read-only":
+        herdr.state.mkdir(mode=0o500)
+        fix = herdr.state
+    elif how == "a file":
+        herdr.state.write_text("not a directory\n")
+        fix = None
+    else:
+        parent = tmp_path / "ro"
+        parent.mkdir(mode=0o500)
+        monkeypatch.setenv("KRONK_AGENT_STATE", str(parent / "state"))
+        fix = parent
+    try:
+        rc, out, err = launch(at, capsys, repo, brief)
+        assert rc == 1 and out == "" and err.count("\n") == 1
+        assert "cannot be written" in err and "not launched" in err, err
+        no_herdr_change(herdr)
+    finally:
+        if fix is not None:
+            fix.chmod(0o700)
+
+
+@pytest.mark.parametrize("fails", [".json", ".prompt.txt"])
+def test_b1_a_state_write_failing_after_create_closes_the_workspace(at, capsys, repo, brief, herdr,
+                                                                    monkeypatch, fails):
+    real = at.write_private
+
+    def flaky(path, text):
+        if str(path).endswith(fails):
+            raise PermissionError(13, "Permission denied")
+        return real(path, text)
+    monkeypatch.setattr(at, "write_private", flaky)
+    rc, out, err = launch(at, capsys, repo, brief)
+    assert rc == 1 and out == "" and err.count("\n") == 1
+    assert "could not be written (PermissionError)" in err and "workspace w1 closed; nothing left" in err, err
+    assert herdr.load()["workspaces"] == [] and not [c for c in herdr.calls() if c[:2] == ["agent", "start"]]
+    assert list(herdr.state.iterdir()) == []
+
+
+def test_b1_says_so_when_the_workspace_cannot_be_closed_either(at, capsys, repo, brief, herdr, monkeypatch):
+    def broken(path, text):
+        raise OSError(28, "No space left on device")
+    monkeypatch.setattr(at, "write_private", broken)
+    herdr.update(fail={"workspace close": "server_error"})
+    rc, out, err = launch(at, capsys, repo, brief)
+    assert rc == 1 and "workspace w1 left open with no record: `herdr workspace close w1`" in err, err
+
+
+# B2: no bytecode cache is written beside work_export.py.
+
+def test_b2_the_tool_writes_no_bytecode_in_its_scripts_directory(tmp_path, repo, brief, herdr):
+    copy = tmp_path / "copy" / "scripts"
+    copy.mkdir(parents=True)
+    for f in ("agent.py", "work_export.py"):
+        shutil.copy(REPO / "scripts" / f, copy / f)
+    env = {k: v for k, v in os.environ.items() if k != "PYTHONDONTWRITEBYTECODE"}
+    r = subprocess.run([sys.executable, str(copy / "agent.py"), "launch", "M9", "build", "--brief", brief,
+                        "--repo", repo, "--report", REPORT], env=env, capture_output=True, text=True, timeout=60)
+    assert r.returncode == 0, r.stderr
+    commit(repo, {REPORT: "Verdict: PASSES\n"})             # status now reads the verdict through work_export
+    r = subprocess.run([sys.executable, str(copy / "agent.py"), "status", "m9-build"], env=env,
+                       capture_output=True, text=True, timeout=60)
+    assert r.returncode == 0 and json.loads(r.stdout)["verdict"] == "PASSES", r.stderr
+    assert not (copy / "__pycache__").exists()
+
+
+def test_b2_the_flag_is_put_back_after_the_load(at):
+    before = sys.dont_write_bytecode
+    at._WE = None
+    at.work_export()
+    assert sys.dont_write_bytecode == before
+
+
+# S1: a report path that is a directory is refused at launch, status and wait.
+
+def test_s1_a_directory_report_is_refused_at_launch(at, capsys, repo, brief, herdr):
+    for path in ("docs/sprint", "docs", "docs/sprint/"):          # trees in HEAD
+        rc, out, err = launch(at, capsys, repo, brief, "M9", "build", "--report", path)
+        assert rc == 1 and "is a directory" in err, (path, err)
+    (repo / "empty-dir").mkdir()                                   # on disk only
+    rc, out, err = launch(at, capsys, repo, brief, "M9", "build", "--report", "empty-dir")
+    assert rc == 1 and "is a directory" in err
+    no_herdr_change(herdr)
+
+
+def test_s1_a_directory_report_is_refused_at_status_and_wait(at, capsys, repo, brief, herdr):
+    assert launch(at, capsys, repo, brief, "M9", "build", "--report", REPORT)[0] == 0
+    herdr.set_status("m9-build", "idle")
+    commit(repo, {"docs/sprint/other.md": "x\n"})
+    for sub in ("status", "wait"):
+        rc, out, err = run(at, capsys, sub, "m9-build", "--report", "docs/sprint")
+        assert rc == 1 and out == "" and "is a directory" in err, (sub, err)
+    assert json.loads((herdr.state / "m9-build.json").read_text())["report"] == REPORT
+    (repo / REPORT).mkdir(parents=True)                            # the recorded path became a directory
+    for sub in ("status", "wait"):
+        rc, out, err = run(at, capsys, sub, "m9-build")
+        assert rc == 1 and "is a directory" in err, (sub, err)
+
+
+# S2: prompt records HEAD; status says whether the report changed since and
+# how many commits are the agent's; wait --expect-commit needs a new one.
+
+def coord_commit(tree: Path, files: dict, msg="coordinator step"):
+    for name, text in files.items():
+        (tree / name).parent.mkdir(parents=True, exist_ok=True)
+        (tree / name).write_text(text)
+        git(tree, "add", name)
+    git(tree, "commit", "-q", "-m", msg, "-m", "Claude-Session: https://claude.ai/code/session_x")
+
+
+def follow_up(at, capsys, tmp_path, name="m9-build"):
+    f = tmp_path / "follow.txt"
+    f.write_text("Follow up.\n")
+    rc, out, err = run(at, capsys, "prompt", name, "--file", f)
+    assert rc == 0, err
+
+
+def test_s2_prompt_records_head_and_status_reports_changed_since_prompt(at, capsys, repo, herdr, launched,
+                                                                       tmp_path):
+    commit(repo, {REPORT: "# M9 build\n\nVerdict: PASSES\n"}, "round one")
+    herdr.set_status(launched, "idle")
+    assert status(at, capsys)["report"]["changed_since_prompt"] is None
+    follow_up(at, capsys, tmp_path)
+    st = json.loads((herdr.state / "m9-build.json").read_text())
+    assert st["prompt_head"] == git(repo, "rev-parse", "HEAD").stdout.strip() and st["prompts"] == 1
+    herdr.set_status(launched, "idle")
+    got = status(at, capsys)
+    assert got["report"] == {"path": REPORT, "committed": True, "changed_since_prompt": False}
+    assert got["done"] is True                                     # point 7 still decides done
+    rc, out, err = wait(at, capsys, "--timeout", "30", "--idle-limit", "0.1", "--expect-commit")
+    assert rc == 3 and one_json(out)["done"] is False and "work not done" in err
+    commit(repo, {REPORT: "# M9 build\n\nVerdict: PASSES, round two\n"}, "round two")
+    got = status(at, capsys)
+    assert got["report"]["changed_since_prompt"] is True
+    rc, out, err = wait(at, capsys, "--timeout", "30", "--expect-commit")
+    assert rc == 0 and one_json(out)["done"] is True
+
+
+def test_s2_agent_commits_leave_out_the_coordinators_stamped_commits(at, capsys, repo, brief, herdr, tmp_path):
+    coord_commit(repo, {"criteria.md": "c\n"}, "criteria")        # history shows the trailer in use
+    assert launch(at, capsys, repo, brief, "M9", "build", "--report", REPORT)[0] == 0
+    herdr.set_status("m9-build", "idle")
+    assert status(at, capsys)["agent_commits"] == 0
+    commit(repo, {REPORT: "# r\n"}, "agent's report")
+    coord_commit(repo, {"rulings.md": "r\n"}, "coordinator's ruling")
+    got = status(at, capsys)
+    assert (got["commits_since"], got["agent_commits"]) == (2, 1)
+    follow_up(at, capsys, tmp_path)
+    herdr.set_status("m9-build", "idle")
+    coord_commit(repo, {"rulings.md": "r2\n"}, "another ruling")
+    rc, out, err = wait(at, capsys, "--timeout", "30", "--idle-limit", "0.1", "--expect-commit")
+    assert rc == 3, err                                            # the coordinator's commit is not the agent's
+    commit(repo, {"fix.txt": "x\n"}, "agent's fix")
+    rc, out, err = wait(at, capsys, "--timeout", "30", "--expect-commit")
+    assert rc == 0 and one_json(out)["agent_commits"] == 2
+
+
+def test_s2_agent_commits_is_unknown_where_no_commit_carries_the_trailer(at, capsys, repo, herdr, launched):
+    commit(repo, {REPORT: "# r\n"})
+    herdr.set_status(launched, "idle")
+    got = status(at, capsys)
+    assert got["commits_since"] == 1 and got["agent_commits"] is None
+    rc, out, err = wait(at, capsys, "--timeout", "30", "--expect-commit")
+    assert rc == 0                                                 # any commit since the launch prompt counts
+
+
+def test_s2_expect_commit_without_a_follow_up_counts_from_the_launch(at, capsys, repo, herdr, launched):
+    herdr.set_status(launched, "idle")
+    rc, out, err = run(at, capsys, "status", launched, "--report", "README.md", "--expect-commit")
+    assert rc == 0 and one_json(out)["done"] is False
+    commit(repo, {"README.md": "changed\n"})
+    rc, out, err = run(at, capsys, "status", launched, "--expect-commit")
+    assert rc == 0 and one_json(out)["done"] is True
+
+
+# S3: a NUL byte in a brief or prompt file is refused before anything is made.
+
+def test_s3_a_brief_with_a_nul_byte_is_refused(at, capsys, repo, tmp_path, herdr):
+    b = tmp_path / "nul.txt"
+    b.write_bytes(b"Build it.\x00\n")
+    refused(herdr, *launch(at, capsys, repo, b), "holds a NUL byte")
+
+
+def test_s3_a_prompt_file_with_a_nul_byte_is_refused(at, capsys, repo, herdr, launched, tmp_path):
+    herdr.set_status(launched, "idle")
+    f = tmp_path / "nul.txt"
+    f.write_bytes(b"Follow up.\x00\n")
+    n = len(herdr.mutations())
+    rc, out, err = run(at, capsys, "prompt", launched, "--file", f)
+    assert rc == 1 and "holds a NUL byte; nothing sent" in err and len(herdr.mutations()) == n
+    assert "prompt_head" not in json.loads((herdr.state / "m9-build.json").read_text())
+
+
+# S4: committed, then another commit; a failing git diff is not "committed".
+
+def test_s4_a_report_committed_then_followed_by_another_commit_stays_committed(at, capsys, repo, herdr, launched):
+    commit(repo, {REPORT: "# M9 build\n\nVerdict: PASSES\n"}, "report")
+    commit(repo, {"later.txt": "x\n"}, "a later commit")
+    herdr.set_status(launched, "idle")
+    got = status(at, capsys)
+    assert got["report"]["committed"] is True and got["done"] is True
+
+
+def test_s4_a_failing_git_diff_does_not_count_as_committed(at, capsys, repo, herdr, launched):
+    commit(repo, {REPORT: "# r\n"})
+    herdr.set_status(launched, "idle")
+    p = herdr.state / "m9-build.json"
+    st = json.loads(p.read_text())
+    st["head"] = "0" * 40                                           # a launch HEAD git does not know
+    p.write_text(json.dumps(st))
+    got = status(at, capsys)
+    assert got["report"]["committed"] is False and got["done"] is False
+
+
+# N1: build, fix, test and review need --report or --no-report.
+
+@pytest.mark.parametrize("role", ["build", "fix", "test", "review"])
+def test_n1_a_report_role_is_refused_without_report_or_no_report(at, capsys, repo, brief, herdr, role):
+    rc, out, err = run(at, capsys, "launch", "M9", role, "--brief", brief, "--repo", repo)
+    refused(herdr, rc, out, err, f"role {role} needs --report PATH")
+
+
+def test_n1_no_report_and_investigate_launch_without_a_report(at, capsys, repo, brief, herdr):
+    rc, out, err = run(at, capsys, "launch", "M9", "investigate", "--brief", brief, "--repo", repo)
+    assert rc == 0, err
+    rc, out, err = run(at, capsys, "launch", "M9", "build", "--brief", brief, "--repo", repo, "--no-report",
+                       "--parallel")
+    assert rc == 0 and one_json(out)["report"] is None, err
+
+
+def test_n1_report_and_no_report_together_are_refused(at, capsys, repo, brief, herdr):
+    rc, out, err = run(at, capsys, "launch", "M9", "build", "--brief", brief, "--repo", repo, "--report", REPORT,
+                       "--no-report")
+    refused(herdr, rc, out, err, "--report and --no-report together")
+
+
+# N2: an agent of the name in another pane is not the tool's: gone.
+
+def test_n2_an_agent_of_the_name_in_another_pane_is_gone(at, capsys, repo, herdr, launched):
+    herdr.update(workspaces=[{"workspace_id": "w9", "label": "m9-build", "cwd": str(repo)}],
+                 agents=[{"agent": "claude", "name": "m9-build", "agent_status": "working", "pane_id": "w9:p1",
+                          "workspace_id": "w9", "cwd": str(repo)}])
+    assert status(at, capsys)["agent_status"] == "gone"
+    rc, out, err = wait(at, capsys, "--timeout", "30")
+    assert rc == 3 and "is gone" in err
+    rc, out, err = run(at, capsys, "list")
+    assert rc == 0 and one_json(out)["agent_status"] == "gone"
+    rc, out, err = run(at, capsys, "close", launched)              # not refused as working
+    assert rc == 0 and one_json(out) == {"name": launched, "workspace_id": "w1", "workspace": "already gone",
+                                         "agent_status_before": "gone"}
+    assert [w["workspace_id"] for w in herdr.load()["workspaces"]] == ["w9"]
+    assert [c for c in herdr.calls() if c[:2] == ["workspace", "close"]] == [["workspace", "close", "w1"]]
+
+
+def test_n2_the_same_pane_is_still_the_agent(at, capsys, repo, herdr, launched):
+    herdr.set_status(launched, "working")
+    assert status(at, capsys)["agent_status"] == "working"
+    rc, out, err = run(at, capsys, "list")
+    assert one_json(out)["agent_status"] == "working"
