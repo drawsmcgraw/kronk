@@ -179,7 +179,7 @@ Plan doc: this file. Design review before build.
     Tempo has dropped keeps its row. The page still renders the newest
     200 and pages back through all of it.
   - It is added to `scripts/backups.py`'s list as a `sqlite` member,
-    marked secret, in the nightly and the NAS sets, with a restore shown
+    marked secret, in the monthly config backup (there is no nightly one: `kronk-backup.timer` runs on the 10th; M33's review, point 4; whether the databases should be copied daily is asked of Drew), with a restore shown
     from a backup tar (a new criterion 10). CLAUDE.md's "Secrets" note
     on the NAS share gains household speech. The build agent says what
     else in the backup path now holds transcript text (a status file, a

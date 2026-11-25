@@ -1,5 +1,11 @@
 # M33 pass criteria: work-item state and the queue in a database
 
+Revised 2026-11-24 after the design review (`docs/sprint/M33-review.md`):
+all twelve of its points are taken. The section "Revised after the
+review" near the end decides wherever it differs from the plumbing and
+criteria above it; the build is in two steps, each with its own build and
+test. Tier 3.
+
 Source: Drew, 2026-11-24: "You're using a lot of markdown files to track
 these details (right?). You should store them in a database instead. It
 would simplify the file structure and, in theory, speed up your work."
@@ -163,6 +169,168 @@ Plan doc: this file. Design review before build.
 8. The exporter's run stays under 1 s and takes no git lock.
 9. The suite passes; last lines quoted.
 
+## Revised after the review (this section decides)
+
+**Two steps (review 10).** Step 1 is the store and the tools; `/work`
+keeps reading files and is not touched. Step 2 moves `/work` onto the
+database. Between them the coordinator runs a real item (M30) on the
+tool. Step 1's promotion is the last entry written to PROMOTIONS.md.
+
+### Step 1: plumbing
+
+1. **Where.** `~/.local/state/kronk-work/work.db` (override
+   `KRONK_WORK_DB`; every command takes `--db`), beside M28's state
+   directory, not under `data/`: three production containers mount
+   `data/` read-write as the same uid, and `resume` prints this file's
+   text to a session that launches agents with permissions skipped
+   (review 11). No container reads it. One database for dev and
+   production: it describes the repo.
+2. **Schema**: the review's Appendix A, as the thing to build to. Seven
+   tables. An item's stored state is its place in its life only:
+   `queued`, `held`, `active`, `promoted`, `dropped`. **Stage is not
+   stored** (review 1): it is computed at `resume` (and in step 2 at
+   export) by M27's `stage()` from step rows, the promotion row, git tags
+   and herdr. Leftovers, decisions owed to Drew and escapes are one table
+   with a kind (review 11). The log is one row per command: time, who
+   (the `Claude-Session` value when the environment gives one, else pid
+   and start time), the command line, the changed rows as JSON.
+3. **One writer, one code path.** `scripts/work.py`; `scripts/agent.py`
+   loads it and calls its functions, with no SQL of its own. Every
+   writing command is one `BEGIN IMMEDIATE` transaction; busy timeout
+   10 s for `work.py`, 2 s for `agent.py` (review 3). The database path
+   never comes from the script's own location alone: a test proves a
+   launch in a temporary repo leaves the real file untouched (review 9).
+4. **Evidence is copied, never typed (review 2).** A verdict is read
+   from the committed report; a commit is the one the report was found
+   in; `promote` refuses a tag git does not list, or takes `--no-tag`;
+   `add` allocates the item number and a dropped number is not reused.
+   What, why and Drew's words are **not** copied into the database: the
+   row holds the criteria file's path, and readers take the handoff line
+   and the `Source:` paragraph from the file's head. Rulings stay in the
+   criteria file; the row holds their effect (`graded` on a test step,
+   the next step). Promotion checks go in `docs/sprint/M<n>-promote.md`,
+   always, and the row holds its path. The tier is the row's; criteria
+   files stop naming it after this item.
+5. **Commands** (JSON lines for all but `resume`, which is plain text):
+   `add`, `show`, `list`, `queue` (prints), `start <item>` (queued to
+   active), `move`, `hold`, `unhold`, `drop` (with why), `after` (an item
+   that must follow another: `move` and `start` refuse while that one is
+   not promoted), `step add` (a coordinator step, when its file is
+   committed), `step start|finish|stop` (agent steps, called by
+   `agent.py`), `grade`, `note` (next step; waits on: `drew`, `outside`
+   or `item`, with a note), `promote`, `matter add|close` (kinds
+   `leftover`, `decision`, `escape`; owner `drew` or `coordinator`),
+   `log`, `check`, `resume`, `dump`, `restore-dump`, `import-legacy`.
+6. **`check`** (review 1, Appendix C), read-only: compares rows with
+   `docs/sprint/`, git tags, herdr and `~/.local/state/kronk-agents/`,
+   one line per disagreement. For what git or herdr can show, the
+   evidence wins and the row is reported behind; for what only the
+   coordinator knows (order, held, dropped, waits on, next step,
+   grading), the row wins. It names a criteria file with no row, a step
+   left `started` with no live agent, a promoted item with no ROADMAP
+   Shipped line, a queue not numbered 1 to n.
+7. **`resume`** prints, in this order (review 6): `check`'s findings;
+   under way (item, tier, computed stage, agent with herdr's status and
+   minutes, last finished step with verdict and grading, next step,
+   waits on); the queue in order (next step, waits on, after, held with
+   why); owed by Drew (open decisions, oldest first, with the item each
+   blocks); open leftovers by owner and the count untriaged; escapes
+   within the last ten promoted items; the tree (branch, HEAD, clean);
+   agents `agent.py list` knows; the last five log rows with who; and a
+   closing line naming what it does not cover and the session must still
+   do: the corrected voice runs, and ROADMAP entries that wait on
+   something outside. It exits non-zero on a database that is missing,
+   empty, corrupt or from a newer schema, and never prints "nothing
+   under way" for one.
+8. **`agent.py` recording (review 9).** `launch` starts a step; `status`
+   and `wait` finish it when done, idempotently; `wait` exiting 2 or 3
+   leaves it started; `close` on an unfinished step marks it `stopped`
+   with why; a follow-up `prompt` reopens nothing. No step for
+   `--probe`, `investigate` or `--no-report`. If the write fails the
+   agent command still does its job and says so on stderr, within 3 s of
+   its usual time; `check` names the hole and `step start --at <time>`
+   closes it.
+9. **History and loss (review 4).** After every committed write the tool
+   rewrites `<db>.dump.sql` beside the database (temp file, rename, mode
+   600); `restore-dump` rebuilds from it. No `.bak` copies. The database
+   is added to `scripts/backups.py` as a `sqlite` member (a `HOME` path),
+   not secret, not required. **There is no nightly backup**: the config
+   backup is monthly (`kronk-backup.timer`, the 10th). Whether the
+   databases should be copied daily is asked of Drew once, for M30 too.
+10. **Migration (review 5, 7).** `import-legacy --at <sha>` reads the
+    files as of a named commit. M29 (dropped, file deleted), the queue,
+    tiers, gradings, and deployed-or-not for M24 to M31 are supplied by
+    the coordinator in the build brief as tool commands, not parsed. The
+    30 bullets of the six "Held or left over" blocks are triaged by the
+    coordinator in the brief (`matter add`, and `matter close --how` for
+    the ones already met). The 24 older cells and "Not done" bullets
+    become one untriaged row each, text "see PROMOTIONS.md:<line>".
+11. **Docs.** The coordinator, not the build agent, rewrites WORKFLOW.md
+    ("Start of every working session", the steps, "Reporting to Drew",
+    the stale "M24 is next") and CLAUDE.md item 8 at promotion, keeping:
+    the two sweeps `resume` does not cover, the escape count, and "record
+    Drew's answer before acting on it". The build agent writes
+    `docs/features/work-state.md`.
+12. No agent runs `work.py` against the live database; every agent run
+    names `--db` in scratch. The coordinator runs the live import at
+    promotion.
+
+### Step 1: criteria
+
+1. A cold start: a separate agent, launched with a one-line brief
+   ("read CLAUDE.md, then say where the work stands"), writes its answer
+   to a file; the test agent compares it with the answer key in the test
+   brief (review 6).
+2. The import, checked four ways (review 5): reproducible from the named
+   commit; every tag in `git tag` is on a promotion row or listed as
+   not, and every `M*.md` in `docs/sprint/` is a step's report or
+   listed, with counts; M24 to M31 and M29 equal the coordinator's table
+   in the test brief; and item for item against `work.json` as a
+   regression check, with the missing M28 and M31 tags as expected
+   differences. Each matter in the brief's list is in the state the brief
+   gives; each older cell is one untriaged row naming its line.
+3. A full life of a made-up item in a scratch database, as the original
+   criterion 4, with the expected `resume` lines for each step given in
+   the test brief.
+4. Two writers, as processes, 200 read-then-write commands each: no lost
+   write, no "database is locked" reaching the caller.
+5. Missing, empty, locked for 30 s, corrupt, newer schema: `work.py`
+   says which in one line within 12 s and exits non-zero; `agent.py`
+   still launches, waits and closes, within 3 s of its usual time.
+6. Each row of the review's Appendix C is produced in a scratch database
+   and `check` names it; a step left started by a failed write or a dead
+   agent is repaired by one command.
+7. The suite leaves the live database's mtime alone.
+8. Backup and loss: `backups.py config --dest <scratch> --no-notify`
+   holds the database; restored with any `-wal` and `-shm` removed
+   first, it passes `integrity_check` and `resume` matches the live one
+   but for the log's tail. `restore-dump` from the dump gives the same.
+9. `/work`, `/api/work` and `scripts/work_export.py` are unchanged
+   (byte-for-byte for the script).
+10. The suite passes; last lines quoted.
+
+### Step 2 (criteria written after step 1 is promoted and M30 has run on it)
+
+The exporter builds `work.json` from rows, two lock-free git commands
+(`rev-parse`, `for-each-ref`) and herdr, with `--db`; the `git log` over
+`docs/sprint/` and the PROMOTIONS parser leave the live path; the
+handoff line and `Source:` paragraph are still read from the criteria
+file's head. Same keys, additive. Compared by running old and new
+exporter over the same commit and the same recorded herdr answer, the
+keys allowed to differ listed by name. The deployed page, loaded against
+the new JSON with a promotion that has no PROMOTIONS line, a queued item
+with no file and a dropped item, shows no error and no "undefined".
+Built in scratch and moved in one step. What reaches the LAN: decisions'
+text; for leftovers, counts per item and owner only, until Drew answers
+M27's open question on what `/work` may show.
+
+### Out of scope, added
+
+- Reducing the number of report files. Criteria, reviews and reports
+  stay; what goes is appending to PROMOTIONS.md and reading prose for
+  state. (Drew's "it would simplify the file structure": to be said to
+  him in those words at promotion.)
+
 ## Out of scope
 
 - Any change to what `/work` shows (M32).
@@ -172,4 +340,5 @@ Plan doc: this file. Design review before build.
 
 ## Rulings
 
-(none yet)
+- 2026-11-24, coordinator: the design review's twelve points are all
+  taken, as written in "Revised after the review". Two steps.
