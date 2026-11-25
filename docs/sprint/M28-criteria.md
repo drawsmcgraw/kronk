@@ -178,3 +178,14 @@ code path).
     `gone`.
   Fix rounds are named `m28-fix` (round 1 has no number), as the tool
   does it; `/work` reads both forms.
+- 2026-11-24, coordinator, on the second test (`M28-e2e2.md`, FAILS by
+  the brief's grading; every job of fix round 1 done, seven criteria
+  hold, suite passes). Tier 1 under WORKFLOW.md, "How much testing an
+  item gets" (agreed with Drew the same day, after this test was
+  launched): the coordinator grades. B3 (a launch killed or failed inside
+  `herdr workspace create` leaves a workspace the tool has no record of)
+  needs a signal inside about a second or herdr answering wrongly; the
+  next `launch` of the name refuses and names the label. Graded
+  should-fix and left over, with S5 (tests that miss some mutants) and
+  N11 (`prompt` and `peek` go by name). Promote. No third round.
+

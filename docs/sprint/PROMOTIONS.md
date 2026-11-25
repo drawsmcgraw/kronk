@@ -353,3 +353,40 @@ what is done, read from the files that already hold it.
     reads, is live on production's page within a minute. A STALE `/work`
     after an edit under `docs/sprint/` means the exporter threw.
 
+## M28 (a tool for launching and checking on agents), 2026-11-24
+
+The coordinator launches, checks on, waits for, prompts and closes a
+work-item agent with one command each (`scripts/agent.py`), and each
+answers in one line of JSON. Tag `item-M28`. **No deploy**: the tool runs
+on the host from the working tree and no container reads it.
+
+Tier 1. Steps: build, test (FAILS on two findings graded blocker), fix
+round 1 (eight jobs), second test (FAILS by grading on one new finding;
+graded should-fix by the coordinator, ruling in `M28-criteria.md`). The
+second test ran before the tiers were agreed.
+
+Verified by the coordinator:
+
+- The suite at the tag: `7787 passed, 3 skipped, 54 xfailed, 6 warnings
+  in 122.94s`.
+- Used for real on its own item: `launch` for `m28-test`, `m28-fix` and
+  `m28-test2` (each `"sent": "once", "agent_status": "working"`), `wait`
+  returning 0 on each committed report, `status` reading `"verdict":
+  "FAILS"` from the report, `close` for each. `/work` showed each under
+  M28 at its stage.
+- The second test's answer to "any reason not to rely on it": "Yes for
+  launching, checking and closing, with four things to know."
+
+Held or left over:
+
+- A `launch` that is killed, or that herdr fails, inside `workspace
+  create` leaves a workspace the tool does not know. If a launch dies,
+  read `herdr workspace list` for the name before anything else.
+- After a follow-up `prompt`, wait with `--expect-commit`; a plain `wait`
+  returns at once on the first round's report.
+- `agent_commits` and `--expect-commit` tell the agent's commits from the
+  coordinator's by the `Claude-Session` trailer on the coordinator's.
+- `prompt` and `peek` find the agent by name, not by pane.
+- Some of the tool's tests do not fail when the job they cover is undone
+  (`M28-e2e2.md`, S5).
+

@@ -155,6 +155,11 @@ Conventions:
 
 Newest first; feature docs in `docs/features/`.
 
+- **A tool for launching and checking on agents** *(2026-11-24, work
+  item M28)* — `scripts/agent.py`: `launch`, `status`, `wait`, `peek`,
+  `prompt`, `close`, `list`, one line of JSON each, the guard rails added
+  to every brief by the tool. Docs: `docs/features/agent-tool.md`;
+  `docs/sprint/PROMOTIONS.md`, "M28".
 - **`/work`: the work items in a page** *(2026-11-24, work item M27)* —
   the backlog, each work item under way with its stage (planning,
   reviewing, implementing, testing, fixing, waiting, promoting), and what
