@@ -41,7 +41,9 @@ llama.cpp models, all on one machine (AMD Ryzen AI 375, Radeon 8060S iGPU,
    (revised 2026-11-24):
    - From the item's criteria file to its promotions entry you write no
      code into the repo. A fix to the item, however small, is a fix
-     agent's, and a fresh test agent checks it. (A small fix outside any
+     agent's. How much testing follows it depends on the item's tier
+     (WORKFLOW.md, "How much testing an item gets", 2026-11-24); the
+     suite runs on every change in every tier, and escapes are counted. (A small fix outside any
      item is still made inline, under "Definition of done".)
    - You check the premise of an order against the running system before
      you write criteria.

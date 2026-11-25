@@ -24,7 +24,7 @@ fix to an item under way is never the inline kind.
 | Coordinator | the session Drew talks to | | its own herdr pane |
 | Build agent, fix agent, investigator | Opus 5.5 (`claude-opus-5-5`) | `--effort high --dangerously-skip-permissions` | its own herdr workspace |
 | End-to-end test agent | Fable 5.2 (`claude-fable-5-2`) | `--effort medium --dangerously-skip-permissions` | its own herdr workspace |
-| Design reviewer (large items only) | Fable 5.2 (`claude-fable-5-2`) | `--effort medium --dangerously-skip-permissions` | its own herdr workspace |
+| Design reviewer (large items, and every tier 3 item) | Fable 5.2 (`claude-fable-5-2`) | `--effort medium --dangerously-skip-permissions` | its own herdr workspace |
 
 The coordinator investigates, writes the criteria and the briefs, rules on
 findings, deploys, and reports to Drew. It does not build the item, and it
@@ -87,11 +87,10 @@ One agent runs at a time. They share one working tree.
    of sending it back (ship a feature switched off, accept a stated
    limit); the ruling goes in the criteria file and the next brief.
 
-   A small fix after a passing test is still a fix agent's, never the
-   coordinator's, and a fresh test agent checks it. That test is narrow:
-   the diff, the criteria it touches, and the suite. A should-fix finding
-   that is not worth that round is left over, and the promotions entry
-   says so.
+   A fix, however small, is still a fix agent's, never the coordinator's.
+   Whether a fresh test agent checks it depends on the item's tier
+   (below). A should-fix finding that is not worth a round is left over,
+   and the promotions entry says so.
 7. **Promote.** The coordinator runs the suite, tags `item-<item>`, runs
    `scripts/deploy_tag.sh plan <tag>` then `deploy <tag>`, verifies live
    (CLAUDE.md, "Definition of done"), and adds the entry to
@@ -99,6 +98,40 @@ One agent runs at a time. They share one working tree.
    test agent saw, the entry names it as untested by an agent.
 8. **Close.** Each agent's workspace is closed once its report is
    committed. Only the coordinator's workspace stays.
+
+## How much testing an item gets (Drew, 2026-11-24)
+
+The suite (`./scripts/run_tests.sh`, about two minutes) runs on every
+change, by every agent, in every tier. What is sized to the item is the
+work around it. The coordinator names the tier in the criteria file, by
+the widest thing the item touches.
+
+| Tier | What it is | Review | Test | After a fix round |
+|---|---|---|---|---|
+| 1 | Tooling, docs, a config or model swap; nothing a request to production runs through | none | one test agent | no second test agent: the coordinator reads the fix's diff against the ruling and the suite's result, and says so in the promotions entry |
+| 2 | A page or a feature on production that is not in tier 3 | when step 3 calls it large | one test agent | a fresh narrow test only if the first test found a blocker; otherwise as tier 1 |
+| 3 | The pipeline, routing, the shims, the agent loop, voice, or anything that moves, migrates or deletes stored data | always | a test agent | always a fresh test agent, narrow: the diff, the criteria it touches, the suite |
+
+In tier 1 and 2 the coordinator grades a test's findings itself; the
+brief's "blocker" list is a guide, and a finding with no effect in use is
+a should-fix whatever the list says.
+
+**The watch on this rule.** Drew: "let's be observant going forward. If
+we create a lot of bugs, we'll need to go back to full testing for
+everything". An *escape* is a fault found after promotion, in an item
+that was promoted under tier 1 or 2, that a second test round or a design
+review of that item would plausibly have caught. Each one is recorded
+where the item's promotion is recorded, with what would have caught it.
+At the second escape within any ten promoted items, or at the first one
+that broke voice, chat or stored data, the coordinator stops using the
+tiers, runs every item as tier 3, and tells Drew in the same report. Only
+Drew turns the tiers back on. The count of escapes is part of the
+start-of-session report.
+
+Why: M28 (a 730-line helper that no production request touches) got a
+build, a full test, a fix round and a second full test; its two
+"blockers" were a workspace left behind when a disk is full and a
+gitignored cache file.
 
 `/work` (work item M27, `docs/features/work-page.md`) shows this workflow's
 state, read every minute from the step files in `docs/sprint/`, the
