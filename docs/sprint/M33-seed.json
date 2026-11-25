@@ -48,8 +48,7 @@
    "state": "queued",
    "tier": 3,
    "position": 1,
-   "next_step": "design review, then build",
-   "note": "runs on the tool between M33's two steps"
+   "next_step": "design review, then build"
   },
   {
    "id": "M31",
@@ -61,15 +60,24 @@
    "id": "M32",
    "state": "queued",
    "tier": 2,
-   "position": 2,
-   "after": "M33",
+   "position": 3,
+   "after": "M34",
    "next_step": "design review, then build"
   },
   {
    "id": "M33",
    "state": "active",
    "tier": 3,
-   "next_step": "step 1 build"
+   "next_step": "fix round 1, a narrow test, then the live import"
+  },
+  {
+   "id": "M34",
+   "state": "queued",
+   "tier": 3,
+   "position": 2,
+   "after": "M33",
+   "title": "/work drawn from the work-state database",
+   "next_step": "criteria (M33-criteria.md, 'Step 2'), then build in scratch and move in one step"
   }
  ],
  "matters": [
@@ -416,6 +424,14 @@
    "state": "open",
    "how": null,
    "text": "YouTube Music is down in Music Assistant until upstream ships the yt-dlp fix (ROADMAP entry; check yt-dlp/ejs#80 at each session start)"
+  },
+  {
+   "kind": "decision",
+   "item": null,
+   "owner": "drew",
+   "state": "open",
+   "how": null,
+   "text": "Stalled sessions: on 2026-11-24 the coordinator's turn hit an API 529 after an agent finished and sat idle for eight hours. Which recovery do you want (a watchdog that nudges the coordinator pane, or accept)?"
   }
  ]
 }

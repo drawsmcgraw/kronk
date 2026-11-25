@@ -342,3 +342,38 @@ M27's open question on what `/work` may show.
 
 - 2026-11-24, coordinator: the design review's twelve points are all
   taken, as written in "Revised after the review". Two steps.
+- 2026-11-25, coordinator, on step 1's test (`M33-e2e.md`, PASSES, no
+  blocker, ten should-fix). Tier 3: fix round 1, then a fresh narrow
+  test, then the live import.
+  - **Step 2 becomes its own item, M34**, queued after M30, with M32
+    after M34. M33 is step 1 and is promoted whole. (The test showed a
+    PROMOTIONS heading for "M33 step 1" either promotes all of M33 or
+    invents an item; two items with `after` is the review's own model.)
+    The seed is the coordinator's to change for this.
+  - Fix round 1, all ten: S1 the stage reads a step's grading before its
+    verdict; S2 an active item with no step says so; S3 `resume`, `show`,
+    `queue`, `log` and `check` print stored text on one line with control
+    bytes escaped, and `add`, `note`, `hold`, `drop`, `matter add` refuse
+    text holding a newline or a control byte; S4 the seed is refused for
+    an unknown key anywhere, an item id given twice, a matter naming an
+    unknown item, and a seed state that PROMOTIONS.md overrides is
+    reported in `notes`; S5 every fix line runs as printed from the repo
+    root (`python3 scripts/work.py …`, one command per line, no
+    placeholders or alternatives: where a value is not known the line
+    says what to look up, marked as not a command), every `check` kind
+    has one, and `report-gone` can be cleared (`step note-gone` or the
+    like, recording the commit that deleted the file); S6 `restore-dump`
+    refuses a dump that loads no schema, names the dump, and leaves no
+    file; S7 a dump that cannot be written is said on stderr at the
+    write, exit still 0; S8 a step whose commit is not in HEAD's history
+    is not counted for stage; S9 `matter void <id> --why` strikes a
+    matter entered by mistake (kept in the log, not counted), and a
+    closed escape still counts, which the feature doc says; S10 an
+    imported promotion's time is the promotion commit's time where the
+    file's first commit gives one, else the written date at noon local,
+    never before the item's first step.
+  - Notes N1 (close on an item not active inserts no step and says so),
+    N4 (a refused import leaves no rowless database) and N7 (the
+    `item-<id>` placeholder filled, in `resume`) are done in the same
+    round. N2, N3, N5, N6 are left over.
+
