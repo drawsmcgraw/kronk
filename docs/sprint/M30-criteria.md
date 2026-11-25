@@ -143,8 +143,8 @@ Plan doc: this file. Design review before build.
 5. The file is mode 600 and under `data/` only; no transcript text is
    written anywhere else (not the journal, not a temp file left behind,
    not a log line). `git status` stays clean.
-6. (Held with M29, see Rulings; until then the test agent checks these
-   in a browser by hand.) Page tests pin: folded on first load; the summary;
+6. (M29 dropped, see Rulings: checked by the test agent in a browser by
+   hand.) The page shows: folded on first load; the summary;
    markup in `heard`, `reply`, satellite and rule stays text; the filter
    and the switch; state kept across `loadAll()`; "not recorded"; the
    stale and missing states; 200 rows then "show older".
@@ -167,6 +167,6 @@ Plan doc: this file. Design review before build.
 ## Rulings
 
 - 2026-11-24, coordinator: the store is SQLite, not a JSON file (point
-  1). "the file" in the criteria below reads as "the database". M29 is
-  held on Drew's question whether it is needed; this item does not wait
-  for it.
+  1). "the file" in the criteria below reads as "the database". M29
+  (page-script tests in a browser) was dropped by Drew on 2026-11-24;
+  criterion 6 is checked by the test agent in a browser by hand.
