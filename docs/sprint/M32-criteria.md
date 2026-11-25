@@ -95,8 +95,9 @@ what, the why and the queue come from the database.
     mark) is one small script file other pages can load; only `/work`
     uses it here. `/resources` on the stream is a later item.
 11. What may show on the LAN: what, why and Drew's words for each item,
-    as the criteria files have them. Report text, rulings and transcripts
-    stay off, as before.
+    as the criteria files have them. Report text and rulings stay off,
+    as before. (What Whisper heard is on the page by Drew's order, in
+    M30's "Heard" section; that is not this line's subject.)
 
 ## Criteria
 
