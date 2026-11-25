@@ -437,7 +437,8 @@ def test_m33_restored_from_the_tar_the_work_database_passes_and_resumes_the_same
     c.close()
     tool(restored, "dump")                              # the runbook's step: the dump is not in the tar
     tool(live, "note", "M1", "--next", "a write after the tar")
-    head = lambda db: tool(db, "resume").split("\n", 1)[1].split("== Last five writes")[0]
+    # (fix lines name their --db since M33 fix round 1: the path is not compared)
+    head = lambda db: tool(db, "resume").split("\n", 1)[1].split("== Last five writes")[0].replace(str(db), "<db>")
     a, b = head(live), head(restored)
     assert a.replace("next step: a write after the tar", "next step: -") == b
     assert "Daily copies?" in b

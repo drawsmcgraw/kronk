@@ -1416,3 +1416,21 @@ def test_m33_a_launch_in_a_temp_repo_leaves_the_live_path_alone(at, capsys, repo
     assert run(at, capsys, "close", "m9-build")[0] == 0
     after = {p.name: (p.stat().st_mtime_ns, p.read_bytes()) for p in live.parent.iterdir()}
     assert after == before
+
+
+@pytest.mark.parametrize("committed", [False, True])
+def test_m33_close_on_an_item_not_active_writes_no_step_and_says_so(at, capsys, repo, brief, herdr, committed):
+    """M33 fix round 1, N1: `step start` refuses an item that is not active,
+    and so does close, with the report committed or not."""
+    wk = _load("m28_work_tool_n1", REPO / "scripts" / "work.py")
+    db = os.environ["KRONK_WORK_DB"]
+    assert wk.main(["--db", db, "--repo", str(repo), "add", "--title", "queued one"], out=io.StringIO()) == 0
+    rc, out, err = launch(at, capsys, repo, brief, "M10", "build", "--report", "docs/sprint/M10-build.md")
+    assert rc == 0 and "M10 is queued, not active" in err
+    if committed:
+        commit(repo, {"docs/sprint/M10-build.md": "# r\n"})
+    herdr.set_status("m10-build", "idle")
+    rc, out, err = run(at, capsys, "close", "m10-build")
+    assert rc == 0, err
+    assert "work state not recorded (M10 build round 1)" in err and "M10 is queued, not active; no step written" in err
+    assert [s for s in steps() if s["item_id"] == "M10"] == []

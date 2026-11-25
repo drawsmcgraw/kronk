@@ -7,7 +7,8 @@ have a real work queue … it saves state and means any session with you can
 pick up where we left off". Criteria and evidence:
 `docs/sprint/M33-criteria.md` (the section "Revised after the review"
 decides), `M33-review.md` (Appendix A, the schema; Appendix C, where rows
-and evidence disagree), `M33-seed.json`, `M33-build.md`.
+and evidence disagree), `M33-seed.json`, `M33-build.md`, `M33-e2e.md`,
+`M33-fix1.md` (fix round 1: the ten should-fix of the test).
 
 ## What it does
 
@@ -18,9 +19,9 @@ resume`, tells a fresh session where things stand. The prose stays in
 files: criteria, reviews, build, test and fix reports, ROADMAP.md,
 WORKFLOW.md, the feature docs.
 
-Step 1 adds the store and the tools. `/work` is not touched: it still reads
-the files (`scripts/work_export.py`, M27). Step 2 moves `/work` onto the
-database, after M30 has been run on the tool.
+M33 adds the store and the tools. `/work` is not touched: it still reads
+the files (`scripts/work_export.py`, M27). Moving `/work` onto the
+database is its own item, M34, after M30 has been run on the tool.
 
 | Command | Does |
 | :-- | :-- |
@@ -33,9 +34,11 @@ database, after M30 has been run on the tool.
 | `note ITEM [--next] [--waits drew\|outside\|item --waits-note] [--tier]` | the coordinator's next step and what the item waits on |
 | `step add ITEM KIND` | a coordinator step (criteria), once its file is committed |
 | `step start\|finish\|stop\|refresh ITEM KIND [--round N]` | agent steps; `agent.py` calls these itself |
+| `step note-gone ITEM KIND [--round N]` | a step whose report was deleted from HEAD: records the commit that deleted it, so `check` stops naming `report-gone` |
 | `grade ITEM pass\|fail` | the coordinator's grading of a test, when it rules |
 | `promote ITEM... (--tag T\|--no-tag) --deployed yes\|no` | the promotion row; the checks are in `docs/sprint/<item>-promote.md`, committed |
 | `matter add KIND --owner drew\|coordinator --text`, `matter close ID --how`, `matter list` | leftovers, decisions, escapes: one list |
+| `matter void ID --why` | strikes a matter entered by mistake, open or closed: the row stays, closed as `void: <why>`, the log keeps what it was, and nothing counts it |
 | `log [--item] [--day] [--limit]` | the change log |
 | `check` | read-only: every disagreement between rows and git, herdr, the files |
 | `resume` | plain text, for a session with no context |
@@ -46,6 +49,14 @@ Every answer is JSON lines on stdout except `resume`. Exit 1 is a refusal;
 exit 2 is a database that is missing, empty, corrupt, locked or from a
 newer schema (one stderr line naming which); `check` exits 3 when it found
 something.
+
+Text that is stored is one line. `add`, `note`, `hold`, `drop` and `matter
+add` refuse a newline or a control byte in what they are given (C0, DEL,
+C1, U+2028, U+2029: a tab too). What is already stored is printed on one
+line anyway: `resume` escapes every control byte in every value it prints
+(`\n`, `\x1b`, `\u2028`), and the JSON lines escape the ones `json.dumps`
+leaves raw (DEL, C1, U+2028, U+2029). A row cannot pass for one of the
+tool's own headings or fix lines.
 
 ## How
 
@@ -64,7 +75,14 @@ something.
   place in its life only: `queued`, `held`, `active`, `promoted`,
   `dropped`. **The stage is never stored**: `resume` computes it with
   `work_export.stage()`, the function `/work` uses, from the finished step
-  rows, the promotion row, the tags and herdr.
+  rows, the promotion row, the tags and herdr. `work_export.py` is not
+  edited for it (the page runs from that file); `work.py` adds three
+  things around it: a test the coordinator graded reads its grading
+  before its verdict (graded pass is "to promote", graded fail "waiting
+  for the coordinator", both words in the detail: `test 2: FAILS, graded
+  pass`); a step whose commit is not in HEAD's history is not counted; an
+  item with no finished step says "no finished step recorded"; and the
+  tag in "tag item-M7 exists" is named.
 - **One writer.** Every writing command is one `BEGIN IMMEDIATE`
   transaction (busy timeout 10 s here, 2 s from `agent.py`), so two writers
   queue instead of failing: 400 read-then-write commands from two
@@ -77,6 +95,12 @@ something.
   `work.db.dump.sql` (temp file, rename, mode 600). The write lock is
   held, so two writers cannot leave an older dump over a newer one.
   `restore-dump` builds a new file from it, checks it and moves it in.
+  A dump that loads no schema (one cut at a statement boundary leaves its
+  transaction without a `COMMIT`) is refused, naming the dump, and leaves
+  no file and no directory. A dump that cannot be written is said on
+  stderr at the write ("the change is committed, but the dump … was not
+  written"); the command still exits 0, and `work.py dump` writes it
+  again.
 - **Evidence is copied, never typed.** There is no `--verdict` and no
   `--commit`. A step's commit is the last commit that touched its report;
   a test's verdict is read from the committed report by `work_export`'s
@@ -90,10 +114,10 @@ something.
   `agent_closed`; it holds no SQL. It writes only when the database
   describes the repo the agent was launched in, so a launch in a
   temporary repo (every M28 test) never touches the real file.
-- **`check`** names, one line each with the command that settles it: a
+- **`check`** names, one line each with its fix line (below): a
   step started with no live agent; an agent working with no step (a
-  failed write, a hand start), with the `step start --at <launch time>`
-  that closes the hole; a started step whose report is already in; a
+  failed write, a hand start), with the `step start --at` (agent.py's
+  launch time) that closes the hole; a started step whose report is already in; a
   verdict the report no longer says; a step commit outside the branch; a
   tag with no promotion, a promotion whose tag is gone; a criteria or step
   file with no row; a promotion since the import with no ROADMAP Shipped
@@ -101,6 +125,15 @@ something.
   of another repo. For what git or herdr can show, the evidence wins; for
   what only the coordinator knows (order, held, dropped, waits on, next
   step, grading), the row wins.
+- **Fix lines.** Every kind `check` names has one, and it is either one
+  command that runs as printed from the repo root (`python3
+  scripts/work.py …`, with `--db` and `--repo` when the run had ones the
+  defaults would not find, or `git …`), or, where a value only the
+  coordinator knows is missing (was the tag deployed? when was a hand-
+  started agent launched?), a line starting `not a command:` that says
+  what to look up and then what to run. No placeholders, no `a|b`, no two
+  commands on one line. A `step stop` line carries the finding as its
+  `--why`; a `file-no-item` line carries the file's title.
 - **`resume`** prints, in order: `check`'s findings; what is under way
   (tier, stage, agent and minutes, last finished step with verdict and
   grading, next step, waits on); the queue (next step, waits on, after,
@@ -115,7 +148,14 @@ something.
   `parse_promotions()`, and takes the tags reachable from it. What no
   parser can recover comes from the seed: tiers, gradings, deployed or
   not, the dropped item, the queue, and the triage of the six "Held or
-  left over" blocks. The older table cells and "Not done" bullets become
+  left over" blocks. The seed is refused for a key it does not know at any
+  level, an item given twice (in any case), or a matter naming an item
+  nothing knows; a seed state that PROMOTIONS.md overrides is said in
+  `notes`. An imported promotion's time is that of the commit that first
+  added its line to PROMOTIONS.md when that commit falls on the date the
+  line gives, else that date at noon local, and never before the first
+  step of an item it promotes. A refused import leaves no file and no
+  directory it made. The older table cells and "Not done" bullets become
   one untriaged leftover each, "see PROMOTIONS.md:<line>". It fills an
   empty database only, and prints counts: every tag on a promotion or
   listed, every `M*.md` a step's report or listed. `--compare` checks the
@@ -140,10 +180,18 @@ something.
 - **There is no nightly backup.** The config tar is monthly (the 10th).
   The dump covers a corrupt file or a bad write; the tar covers a lost
   disk, a month old at worst. Whether to copy daily is asked of Drew.
-- **The stage can say "waiting for the coordinator: test 2: FAILS" for an
-  item the coordinator has graded a pass.** The stage is the pure function
-  of the evidence; `resume` prints the grading and the next step beside
-  it. Read them together.
+- **The grading decides the stage, the verdict stays in it.** M28's second
+  test read FAILS and was graded pass: its stage reads "to promote (test
+  2: FAILS, graded pass)". `/work` (still from `work_export.py`) does not
+  know gradings and says "waiting for the coordinator" for the same item
+  until M34.
+- **A closed escape still counts.** It happened; closing it records what
+  was done about it. Only `matter void`, for one entered by mistake,
+  takes it out of the count of the last ten promoted items.
+- **A launch or a close on an item that is not active writes no step**,
+  and says so on stderr (`M30 is queued, not active`); `work.py start` it
+  first. (`status` and `wait` on such an agent still insert a finished
+  step when its report is committed: left over from fix round 1.)
 - **`resume` runs herdr once.** With herdr down it says so and computes
   stages without agents.
 - **One coordinator at a time.** SQLite cannot see two sessions acting on
