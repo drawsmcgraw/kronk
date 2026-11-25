@@ -170,9 +170,23 @@ Plan doc: this file. Design review before build.
   1). "the file" in the criteria below reads as "the database". M29
   (page-script tests in a browser) was dropped by Drew on 2026-11-24;
   criterion 6 is checked by the test agent in a browser by hand.
-- 2026-11-24, coordinator, on Drew's "be sure that the db you're using is
-  added to any backup routines": `voice_runs.db` is a copy of what Tempo
-  holds and is rebuilt from it by one full read (about 18 s), so it is
-  not added to the backup sets; adding it would put household speech on
-  the NAS share in the clear for the first time. The work-state database
-  (M33) is backed up. Reported to Drew to reverse if he wants it.
+- 2026-11-24, Drew: "i want to build a dataset of househould voice
+  utterances because it will be useful for future work. back up the
+  transcript db." This reverses two of the coordinator's decisions:
+  - `data/voice_runs.db` is the household's lasting record, not a copy
+    of Tempo. Plumbing point 2's "deletes rows older than Tempo's
+    retention" is struck: no row is ever deleted by the exporter; a run
+    Tempo has dropped keeps its row. The page still renders the newest
+    200 and pages back through all of it.
+  - It is added to `scripts/backups.py`'s list as a `sqlite` member,
+    marked secret, in the nightly and the NAS sets, with a restore shown
+    from a backup tar (a new criterion 10). CLAUDE.md's "Secrets" note
+    on the NAS share gains household speech. The build agent says what
+    else in the backup path now holds transcript text (a status file, a
+    log line naming rows) and keeps it to none.
+  - For the dataset: each row keeps the run id and trace id (the join to
+    the captured audio of `docs/features/voice-capture.md`, where a
+    recording exists; the reviewer says whether the recording's path
+    should be a column), the wrong-action mark, and the time the row was
+    first and last written. The first full read takes everything Tempo
+    still holds (from 2026-11-08; text from 2026-11-17).
