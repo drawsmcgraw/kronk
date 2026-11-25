@@ -291,3 +291,65 @@ this Kronk asked of each one in the last 24 hours.
     (`M25-e2e2.md`, S2). On `/dev/services` the probe dots are
     production's. `README.md`'s model table no longer carries memory.
 
+## M27 (/work, the work items in a page), 2026-11-24
+
+/work shows the backlog, each work item under way with its stage, and
+what is done, read from the files that already hold it.
+
+- Tag `item-M27` (`44bb86b`). `scripts/deploy_tag.sh deploy item-M27` at about
+  19:40 local: the same six containers; HA (up 7 days), MA (up 2 weeks),
+  `wyoming-piper` and the dev pair untouched; `/api/status` and the shim
+  ok. Two satellites idle, one unavailable; nothing playing; no
+  production request in the 90 s before.
+- On the host, by the coordinator before the test:
+  `kronk-work-export.timer` installed and enabled (18:25). Every 60 s it
+  runs `scripts/work_export.py` from the working tree and writes
+  `data/work.json` and `data/dev/work.json` (0.07 s, about 80 KB). It runs
+  three read-only git commands that take no lock and one `herdr agent
+  list`. Remove: `systemctl --user disable --now kronk-work-export.timer`.
+- Verified on production: `/api/work` fresh (34 s), schema 1, no errors,
+  herdr known with 0 agents skipped, "coordinator: working"; 30 items, 30
+  done rows, the backlog as 2, 6, 5 and 1 entries under ROADMAP's own
+  section names; `/work`, `/services` (with its Work link) and
+  `/resources` 200; 20 requests to `/api/work` put 0 completion lines in
+  the three llama units' journals; a question answers on `/api/chat`
+  (1.1 s) and `/voice/api/chat` (1.2 s).
+- The page followed this item through its own promotion: "testing, agent
+  m27-test working" during the first test and "to promote, test 1:
+  PASSES" a minute after it stopped (two reads 65 s apart); "promoting"
+  once the tag existed; this entry moves it to Done.
+- Test: a design review before the build (26 points, all taken: an agent
+  counts only while it is working; the exporter may not run `git status`,
+  which takes the index lock agents need; Shipped entries' text is kept
+  off the page); passed the first test with no blocker (`M27-e2e.md`);
+  one fix round by ruling, for what can blank the page and for what is
+  seen first; passed the second (`M27-e2e2.md`). Nothing was changed
+  after the last test. Suite `7684 passed, 3 skipped, 54 xfailed`.
+- Not checked on production: the page in a browser (both tests rendered
+  dev's). For Drew to look at.
+- Held or left over:
+  - **For Drew:** the open `ROADMAP.md` entries are whole on a page any
+    device on the LAN can open (folded to a sentence, one click to open).
+    "Voice accuracy" quotes three mis-heard utterances with a run id;
+    "Build workflow" says agents run with permissions skipped; others
+    give the Home Assistant version and what is down. No secret value is
+    on the page. Say if any of it should stay off.
+  - The naming of agents (`<item>-<role>`, role one of review, build,
+    test, fix) and the closing of finished workspaces now decide what the
+    page says. A test agent named `-e2e` lands under "Other agents".
+  - No test runs the page's script. The rule that only `https://` becomes
+    a link is held by a browser run alone (`M27-e2e2.md` S2). Close this
+    first, with the same gap on `/resources`.
+  - An agent name holding invalid Unicode stops the export's write and
+    the page goes STALE (S1; herdr sends none today). A row label's
+    right-hand boundary has no test (S3). A promotions table placed
+    straight after a heading entry is read as that entry's body; a
+    `### Mxx` heading inside another item's entry promotes Mxx (notes).
+  - The "promoting" stage's detail reads `tag item-<id> exists` with the
+    placeholder unfilled.
+  - `kronk-context.md` still says `/api/servers` probes LiteLLM's health;
+    false since M25.
+  - An edit to `scripts/work_export.py`, or to the shape of a file it
+    reads, is live on production's page within a minute. A STALE `/work`
+    after an edit under `docs/sprint/` means the exporter threw.
+

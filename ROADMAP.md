@@ -55,14 +55,6 @@ Conventions:
   plays a seed only on an explicit create. No new MA code; the song-title seed ranking
   goes upstream (`INVESTIGATION_2026-11-07_ma_pandora_and_ui.md`).
   *Why: four radio misfires in three weeks, two of them wrong successes.*
-- **`/work`: the work items in a page** *(work item M27, ordered
-  2026-11-24; after M26)* — Drew: "i want to be able to track this work in
-  a UI. A backlog, currently working (planning/reviewing/implementing/
-  testing/etc), what's already been worked". A page at `kronk/work`
-  showing the backlog, each item under way with its stage, and what is
-  done. Read from the files that already hold it (`ROADMAP.md`,
-  `docs/sprint/`'s criteria, review, build, test and fix reports,
-  `PROMOTIONS.md`), so there is no second place to keep up to date.
 - **Remove Ollama: the deletes** — the unit is stopped and the library
   directory renamed aside (Drew, 2026-11-24); dev Whisper and Talkie
   started clean without it. Left, with sudo: `/usr/share/ollama` (241 GB),
@@ -163,6 +155,13 @@ Conventions:
 
 Newest first; feature docs in `docs/features/`.
 
+- **`/work`: the work items in a page** *(2026-11-24, work item M27)* —
+  the backlog, each work item under way with its stage (planning,
+  reviewing, implementing, testing, fixing, waiting, promoting), and what
+  is done, at `kronk/work`. Read every minute from `ROADMAP.md`, the step
+  files under `docs/sprint/`, `PROMOTIONS.md`, git tags and herdr's list
+  of agents; nothing is kept twice. `docs/features/work-page.md`,
+  `docs/sprint/PROMOTIONS.md`, "M27".
 - **/resources shows real usage** *(2026-11-24, work item M25)* — every
   figure on the page is measured or read from the running server (context,
   slots, model file, GPU memory and RAM per process, model files on disk,
