@@ -348,6 +348,15 @@ launcher for agents; charts; notifications; changing the shape of
   fix round folds each entry to its first sentence, which hides none of
   it from a click.
 
+- 2026-11-24, on the second test (`M27-e2e2.md`, PASSES, no blocker): no
+  further round. S1 (an agent name holding invalid Unicode still stops
+  the write; herdr sends none today), S2 (the rule that only `https://`
+  becomes a link is held by a browser run and by no test: the suite does
+  not run the page's script) and S3 (a row label's right-hand boundary
+  has no test) show on no tree today. Left over, with its notes; S2 is
+  the one to close first, with the page-script gap `/resources` shares.
+  Promote.
+
 Reports: `docs/sprint/M27-review.md` (done), `docs/sprint/M27-build.md`,
 `docs/sprint/M27-e2e.md`, `docs/sprint/M27-fix1.md`,
 `docs/sprint/M27-e2e2.md`.
