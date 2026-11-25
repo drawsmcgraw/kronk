@@ -941,7 +941,8 @@ def test_the_real_import_at_the_build_start(wk, db):
     (s,) = t.j("import-legacy", "--at", IMPORT_AT, "--seed", SEED)
     assert s["counts"] == {"item": 36, "step": 156, "promotion": 32, "promotion_item": 35, "open_thing": 67}
     assert s["matters"] == {"triaged": 43, "untriaged_older_cells": 24}
-    assert s["tags"]["in_git"] >= 28 and not [x for x in s["tags"]["not_on_a_promotion"] if not x.startswith("item-M3")]
+    at_tags = git(REPO, "tag", "--merged", IMPORT_AT).stdout.split()
+    assert len(at_tags) == 28 and not set(at_tags) & set(s["tags"]["not_on_a_promotion"])
     assert s["files"]["not_a_report"] == ["PROMOTIONS.md", "WORKFLOW.md"]
     tags = {r["id"]: r["tag"] for r in t.sql("SELECT pi.item_id AS id, p.tag FROM promotion p JOIN promotion_item "
                                              "pi ON pi.promotion_id = p.id WHERE p.kind = 'promotion'")}
