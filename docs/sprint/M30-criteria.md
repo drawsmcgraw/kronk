@@ -11,8 +11,7 @@ voice run Tempo still holds, newest first, with what Whisper heard, what
 answered and what was said back; and production Whisper starts without
 contacting anyone.
 
-Plan doc: this file. Design review before build. Built after M29, so the
-section lands with page tests.
+Plan doc: this file. Design review before build.
 
 ## What the investigation found (coordinator, 2026-11-24)
 
@@ -55,19 +54,25 @@ section lands with page tests.
 ## Plumbing (coordinator's decisions)
 
 1. A host exporter, `scripts/voice_runs_export.py`, on a new user timer
-   `kronk-voice-runs-export.timer` (every 60 s), writes
-   `data/voice_runs.json` and `data/dev/voice_runs.json`, mode 600,
-   atomically. It imports the listing from `scripts/voice_transcripts.py`
-   (one source for how a run is read; that script's CLI and its refusal
-   of `--out` inside the repo stay as they are, and the exporter's header
-   says why it is the one exception: Drew's order, a gitignored
-   directory, the same words Grafana already shows).
+   `kronk-voice-runs-export.timer` (every 60 s), keeps a SQLite database,
+   `data/voice_runs.db` and `data/dev/voice_runs.db`, mode 600: one table
+   of runs keyed by run id, one row of export state (last run, last full
+   read, the last error). A database, not a JSON file (revised 2026-11-24
+   after Drew's "we need to move our information to a database"): the
+   export is an upsert by key, the route pages and filters by query, and
+   `metrics.db` is the precedent for a SQLite file the orchestrator reads.
+   The orchestrator opens it read-only (`mode=ro`); the exporter is the
+   only writer, in WAL mode so a read never blocks it. The exporter
+   imports the listing from `scripts/voice_transcripts.py` (one source for
+   how a run is read; that script's CLI and its refusal of `--out` inside
+   the repo stay as they are, and the exporter's header says why it is
+   the one exception: Drew's order, a gitignored directory, the same
+   words Grafana already shows).
 2. Cost: the first run reads everything Tempo holds; each later run reads
-   the last 24 hours and merges by run id into the file, and drops rows
-   older than Tempo's retention. A full re-read once a day (marks are
-   added to a run after the fact; a mark later than 24 h is rare but
-   real). A run must finish in under 5 s except the full one; the timer
-   never overlaps itself.
+   the last 24 hours and upserts, and deletes rows older than Tempo's
+   retention. A full re-read once a day (marks are added to a run after
+   the fact; a mark later than 24 h is rare but real). A run must finish
+   in under 5 s except the full one; the timer never overlaps itself.
 3. "All the stt transcriptions" is read as: every run with a
    speech-to-text stage that Tempo holds, from both pucks' pipelines.
    The household's runs show by default. Dev runs with audio ("Hey
@@ -82,8 +87,10 @@ section lands with page tests.
    without text has `heard: null` and its length, shown as "not
    recorded". Nothing else from the span.
 5. The route: `/api/work` is not changed (its keys are read by deployed
-   pages). A new `/api/voice_runs` in `orchestrator/work_api.py` returns
-   the file with the same fresh/stale/missing envelope `/api/work` uses.
+   pages). A new `/api/voice_runs` in `orchestrator/work_api.py` answers from
+   the database (newest first, `limit`, `before`, `q`, `wrong_only`,
+   `include_dev`; the summary counts in the same answer) with the same
+   fresh/stale/missing envelope `/api/work` uses.
    No call to Tempo, HA or a model from the orchestrator.
 6. The page: a `<details>` section "Heard", first on `/work`, closed on
    first load. Its summary line shows without opening: runs in the last
@@ -136,7 +143,8 @@ section lands with page tests.
 5. The file is mode 600 and under `data/` only; no transcript text is
    written anywhere else (not the journal, not a temp file left behind,
    not a log line). `git status` stays clean.
-6. Page tests (M29's harness) pin: folded on first load; the summary;
+6. (Held with M29, see Rulings; until then the test agent checks these
+   in a browser by hand.) Page tests pin: folded on first load; the summary;
    markup in `heard`, `reply`, satellite and rule stays text; the filter
    and the switch; state kept across `loadAll()`; "not recorded"; the
    stale and missing states; 200 rows then "show older".
@@ -158,4 +166,7 @@ section lands with page tests.
 
 ## Rulings
 
-(none yet)
+- 2026-11-24, coordinator: the store is SQLite, not a JSON file (point
+  1). "the file" in the criteria below reads as "the database". M29 is
+  held on Drew's question whether it is needed; this item does not wait
+  for it.

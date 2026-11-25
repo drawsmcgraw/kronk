@@ -128,4 +128,7 @@ Plan doc: this file. Design review before build.
 
 ## Rulings
 
-(none yet)
+- 2026-11-24, coordinator: HELD. Drew: "tell me more about m29. maybe we
+  don't actually need to do this?" Not started; no agent launched. The
+  coordinator's recommendation is to drop it (reported to Drew the same
+  day).
