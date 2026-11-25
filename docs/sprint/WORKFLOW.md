@@ -170,35 +170,62 @@ items of the 2026-11 run failed their first independent test with a green suite.
 
 ## Launching an agent in herdr
 
-The coordinator must be inside herdr (`test "${HERDR_ENV:-}" = 1`). The
-brief goes in a file in the session scratchpad, not on the command line.
+Use `scripts/agent.py` (work item M28, `docs/features/agent-tool.md`).
+Each subcommand is one step the coordinator chooses to take; none of them
+runs the whole life of an agent. Each answers in one line of JSON on
+stdout (`peek` prints the pane as text); a refusal or a herdr error is one
+line on stderr and exit 1. The coordinator must be inside herdr. The brief
+goes in a file in the session scratchpad, not on the command line, and
+does not carry the guard rails: `launch` appends the section below, whole,
+read from this file at launch, and there is no option to leave it out.
 
 ```bash
 S=<scratchpad directory>
-P=$(herdr workspace create --label m24-build --cwd "$PWD" --no-focus \
-  | python3 -c 'import json,sys;print(json.load(sys.stdin)["result"]["root_pane"]["pane_id"])')
-herdr agent start m24-build --kind claude --pane "$P" --timeout 60000 -- \
-  --model claude-opus-5-5 --effort high --dangerously-skip-permissions
-herdr agent prompt m24-build "$(cat $S/m24-build.txt)" --wait --timeout 25000
-herdr agent get m24-build    # agent_status should be "working"
+A=scripts/agent.py
+$A launch M24 build --brief $S/m24-build.txt --report docs/sprint/M24-build.md
+$A status m24-build           # where the agent and its work stand
+$A wait m24-build             # run in the background; exit 0 done, 2 time limit, 3 stopped
+$A peek m24-build             # the last 40 lines of its pane
+$A prompt m24-build --file $S/m24-followup.txt
+$A close m24-build            # once its report is committed
+$A list                       # every agent the tool launched and still knows
 ```
 
-For a test agent the last line of `agent start` is
-`--model claude-fable-5-2 --effort medium --dangerously-skip-permissions`.
+The role sets the model: `build` and `fix` run Opus 5.5 at effort high;
+`test`, `review` and `investigate` run Fable 5.2 at effort medium; all
+with permissions skipped. `--model` and `--effort` override. The name is
+`<item>-<role>`, with `--round N` adding the number from round 2 on
+(`m24-test2`; fix round 1 is `m24-fix`, round 2 `m24-fix2`), which is the
+name `/work` reads a stage from. An `investigate` agent is shown under
+"Other agents". `--probe` names an agent `<item>-probe-<role>`, which
+`/work` does not put on the item, for trying the tool itself.
+
+`launch` refuses, changing nothing, when an agent or workspace of that
+name exists, when another agent the tool launched is `working`
+(`--parallel` allows it, for an investigation beside a build), and when
+the brief or the guard rails section is missing or empty. The
+coordinator's own pane and agents started by hand are not in the tool's
+state and do not count.
+
+`done` in `status` and `wait` is: herdr says `idle` or `done`, `git status
+--porcelain` is empty, and the report named with `--report` (at launch,
+`status` or `wait`) is in HEAD and was added or changed since the launch.
+`wait` exits 3 when the agent is `blocked` or gone, or has sat idle for
+five minutes (`--idle-limit`) with that not true: an agent that stopped
+early or stopped to ask. The coordinator then peeks and decides. The
+default time limit is 3 h (`--timeout`, seconds). Git is read with
+optional locks off, so a poll never makes an agent's commit fail.
 
 Things that went wrong, and what to do:
 
-- `agent prompt --wait --timeout 25000` returns a timeout error on a long
-  job. That is expected. Check that the status is `working`.
-- Wait for the agent with a background loop on three conditions together:
-  the report file is committed, `git status --porcelain` is empty, and the
-  agent's status is `idle` or `done`. Do not poll by hand.
 - A prompt sent to an agent that has sat idle for a long time may not
-  arrive (it was compacted). After any follow-up prompt, check the status
-  moved to `working`; if not, send it again from a file.
+  arrive (it was compacted). `prompt` checks the status moved to
+  `working` and sends once more if not; its answer says `"sent": "once"`
+  or `"twice"`. If it is still not working after two, peek before sending
+  anything else.
 - Read the agent's report from the committed file, not from the pane.
-- Close with `herdr workspace close <workspace id>`, only workspaces the
-  coordinator created.
+- `close` closes only the workspace the tool recorded at launch, and
+  refuses while the agent is `working` unless `--force`.
 
 ## Guard rails in every brief
 
