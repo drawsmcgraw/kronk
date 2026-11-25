@@ -47,11 +47,10 @@ Each model runs as a separate `llama-server` instance bound to `127.0.0.1` on th
 
 | Service | Model | Port | GGUF | Agents |
 |---|---|---|---|---|
-| `llama-gemma4-e4b` | gemma-4-e4b | 11438 | `google/gemma-4-E4B-it-qat-UD-Q4_K_XL-202607.gguf` (+ MTP drafter) | coordinator, research, home, assistant |
-| `llama-devstral-q4` | devstral-2512-q4 | 11440 | `mistralai/mistralai_Devstral-Small-2-24B-Instruct-2512-Q4_K_M.gguf` | coding, devops |
+| `llama-gemma4-e4b` | gemma-4-e4b | 11438 | `google/gemma-4-E4B-it-qat-UD-Q4_K_XL-202607.gguf` (+ MTP drafter) | coordinator, research, home, assistant, coding, devops |
 | `llama-talkie` | talkie | 11441 | `talkie-1930-13b-it-Q8_0.gguf` (in `~/model-staging/talkie-lm/`), CPU only | talkie (only when asked for by name) |
 
-Units in `~/.config/systemd/user/llama-*.service`. GPU: AMD Radeon 8060S (gfx1151); the two GPU units use a Vulkan build of llama.cpp, Talkie a ROCm build run on the CPU only (`--device none -ngl 0`). Bind to `127.0.0.1` — only the host-network `litellm` can reach them. The four other servers (gemma-3-4b, bonsai-8b, mistral-nemo, devstral-2512 Q8) were retired 2026-11-24.
+Units in `~/.config/systemd/user/llama-*.service`. GPU: AMD Radeon 8060S (gfx1151); the GPU unit uses a Vulkan build of llama.cpp, Talkie a ROCm build run on the CPU only (`--device none -ngl 0`). Bind to `127.0.0.1` — only the host-network `litellm` can reach them. The four other servers (gemma-3-4b, bonsai-8b, mistral-nemo, devstral-2512 Q8) were retired 2026-11-24, and the Devstral Q4 server (devstral-2512-q4, port 11440) the same day (M31): coding and devops moved to gemma-4-e4b.
 
 ---
 
@@ -102,8 +101,8 @@ Defined in `orchestrator/agents.py` (`AGENTS` dict — single source of truth). 
 | research | `web_search`, `fetch_url` | gemma-4-e4b |
 | home | `get_weather`, `shopping_list_*` | gemma-4-e4b |
 | assistant | `get_kronk_context`, `generate_diagram` | gemma-4-e4b |
-| coding | `web_search`, `fetch_url` | devstral-2512-q4 |
-| devops | `remote_exec` (read-only, audited), `http_check` (one GET to any address the host can reach; no body returned); no web tools — research looks things up first | devstral-2512-q4 |
+| coding | `web_search`, `fetch_url` | gemma-4-e4b |
+| devops | `remote_exec` (read-only, audited), `http_check` (one GET to any address the host can reach; no body returned); no web tools — research looks things up first | gemma-4-e4b |
 | talkie | none; a 1930s persona, only when asked for by name ("ask talkie …") | talkie |
 
 Each specialist runs a tool-calling loop (up to 3 plan rounds) then streams a final synthesis. The old regex-based intent detection has been fully replaced by this agentic loop.

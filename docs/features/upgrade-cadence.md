@@ -292,7 +292,6 @@ times production was redeployed.
   `/./api/chat`, `/%61pi/chat`, the absolute form): nginx routes them to
   production and the check does not count them. No household client
   sends these.
-- `/devstral/` traffic; and a Kronk-stack deploy restarts nginx under it.
 - Held runs beyond the ten newest of the dev pipeline: HA's
   `pipeline_debug/list` returns the last ten runs of a pipeline, so a run
   sets aside its own replay's runs by the ids in its result files, and

@@ -29,8 +29,8 @@ WHERE_DEV = ".env.dev or docker-compose.yml (orchestrator-dev); then the dev up 
 ENV = (
     ("COORDINATOR_MODEL", "mistral-nemo:12b", "The coordinator's model (and the default for the agents)"),
     ("RESEARCH_AGENT_MODEL", "COORDINATOR_MODEL", "The research agent's model"),
-    ("CODING_AGENT_MODEL", "devstral-2512", "The coding agent's model"),
-    ("DEVOPS_AGENT_MODEL", "devstral-2512", "The devops agent's model"),
+    ("CODING_AGENT_MODEL", "COORDINATOR_MODEL", "The coding agent's model"),
+    ("DEVOPS_AGENT_MODEL", "COORDINATOR_MODEL", "The devops agent's model"),
     ("TALKIE_MODEL", "talkie", "Talkie's model"),
     ("VOICE_STREAM", "off", "Sentence streaming on the speech mount (/voice/api/chat)"),
     ("MODEL_LOCK", "server", "server: one lock per model server; pipeline: the pre-M9 lock (rollback)"),

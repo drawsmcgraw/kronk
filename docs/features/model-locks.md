@@ -21,8 +21,9 @@ Now:
 - **One lock per model server, held for one generation.** `llm.stream`
   takes the lock of the llama.cpp server its model runs on for the
   duration of one streaming completion and releases it when the stream
-  ends or is closed. Tool calls hold nothing. A request on devstral never
-  waits for one on gemma.
+  ends or is closed. Tool calls hold nothing. A request on Talkie never
+  waits for one on gemma. Since M31 (2026-11-24) the coding and devops
+  agents run on gemma too, so every agent but Talkie shares one lock.
 - **The lock is a priority queue.** Waiting voice requests (the speech
   mount, `/voice/api/chat`) are served before waiting display requests
   (`/message`, `/api/chat`, `/v1/chat/completions`), first come first
@@ -39,7 +40,7 @@ Now:
 
 - Servers are told apart by host and port of each model's `api_base` in
   `litellm/config.yaml` (read once through `servers.load_catalog`):
-  `gemma-4-e4b` → `127.0.0.1:11438`, `devstral-2512-q4` → `127.0.0.1:11440`.
+  `gemma-4-e4b` → `127.0.0.1:11438`, `talkie` → `127.0.0.1:11441`.
   A model not in the catalog gets a lock of its own name.
 - `llm.stream` wraps `llm._stream_body` (the HTTP call) in
   `model_lock.held(lock, server)`. Each round of an agent loop takes and

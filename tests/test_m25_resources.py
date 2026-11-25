@@ -24,7 +24,7 @@ pytestmark = pytest.mark.usefixtures("no_network")
 REPO = Path(__file__).resolve().parent.parent
 STATIC = REPO / "orchestrator" / "static"
 NOW = datetime(2026, 11, 24, 19, 0, 0, tzinfo=timezone.utc)
-CAT = ["devstral-2512-q4", "gemma-4-e4b", "talkie"]
+CAT = ["gemma-4-e4b", "talkie"]
 
 
 @pytest.fixture
@@ -55,9 +55,9 @@ def test_no_rows(db):
 
 
 def test_rows_only_older_than_the_window_count_nothing_but_last_used_shows(db):
-    db("devstral-2512-q4", datetime(2026, 8, 29, 14, 2, 3), 900, 40)
-    db("devstral-2512-q4", NOW - timedelta(hours=24, seconds=1), 100, 10)
-    d = _by(metrics.activity(CAT, now=NOW))["devstral-2512-q4"]
+    db("talkie", datetime(2026, 8, 29, 14, 2, 3), 900, 40)
+    db("talkie", NOW - timedelta(hours=24, seconds=1), 100, 10)
+    d = _by(metrics.activity(CAT, now=NOW))["talkie"]
     assert (d["requests"], d["prompt_tokens"], d["completion_tokens"]) == (0, 0, 0)
     assert d["last_used"] == "2026-11-23T18:59:59Z"
 
@@ -125,7 +125,7 @@ def test_load_catalog_gives_name_api_base_and_port_only():
         cat = servers.load_catalog()
     assert [c["name"] for c in cat] == CAT
     assert all(set(c) == {"name", "api_base", "port"} for c in cat)
-    assert {c["port"] for c in cat} == {11440, 11438, 11441}
+    assert {c["port"] for c in cat} == {11438, 11441}
 
 
 # ── the pages (criterion 10, the parts a file can show) ───────────────────

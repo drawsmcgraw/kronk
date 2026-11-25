@@ -253,8 +253,8 @@ services:
       - KRONK_RELEASE=${KRONK_RELEASE:-working tree}
       - COORDINATOR_MODEL=gemma-4-e4b
       - RESEARCH_AGENT_MODEL=gemma-4-e4b
-      - CODING_AGENT_MODEL=devstral-2512-q4
-      - DEVOPS_AGENT_MODEL=devstral-2512-q4
+      - CODING_AGENT_MODEL=gemma-4-e4b
+      - DEVOPS_AGENT_MODEL=gemma-4-e4b
       - TALKIE_MODEL=talkie
       - LOCATION=Laurel, MD
       # User-facing error rendering: debug (full detail: causes, HTTP
@@ -445,6 +445,12 @@ services:
       - SETTINGS_URL_PREFIX=/dev
       - SETTINGS_PASSPHRASE_HASH=${SETTINGS_PASSPHRASE_HASH:-}
       - KRONK_RELEASE=${KRONK_RELEASE:-working tree}
+      # The coding and devops agents' model (M31). Set here as well as in
+      # .env.dev because environment: wins over env_file: an .env.dev
+      # copied before M31 still names devstral-2512-q4, a server that is
+      # gone. To try another model for these two on dev, change it here.
+      - CODING_AGENT_MODEL=gemma-4-e4b
+      - DEVOPS_AGENT_MODEL=gemma-4-e4b
       # Sentence streaming on the speech mount (sprint M8), on for the dev
       # path; production's value is in the orchestrator service above.
       - VOICE_STREAM=on

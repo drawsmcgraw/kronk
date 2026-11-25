@@ -35,9 +35,10 @@ def _catalog() -> list[dict]:
     return (yaml.safe_load(CATALOG.read_text()) or {})["model_list"]
 
 
-def test_catalog_loads_with_the_three_models():
+def test_catalog_loads_with_the_two_models():
+    """Three until M31 retired devstral-2512-q4 (2026-11-24)."""
     names = [e["model_name"] for e in _catalog()]
-    assert names == ["devstral-2512-q4", "gemma-4-e4b", "talkie"]
+    assert names == ["gemma-4-e4b", "talkie"]
 
 
 def test_every_catalog_port_is_served_by_a_unit_in_systemd():
@@ -59,13 +60,12 @@ def test_every_llama_server_unit_has_a_catalog_entry():
     assert not unlisted, f"units in systemd/ the catalog does not list: {unlisted}"
 
 
-def test_systemd_holds_only_the_three_llama_servers_and_the_props_export():
+def test_systemd_holds_only_the_two_llama_servers_and_the_props_export():
     """The retired units' reference copies are gone (M24 criterion 1). The
     port check above passes on the tree before M24, which still carried
     the four units and their catalog entries; this one fails there."""
     units = sorted(p.name for p in SYSTEMD.glob("llama-*"))
     assert units == [
-        "llama-devstral-q4.service",
         "llama-gemma4-e4b.service",
         "llama-props-export.service",
         "llama-props-export.timer",

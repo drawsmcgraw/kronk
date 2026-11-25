@@ -208,8 +208,8 @@ def _terminal_speech(result: str, style: str = errors.DEBUG,
 TALKIE_MODEL         = os.getenv("TALKIE_MODEL",         "talkie")
 COORDINATOR_MODEL    = os.getenv("COORDINATOR_MODEL",    "mistral-nemo:12b")
 RESEARCH_AGENT_MODEL = os.getenv("RESEARCH_AGENT_MODEL", COORDINATOR_MODEL)
-CODING_AGENT_MODEL   = os.getenv("CODING_AGENT_MODEL",   "devstral-2512")
-DEVOPS_AGENT_MODEL   = os.getenv("DEVOPS_AGENT_MODEL",   "devstral-2512")
+CODING_AGENT_MODEL   = os.getenv("CODING_AGENT_MODEL",   COORDINATOR_MODEL)
+DEVOPS_AGENT_MODEL   = os.getenv("DEVOPS_AGENT_MODEL",   COORDINATOR_MODEL)
 
 # Round budgets and the repeat-call nudge threshold live in config/tuning.yaml
 # (agent_loop); apply_config copies the budgets onto the registry.

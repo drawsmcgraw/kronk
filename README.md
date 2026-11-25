@@ -105,9 +105,7 @@ systemd units, not containers. The live view is the `/services` page.
 nginx serves the UI pages (`/`, `/solar`, `/resources`, `/performance`,
 `/agents`, `/services`, `/shopping_list`, `/work`), proxies `/api/solar/` to
 `tool_service`,
-`/probe/*` to per-service health endpoints (including HA, MA, Grafana and Tempo),
-and `/devstral/` straight to port 11436 (bypassing LiteLLM), where the retired
-Devstral Q8 server listened; nothing listens there now, so it answers 502.
+and `/probe/*` to per-service health endpoints (including HA, MA, Grafana and Tempo).
 
 ### Agent loop — unified streaming
 
@@ -230,14 +228,13 @@ The table holds what changes only when a unit file changes. GPU memory and
 RAM drift by the hour and are not written down here: `/resources` has them,
 measured.
 
-Running as of 2026-11-24 (these three are the whole catalog;
+Running as of 2026-11-24 (these two are the whole catalog;
 `tests/test_m24_catalog.py` fails if `litellm/config.yaml` names a model no
 unit in `systemd/` serves):
 
 | Model | systemd unit | Port | Model file | Context (slots) | Role |
 |---|---|---|---|---|---|
-| `gemma-4-e4b` | `llama-gemma4-e4b` | 11438 | `gemma-4-E4B-it-qat-UD-Q4_K_XL-202607.gguf` + MTP drafter | 32768 (4) | Coordinator + research/home/assistant agents |
-| `devstral-2512-q4` | `llama-devstral-q4` | 11440 | `mistralai_Devstral-Small-2-24B-Instruct-2512-Q4_K_M.gguf` | 131072 (4) | coding + devops agents |
+| `gemma-4-e4b` | `llama-gemma4-e4b` | 11438 | `gemma-4-E4B-it-qat-UD-Q4_K_XL-202607.gguf` + MTP drafter | 32768 (4) | Coordinator + research/home/assistant/coding/devops agents |
 | `talkie` | `llama-talkie` | 11441 | `talkie-1930-13b-it-Q8_0.gguf` (CPU only) | 2048 (1) | talkie agent, when asked for by name |
 
 Talkie runs on the CPU (`--device none -ngl 0`): about 7.5 tokens a second
@@ -248,7 +245,11 @@ inside the voice deadline (M24; measurements in `docs/sprint/M24-build.md`).
 Retired 2026-11-24 (M24): `gemma-3-4b` (served the LLM router removed
 2026-08-18), `bonsai-8b`, `mistral-nemo` and the `devstral-2512` Q8 build.
 Their units, catalog entries and GGUFs are gone; `docs/HISTORY.md` has the
-model history.
+model history. Retired the same day (M31): `devstral-2512-q4`, the coding and
+devops agents' server (port 11440, about 34 GiB of GPU memory). Both agents
+run on `gemma-4-e4b`, which tied it on eight of nine devops probes at about
+8× the speed (`docs/bench/devops_bench_2026-09-14_142134_mm-e4b-vs-devstral.md`).
+Its unit and catalog entry are gone; the model file stays in `/opt/models/`.
 
 ### Agents
 
@@ -261,8 +262,8 @@ their tools. Each agent's system prompt is `config/prompts/<name>.md`.
 | `research` | `gemma-4-e4b` | `web_search`, `fetch_url` | Live/current info — news, prices, recent releases |
 | `home` | `gemma-4-e4b` | `get_weather`, `shopping_list_*`, `query_hottub`, `solar_{status,detail,energy}`, `play_music`, `control_music`, `now_playing`, `rate_music`, `remember_music_preference`, `update_magicmirror` | Weather, shopping list, hot tub, solar, music, mirror updates |
 | `assistant` | `gemma-4-e4b` | `get_kronk_context`, `generate_diagram` | Kronk's own architecture; Graphviz diagrams |
-| `coding` | `devstral-2512-q4` | `web_search`, `fetch_url` | Writing/debugging code |
-| `devops` | `devstral-2512-q4` | `remote_exec`, `http_check` | Server admin; read-only audited exec on managed hosts; reachability checks (`http_check`: one GET to any address the host can reach). No web tools (sprint M4): the coordinator gets documentation from `research` first |
+| `coding` | `gemma-4-e4b` | `web_search`, `fetch_url` | Writing/debugging code |
+| `devops` | `gemma-4-e4b` | `remote_exec`, `http_check` | Server admin; read-only audited exec on managed hosts; reachability checks (`http_check`: one GET to any address the host can reach). No web tools (sprint M4): the coordinator gets documentation from `research` first |
 | `talkie` | `talkie` | — | Vintage-1930 persona; only when asked for by name ("ask talkie …", rule `talkie_explicit`). Replies capped on the speech mount; if its server fails, the failure is the reply (the coordinator does not answer in its place) |
 
 No agent holds both a web tool and `remote_exec` or `http_check`, so fetched
@@ -448,7 +449,7 @@ Reference copies of every unit live in [`systemd/`](systemd/). Install with:
 ```bash
 cp systemd/llama-*.service ~/.config/systemd/user/
 systemctl --user daemon-reload
-systemctl --user enable --now llama-gemma4-e4b llama-devstral-q4 llama-talkie
+systemctl --user enable --now llama-gemma4-e4b llama-talkie
 systemctl --user list-units 'llama-*'
 ```
 
@@ -457,9 +458,9 @@ systemctl --user list-units 'llama-*'
 > `/opt/models/...` like every other unit. Cosmetic — service runs fine. Move
 > the GGUF and update the unit when convenient.
 
-Each GPU unit's `ExecStart` sets the GGUF path, `--port`, `--ctx-size`,
+The GPU unit's `ExecStart` sets the GGUF path, `--port`, `--ctx-size`,
 `-ngl 99` and `--flash-attn on`, plus the runtime environment, and uses a
-Vulkan build of llama.cpp (see each unit in `systemd/`). Talkie's unit uses a
+Vulkan build of llama.cpp (see the unit in `systemd/`). Talkie's unit uses a
 ROCm (HIP) build of a llama.cpp fork, the only build that loads its model,
 held off the GPU with `--device none -ngl 0` (an idle ROCm process on the GPU
 spins it: `docs/incidents/INVESTIGATION_2026-06-09_hangs.md`). It still
@@ -492,7 +493,7 @@ first) and the ROCm libraries from `~/services/rocm-7.2/lib` (next section).
 ### ROCm runtime libraries (`~/services/rocm-7.2/`)
 
 Three units load ROCm libraries through `LD_LIBRARY_PATH`: both Whisper units
-and `llama-talkie`. The two GPU model servers are Vulkan builds and load none.
+and `llama-talkie`. The GPU model server is a Vulkan build and loads none.
 CTranslate2 (`~/services/wyoming-whisper/build/build-in-container.sh`) and
 Talkie's server (`pai_workspace/llama-cpp/Dockerfile.talkie-hip`) were both
 compiled inside `rocm/dev-ubuntu-24.04:7.2-complete`, and
@@ -585,8 +586,11 @@ wrong module name. The module is `ttm`.)
 ### Model storage
 
 GGUFs live under `/opt/models/<vendor>/`; `talkie` is staged at
-`/home/drew/model-staging/talkie-lm/`. Only the files the three running units
-load are kept: the other 24 GGUFs (212 GB) were deleted 2026-11-24 (M24). Download with
+`/home/drew/model-staging/talkie-lm/`. Only the files the running units
+load are kept: the other 24 GGUFs (212 GB) were deleted 2026-11-24 (M24). The
+exception is the retired Devstral Q4 model and its chat template in
+`/opt/models/mistralai/` (14.3 GB, M31), kept as the way back until Drew
+deletes them. Download with
 `hf download <repo> --include "<pattern>" --local-dir /opt/models/<vendor>/`.
 
 ---

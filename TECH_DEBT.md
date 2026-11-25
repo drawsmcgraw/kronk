@@ -67,13 +67,11 @@ fallback sends non-alternating history — see `docs/VOICE_SETUP.md` timeline,
 2026-07-03). Verified: a `[user, user]` message array sent directly to
 LiteLLM 400'd before the fix, 200s after.
 
-**Leftover to retire deliberately:** the permissive Jinja template override
-at `/opt/models/mistralai/devstral-template-permissive.jinja` (referenced by
-`--chat-template-file` in both devstral systemd units) predates the fix and
-is now redundant in principle. Removing it means the stock devstral template
-must tolerate whatever the now-working hook produces — test the Zed
-Q8↔Q4-switch scenario before deleting. Until then it's harmless, but it's a
-snapshot that won't track upstream template changes.
+**Leftover:** the permissive Jinja template override at
+`/opt/models/mistralai/devstral-template-permissive.jinja` predates the fix.
+No unit uses it since the Devstral Q4 server was retired (M31, 2026-11-24;
+the Q8 unit went in M24). It stays on disk beside the Devstral model file as
+part of the way back (the backed-up unit names it) until Drew deletes both.
 
 ---
 

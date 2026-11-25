@@ -283,7 +283,7 @@ def test_every_exporter_file_missing_leaves_no_figure(tmp_path):
          patch.object(servers, "LLAMA_PROPS_PATH", tmp_path / "none2.json"), \
          patch.object(servers, "LITELLM_CONFIG_PATH", Path(__file__).resolve().parent.parent / "litellm/config.yaml"):
         data = _client().get("/api/servers").json()
-    assert [s["name"] for s in data["servers"]] == ["devstral-2512-q4", "gemma-4-e4b", "talkie"]
+    assert [s["name"] for s in data["servers"]] == ["gemma-4-e4b", "talkie"]
     for s in data["servers"]:
         assert s["state"] == "unknown" and s["health"] == "unknown"
         for f in ("gpu_bytes", "rss_bytes", "n_ctx", "total_slots", "model_bytes", "draft_bytes",
