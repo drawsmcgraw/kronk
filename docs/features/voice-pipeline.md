@@ -174,8 +174,11 @@ service's log line (`command_only_names_dropped`).
   Not changed by M13.
 - Both units log each transcript at INFO in the user journal.
 - The installed `wyoming-faster-whisper` 3.1.0 ignores `--local-files-only`
-  for faster-whisper models; the dev unit sets `HF_HUB_OFFLINE=1` so a model
-  load never asks the Hugging Face Hub. Production still does at each load.
+  for faster-whisper models; both units set `HF_HUB_OFFLINE=1` (production
+  since work item M30) so a model load never asks the Hugging Face Hub and
+  loads from the cache only. A by-hand faster-whisper upgrade that renames
+  the model's repository makes that cache directory miss, and the start fails
+  (the comment in `systemd/wyoming-whisper.service`).
 
 ## The voice signal (sprint M2)
 

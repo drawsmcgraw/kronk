@@ -11,6 +11,19 @@ Environment=ROCR_VISIBLE_DEVICES=0
 # CTranslate2 was built in, by scripts/build_rocm_libs.sh (work item M26;
 # check: scripts/build_rocm_libs.sh verify ~/services/rocm-7.2).
 Environment=LD_LIBRARY_PATH=%h/services/wyoming-whisper/runtime-libs:%h/services/rocm-7.2/lib
+# HF_HUB_OFFLINE (work item M30): the installed wyoming-faster-whisper 3.1.0
+# does not pass --local-files-only to faster-whisper, which would otherwise ask
+# the Hugging Face Hub for updates at each model load, and rewrite the cache's
+# refs/main. Offline, the model loads from the cache only, which is the pin:
+# mobiuslabsgmbh/faster-whisper-large-v3-turbo at revision
+# 0a363e9161cbc7ed1431c9597a8ceaf0c4f78fcf, under --data-dir below.
+# faster-whisper maps "large-v3-turbo" to that repository name; an upgrade of
+# faster-whisper by hand can change the name, and so the cache directory it
+# looks for, and the start then fails. The upgrade runs never change the venv
+# (scripts/upgrade_rules.toml: wyoming-faster-whisper is report only), so only
+# a by-hand upgrade can do that.
+Environment=HF_HUB_OFFLINE=1
+Environment=HF_HUB_DISABLE_TELEMETRY=1
 ExecStart=%h/services/wyoming-whisper/.venv/bin/python -m wyoming_faster_whisper \
     --model large-v3-turbo \
     --language en \
