@@ -296,6 +296,16 @@ verbatim — never summarized away.
   the MagicMirror SSH key and the YouTube token. `.env.langfuse` and the
   two `LANGFUSE_*` lines in `.env` are leftovers of the retired Langfuse
   stack. No other secrets exist.
+- **Claude Code settings** (operator directive, 2026-11-25): the
+  sessions and agents that build Kronk depend on the operator's
+  `~/.claude/settings.json`. A sanitized copy and the reason for each
+  setting are kept in `docs/claude-code/` (`settings.example.json`,
+  `README.md`). When a situation shows that a Claude Code setting, hook
+  or environment variable is needed or should change (the first was the
+  API 529 that stalled the coordinator for eight hours on 2026-11-24),
+  propose it to the operator, change the live file only on their word,
+  and update the copy and its table in the same change, with the date
+  and the reason. Never copy the live file into the repo unsanitized.
 - **New compose files** get an `# Operations:` comment block (up / restart /
   logs / down recipes) like the existing ones.
 - **Docs lifecycle** (defined in `ROADMAP.md`, follow it): sizeable feature →
