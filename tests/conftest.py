@@ -23,6 +23,39 @@ os.environ.setdefault("MUSIC_TASTE_FILE", os.path.join(_TASTE_TMP, "music_taste.
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+# Work state (work item M33): scripts/work.py and scripts/agent.py write
+# ~/.local/state/kronk-work/work.db unless KRONK_WORK_DB says otherwise. A
+# test run always points it at a path in a temporary directory that does
+# not exist (nothing makes it there unless a test does), even when the
+# shell exports KRONK_WORK_DB; and the run fails if the live file, its
+# -wal, -shm or dump changed while it ran (criterion 7).
+_WORK_TMP = tempfile.mkdtemp(prefix="kronk-work-")
+atexit.register(shutil.rmtree, _WORK_TMP, ignore_errors=True)
+os.environ["KRONK_WORK_DB"] = os.path.join(_WORK_TMP, "work.db")
+LIVE_WORK_DB = os.path.join(os.path.expanduser("~"), ".local", "state", "kronk-work", "work.db")
+
+
+def _live_work_stat():
+    out = {}
+    for suffix in ("", "-wal", "-shm", ".dump.sql"):
+        try:
+            st = os.stat(LIVE_WORK_DB + suffix)
+            out[suffix] = (st.st_mtime_ns, st.st_size)
+        except FileNotFoundError:
+            out[suffix] = None
+    return out
+
+
+_LIVE_WORK_BEFORE = _live_work_stat()
+
+
+def pytest_sessionfinish(session, exitstatus):
+    after = _live_work_stat()
+    if after != _LIVE_WORK_BEFORE:
+        changed = [LIVE_WORK_DB + k for k in after if after[k] != _LIVE_WORK_BEFORE[k]]
+        sys.stderr.write(f"\nFAILED: the test run changed the live work database: {', '.join(changed)}\n")
+        session.exitstatus = 1
+
 # config/ (sprint M21): the services read /config in the container, which
 # since step 2 is a live config directory outside the repo (edited on
 # /settings). Tests always read the repo's own config/, the shipped

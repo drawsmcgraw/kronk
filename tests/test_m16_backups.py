@@ -242,6 +242,14 @@ def house(tmp_path, monkeypatch):
     (units / "timers.target.wants").mkdir(parents=True)
     (units / "llama-x.service").write_text("[Service]\nExecStart=/bin/llama -m %h/models/x.gguf\n")
     (units / "timers.target.wants" / "x.timer").symlink_to(units / "x.timer")
+    work = home / ".local" / "state" / "kronk-work"
+    work.mkdir(parents=True)
+    monkeypatch.delenv("KRONK_WORK_DB")            # conftest's scratch path: the house's HOME path here
+    c = sqlite3.connect(work / "work.db")
+    c.execute("create table item (id)")
+    c.execute("insert into item values ('M33')")
+    c.commit()
+    c.close()
     (home / ".config" / "kronk").mkdir()
     (home / ".config" / "kronk" / "upgrade.env").write_text("KRONK_UPGRADE_BRANCH=refactor\n")
     (home / "models").mkdir()
@@ -340,6 +348,99 @@ def test_one_dated_tar_mode_0600_with_every_item_and_a_manifest(house):
     facts = read_member(p, "host-facts.txt").decode()
     assert "ttm.pages_limit=1" in facts and "//atlas.local/music /mnt/nas-music cifs" in facts and "# the NAS" in facts
     assert "UUID=x" not in facts
+
+
+def test_m33_the_work_database_is_in_the_tar_as_a_live_sqlite_copy(house):
+    ops = FakeOps()
+    assert B.cmd_config(house, ops, dry_run=False) == 0
+    p = next((house.dest / "config").iterdir())
+    data = read_member(p, "work-state/work.db")
+    assert data.startswith(b"SQLite format 3")
+    man = read_member(p, "MANIFEST").decode()
+    assert "sqlite backup\twork-state/work.db\t<- " + str(B.HOME / ".local" / "state" / "kronk-work" / "work.db") in man
+
+
+def test_m33_the_work_database_member_follows_kronk_work_db(house, tmp_path, monkeypatch):
+    import sqlite3
+    other = tmp_path / "scratch-work.db"
+    c = sqlite3.connect(other)
+    c.execute("create table item (id)")
+    c.execute("insert into item values ('SCRATCH')")
+    c.commit()
+    c.close()
+    monkeypatch.setenv("KRONK_WORK_DB", str(other))
+    assert B.cmd_config(house, FakeOps(), dry_run=False) == 0
+    p = next((house.dest / "config").iterdir())
+    got = tmp_path / "got.db"
+    got.write_bytes(read_member(p, "work-state/work.db"))
+    c = sqlite3.connect(got)
+    assert c.execute("select id from item").fetchall() == [("SCRATCH",)]
+    c.close()
+
+
+def test_m33_a_missing_work_database_is_said_and_the_run_stays_ok(house):
+    (B.HOME / ".local" / "state" / "kronk-work" / "work.db").unlink()
+    ops = FakeOps()
+    assert B.cmd_config(house, ops, dry_run=False) == 0
+    p = next((house.dest / "config").iterdir())
+    man = read_member(p, "MANIFEST").decode()
+    assert "UNREADABLE\t" + str(B.HOME / ".local" / "state" / "kronk-work" / "work.db") in man
+    assert ops.notices[-1][0] == "Kronk backup: config backup OK"
+
+
+def test_m33_restored_from_the_tar_the_work_database_passes_and_resumes_the_same(house, tmp_path, monkeypatch):
+    """Criterion 8: a real work.py database, written and then read by the
+    monthly tar; restored with any -wal and -shm removed first, it passes
+    integrity_check, and resume reads the same but for the log's tail."""
+    import contextlib
+    import sqlite3
+    import subprocess
+    spec = importlib.util.spec_from_file_location("m16_work_tool", Path(B.__file__).parent / "work.py")
+    wk = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(wk)
+    tree = tmp_path / "wtree"
+    tree.mkdir()
+    e = dict(os.environ, GIT_CONFIG_NOSYSTEM="1", HOME=str(tmp_path))
+    for argv in (["init", "-q", "-b", "main"], ["config", "user.name", "F"], ["config", "user.email", "f@example.invalid"],
+                 ["commit", "-q", "--allow-empty", "-m", "base"]):
+        subprocess.run(["git", *argv], cwd=tree, env=e, check=True, capture_output=True)
+    monkeypatch.setenv("PATH", "/usr/bin:/bin")
+    monkeypatch.setenv("KRONK_AGENT_STATE", str(tmp_path / "agents"))
+    live = B.HOME / ".local" / "state" / "kronk-work" / "work.db"
+    live.unlink()
+
+    def tool(db, *argv):
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stderr(err):
+            rc = wk.main(["--db", str(db), "--repo", str(tree), *argv], out=out)
+        assert rc == 0, err.getvalue()
+        return out.getvalue()
+    tool(live, "init")
+    tool(live, "add", "--title", "queued")
+    tool(live, "add", "--title", "other")
+    tool(live, "matter", "add", "decision", "--owner", "drew", "--text", "Daily copies?")
+    held = sqlite3.connect(live)                      # a reader holds the WAL open while the tar is made
+    held.execute("BEGIN")
+    held.execute("SELECT * FROM item").fetchall()
+    try:
+        assert B.cmd_config(house, FakeOps(), dry_run=False) == 0
+    finally:
+        held.close()
+    p = next((house.dest / "config").iterdir())
+    restored = tmp_path / "restored" / "work.db"
+    restored.parent.mkdir()
+    restored.write_bytes(read_member(p, "work-state/work.db"))
+    for sfx in ("-wal", "-shm"):
+        Path(str(restored) + sfx).unlink(missing_ok=True)
+    c = sqlite3.connect(restored)
+    assert c.execute("PRAGMA integrity_check").fetchall() == [("ok",)]
+    c.close()
+    tool(restored, "dump")                              # the runbook's step: the dump is not in the tar
+    tool(live, "note", "M1", "--next", "a write after the tar")
+    head = lambda db: tool(db, "resume").split("\n", 1)[1].split("== Last five writes")[0]
+    a, b = head(live), head(restored)
+    assert a.replace("next step: a write after the tar", "next step: -") == b
+    assert "Daily copies?" in b
 
 
 def test_no_secret_reaches_a_log_line_a_notice_or_the_status_file(house):

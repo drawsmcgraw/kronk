@@ -52,6 +52,17 @@ counts the commits since launch without it; it is null when no commit in
 the 50 up to the launch HEAD, nor any since, carries the trailer (the rule
 cannot tell the two apart in that repo).
 
+Work state (work item M33, docs/features/work-state.md): launch starts a step
+of the item in scripts/work.py's database, status and wait finish it when
+done (idempotently, from the committed report), and close finishes it or
+marks it stopped. No step for --probe, investigate or --no-report. agent.py
+holds no SQL: it calls work.py's agent_started/agent_finished/agent_closed,
+which write only when the database (KRONK_WORK_DB, else
+~/.local/state/kronk-work/work.db) exists and describes the repo the agent
+was launched in. Any failure there (missing, locked, another repo) is one
+line on stderr; the agent command still does its job and its answer and
+exit code are unchanged.
+
 Exit codes: 0 success; 1 a refusal or a herdr error; 2 wait reached its time
 limit; 3 wait found the agent blocked, gone, or idle for --idle-limit with
 the work not done. Standard library only.
@@ -337,6 +348,58 @@ def work_export():
     return _WE
 
 
+_WK = None
+
+
+def work_tool():
+    """scripts/work.py, the work-state tool, loaded from beside this file
+    with no bytecode written."""
+    global _WK
+    if _WK is None:
+        path = HERE / "work.py"
+        before = sys.dont_write_bytecode
+        sys.dont_write_bytecode = True
+        try:
+            spec = importlib.util.spec_from_file_location("kronk_work_tool_for_agent_tool", path)
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+        except Exception as e:
+            raise Refusal(f"cannot load {path} ({type(e).__name__})")
+        finally:
+            sys.dont_write_bytecode = before
+        _WK = mod
+    return _WK
+
+
+def step_of(st: dict) -> tuple[str, str, int] | None:
+    """(item, step kind, round) for an agent whose work is a step of its
+    item; None for --probe, investigate and --no-report."""
+    if st.get("probe") or st.get("role") not in REPORT_ROLES or not st.get("report") or not st.get("item"):
+        return None
+    try:
+        rnd = int(st.get("round") or 1)
+    except (TypeError, ValueError):
+        return None
+    return st["item"], st["role"], rnd
+
+
+def record(what: str, fn: str, st: dict, **kw) -> None:
+    """Write the agent's step through scripts/work.py. Never raises: a
+    failure is one line on stderr and the command goes on."""
+    step = step_of(st)
+    if step is None:
+        return
+    item, kind, rnd = step
+    try:
+        wk = work_tool()
+        getattr(wk, fn)(repo=Path(st["repo"]), item=item, kind=kind, rnd=rnd, agent=st["name"],
+                        model=st.get("model"), report=st.get("report"), cmd=f"agent.py {what} {st['name']}", **kw)
+    except Exception as e:                    # the bookkeeping never stops the agent command
+        msg = str(e) or type(e).__name__
+        print(f"agent.py {what}: work state not recorded ({item} {kind} round {rnd}): {msg[:300]}",
+              file=sys.stderr, flush=True)
+
+
 def item_id(item: str) -> tuple[str, str]:
     """('M28', 'm28') from 'M28' or 'm28'; ('M21-step2', 'm21-step2')."""
     m = ITEM_RE.match(item.strip())
@@ -612,6 +675,7 @@ def cmd_launch(a) -> int:
         how, status = send(name, text)
     except Refusal as e:
         raise Refusal(f"{e}; the agent is left open, state kept (peek, prompt or close it)") from None
+    record("launch", "agent_started", st, at=st["launched_iso"])
     out = {"name": name, "item": canon, "role": a.role, "workspace_id": ws, "pane_id": pane,
            "model": model, "effort": effort, "head": head[:7], "report": report,
            "prompt_file": str(prompt_path(name)), "sent": how, "agent_status": status}
@@ -671,9 +735,17 @@ def with_report(st: dict, report: str | None) -> dict:
     return st
 
 
+def finished(what: str, st: dict, res: dict) -> None:
+    """A done agent's step is finished from its committed report."""
+    if res.get("done"):
+        record(what, "agent_finished", st, started_at=st.get("launched_iso"))
+
+
 def cmd_status(a) -> int:
     st = with_report(load_state(a.name), a.report)
-    emit(status_of(st, a.expect_commit))
+    res = status_of(st, a.expect_commit)
+    emit(res)
+    finished("status", st, res)
     return 0
 
 
@@ -699,6 +771,7 @@ def cmd_wait(a) -> int:
             s = last["agent_status"]
             if last["done"]:
                 emit(last)
+                finished("wait", st, last)
                 return 0
             if s in ("blocked", "gone"):
                 emit(last)
@@ -781,6 +854,12 @@ def cmd_close(a) -> int:
     except HerdrError as e:
         if e.code != "workspace_not_found":
             raise
+    if step_of(st) is not None:                # the row is written before the state file goes
+        w = work_state(Path(st["repo"]), st.get("head"), st.get("report"), st.get("item") or "",
+                       st.get("prompt_head"))
+        committed = bool(w["report"] and w["report"]["committed"])
+        record("close", "agent_closed", st, started_at=st.get("launched_iso"), committed=committed,
+               why=f"closed by agent.py close with the report not committed (agent was {status})")
     state_path(a.name).unlink(missing_ok=True)
     prompt_path(a.name).unlink(missing_ok=True)
     emit({"name": a.name, "workspace_id": ws, "workspace": how, "agent_status_before": status})

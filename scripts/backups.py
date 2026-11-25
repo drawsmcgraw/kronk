@@ -651,6 +651,11 @@ def file_sources(s: Settings) -> list[tuple[str, Path, str, bool]]:
         ("systemd-user", HOME / ".config" / "systemd" / "user", "tree", False),
         ("config-kronk", HOME / ".config" / "kronk", "tree", False),
         ("voice-labels", HOME / "kronk-voice-labels", "optional-tree", False),
+        # Work-item state (M33): outside the repo and every container's mount; not
+        # secret, not required (most of it can be rebuilt from git and the reports).
+        # Found as scripts/work.py finds it: KRONK_WORK_DB, else under HOME.
+        ("work-state/work.db", Path(os.environ.get("KRONK_WORK_DB") or HOME / ".local" / "state" / "kronk-work" /
+                                    "work.db"), "sqlite", False),
         ("etc/default/grub", s.etc / "default" / "grub", "file", False),
         ("etc/docker/daemon.json", s.etc / "docker" / "daemon.json", "optional", False),
         # The way back travels with the tar: readable before any clone.

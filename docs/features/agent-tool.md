@@ -85,6 +85,13 @@ traceback.
   `null` when no commit since the launch, nor any of the 50 up to it,
   carries the trailer: in that repo the rule cannot tell the two apart,
   and `--expect-commit` then counts every commit.
+- **Work state (M33).** `launch` starts a step of the item in
+  `scripts/work.py`'s database, `status`/`wait` finish it when `done`, and
+  `close` finishes it (report committed) or marks it stopped. Nothing is
+  recorded for `--probe`, `investigate` or `--no-report`. A database that
+  is missing, locked, broken or of another repo costs one stderr line and
+  at most about 2 s; the command's answer and exit code do not change.
+  `docs/features/work-state.md`.
 
 ## Gotchas
 

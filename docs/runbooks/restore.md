@@ -342,6 +342,22 @@ MagicMirror host key). The labelled voice clips:
 [ -d $R/voice-labels ] && cp -a $R/voice-labels ~/kronk-voice-labels
 ```
 
+The work-item state (`scripts/work.py`, M33; `docs/features/work-state.md`)
+lives outside the repo. A `-wal` or `-shm` left beside the file would be
+replayed onto the restored copy, so they go first; then the dump beside it
+is written again (it is not in the tar), and `resume` shows what came back:
+
+```
+mkdir -p -m 700 ~/.local/state/kronk-work
+rm -f ~/.local/state/kronk-work/work.db-wal ~/.local/state/kronk-work/work.db-shm
+install -m 600 $R/work-state/work.db ~/.local/state/kronk-work/work.db
+scripts/work.py dump && scripts/work.py resume
+```
+
+What the monthly tar cannot hold is a month of queue changes: if the file
+is newer than the tar's copy and only damaged, `work.py restore-dump` from
+`work.db.dump.sql` (written after every change) is the better way back.
+
 The archived voice recordings stay on the NAS
 (`/mnt/nas-backup/recordings/`); nothing needs to come back for Kronk to
 run.

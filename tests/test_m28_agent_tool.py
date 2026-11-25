@@ -12,7 +12,9 @@ Python script on PATH that keeps its state in a JSON file beside it and
 writes its errors to stderr, as the real one does. No socket is opened.
 """
 import importlib.util
+import io
 import json
+import re
 import os
 import shutil
 import stat
@@ -73,13 +75,20 @@ def commit(tree: Path, files: dict, msg="step"):
 
 
 @pytest.fixture
-def repo(tmp_path):
+def repo(tmp_path, monkeypatch):
+    """A temporary repo, and a scratch work database (M33) that describes it
+    and holds item M9, active: agent.py records steps there."""
     tree = tmp_path / "tree"
     tree.mkdir()
     git(tree, "init", "-q", "-b", "main")
     git(tree, "config", "user.name", "Fixture")
     git(tree, "config", "user.email", "fixture@example.invalid")
     commit(tree, {"docs/sprint/WORKFLOW.md": WORKFLOW, "README.md": "x\n"}, "base")
+    db = tmp_path / "work" / "work.db"
+    monkeypatch.setenv("KRONK_WORK_DB", str(db))
+    wk = _load("m28_work_tool", REPO / "scripts" / "work.py")
+    for argv in (["init"], ["add", "--id", "M9", "--title", "fixture item"], ["start", "M9"]):
+        assert wk.main(["--db", str(db), "--repo", str(tree), *argv], out=io.StringIO()) == 0, argv
     return tree
 
 
@@ -941,7 +950,7 @@ def test_b1_says_so_when_the_workspace_cannot_be_closed_either(at, capsys, repo,
 def test_b2_the_tool_writes_no_bytecode_in_its_scripts_directory(tmp_path, repo, brief, herdr):
     copy = tmp_path / "copy" / "scripts"
     copy.mkdir(parents=True)
-    for f in ("agent.py", "work_export.py"):
+    for f in ("agent.py", "work_export.py", "work.py"):
         shutil.copy(REPO / "scripts" / f, copy / f)
     env = {k: v for k, v in os.environ.items() if k != "PYTHONDONTWRITEBYTECODE"}
     r = subprocess.run([sys.executable, str(copy / "agent.py"), "launch", "M9", "build", "--brief", brief,
@@ -1147,3 +1156,263 @@ def test_n2_the_same_pane_is_still_the_agent(at, capsys, repo, herdr, launched):
     assert status(at, capsys)["agent_status"] == "working"
     rc, out, err = run(at, capsys, "list")
     assert one_json(out)["agent_status"] == "working"
+
+
+# ── M33: agent.py records the step in scripts/work.py's database ──────────
+# The repo fixture made a scratch database for the temporary repo, with M9
+# active (KRONK_WORK_DB). agent.py holds no SQL; it calls work.py.
+
+def steps(**where):
+    import sqlite3
+    c = sqlite3.connect(os.environ["KRONK_WORK_DB"])
+    c.row_factory = sqlite3.Row
+    try:
+        return [dict(r) for r in c.execute("SELECT * FROM step ORDER BY id")]
+    finally:
+        c.close()
+
+
+def log_rows():
+    import sqlite3
+    c = sqlite3.connect(os.environ["KRONK_WORK_DB"])
+    try:
+        return [r[0] for r in c.execute("SELECT cmd FROM log ORDER BY id")]
+    finally:
+        c.close()
+
+
+def test_m33_agent_py_holds_no_sql():
+    src = SCRIPT.read_text()
+    assert "import sqlite3" not in src and not re.search(r"\b(SELECT|INSERT|UPDATE|DELETE) ", src)
+
+
+def test_m33_launch_starts_a_step_with_the_agent_model_and_launch_time(at, capsys, repo, brief, herdr, launched):
+    (s,) = steps()
+    st = json.loads((herdr.state / "m9-build.json").read_text())
+    assert (s["item_id"], s["kind"], s["round"], s["state"], s["by"], s["agent"], s["model"], s["report"]) == \
+        ("M9", "build", 1, "started", "agent", "m9-build", "claude-opus-5-5", REPORT)
+    import datetime as _dt
+    launched = _dt.datetime.strptime(st["launched_iso"], "%Y-%m-%dT%H:%M:%S%z").astimezone(_dt.timezone.utc)
+    assert s["started_at"] == launched.strftime("%Y-%m-%dT%H:%M:%SZ")
+    assert log_rows()[-1] == "agent.py launch m9-build"
+
+
+def test_m33_wait_finishes_it_from_the_report_once(at, capsys, repo, herdr, launched):
+    commit(repo, {REPORT: "Verdict: PASSES\n"})
+    herdr.set_status(launched, "idle")
+    rc, out, err = wait(at, capsys, "--timeout", "30")
+    assert rc == 0 and err == ""
+    (s,) = steps()
+    head = git(repo, "rev-parse", "HEAD").stdout.strip()
+    assert (s["state"], s["commit_sha"], s["verdict"]) == ("finished", head, None)    # a build has no verdict
+    n = len(log_rows())
+    for _ in range(3):
+        assert status(at, capsys)["done"] is True
+    assert len(log_rows()) == n                                  # idempotent: no write, no log row
+
+
+def test_m33_a_test_steps_verdict_is_copied_from_the_report(at, capsys, repo, brief, herdr):
+    assert launch(at, capsys, repo, brief, "M9", "test", "--report", "docs/sprint/M9-e2e.md")[0] == 0
+    commit(repo, {"docs/sprint/M9-e2e.md": "# t\n\nVerdict: FAILS\n"})
+    herdr.set_status("m9-test", "idle")
+    assert status(at, capsys, "m9-test")["verdict"] == "FAILS"
+    assert [(s["kind"], s["state"], s["verdict"]) for s in steps()] == [("test", "finished", "FAILS")]
+
+
+@pytest.mark.parametrize("seq,code", [(["working"], 2), (["working", "blocked"], 3), (["working", "gone"], 3)])
+def test_m33_wait_exiting_2_or_3_leaves_it_started(at, capsys, repo, herdr, launched, seq, code):
+    herdr.update(get_seq={launched: seq})
+    rc, out, err = wait(at, capsys, "--timeout", "0.3", "--idle-limit", "0.1")
+    assert rc == code
+    assert [s["state"] for s in steps()] == ["started"]
+
+
+def test_m33_close_with_the_work_not_done_marks_it_stopped_with_why(at, capsys, repo, herdr, launched):
+    herdr.set_status(launched, "idle")
+    rc, out, err = run(at, capsys, "close", launched)
+    assert rc == 0 and err == ""
+    (s,) = steps()
+    assert s["state"] == "stopped" and "report not committed" in s["note"] and "agent was idle" in s["note"]
+    assert s["ended_at"]
+
+
+def test_m33_close_with_the_report_committed_finishes_it(at, capsys, repo, herdr, launched):
+    commit(repo, {REPORT: "# r\n"})
+    herdr.set_status(launched, "idle")
+    assert run(at, capsys, "close", launched)[0] == 0
+    assert [s["state"] for s in steps()] == ["finished"]
+
+
+def test_m33_close_after_finish_changes_nothing(at, capsys, repo, herdr, launched):
+    commit(repo, {REPORT: "# r\n"})
+    herdr.set_status(launched, "idle")
+    assert status(at, capsys)["done"]
+    n = len(log_rows())
+    assert run(at, capsys, "close", launched)[0] == 0
+    assert len(log_rows()) == n and [s["state"] for s in steps()] == ["finished"]
+
+
+def test_m33_a_follow_up_reopens_nothing_and_the_next_commit_moves_the_row(at, capsys, repo, herdr, launched,
+                                                                         tmp_path):
+    commit(repo, {REPORT: "# r\n"})
+    herdr.set_status(launched, "idle")
+    assert status(at, capsys)["done"]
+    first = steps()[0]["commit_sha"]
+    f = tmp_path / "follow.txt"
+    f.write_text("Fix the report.\n")
+    assert run(at, capsys, "prompt", launched, "--file", f)[0] == 0
+    assert [s["state"] for s in steps()] == ["finished"] and steps()[0]["commit_sha"] == first
+    commit(repo, {REPORT: "# r, fixed\n"})
+    herdr.set_status(launched, "idle")
+    rc, out, err = wait(at, capsys, "--expect-commit", "--timeout", "30")
+    assert rc == 0
+    (s,) = steps()
+    assert s["state"] == "finished" and s["commit_sha"] == git(repo, "rev-parse", "HEAD").stdout.strip() != first
+
+
+@pytest.mark.parametrize("extra", [("--probe", "--report", REPORT), ("--no-report",)])
+def test_m33_no_step_for_probe_or_no_report(at, capsys, repo, brief, herdr, extra):
+    rc, out, err = launch(at, capsys, repo, brief, "M9", "build", *extra)
+    assert rc == 0 and err == ""
+    name = one_json(out)["name"]
+    herdr.set_status(name, "idle")
+    commit(repo, {REPORT: "# r\n"})
+    assert run(at, capsys, "status", name)[0] == 0
+    assert run(at, capsys, "close", name)[0] == 0
+    assert steps() == []
+
+
+def test_m33_no_step_for_investigate(at, capsys, repo, brief, herdr):
+    rc, out, err = launch(at, capsys, repo, brief, "M9", "investigate", "--report", REPORT)
+    assert rc == 0 and err == "" and steps() == []
+
+
+def break_db(case, repo, tmp_path, monkeypatch):
+    """Point KRONK_WORK_DB at a database in the named state."""
+    import sqlite3
+    db = Path(os.environ["KRONK_WORK_DB"])
+    if case == "missing":
+        monkeypatch.setenv("KRONK_WORK_DB", str(tmp_path / "nowhere" / "work.db"))
+    elif case == "empty":
+        p = tmp_path / "empty.db"
+        p.write_bytes(b"")
+        monkeypatch.setenv("KRONK_WORK_DB", str(p))
+    elif case == "corrupt":
+        p = tmp_path / "corrupt.db"
+        p.write_bytes(b"not a database " * 300)
+        monkeypatch.setenv("KRONK_WORK_DB", str(p))
+    elif case == "newer":
+        c = sqlite3.connect(db)
+        c.execute("UPDATE meta SET value = '9' WHERE key = 'schema_version'")
+        c.commit()
+        c.close()
+    elif case == "another repo":
+        c = sqlite3.connect(db)
+        c.execute("UPDATE meta SET value = '/some/other/repo' WHERE key = 'repo'")
+        c.commit()
+        c.close()
+    elif case == "no item":
+        c = sqlite3.connect(db)
+        c.execute("PRAGMA foreign_keys=OFF")
+        c.execute("UPDATE item SET id = 'M8' WHERE id = 'M9'")
+        c.commit()
+        c.close()
+    return Path(os.environ["KRONK_WORK_DB"])
+
+
+@pytest.mark.parametrize("case,words", [
+    ("missing", "missing: no database at"), ("empty", "empty:"), ("corrupt", "corrupt:"),
+    ("newer", "newer: "), ("another repo", "describes /some/other/repo"), ("no item", "no item M9"),
+])
+def test_m33_a_database_it_cannot_write_never_stops_the_agent_command(at, capsys, repo, brief, herdr, tmp_path,
+                                                                      monkeypatch, case, words):
+    db = break_db(case, repo, tmp_path, monkeypatch)
+    before = db.read_bytes() if db.exists() else None
+    rc, out, err = launch(at, capsys, repo, brief, "M9", "build", "--report", REPORT)
+    assert rc == 0 and one_json(out)["agent_status"] == "working"
+    assert err.count("\n") == 1 and err.startswith("agent.py launch: work state not recorded (M9 build round 1): ")
+    assert words in err
+    commit(repo, {REPORT: "# r\n"})
+    herdr.set_status("m9-build", "idle")
+    rc, out, err = wait(at, capsys, "--timeout", "30")
+    assert rc == 0 and one_json(out)["done"] is True and "agent.py wait: work state not recorded" in err
+    rc, out, err = run(at, capsys, "close", "m9-build")
+    assert rc == 0 and one_json(out)["workspace"] == "closed" and "agent.py close: work state not recorded" in err
+    assert (db.read_bytes() if db.exists() else None) == before
+    if case == "missing":
+        assert not db.parent.exists()
+
+
+def test_m33_a_locked_database_costs_launch_wait_and_close_under_3_s(at, capsys, repo, brief, herdr, tmp_path):
+    import time as _t
+    t0 = _t.monotonic()
+    assert launch(at, capsys, repo, brief, "M7", "build", "--no-report")[0] == 0     # the usual time, no write
+    usual = _t.monotonic() - t0
+    db = os.environ["KRONK_WORK_DB"]
+    code = ("import sqlite3, time\n"
+            f"c = sqlite3.connect({db!r}, isolation_level=None)\n"
+            "c.execute('PRAGMA locking_mode=EXCLUSIVE'); c.execute('BEGIN EXCLUSIVE')\n"
+            "c.execute(\"INSERT INTO meta VALUES ('lock', 'x')\")\n"
+            "print('held', flush=True); time.sleep(30)\n")
+    holder = subprocess.Popen([sys.executable, "-c", code], stdout=subprocess.PIPE, text=True)
+    try:
+        assert holder.stdout.readline().strip() == "held"
+        t0 = _t.monotonic()
+        rc, out, err = launch(at, capsys, repo, brief, "M9", "build", "--report", REPORT, "--parallel")
+        took = _t.monotonic() - t0
+        assert rc == 0 and "locked: still locked after 2 s" in err
+        assert took < usual + 3
+        commit(repo, {REPORT: "# r\n"})
+        herdr.set_status("m9-build", "idle")
+        t0 = _t.monotonic()
+        assert wait(at, capsys, "--timeout", "30")[0] == 0
+        assert _t.monotonic() - t0 < 3 + 1
+        t0 = _t.monotonic()
+        assert run(at, capsys, "close", "m9-build")[0] == 0
+        assert _t.monotonic() - t0 < 3 + 1
+    finally:
+        holder.kill()
+        holder.wait()
+
+
+def test_m33_an_agent_launched_before_the_database_is_recorded_when_it_finishes(at, capsys, repo, brief, herdr,
+                                                                              tmp_path, monkeypatch):
+    """An agent launched by the old tool, or with no database yet: its state
+    file has no step. status, once done, inserts the finished step with the
+    launch time from the state file."""
+    db = os.environ["KRONK_WORK_DB"]
+    monkeypatch.setenv("KRONK_WORK_DB", str(tmp_path / "not-yet.db"))
+    assert launch(at, capsys, repo, brief, "M9", "build", "--report", REPORT)[0] == 0
+    monkeypatch.setenv("KRONK_WORK_DB", db)
+    assert steps() == []
+    commit(repo, {REPORT: "# r\n"})
+    herdr.set_status("m9-build", "idle")
+    rc, out, err = run(at, capsys, "status", "m9-build")
+    assert rc == 0 and err == ""
+    (s,) = steps()
+    st = json.loads((herdr.state / "m9-build.json").read_text())
+    assert s["state"] == "finished" and s["agent"] == "m9-build" and s["started_at"] is not None
+    assert "report" in st and "work_step" not in st                       # the state file's shape is M28's
+
+
+def test_m33_a_launch_in_a_temp_repo_leaves_the_live_path_alone(at, capsys, repo, brief, herdr, tmp_path,
+                                                                 monkeypatch):
+    """With KRONK_WORK_DB unset the database is HOME's; one that describes
+    another repo (the real one) is not written by a launch in a temp repo."""
+    home = tmp_path / "home"
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.delenv("KRONK_WORK_DB")
+    wk = _load("m28_work_tool_live", REPO / "scripts" / "work.py")
+    live = home / ".local" / "state" / "kronk-work" / "work.db"
+    assert wk.default_db() == live
+    for argv in (["init"], ["add", "--id", "M9", "--title", "live"], ["start", "M9"]):
+        assert wk.main(["--db", str(live), "--repo", str(REPO), *argv], out=io.StringIO()) == 0
+    before = {p.name: (p.stat().st_mtime_ns, p.read_bytes()) for p in live.parent.iterdir()}
+    rc, out, err = launch(at, capsys, repo, brief, "M9", "build", "--report", REPORT)
+    assert rc == 0 and f"this database describes {REPO}" in err
+    commit(repo, {REPORT: "# r\n"})
+    herdr.set_status("m9-build", "idle")
+    assert run(at, capsys, "status", "m9-build")[0] == 0
+    assert run(at, capsys, "close", "m9-build")[0] == 0
+    after = {p.name: (p.stat().st_mtime_ns, p.read_bytes()) for p in live.parent.iterdir()}
+    assert after == before
