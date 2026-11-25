@@ -1,0 +1,421 @@
+{
+ "note": "Supplied by the coordinator for `work.py import-legacy --seed` (M33 plumbing 10). What no parser can recover: tiers, gradings, deployed or not, the dropped item, the queue, and the triage of the six 'Held or left over' blocks of PROMOTIONS.md as of 2026-11-24.",
+ "items": [
+  {
+   "id": "M24",
+   "tier": null,
+   "tag": "item-M24",
+   "deployed": true
+  },
+  {
+   "id": "M25",
+   "tier": null,
+   "tag": "item-M25",
+   "deployed": true,
+   "graded": "three test rounds; promoted on the third (PASSES)"
+  },
+  {
+   "id": "M26",
+   "tier": null,
+   "tag": "item-M26",
+   "deployed": false,
+   "deploy_note": "host units and libraries only; no container changed"
+  },
+  {
+   "id": "M27",
+   "tier": null,
+   "tag": "item-M27",
+   "deployed": true
+  },
+  {
+   "id": "M28",
+   "tier": 1,
+   "tag": "item-M28",
+   "deployed": false,
+   "deploy_note": "the tool runs on the host",
+   "graded": "second test reads FAILS; its one new finding graded should-fix by the coordinator and left over (M28-criteria.md, Rulings)"
+  },
+  {
+   "id": "M29",
+   "state": "dropped",
+   "why": "Drew, 2026-11-24: 'drop m29' (page-script tests in a browser were not worth a browser in the suite)",
+   "criteria_commit": "7380c43",
+   "dropped_commit": "47a8540",
+   "title": "tests that run the pages' scripts"
+  },
+  {
+   "id": "M30",
+   "state": "queued",
+   "tier": 3,
+   "position": 1,
+   "next_step": "design review, then build",
+   "note": "runs on the tool between M33's two steps"
+  },
+  {
+   "id": "M31",
+   "tier": 1,
+   "tag": "item-M31",
+   "deployed": true
+  },
+  {
+   "id": "M32",
+   "state": "queued",
+   "tier": 2,
+   "position": 2,
+   "after": "M33",
+   "next_step": "design review, then build"
+  },
+  {
+   "id": "M33",
+   "state": "active",
+   "tier": 3,
+   "next_step": "step 1 build"
+  }
+ ],
+ "matters": [
+  {
+   "kind": "leftover",
+   "item": "M24",
+   "owner": "drew",
+   "state": "open",
+   "how": null,
+   "text": "Ollama's 241 GB of blobs, its unit, its user, /usr/local/lib/ollama.removed and three old system unit files: the deletes are Drew's (sudo block given 2026-11-24)"
+  },
+  {
+   "kind": "leftover",
+   "item": "M24",
+   "owner": "drew",
+   "state": "open",
+   "how": null,
+   "text": "A spoken 'Okay Nabu, ask talkie …' test"
+  },
+  {
+   "kind": "decision",
+   "item": "M24",
+   "owner": "drew",
+   "state": "open",
+   "how": null,
+   "text": "'walkie talkie range in the woods' reaches Talkie: the rule matches 'talkie' and a space. Change the rule or accept?"
+  },
+  {
+   "kind": "decision",
+   "item": "M24",
+   "owner": "drew",
+   "state": "open",
+   "how": null,
+   "text": "Talkie is handed 'ask talkie' with the question (2 of 50 replies were five-word fragments). Strip the address or accept?"
+  },
+  {
+   "kind": "leftover",
+   "item": "M24",
+   "owner": "coordinator",
+   "state": "closed",
+   "how": "removed by M31",
+   "text": "nginx /devstral/ proxies to a dead port"
+  },
+  {
+   "kind": "leftover",
+   "item": "M24",
+   "owner": "coordinator",
+   "state": "open",
+   "how": null,
+   "text": "A two-word opener can be spoken alone when the next sentence is cut; a cut word can be spoken after lines not ending on a full stop (M24-e2e2.md should-fix 1, 2; 0 of 63 live)"
+  },
+  {
+   "kind": "leftover",
+   "item": "M24",
+   "owner": "coordinator",
+   "state": "open",
+   "how": null,
+   "text": "Code defaults in orchestrator/agents.py name retired models: COORDINATOR_MODEL still defaults to mistral-nemo:12b (M31 moved coding and devops to inherit it)"
+  },
+  {
+   "kind": "leftover",
+   "item": "M24",
+   "owner": "drew",
+   "state": "open",
+   "how": null,
+   "text": ".env.dev still sets ROUTER_MODEL (nothing reads it) and, lines 26-27, the two devstral variables (compose overrides them)"
+  },
+  {
+   "kind": "leftover",
+   "item": "M24",
+   "owner": "coordinator",
+   "state": "open",
+   "how": null,
+   "text": "The shim reports model gemma-4-e4b for a reply Talkie wrote"
+  },
+  {
+   "kind": "leftover",
+   "item": "M24",
+   "owner": "coordinator",
+   "state": "open",
+   "how": null,
+   "text": "Talkie's context is 2,048 tokens"
+  },
+  {
+   "kind": "leftover",
+   "item": "M24",
+   "owner": "coordinator",
+   "state": "closed",
+   "how": "M31 freed 42 GB",
+   "text": "Free memory sat under memwatch's warning line with Talkie loaded"
+  },
+  {
+   "kind": "leftover",
+   "item": "M26",
+   "owner": "coordinator",
+   "state": "open",
+   "how": null,
+   "text": "Rebuilding ~/services/rocm-7.2 needs a pull of a ten-month-old image by digest"
+  },
+  {
+   "kind": "leftover",
+   "item": "M26",
+   "owner": "coordinator",
+   "state": "open",
+   "how": null,
+   "text": "build_rocm_libs.sh: build can be raced between check and write; verify checks lib/ only and is not a signature; eight mutants survive (M26-e2e2.md notes)"
+  },
+  {
+   "kind": "leftover",
+   "item": "M26",
+   "owner": "coordinator",
+   "state": "open",
+   "how": null,
+   "text": "Production Whisper has not been restarted since the Ollama directory was renamed; its next restart is its own test (M30 restarts it)"
+  },
+  {
+   "kind": "decision",
+   "item": "M25",
+   "owner": "drew",
+   "state": "open",
+   "how": null,
+   "text": "What /resources still does not show: activity is this orchestrator's calls only; GPU busy is one instant; nothing shows what a server is doing now though GET /slots answers; Whisper has no usage count; no timing figures. Worth an item?"
+  },
+  {
+   "kind": "decision",
+   "item": "M25",
+   "owner": "drew",
+   "state": "open",
+   "how": null,
+   "text": "/services' orchestrator dot and deploy_tag.sh's check run a completion on every model server through /api/status (Talkie's on the CPU included). A candidate for its own item"
+  },
+  {
+   "kind": "leftover",
+   "item": "M25",
+   "owner": "coordinator",
+   "state": "open",
+   "how": null,
+   "text": "Under the memory bar: 'which the kernel counts as available' would be false for a server started with --mlock; 'includes memory-mapped model files' is true of three cards of five (M25-e2e3.md S1, S2)"
+  },
+  {
+   "kind": "leftover",
+   "item": "M25",
+   "owner": "coordinator",
+   "state": "closed",
+   "how": "M29 dropped by Drew; /resources' innerHTML writes become element building in M32",
+   "text": "No test runs the pages' scripts"
+  },
+  {
+   "kind": "leftover",
+   "item": "M25",
+   "owner": "coordinator",
+   "state": "open",
+   "how": null,
+   "text": "On /dev/services the probe dots are production's"
+  },
+  {
+   "kind": "leftover",
+   "item": "M25",
+   "owner": "coordinator",
+   "state": "open",
+   "how": null,
+   "text": "README's model table no longer carries memory"
+  },
+  {
+   "kind": "leftover",
+   "item": "M25",
+   "owner": "drew",
+   "state": "open",
+   "how": null,
+   "text": "Look at /resources on production in a browser (tests rendered dev's)"
+  },
+  {
+   "kind": "decision",
+   "item": "M27",
+   "owner": "drew",
+   "state": "open",
+   "how": null,
+   "text": "What /work shows the LAN: open ROADMAP entries whole (three mis-heard utterances with a run id; that agents run with permissions skipped; the HA version; what is down). Say if any should stay off"
+  },
+  {
+   "kind": "leftover",
+   "item": "M27",
+   "owner": "coordinator",
+   "state": "closed",
+   "how": "M28: agent.py checks the name against work_export's parser at launch",
+   "text": "Agent naming decides what /work says; a tester named -e2e lands under Other agents"
+  },
+  {
+   "kind": "leftover",
+   "item": "M27",
+   "owner": "coordinator",
+   "state": "closed",
+   "how": "M29 dropped by Drew; accepted",
+   "text": "The https-only link rule on /work is held by a browser run and no test"
+  },
+  {
+   "kind": "leftover",
+   "item": "M27",
+   "owner": "coordinator",
+   "state": "open",
+   "how": null,
+   "text": "An agent name with invalid Unicode stops the export's write (S1); a row label's right boundary has no test (S3); a promotions table straight after a heading is read as its body; a '### Mxx' heading inside another entry promotes Mxx"
+  },
+  {
+   "kind": "leftover",
+   "item": "M27",
+   "owner": "coordinator",
+   "state": "open",
+   "how": null,
+   "text": "The 'promoting' stage shows 'tag item-<id> exists' with the placeholder unfilled (M33 step 2 or M32 touches this)"
+  },
+  {
+   "kind": "leftover",
+   "item": "M27",
+   "owner": "coordinator",
+   "state": "open",
+   "how": null,
+   "text": "kronk-context.md says /api/servers probes LiteLLM's health"
+  },
+  {
+   "kind": "leftover",
+   "item": "M27",
+   "owner": "coordinator",
+   "state": "open",
+   "how": null,
+   "text": "An edit to scripts/work_export.py or to a file it reads is live on production's page within a minute"
+  },
+  {
+   "kind": "leftover",
+   "item": "M27",
+   "owner": "drew",
+   "state": "open",
+   "how": null,
+   "text": "Look at /work on production in a browser"
+  },
+  {
+   "kind": "leftover",
+   "item": "M28",
+   "owner": "coordinator",
+   "state": "open",
+   "how": null,
+   "text": "A launch killed or failed inside 'herdr workspace create' leaves a workspace the tool does not know; if a launch dies read 'herdr workspace list' first"
+  },
+  {
+   "kind": "leftover",
+   "item": "M28",
+   "owner": "coordinator",
+   "state": "open",
+   "how": null,
+   "text": "After a follow-up prompt wait with --expect-commit; plain wait returns at once on the first report"
+  },
+  {
+   "kind": "leftover",
+   "item": "M28",
+   "owner": "coordinator",
+   "state": "open",
+   "how": null,
+   "text": "agent_commits and --expect-commit rest on the Claude-Session trailer on the coordinator's commits"
+  },
+  {
+   "kind": "leftover",
+   "item": "M28",
+   "owner": "coordinator",
+   "state": "open",
+   "how": null,
+   "text": "prompt and peek find the agent by name, not by pane"
+  },
+  {
+   "kind": "leftover",
+   "item": "M28",
+   "owner": "coordinator",
+   "state": "open",
+   "how": null,
+   "text": "Some of the tool's tests do not fail when their job is undone (M28-e2e2.md S5)"
+  },
+  {
+   "kind": "decision",
+   "item": "M31",
+   "owner": "drew",
+   "state": "open",
+   "how": null,
+   "text": "Voice can wait behind a coding or devops answer on Gemma's lock: a typed coding answer has no token limit (up to about 268 s); a voice request has 25 s. Cap those agents' answers, or accept? (coordinator recommends a cap)"
+  },
+  {
+   "kind": "leftover",
+   "item": "M31",
+   "owner": "drew",
+   "state": "open",
+   "how": null,
+   "text": "The devstral model file (14.3 GB) and template are on disk as the way back; deleting them is Drew's"
+  },
+  {
+   "kind": "leftover",
+   "item": "M31",
+   "owner": "coordinator",
+   "state": "open",
+   "how": null,
+   "text": "On dev the devops answer said the mirror was 'unreachable' where the tool said the host was not configured (one sample; tenet 7)"
+  },
+  {
+   "kind": "decision",
+   "item": null,
+   "owner": "drew",
+   "state": "open",
+   "how": null,
+   "text": "Should the two databases (work state, voice runs) be copied to the NAS daily? Today's config backup is monthly, on the 10th"
+  },
+  {
+   "kind": "leftover",
+   "item": null,
+   "owner": "coordinator",
+   "state": "closed",
+   "how": "in M30's criteria",
+   "text": "HF_HUB_OFFLINE on production Whisper: folded into M30 (one ten-second restart at promotion)"
+  },
+  {
+   "kind": "decision",
+   "item": null,
+   "owner": "drew",
+   "state": "open",
+   "how": null,
+   "text": "Kronk-side music weaknesses from the GRiZ investigation (a false 'Playing…' with no tool call; play_music's 20 s limit against about 21 s; empty error text; a misleading 'could not be found'; 'part' against 'pt'): which become items?"
+  },
+  {
+   "kind": "leftover",
+   "item": null,
+   "owner": "coordinator",
+   "state": "open",
+   "how": null,
+   "text": "Music corpus row owed for the GRiZ album incident (tests/voice_corpus.jsonl)"
+  },
+  {
+   "kind": "leftover",
+   "item": null,
+   "owner": "drew",
+   "state": "open",
+   "how": null,
+   "text": "Push: main is ahead of origin by every commit since d4c0ff3"
+  },
+  {
+   "kind": "leftover",
+   "item": null,
+   "owner": "coordinator",
+   "state": "open",
+   "how": null,
+   "text": "YouTube Music is down in Music Assistant until upstream ships the yt-dlp fix (ROADMAP entry; check yt-dlp/ejs#80 at each session start)"
+  }
+ ]
+}
