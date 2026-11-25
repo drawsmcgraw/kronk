@@ -146,4 +146,35 @@ code path).
 
 ## Rulings
 
-(none yet)
+- 2026-11-24, coordinator, on the first test (`M28-e2e.md`, FAILS; all
+  seven criteria met; two blockers by the brief's grading). The tool was
+  used for real on that test: `launch` in one command, `wait` returned 0
+  on the committed report. Fix round 1, all of these:
+  - B1: nothing is created in herdr before the state directory is made
+    and proven writable; if a state write fails after `workspace create`,
+    the workspace is closed and the message says what was left, if
+    anything.
+  - B2: the tool writes no bytecode into the repo
+    (`sys.dont_write_bytecode` before any import of a repo module); the
+    test drops `-B`.
+  - S1: a report path that is a directory (a tree in HEAD, or on disk)
+    is refused at `launch`, `status` and `wait`.
+  - S2: `prompt` records HEAD at the moment it is sent. `status` gains
+    `report.changed_since_prompt` (null when no follow-up was sent) and
+    `agent_commits` (commits since launch whose author is not the
+    coordinator's session: decided by the commit's `Claude-Session`
+    trailer being absent or, failing that rule, reported as unknown; the
+    fix agent says what it found workable). `done` after a follow-up
+    still follows point 7; `wait --expect-commit` makes it also require
+    a new commit since the last prompt.
+  - S3: a brief or prompt file with a NUL byte is refused with the other
+    brief checks, before anything is created.
+  - S4: tests for a report committed and then followed by another
+    commit, and for a failing `git diff` not counting as committed.
+  - N1: `launch` for build, fix, test and review refuses without
+    `--report` unless `--no-report` is given.
+  - N2: `status`, `wait`, `list` and `close` compare the recorded pane id
+    with the agent herdr returns for the name; a different pane is
+    `gone`.
+  Fix rounds are named `m28-fix` (round 1 has no number), as the tool
+  does it; `/work` reads both forms.
