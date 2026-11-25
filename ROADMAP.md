@@ -155,6 +155,11 @@ Conventions:
 
 Newest first; feature docs in `docs/features/`.
 
+- **Work-item state and the queue in a database** *(2026-11-25, work
+  item M33)* — `scripts/work.py`: items, the ordered queue, steps,
+  promotions, leftovers and decisions in one SQLite database outside the
+  repo; `resume` for a fresh session, `check` against git and herdr.
+  Docs: `docs/features/work-state.md`.
 - **Devstral retired** *(2026-11-24, work item M31)* — coding and
   devops run on `gemma-4-e4b`; the server, its catalog entry and the
   `/devstral/` route are gone; 42 GB of memory freed.

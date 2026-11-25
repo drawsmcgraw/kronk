@@ -376,4 +376,11 @@ M27's open question on what `/work` may show.
     N4 (a refused import leaves no rowless database) and N7 (the
     `item-<id>` placeholder filled, in `resume`) are done in the same
     round. N2, N3, N5, N6 are left over.
+- 2026-11-25, coordinator, on the second test (`M33-e2e2.md`, PASSES;
+  fourteen jobs done; four should-fix). T1 (two integer columns printed
+  unescaped; reachable only by editing the file with `sqlite3`) is graded
+  should-fix and left over with T2 to T4. Promote. During the gap before
+  M34, a promotion is written to PROMOTIONS.md as well, because `/work`
+  still reads it (review 10); M33's own entry there is what the import
+  reads.
 

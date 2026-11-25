@@ -48,7 +48,7 @@
    "state": "queued",
    "tier": 3,
    "position": 1,
-   "next_step": "design review, then build"
+   "next_step": "work.py start M30, then the design review (docs/sprint/M30-criteria.md), then build"
   },
   {
    "id": "M31",
@@ -66,9 +66,10 @@
   },
   {
    "id": "M33",
-   "state": "active",
    "tier": 3,
-   "next_step": "fix round 1, a narrow test, then the live import"
+   "tag": "item-M33",
+   "deployed": false,
+   "deploy_note": "host tools and a database outside the repo; no container changed"
   },
   {
    "id": "M34",

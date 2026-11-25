@@ -8,7 +8,7 @@ something.
 
 "Sprint" was the name for that one run through a long backlog and is not
 used for new work. A piece of work run this way is a work item. The
-directory `docs/sprint/`, the item numbers (M24 is next) and the old
+directory `docs/sprint/`, the item numbers and the old
 `sprint-<item>` tags keep their names; new tags are `item-<item>`.
 
 A small fix that needs neither a build agent nor a test agent does not
@@ -145,15 +145,56 @@ it is shown as "coordinator: working" or "idle".
 
 ## Start of every working session
 
-Before taking up an item the coordinator reads the "Held or left over"
-entries of `docs/sprint/PROMOTIONS.md` that are still open and, in
-Grafana, the voice runs marked as corrected since the last session
-(`docs/features/voice-capture.md`). It also checks every `ROADMAP.md`
-entry that waits on something outside the repo (an upstream release, a
-merge) against its source, and says what moved. Each one is fixed (inline when it is
-a small fix to nothing under way, by a fix agent otherwise), proposed to
-Drew for `ROADMAP.md`, or struck with a dated line. A list nobody reads is
-worse than no list.
+Run `python3 scripts/work.py resume` first (work item M33,
+`docs/features/work-state.md`). The state of every item, the ordered
+queue, the leftovers and the decisions owed to Drew are in one SQLite
+database outside the repo (`~/.local/state/kronk-work/work.db`), written
+only through `scripts/work.py`; `scripts/agent.py` records each agent's
+step itself. `resume` prints, in this order: what `check` found (rows
+against git, herdr and the files), what is under way with its computed
+stage and agent, the queue, the decisions Drew owes, the open leftovers,
+the escape count within the last ten promoted items, the tree, the agents
+`agent.py` knows, and the last five writes.
+
+Settle each `check` finding with the command it prints before anything
+else. Then do the two sweeps `resume` does not cover: in Grafana, the
+voice runs marked as corrected since the last session
+(`docs/features/voice-capture.md`); and every `ROADMAP.md` entry that
+waits on something outside the repo (an upstream release, a merge),
+checked against its source, saying what moved. Report to Drew what needs
+a decision, with the escape count.
+
+Each open leftover is fixed (inline when it is a small fix to nothing
+under way, by a fix agent otherwise), proposed to Drew for `ROADMAP.md`,
+or closed with how (`work.py matter close <id> --how …`). A list nobody
+reads is worse than no list.
+
+**The queue and the state are changed only through the tool**, as things
+happen, not at the end of a session: a session can stop at any moment
+(on 2026-11-24 an API error stalled the coordinator for eight hours) and
+the next one starts from what is recorded.
+
+- An order from Drew: write and commit the criteria file, then `work.py
+  add` (it allocates the number) and `work.py step add <item> criteria`.
+  Order: `move`, `hold`, `unhold`, `drop --why`, `after`.
+- Before an item's first agent: `work.py start <item>`.
+- After each step: `work.py note <item> --next "…"` with what the next
+  session should do, and `--waits` when it waits on Drew, on another
+  item or on something outside.
+- A ruling on a test: the ruling in the criteria file, and `work.py
+  grade` when the coordinator grades against the report's verdict.
+- A question asked of Drew: `work.py matter add decision --owner drew …`
+  when it is asked. **When Drew answers, record the answer (`work.py
+  matter close <id> --how "Drew, <date>: …"`) before acting on it.**
+- A promotion: the checks in `docs/sprint/<item>-promote.md`, committed,
+  then `work.py promote <item> --tag item-<item> --deployed yes|no`.
+  Leftovers: `work.py matter add leftover --owner drew|coordinator`. An
+  escape: `work.py matter add escape --item <the promoted item>`.
+- Never paste multi-line text into the tool; it refuses a newline.
+
+Until work item M34 moves `/work` onto the database, `/work` still reads
+`docs/sprint/PROMOTIONS.md`: a promotion is recorded in both, and M34
+ends that.
 
 ## Where the steps came from
 

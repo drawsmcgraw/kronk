@@ -50,9 +50,15 @@ llama.cpp models, all on one machine (AMD Ryzen AI 375, Radeon 8060S iGPU,
    - You decide plumbing and record it. You ask the operator only when two
      readings of the order lead to different features, or the step is the
      operator's by rule.
-   - At the start of the session you read the open "Held or left over"
-     entries in `docs/sprint/PROMOTIONS.md` and the corrected voice runs,
-     and report what needs a decision.
+   - At the start of the session you run `python3 scripts/work.py
+     resume` (the work-state database: what is under way, the queue, the
+     decisions the operator owes, the leftovers), settle what its `check`
+     section names, then do the two sweeps it does not cover (the
+     corrected voice runs; ROADMAP entries waiting on something outside),
+     and report what needs a decision, with the escape count. You record
+     state through `scripts/work.py` as things happen, and an answer from
+     the operator before acting on it (WORKFLOW.md, "Start of every
+     working session").
 
    The file's last section says why each rule exists and what was
    considered and not adopted. Do not reopen those without new evidence.
@@ -306,6 +312,12 @@ verbatim — never summarized away.
   propose it to the operator, change the live file only on their word,
   and update the copy and its table in the same change, with the date
   and the reason. Never copy the live file into the repo unsanitized.
+- **The work-state database** (`~/.local/state/kronk-work/work.db`,
+  work item M33) is not a secret, but `scripts/work.py resume` prints its
+  text to a session that runs agents with permissions skipped. It lives
+  outside every container's mount for that reason; nothing but
+  `scripts/work.py` writes it, and no agent runs that against the live
+  file (`docs/features/work-state.md`).
 - **New compose files** get an `# Operations:` comment block (up / restart /
   logs / down recipes) like the existing ones.
 - **Docs lifecycle** (defined in `ROADMAP.md`, follow it): sizeable feature →

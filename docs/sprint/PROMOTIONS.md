@@ -437,3 +437,21 @@ Held or left over:
 - On dev the devops answer said the mirror was "unreachable" where the
   tool said the host was not configured (one sample; tenet 7).
 
+## M33 (work-item state and the queue in a database), 2026-11-25
+
+One SQLite database holds every work item's state, the ordered queue,
+the leftovers and the decisions owed to Drew, and one command
+(`scripts/work.py resume`) tells a fresh session where things stand. Tag
+`item-M33`. **No deploy**: host tools, and a database outside the repo
+(`~/.local/state/kronk-work/work.db`); `/work` is unchanged and moves
+onto the database in M34.
+
+Tier 3. Steps: design review (twelve points, all taken), build, test
+(PASSES, ten should-fix), fix round 1 (all ten and three notes), second
+test (PASSES). The checks the coordinator made at promotion, and what is
+left over, are in `docs/sprint/M33-promote.md` and in the database.
+
+After this entry the record of a promotion is a row
+(`scripts/work.py show <item>`) and `docs/sprint/<item>-promote.md`.
+Until M34, entries are still added here so that `/work` shows them.
+
