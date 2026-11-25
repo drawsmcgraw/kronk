@@ -289,8 +289,118 @@ now names M34.
 
 ## The trial import
 
-TRIAL
+In scratch (`--db` and `KRONK_WORK_DB` in the session scratchpad; the
+live path `~/.local/state/kronk-work` checked absent before), at `35dbbaa`,
+the last code commit, with today's seed and the live `data/work.json`.
+The real herdr answered `check` and `resume` (read only); `m33-fix`, this
+agent, was working.
+
+```
+python3 scripts/work.py --db <scratch>/trial/work.db import-legacy --at 35dbbaa --seed docs/sprint/M33-seed.json --compare data/work.json
+import exit 0
+counts {"item": 37, "step": 159, "promotion": 32, "promotion_item": 35, "open_thing": 68}
+matters {"triaged": 44, "untriaged_older_cells": 24}
+tags {"in_git": 28, "on_a_promotion": 28, "not_on_a_promotion": []}
+files {"md_in_docs_sprint": 160, "a_steps_report": 158, "not_a_report": ["PROMOTIONS.md", "WORKFLOW.md"]}
+notes []
+not_read_by_the_parser ['M1b-restore-build.md', 'M1b-restore-criteria.md', 'M3-e2e2-rows.md', 'M5-change1.md', 'M6-audit.md']
+{"compare": "stage", "item": "M33", "json": ["fixing", "fixing, agent m33-fix working", "agents"], "db": ["waiting", "fix 1 in, not retested", "files"]}
+{"compare": "tag", "item": "M31", "json": null, "db": "item-M31"}
+{"compare": "tag", "item": "M28", "json": null, "db": "item-M28"}
+```
+
+(The summary line printed in the fields above; the rest verbatim.)
+Against the e2e's import at `7b2a408` (36 items, 157 steps, 67 matters,
+158 files): one item more (M34, seed only), one matter more (the seed's
+44th, Drew's stalled-sessions decision), two steps and two files more
+(`M33-e2e.md`, `M33-fix1.md`). `--compare`: the two
+expected tag lines, and the stage line for M33 because an agent is open.
+
+```
+$ python3 scripts/work.py --db <scratch>/trial/work.db check
+{"check": "agent-no-step", "item": "M33", "says": "agent m33-fix is working in herdr; no step row", "fix": "not a command: M33 fix round 1 is already finished from docs/sprint/M33-fix1.md; when m33-fix is done, run python3 scripts/agent.py close m33-fix"}
+check exit 3
+```
+
+That finding is this agent, open while it writes this report. The first
+trial, at `c185615`, printed for it a `step start … --at …` line that
+`step start` would refuse (the step was imported finished from this
+report): fixed in `35dbbaa`, with a test. With `m33-fix` closed, `check`
+has nothing to say about it: the step row exists and no agent is working.
+
+`resume` (exit 0), the scratch path replaced, the 9 decisions and the
+leftovers cut (they are the seed's, unchanged):
+
+```
+Work state: <scratch>/trial/work.db (schema 1), at 2026-11-25T13:27:49Z
+
+== Check: 1 finding(s) (rows against git, herdr, the files)
+- [agent-no-step] agent m33-fix is working in herdr; no step row
+    fix: not a command: M33 fix round 1 is already finished from docs/sprint/M33-fix1.md; when m33-fix is done, run python3 scripts/agent.py close m33-fix
+
+== Under way: 1
+M33  tier 3  work-item state and the queue in a database
+    stage: fixing (fixing, agent m33-fix working)
+    agent: m33-fix working, 25.7 min since launch
+    last step: fix round 1 (docs/sprint/M33-fix1.md, 2026-11-25T13:23:40Z)
+    next step: fix round 1, a narrow test, then the live import
+    waits on: -
+
+== Queue: 3
+1. M30  tier 3  what Whisper heard, on /work  <- next
+    next step: design review, then build
+    waits on: -
+2. M34  tier 3  /work drawn from the work-state database
+    next step: criteria (M33-criteria.md, 'Step 2'), then build in scratch and move in one step
+    waits on: -
+    after: M33 (M34 follows M33, which is active, not promoted)
+3. M32  tier 2  /work for a wall display: live, foldable, with what and why
+    next step: design review, then build
+    waits on: -
+    after: M34 (M32 follows M34, which is queued, not promoted)
+...
+== Escapes within the last 10 promoted items (M31, M28, M27, M25, M26, M24, M23, M22, M16b, M16): 0
+
+== Tree: branch main, HEAD 35dbbaa, clean
+
+== Agents scripts/agent.py knows: 1
+- m33-fix (M33 fix): working, 25.7 min since launch, report docs/sprint/M33-fix1.md
+
+== Last five writes
+- 2026-11-25T13:27:49Z session 8b86efe2-33bf-4d29-9085-5b37f85ce5d1: work.py import-legacy --at 35dbbaa --seed docs/sprint/M33-seed.json --compare data/work.json
+
+== Not covered here; the session still does these by hand:
+- the voice runs marked as corrected in Grafana since the last session (docs/features/voice-capture.md);
+- every ROADMAP.md entry that waits on something outside the repo (an upstream release, a merge),
+  checked against its source.
+```
+
+M33's stage reads "fixing" while this agent works; closed, it reads
+`waiting for the coordinator (fix 1 in, not retested)`, which `--compare`
+shows. M34 sits second, after M33; M32 third, after M34.
+
+The report commit that follows `35dbbaa` changes only this file, which
+the import already counts (its first commit is `c185615`), so an import
+at the final commit gives the same counts.
+
+For the live import, the e2e's sequence stands, with the commit and the
+expectations above: close `m33-fix` first; run `import-legacy` with no
+`--db` and `KRONK_WORK_DB` unset; then `check` (expect nothing, exit 0),
+`note M33 --next "…"`, `resume`.
 
 ## The suite
 
-SUITE
+`./scripts/run_tests.sh` at `35dbbaa` (this report's text aside, the tree
+of the last commit), exit 0:
+
+```
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+===== 7959 passed, 3 skipped, 54 xfailed, 6 warnings in 158.19s (0:02:38) ======
+```
+
+The e2e's run: 7884 passed. 75 more: the new and changed tests of this
+round. The first full run of this round failed one test,
+`test_m16_backups.py::test_m33_restored_from_the_tar_…` (`1 failed, 7957
+passed`), for the `--db` now in fix lines; it compares with the path
+replaced, as listed under "Changed tests". The suite's guard on the live
+database held on every run: `~/.local/state/kronk-work` does not exist.
