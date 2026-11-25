@@ -311,3 +311,23 @@ written when step B is promoted.
   reported to Drew: the page and the route serve 90 days, not all of the
   record; the weekly copy rides with the recordings archive; step D is
   in.
+- 2026-11-25, coordinator, step A. Test `M30-e2e.md` reads FAILS on one
+  count only: a suite failure that is not this step's
+  (`test_m33_work_state.py::test_the_real_import_at_the_build_start`,
+  broken by the coordinator's own change to the M33 seed at M33's
+  promotion, after the suite had been run). A1 and A2 pass: with the two
+  variables the production command line reached "Ready" in 1.5 s having
+  connected to nothing. Graded pass for step A. The test fix is made
+  inline by the coordinator (a test of a promoted item, not of this one)
+  and left for Drew to commit; with it the suite reads `7968 passed, 3
+  skipped, 54 xfailed`.
+  Step A done by the coordinator at 09:43 EST: unit installed (the old
+  one kept in `~/backups/m31-units-2026-11-24/wyoming-whisper.service.before-m30`),
+  `daemon-reload`, restart after 15 minutes with no line in Whisper's
+  journal. "Started" 09:43:40.38, "Ready" 09:43:41.56, no `httpx` line
+  between or since; the process's environment holds both variables;
+  `refs/main` still `0a363e91…` with its mtime unchanged (09:36:09, set
+  by the test's one online run); 10300 listening; dev Whisper's process
+  untouched; 25 synthetic clips against M26's run: 0 of 25 texts differ,
+  p50 0.311 to 0.317 s. A4 (a spoken test) is Drew's.
+
