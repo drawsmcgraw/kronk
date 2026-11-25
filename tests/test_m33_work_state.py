@@ -1457,3 +1457,16 @@ def test_n7_resume_names_the_tag(t, repo, fake_herdr):
     git(repo, "tag", "item-M1")
     text = t.text("resume")
     assert "stage: promoting (tag item-M1 exists)" in text and "item-<id>" not in text
+
+
+def test_s5_an_agent_working_on_a_step_already_finished_gets_no_start_line(t, repo, fake_herdr):
+    """The trial import at the fix round's own commit: the fix report was
+    committed, so its step is imported finished, while the agent still
+    works. `step start` refuses a finished step; the fix line says so."""
+    active_item(t, repo)
+    commit(repo, {"docs/sprint/M1-fix1.md": "# fix\n"})
+    t("step", "add", "M1", "fix")
+    fake_herdr.add_agent("m1-fix", "working", repo)
+    f = codes(t)["agent-no-step"]
+    assert f["fix"].startswith("not a command: M1 fix round 1 is already finished from docs/sprint/M1-fix1.md")
+    assert "agent.py close m1-fix" in f["fix"]

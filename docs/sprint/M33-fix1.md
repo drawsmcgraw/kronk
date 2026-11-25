@@ -107,7 +107,7 @@ Per kind:
 | `commit-not-in-branch` | `step refresh …` when the report is in HEAD; else not a command: find where the report went |
 | `verdict-changed` | `step refresh …` |
 | `report-gone` | `step note-gone ITEM KIND --round N` (new) |
-| `agent-no-step` | `step start … --at <agent.py's launch time>` when the state file gives it; else not a command: find the launch time, then the `step start` line to give it to. The round comes from the state file, else from the name (`m6-test2`: round 2) |
+| `agent-no-step` | `step start … --at <agent.py's launch time>` when the state file gives it; else not a command: find the launch time, then the `step start` line to give it to. The round comes from the state file, else from the name (`m6-test2`: round 2). When that step is already finished (its report committed: an import, a `step add`), not a command: when the agent is done, `python3 scripts/agent.py close <name>` (found by the trial import below: `step start` refuses a finished step) |
 | `state-file-no-step` | `step start … --at … --model … --report …`, runnable |
 | `tag-not-promoted` | not a command: see whether it was deployed (`scripts/deploy_tag.sh status`), commit the promote file, then `promote ITEM --tag item-ITEM` with `--deployed yes` or `--deployed no` |
 | `tag-gone` | `git tag <tag> <the row's commit>`; not a command when the row has none |
@@ -133,7 +133,8 @@ one scratch database; every fix line is a command or marked; no `<`, `>`,
 `|`, `...` or `  (` in a command; then ten of the runnable ones are run as
 printed, in a subprocess from the repo root, and each clears its own
 finding), `test_s5_a_deleted_report_is_noted_with_the_commit_that_deleted_it`,
-`test_s5_fix_lines_name_no_db_or_repo_when_the_defaults_find_them`. The
+`test_s5_fix_lines_name_no_db_or_repo_when_the_defaults_find_them`,
+`test_s5_an_agent_working_on_a_step_already_finished_gets_no_start_line`. The
 Appendix C tests (`test_c1_…`, `test_c2_…`, `test_c3_…`, `test_c4_…`,
 `test_a_committed_step_file_with_no_row_is_named`) now run their fix
 lines as printed (`run_fix`: `subprocess.run(shlex.split(fix), cwd=REPO)`,

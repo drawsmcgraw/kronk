@@ -1663,7 +1663,14 @@ def findings(c: Ctx, g: dict) -> list[dict]:
             args = ["step", "start", item, role, "--round", str(rnd), "--agent", name]
             args += ["--model", st["model"]] if st.get("model") else []
             args += ["--report", st["report"]] if st.get("report") else []
-            if st.get("launched_iso"):
+            done = next((s for s in g["steps"] if (s["item_id"], s["kind"], s["round"], s["name"])
+                         == (item, role, rnd, "") and s["state"] == "finished"), None)
+            if done:
+                # The step is already finished from its committed report (an
+                # import, or a step add); `step start` refuses a finished one.
+                fix = look(f"{item} {role} round {rnd} is already finished from {done['report']}; when {name} "
+                           f"is done, run python3 scripts/agent.py close {name}")
+            elif st.get("launched_iso"):
                 fix = c.run(*args, "--at", st["launched_iso"])
             else:
                 fix = look(f"find when {name} was launched (its herdr pane, or the commit of its brief); then "
