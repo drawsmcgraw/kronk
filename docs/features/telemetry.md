@@ -69,7 +69,11 @@ Every interaction is one trace, end to end:
   within 60 s, and copies Kronk's `kronk.rule`, `kronk.direct_action` and
   `kronk.tools` onto `voice.run`. Query and definitions:
   `docs/features/voice-capture.md`. `scripts/voice_transcripts.py` lists
-  runs with all of it, dev excluded.
+  runs with all of it, dev excluded. Every run with a speech-to-text stage
+  is also kept for good in the voice-run record
+  (`docs/features/voice-dataset.md`), and the last 90 days of it are on
+  `/work`, in the folded "Heard" section at the top
+  (`docs/features/work-page.md`, "Heard"; `GET /api/voice_runs`).
 - **voice_tracer** (`voice_tracer/`, kronk stack): subscribes to
   `state_changed`; when a satellite returns to idle or the blueprint
   automation finishes it fetches the new runs (`assist_pipeline/pipeline_debug/*`,

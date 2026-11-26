@@ -18,7 +18,7 @@ heard, what answered, how, whether it was marked wrong, the whole voice
 trace, and which recording holds its audio. One SQLite file, one writer,
 backed up monthly in the config tar and weekly beside the recordings on the
 NAS. It also publishes the last 90 days for the "Heard" section of `/work`
-(step C).
+(step C, `GET /api/voice_runs`; `work-page.md`, "Heard").
 
 | File | What | Who writes it |
 | :-- | :-- | :-- |
@@ -237,7 +237,8 @@ included). Freed space is zeroed, so the words leave the file and its free
 pages. Then it publishes the copies at once; it reads no Tempo. The
 exporter never writes that row again and never publishes it; nothing
 deletes the row. `seq` is not raised: the page notices a removal by the
-copy's `meta.rows` or `content_sha256` (step C). A label on the run
+copy's `meta.rows` (`/api/voice_runs` answers `resync`; `work-page.md`,
+"Heard"). A label on the run
 (`labels.correct_text`) is not touched (the exporter never writes
 `labels`); the command says when there is one, and it is deleted by hand
 if its words should go too.
@@ -299,9 +300,9 @@ nothing here does it.
 - **The stale check.** `backups.py check` (daily) warns when the export's
   last good read is over seven days old, and when the record is gone but
   its status file is not. Before the first export it says nothing.
-- **Required in the tar from the promotion on.** The coordinator adds the
-  record to `required_sources` after the first export, so no earlier run
-  reads INCOMPLETE.
+- **Required in the tar since the first export.** Step C added the
+  record to `required_sources` (2026-11-26), after the first export, so no
+  run before it read INCOMPLETE; a config tar without it is INCOMPLETE now.
 - **The run is three to four minutes old when its row lands**: a satellite
   run reaches Tempo that late. Its audio join waits until it is 15
   minutes old.

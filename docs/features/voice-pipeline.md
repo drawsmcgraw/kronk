@@ -30,7 +30,12 @@ from the M12 install, every puck's speech audio is recorded to
 reminder (`kronk-voice-capture-check.timer`) asks Drew to turn it off from
 the end date on. `voice_tracer` marks a run the same puck corrected within
 60 s ("not that", thumbs down, stop, the same request again). Turning each
-part off: `voice-capture.md`, "Turning each part off".
+part off: `voice-capture.md`, "Turning each part off". Every run with a
+speech-to-text stage is kept for good in the voice-run record
+(`voice-dataset.md`); what Whisper heard over the last 90 days, with the
+route each run took and the first line of its reply, is the "Heard" section
+at the top of `/work` (`work-page.md`, "Heard"), the first place to look
+when a puck misheard.
 
 Key design decisions (full rationale in the build journal):
 
