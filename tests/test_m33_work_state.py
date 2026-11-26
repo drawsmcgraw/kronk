@@ -946,6 +946,7 @@ def test_import_compares_with_a_work_json_item_for_item(wk, db, repo, legacy, tm
 
 SEED = REPO / "docs" / "sprint" / "M33-seed.json"
 IMPORT_AT = "4eee8fd"
+SEED_AT = "963f7ec"       # the seed of fix round 1, which the figures below were taken with
 
 
 def test_the_coordinators_seed_loads(wk):
@@ -955,11 +956,17 @@ def test_the_coordinators_seed_loads(wk):
 
 @pytest.mark.skipif(subprocess.run(["git", "-C", str(REPO), "cat-file", "-e", f"{IMPORT_AT}^{{commit}}"],
                                    capture_output=True).returncode != 0, reason="the import commit is not here")
-def test_the_real_import_at_the_build_start(wk, db):
+def test_the_real_import_at_the_build_start(wk, db, tmp_path):
     """The trial import of the build report, pinned: the coordinator's live
     import at promotion should give these counts at this commit."""
     t = Tool(wk, db, REPO)
-    (s,) = t.j("import-legacy", "--at", IMPORT_AT, "--seed", SEED)
+    # The seed as it stood when these figures were pinned (SEED_AT), not the
+    # working file: the coordinator changed the seed at M33's promotion (M33
+    # promoted, not active) and this test, which read the live file, failed on
+    # main from f3b4d4c until the M30 step A test reported it.
+    seed = tmp_path / "seed-at.json"
+    seed.write_text(git(REPO, "show", f"{SEED_AT}:docs/sprint/M33-seed.json").stdout)
+    (s,) = t.j("import-legacy", "--at", IMPORT_AT, "--seed", seed)
     assert s["counts"] == {"item": 37, "step": 156, "promotion": 32, "promotion_item": 35, "open_thing": 68}
     assert s["matters"] == {"triaged": 44, "untriaged_older_cells": 24}
     at_tags = git(REPO, "tag", "--merged", IMPORT_AT).stdout.split()
