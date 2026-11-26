@@ -79,3 +79,51 @@ route): a design review, one test, a fresh narrow test after any fix.
 - A way to change the zone on `/settings`.
 
 ## Rulings
+- 2026-11-25, coordinator, on the design review (`M35-review.md`: build
+  with these changes). All taken; where a point below differs from the
+  text above, the point holds:
+  - The weather forecast's hourly labels are in scope (criterion 4):
+    `tool_service/main.py:354` converts each period to the container's
+    zone, so the home agent's forecast list is five hours off. Fix: label
+    each period in the offset it arrives with; no zone variable. Test:
+    two fixture periods, `-05:00` and `-07:00`, each with its own hour.
+    The dead `now` on line 348 goes with it. The tagged deploy therefore
+    includes tool_service, and dev's tool_service is rebuilt for
+    criterion 3.
+  - `KRONK_TZ` is read by the orchestrator only: production's compose
+    environment with a comment naming the other places the house's zone
+    is written, `.env.dev.example` (not `.env.dev`), a row in the
+    settings page's environment table, one line in
+    `docs/features/voice-pipeline.md`. `NEWS_TZ`, `SOLAR_TZ` and
+    `MUSIC_TASTE_TZ` stay as they are.
+  - `kronk_facts()` gets one seam for the instant. `tests/test_m21_pins.py`
+    moves its freeze to it at 2026-11-16 14:05 UTC and
+    `tests/fixtures/m21/prompts.json` stays byte for byte the same; that
+    is the proof the wording did not change. Tests pass the instant as
+    UTC and neither read nor set the process `TZ`.
+  - Criterion 1's daylight instants: 2026-03-08 06:59 UTC (1:59 AM EST)
+    and 07:00 UTC (3:00 AM EDT); 2026-11-01 05:59 UTC (1:59 AM EDT) and
+    06:00 UTC (1:00 AM EST).
+  - Criterion 2: the variable is read as `os.getenv("KRONK_TZ") or` the
+    default; a name that raises (`ZoneInfoNotFoundError` or `ValueError`:
+    unknown, empty, a path) falls back to the default with one warning.
+    If the default itself does not load, the line goes out in UTC, says
+    UTC, and the error is logged.
+  - Criterion 3 passes when the hour and minute are the house's within a
+    minute of the quoted wall clock, the zone named is EST, and
+    "tomorrow" is the house's tomorrow. The date is only proven between
+    19:00 and midnight EST; outside it the test agent says so and shows
+    the date by the unit test instead. Baseline before the build, dev,
+    23:03 EST: "It is 4:03 AM UTC."
+  - Criterion 5: two corpus rows, the time question and the
+    date-tomorrow question. Home Assistant very likely answers "what
+    time is it" itself (`HassGetCurrentTime`) from its own, correct,
+    clock; the test agent's read-only replay decides each row's tier and
+    the row is corrected to it. `pipeline_bench.sh` is the coordinator's
+    to run.
+  - Left over, not this item: the config-reload message's bare time
+    (say UTC in the string if the builder is in the file); a solar "day"
+    in stored readings is a UTC day (stored data; the house-day answers
+    do not use it).
+  - A spoken "what time is it" cannot show the fix. Drew's spoken test
+    is a relative-date question, or one with the "ask Kronk to" lead-in.
