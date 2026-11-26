@@ -590,3 +590,17 @@ Tier 3 (stored data): one test, a fresh narrow test after any fix.
   - A dry run that meets an interrupted write says so ("a write was
     interrupted; the next export or `--apply` repairs it").
   A narrow test follows (tier 3), then D7.
+- 2026-11-26, coordinator, on step D's narrow test (`M30-e2e9.md`, FAILS
+  by the brief's wording only; the five jobs hold, the exporter is
+  unchanged, D2 and D3 hold, suite passes). **Graded pass.** The one
+  route left: a run whose own line is missing from the journal, beside a
+  line of the same length within a second of its speech-to-text end that
+  belongs to a run with no window (a removed row, a row with no span, a
+  run the record never held). 0 of 7,210 wrong fills in 400,000 random
+  houses had an owner with a span. The third kind no rule on the record
+  can close. On the live data every one of the 40 fills is a line within
+  1 ms of the run's own span end with nothing else within 16 s. D7 runs
+  as the script stands, on the test agent's dry-run checks (every fill's
+  offset within 0.01 s). Left over, before the command is run again: a
+  row with no span holds the lines between its start and end (covers the
+  removed row and the row with no span); the three `xfail` tests stay.
