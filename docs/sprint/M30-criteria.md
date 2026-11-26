@@ -567,3 +567,26 @@ Tier 3 (stored data): one test, a fresh narrow test after any fix.
   does not cover. Left over, not ordered: compare by device and inode,
   wrap the two classes, and read the start snapshot again when a run is
   within the margin. No further test of step C. Step D is next.
+- 2026-11-26, coordinator, on step D's test (`M30-e2e8.md`, FAILS on
+  one rule; D1 to D5, the second writer, the kill and the NAS join hold;
+  on the live data 71 of 71 rows with text match and 40 of 42 empty rows
+  would fill, none by the weak paths). The grade stands and the fix
+  comes before the live run: the write is for ever and the command will
+  be run again. Fix round 1 of step D, all of these; the four `xfail`
+  tests in `tests/test_m30_backfill_e2e8.py` lose their marks. This
+  changes step D's plumbing 2 where they differ:
+  - Each journal line is one run's. After every row is judged, a line
+    that is the one match of more than one row (rows to fill and rows
+    that already have words alike, same unit) fills none of them:
+    "the transcript is in another run's window too".
+  - A row with no stored count is never filled. A row with no
+    speech-to-text span in its trace is never filled (no whole-run
+    window). Each is left with its reason.
+  - The window is the end of the speech-to-text span, one second either
+    side (the line sits within 10 ms of it on all 111 live rows), not
+    the audio join's two before and five after.
+  - The NAS scan runs before `BEGIN IMMEDIATE` and before the lock; the
+    transaction holds only the reads of the record and the writes.
+  - A dry run that meets an interrupted write says so ("a write was
+    interrupted; the next export or `--apply` repairs it").
+  A narrow test follows (tier 3), then D7.
