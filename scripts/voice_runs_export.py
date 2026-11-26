@@ -816,17 +816,17 @@ def _closure(conn, t: dict, recs: list) -> tuple[list[dict], list]:
 
 
 def reopen_joins(conn, rows: list[dict], now: float) -> int:
-    """Each row here was inserted already final (a read the budget cut, the
-    hourly check's take, a run Tempo showed late): its neighbours may have
-    been joined without it. audio_tried_at is cleared for every row of its
-    set (_closure), not removed, so audio_joins joins the set again whole.
-    The audio columns raise no seq and are not published. Returns how many
-    rows were re-opened."""
+    """Each row here was just inserted, final or not (a read the budget cut,
+    the hourly check's take, a run Tempo showed late, or an ordinary young
+    run): its neighbours may have been joined without it. audio_tried_at is
+    cleared for every row of its set (_closure), not removed, so audio_joins
+    joins the set again whole, and while the set holds a young row it waits
+    whole. The audio columns raise no seq and are not published. Returns how
+    many rows were re-opened (M30-e2e4 finding 1)."""
     ids: set[str] = set()
     for r in rows:
-        if r["end_s"] < now - FINAL_S:
-            got, _ = _closure(conn, r, [])
-            ids.update(x["run_id"] for x in got)
+        got, _ = _closure(conn, r, [])
+        ids.update(x["run_id"] for x in got)
     if not ids:
         return 0
     return conn.execute("UPDATE runs SET audio_tried_at = NULL WHERE run_id IN (SELECT value FROM json_each(?)) "
@@ -1100,8 +1100,9 @@ def export(conn, tempo: Tempo, now: float, recordings: Path, dev_pipelines=vt.DE
                              "WHERE id = 1", (stamp, json.dumps(summary, sort_keys=True)))
 
         # The audio, for rows final now (after every insert above, so each
-        # competes with every run that has arrived). A row inserted already
-        # final re-opens the joins of its set first (M30-e2e3 finding 1).
+        # competes with every run that has arrived). Every inserted row
+        # re-opens the joins of its set first, final or not (M30-e2e3
+        # finding 1, M30-e2e4 finding 1).
         reopened = reopen_joins(conn, new_rows, now)
         if reopened:
             report["audio_reopened"] = reopened

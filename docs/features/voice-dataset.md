@@ -65,11 +65,12 @@ and typed runs have no STT stage and are left out.
    NULL (its recording may be on the NAS; joining the NAS layout is left
    for step D), a younger one is `none`. A recordings directory that
    cannot be read leaves the row untried; the next run tries again.
-   A row that reaches the record already final (a first read the budget
-   cut between two days, the hourly check's take, a run Tempo showed
-   later than 15 minutes) may have neighbours joined without it: its
-   insert clears `audio_tried_at` on every row of its set that is not
-   removed, and the set is joined again whole in the same run
+   A row that reaches the record after a neighbour was joined (a read
+   the budget cut at a day mark, the hourly check's take, a run Tempo
+   showed late), final or not, may have neighbours joined without it:
+   every insert clears `audio_tried_at` on every row of its set that is
+   not removed, and the set is joined again whole, in the same run if
+   every row of it is final, or once its youngest row is
    (`audio_reopened` in the status). The audio columns raise no `seq`
    and are not published, so nothing else moves.
 4. **Writes the record** in one `BEGIN IMMEDIATE` transaction, under an

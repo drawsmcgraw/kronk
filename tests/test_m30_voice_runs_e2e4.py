@@ -180,8 +180,6 @@ def test_job1_random_arrivals_leave_every_stored_join_as_the_join_says(sc, monke
 
 # ── The finding: a run inserted late and NOT yet final ─────────────────────
 
-@pytest.mark.xfail(strict=True, reason="M30-e2e4 finding 1: a run inserted after its neighbour was joined, and not "
-                   "yet final itself, re-opens nothing; the neighbour keeps a certain the join calls ambiguous")
 def test_job1_a_catch_up_read_cut_at_a_day_mark_before_a_long_run_that_is_not_final_yet(sc, monkeypatch):
     """Inside the premises: Tempo has both runs on time. The exporter was
     stopped for about a day; its catch-up read goes a day per search and
@@ -215,8 +213,6 @@ def test_job1_a_catch_up_read_cut_at_a_day_mark_before_a_long_run_that_is_not_fi
     assert stored(sc) == oracle(sc)
 
 
-@pytest.mark.xfail(strict=True, reason="M30-e2e4 finding 1, outside voice_tracer's premise: the same through a run "
-                   "Tempo shows late but before its own end + FINAL_S")
 def test_job1_a_long_run_tempo_shows_late_but_before_it_is_final(sc):
     t = NOW
     a, b = run("A", t), run("B", t + 7, dur=300.0)
