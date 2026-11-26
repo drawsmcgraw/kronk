@@ -385,3 +385,138 @@ def test_agree_with_live():
     assert vr.agree_with_live({"ok": False}, {"ok": False}) == (True, "both fail")
     assert vr.agree_with_live({**a, "kind": "genre", "name": "jazz"},
                               {**a, "kind": "genre", "name": "Jazz", "uri": "z"}) == (True, "same style")
+
+
+# ── M36: --history, follow-ups posted with their history to the dev shims ────
+
+HROW = {"id": "h1", "text": "play that album, in the kitchen", "origin": {"area": None},
+        "history": [{"role": "user", "content": "play the album pulse by pink floyd"},
+                    {"role": "assistant", "content": "The closest I found was Pulse by Pink Floyd."}],
+        "expect": {"tier": "kronk", "route": "home", "rule": "music", "tool": "play_music", "name": "Pulse"},
+        "tags": ["music", "needs-context"]}
+
+
+@pytest.mark.parametrize("url", ["http://localhost", "http://localhost/", "http://localhost/api",
+                                 "https://localhost/dev", "http://192.168.1.5/dev", "http://kronk.local/dev",
+                                 "http://localhost/dev/../"])
+def test_history_refuses_anything_but_the_dev_kronk_here(url):
+    with pytest.raises(vr.Refused):
+        vr.history_target(url)
+
+
+def test_history_target_is_the_dev_pair():
+    t = vr.history_target("http://localhost/dev/")
+    assert t["status_url"] == "http://localhost/dev/api/status"
+    assert t["orchestrator"] == "kronk-orchestrator-dev-1" and t["tool_service"] == "kronk-tool_service-dev-1"
+
+
+@pytest.fixture
+def hist(tmp_path, monkeypatch):
+    """--history with every outside call faked: the dry-run answers come
+    from `state['dry']` (one per status read), posts are recorded."""
+    corpus = tmp_path / "rows.jsonl"
+    corpus.write_text(json.dumps(HROW) + "\n" + json.dumps({**HROW, "id": "nohist", "history": None}) + "\n")
+    state = {"dry": [], "posts": []}
+
+    def http_json(url, token=None, timeout=10):
+        assert url == "http://localhost/dev/api/status", url
+        on = state["dry"].pop(0) if state["dry"] else True
+        return {"tool_service": {"music_dry_run": on}}
+
+    def post_json(url, body, timeout=60):
+        state["posts"].append((url, body))
+        return 200, {"message": {"role": "assistant", "content": "Playing Pulse in the kitchen."}}
+
+    monkeypatch.setattr(vr, "http_json", http_json)
+    monkeypatch.setattr(vr, "post_json", post_json)
+    monkeypatch.setattr(vr, "require_text_logs", lambda target: None)
+    monkeypatch.setattr(vr, "ha_token", lambda: "t")
+    monkeypatch.setattr(vr, "player_snapshot", lambda token: {"media_player.x": {"state": "idle"}})
+    monkeypatch.setattr(vr, "kronk_evidence", lambda *a, **k: {
+        "rid": "r", "route": "home", "rule": "music", "tools": ["home:play_music"], "direct": [],
+        "trace_id": "t", "events": [], "dry_run": [],
+        "music_requests": ["query='Pulse by Pink Floyd' media_type='album' player='kitchen'"]})
+    monkeypatch.setattr(vr, "tool_service_calls", lambda *a: ["POST /music 200"])
+    args = SimpleNamespace(kronk_url="http://localhost/dev", corpus=str(corpus), id=None, tag=None,
+                           repeat=2, label="t", out=str(tmp_path / "out.json"), timeout=5)
+    return state, args, tmp_path
+
+
+def test_history_refuses_without_dry_run_and_sends_nothing(hist):
+    state, args, _ = hist
+    state["dry"] = [False]
+    with pytest.raises(vr.Refused):
+        vr.history_check(args)
+    assert state["posts"] == []
+
+
+def test_history_posts_the_history_then_the_text_to_both_shims(hist):
+    state, args, tmp = hist
+    assert vr.history_check(args) == 0
+    assert [u for u, _ in state["posts"]] == ["http://localhost/dev/api/chat",
+                                              "http://localhost/dev/voice/api/chat"] * 2
+    body = state["posts"][0][1]
+    assert body["stream"] is False
+    assert body["messages"] == HROW["history"] + [{"role": "user", "content": HROW["text"]}]
+    out = json.loads((tmp / "out.json").read_text())
+    assert out["summary"]["claims_without_tool"] == 0
+    assert out["summary"]["per_row_route"]["h1 /api/chat"]["pass"] == 2
+
+
+def test_history_dry_run_lost_mid_run_stops_before_the_next_post(hist):
+    state, args, _ = hist
+    state["dry"] = [True, True, False]     # start, first request, then off
+    assert vr.history_check(args) == 3
+    assert len(state["posts"]) == 1
+
+
+def test_history_player_change_stops(hist, monkeypatch):
+    state, args, _ = hist
+    snaps = iter([{"p": 1}, {"p": 1}, {"p": 2}, {"p": 2}])
+    monkeypatch.setattr(vr, "player_snapshot", lambda token: next(snaps))
+    assert vr.history_check(args) == 3
+    assert len(state["posts"]) == 1
+
+
+def _kev(tools, music=()):
+    return {"tools": list(tools), "music_requests": list(music), "dry_run": []}
+
+
+def test_compare_history_tool_and_subject():
+    ok = vr.compare_history(HROW, _kev(["home:play_music"], ["query='Pulse by Pink Floyd'"]), [], "x")
+    assert all(c["ok"] for c in ok)
+    wrong = vr.compare_history(HROW, _kev(["home:play_music"], ["query='Abbey Road'"]), [], "x")
+    assert [c["check"] for c in wrong if not c["ok"]] == ["subject"]
+
+
+def test_compare_history_subject_from_a_tool_route():
+    row = {**HROW, "expect": {"tool": "get_weather", "mention": "Boston"}}
+    checks = vr.compare_history(row, _kev(["home:get_weather"]), ["GET /weather?location=Boston, MA 200"], "x")
+    assert all(c["ok"] for c in checks)
+
+
+def test_compare_history_counts_a_claim_with_no_tool_call():
+    checks = vr.compare_history(HROW, _kev([]), [], "I've started playing the album Pulse in the kitchen.")
+    claim = next(c for c in checks if c["check"] == "no claim without a tool call")
+    assert claim["ok"] is False
+    # The same words after a real tool call are not a false claim.
+    checks = vr.compare_history(HROW, _kev(["home:play_music"], ["Pulse"]), [], "Now playing Pulse.")
+    assert all(c["ok"] for c in checks)
+    # Asking which album is a failure of the row, not a claim.
+    checks = vr.compare_history(HROW, _kev([]), [], "I need to know the name of the album.")
+    assert next(c for c in checks if c["check"] == "no claim without a tool call")["ok"] is True
+
+
+def test_compare_history_not_tools():
+    row = {**HROW, "expect": {"tool": None, "not_tools": ["play_music"]}}
+    bad = vr.compare_history(row, _kev(["home:play_music"]), [], "x")
+    assert not next(c for c in bad if c["check"] == "not play_music")["ok"]
+
+
+def test_tool_service_calls_reads_the_access_log(monkeypatch):
+    monkeypatch.setattr(vr, "_log_lines", lambda c, t: [
+        'INFO:     172.18.0.6:1 - "GET /weather/cached HTTP/1.1" 200 OK',
+        'INFO:     172.18.0.6:1 - "GET /health HTTP/1.1" 200 OK',
+        'INFO:     172.18.0.6:1 - "GET /weather?location=Boston%2C+MA HTTP/1.1" 200 OK',
+        'INFO:     172.18.0.6:1 - "POST /music HTTP/1.1" 502 Bad Gateway'])
+    assert vr.tool_service_calls("c", 0) == ["GET /weather?location=Boston, MA 200", "POST /music 502"]

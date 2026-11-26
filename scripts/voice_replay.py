@@ -52,6 +52,21 @@ so they are never sent through HA; this mode calls the endpoints with the
 sentence instead. Dev only (the tool_service URL must be the dev port 8103),
 dry run required as above. Statuses use xfail.parser.
 
+History check (work item M36, --history). The HA path cannot hand Kronk a
+conversation, so rows with a `history` field (tagged needs-context, skipped
+above) are posted instead to the dev Kronk's shims, `/dev/api/chat` and
+`/dev/voice/api/chat`, as a client that resends the conversation would:
+the row's history, then its text, non-streaming, no system message.
+`--repeat N` posts each row N times on each route. Dev only (the Kronk URL
+must be this host's `/dev`), and the same gates: dry-run is read from
+`<kronk>/api/status` before the run and before every request, and the
+players are snapshotted before and after each request (any change stops the
+run). For each request the report says which tools the orchestrator logged,
+what tool_service was asked (music request lines, dry-run lines, the tool
+routes it served), the reply, and whether the reply claims an action with no
+tool call (CLAIM_RE; criterion "zero"). `--corpus FILE` reads another JSONL
+of the same format (scratch rows for a one-off check).
+
 Writes docs/bench/voice_replay_<UTC time>_<label>.json (or --out) with, per
 row: status, expected against actual, latency, trace id and pipeline run id.
 Statuses: pass, fail, xfail (a row marked expected-failure that failed),
@@ -71,6 +86,7 @@ import re
 import subprocess
 import sys
 import time
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -96,7 +112,8 @@ DEVICES = {
                     "player": "media_player.home_assistant_voice_0ab117"},
 }
 DEFAULT_DEVICE = "office_sat1"       # the office speaker is the sanctioned test speaker
-SKIP_TAGS = {"needs-context": "follow-up that needs conversation history; a replay has none",
+SKIP_TAGS = {"needs-context": "follow-up that needs conversation history; HA cannot be handed one "
+                              "(rows with a history: --history)",
              "url": "typed link; a spoken request carries no URL"}
 ACTIVE_STATES = {"playing", "buffering"}
 MUSIC_TOOLS = {"play_music", "control_music", "rate_music", "now_playing"}
@@ -646,6 +663,169 @@ def answers(args) -> int:
     return 1 if s["failed"] else 0
 
 
+# ── M36 history check: follow-ups posted with their history to the dev shims ─
+
+DEV_KRONK = os.environ.get("KRONK_DEV_URL", "http://localhost/dev")
+HISTORY_ROUTES = ("/api/chat", "/voice/api/chat")
+# A reply that says an action was done. Counted only when no tool was
+# called: the false "now playing" tenet 5 is about (M36 ruling: must be 0).
+CLAIM_RE = re.compile(r"(\bnow playing|\b(is|are) (now )?playing|\bstarted playing|^\s*playing\b"
+                      r"|\bi'?ve (started|put on|queued|played|added|removed)\b"
+                      r"|\bi (started|put on|queued|added|removed)\b)", re.IGNORECASE)
+# tool_service routes that are not a tool call (health, the weather block).
+_NOT_TOOL_ROUTES = re.compile(r"^/(health|status|weather/cached)\b")
+_ACCESS_RE = re.compile(r'"(GET|POST|PUT|DELETE) (\S+) HTTP/[\d.]+" (\d{3})')
+
+
+def tool_service_calls(container: str, t_start: float) -> list[str]:
+    """The tool routes tool_service served after t_start, from its access
+    log, URL-decoded ("GET /weather?location=Boston 200")."""
+    out = []
+    for line in _log_lines(container, t_start):
+        m = _ACCESS_RE.search(line)
+        if m and not _NOT_TOOL_ROUTES.match(m.group(2)):
+            out.append(f"{m.group(1)} {urllib.parse.unquote_plus(m.group(2))} {m.group(3)}")
+    return out
+
+
+def history_subject(row: dict) -> str | None:
+    """What the tool call must carry: expect.mention, else expect.name."""
+    e = row["expect"]
+    return e.get("mention") or e.get("name")
+
+
+def compare_history(row: dict, kev: dict, calls: list[str], reply: str) -> list[dict]:
+    e = row["expect"]
+    names = [t.split(":", 1)[1] for t in kev["tools"]]
+    checks = []
+    if e.get("tool"):
+        checks.append({"check": "tool", "ok": e["tool"] in names, "expected": e["tool"], "actual": kev["tools"]})
+    elif "tool" in e:
+        fired = [n for n in names if n in MUSIC_TOOLS]
+        checks.append({"check": "no music tool", "ok": not fired, "expected": [], "actual": fired})
+    for t in e.get("not_tools", []):
+        checks.append({"check": f"not {t}", "ok": t not in names, "expected": f"no {t}", "actual": kev["tools"]})
+    subject = history_subject(row)
+    if subject and e.get("tool"):
+        said = " ".join(kev["music_requests"] + [d["detail"] for d in kev["dry_run"]] + calls)
+        checks.append({"check": "subject", "ok": fold(subject) in fold(said), "expected": subject,
+                       "actual": (kev["music_requests"] + calls)[:4]})
+    claimed = not names and bool(CLAIM_RE.search(reply or ""))
+    checks.append({"check": "no claim without a tool call", "ok": not claimed, "expected": False,
+                   "actual": claimed})
+    return checks
+
+
+def history_target(url: str) -> dict:
+    base = url.rstrip("/")
+    if not re.match(r"^http://(localhost|127\.0\.0\.1)(:\d+)?/dev$", base):
+        raise Refused(f"--history posts to the dev Kronk on this host only (http://localhost/dev), not {url}")
+    return {"pipeline": "dev shims", "kronk_url": base, "status_url": base + "/api/status",
+            "orchestrator": "kronk-orchestrator-dev-1", "tool_service": "kronk-tool_service-dev-1"}
+
+
+def history_check(args) -> int:
+    target = history_target(args.kronk_url)
+    corpus = Path(args.corpus) if args.corpus else CORPUS
+    rows = [json.loads(l) for l in corpus.read_text().splitlines() if l.strip()]
+    selected, _ = select_rows(rows, args)
+    selected = [r for r in selected if r.get("history")]
+    if not selected:
+        raise Refused("no selected row has a history")
+    ts = require_dry_run(target)                    # before anything is sent
+    require_text_logs(target)
+    token = ha_token()
+    before = player_snapshot(token)
+    started = dt.datetime.now(dt.timezone.utc)
+    result = {"meta": {"started": started.isoformat(timespec="seconds"), "label": args.label, "mode": "history",
+                       "target": target, "tool_service_health": ts, "repeat": args.repeat,
+                       "routes": list(HISTORY_ROUTES), "corpus": str(corpus),
+                       "git_commit": subprocess.run(["git", "-C", str(ROOT), "rev-parse", "--short", "HEAD"],
+                                                    capture_output=True, text=True).stdout.strip(),
+                       "corpus_sha256": hashlib.sha256(corpus.read_bytes()).hexdigest()[:16],
+                       "selected": len(selected)}, "runs": []}
+    print(f"voice_replay --history: {target['kronk_url']}, dry-run on, {len(selected)} rows "
+          f"x {len(HISTORY_ROUTES)} routes x {args.repeat}")
+    exit_code = 0
+    try:
+        for n in range(args.repeat):
+            for row in selected:
+                for route in HISTORY_ROUTES:
+                    try:
+                        require_dry_run(target)     # before every request
+                    except Refused as e:
+                        raise Stopped(str(e))
+                    now = player_snapshot(token)
+                    if snapshot_diff(before, now):
+                        raise Stopped(f"media_player state changed before {row['id']}: {snapshot_diff(before, now)}")
+                    messages = [{"role": m["role"], "content": m["content"]} for m in row["history"]]
+                    messages.append({"role": "user", "content": row["text"]})
+                    t_start = time.time()
+                    t0 = time.monotonic()
+                    try:
+                        code, body = post_json(target["kronk_url"] + route,
+                                               {"model": "kronk", "messages": messages, "stream": False},
+                                               timeout=args.timeout)
+                    except (OSError, ValueError) as e:     # timeout, refused, a body that is not JSON
+                        code, body = 0, {"error": str(e)[:200]}
+                    latency = round(time.monotonic() - t0, 2)
+                    reply = ((body or {}).get("message") or {}).get("content") or ""
+                    kev = kronk_evidence(target["orchestrator"], target["tool_service"], t_start, row["text"])
+                    calls = tool_service_calls(target["tool_service"], t_start)
+                    rec = {"id": row["id"], "route": route, "n": n + 1, "http": code, "latency_s": latency,
+                           "reply": reply[:400], "tools": kev["tools"], "music_requests": kev["music_requests"],
+                           "dry_run": kev["dry_run"], "tool_service_calls": calls, "trace_id": kev["trace_id"],
+                           "rule": f"{kev['route']}/{kev['rule']}"}
+                    rec["checks"] = compare_history(row, kev, calls, reply)
+                    if code != 200:
+                        rec["checks"].append({"check": "http", "ok": False, "expected": 200, "actual": code})
+                    rec["status"], rec["xfail_reason"] = status_of(row, rec["checks"])
+                    result["runs"].append(rec)
+                    mark = {"pass": ".", "fail": "F", "xfail": "x", "xpass": "X"}[rec["status"]]
+                    what = "; ".join(kev["music_requests"][:1] + calls[:2]) or "-"
+                    print(f"  {mark} {rec['status']:5s} {route:16s} {row['id']} #{n + 1}  tools {kev['tools'] or '-'}  "
+                          f"asked {what[:160]}  reply {reply[:100]!r}")
+                    after = player_snapshot(token)
+                    if snapshot_diff(before, after):
+                        rec["player_change"] = snapshot_diff(before, after)
+                        raise Stopped(f"media_player state changed after {row['id']}: {rec['player_change']}")
+    except Stopped as e:
+        result["meta"]["stopped"] = str(e)
+        print(f"voice_replay: STOPPED: {e}")
+        exit_code = 3
+    after = player_snapshot(token)
+    changed = snapshot_diff(before, after)
+    result["players"] = {"changed": changed, "unchanged": not changed, "count": len(before)}
+    per: dict = {}
+    for r in result["runs"]:
+        k = f"{r['id']} {r['route']}"
+        p = per.setdefault(k, {"runs": 0, "pass": 0, "claims_without_tool": 0, "tools": {}})
+        p["runs"] += 1
+        p["pass"] += r["status"] in ("pass", "xpass")
+        p["claims_without_tool"] += any(c["check"] == "no claim without a tool call" and not c["ok"]
+                                        for c in r["checks"])
+        for t in r["tools"] or ["(none)"]:
+            p["tools"][t] = p["tools"].get(t, 0) + 1
+    claims = sum(p["claims_without_tool"] for p in per.values())
+    result["summary"] = {"per_row_route": per, "claims_without_tool": claims,
+                         "failed": sorted({r["id"] for r in result["runs"] if r["status"] == "fail"})}
+    result["meta"]["finished"] = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
+    out = Path(args.out) if args.out else (
+        ROOT / "docs" / "bench" / f"voice_replay_{started:%Y-%m-%d_%H%M%S}_{args.label}.json")
+    out.write_text(json.dumps(result, indent=1, ensure_ascii=False) + "\n")
+    for k, p in per.items():
+        print(f"voice_replay --history: {k}: {p['pass']}/{p['runs']} pass; tools {p['tools']}; "
+              f"claims without a tool call {p['claims_without_tool']}")
+    print(f"voice_replay --history: claims without a tool call {claims}; players "
+          f"{'unchanged' if not changed else 'CHANGED: ' + str(changed)}")
+    print(f"voice_replay: wrote {out}")
+    if changed and exit_code == 0:
+        exit_code = 3
+    if exit_code == 0 and result["summary"]["failed"]:
+        exit_code = 1
+    return exit_code
+
+
 # ── main ─────────────────────────────────────────────────────────────────────
 
 async def resolve_target(ha: HA, token: str, args) -> dict:
@@ -901,8 +1081,15 @@ def main() -> int:
     ap.add_argument("--answers", action="store_true",
                     help="M11 answer check: POST /music/say and /music on the dev tool_service; no HA run")
     ap.add_argument("--tool-service-url", default=DEV_TOOL_SERVICE, help="dev tool_service for --answers")
+    ap.add_argument("--history", action="store_true",
+                    help="M36: post rows that have a history to the dev /api/chat and /voice/api/chat; no HA run")
+    ap.add_argument("--kronk-url", default=DEV_KRONK, help="dev Kronk for --history (default http://localhost/dev)")
+    ap.add_argument("--repeat", type=int, default=1, help="--history: times each row is posted on each route")
+    ap.add_argument("--corpus", help="--history: read rows from this JSONL instead of tests/voice_corpus.jsonl")
     args = ap.parse_args()
     try:
+        if args.history:
+            return history_check(args)
         if args.answers:
             return answers(args)
         return asyncio.run(replay(args))

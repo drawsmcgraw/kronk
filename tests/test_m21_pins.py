@@ -27,6 +27,17 @@ What is pinned:
 
 The clock is frozen and LOCATION is fixed, so kronk_facts() is stable.
 
+Work item M36 removed the embedded conversation context (the
+"[Recent conversation context]" block at the end of the system text): a
+pinned specialist now gets the earlier turns as chat messages. The
+fixtures are not regenerated. Where the old code embedded turns (the
+ctx=1 variants, and the home specialist's call in the pipeline scenarios,
+which pass two earlier turns), the turns now go in as messages; this test
+checks they arrive there, in order, then appends the old block, built
+from them as the old code built it, to the rendered text before hashing.
+So the pin still holds the whole system text, and proves the block's
+removal is the only change M36 makes to it.
+
 Retargeted in M21 step 2 (criterion 20). What these pins hold is the
 shipped defaults: the repo's config/ (tests/conftest.py points every test
 at it) and the loaders' built-in defaults, which must equal it
@@ -162,6 +173,15 @@ def _all_agents():
     return list(agents.AGENTS.values()) + [agents.COORDINATOR]
 
 
+def _with_old_context_block(call: dict, turns: list[dict]) -> str:
+    """The system text with the pre-M36 context block put back, after
+    checking the turns came as chat messages between system and task."""
+    msgs = call["messages"]
+    assert msgs[1:-1] == turns, "earlier turns must arrive as chat messages (M36)"
+    lines = [f"{m['role'].upper()}: {m['content']}" for m in turns if m.get("content")]
+    return msgs[0]["content"] + "\n\n[Recent conversation context]\n" + "\n".join(lines)
+
+
 async def _render_one(cap, agent, *, style, voice, stamp, escalation, extra, weather, context):
     _FakeWeatherClient.available = weather
     tok_v = origin.voice.set(voice)
@@ -169,13 +189,17 @@ async def _render_one(cap, agent, *, style, voice, stamp, escalation, extra, wea
         with origin.scope(_ORIGIN if stamp else None):
             n = len(cap.calls)
             async for _ in agents.run_stream(
-                agent, "pinned task", _CONTEXT if context else [],
+                agent, "pinned task", [],
+                history_messages=list(_CONTEXT) if context else None,
                 system_extra=extra, error_style=style, allow_escalation=escalation,
             ):
                 pass
     finally:
         origin.voice.reset(tok_v)
     call = cap.calls[n]
+    if context:
+        return _with_old_context_block(call, _CONTEXT), call["tools"]
+    assert call["messages"][1:-1] == []
     return call["messages"][0]["content"], call["tools"]
 
 
@@ -207,6 +231,9 @@ async def _render_direct() -> tuple[dict, dict, dict]:
                     menus[f"{agent.name}|esc={int(esc)}"] = tools
     return shas, base, menus
 
+
+_PIPELINE_HISTORY = [{"role": "user", "content": "earlier"},
+                     {"role": "assistant", "content": "earlier reply"}]
 
 # Where _render_pipeline found the spoken-reply line (sprint M8).
 SPOKEN_LINE_SEEN: list[str] = []
@@ -248,8 +275,7 @@ async def _render_pipeline(tmp_state: Path) -> dict:
             _FakeWeatherClient.available = True
             with origin.scope(_ORIGIN if stamp else None):
                 async for _ in main._run_pipeline(
-                    "pinned task", [{"role": "user", "content": "earlier"},
-                                    {"role": "assistant", "content": "earlier reply"}],
+                    "pinned task", list(_PIPELINE_HISTORY),
                     said="pinned task", voice=voice, transport="pin",
                     pipeline_name="pipeline.pin", include_local_context=local):
                     pass
@@ -262,6 +288,9 @@ async def _render_pipeline(tmp_state: Path) -> dict:
         out[f"pipeline|{name}|calls"] = len(calls)
         for i, c in enumerate(calls):
             text = c["messages"][0]["content"]
+            if route != "direct" and i == 0:
+                # The pinned specialist: before M36 its turns were embedded.
+                text = _with_old_context_block(c, _PIPELINE_HISTORY)
             # Sprint M8: on the speech mount the coordinator's system text
             # gains one last block, the spoken-reply line (config/voice.yaml).
             # Everything before it must still match the pin, so the line is

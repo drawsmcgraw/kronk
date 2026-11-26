@@ -467,7 +467,12 @@ async def _run_pipeline(
                 stage_sent = False
                 reply_mark = len(assistant_reply)
 
-                async with aclosing(agents.run_stream(agent_cfg, model_text, list(history[-5:]),
+                # The earlier turns go in as chat messages, at most two
+                # whole exchanges (work item M36: given as system text the
+                # 4B model did not use them to resolve "play that album",
+                # 0 of 6; as turns, 6 of 6).
+                async with aclosing(agents.run_stream(agent_cfg, model_text, [],
+                                                      history_messages=sessions.specialist_turns(history),
                                                       error_style=error_style,
                                                       allow_escalation=True)) as run:
                     async for ev in run:

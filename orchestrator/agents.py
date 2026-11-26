@@ -649,9 +649,14 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
     Used by specialists AND the coordinator (which carries ask_* agent-tools
     instead of service tools). system_extra: caller-supplied additions to the
     system prompt (shared state, uploaded files, weather context, …).
-    history_messages: prior turns inserted as real chat messages (coordinator
-    path — keeps the prompt prefix append-only for llama.cpp cache reuse);
-    `context` embeds turns as system text instead (specialist style).
+    history_messages: prior turns inserted as real chat messages, after the
+    system text and before the task (the coordinator gets the whole window,
+    a pinned specialist sessions.specialist_turns). The prompt prefix stays
+    append-only for llama.cpp cache reuse.
+    context: must be empty. It once embedded turns in the system text as
+    "[Recent conversation context]"; the 4B model did not use them there
+    (work item M36), so turns have one form now, and a non-empty value
+    raises rather than being dropped unseen.
 
     Async generator. Yielded events:
       {"type": "token",     "text": str}              — incremental content token
@@ -666,6 +671,9 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
     are accumulated from the stream and executed at end-of-round. A round with
     no accumulated tool_calls terminates the loop.
     """
+    if context:
+        raise ValueError("run_stream: earlier turns go in history_messages, "
+                         "not context (work item M36)")
     if error_style is None:
         # Not handed one (a specialist run via ask_*): the running request's
         # style, from origin.voice — so a delegated failure on the speech
@@ -697,9 +705,6 @@ async def run_stream(agent: AgentConfig, task: str, context: list[dict],
         wx_ctx = await weather_context()
         if wx_ctx:
             system_content += "\n\n" + wx_ctx
-    if context:
-        ctx_lines = [f"{m['role'].upper()}: {m['content']}" for m in context if m.get("content")]
-        system_content += "\n\n[Recent conversation context]\n" + "\n".join(ctx_lines)
 
     messages: list[dict] = [{"role": "system", "content": system_content}]
     if history_messages:

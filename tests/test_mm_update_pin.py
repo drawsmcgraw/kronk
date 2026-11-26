@@ -258,7 +258,8 @@ async def test_home_loop_refusal_ends_the_turn_and_shows_in_the_trace(caplog):
         with patch("agents.llm.stream", new=make_fake_llm(llm_log)), \
              patch("tools.httpx.AsyncClient", new=fake):
             events = [ev async for ev in agents.run_stream(
-                agents.AGENTS["home"], "update the magic mirror", history)]
+                agents.AGENTS["home"], "update the magic mirror", [],
+                history_messages=history)]      # as turns since M36
     finally:
         telemetry.end_pipeline(root)
         origin.said.reset(token)

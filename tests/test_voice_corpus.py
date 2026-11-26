@@ -40,7 +40,7 @@ TIERS = {"ha_local", "kronk"}
 HA_SOURCES = {"trigger", "builtin"}
 TRIGGERS = {"album", "track", "artist", "audiobook", "radio", "playlist", "loose", "catchall"}
 TOOLS = {None, "play_music", "control_music", "now_playing", "rate_music", "news_brief",
-         "update_magicmirror"}
+         "update_magicmirror", "get_weather"}
 KINDS = {"named", "genre", "another"}
 MEDIA_TYPES = {None, "artist", "album", "track", "playlist", "radio"}
 PROVIDERS = {"pandora", "youtube_music", "nas"}
@@ -71,7 +71,16 @@ def test_corpus_ids_unique_and_well_formed():
 def test_corpus_row_schema(row):
     rid = row["id"]
     assert isinstance(row["text"], str) and row["text"].strip(), rid
-    assert set(row) <= {"id", "text", "origin", "expect", "source", "tags", "xfail", "note", "ref"}, rid
+    assert set(row) <= {"id", "text", "origin", "expect", "source", "tags", "xfail", "note", "ref",
+                        "history"}, rid
+    # history (work item M36): the earlier turns of a follow-up, read only
+    # by scripts/voice_replay.py --history. Routing never reads it. A row
+    # with a history is tagged needs-context, so the HA replay skips it.
+    if "history" in row:
+        h = row["history"]
+        assert h and [m["role"] for m in h] == ["user", "assistant"] * (len(h) // 2), rid
+        assert len(h) % 2 == 0 and all(set(m) == {"role", "content"} and m["content"] for m in h), rid
+        assert "needs-context" in row["tags"], rid
 
     o = row["origin"]
     assert o["area"] in AREAS, f"{rid}: unknown origin area {o['area']!r}"

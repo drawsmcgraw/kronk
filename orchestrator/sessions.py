@@ -94,12 +94,57 @@ def window(session_id: str) -> list[dict]:
     # Never start the window mid-exchange (same walk as routing.py).
     while recent and recent[0]["role"] != "user":
         recent = recent[1:]
-    out = []
-    for m in recent:
-        content = m["content"]
-        if m["role"] == "assistant" and len(content) > ASSISTANT_PROMPT_CHARS:
-            content = content[:ASSISTANT_PROMPT_CHARS] + "…"
-        out.append({"role": m["role"], "content": content})
+    return [{"role": m["role"], "content": _prompt_content(m)} for m in recent]
+
+
+def _prompt_content(m: dict) -> str:
+    """A message's content as it is read for prompting: an assistant turn
+    is cut at ASSISTANT_PROMPT_CHARS (the stored text stays whole)."""
+    content = m["content"]
+    if m["role"] == "assistant" and len(content) > ASSISTANT_PROMPT_CHARS:
+        content = content[:ASSISTANT_PROMPT_CHARS] + "…"
+    return content
+
+
+# How many whole exchanges a pinned specialist is given (work item M36).
+SPECIALIST_EXCHANGES = 2
+
+
+def specialist_turns(history: list[dict]) -> list[dict]:
+    """The earlier turns a pinned specialist is given, as chat messages.
+
+    Work item M36 (docs/sprint/M36-criteria.md, Rulings). Used by
+    main._run_pipeline for every entry point: the chat page passes
+    window() above, the shims pass the client's array (_shim_context).
+
+    - Whole exchanges from the end, a user message then the assistant's
+      reply, SPECIALIST_EXCHANGES at most, so the window always starts on a
+      user turn. A window that started on an assistant turn gave the wrong
+      album 2 of 18 times in the design review.
+    - User messages after the last reply are dropped first. On a shim
+      request that does not end in a user message, the request itself is
+      the last user message and stays in the history (_turn_said); it is
+      not an exchange.
+    - The walk stops at the first break in alternation (two user messages
+      in a row, an empty message, any other role), so nothing from before
+      a gap is joined to what follows it.
+    - Each assistant turn is cut at ASSISTANT_PROMPT_CHARS. Failure replies
+      are kept: the incident's follow-up resolves from one ("The closest I
+      found was Pulse by Pink Floyd").
+    """
+    msgs = list(history or [])
+    while msgs and msgs[-1].get("role") == "user":
+        msgs.pop()
+    out: list[dict] = []
+    i = len(msgs) - 1
+    while i >= 1 and len(out) < 2 * SPECIALIST_EXCHANGES:
+        reply, ask = msgs[i], msgs[i - 1]
+        if not (ask.get("role") == "user" and reply.get("role") == "assistant"
+                and ask.get("content") and reply.get("content")):
+            break
+        out[:0] = [{"role": "user", "content": ask["content"]},
+                   {"role": "assistant", "content": _prompt_content(reply)}]
+        i -= 2
     return out
 
 
