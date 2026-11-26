@@ -402,3 +402,27 @@ written when step B is promoted.
   The limit under F8 (one day whose reads alone exceed the budget) is
   accepted: about a hundred times today's margin.
   A fresh narrow test follows (tier 3).
+- 2026-11-25, coordinator, on step B's narrow test (`M30-e2e3.md`, FAILS
+  on one blocker; every job of fix round 1 done; B1, B3, B5, B8, B9
+  unbroken; suite passes). The grade stands: a stored `certain` the join
+  calls ambiguous is the fault step B's first test failed on, reached by
+  two paths the fix itself added. Fix round 2, small, all of these; the
+  three `xfail` tests in `tests/test_m30_voice_runs_e2e3.py` lose their
+  marks:
+  - F1 again: when a row is inserted already final (a read cut by its
+    budget, the hourly check's take, a run Tempo shows late),
+    `audio_tried_at` is cleared for every row of its set and the set is
+    joined again whole. The audio columns raise no `seq` and are not
+    published, so nothing else moves.
+  - `--remove` and `--init` wait for the record's lock (up to the
+    longest a run can hold it) and exit 1 if they do not get it. Only
+    the timer's ordinary run gives way with exit 0. `--check-now` or
+    `--why` given where it does nothing is refused, exit 2.
+  - A request to Tempo is bounded in wall time, not per socket wait, so
+    the 43 s holds against a Tempo that dribbles.
+  - The wait for the record (`BUSY_TIMEOUT_S`) is cut so that 43 s plus
+    it is under the unit's 50, and "database is locked" reaches the
+    status.
+  Left as notes: a recording copied in after the row was tried; a
+  neighbour with a nonsense end. A fresh narrow test of these four
+  follows.
