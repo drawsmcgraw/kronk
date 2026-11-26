@@ -65,9 +65,19 @@ and typed runs have no STT stage and are left out.
    NULL (its recording may be on the NAS; joining the NAS layout is left
    for step D), a younger one is `none`. A recordings directory that
    cannot be read leaves the row untried; the next run tries again.
+   A row that reaches the record already final (a first read the budget
+   cut between two days, the hourly check's take, a run Tempo showed
+   later than 15 minutes) may have neighbours joined without it: its
+   insert clears `audio_tried_at` on every row of its set that is not
+   removed, and the set is joined again whole in the same run
+   (`audio_reopened` in the status). The audio columns raise no `seq`
+   and are not published, so nothing else moves.
 4. **Writes the record** in one `BEGIN IMMEDIATE` transaction, under an
    flock on the record's directory (a run by hand never overlaps the
-   timer's). Every connection has `secure_delete` on.
+   timer's). The timer's ordinary run gives way to a run that holds the
+   lock (exit 0; the next minute reads). `--remove` and `--init` wait for
+   it up to 55 s (the unit kills a run at 50) and exit 1 when they still
+   do not get it. Every connection has `secure_delete` on.
 5. **Publishes** when a copy differs from the record: the set of
    `(run_id, seq)` in the 90-day window changed, or the copy's row count
    is not its `meta.rows` (a copy damaged behind its meta is mended the
@@ -87,8 +97,12 @@ runs it at once.
 
 **The time budget.** The unit stops a run at 50 s. No request of the main
 read starts later than 20 s into the run, of the trace reads 30 s, of the
-hourly check 38 s; each request has 5 s, so the run is done with Tempo by
-43 s. A read the budget cuts carries on where it stopped on the next run:
+hourly check 38 s; each request has 5 s of wall time, the whole request
+(connect, headers, body: a one-shot `SIGALRM` timer, since urllib's own
+timeout bounds each socket wait only and a Tempo that sends a byte a
+second would outlast it), so the run is done with Tempo by 43 s. The one
+wait for the record (a person's open transaction, the 5 s busy timeout)
+makes 48. A read the budget cuts carries on where it stopped on the next run:
 the main read through the watermark (it never moves past the last whole
 day read), the check through `export_state.check_progress`. A day cut in
 the middle is dropped whole and read again.
@@ -96,8 +110,8 @@ the middle is dropped whole and read again.
 Failures, each in the status file with its reason: a failed trace read or
 Kronk-trace enrichment (`last_error`, counted in `this_run`); a read cut by
 the budget; a recordings directory that cannot be read; a SQLite error on
-the record (locked past the 10 s busy timeout, a full disk), which exits 1
-with no traceback.
+the record (locked past the 5 s busy timeout: "database is locked"; a full
+disk), which exits 1 with no traceback.
 
 ### The rules a row lives by
 
@@ -135,7 +149,8 @@ run that finds no record and a published copy or a status file that says
 one existed writes `ok: false`, `record_lost: true`, the last good read it
 knew, and "the record … is gone … Restore it (docs/runbooks/restore.md,
 step 14)", every run until it is restored. With no such evidence it says
-to run `--init`. `--init` on an existing record is an ordinary run.
+to run `--init`. `--init` on an existing record is an ordinary run. Like
+`--remove`, `--init` waits for the lock up to 55 s and exits 1 without it.
 
 ## The schema
 
@@ -208,6 +223,11 @@ the command, never by hand-typed SQL:
 ```
 python3 scripts/voice_runs_export.py --remove <run_id> --why "<date> <who>: <why>"
 ```
+
+It waits for the export's lock (up to 55 s) and exits 1, nothing removed,
+when it does not get it; exit 0 means the run is marked. `--why` goes
+with `--remove` only (default "removed by hand"), and `--check-now` with
+`--remove` is refused (exit 2): a removal reads no Tempo.
 
 In one transaction under the export's lock, with `secure_delete` on: it
 sets `removed` (`<time> <why>`), empties `heard`, `reply` and `raw_trace`,
