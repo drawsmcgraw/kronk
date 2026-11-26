@@ -31,6 +31,7 @@ import settings_api
 import upgrades_api
 import backups_api
 import work_api
+import voice_runs_api
 import speech_stream
 import telemetry
 import tools
@@ -242,6 +243,9 @@ app.include_router(upgrades_api.router)
 app.include_router(backups_api.router)
 # The work items' state for /work (work item M27), read-only.
 app.include_router(work_api.router)
+# The voice runs of the last 90 days for /work's "Heard" section (work item
+# M30 step C), read-only: the published copy and its status file.
+app.include_router(voice_runs_api.router)
 
 
 # ── /message: the main chat endpoint ─────────────────────────────────────────

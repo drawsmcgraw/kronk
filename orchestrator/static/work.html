@@ -79,6 +79,39 @@
   details[open] summary { color: var(--text2); }
   .agents-line { font-size: 12.5px; color: var(--text2); }
   .not-read li { font-size: 11.5px; color: var(--text3); margin-left: 1.2em; }
+
+  /* Heard (M30 step C): the voice runs of the last 90 days, folded on every load. */
+  details.heard > summary { list-style: none; display: flex; gap: 6px 12px; flex-wrap: wrap; align-items: baseline;
+                            margin: 0; color: var(--text2); font-size: 12.5px; }
+  details.heard > summary::-webkit-details-marker { display: none; }
+  details.heard > summary::before { content: "▸"; color: var(--text3); }
+  details.heard[open] > summary::before { content: "▾"; }
+  details.heard > summary .section-label { margin: 0; }
+  .heard-line .bad { color: var(--red); font-weight: 600; }
+  .heard-line .warn { color: var(--amber); font-weight: 600; }
+  .heard-body { margin-top: 10px; }
+  .heard-tools { display: flex; gap: 8px 16px; flex-wrap: wrap; align-items: center; margin: 8px 0; font-size: 12px; color: var(--text2); }
+  .heard-tools input[type=search] { background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; color: var(--text);
+                                     font-size: 12.5px; padding: 4px 8px; min-width: 16em; flex: 1 1 16em; max-width: 30em; }
+  .heard-day { margin-top: 12px; }
+  .heard-day .sub-label { margin: 0 0 4px; }
+  details.heard-row { border-bottom: 1px solid var(--border); padding: 5px 0; font-size: 12.5px; }
+  details.heard-row:last-child { border-bottom: 0; }
+  details.heard-row > summary { list-style: none; display: flex; gap: 2px 10px; flex-wrap: wrap; align-items: baseline;
+                                color: var(--text2); font-size: 12.5px; margin: 0; }
+  details.heard-row > summary::-webkit-details-marker { display: none; }
+  .hr-time { font-family: monospace; font-size: 11.5px; color: var(--text3); }
+  .hr-sat { color: var(--text3); min-width: 4.5em; }
+  .hr-heard { color: var(--text); font-weight: 600; flex: 1 1 18em; min-width: 0; }
+  .hr-heard.none { color: var(--text3); font-weight: 400; font-style: italic; }
+  .hr-route { font-family: monospace; font-size: 11px; color: var(--text3); }
+  .hr-reply { color: var(--text2); flex: 1 1 100%; padding-left: 1em; }
+  .hr-mark { font-weight: 700; font-size: 11.5px; }
+  .hr-mark.wrong { color: var(--amber); }
+  .hr-mark.error { color: var(--red); }
+  .hr-more { padding: 4px 0 2px 1em; font-size: 11.5px; color: var(--text3); display: flex; flex-direction: column; gap: 2px; }
+  .hr-more .reply-rest { color: var(--text2); white-space: pre-wrap; font-size: 12.5px; }
+  .hr-more code { user-select: all; }
 </style>
 </head>
 <body>
@@ -93,6 +126,21 @@
 </header>
 
 <main>
+  <details class="heard" id="heard">
+    <summary><span class="section-label">Heard</span><span class="heard-line" id="heard-line">fetching…</span></summary>
+    <div class="heard-body">
+      <div id="heard-banner"></div>
+      <div class="heard-tools">
+        <input type="search" id="heard-q" autocomplete="off" spellcheck="false" placeholder="filter: what was heard or said back">
+        <label><input type="checkbox" id="heard-flagged" autocomplete="off"> wrong or error only</label>
+      </div>
+      <div class="note-line" id="heard-note"></div>
+      <div class="card" id="heard-list"></div>
+      <div style="margin-top:8px"><button class="refresh-btn" id="heard-older" hidden>show older</button></div>
+      <div class="src" id="heard-src" style="margin-top:8px"></div>
+    </div>
+  </details>
+
   <div>
     <div id="banner"></div>
     <div class="state-line" id="state-line">fetching…</div>
@@ -519,6 +567,365 @@ async function loadAll() {
 
 loadAll();
 setInterval(loadAll, 30000);
+
+// ── Heard (work item M30 step C) ─────────────────────────────────────────────
+//
+// The voice runs of the last 90 days, from GET api/voice_runs (the published
+// copy scripts/voice_runs_export.py writes on the host, and its status file).
+// Built outside loadAll: its own element, fetch and timer, rows keyed by run
+// id and patched in place from changed_after, so an open row and the scroll
+// survive the refresh (M32 swaps the timer for its stream). Folded on every
+// load: open or closed is never stored (a wall display nobody can touch).
+// The filter and the switch are kept in localStorage. Every string from a
+// run is set with el() (textContent). docs/features/work-page.md, "Heard".
+
+const HEARD = {
+  "url": "api/voice_runs",
+  "rows": 200,
+  "every_ms": 30000,
+  "debounce_ms": 300,
+  "store_q": "kronk.work.heard.q",
+  "store_flagged": "kronk.work.heard.flagged",
+  "heard_text": {"not_recorded": "not recorded", "nothing_heard": "nothing heard"},
+  "no_rule": "—",
+  "marks": {"wrong": "✗ wrong", "error": "⚠ error"},
+  "summary": "{runs} run{s} in the last 24 h · newest {newest} · {wrong} marked wrong · {error} with an error · as of {as_of}",
+  "summary_none": "no summary yet",
+  "note": "Household runs with a speech-to-text stage, newest first, last 90 days. Times are the house's. Click a run for the rest of the reply and its trace ids.",
+  "src": "Source: {copy}, written by scripts/voice_runs_export.py on the host every {every} s; status {status}. A run lands three to four minutes after it ends.",
+  "empty": "no runs",
+  "empty_filtered": "no runs match"
+};
+
+// The folded line's word for a status file that is not fresh, and the
+// banner inside the section. "{reason}" is the route's reason.
+const HEARD_BANNER = {
+  "fresh": null,
+  "stale": {"word": "STALE", "text": "{reason}. Shown: the last known runs.", "strip": "stale: ", "bad": false},
+  "missing": {"word": "MISSING", "text": "{reason}", "bad": true},
+  "unreadable": {"word": "UNREADABLE", "text": "{reason}", "bad": true},
+  "unknown_schema": {"word": "UNKNOWN SCHEMA", "text": "{reason}", "bad": true},
+  "damaged": {"word": "DAMAGED", "text": "{reason}", "bad": false}
+};
+
+// The status file's last error: always with its time; a banner when the
+// last run failed (ok false), a quiet line when a later run went well.
+const HEARD_ERROR = {
+  "failed": "The last export run failed ({at}): {error}",
+  "earlier": "last error {at}: {error}"
+};
+
+// A friendly name for each satellite; the entity id is the data.
+const SATELLITE_NAME = {
+  "assist_satellite.home_assistant_voice_0ac919_assist_satellite": "kitchen",
+  "assist_satellite.home_assistant_voice_0ab117_assist_satellite": "basement",
+  "assist_satellite.satellite1_d8d1bc_assist_satellite": "office"
+};
+
+const heard = { box: null, list: null, rows: new Map(), days: new Map(), loaded: false, busy: false, again: false,
+                maxSeq: null, knownRows: null, knownBuilt: null, nextBefore: null, timer: null };
+
+function store(key, val) {
+  try { if (val === undefined) return localStorage.getItem(key); localStorage.setItem(key, val); } catch (e) { /* none */ }
+  return null;
+}
+
+function heardParams(extra) {
+  const p = new URLSearchParams();
+  const q = document.getElementById('heard-q').value.trim();
+  if (q) p.set('q', q);
+  if (document.getElementById('heard-flagged').checked) p.set('flagged', '1');
+  for (const [k, v] of Object.entries(extra || {})) if (v != null) p.set(k, String(v));
+  return p;
+}
+
+async function heardFetch(params) {
+  try {
+    const r = await fetch(`${HEARD.url}?${params}`, { cache: 'no-store' });
+    const body = await r.json();
+    if (!r.ok) return { error: `${HEARD.url}: HTTP ${r.status}${body && body.error ? `: ${body.error}` : ''}` };
+    return body;
+  } catch (e) {
+    return { error: `${HEARD.url}: ${e.message}` };
+  }
+}
+
+// "2026-11-25T08:55:45-05:00" as written: the house's time, not the browser's.
+const houseClock = s => (typeof s === 'string' && s.length >= 19 ? s.slice(11, 19) : String(s ?? '?'));
+const houseShort = s => {
+  if (typeof s !== 'string' || s.length < 16) return String(s ?? '?');
+  const mon = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][Number(s.slice(5, 7)) - 1] || s.slice(5, 7);
+  return `${mon} ${Number(s.slice(8, 10))} ${s.slice(11, 16)}`;
+};
+const clockOf = sec => (sec == null ? '?' :
+  new Date(sec * 1000).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+
+function heardBannerFor(state, reason) {
+  const b = HEARD_BANNER[state] ?? (state === 'fresh' || state === 'ok' ? null :
+            { word: String(state).toUpperCase(), text: '{reason}', bad: true });
+  if (!b) return null;
+  let r = String(reason ?? '');
+  if (b.strip && r.toLowerCase().startsWith(b.strip.toLowerCase())) r = r.slice(b.strip.length);
+  const box = el('div', 'banner' + (b.bad ? ' bad' : ''));
+  box.appendChild(el('strong', null, b.word + ': '));
+  box.appendChild(document.createTextNode(fill(b.text, { reason: r })));
+  return box;
+}
+
+// The folded line and the banners: from every answer, open or not.
+function heardStatus(resp) {
+  const line = clear(document.getElementById('heard-line'));
+  const banner = clear(document.getElementById('heard-banner'));
+  if (resp.error) {
+    line.appendChild(el('span', 'bad', 'not read'));
+    line.appendChild(document.createTextNode(` (${resp.error})`));
+    banner.appendChild(heardBannerFor('unreadable', resp.error));
+    return;
+  }
+  const src = resp.source || {};
+  const h = (resp.summary || {}).household;
+  if (h) {
+    line.appendChild(document.createTextNode(fill(HEARD.summary, {
+      runs: h.runs_24h ?? 0, s: h.runs_24h === 1 ? '' : 's',
+      newest: h.newest_time ? houseShort(h.newest_time) : 'none',
+      wrong: h.wrong_24h ?? 0, error: h.error_24h ?? 0, as_of: clockOf((resp.summary || {}).as_of_s) })));
+  } else {
+    line.appendChild(document.createTextNode(HEARD.summary_none));
+  }
+  const b = HEARD_BANNER[src.state];
+  if (src.state !== 'fresh') line.appendChild(el('span', b && !b.bad ? 'warn' : 'bad', ` · ${b ? b.word : String(src.state).toUpperCase()}`));
+  if (src.ok === false) line.appendChild(el('span', 'bad', ' · last export failed'));
+  else if (arr(src.warnings).length) line.appendChild(el('span', 'warn', ` · ${src.warnings.length} warning${src.warnings.length === 1 ? '' : 's'}`));
+  const sb = heardBannerFor(src.state, src.reason);
+  if (sb) banner.appendChild(sb);
+  if (src.last_error) {
+    const at = src.last_error_at ? fmtTime(src.last_error_at) : 'time not known';
+    if (src.ok === false) {
+      const box = el('div', 'banner bad', fill(HEARD_ERROR.failed, { at, error: src.last_error }));
+      banner.appendChild(box);
+    } else {
+      banner.appendChild(el('div', 'reason', fill(HEARD_ERROR.earlier, { at, error: src.last_error })));
+    }
+  }
+  for (const w of arr(src.warnings)) banner.appendChild(el('div', 'banner', w));
+  const c = resp.copy;
+  if (c && c.state !== 'ok') { const cb = heardBannerFor(c.state, c.reason); if (cb) banner.appendChild(cb); }
+  else if (c && c.reason) banner.appendChild(el('div', 'reason', c.reason));
+  for (const x of banner.children) x.style.marginBottom = '6px';
+  document.getElementById('heard-src').textContent = fill(HEARD.src, {
+    copy: 'voice_runs.db', every: src.every_s || 60,
+    status: src.age_s == null ? 'not read' : `written ${Math.round(src.age_s)} s ago` });
+}
+
+function rowKey(r) { return [r.start_s, r.run_id]; }
+function newer(a, b) { return a.start_s > b.start_s || (a.start_s === b.start_s && a.run_id > b.run_id); }
+
+// One run: its line, and on opening the rest. Patched in place by run id.
+function fillRow(det, r) {
+  const wasOpen = det.open;
+  clear(det);
+  det.dataset.run = r.run_id;
+  det.dataset.start = String(r.start_s);
+  det.dataset.day = r.local_day;
+  const sum = det.appendChild(el('summary'));
+  sum.appendChild(el('span', 'hr-time', houseClock(r.local_time)));
+  sum.appendChild(el('span', 'hr-sat', SATELLITE_NAME[r.satellite_id] ?? r.satellite_id ?? '?'));
+  if (r.heard_state === 'text') sum.appendChild(el('span', 'hr-heard', r.heard));
+  else sum.appendChild(el('span', 'hr-heard none', HEARD.heard_text[r.heard_state] ?? r.heard_state));
+  sum.appendChild(el('span', 'hr-route', `${r.tier ?? '?'} · ${r.rule ?? HEARD.no_rule}`));
+  if (r.corrected_by != null) sum.appendChild(el('span', 'hr-mark wrong', HEARD.marks.wrong));
+  if (r.error_code != null) sum.appendChild(el('span', 'hr-mark error', HEARD.marks.error));
+  if (r.reply_head) sum.appendChild(el('span', 'hr-reply', r.reply_head + (r.reply_rest ? ' …' : '')));
+  const more = det.appendChild(el('div', 'hr-more'));
+  if (r.reply_rest) more.appendChild(el('div', 'reply-rest', r.reply_rest));
+  const kv = (k, v, code) => {
+    if (v == null || v === '') return;
+    const d = more.appendChild(el('div'));
+    d.appendChild(document.createTextNode(k + ' '));
+    d.appendChild(code ? el('code', null, v) : el('span', null, v));
+  };
+  kv('trace', r.trace_id, true);
+  kv('kronk trace', r.kronk_trace_id, true);
+  kv('run', r.run_id, true);
+  kv('satellite', r.satellite_id, true);
+  kv('pipeline', `${r.pipeline ?? '?'} (${r.service})`);
+  kv('stages', r.stages);
+  kv('tools', r.tools);
+  kv('direct action', r.direct_action);
+  kv('error', r.error_code);
+  if (r.corrected_by != null) kv('marked wrong', `${r.corrected_by}` +
+    (r.corrected_after_s != null ? `, ${Math.round(r.corrected_after_s)} s after` : '') +
+    (r.mark_basis ? ` (${r.mark_basis})` : ''));
+  if (r.correction_kind) kv('correction', `${r.correction_kind} of ${r.correction_of_run_id ?? '?'}`);
+  if (r.window_cut_short) kv('window cut short', `${r.window_cut_short}: "not marked" means unknown here`);
+  kv('heard by', r.stt_engine);
+  if (r.heard_source && r.heard_source !== 'tempo') kv('words from', r.heard_source);
+  if (r.listen_ms != null || r.transcribe_ms != null) kv('stages ms', `listen ${r.listen_ms ?? '?'}, transcribe ${r.transcribe_ms ?? '?'}, intent ${r.intent_ms ?? '?'}`);
+  det.open = wasOpen;
+  return det;
+}
+
+function dayBox(day) {
+  let box = heard.days.get(day);
+  if (box) return box;
+  box = el('div', 'heard-day');
+  box.dataset.day = day;
+  box.appendChild(el('div', 'sub-label', day));
+  heard.days.set(day, box);
+  // Days newest first: before the first day box that is older.
+  const later = [...heard.list.children].find(n => n.dataset && n.dataset.day && n.dataset.day < day);
+  heard.list.insertBefore(box, later || null);
+  return box;
+}
+
+function placeRow(r) {
+  const box = dayBox(r.local_day);
+  const det = heard.rows.get(r.run_id) || el('details', 'heard-row');
+  fillRow(det, r);
+  heard.rows.set(r.run_id, det);
+  const kids = [...box.querySelectorAll(':scope > details.heard-row')].filter(n => n !== det);
+  const after = kids.find(n => newer(r, { start_s: Number(n.dataset.start), run_id: n.dataset.run }));
+  box.insertBefore(det, after || null);
+}
+
+function dropRow(runId) {
+  const det = heard.rows.get(runId);
+  if (!det) return;
+  const box = det.parentNode;
+  det.remove();
+  heard.rows.delete(runId);
+  if (box && !box.querySelector('details.heard-row')) { heard.days.delete(box.dataset.day); box.remove(); }
+}
+
+// The row at the top of the view and its place, so an insert above it does
+// not move what the reader is looking at.
+function anchor() {
+  for (const det of heard.rows.values()) {
+    const top = det.getBoundingClientRect().top;
+    if (top >= 0) return { det, top };
+  }
+  return null;
+}
+function keepAnchor(a) {
+  if (a && a.det.isConnected) window.scrollBy(0, a.det.getBoundingClientRect().top - a.top);
+}
+
+function heardEmpty() {
+  const msg = heard.list.querySelector(':scope > .reason');
+  if (heard.rows.size) { if (msg) msg.remove(); return; }
+  if (!msg) heard.list.appendChild(el('div', 'reason',
+    heardParams().toString() ? HEARD.empty_filtered : HEARD.empty));
+}
+
+function heardRemember(resp) {
+  if (resp.max_seq != null) heard.maxSeq = resp.max_seq;
+  const c = resp.copy || {};
+  if (c.rows != null) heard.knownRows = c.rows;
+  if (c.built_s != null) heard.knownBuilt = c.built_s;
+}
+
+// The list from the top: on first opening, a filter change, or a resync.
+// Open rows and the scroll are kept by run id.
+async function heardLoad() {
+  const resp = await heardFetch(heardParams({ limit: HEARD.rows }));
+  heardStatus(resp);
+  if (resp.error) return;
+  const open = new Set([...heard.rows.values()].filter(d => d.open).map(d => d.dataset.run));
+  const a = anchor();
+  const anchorRun = a ? a.det.dataset.run : null;
+  clear(heard.list);
+  heard.rows.clear();
+  heard.days.clear();
+  for (const r of arr(resp.runs)) placeRow(r);
+  for (const id of open) { const d = heard.rows.get(id); if (d) d.open = true; }
+  heard.nextBefore = resp.next_before;
+  document.getElementById('heard-older').hidden = !heard.nextBefore;
+  heardRemember(resp);
+  heard.loaded = true;
+  heardEmpty();
+  if (anchorRun && heard.rows.get(anchorRun)) keepAnchor({ det: heard.rows.get(anchorRun), top: a.top });
+}
+
+async function heardOlder() {
+  if (!heard.nextBefore || heard.busy) return;
+  heard.busy = true;
+  const filter = heardParams().toString();
+  try {
+    const resp = await heardFetch(heardParams({ limit: HEARD.rows, before: heard.nextBefore }));
+    if (resp.error) { heardStatus(resp); return; }
+    if (filter !== heardParams().toString() || !heard.loaded) return;   // the filter changed meanwhile
+    for (const r of arr(resp.runs)) placeRow(r);
+    heard.nextBefore = resp.next_before;
+    document.getElementById('heard-older').hidden = !heard.nextBefore;
+    heardEmpty();
+  } finally {
+    heard.busy = false;
+    if (heard.again) { heard.again = false; setTimeout(heardTick, 0); }
+  }
+}
+
+// What changed since the last answer: new and changed rows patched in by run
+// id; a row that no longer passes the filter dropped; a resync reloads.
+async function heardPatch() {
+  const resp = await heardFetch(heardParams({ changed_after: heard.maxSeq ?? 0, known_rows: heard.knownRows,
+                                              known_built_s: heard.knownBuilt }));
+  heardStatus(resp);
+  if (resp.error) return;
+  if (resp.resync) { await heardLoad(); return; }
+  const a = anchor();
+  // The oldest row loaded: an insert older than it belongs to "show older".
+  let oldest = null;
+  for (const d of heard.rows.values()) {
+    const k = { start_s: Number(d.dataset.start), run_id: d.dataset.run };
+    if (!oldest || newer(oldest, k)) oldest = k;
+  }
+  for (const r of arr(resp.runs)) {
+    if (!r.match) { dropRow(r.run_id); continue; }
+    if (heard.rows.has(r.run_id) || !heard.nextBefore || !oldest || newer(r, oldest)) placeRow(r);
+  }
+  heardRemember(resp);
+  heardEmpty();
+  keepAnchor(a);
+}
+
+async function heardTick() {
+  if (heard.busy) { heard.again = true; return; }   // a filter change mid-fetch runs right after it
+  heard.busy = true;
+  try {
+    if (!heard.box.open) heardStatus(await heardFetch(new URLSearchParams({ limit: '0' })));
+    else if (!heard.loaded) await heardLoad();
+    else await heardPatch();
+  } finally {
+    heard.busy = false;
+    if (heard.again) { heard.again = false; setTimeout(heardTick, 0); }
+  }
+}
+
+function heardInit() {
+  heard.box = document.getElementById('heard');
+  heard.list = document.getElementById('heard-list');
+  heard.box.open = false;
+  document.getElementById('heard-note').textContent = HEARD.note;
+  const q = document.getElementById('heard-q');
+  const flagged = document.getElementById('heard-flagged');
+  q.value = store(HEARD.store_q) || '';
+  flagged.checked = store(HEARD.store_flagged) === '1';
+  let wait = null;
+  const refilter = () => {
+    store(HEARD.store_q, q.value);
+    store(HEARD.store_flagged, flagged.checked ? '1' : '0');
+    heard.loaded = false;
+    if (heard.box.open) heardTick();
+  };
+  q.addEventListener('input', () => { clearTimeout(wait); wait = setTimeout(refilter, HEARD.debounce_ms); });
+  flagged.addEventListener('change', refilter);
+  heard.box.addEventListener('toggle', () => { if (heard.box.open && !heard.loaded) heardTick(); });
+  document.getElementById('heard-older').addEventListener('click', heardOlder);
+  heardTick();
+  heard.timer = setInterval(heardTick, HEARD.every_ms);
+}
+
+heardInit();
 </script>
 </body>
 </html>

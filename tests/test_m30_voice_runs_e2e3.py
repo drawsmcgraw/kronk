@@ -16,7 +16,7 @@ import time
 
 import pytest
 
-from tests.test_m16_backups import no_network  # noqa: F401  (the fixture)
+from tests.test_m16_backups import no_network, no_voice_record  # noqa: F401  (the fixture)
 from tests.test_m30_voice_runs import (DEV_K, EX, LS, NOW, B, FakeClock, FakeOps, FakeTempo, Scratch, house,  # noqa: F401
                                        household, restore_into, sha, vrun, wav)
 
@@ -380,6 +380,7 @@ def test_b8_a_schema_2_record_with_every_new_column_in_use_is_restored_whole_and
     the runbook's block, the same row for row, and the exporter carries on
     with it (schema 2 accepted, nothing rewritten, the next run taken)."""
     sc = Scratch(tmp_path / "exp")
+    no_voice_record(house)                                # the fixture's stand-in; the exporter makes a real one
     sc.db = house.voice_db
     clk = FakeClock()
     runs = household(6, start=NOW - 40 * 86400, gap=5 * 86400.0) + [run("W1", NOW - 911), run("W2", NOW - 902)]
