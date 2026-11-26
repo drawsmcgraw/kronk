@@ -530,3 +530,57 @@ Held or left over:
   abbreviation prints its offset.
 - `scripts/coordinator_model_bench.py:226` takes the expected weekday
   from the host's clock.
+
+## M30 (what Whisper heard: a kept record and "Heard" on /work), 2026-11-26
+
+Every voice run is kept for good in a database of its own
+(`~/.local/state/kronk-voice/voice_runs.db`: what was heard, what
+answered, the route, the whole trace, the recording it belongs to),
+`/work` opens with a folded "Heard" section over its last 90 days, and
+production Whisper starts without contacting anyone. Tag `item-M30`,
+deployed 2026-11-26 03:49 EST (six Kronk containers; HA and MA not
+touched). Host side: `kronk-voice-runs-export.timer` every 60 s since
+01:05 EST; the record in the monthly config tar (required) and a weekly
+copy beside the recordings archive.
+
+Four steps. A (Whisper offline, tier 3): review, build, test. B (the
+record, tier 3): build, five tests, three fix rounds, each on a rarer
+way for a recording to be stored `certain` for the wrong run. C (the
+route and the page, tier 2): build, test, one fix round, retest graded
+pass by the coordinator against a FAILS on the suite's guard. D (the
+early runs' words, tier 3): build, test, one fix round, narrow test
+graded pass by the coordinator on the live calibration. The checks at
+promotion: `docs/sprint/M30-promote.md`.
+
+On production: 113 runs kept, 111 with their words (71 from Tempo, 40
+filled from the Whisper journal, each a line within 1 ms of the run's
+own transcription end), 71 recordings joined; the record equals Tempo
+(0 differing, 0 missing); `/api/voice_runs` fresh and `ok`.
+
+Way back: deploy `item-M35`; `systemctl --user disable --now
+kronk-voice-runs-export.timer`. The record stays.
+
+Held or left over:
+
+- For Drew: one spoken test since the Whisper restart of 2026-11-25
+  09:43 (nobody has spoken to a puck since 08:55 that day), and a look
+  at "Heard" on `/work` in a browser on production.
+- Two early runs have no words and cannot get them (no stored count, no
+  transcript near them). 41 runs have no recording anywhere: they are
+  older than the recordings kept.
+- Before `voice_runs_backfill.py` is run again: a row with no
+  speech-to-text span should hold the journal lines between its start
+  and end (`M30-e2e9.md` B1; three `xfail` tests).
+- The suite's guard over the live record has five deliberate ways round
+  it (`M30-e2e7.md` B1; four `xfail` tests).
+- A removal leaves `labels.correct_text`; the labelling tool, when one
+  is ordered, must take it.
+- A re-open after a week's outage can turn a stored `certain` into "not
+  tried" when the recording has gone to the NAS; running the backfill
+  again joins it.
+- Notes from step C: the folded line does not show a missing copy while
+  the status is fresh; an open list grows without bound; the "last
+  export failed" banner was not seen in a browser.
+- Dev runs are not shown on the page (`include_dev=1` on the route).
+- The first monthly tar (the 10th) and the first weekly copy (Monday
+  01:00) with the record in them have not run yet.

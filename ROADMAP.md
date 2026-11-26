@@ -155,6 +155,14 @@ Conventions:
 
 Newest first; feature docs in `docs/features/`.
 
+- **A kept record of what Whisper heard, and "Heard" on `/work`**
+  *(2026-11-26, work item M30)* — every voice run kept for good in
+  `~/.local/state/kronk-voice/voice_runs.db` (words, reply, route, whole
+  trace, its recording), exported from Tempo every minute, backed up
+  monthly and weekly; `/work` opens with a folded "Heard" section over
+  the last 90 days; production Whisper starts offline. Feature docs:
+  `docs/features/voice-dataset.md`, `work-page.md`.
+  `docs/sprint/PROMOTIONS.md`, "M30".
 - **Time and date in the house's zone** *(2026-11-26, work item M35)* —
   every prompt's "Today is …; the local time is …" line reads
   `KRONK_TZ` (America/New_York), not the container's UTC clock, so
