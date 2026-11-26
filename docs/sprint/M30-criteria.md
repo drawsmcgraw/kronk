@@ -275,6 +275,55 @@ as it is. More than Drew ordered; cheap; and the journal is bounded by
 size, so it is done soon after step B or not at all. Criteria are
 written when step B is promoted.
 
+Plumbing (coordinator, 2026-11-26, step B live):
+
+1. `scripts/voice_runs_backfill.py`, standard library only, run by hand:
+   `--db` (default the live record), `--journal FILE` (a saved
+   `journalctl -o json` export; without it the script reads
+   `journalctl --user -u wyoming-whisper.service -u
+   wyoming-whisper-dev.service -o json` itself, read-only), `--apply`
+   (without it: a report and no write).
+2. It takes the record's lock the way `--remove` does, and writes in one
+   `BEGIN IMMEDIATE` transaction. A row is filled only when its `heard`
+   is empty, it is not removed, and exactly one journal transcript falls
+   in the run's speech-to-text window (the stage times in the row, with
+   the same two seconds before and five after the audio join uses) from
+   the unit that served it (household or dev), and that transcript's
+   length equals the row's `voice.transcript_chars` (a row with no
+   stored count is filled only if the match is the only transcript
+   within a minute). Anything else is left and listed with the reason.
+3. A filled row gets `heard`, `heard_source = 'whisper_journal'`, a
+   raised `seq`, and is published by the exporter's next run or at once
+   by the script calling the exporter's publish. The exporter's rule 1
+   then holds it: Tempo's empty text never replaces it.
+4. Run twice it changes nothing the second time.
+5. The same pass tries the audio join again, against the NAS layout
+   read-only (`/mnt/nas-backup/recordings/…`, the month directory the
+   archive adds), for rows stored "not tried" (46 on the first export),
+   if the test of step B's fix round 2 limit shows the join's own
+   function can take a second root without a copy of its logic. If it
+   cannot, that is left over and said.
+
+Criteria:
+
+- D1. On a fixture record and a fixture journal: a certain match is
+  filled; two transcripts in the window, a length that differs, a
+  removed row, a row that already has text, a dev row against the
+  household unit: each left, each listed with its reason.
+- D2. Without `--apply` the record's bytes do not change.
+- D3. A second `--apply` changes no row and no `seq`.
+- D4. No transcript text in the script's output, its report or any
+  committed fixture (invented sentences; the report prints run ids,
+  counts and lengths).
+- D5. An export after the backfill does not empty a filled row, and the
+  hourly check reports it as neither differing nor missing.
+- D6. The suite passes.
+- D7. By the coordinator on the live record: the dry run's counts, then
+  `--apply`, then the number of rows with `heard_source =
+  'whisper_journal'` and one export after it.
+
+Tier 3 (stored data): one test, a fresh narrow test after any fix.
+
 ## Out of scope
 
 - Audio playback; editing or labelling a run from the page.
@@ -453,3 +502,16 @@ written when step B is promoted.
   (Tempo holds hundreds); a removed row keeps the join it had. A last
   check follows: the diff is that change, the randomized test at 300
   seeds, the suite.
+- 2026-11-26, coordinator: step B passes (`M30-e2e5.md`, PASSES, the
+  last check of fix round 3; five tests, three fix rounds). **Step B is
+  live** (B10): `voice_runs_export.py --init` at 01:04 EST took 113 runs
+  (110 household, 3 dev; 71 with text; 66 recordings joined, 46 not
+  local, 1 none) in 1.2 s; record 600 in a 700 directory, both copies
+  600, `git status` clean. Units installed and the timer enabled; its
+  first run at 01:05:30 listed 0 new and wrote no copy. `--check-now`
+  at 01:05:45: Tempo lists 113, the record holds 113, 0 differing, 0
+  missing. `integrity_check` ok, schema 2, no label. CLAUDE.md's Secrets
+  paragraph says the tar and the share hold household speech. Left to
+  step C's build agent, now that a first export exists: the record in
+  `required_sources` and its test turned over. Step D's plumbing and
+  criteria are written above.

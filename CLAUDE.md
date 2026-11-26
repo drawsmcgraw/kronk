@@ -297,6 +297,13 @@ verbatim — never summarized away.
   holds all of these in the clear, and since M16b also Music Assistant's
   `auth.db` (MA's users, every MA login token including `MA_TOKEN`, and
   the key that signs them); treat that share as a secret store.
+  Since M30 (2026-11-26) the tar and the share's weekly `voice-runs/`
+  copies also hold household speech as text: the voice-run record
+  (`~/.local/state/kronk-voice/voice_runs.db`, every voice run with
+  what was heard and answered, kept for good;
+  `docs/features/voice-dataset.md`). Its 90-day published copies under
+  the gitignored `data/` hold the same words Grafana already serves the
+  LAN.
   `.env` also holds the Pandora and UniFi logins and, when `/settings`
   editing is on, `SETTINGS_PASSPHRASE_HASH`. `secrets/` (gitignored) holds
   the MagicMirror SSH key and the YouTube token. `.env.langfuse` and the
