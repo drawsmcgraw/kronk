@@ -199,8 +199,6 @@ def split_read(sc, monkeypatch, a, b, now):
     return get
 
 
-@pytest.mark.xfail(strict=True, reason="M30-e2e3 finding 1: a read the budget cuts between two runs that fit one "
-                                       "recording stores 'certain' for the first, for good")
 def test_f1_a_first_read_cut_by_its_budget_between_two_runs_on_one_recording(sc, monkeypatch):
     """The first read goes a day per search from now - 92 days. Run A starts
     four seconds before one of those day marks and run B three seconds after
@@ -220,8 +218,6 @@ def test_f1_a_first_read_cut_by_its_budget_between_two_runs_on_one_recording(sc,
     assert stored(sc) == oracle(sc)
 
 
-@pytest.mark.xfail(strict=True, reason="M30-e2e3 finding 1: a run the hourly check takes arrives after its "
-                                       "neighbour was joined")
 def test_f1_a_run_the_hourly_check_takes_beside_a_row_already_joined(sc):
     """B was not in Tempo's answer when the main read passed it (F4's
     mended stretch, a search that lagged). The hourly check takes it, an
@@ -251,20 +247,20 @@ def test_f1_the_premise_voice_tracers_export_limit_is_under_final_s():
     assert latest == 862 < EX.FINAL_S == 900
 
 
-def test_f1_note_a_run_that_reaches_tempo_after_final_s_is_ambiguous_beside_a_stored_certain(sc):
+def test_f1_a_run_that_reaches_tempo_after_final_s_reopens_its_neighbours_join(sc):
     """Outside the premise (voice_tracer does not export such a run; this is
-    Tempo's search answering late): the late run is stored ambiguous, the
-    neighbour joined before it keeps its certain. The join over both says
-    ambiguous for both."""
+    Tempo's search answering late). Until fix round 2 this test recorded
+    the old result (A kept its certain, B ambiguous); by the ruling on the
+    narrow test, B is inserted already final, so A's set is joined again
+    whole: both ambiguous, as the join over both says."""
     a, b = run("A", NOW - 3000), run("B", NOW - 2997)
     wav(sc.rec, DEV_K, "kronk", "1", NOW - 2995)
     tempo = FakeTempo([a])
     sc.run(tempo, NOW - 2000)
+    assert stored(sc)["A"][0] == "certain"
     tempo.runs.append(b)
     sc.run(tempo, NOW - 1940)
-    got = stored(sc)
-    assert got["A"][0] == "certain" and got["B"] == ("ambiguous", None)
-    assert oracle(sc) == {"A": ("ambiguous", None), "B": ("ambiguous", None)}
+    assert stored(sc) == oracle(sc) == {"A": ("ambiguous", None), "B": ("ambiguous", None)}
 
 
 # ═══ F3: the order among the rows that failed ══════════════════════════════
@@ -469,9 +465,8 @@ def test_remove_with_scratch_paths_partly_given_is_refused(sc, given):
     assert "REFUSED" in out.getvalue() and not sc.db.exists()
 
 
-@pytest.mark.xfail(strict=True, reason="M30-e2e3 finding 2: --remove while an export holds the lock removes "
-                                       "nothing and exits 0")
-def test_remove_while_an_export_holds_the_lock_does_not_exit_0_with_nothing_removed(sc):
+def test_remove_while_an_export_holds_the_lock_does_not_exit_0_with_nothing_removed(sc, monkeypatch):
+    monkeypatch.setattr(EX, "LOCK_WAIT_S", 0.3)           # fix round 2: the wait, shortened for the suite
     tempo = FakeTempo(household(2))
     sc.run(tempo, NOW)
     fd = EX.lock_dir(sc.db)
@@ -521,6 +516,7 @@ def test_f8_the_budgets_and_the_unit_by_the_constants():
     limit = int(unit.split("TimeoutStartSec=")[1].split()[0])
     assert EX.READ_BUDGET_S < EX.TRACE_BUDGET_S < EX.CHECK_BUDGET_S
     assert EX.CHECK_BUDGET_S + EX.TEMPO_TIMEOUT_S == 43 < limit == 50
+    assert EX.CHECK_BUDGET_S + EX.TEMPO_TIMEOUT_S + EX.BUSY_TIMEOUT_S == 48 < limit    # fix round 2, job 4
 
 
 def test_f8_every_request_at_its_whole_timeout_ends_inside_43_s(sc, monkeypatch):

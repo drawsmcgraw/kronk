@@ -17,7 +17,9 @@ Runs on the host, fired every 60 s by kronk-voice-runs-export.timer. Each run:
 3. joins each run to its recording, once, when the run is final (15
    minutes old) and so is every run that could fit the same recordings,
    with voice_label_sheet.join (imported, not copied), so the answer does
-   not depend on the order the runs reached Tempo;
+   not depend on the order the runs reached Tempo. A row inserted already
+   final (a read the budget cut, the hourly check's take, a run Tempo
+   showed late) re-opens the joins of its whole set first;
 4. writes the record in one BEGIN IMMEDIATE transaction;
 5. rebuilds the published copies when they differ from the record (a
    published row changed, or a copy's rows do not match its meta);
@@ -31,9 +33,11 @@ a stored value Tempo gives differently is written to run_changes (why
 Every read of Tempo has a time budget inside the unit's 50 s: no request of
 the main read starts later than READ_BUDGET_S into the run, of the trace
 reads TRACE_BUDGET_S, of the hourly check CHECK_BUDGET_S, and each request
-has TEMPO_TIMEOUT_S. A whole-window read that runs out carries on where it
-stopped on the next run (the main read through the watermark, the check
-through export_state.check_progress).
+has TEMPO_TIMEOUT_S of wall time, whole (a SIGALRM timer, so a Tempo that
+dribbles a byte a second is cut too). With the one wait for the record
+(BUSY_TIMEOUT_S) a run ends by 48 s. A whole-window read that runs out
+carries on where it stopped on the next run (the main read through the
+watermark, the check through export_state.check_progress).
 
 The record: ~/.local/state/kronk-voice/voice_runs.db (--db, else
 KRONK_VOICE_DB), directory 700, file 600, outside every container's mount,
@@ -75,7 +79,7 @@ the last error, what this run did, and the summary the page shows folded
 are marked wrong or carry an error). Never any text from a run; errors name
 what failed, never what Tempo answered.
 
-Tempo down, slow (a request is given TEMPO_TIMEOUT_S) or answering nonsense:
+Tempo down, slow (a request is given TEMPO_TIMEOUT_S, whole) or answering nonsense:
 the record is not touched, the status files carry the reason with a fresh
 ts, and the exit is 0 (the page says it). The copies follow the record, not
 Tempo: they are published every run they differ. A record that cannot be
@@ -91,6 +95,13 @@ says to run --init.
 --remove RUN_ID marks a run removed (a guest, the TV): its text and its
 raw_trace emptied, its run_changes rows deleted, with secure_delete on
 (every connection of this script has it), and the copies published at once.
+
+One export at a time (an flock on the record's directory). The timer's
+ordinary run gives way to one that holds it, exit 0, and the next minute's
+run reads. --remove and --init are by hand and must not report a success
+they did not have: they wait up to LOCK_WAIT_S (longer than the unit lets a
+run live) and exit 1 when they still do not get it. --check-now with
+--remove, or --why without it, is refused (exit 2): each would do nothing.
 
 --db, --publish and --status are all given or none: a run by hand that names
 a scratch record but forgets the status file would otherwise write the real
@@ -114,9 +125,11 @@ import json
 import os
 import re
 import secrets
+import signal
 import sqlite3
 import stat
 import sys
+import threading
 import time
 import urllib.request
 from pathlib import Path
@@ -139,18 +152,21 @@ FIRST_READ_S = 92 * 86400       # the first read: all of Tempo (block_retention 
 TRACE_KEEP_S = 91 * 86400       # a missing raw_trace is retried while Tempo can still hold it
 TRACE_READS_MAX = 300           # whole-trace reads per run; the rest wait for the next run
 # The time budget, in seconds from the start of the export: no request of a
-# phase starts after its mark. With TEMPO_TIMEOUT_S a request, the run is
-# done with Tempo by CHECK_BUDGET_S + TEMPO_TIMEOUT_S = 43 s, inside the
-# unit's TimeoutStartSec of 50.
+# phase starts after its mark. With TEMPO_TIMEOUT_S a request (wall time,
+# the whole request), the run is done with Tempo by CHECK_BUDGET_S +
+# TEMPO_TIMEOUT_S = 43 s; the one wait for the record (BUSY_TIMEOUT_S)
+# makes 48, inside the unit's TimeoutStartSec of 50.
 READ_BUDGET_S = 20              # the main read (searches and the Kronk-trace enrichment)
 TRACE_BUDGET_S = 30             # the whole-trace reads
 CHECK_BUDGET_S = 38             # the hourly check
 CHECK_EVERY_S = 3600
 CHECK_READ_S = 90 * 86400
 PUBLISH_WINDOW_S = 90 * 86400
-TEMPO_TIMEOUT_S = 5.0           # per request; a slow Tempo fails the read, not the timer
+TEMPO_TIMEOUT_S = 5.0           # a request's whole wall time; a slow or dribbling Tempo fails the read, not the timer
 JOIN_NAS_AGE_S = 7 * 86400      # backups.py archives recordings older than this (KRONK_ARCHIVE_AGE_DAYS)
-BUSY_TIMEOUT_S = 10             # a person's open write transaction on the record, waited for this long
+BUSY_TIMEOUT_S = 5              # a person's open write transaction on the record, waited for this long (43 + 5 < 50)
+LOCK_WAIT_S = 55                # --remove and --init wait this long for an export's lock (the unit kills one at 50)
+LOCK_POLL_S = 0.1
 TEMP_MAX_AGE_S = 600            # a temporary file of ours older than this was left by a kill
 TEMP_RE = re.compile(r"\.(voice_runs[\w.-]*\.(?:db|json))\.(\d+)\.[0-9a-f]{8}\.tmp")
 
@@ -500,16 +516,28 @@ def open_record(db: Path, create: bool = False) -> sqlite3.Connection:
     return conn
 
 
-def lock_dir(db: Path) -> int | None:
+def lock_dir(db: Path, wait: float = 0.0) -> int | None:
     """An exclusive flock on the record's directory: one export at a time,
-    the timer's and a run by hand alike. None when another holds it."""
+    the timer's and a run by hand alike. Tried for up to `wait` seconds
+    (wall time); None when another still holds it."""
     fd = os.open(db.parent, os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC)
+    end = time.monotonic() + wait
     try:
-        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        return fd
-    except BlockingIOError:
-        os.close(fd)
-        return None
+        while True:
+            try:
+                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                return fd
+            except BlockingIOError:
+                if time.monotonic() >= end:
+                    os.close(fd)
+                    return None
+                time.sleep(min(LOCK_POLL_S, max(0.0, end - time.monotonic())))
+    except BaseException:
+        try:
+            os.close(fd)
+        except OSError:
+            pass
+        raise
 
 
 def state(conn) -> dict:
@@ -523,8 +551,29 @@ def row_dict(r: sqlite3.Row | None) -> dict | None:
 # ═══ Tempo ══════════════════════════════════════════════════════════════════
 
 def http_get_json(url: str, timeout: float) -> dict:
-    with urllib.request.urlopen(url, timeout=timeout) as r:   # noqa: S310 (loopback only, vt.require_loopback)
-        return json.loads(r.read())
+    """One GET, its whole wall time (connect, headers, body) bounded by
+    `timeout`. urlopen's own timeout bounds each socket wait only, so a
+    Tempo that answers a byte at a time would outlast any budget
+    (M30-e2e3 finding 3). The bound is a one-shot ITIMER_REAL whose
+    SIGALRM raises TimeoutError inside the blocked call; signals are
+    delivered to the main thread only, so this runs there or refuses."""
+    if threading.current_thread() is not threading.main_thread():
+        raise RuntimeError("http_get_json bounds a request with SIGALRM: main thread only")
+    if signal.getitimer(signal.ITIMER_REAL)[0] > 0:
+        raise RuntimeError("another ITIMER_REAL is set; this request will not replace it")
+
+    def expired(signum, frame):
+        raise TimeoutError(f"the request took longer than {timeout:g} s")
+    old = signal.signal(signal.SIGALRM, expired)
+    try:
+        signal.setitimer(signal.ITIMER_REAL, timeout)
+        with urllib.request.urlopen(url, timeout=timeout) as r:   # noqa: S310 (loopback only, vt.require_loopback)
+            return json.loads(r.read())
+    finally:
+        try:
+            signal.setitimer(signal.ITIMER_REAL, 0)
+        finally:
+            signal.signal(signal.SIGALRM, old)
 
 
 def _is_digits(x) -> bool:
@@ -766,6 +815,24 @@ def _closure(conn, t: dict, recs: list) -> tuple[list[dict], list]:
         lo, hi = nlo, nhi
 
 
+def reopen_joins(conn, rows: list[dict], now: float) -> int:
+    """Each row here was inserted already final (a read the budget cut, the
+    hourly check's take, a run Tempo showed late): its neighbours may have
+    been joined without it. audio_tried_at is cleared for every row of its
+    set (_closure), not removed, so audio_joins joins the set again whole.
+    The audio columns raise no seq and are not published. Returns how many
+    rows were re-opened."""
+    ids: set[str] = set()
+    for r in rows:
+        if r["end_s"] < now - FINAL_S:
+            got, _ = _closure(conn, r, [])
+            ids.update(x["run_id"] for x in got)
+    if not ids:
+        return 0
+    return conn.execute("UPDATE runs SET audio_tried_at = NULL WHERE run_id IN (SELECT value FROM json_each(?)) "
+                        "AND removed IS NULL AND audio_tried_at IS NOT NULL", (json.dumps(sorted(ids)),)).rowcount
+
+
 def audio_joins(conn, recordings: Path, now: float) -> tuple[dict, dict]:
     """The audio join of every row not yet tried (audio_tried_at NULL), not
     removed, and final, by voice_label_sheet.join over all the record's
@@ -938,6 +1005,7 @@ def export(conn, tempo: Tempo, now: float, recordings: Path, dev_pipelines=vt.DE
     joins: dict = {}
     stamp = now_iso(now)
     inserted = changed = replaced_n = 0
+    new_rows: list[dict] = []
     conn.execute("BEGIN IMMEDIATE")
     try:
         seq = conn.execute("SELECT COALESCE(MAX(seq), 0) FROM runs").fetchone()[0]
@@ -956,6 +1024,7 @@ def export(conn, tempo: Tempo, now: float, recordings: Path, dev_pipelines=vt.DE
             row["seq"] = seq
             _insert(conn, row)
             stored[rid] = row
+            new_rows.append(row)
             inserted += 1
         updates: dict[str, dict] = {}
         for a in listed:
@@ -1015,6 +1084,7 @@ def export(conn, tempo: Tempo, now: float, recordings: Path, dev_pipelines=vt.DE
                 seq += 1
                 row["seq"] = seq
                 _insert(conn, row)
+                new_rows.append(row)
                 inserted += 1
             report["check"] = summary
             if summary.get("error"):
@@ -1030,7 +1100,11 @@ def export(conn, tempo: Tempo, now: float, recordings: Path, dev_pipelines=vt.DE
                              "WHERE id = 1", (stamp, json.dumps(summary, sort_keys=True)))
 
         # The audio, for rows final now (after every insert above, so each
-        # competes with every run that has arrived).
+        # competes with every run that has arrived). A row inserted already
+        # final re-opens the joins of its set first (M30-e2e3 finding 1).
+        reopened = reopen_joins(conn, new_rows, now)
+        if reopened:
+            report["audio_reopened"] = reopened
         joins, jrep = audio_joins(conn, recordings, now)
         report.update(jrep)
         for rid, (j, rel, size, mtime) in joins.items():
@@ -1329,7 +1403,7 @@ def main(argv=None, now: float | None = None, get_json=http_get_json, dev_pipeli
     ap.add_argument("--init", action="store_true",
                     help="make the record when there is none (the first export; a new one on purpose)")
     ap.add_argument("--remove", metavar="RUN_ID", help="mark a run removed, empty its text, publish; no Tempo read")
-    ap.add_argument("--why", default="removed by hand", help="with --remove: who and why (no household words)")
+    ap.add_argument("--why", help="with --remove: who and why (no household words; default 'removed by hand')")
     args = ap.parse_args(argv)
     out = out or sys.stdout
     t0 = time.monotonic()
@@ -1345,6 +1419,10 @@ def main(argv=None, now: float | None = None, get_json=http_get_json, dev_pipeli
                           "(a scratch record must not write the real data/)")
         if args.remove is not None and args.init:
             raise Refused("--remove and --init do not go together")
+        if args.remove is not None and args.check_now:
+            raise Refused("--check-now does nothing with --remove (a removal reads no Tempo)")
+        if args.why is not None and args.remove is None:
+            raise Refused("--why goes with --remove only")
         db = Path(args.db or os.environ.get("KRONK_VOICE_DB") or DEFAULT_DB).expanduser()
         publish_to = [Path(p).expanduser() for p in (args.publish or DEFAULT_PUBLISH)]
         status_to = [Path(p).expanduser() for p in (args.status or DEFAULT_STATUS)]
@@ -1360,10 +1438,16 @@ def main(argv=None, now: float | None = None, get_json=http_get_json, dev_pipeli
         return record_missing(db, publish_to, status_to, now, log)
     if args.init and os.path.lexists(db):
         log(f"--init: the record {db} exists; nothing to make, this is an ordinary run")
+    by_hand = args.remove is not None or args.init
     try:
         ensure_dir(db)
-        lock = lock_dir(db)
+        lock = lock_dir(db, LOCK_WAIT_S if by_hand else 0.0)
         if lock is None:
+            if by_hand:
+                what = f"nothing removed ({args.remove})" if args.remove is not None else "nothing made or read"
+                log(f"FAILED: another export held the record's lock for {LOCK_WAIT_S:g} s; {what}. "
+                    "Run it again; if this repeats, look for a stuck export")
+                return 1
             log("another export holds the record's lock; this run does nothing")
             return 0
     except (RecordError, OSError) as e:
@@ -1378,7 +1462,7 @@ def main(argv=None, now: float | None = None, get_json=http_get_json, dev_pipeli
         report: dict = {}
         try:
             if args.remove is not None:
-                rm = remove_run(conn, args.remove, args.why, now)
+                rm = remove_run(conn, args.remove, args.why or "removed by hand", now)
                 if not rm["found"]:
                     db_err = f"--remove: no run {args.remove} in the record"
                 report = {"removed": 1 if rm["found"] else 0, **{k: v for k, v in rm.items() if k != "found"}}
