@@ -331,3 +331,59 @@ written when step B is promoted.
   untouched; 25 synthetic clips against M26's run: 0 of 25 texts differ,
   p50 0.311 to 0.317 s. A4 (a spoken test) is Drew's.
 
+- 2026-11-25, coordinator, on step B's test (`M30-e2e2.md`, FAILS on one
+  blocker; B1 to B6, B8, B9 and B11 hold; suite passes). The grade
+  stands. Fix round 1 of step B, all of these; each finding's `xfail`
+  test in `tests/test_m30_voice_runs_e2e2.py` loses its mark with its
+  fix:
+  - F1 (blocker): the audio join is made when the row is final (the
+    15-minute rule), against every run that can fit the recording, so
+    the stored answer is `voice_label_sheet.join`'s whatever order the
+    runs arrived in. A recordings directory that could not be read
+    leaves the row to be tried again, not NULL for good.
+  - Note 7, decided: the six-day limit goes. A final row is tried
+    against the local recordings whatever its age. A row older than
+    seven days at that moment that finds no recording is stored "not
+    tried" (NULL), not `none`, since its recording may be on the NAS; a
+    younger one is `none`. A join against the NAS layout is left over
+    (step D decides).
+  - F2: a trace-by-id answer of any shape is a failed trace read, never
+    a raise.
+  - F3: failing trace reads do not starve the rows behind them: the
+    limit is a time budget for the run, and a row whose read failed
+    goes to the back of the order.
+  - F4: a watermark later than now is not trusted: the read starts from
+    now minus the overlap, the status says so with `ok: false` until it
+    is right. And a run the hourly check finds in Tempo and not in the
+    record is taken (an insert is not a rewrite; "reports, does not
+    rewrite" stays for a row that differs).
+  - F5: the record is not made again when a status file or a published
+    copy says one existed: exit 1, the status says the record is gone
+    and names the restore step. `--init` makes the first one (the
+    coordinator's first export) and a new one on purpose.
+  - F6: removal is a command, not hand-typed SQL:
+    `voice_runs_export.py --remove RUN_ID` marks the row, empties its
+    text and its `raw_trace`, deletes its `run_changes` rows, with
+    `secure_delete` on, and publishes at once. Publishing follows the
+    record, not a good Tempo read. The feature doc says what the weekly
+    copies and the monthly tars made before the removal still hold, and
+    how long.
+  - F7: the restore runbook stops the timer before the install and
+    starts it after.
+  - F8: the whole-window reads (the first read and the hourly check)
+    have a time budget inside the unit's 50 s and carry on where they
+    stopped on the next run.
+  - F9: a SQLite error in the export reaches the status file with its
+    reason; exit 1; no traceback.
+  - F10: a failed enrichment is in `last_error` and the status.
+  - From the notes: tests for `BEGIN IMMEDIATE`, the weekly copy's
+    read-back and its use of the backup API under writes (the test
+    agent's own check, brought into the suite); the published copy is
+    checked against its `meta` row count every run and rebuilt when
+    they differ.
+  Left for step C, not this round: `last_error` shown with its time or
+  only when `ok` is false; `ok: true` is not the only signal; the page
+  notices a removal by `meta.rows` or `content_sha256`. Left as it is:
+  status files 644 (no text in them); `left_out_dev_text_runs` NULL;
+  the timer running the working tree's script, as `kronk-work-export`
+  does. Tier 3: a fresh narrow test follows the fix.
