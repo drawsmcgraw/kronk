@@ -250,6 +250,9 @@ def house(tmp_path, monkeypatch):
     c.execute("insert into item values ('M33')")
     c.commit()
     c.close()
+    # The voice-run record (M30 step B) is looked for at the house's HOME path,
+    # absent as it is before the exporter's first run; voice_record() makes it.
+    monkeypatch.delenv("KRONK_VOICE_DB")           # conftest's scratch path: the house's HOME path here
     (home / ".config" / "kronk").mkdir()
     (home / ".config" / "kronk" / "upgrade.env").write_text("KRONK_UPGRADE_BRANCH=refactor\n")
     (home / "models").mkdir()
@@ -275,6 +278,21 @@ def house(tmp_path, monkeypatch):
                    recordings=home / "kronk-voice-recordings", etc=etc, proc=proc, lock_wait_min=2,
                    tmp=tmp_path / "tmp")
     return s
+
+
+def voice_record(s, last_ok_at="2026-12-10T06:00:00+00:00", runs=("R-house-1",), labels=()):
+    """A small voice-run record at the house's path (M30 step B)."""
+    import sqlite3
+    s.voice_db.parent.mkdir(parents=True, mode=0o700, exist_ok=True)
+    c = sqlite3.connect(s.voice_db)
+    c.executescript("create table runs (run_id text primary key); create table labels (run_id text primary key);"
+                    "create table export_state (id integer primary key, last_ok_at text);")
+    c.executemany("insert into runs values (?)", [(r,) for r in runs])
+    c.executemany("insert into labels values (?)", [(r,) for r in labels])
+    c.execute("insert into export_state values (1, ?)", (last_ok_at,))
+    c.commit()
+    c.close()
+    return s.voice_db
 
 
 def tar_names(p: Path) -> list[str]:
@@ -456,6 +474,7 @@ def test_no_secret_reaches_a_log_line_a_notice_or_the_status_file(house):
 def test_what_cannot_be_read_is_listed_in_the_manifest_and_the_notice(house):
     """An optional item unreadable: still OK, and said."""
     ops = FakeOps()
+    voice_record(house)                 # M30: present, so the one gap is the key below
     (house.repo / "secrets" / "mm" / "kronk-mm-update").chmod(0o000)
     try:
         assert B.cmd_config(house, ops, dry_run=False) == 0
@@ -3022,6 +3041,7 @@ def test_m16b_c2_the_manifest_says_how_each_was_read(house):
 @pytest.mark.parametrize("case", ["absent", "empty", "unreadable"])
 def test_m16b_c2_playlists_absent_empty_or_unreadable_is_not_a_failure(house, case):
     ops = FakeOps()
+    voice_record(house)                 # M30: present, so the one gap is the playlists
     if case == "absent":
         ops.ma_names.remove("playlists")
     elif case == "empty":

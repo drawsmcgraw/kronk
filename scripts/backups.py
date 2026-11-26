@@ -24,11 +24,19 @@ archive  Moves recordings older than KRONK_ARCHIVE_AGE_DAYS (7) from
          script re-checks each file (size, mtime, inode, SHA-256) and its
          destination copy (size, inode, SHA-256) right before its rm. Never
          deletes or overwrites anything on the destination, its own leftover
-         temporary files from an interrupted run included.
+         temporary files from an interrupted run included. The same run then
+         writes a dated copy of the voice-run record (M30 step B),
+         <dest>/voice-runs/voice_runs-<YYYY-MM-DD>.db, by the online backup
+         API, read back, never over an existing copy; the copies of the
+         newest KRONK_VOICE_COPY_KEEP (8) dates are kept and older ones
+         removed (in <dest>/voice-runs only: the one place the archive
+         deletes on the destination).
 check    The stale check: warns when the last good config run (status file,
          while its tar is on the destination; else the newest tar by the date
          in its name, never its mtime) is older than 35 days or the last
-         finished archive run older than its interval plus a margin. One
+         finished archive run older than its interval plus a margin, or the
+         voice-run export's last good read older than
+         KRONK_VOICE_STALE_DAYS (7). One
          notice when the warnings change, repeated weekly.
 status   Prints the status file.
 
@@ -116,6 +124,18 @@ WAL_PAIR_TRIES = 3
 WAL_PAIR_RETRY_S = 5
 SQLITE_DIR_RE = re.compile(r"kronk-sqlite-[a-z0-9_]{8}")
 SQLITE_DIR_FILES = ("copy.db", "copy.db-wal", "copy.db-shm", "copy.db-journal")
+
+
+# The weekly copy of the voice-run record (M30 step B), written by the
+# recordings archive: <dest>/voice-runs/voice_runs-<date>[.<n>].db.
+VOICE_COPY_RE = re.compile(r"voice_runs-(\d{4}-\d{2}-\d{2})(?:\.(\d+))?\.db")
+VOICE_COPY_TMP_RE = re.compile(r"\.voice_runs-\d{4}-\d{2}-\d{2}(?:\.\d+)?\.db\.tmp")
+
+
+def voice_db() -> Path:
+    """The voice-run record, as scripts/voice_runs_export.py finds it:
+    KRONK_VOICE_DB, else under HOME."""
+    return Path(os.environ.get("KRONK_VOICE_DB") or HOME / ".local" / "state" / "kronk-voice" / "voice_runs.db")
 
 
 def env(name: str, default: str) -> str:
@@ -340,6 +360,9 @@ class Settings:
     mount_root: Path | None = None    # the mount point the destination must be on (None: the destination itself)
     mount_wait_s: int = 180
     bundle_max_bytes: int = 20 * 1000 * 1000
+    voice_copy_keep: int = 8          # weekly copies of the voice-run record kept on the destination
+    voice_stale_days: int = 7         # the voice-run export's last good read older than this warns
+    voice_db: Path = field(default_factory=voice_db)
     errors: list = field(default_factory=list)   # bad settings: the job fails with a notice, does nothing
 
     @classmethod
@@ -375,6 +398,8 @@ class Settings:
             lock_wait_min=num("KRONK_BACKUP_LOCK_WAIT_MIN", 30, 0),
             mount_wait_s=num("KRONK_BACKUP_MOUNT_WAIT_S", 180, 0),
             bundle_max_bytes=num("KRONK_BACKUP_BUNDLE_MAX_MB", 20, 1) * 1000 * 1000,
+            voice_copy_keep=num("KRONK_VOICE_COPY_KEEP", 8, 1),
+            voice_stale_days=num("KRONK_VOICE_STALE_DAYS", 7, 1),
             upgrade_state=Path(env("KRONK_UPGRADE_STATE", str(REPO / "data" / "upgrades"))),
             live_config=Path(env("KRONK_LIVE_CONFIG", str(REPO.parent / "kronk-config"))),
             model_dirs=tuple(p for p in env("KRONK_MODEL_DIRS", f"/opt/models:{HOME}/model-staging").split(":") if p),
@@ -656,6 +681,11 @@ def file_sources(s: Settings) -> list[tuple[str, Path, str, bool]]:
         # Found as scripts/work.py finds it: KRONK_WORK_DB, else under HOME.
         ("work-state/work.db", Path(os.environ.get("KRONK_WORK_DB") or HOME / ".local" / "state" / "kronk-work" /
                                     "work.db"), "sqlite", False),
+        # The voice-run record (M30 step B): every household voice run with what
+        # Whisper heard and what answered, kept for good. Household speech, like
+        # the recordings on the same share. Outside the repo and every mount;
+        # found as scripts/voice_runs_export.py finds it.
+        ("voice-state/voice_runs.db", s.voice_db, "sqlite", False),
         ("etc/default/grub", s.etc / "default" / "grub", "file", False),
         ("etc/docker/daemon.json", s.etc / "docker" / "daemon.json", "optional", False),
         # The way back travels with the tar: readable before any clone.
@@ -1984,6 +2014,8 @@ def cmd_archive(s: Settings, ops: Ops, dry_run: bool) -> int:
             ops.log(f"  would move {r.size:>9}  {show(r.path)} -> recordings/{show(r.rel[0])}/{show(r.rel[1])}/{month}/{show(r.rel[2])}/")
         for p, why in skipped:
             ops.log(f"  skipped {show(p)}: {why}")
+        ops.log(f"dry run: the voice-run record {s.voice_db} would be copied to {s.dest}/voice-runs/"
+                if os.path.lexists(s.voice_db) else f"dry run: no voice-run record at {s.voice_db}; nothing to copy")
         ops.log(f"dry run: {len(old)} of {len(recs)} recordings are older than {s.age_days} days "
                 f"({human(sum(r.size for r in old))}); nothing written, nothing deleted, nothing sent")
         return 0
@@ -2010,6 +2042,16 @@ def _archive_run(s: Settings, ops: Ops, run: dict, cutoff_ns: int, src: Path) ->
     except Exception as e:  # noqa: BLE001
         run.update(result="failed", detail=f"{e.__class__.__name__}: {e}")
         rc = 1
+    # The voice-run record leaves the box with the audio it describes (M30
+    # step B): same run, same lock, same share; also when only the
+    # recordings directory was unusable. Not when the destination was.
+    if dest_problem(s, ops, probe=False) is None:
+        vr = voice_runs_copy(s, ops)
+        run["voice_runs"] = vr
+        if vr["result"] == "failed":
+            if rc == 0:
+                run.update(result="failed", detail=f"the voice-run record was not copied: {vr['detail']}")
+            rc = rc or 1
     run["finished"] = iso(ops.now())
     if plain_dir(src):
         left, _ = scan_recordings(src)
@@ -2028,6 +2070,8 @@ def _archive_run(s: Settings, ops: Ops, run: dict, cutoff_ns: int, src: Path) ->
         body += f" Left for the next run: {len(run['left'])} ({run['left'][0]})."
     if totals:
         body += " " + totals_line(totals)
+    if run.get("voice_runs"):
+        body += " " + voice_copy_line(run["voice_runs"])
     ops.log(f"{title}: {body}")
     run["notice_sent"] = ops.notify(title, body)
     save_run(s, ops, "archive", run)
@@ -2171,6 +2215,154 @@ def _archive_files(s: Settings, ops: Ops, run: dict, cutoff_ns: int, src_fd: int
     return 0
 
 
+# ═══ The weekly copy of the voice-run record (M30 step B) ═════════════════
+
+def voice_copy_line(vr: dict) -> str:
+    if vr["result"] == "ok":
+        return (f"Voice-run record: {vr['file']} ({vr['runs']} runs, {vr['labels']} labels, "
+                f"{human(vr['bytes'])}) written and read back"
+                + (f"; removed {len(vr['removed'])} older cop{'y' if len(vr['removed']) == 1 else 'ies'}"
+                   if vr.get("removed") else "") + ".")
+    if vr["result"] == "absent":
+        return f"Voice-run record: {vr['detail']}; no copy."
+    return f"Voice-run record NOT copied: {vr['detail']}."
+
+
+def voice_copy_name(d: Path, day: str) -> str:
+    name, k = f"voice_runs-{day}.db", 1
+    while os.path.lexists(d / name) or os.path.lexists(d / f".{name}.tmp"):
+        k += 1
+        name = f"voice_runs-{day}.{k}.db"
+    return name
+
+
+def voice_copy_retention(d: Path, keep: int, log, protect: str) -> list[str]:
+    """Keep the copies of the newest <keep> dates (same-day reruns count as
+    one date); remove the rest, in <dest>/voice-runs only, regular files
+    named like this job's copies only. The copy just written is never removed."""
+    found = []
+    for e in os.scandir(d):
+        m = VOICE_COPY_RE.fullmatch(e.name)
+        if m and e.is_file(follow_symlinks=False):
+            found.append(((m.group(1), int(m.group(2) or 1)), e.name))
+    kept = set(sorted({key[0] for key, _ in found})[-keep:])
+    removed = []
+    for (day, _n), name in sorted(found):
+        if day in kept or name == protect:
+            continue
+        os.unlink(d / name)
+        log(f"voice-run copies: removed {name}")
+        removed.append(name)
+    return removed
+
+
+def _db_counts(blob: bytes) -> tuple[int, int]:
+    """integrity_check, then (runs, labels), of a database image in memory."""
+    mem = sqlite3.connect(":memory:")
+    try:
+        mem.deserialize(blob)
+        check = [r[0] for r in mem.execute("PRAGMA integrity_check").fetchall()]
+        if check != ["ok"]:
+            raise sqlite3.DatabaseError(f"integrity_check failed ({len(check)} line(s))")
+        return (mem.execute("SELECT COUNT(*) FROM runs").fetchone()[0],
+                mem.execute("SELECT COUNT(*) FROM labels").fetchone()[0])
+    finally:
+        mem.close()
+
+
+def voice_runs_copy(s: Settings, ops: Ops) -> dict:
+    """<dest>/voice-runs/voice_runs-<date>.db: the record by the online
+    backup API (read_sqlite), checked, written to a temporary file of this
+    run's (O_EXCL), fsynced, read back (SHA-256, page cache dropped, then
+    integrity_check and the row counts again), renamed to a name that is
+    free (never over an existing copy), mode 0600. The newest
+    voice_copy_keep dates are kept. Never raises: the result says what
+    happened. The record absent (no export yet) is not a failure."""
+    src = s.voice_db
+    if not os.path.lexists(src):
+        return {"result": "absent", "detail": f"{src} does not exist (the exporter has not run)"}
+    c = Collected()
+    try:
+        read_sqlite(c, "voice-runs", src)
+    except FileNotFoundError:
+        return {"result": "absent", "detail": f"{src} does not exist (the exporter has not run)"}
+    if c.unreadable:
+        return {"result": "failed", "detail": f"{src}: {c.unreadable[0][1]}"}
+    blob = c.members[0].data
+    try:
+        runs, labels = _db_counts(blob)
+    except sqlite3.Error as e:
+        return {"result": "failed", "detail": f"the copy read from {src} is not whole: {one_line(str(e), 160)}"}
+    d = s.dest / "voice-runs"
+    tmp = None
+    try:
+        try:
+            os.mkdir(d, 0o700)
+        except FileExistsError:
+            st = os.lstat(d)
+            if stat.S_ISLNK(st.st_mode) or not stat.S_ISDIR(st.st_mode):
+                return {"result": "failed", "detail": f"{d} is a symlink or not a directory; refused"}
+        for e in os.scandir(d):          # an earlier run's temporary file (we hold the lock)
+            if VOICE_COPY_TMP_RE.fullmatch(e.name) and e.is_file(follow_symlinks=False):
+                os.unlink(d / e.name)
+                ops.log(f"voice-run copies: removed a stale temporary file: {e.name}")
+        name = voice_copy_name(d, ops.now().date().isoformat())
+        tmp = d / f".{name}.tmp"
+        want = hashlib.sha256(blob).hexdigest()
+        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+        try:
+            _write_all(fd, blob)
+            os.fsync(fd)
+            drop_pages(fd)
+        finally:
+            os.close(fd)
+        back = Path(tmp).read_bytes()
+        if hashlib.sha256(back).hexdigest() != want or _db_counts(back) != (runs, labels):
+            return {"result": "failed", "detail": "the copy read back differs from what was written; removed"}
+        del back
+        if os.path.lexists(d / name):
+            return {"result": "failed", "detail": f"{d / name} appeared during the run; not overwritten"}
+        os.rename(tmp, d / name)
+        tmp = None
+        os.chmod(d / name, 0o600)
+        removed = voice_copy_retention(d, s.voice_copy_keep, ops.log, protect=name)
+        return {"result": "ok", "file": name, "path": str(d / name), "runs": runs, "labels": labels,
+                "bytes": len(blob), "sha256": want, "removed": removed}
+    except (OSError, sqlite3.Error) as e:
+        return {"result": "failed", "detail": f"{type(e).__name__}: {one_line(str(e), 200)}"}
+    finally:
+        if tmp is not None and os.path.lexists(tmp):
+            os.unlink(tmp)
+
+
+def voice_export_warning(s: Settings, now: dt.datetime) -> str | None:
+    """The voice-run export's last good read (export_state.last_ok_at in
+    the record), older than voice_stale_days: an exporter that died quietly
+    costs rows once Tempo's 90 days pass, and nothing else would say so.
+    No record and no status file: not installed yet, no warning."""
+    db = s.voice_db
+    if not os.path.lexists(db):
+        status = s.repo / "data" / "voice_runs.json"
+        if os.path.lexists(status):
+            return f"the voice-run record {db} is missing, but its exporter has written {status.name}"
+        return None
+    try:
+        c = sqlite3.connect(f"file:{db}?mode=ro", uri=True, timeout=5)
+        try:
+            row = c.execute("SELECT last_ok_at FROM export_state WHERE id = 1").fetchone()
+        finally:
+            c.close()
+    except sqlite3.Error as e:
+        return f"the voice-run record {db} cannot be read: {one_line(str(e), 120)}"
+    ok = parse_iso(row[0]) if row else None
+    if ok is None:
+        return "the voice-run export has never finished a good read"
+    if now - ok > dt.timedelta(days=s.voice_stale_days):
+        return (f"the voice-run export's last good read was {(now - ok).days} days ago "
+                f"(limit {s.voice_stale_days}): see journalctl --user -u kronk-voice-runs-export")
+    return None
+
+
 # ═══ The stale check ═══════════════════════════════════════════════════════
 
 def newest_config(s: Settings) -> tuple[str, dt.datetime] | None:
@@ -2243,6 +2435,9 @@ def stale_warnings(s: Settings, ops: Ops, st: dict | None = None) -> list[str]:
         last = (st.get(job) or {}).get("last") or {}
         if last.get("result") in ("failed", "declined", "incomplete"):
             w.append(f"the last {word} {last['result']} ({last.get('at')}): {str(last.get('detail'))[:160]}")
+    vw = voice_export_warning(s, now)
+    if vw:
+        w.append(vw)
     return w
 
 
