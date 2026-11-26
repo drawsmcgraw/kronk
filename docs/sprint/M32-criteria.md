@@ -241,3 +241,28 @@ Criteria (review 10, as reworded there):
 
 Steps 2 and 3 get their criteria when step 1 is promoted, from review
 4, 5, 6, 9 and 10 and Drew's answers.
+
+## Rulings
+
+- 2026-11-26, coordinator, on step 1's test (`M32-e2e.md`, PASSES; in a
+  real browser ten fixtures on the page within 2.4 s, every cut
+  survived including three of a real hour, one reload when due and none
+  otherwise, no script error). Fix round 1 before promotion, small, no
+  retest (tier 2, no blocker): the coordinator checks the diff and the
+  suite, and the live system at promotion.
+  - S1: a burst of writes must not leave the path unit failed. The
+    export service takes `StartLimitIntervalSec=0` in `[Unit]` (the
+    test agent's scratch run: ten bursts of ten writes, each ended with
+    its last write exported), with the reason in the unit's comment;
+    the `xfail` in `tests/test_m32_e2e.py` loses its mark.
+  - S2: the route keeps the encoded body of the full answer's `work`
+    part with the parsed file, so twenty displays cost one encoding per
+    change of the file.
+  - Note 7: "Heard"'s "as of" is shown in the house's zone, as every
+    other time on the page.
+  Left for steps 2 and 3: the banner moving the page 54 px (note 4);
+  "Heard" reading "not read" for up to 30 s after a cut (note 6); the
+  colour of a link in a title (note 11); the first screen at 960 by 540
+  (note 10). Left as notes: 2, 3, 5, 8, 9, 12, 14. Note 1 (no real
+  restart was seen with a page open): the coordinator watches the
+  deploy at promotion.
