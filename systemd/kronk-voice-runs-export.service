@@ -1,0 +1,35 @@
+# Keeps every household voice run for good (work item M30 step B):
+# scripts/voice_runs_export.py reads Tempo on loopback for voice runs with a
+# speech-to-text stage and writes the record,
+# ~/.local/state/kronk-voice/voice_runs.db (700/600, outside every
+# container's mount; the file that is backed up), then publishes the last
+# 90 days to data/voice_runs.db and data/dev/voice_runs.db and writes
+# data/voice_runs.json and data/dev/voice_runs.json (the status, no text).
+# Fired by kronk-voice-runs-export.timer every 60 s. Tempo down or slow is
+# not a failure of this unit (the status file says it); a record that
+# cannot be opened is. TimeoutStartSec stops a hung run here; the script
+# also flocks the record's directory, so a run by hand never overlaps.
+# See docs/features/voice-dataset.md.
+#
+# Operations:
+#   install:  cp systemd/kronk-voice-runs-export.{service,timer} ~/.config/systemd/user/
+#             systemctl --user daemon-reload
+#             systemctl --user enable --now kronk-voice-runs-export.timer
+#   check:    systemctl --user list-timers kronk-voice-runs-export.timer
+#             journalctl --user -u kronk-voice-runs-export.service -n 20
+#             python3 -m json.tool data/voice_runs.json
+#   one-shot: systemctl --user start kronk-voice-runs-export.service
+#   compare:  python3 scripts/voice_runs_export.py --check-now   (the hourly comparison with Tempo, now)
+#   remove:   systemctl --user disable --now kronk-voice-runs-export.timer
+#             rm ~/.config/systemd/user/kronk-voice-runs-export.{service,timer}
+#             systemctl --user daemon-reload
+#             (the record stays; nothing here deletes it)
+[Unit]
+Description=Kronk — export voice runs from Tempo to the voice-run record (M30)
+
+[Service]
+Type=oneshot
+TimeoutStartSec=50
+UMask=0077
+Nice=10
+ExecStart=/usr/bin/python3 -B %h/git-repos/drawsmcgraw/kronk/scripts/voice_runs_export.py

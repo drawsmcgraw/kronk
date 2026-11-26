@@ -48,12 +48,44 @@ def _live_work_stat():
 
 _LIVE_WORK_BEFORE = _live_work_stat()
 
+# The voice-run record (work item M30 step B): scripts/voice_runs_export.py and
+# scripts/backups.py read ~/.local/state/kronk-voice/voice_runs.db unless
+# KRONK_VOICE_DB says otherwise. A test run points it at a scratch path that
+# does not exist, and fails if the live record, its journal, or a published
+# copy or status file under data/ changed while it ran (M30 criterion B6).
+_VOICE_TMP = tempfile.mkdtemp(prefix="kronk-voice-")
+atexit.register(shutil.rmtree, _VOICE_TMP, ignore_errors=True)
+os.environ["KRONK_VOICE_DB"] = os.path.join(_VOICE_TMP, "voice_runs.db")
+LIVE_VOICE_FILES = [os.path.join(os.path.expanduser("~"), ".local", "state", "kronk-voice", "voice_runs.db" + s)
+                    for s in ("", "-journal", "-wal", "-shm")] + [
+    os.path.join(REPO_ROOT, "data", d, f) for d in ("", "dev") for f in ("voice_runs.db", "voice_runs.json")]
+
+
+def _live_voice_stat():
+    out = {}
+    for p in LIVE_VOICE_FILES:
+        try:
+            st = os.stat(p)
+            out[p] = (st.st_mtime_ns, st.st_size)
+        except FileNotFoundError:
+            out[p] = None
+    return out
+
+
+_LIVE_VOICE_BEFORE = _live_voice_stat()
+
 
 def pytest_sessionfinish(session, exitstatus):
     after = _live_work_stat()
     if after != _LIVE_WORK_BEFORE:
         changed = [LIVE_WORK_DB + k for k in after if after[k] != _LIVE_WORK_BEFORE[k]]
         sys.stderr.write(f"\nFAILED: the test run changed the live work database: {', '.join(changed)}\n")
+        session.exitstatus = 1
+    voice = _live_voice_stat()
+    if voice != _LIVE_VOICE_BEFORE:
+        changed = [p for p in voice if voice[p] != _LIVE_VOICE_BEFORE[p]]
+        sys.stderr.write(f"\nFAILED: the test run changed the live voice-run record or its copies: "
+                         f"{', '.join(changed)}\n")
         session.exitstatus = 1
 
 # config/ (sprint M21): the services read /config in the container, which

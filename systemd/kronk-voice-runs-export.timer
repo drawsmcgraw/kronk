@@ -1,0 +1,15 @@
+# Fires kronk-voice-runs-export.service every 60 s (M30 step B). A oneshot
+# unit is not started again while it runs, so runs never overlap. A run
+# reaches Tempo three to four minutes after it ends, so a new row is that
+# old when it lands; the page treats data/voice_runs.json older than three
+# minutes as stale. Install and remove: the Operations block in the service.
+[Unit]
+Description=Kronk — voice-run export every 60s (M30)
+
+[Timer]
+OnBootSec=90
+OnUnitActiveSec=60
+AccuracySec=5
+
+[Install]
+WantedBy=timers.target
