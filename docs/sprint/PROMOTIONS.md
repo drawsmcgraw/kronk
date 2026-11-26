@@ -455,3 +455,22 @@ After this entry the record of a promotion is a row
 (`scripts/work.py show <item>`) and `docs/sprint/<item>-promote.md`.
 Until M34, entries are still added here so that `/work` shows them.
 
+
+## Chat page buttons (no work item), 2026-11-25
+
+Tag `chat-buttons-2026-11-25` at `4bdcafc`, deployed 2026-11-25 22:19 EST
+on Drew's word ("Deploy it"). A fix made inline outside any work item:
+on the chat page the attach button now comes before the send button
+(`orchestrator/static/index.html`, three lines moved). Seen on dev by
+Drew first ("The buttons on Dev are good").
+
+Verified on production by the coordinator: `/` serves the new order;
+`deploy_tag.sh` reported `/api/status` and the `/api/chat` shim ok;
+`/voice/api/chat` answered. Six Kronk containers recreated; HA and MA
+not touched. Suite before the commit: `7968 passed, 3 skipped, 54
+xfailed`.
+
+Found by that check and ordered as its own item: the answer gave the
+time in UTC (`docs/sprint/M35-criteria.md`).
+
+Way back: deploy `item-M31`.
