@@ -387,3 +387,18 @@ written when step B is promoted.
   status files 644 (no text in them); `left_out_dev_text_runs` NULL;
   the timer running the working tree's script, as `kronk-work-export`
   does. Tier 3: a fresh narrow test follows the fix.
+- 2026-11-25, coordinator, on step B's fix round 1 (`M30-fix1.md`: every
+  job done, schema 2, suite passes). Its four points:
+  1. A removal leaves `labels.correct_text`. Stands for now: the table
+     ships empty and nothing writes it. Left over, with the labelling
+     tool whenever one is ordered: a removal must take the label's words
+     too, and `--remove` already says when a run has one.
+  2. and 3. Accepted as premises and to be checked by the narrow test:
+     the stretch a mended watermark skips is the hourly check's to take;
+     voice_tracer's 840 s export limit stays under the 15 minutes (a
+     test should pin the two constants against each other).
+  4. `ok` true after `--remove` with Tempo down a minute earlier: step
+     C's.
+  The limit under F8 (one day whose reads alone exceed the budget) is
+  accepted: about a hundred times today's margin.
+  A fresh narrow test follows (tier 3).
