@@ -358,6 +358,39 @@ What the monthly tar cannot hold is a month of queue changes: if the file
 is newer than the tar's copy and only damaged, `work.py restore-dump` from
 `work.db.dump.sql` (written after every change) is the better way back.
 
+The voice-run record (`scripts/voice_runs_export.py`, M30;
+`docs/features/voice-dataset.md`) lives outside the repo too, and it is the
+only copy of what Whisper heard once Tempo's 90 days have passed. There are
+two copies of it on the NAS: the tar's (monthly) and the recordings
+archive's (weekly, `/mnt/nas-backup/voice-runs/voice_runs-<date>.db`, the
+newest eight dates). Take the newer: usually the newest weekly copy.
+
+```
+ls -1 /mnt/nas-backup/voice-runs/ | tail -3
+VOICE_COPY=/mnt/nas-backup/voice-runs/voice_runs-<date>.db     # or $R/voice-state/voice_runs.db
+```
+
+A `-wal`, `-shm` or `-journal` file left beside the target would be
+replayed onto the restored copy (a hot `-journal` is rolled back into it),
+so all three go first, whatever mode the old file was in. Then the
+integrity check and the row counts (runs, then labels): the counts should
+match what the copy's notice or the manifest's size suggests, and never be
+fewer than the published copy showed.
+
+```
+mkdir -p -m 700 ~/.local/state/kronk-voice
+rm -f ~/.local/state/kronk-voice/voice_runs.db-wal ~/.local/state/kronk-voice/voice_runs.db-shm ~/.local/state/kronk-voice/voice_runs.db-journal
+install -m 600 $VOICE_COPY ~/.local/state/kronk-voice/voice_runs.db
+python3 -c 'import sqlite3, sys; c = sqlite3.connect(sys.argv[1]); print(c.execute("PRAGMA integrity_check").fetchone()[0], c.execute("SELECT COUNT(*) FROM runs").fetchone()[0], c.execute("SELECT COUNT(*) FROM labels").fetchone()[0])' ~/.local/state/kronk-voice/voice_runs.db
+```
+
+It prints `ok <runs> <labels>`. The published copies
+(`data/voice_runs.db`, `data/dev/voice_runs.db`) are not restored: the
+exporter's next run rebuilds them from the record (step 10 installs its
+timer). Its first run after a restore reads Tempo from the record's
+watermark, so rows Tempo still holds that are newer than the copy come
+back on their own.
+
 The archived voice recordings stay on the NAS
 (`/mnt/nas-backup/recordings/`); nothing needs to come back for Kronk to
 run.

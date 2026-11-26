@@ -37,7 +37,10 @@ What is needed to rebuild Kronk, no binaries, no models:
 - household data: `data/solar.db`, `data/music_taste.yaml`,
   `data/music_taste.db`, `data/kronk_state.md`, `data/mm_known_hosts`,
   `data/yt-music-cookie`, `data/upgrades/status.json`, the labelled voice
-  clips `~/kronk-voice-labels/` (absent until the first sheet). SQLite files
+  clips `~/kronk-voice-labels/` (absent until the first sheet), and the
+  voice-run record `~/.local/state/kronk-voice/voice_runs.db` as
+  `voice-state/voice_runs.db` (M30 step B: every household voice run with
+  what Whisper heard and what answered; `docs/features/voice-dataset.md`). SQLite files
   are copied with the online backup API: a consistent copy of a live DB.
   Only a regular file is opened (a FIFO, directory or device is "not a
   regular file"), and a database still locked after 120 s is a gap, not a
@@ -148,7 +151,10 @@ and the notice ("NOT READ"), and the run is still OK. Anything in HA's
 they exist.
 
 **The tar holds every secret in the clear** (the list above, `auth.db`
-included). `auth.db` appears in no log line, notice, status file or API
+included), **and, since M30, household speech**: the voice-run record holds
+the words of every household voice run, kept for good. The share already
+held the speech itself (the recordings) and, since M30, holds the record
+weekly too (`voice-runs/`). `auth.db` appears in no log line, notice, status file or API
 answer beyond its name and size, and a failed read names the reason only.
 It is mode 0600 and the share
 is mounted 0600/0700 for the operator, but anyone with the NAS account or
@@ -298,6 +304,26 @@ if the server does not provide inode numbers, the kernel falls back to
 `noserverino` (a line in `dmesg`), inode numbers can change, and deletes
 are refused (files stay local, reported) rather than done blind.
 
+### The weekly copy of the voice-run record (M30 step B)
+
+The monthly tar alone would lose up to a month of rows with the disk, while
+the recordings older than a week are already on the NAS. So the recordings
+archive, in the same run, under the same lock, writes
+`<dest>/voice-runs/voice_runs-<YYYY-MM-DD>.db` after it moves the
+recordings: the record read by the online backup API, `integrity_check`
+and the row counts, written to `.voice_runs-<date>.db.tmp` (`O_EXCL`),
+fsynced, read back (SHA-256, then `integrity_check` and the counts again),
+renamed to a free name (a same-day run by hand is `.2`; an existing copy is
+never overwritten), mode 0600 in a 0700 directory. The copies of the
+newest 8 dates are kept (`KRONK_VOICE_COPY_KEEP`) and older ones removed,
+by exact name, in `voice-runs/` only: the one place the archive deletes on
+the destination. The notice says `Voice-run record: voice_runs-<date>.db
+(N runs, N labels, size) written and read back`. It is made when only the
+recordings directory is unusable (the move fails, exit 2, the record still
+leaves the box) and not when the destination is. No record yet (before
+the exporter's first run) is said in the notice and is not a failure; a
+record that will not read fails the run. Restore: `restore.md` step 14.
+
 ### The stale check
 
 The config backup's age is the newest good config run in the status file
@@ -313,6 +339,13 @@ warnings changes, repeated weekly while it holds (day counts do not count as
 a change). `/services` computes the same ages from the status file, so a
 check that never runs still shows a stale job; a job that has never
 finished a good run, and no status file at all, are warnings too.
+
+Since M30 it also warns when the voice-run export's last good read
+(`export_state.last_ok_at` in the record) is older than 7 days
+(`KRONK_VOICE_STALE_DAYS`), or when the record is gone while
+`data/voice_runs.json` exists. An exporter that died quietly costs nothing
+for 90 days and then costs rows; nothing else would say so. No record and
+no status file (not installed yet) is not a warning.
 
 ### Settings, mounts, exit codes
 

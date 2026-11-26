@@ -16,7 +16,7 @@ Makes speech-recognition accuracy measurable, by Drew's decision of
    planned as two weeks). Home Assistant's
    `assist_pipeline` `debug_recording_dir` writes each satellite run's speech
    audio to `/home/drew/kronk-voice-recordings` on the host. Recordings
-   older than 14 days move to the NAS every Monday
+   older than 7 days (`KRONK_ARCHIVE_AGE_DAYS`) move to the NAS every Monday
    (`docs/features/backups.md`). The end-date reminder timer is disabled.
 3. **A wrong-action signal.** `voice_tracer` marks a voice run when the same
    puck, within 60 seconds after it, says "not that", a thumbs down, a stop
@@ -37,12 +37,15 @@ included (M6: guest Wi-Fi reaches this host).
 | --- | --- | --- | --- |
 | Tempo (`kronk-telemetry`) | `voice.transcript`, `voice.speech` (voice_tracer); `kronk.input` / `kronk.output` on pipeline, routing, agent, model and tool spans (orchestrator); URL query strings (search terms, fetched URLs) and the shopping-list item in `DELETE /shopping_list/{item}` on HTTP spans; `music.media_id` on a dry-run span and `music.failure` on `music.play_verified` (tool_service) | 90 days (`block_retention: 2160h`, confirmed in the running config) | Grafana on LAN port 3000, no login; Tempo API on loopback |
 | Container logs (journald; Docker's log driver is `journald`, set in `/etc/docker/daemon.json`) | `kronk.events` previews (request, route, retracted round, escalation note, tool-syntax leak, mirror refusal), tool_service music lines (query, said, genre phrase, resolver), httpx and uvicorn URL lines | Bounded by size only: journald's default cap (`SystemMaxUse`, 10% of the disk, at most 4 GB). On 2026-11-17 the journal was 4 GB and reached back to 2026-10-04 (44 days). No time limit | The operator (`adm` group), root |
-| HA recordings, `/home/drew/kronk-voice-recordings` | One WAV per satellite run | Until deleted; nothing deletes them | The operator (files are root-owned, mode 644); not in HA's backups |
+| HA recordings, `/home/drew/kronk-voice-recordings` | One WAV per satellite run | A week locally; then the weekly archive (M16) moves them to `/mnt/nas-backup/recordings/`, where nothing deletes them | The operator (files are root-owned, mode 644); not in HA's backups |
 | Labelled set, `/home/drew/kronk-voice-labels/` | `labels.csv` and copies of the sampled WAVs | Kept; goes into the M16 backup | The operator |
 | M11 shadow log, `data/music_shadow.jsonl` | The sentence of each music hand-off (`sentence`) | No rotation, no limit | The operator |
 | HA pipeline debug (in memory) | The last 10 runs per pipeline, with transcript and reply | Until the next HA restart | HA admins, and voice_tracer over the API |
 | HA automation traces, `.storage/trace.saved_traces` | The music blueprint's last 5 runs, including the trigger sentence | Until replaced by newer runs; written at a clean HA shutdown | HA admins |
 | Music taste DB, `data/music_taste.db` | `picks.phrase` (the genre phrase asked for), stated taste in `music_taste.yaml` | No limit (household taste is the feature) | The operator |
+| Voice-run record, `~/.local/state/kronk-voice/voice_runs.db` (M30; `docs/features/voice-dataset.md`) | Every voice run with an STT stage: what Whisper heard, the reply, tier, rule, tools, marks, the whole voice trace as JSON, and which recording holds its audio | For good: nothing deletes a row. Backed up in the monthly config tar and weekly to `/mnt/nas-backup/voice-runs/` (newest 8 dates) | The operator (directory 700, file 600, outside every container's mount); anyone with the NAS account |
+| Its published copies, `data/voice_runs.db` and `data/dev/voice_runs.db` | The same rows for the last 90 days, without the trace and the audio columns; feed `/work`'s "Heard" section (M30 step C) | Rebuilt from the record; 90 days | The operator, and the three production containers that mount `data/` (and the dev pair's `data/dev`); the page shows them on the LAN once step C ships, as Grafana already does |
+| Whisper's journal (user units `wyoming-whisper.service`, `wyoming-whisper-dev.service`) | Every transcript, as `INFO:wyoming_faster_whisper.dispatch_handler:` lines, and each clip's length (1,848 lines for production from 2026-11-08 to 2026-11-25), whatever `TELEMETRY_RECORD_TEXT` says | Bounded by size only, like the container logs (journald's cap); no time limit | The operator (`journalctl --user`), root |
 
 Not stores of voice text: `data/sessions.db` (the web chat's history; voice
 history is HA's, sent with each request), HA's recorder database (no
