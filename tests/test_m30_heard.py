@@ -641,11 +641,15 @@ def test_c4_the_routes_are_registered():
 
 def _journal(lines):
     class R:
+        returncode = 0
         stdout = "\n".join(json.dumps(x) for x in lines)
     return R()
 
 
 def test_the_guard_reads_the_timers_runs_from_its_journal():
+    """Fix round 1 of step C changed the shape (the runs carry their counts;
+    a status file gone is reported; the record is judged by content, in
+    tests/test_m30_heard_e2e6.py); the cases are the same."""
     from tests import conftest as C
     j = [{"__REALTIME_TIMESTAMP": "100000000", "MESSAGE": "Starting kronk-voice-runs-export.service - x"},
          {"__REALTIME_TIMESTAMP": "100500000", "MESSAGE": "voice_runs_export: listed 0"},
@@ -655,13 +659,12 @@ def test_the_guard_reads_the_timers_runs_from_its_journal():
          {"__REALTIME_TIMESTAMP": "220000000", "MESSAGE": "Starting kronk-voice-runs-export.service - x"}]
     with patch.object(C.subprocess, "run", return_value=_journal(j)):
         runs = C._exporter_runs(150)
-    assert [(round(a, 1), round(b, 1)) for a, b in runs] == [(99.8, 101.2), (159.8, 161.2)]
-    p = "/x/data/voice_runs.json"
-    before = {p: (90 * 10**9, 10), "/gone": (100 * 10**9 + 5 * 10**8, 1), "/same": (1, 1)}
-    after = {p: (int(100.9 * 10**9), 11), "/gone": None, "/same": (1, 1)}
-    with patch.object(C, "_exporter_runs", return_value=runs):
-        assert C._voice_changes_not_the_timers(before, after) == []
-        after[p] = (int(130 * 10**9), 12)                                 # between runs: a test did it
-        assert C._voice_changes_not_the_timers(before, after) == [p]
-    with patch.object(C, "_exporter_runs", return_value=[]):               # no journal: every change reported
-        assert set(C._voice_changes_not_the_timers(before, after)) == {p, "/gone"}
+    assert [(r["start"], r["end"]) for r in runs] == [(100.0, 101.0), (160.0, 161.0), (220.0, None)]
+    p, side = C.LIVE_VOICE_STATUS[0], C.LIVE_VOICE_SIDE[0]
+    before = {p: (90 * 10**9, 10, 1), side: (100 * 10**9 + 5 * 10**8, 1, 2), "/same": (1, 1, 1)}
+    after = {p: (int(100.9 * 10**9), 11, 3), side: None, "/same": (1, 1, 1)}
+    assert C._file_problems(before, after, runs[:2]) == []
+    after[p] = (int(130 * 10**9), 12, 4)                                   # between runs: a test did it
+    assert C._file_problems(before, after, runs[:2]) == [p]
+    # no journal: every change reported
+    assert set(C._file_problems(before, after, None)) == {f"{x} (the timer's journal cannot be read)" for x in (p, side)}

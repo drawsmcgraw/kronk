@@ -765,11 +765,14 @@ def read_tree(c: Collected, arc: str, root: Path, secret: bool) -> None:
                 pass        # gone between the listing and the read
 
 
-def read_sqlite(c: Collected, arc: str, p: Path) -> None:
+def read_sqlite(c: Collected, arc: str, p: Path, need_table: bool = False) -> None:
     """A consistent copy of a live SQLite database (the online backup API),
     without writing a file. Only a regular file is opened (a FIFO would hang
     the open, a directory or device is no database: "not a regular file"),
-    and a database still locked after SQLITE_READ_S is a gap, not a hang."""
+    and a database still locked after SQLITE_READ_S is a gap, not a hang.
+    With need_table (a required database), one that holds no table is a gap
+    too: a zero-byte file opens as a valid empty database, and was backed up
+    as OK (M30-e2e6 S3)."""
     try:
         st = os.lstat(p)
     except FileNotFoundError:
@@ -792,9 +795,13 @@ def read_sqlite(c: Collected, arc: str, p: Path) -> None:
         try:
             src.backup(mem, progress=in_time)
             data = mem.serialize()
+            tables = mem.execute("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table'").fetchone()[0]
         finally:
             src.close()
             mem.close()
+        if need_table and not tables:
+            c.unreadable.append((str(p), f"sqlite: holds no table ({st.st_size} bytes): not the database it should be"))
+            return
         c.add(Member(arc, str(p), "sqlite backup", bytes(data), stat.S_IMODE(st.st_mode), st.st_mtime))
     except (OSError, sqlite3.Error) as e:          # TimeoutError is an OSError
         c.unreadable.append((str(p), f"sqlite: {e}"))
@@ -941,12 +948,13 @@ def add_tar_stream(c: Collected, arc: str, source: str, how: str, blob: bytes, s
 
 def collect(s: Settings, ops: Ops) -> Collected:
     c = Collected()
+    required = set(required_sources(s))
     for arc, p, kind, secret in file_sources(s):
         try:
             if kind in ("file", "optional"):
                 read_file(c, arc, p, "file", secret)
             elif kind == "sqlite":
-                read_sqlite(c, arc, p)
+                read_sqlite(c, arc, p, need_table=str(p) in required)
             elif kind in ("tree", "optional-tree"):
                 if not p.is_dir():
                     raise FileNotFoundError(p)

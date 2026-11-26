@@ -82,7 +82,15 @@ def _flag(params, name: str) -> bool:
     raise BadQuery(f"{name} must be 1 or 0, not {v[:40]!r}")
 
 
-def _int(params, name: str, default=None, minimum: int = 0):
+# The largest whole number SQLite binds (a signed 64-bit integer), and the
+# span of times datetime can turn into a date (epoch seconds, 1970 to 9999).
+# A parameter outside is a bad parameter, answered 400 like every other
+# (M30-e2e6 S1: they were an OverflowError and an HTTP 500).
+INT_MAX = 2**63 - 1
+TIME_MAX_S = 253402300799.0
+
+
+def _int(params, name: str, default=None, minimum: int = 0, maximum: int | None = None):
     v = params.get(name)
     if v is None or v == "":
         return default
@@ -92,10 +100,12 @@ def _int(params, name: str, default=None, minimum: int = 0):
         raise BadQuery(f"{name} must be a whole number, not {v[:40]!r}") from None
     if n < minimum:
         raise BadQuery(f"{name} must be {minimum} or more, not {n}")
+    if maximum is not None and n > maximum:
+        raise BadQuery(f"{name} must be {maximum} or less")
     return n
 
 
-def _float(params, name: str):
+def _float(params, name: str, minimum: float | None = None, maximum: float | None = None):
     v = params.get(name)
     if v is None or v == "":
         return None
@@ -105,6 +115,8 @@ def _float(params, name: str):
         raise BadQuery(f"{name} must be a number, not {v[:40]!r}") from None
     if f != f or f in (float("inf"), float("-inf")):
         raise BadQuery(f"{name} must be a finite number")
+    if (minimum is not None and f < minimum) or (maximum is not None and f > maximum):
+        raise BadQuery(f"{name} must be from {minimum:.0f} to {maximum:.0f}")
     return f
 
 
@@ -113,8 +125,9 @@ def parse_query(params) -> dict:
     limit = _int(params, "limit", LIMIT_DEFAULT)
     out = {"limit": min(limit, LIMIT_MAX), "limit_asked": limit, "before": None, "q": None,
            "flagged": _flag(params, "flagged"), "include_dev": _flag(params, "include_dev"),
-           "changed_after": _int(params, "changed_after"), "known_rows": _int(params, "known_rows"),
-           "known_built_s": _float(params, "known_built_s")}
+           "changed_after": _int(params, "changed_after", maximum=INT_MAX),
+           "known_rows": _int(params, "known_rows", maximum=INT_MAX),
+           "known_built_s": _float(params, "known_built_s", minimum=0.0, maximum=TIME_MAX_S)}
     b = params.get("before")
     if b:
         s, sep, rid = b.partition(",")

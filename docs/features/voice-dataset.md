@@ -303,6 +303,17 @@ nothing here does it.
 - **Required in the tar since the first export.** Step C added the
   record to `required_sources` (2026-11-26), after the first export, so no
   run before it read INCOMPLETE; a config tar without it is INCOMPLETE now.
+  So is one whose record holds no table: a zero-byte file opens as a valid
+  empty database (M30-e2e6 S3; every required SQLite member).
+- **The test suite keeps off the live record** (`tests/conftest.py`). In
+  the test process a `sqlite3.connect` or a write of a live path (the
+  record's directory, the copies and status files under `data/`) is
+  refused and fails the test. At the end of a run the record is read
+  `mode=ro` (run ids, `seq` and counts only) and compared with the start:
+  rows may only be added and `seq` only raised as far as the timer's
+  journal lines in between ("new N, changed N") account for; a row gone, a
+  removal, fewer labels or `run_changes`, or the record deleted fail the
+  run. With the journal unreadable any difference fails.
 - **The run is three to four minutes old when its row lands**: a satellite
   run reaches Tempo that late. Its audio join waits until it is 15
   minutes old.

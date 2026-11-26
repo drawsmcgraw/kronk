@@ -210,8 +210,10 @@ orchestrator: GET /api/voice_runs → orchestrator/voice_runs_api.py
   `changed_after=<max_seq it has seen>` every 30 s and gets only those rows,
   each with `match` (whether it passes the filter); it patches them in by
   run id, drops one that no longer matches, and keeps the row a reader was
-  looking at in place when a newer one is inserted above it. An open row
-  stays open.
+  looking at in place when a newer one is inserted above it. A reader at
+  the top of the page (the section's head in view) is not held in place:
+  the new row appears and the page does not scroll. An open row stays
+  open.
 - **A removal raises no `seq`** (`voice_runs_export.py --remove`), so
   `changed_after` alone never shows a row going away. The page sends the
   copy's `meta.rows` and `meta.built_s` from its last answer; the route
@@ -219,7 +221,9 @@ orchestrator: GET /api/voice_runs → orchestrator/voice_runs_api.py
   than its `built_s`) and answers `resync` when the copy's row count is
   not the page's plus those. A row leaving the 90 days does the same. On
   `resync`, or when more than 500 rows changed, the page loads its list
-  again, keeping open rows and the reader's place by run id.
+  again: as many rows as it had loaded (200, or more after "show older"),
+  in pages of 500 at most, keeping open rows and the reader's place by run
+  id (the first row in view still there, or the next below it).
 - **Built outside `loadAll`**: its own element, fetch and 30 s timer. The
   rest of the page is rebuilt every 30 s; this section is not. M32 then
   swaps only the timer for its stream.

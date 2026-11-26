@@ -582,6 +582,8 @@ setInterval(loadAll, 30000);
 const HEARD = {
   "url": "api/voice_runs",
   "rows": 200,
+  "page_max": 500,
+  "anchor_rows": 20,
   "every_ms": 30000,
   "debounce_ms": 300,
   "store_q": "kronk.work.heard.q",
@@ -621,6 +623,10 @@ const SATELLITE_NAME = {
   "assist_satellite.home_assistant_voice_0ab117_assist_satellite": "basement",
   "assist_satellite.satellite1_d8d1bc_assist_satellite": "office"
 };
+
+// The friendly name of a satellite id, the map's own keys only: an id that
+// is a property of Object ("constructor") is shown as the id (M30-e2e6 note 3).
+const satelliteName = id => (id != null && Object.hasOwn(SATELLITE_NAME, id) ? SATELLITE_NAME[id] : (id ?? '?'));
 
 const heard = { box: null, list: null, rows: new Map(), days: new Map(), loaded: false, busy: false, again: false,
                 maxSeq: null, knownRows: null, knownBuilt: null, nextBefore: null, timer: null };
@@ -729,7 +735,7 @@ function fillRow(det, r) {
   det.dataset.day = r.local_day;
   const sum = det.appendChild(el('summary'));
   sum.appendChild(el('span', 'hr-time', houseClock(r.local_time)));
-  sum.appendChild(el('span', 'hr-sat', SATELLITE_NAME[r.satellite_id] ?? r.satellite_id ?? '?'));
+  sum.appendChild(el('span', 'hr-sat', satelliteName(r.satellite_id)));
   if (r.heard_state === 'text') sum.appendChild(el('span', 'hr-heard', r.heard));
   else sum.appendChild(el('span', 'hr-heard none', HEARD.heard_text[r.heard_state] ?? r.heard_state));
   sum.appendChild(el('span', 'hr-route', `${r.tier ?? '?'} · ${r.rule ?? HEARD.no_rule}`));
@@ -797,17 +803,28 @@ function dropRow(runId) {
   if (box && !box.querySelector('details.heard-row')) { heard.days.delete(box.dataset.day); box.remove(); }
 }
 
-// The row at the top of the view and its place, so an insert above it does
-// not move what the reader is looking at.
+// The row at the top of the view and the rows below it, in page order, each
+// with its place, so an insert above does not move what the reader is
+// looking at, and a reload finds the first of them still there. None while
+// the section's head is in view: a reader at the top of the page is not
+// anchored, and a new run does not scroll the page (M30-e2e6 note 1).
 function anchor() {
-  for (const det of heard.rows.values()) {
+  const head = heard.box.querySelector(':scope > summary');
+  if (head && head.getBoundingClientRect().top >= 0) return null;
+  const out = [];
+  for (const det of heard.list.querySelectorAll('details.heard-row')) {
     const top = det.getBoundingClientRect().top;
-    if (top >= 0) return { det, top };
+    if (top < 0) continue;
+    out.push({ run: det.dataset.run, top });
+    if (out.length >= HEARD.anchor_rows || top > window.innerHeight) break;
   }
-  return null;
+  return out.length ? out : null;
 }
 function keepAnchor(a) {
-  if (a && a.det.isConnected) window.scrollBy(0, a.det.getBoundingClientRect().top - a.top);
+  for (const { run, top } of a || []) {
+    const det = heard.rows.get(run);
+    if (det && det.isConnected) { window.scrollBy(0, det.getBoundingClientRect().top - top); return; }
+  }
 }
 
 function heardEmpty() {
@@ -824,26 +841,38 @@ function heardRemember(resp) {
   if (c.built_s != null) heard.knownBuilt = c.built_s;
 }
 
-// The list from the top: on first opening, a filter change, or a resync.
-// Open rows and the scroll are kept by run id.
-async function heardLoad() {
-  const resp = await heardFetch(heardParams({ limit: HEARD.rows }));
-  heardStatus(resp);
-  if (resp.error) return;
+// The list from the top: on first opening, a filter change, or a resync. A
+// resync asks for as many rows as the page had loaded (want), in pages of
+// page_max at most, so a reader who paged back stays where they were; open
+// rows and the place are kept by run id (M30-e2e6 S2). The status, the copy
+// and max_seq are the first page's; the cursor for "show older" the last's.
+async function heardLoad(want) {
+  want = Math.max(HEARD.rows, want || 0);
+  const filter = heardParams().toString();
+  const runs = [];
+  let first = null, before = null;
+  do {
+    const page = await heardFetch(heardParams({ limit: Math.min(HEARD.page_max, want - runs.length), before }));
+    if (page.error) { heardStatus(page); return; }
+    if (filter !== heardParams().toString()) return;      // the filter changed meanwhile: its own load follows
+    if (!first) first = page;
+    runs.push(...arr(page.runs));
+    before = page.next_before;
+  } while (before && runs.length < want);
+  heardStatus(first);
   const open = new Set([...heard.rows.values()].filter(d => d.open).map(d => d.dataset.run));
   const a = anchor();
-  const anchorRun = a ? a.det.dataset.run : null;
   clear(heard.list);
   heard.rows.clear();
   heard.days.clear();
-  for (const r of arr(resp.runs)) placeRow(r);
+  for (const r of runs) placeRow(r);
   for (const id of open) { const d = heard.rows.get(id); if (d) d.open = true; }
-  heard.nextBefore = resp.next_before;
+  heard.nextBefore = before;
   document.getElementById('heard-older').hidden = !heard.nextBefore;
-  heardRemember(resp);
+  heardRemember(first);
   heard.loaded = true;
   heardEmpty();
-  if (anchorRun && heard.rows.get(anchorRun)) keepAnchor({ det: heard.rows.get(anchorRun), top: a.top });
+  keepAnchor(a);
 }
 
 async function heardOlder() {
@@ -871,7 +900,7 @@ async function heardPatch() {
                                               known_built_s: heard.knownBuilt }));
   heardStatus(resp);
   if (resp.error) return;
-  if (resp.resync) { await heardLoad(); return; }
+  if (resp.resync) { await heardLoad(heard.rows.size); return; }
   const a = anchor();
   // The oldest row loaded: an insert older than it belongs to "show older".
   let oldest = null;
