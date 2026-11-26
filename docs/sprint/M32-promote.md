@@ -1,4 +1,6 @@
-# M32 step 1 promotion checks: /work live and safe
+# M32 promotion checks
+
+## Step 1: /work live and safe
 
 Coordinator, 2026-11-26 07:15 to 07:25 EST. Tag `item-M32-step1` at
 `f6604b9` (the build, the test's PASSES, fix round 1).
