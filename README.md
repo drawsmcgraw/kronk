@@ -9,6 +9,13 @@ MagicMirror, coding/devops help, and questions about its own architecture.
 It holds no health or financial data (those features were removed
 2026-11-15).
 
+**Picking up work in a new session:** read `CLAUDE.md` (it lists what
+to read and the rules), then run `python3 scripts/work.py resume`. That
+one command prints what is under way and its next step, the queue in
+order, the decisions the operator owes, the leftovers, and anything the
+database and the repo disagree on. The same state is on `/work`. How
+work items are run: `docs/sprint/WORKFLOW.md`.
+
 **Machine:** Framework desktop — AMD Ryzen AI 375 (hostname `kronk`), Radeon
 8060S integrated GPU (GFX1151), 122 GB RAM.
 
