@@ -1,13 +1,14 @@
 # Feature: the voice-run record, a dataset of household speech (`scripts/voice_runs_export.py`)
 
-**Shipped:** work item M30 step B (2026-11-25 build; promoted by the
-coordinator, who installs the timer and runs the first export). **Origin:**
+**Shipped:** work item M30 step B (2026-11-25 build, fix round 1 the same
+day, `docs/sprint/M30-fix1.md`; promoted by the coordinator, who runs the
+first export with `--init` and then installs the timer). **Origin:**
 Drew, 2026-11-24: "i want to build a dataset of househould voice utterances
 because it will be useful for future work. back up the transcript db." and
 "the /work endpoint should also include all the stt transcriptions to help
 me troubleshoot". Criteria and evidence: `docs/sprint/M30-criteria.md`
 (step B), `M30-review.md` (Appendix A, the schema; point 9, the ten rules),
-`M30-build2.md`.
+`M30-build2.md`, `M30-e2e2.md`, `M30-fix1.md`.
 
 ## What it does
 
@@ -36,35 +37,67 @@ and typed runs have no STT stage and are left out.
 `kronk-voice-runs-export.timer` fires the service every 60 s. One run:
 
 1. **Reads Tempo** on loopback, from the watermark minus one hour to now,
-   with the stage filter in the TraceQL query
+   one search a day, with the stage filter in the TraceQL query
    (`{ name = "voice.run" && span.voice.stages =~ ".*stt.*" }`, the one
    optional argument `voice_transcripts.fetch_runs` gained). The first run
-   has no watermark and reads all of Tempo; it is the same code. Each
-   request gets 5 s.
+   has no watermark and reads all of Tempo; it is the same code. A
+   watermark later than now (a run made with a clock that was ahead) is
+   not trusted: the read starts an hour before now, the status says
+   `ok: false` with the reason for that run, and the watermark is set back.
 2. **Reads the whole voice trace**, once, for each run that ended more
    than 15 minutes ago and has none stored (the child spans can lag one
    export batch; nothing older than 15 minutes changes in Tempo). It fills
-   the columns the listing does not select and `raw_trace`. At most three
-   failed reads or 15 s a run; the rest wait for the next run.
-3. **Joins the audio** for each new run that ended less than six days ago
-   (older recordings may already be on the NAS), with
-   `voice_label_sheet.join` imported, not copied: `certain`, `ambiguous`
-   (stored, never guessed) or `none`, with the recording's relative name,
-   size and mtime. Older rows keep `audio_join` NULL: not tried.
+   the columns the listing does not select and `raw_trace`. Runs never
+   tried go first, newest first; a run whose read failed is stamped
+   `trace_failed_at` and goes to the back, the longest-waiting first, so a
+   trace that never reads holds up nothing. Any shape of answer that is
+   not a trace is a failed read, never a crash.
+3. **Joins the audio** when the row is final (15 minutes after the run
+   ended), with `voice_label_sheet.join` imported, not copied, over every
+   row in the record and every recording that could compete with it
+   (widened through any chain of shared candidates). The row waits while
+   any of those rows is younger than 15 minutes, since a run that could
+   fit the same recording may not have reached Tempo yet. So the stored
+   answer is the join's whatever order the runs arrived in: `certain`,
+   `ambiguous` (stored, never guessed) or `none`, with the recording's
+   relative name, size and mtime, and `audio_tried_at`. No age limit: a
+   row older than seven days that finds no recording keeps `audio_join`
+   NULL (its recording may be on the NAS; joining the NAS layout is left
+   for step D), a younger one is `none`. A recordings directory that
+   cannot be read leaves the row untried; the next run tries again.
 4. **Writes the record** in one `BEGIN IMMEDIATE` transaction, under an
    flock on the record's directory (a run by hand never overlaps the
-   timer's).
-5. **Publishes** when the set of `(run_id, seq)` in the 90-day window
-   changed: built in memory, written to a temporary file beside the copy,
-   renamed into place. The orchestrator opens it `mode=ro&immutable=1`.
+   timer's). Every connection has `secure_delete` on.
+5. **Publishes** when a copy differs from the record: the set of
+   `(run_id, seq)` in the 90-day window changed, or the copy's row count
+   is not its `meta.rows` (a copy damaged behind its meta is mended the
+   next run, not the next change). Built in memory, written to a temporary
+   file beside the copy, renamed into place. The orchestrator opens it
+   `mode=ro&immutable=1`. The copies follow the record, not Tempo: they
+   are published while Tempo is down too.
 6. **Writes the status files**, every run.
 
-Once an hour it reads Tempo's 90 days whole and compares: a run Tempo has
-that the record should hold and does not is counted as missing (its id in
-the status file); a stored value Tempo now gives differently goes to
-`run_changes` with `why = 'hourly check'` and Tempo's values in `detail`,
-once per distinct difference. The row is not changed. `--check-now` runs
-it at once.
+Once an hour it reads Tempo's 90 days and compares: a run Tempo has that
+the record should hold and does not is taken (an insert, counted
+`missing` and `taken`, its id in the status file); a stored value Tempo
+now gives differently goes to `run_changes` with `why = 'hourly check'`
+and Tempo's values in `detail`, once per distinct difference, and the row
+is not changed. A check stamped later than now runs anyway. `--check-now`
+runs it at once.
+
+**The time budget.** The unit stops a run at 50 s. No request of the main
+read starts later than 20 s into the run, of the trace reads 30 s, of the
+hourly check 38 s; each request has 5 s, so the run is done with Tempo by
+43 s. A read the budget cuts carries on where it stopped on the next run:
+the main read through the watermark (it never moves past the last whole
+day read), the check through `export_state.check_progress`. A day cut in
+the middle is dropped whole and read again.
+
+Failures, each in the status file with its reason: a failed trace read or
+Kronk-trace enrichment (`last_error`, counted in `this_run`); a read cut by
+the budget; a recordings directory that cannot be read; a SQLite error on
+the record (locked past the 10 s busy timeout, a full disk), which exits 1
+with no traceback.
 
 ### The rules a row lives by
 
@@ -91,16 +124,32 @@ From the review's point 9; each has a test in `tests/test_m30_voice_runs.py`.
     recordings, its words in the Whisper journal).
 
 Tempo down, slow or answering nonsense (a shape the search answer never
-has): the record and the copies are not touched, the watermark stays, the
-status files carry `ok: false`, the reason and a fresh `ts`, and the exit
-is 0. A record that cannot be opened, or that others can read (mode or
+has): the record is not touched, the watermark stays, the status files
+carry `ok: false`, the reason and a fresh `ts`, and the exit is 0. A
+record that cannot be opened, or that others can read (mode or
 directory), exits 1.
+
+**No record, no `--init`: exit 1, nothing made.** The record is made only
+by `--init`: the coordinator's first export, and a new one on purpose. A
+run that finds no record and a published copy or a status file that says
+one existed writes `ok: false`, `record_lost: true`, the last good read it
+knew, and "the record … is gone … Restore it (docs/runbooks/restore.md,
+step 14)", every run until it is restored. With no such evidence it says
+to run `--init`. `--init` on an existing record is an ordinary run.
 
 ## The schema
 
-The record (`PRAGMA user_version = 1`), as in the review's Appendix A, with
-two additions: `run_changes.detail` (the hourly check's Tempo values, which
-the row does not take) and `export_state.last_check_at` / `last_check`.
+The record (`PRAGMA user_version = 2`), as in the review's Appendix A, with
+these additions: `run_changes.detail` (the hourly check's Tempo values,
+which the row does not take), `export_state.last_check_at` / `last_check`,
+and, from fix round 1 (schema 2), `runs.audio_tried_at` (when the audio
+join was made; NULL: not yet), `runs.trace_failed_at` (the last failed
+whole-trace read, which orders the retries) and
+`export_state.check_progress` (an hourly check under way: where it
+stopped and its counts so far). The three are bookkeeping: setting them
+does not raise `seq`, and none is published. A schema-1 record (only the
+unfixed build made one, in scratch) is refused with its reason; there is
+no migration.
 
 | Table | What |
 | :-- | :-- |
@@ -108,10 +157,10 @@ the row does not take) and `export_state.last_check_at` / `last_check`.
 | `labels` | what a person adds: `correct_text`, `speaker`, `corpus_id`, `notes`, `labelled_at`, `labelled_by`. The exporter never writes it. Ships empty |
 | `stt_config` | the Whisper in force; empty until the item that gives production a prompt fills it |
 | `run_changes` | a stored row a later read contradicted: the old row whole, `why` (`export`, `hourly check`, later `backfill`), `detail` |
-| `export_state` | one row: `watermark_s` (every run that started before it is taken), `last_ok_at`, `last_error`, `last_error_at`, `last_check_at`, `last_check` |
+| `export_state` | one row: `watermark_s` (every run that started before it is taken), `last_ok_at`, `last_error`, `last_error_at`, `last_check_at`, `last_check`, `check_progress` |
 
-The published copy: `runs` without `raw_trace`, the audio columns,
-`removed` and `last_seen_at`, only rows not removed and started in the last
+The published copy: `runs` without `raw_trace`, `trace_failed_at`, the
+audio columns (with `audio_tried_at`), `removed` and `last_seen_at`, only rows not removed and started in the last
 90 days, plus a one-row `meta` (`schema`, `built_at`, `built_s`,
 `window_start_s`, `rows`, `max_seq`, `content_sha256`). User version 1.
 
@@ -153,13 +202,40 @@ c.execute("COMMIT")
 EOF
 ```
 
-Removing a run (a guest, the TV, something that should not be kept):
-set `removed` and empty the text in the same statement. The exporter never
-writes that row again and never publishes it; nothing deletes it.
+Removing a run (a guest, the TV, something that should not be kept), by
+the command, never by hand-typed SQL:
 
 ```
-UPDATE runs SET removed = '<date> <who>: <why>', heard = NULL, reply = NULL, raw_trace = NULL WHERE run_id = '<run_id>';
+python3 scripts/voice_runs_export.py --remove <run_id> --why "<date> <who>: <why>"
 ```
+
+In one transaction under the export's lock, with `secure_delete` on: it
+sets `removed` (`<time> <why>`), empties `heard`, `reply` and `raw_trace`,
+and deletes the run's `run_changes` rows (they hold old rows whole, words
+included). Freed space is zeroed, so the words leave the file and its free
+pages. Then it publishes the copies at once; it reads no Tempo. The
+exporter never writes that row again and never publishes it; nothing
+deletes the row. `seq` is not raised: the page notices a removal by the
+copy's `meta.rows` or `content_sha256` (step C). A label on the run
+(`labels.correct_text`) is not touched (the exporter never writes
+`labels`); the command says when there is one, and it is deleted by hand
+if its words should go too.
+
+What still holds the words after a removal, and for how long:
+
+- **The weekly copies** made before it (`/mnt/nas-backup/voice-runs/`):
+  the newest eight dates are kept, so up to eight weeks.
+- **The monthly config tars** made before it (`voice-state/voice_runs.db`
+  in `kronk-config-<date>.tar.gz`): the newest twelve dates
+  (`KRONK_BACKUP_KEEP`), so up to a year.
+- **Tempo** (and Grafana), for 90 days from the run, and **the
+  recording** under `~/kronk-voice-recordings/` (a week), then on the NAS.
+- **The rollback journal's old disk blocks**: SQLite deletes the
+  `-journal` after the commit but cannot zero blocks the filesystem has
+  freed. Nothing at the file level promises that on an SSD.
+
+To take the words out of a backup sooner, remove that copy or tar by hand;
+nothing here does it.
 
 ## What it does not hold
 
@@ -177,8 +253,10 @@ UPDATE runs SET removed = '<date> <who>: <why>', heard = NULL, reply = NULL, raw
 - **The words of the 42 household runs of 2026-11-08 to 11-17** that Tempo
   holds without text: they are in the Whisper journal, and step D
   backfills them (`heard_source = 'whisper_journal'`).
-- **The audio of rows first exported more than six days after the run**
-  (the first export's older rows): `audio_join` NULL, not tried.
+- **The audio of rows older than seven days when they were joined that
+  found no local recording** (the first export's older rows whose
+  recordings the archive has moved): `audio_join` NULL. Their recordings
+  are on the NAS; a join against the NAS layout is step D's to decide.
 
 ## Gotchas
 
@@ -204,12 +282,23 @@ UPDATE runs SET removed = '<date> <who>: <why>', heard = NULL, reply = NULL, raw
   record to `required_sources` after the first export, so no earlier run
   reads INCOMPLETE.
 - **The run is three to four minutes old when its row lands**: a satellite
-  run reaches Tempo that late.
+  run reaches Tempo that late. Its audio join waits until it is 15
+  minutes old.
+- **`--init` makes the record; nothing else does.** After a restore, do
+  not run it: install the copy (`docs/runbooks/restore.md`, step 14).
 
 ## Operations
 
 The `# Operations:` block in `systemd/kronk-voice-runs-export.service`
-(install, check, one-shot, compare, remove). The journal line per run:
+(first export, install, check, one-shot, compare, remove a run, remove the
+unit). **Install**: the first export on a machine with no record needs
+`--init`, run by hand before the timer is enabled:
+
+```
+python3 scripts/voice_runs_export.py --init
+```
+
+Without it every run exits 1 and makes nothing. The journal line per run:
 `listed N, new N, changed N (replaced N), traces read N (failed N), copies
 written N of 2`. Restore: `docs/runbooks/restore.md`, step 14.
 

@@ -7,11 +7,13 @@
 # data/voice_runs.json and data/dev/voice_runs.json (the status, no text).
 # Fired by kronk-voice-runs-export.timer every 60 s. Tempo down or slow is
 # not a failure of this unit (the status file says it); a record that
-# cannot be opened is. TimeoutStartSec stops a hung run here; the script
+# cannot be opened or written, or is missing, is (it is made only by
+# --init). TimeoutStartSec stops a hung run here; the script
 # also flocks the record's directory, so a run by hand never overlaps.
 # See docs/features/voice-dataset.md.
 #
 # Operations:
+#   first:    python3 scripts/voice_runs_export.py --init   (makes the record; once, before the install)
 #   install:  cp systemd/kronk-voice-runs-export.{service,timer} ~/.config/systemd/user/
 #             systemctl --user daemon-reload
 #             systemctl --user enable --now kronk-voice-runs-export.timer
@@ -20,6 +22,7 @@
 #             python3 -m json.tool data/voice_runs.json
 #   one-shot: systemctl --user start kronk-voice-runs-export.service
 #   compare:  python3 scripts/voice_runs_export.py --check-now   (the hourly comparison with Tempo, now)
+#   remove a run: python3 scripts/voice_runs_export.py --remove <run_id> --why "<date> <who>: <why>"
 #   remove:   systemctl --user disable --now kronk-voice-runs-export.timer
 #             rm ~/.config/systemd/user/kronk-voice-runs-export.{service,timer}
 #             systemctl --user daemon-reload

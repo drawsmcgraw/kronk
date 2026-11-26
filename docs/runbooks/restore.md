@@ -370,6 +370,15 @@ ls -1 /mnt/nas-backup/voice-runs/ | tail -3
 VOICE_COPY=/mnt/nas-backup/voice-runs/voice_runs-<date>.db     # or $R/voice-state/voice_runs.db
 ```
 
+Step 10 started the exporter's timer. Stop it, and any run in progress,
+before the install, so no export opens a half-written file or finds the
+record missing in between (it does not make one without `--init`, and
+says the record is gone until it is back):
+
+```
+systemctl --user stop kronk-voice-runs-export.timer kronk-voice-runs-export.service
+```
+
 A `-wal`, `-shm` or `-journal` file left beside the target would be
 replayed onto the restored copy (a hot `-journal` is rolled back into it),
 so all three go first, whatever mode the old file was in. Then the
@@ -384,12 +393,19 @@ install -m 600 $VOICE_COPY ~/.local/state/kronk-voice/voice_runs.db
 python3 -c 'import sqlite3, sys; c = sqlite3.connect(sys.argv[1]); print(c.execute("PRAGMA integrity_check").fetchone()[0], c.execute("SELECT COUNT(*) FROM runs").fetchone()[0], c.execute("SELECT COUNT(*) FROM labels").fetchone()[0])' ~/.local/state/kronk-voice/voice_runs.db
 ```
 
-It prints `ok <runs> <labels>`. The published copies
-(`data/voice_runs.db`, `data/dev/voice_runs.db`) are not restored: the
-exporter's next run rebuilds them from the record (step 10 installs its
-timer). Its first run after a restore reads Tempo from the record's
-watermark, so rows Tempo still holds that are newer than the copy come
-back on their own.
+It prints `ok <runs> <labels>`. Then start the timer again:
+
+```
+systemctl --user start kronk-voice-runs-export.timer
+```
+
+The published copies (`data/voice_runs.db`, `data/dev/voice_runs.db`) are
+not restored: the exporter's next run rebuilds them from the record. Its
+first run after a restore reads Tempo from the record's watermark, so rows
+Tempo still holds that are newer than the copy come back on their own (a
+long gap is read over several runs, inside the unit's time limit). Do not
+run `--init` here: it is for a machine that never had a record, or a new
+one made on purpose.
 
 The archived voice recordings stay on the NAS
 (`/mnt/nas-backup/recordings/`); nothing needs to come back for Kronk to

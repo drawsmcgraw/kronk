@@ -314,7 +314,10 @@ recordings: the record read by the online backup API, `integrity_check`
 and the row counts, written to `.voice_runs-<date>.db.tmp` (`O_EXCL`),
 fsynced, read back (SHA-256, then `integrity_check` and the counts again),
 renamed to a free name (a same-day run by hand is `.2`; an existing copy is
-never overwritten), mode 0600 in a 0700 directory. The copies of the
+never overwritten), mode 0600 in a 0700 directory. A run removed from the
+record later (`voice_runs_export.py --remove`) stays in the copies made
+before it, up to eight weeks, and in the monthly tars, up to a year
+(`voice-dataset.md`, "Removing a run"). The copies of the
 newest 8 dates are kept (`KRONK_VOICE_COPY_KEEP`) and older ones removed,
 by exact name, in `voice-runs/` only: the one place the archive deletes on
 the destination. The notice says `Voice-run record: voice_runs-<date>.db
@@ -343,7 +346,9 @@ finished a good run, and no status file at all, are warnings too.
 Since M30 it also warns when the voice-run export's last good read
 (`export_state.last_ok_at` in the record) is older than 7 days
 (`KRONK_VOICE_STALE_DAYS`), or when the record is gone while
-`data/voice_runs.json` exists. An exporter that died quietly costs nothing
+`data/voice_runs.json` exists. Since M30 fix round 1 the exporter does not
+make a lost record again (only `--init` makes one), so that warning holds
+until the record is restored. An exporter that died quietly costs nothing
 for 90 days and then costs rows; nothing else would say so. No record and
 no status file (not installed yet) is not a warning.
 
