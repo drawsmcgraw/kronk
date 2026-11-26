@@ -116,9 +116,21 @@ def http_get_json(url: str, timeout: float = 30) -> dict:
         return json.loads(r.read())
 
 
-def search_query() -> str:
+_STAGES_RE = re.compile(r"[A-Za-z0-9_.*,|]+")
+
+
+def search_query(stages: str | None = None) -> str:
+    """The TraceQL search. With `stages`, only runs whose voice.stages match
+    that regular expression (M30: the exporter keeps runs with an STT stage,
+    and filtering in the query keeps corpus replays from filling the search
+    limit). The listing itself never passes it."""
     sel = ", ".join(f"span.{a}" for a in ATTRS) + ", resource.service.name"
-    return '{ name = "voice.run" } | select(' + sel + ")"
+    cond = 'name = "voice.run"'
+    if stages is not None:
+        if not _STAGES_RE.fullmatch(stages):
+            raise ValueError(f"not a stage pattern this query takes: {stages!r}")
+        cond += f' && span.voice.stages =~ "{stages}"'
+    return "{ " + cond + " } | select(" + sel + ")"
 
 
 def _value(v: dict):
@@ -147,19 +159,20 @@ def is_dev(a: dict, dev_pipelines=DEV_PIPELINES) -> bool:
     return a.get("_service") == DEV_SERVICE or a.get("ha.pipeline_name") in dev_pipelines
 
 
-def _search(tempo: str, t: float, t2: float, get_json, truncated: list) -> list[dict]:
+def _search(tempo: str, t: float, t2: float, get_json, truncated: list, stages: str | None = None) -> list[dict]:
     """voice.run rows for [t, t2]. A search that returns SEARCH_LIMIT traces
     may have dropped some (dev replays can fill a day): the window is halved
     and searched again, down to MIN_WINDOW_S; a window that small still at
     the limit is reported on stderr and in `truncated`, never dropped
     silently (M12 fix 1, F9)."""
-    qs = urllib.parse.urlencode({"q": search_query(), "start": int(t), "end": int(t2) + 1,
+    qs = urllib.parse.urlencode({"q": search_query(stages), "start": int(t), "end": int(t2) + 1,
                                  "limit": SEARCH_LIMIT, "spss": 3})
     payload = get_json(f"{tempo}/api/search?{qs}")
     if len((payload or {}).get("traces") or []) >= SEARCH_LIMIT:
         if t2 - t > MIN_WINDOW_S:
             mid = t + (t2 - t) / 2
-            return _search(tempo, t, mid, get_json, truncated) + _search(tempo, mid, t2, get_json, truncated)
+            return (_search(tempo, t, mid, get_json, truncated, stages)
+                    + _search(tempo, mid, t2, get_json, truncated, stages))
         truncated.append((t, t2))
         print(f"voice_transcripts: WARNING: Tempo returned its limit of {SEARCH_LIMIT} traces for "
               f"{dt.datetime.fromtimestamp(t).isoformat(timespec='seconds')} to "
@@ -170,18 +183,18 @@ def _search(tempo: str, t: float, t2: float, get_json, truncated: list) -> list[
 
 def fetch_runs(since: float, until: float, tempo: str = TEMPO, include_dev: bool = False,
                get_json=http_get_json, dev_pipelines=DEV_PIPELINES, enrich: bool = True,
-               truncated: list | None = None) -> list[dict]:
+               truncated: list | None = None, stages: str | None = None) -> list[dict]:
     """Every voice.run in [since, until], one Tempo search per day (search
     results are capped per query; a full one is split, _search),
     deduplicated by run id, oldest first. Windows where the cap was still
-    hit are appended to `truncated`."""
+    hit are appended to `truncated`. `stages`: search_query's filter."""
     tempo = require_loopback(tempo)
     truncated = truncated if truncated is not None else []
     seen, runs = set(), []
     t = since
     while t < until:
         t2 = min(t + DAY_S, until)
-        for a in _search(tempo, t, t2, get_json, truncated):
+        for a in _search(tempo, t, t2, get_json, truncated, stages):
             rid = a.get("ha.pipeline_run_id") or a["_trace_id"]
             if rid in seen or not (since <= a["_start_s"] <= until):
                 continue
