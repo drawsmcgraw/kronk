@@ -138,3 +138,106 @@ what, the why and the queue come from the database.
 ## Rulings
 
 (none yet)
+
+## Rewritten after the review (this section decides)
+
+Coordinator, 2026-11-26, on `M32-review.md` (rewrite the criteria). The
+order stands; everything above this section is history and is not built
+from. M30 ("Heard") and M34 (the page on the work-state database,
+`work.json` schema 2) changed the page since it was written. The review
+is the design: where a point below says "review N", that point of
+`M32-review.md` is the text to build to.
+
+Decided:
+
+- **Poll, no stream** (review 2). No `EventSource`, no heartbeat route.
+- **Three steps, each deployed on its own tag**, tier 2 each (build, one
+  test; a narrow retest only if the test finds a blocker):
+  1. Live and safe. 2. Rows that unfold. 3. Motion and the display.
+- **Out of M32**: `/resources`' `innerHTML` (review 8), a script file
+  shared with "Heard" (review 6), a faster timer.
+- Carried from M34 into step 1: S1 and note 5 (exporter), note 1 (page
+  text). Into step 2: notes 3 and 4.
+- Waiting on Drew, none blocking step 1: "Heard" on the wall; the
+  display's size and distance; what text `/work` may show (#22); the 27
+  old items with no handoff line; what the wall shows unfolded.
+
+### Step 1: live and safe
+
+No redesign. A change made through the tools is on the page within
+seconds, the page shows it is alive, survives deploys and outages
+untouched, and cannot strand itself.
+
+Plumbing (review 2, 3 and 9, "Step 1"):
+
+1. Route: `GET /api/work?have=<ts>` answers the envelope with `work:
+   null` and `unchanged: true` when the file's `ts` is the page's; the
+   parsed file is kept in memory keyed by the file's mtime, size and
+   inode; `Cache-Control: no-store` on `/api/work` and
+   `/api/voice_runs`. The orchestrator hashes `work.html` and
+   `kronk.css` once at start, puts the hash in every `/api/work`
+   envelope and stamps it into the page it serves. `/work`, `/api/work`
+   and `/api/voice_runs` leave the telemetry (no trace per poll).
+2. Page: one scheduler (a `setTimeout` chain, each fetch aborted after
+   10 s), polling every 3 s, "Heard" on the same scheduler at its 30 s;
+   a failed poll keeps the last state and says since when and why; the
+   data's age counting each second; a mark that beats once per answered
+   poll; a cover shown by the stylesheet alone when no poll has been
+   answered for 90 s; a reload only after a 200 whose stamped version
+   is the one announced, at most once in ten minutes, and once a day by
+   the same path when nothing is under way; ages by `performance.now()`
+   and the route's `age_s`, never the browser's clock; shown times in
+   the house's zone (the exporter writes it); "Heard"'s open list
+   trimmed to the count loaded, and its rows dropped after ten minutes
+   folded. Rows still rebuild on a change, as now; folds survive as now.
+3. Host: `systemd/kronk-work-export.path`, `PathChanged=` on the live
+   dump, starting the existing service. Reference file by the build
+   agent, proven with `systemd-analyze --user verify`; installed by the
+   coordinator. The timer stays at 60 s.
+4. Exporter: a dump that loads and is not the schema writes state
+   "corrupt" with its sentence and exits 0 (M34 S1; its `xfail` loses
+   its mark); with the database unreadable an agent's reason says so
+   (M34 note 5); the house's zone in the file. Page text: the date note
+   says which rows are UTC days (M34 note 1). Schema stays 2 unless a
+   key must be added, and then keys are only added.
+
+Criteria (review 10, as reworded there):
+
+- 1a. By the test agent in a browser on dev (headless Firefox behind a
+  loopback proxy; it may stop `kronk-work-export.timer` while it holds
+  a fixture in `data/dev` and must start it again): a fixture written
+  to `data/dev/work.json` is on the page within 4 s, ten times, times
+  listed.
+- 1b. By the coordinator at promotion, on the live system: one real
+  `work.py note`, timed from the write to the page, three times; within
+  5 s.
+- 1c. The proxy cuts the page off (502, connection refused, a
+  connection that hangs), each for a minute and one for a real hour;
+  and one real rebuild of the dev pair. After each: the page said so,
+  kept its last state, never went blank or to an error page, and is
+  live again without a touch.
+- 1d. The proxy announces another page version: one reload, not again
+  within ten minutes. It announces another version and answers 502 for
+  the page: no navigation.
+- 1e. Twenty pages for ten minutes: no model completion, no trace sent
+  to Tempo by these routes, one read of the file per change of the
+  file, orchestrator CPU under 2%.
+- 1f. The cover appears with the script stopped (the proxy serves the
+  page with its scheduler removed). A browser clock an hour wrong (an
+  injected `Date`) shows the same ages. Element and timer counts are
+  equal after 500 updates and after 5. "Heard" open through 300 new
+  fixture runs holds 200 rows.
+- 1g. `/api/work` without `have` answers as it did but for the added
+  envelope keys; an old page (`item-M34`'s `work.html`) reads the new
+  route with no error.
+- 1h. S1's `xfail` passes; an unreadable database gives the agents'
+  new reason; no script error, no "undefined", markup stays text;
+  "Heard" still loads and filters.
+- 1i. The path unit: `systemd-analyze --user verify` clean; on a
+  scratch dump and a scratch copy of the unit pointing at it (run with
+  `systemd-run --user` or shown by reading, the test agent says which),
+  a write starts one export.
+- 1j. The suite passes; last lines quoted.
+
+Steps 2 and 3 get their criteria when step 1 is promoted, from review
+4, 5, 6, 9 and 10 and Drew's answers.
