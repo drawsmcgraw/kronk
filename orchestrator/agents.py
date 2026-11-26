@@ -11,6 +11,8 @@ import re
 import time
 from contextlib import aclosing
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import httpx
 
@@ -541,6 +543,49 @@ def _build_assistant_msg(content: str, tool_calls: list[dict]) -> dict:
     }
 
 
+# The house's zone for the date and time in kronk_facts() (work item M35).
+# The containers run in UTC and stay there (log and store timestamps); the
+# prompt line alone is told the house's time. The same zone is also written
+# as NEWS_TZ, SOLAR_TZ and MUSIC_TASTE_TZ (tool_service) and as TZ in
+# docker-compose.ha.yml and docker-compose.ma.yml.
+HOUSE_TZ_DEFAULT = "America/New_York"
+
+# Zone names already warned about, so a bad KRONK_TZ logs once per process,
+# not once per request. Tests reset it.
+_tz_warned: set[str] = set()
+
+
+def _utc_now() -> datetime:
+    """The instant kronk_facts() states, as an aware UTC datetime. The one
+    seam for the clock: tests patch this, never the process TZ."""
+    return datetime.now(timezone.utc)
+
+
+def house_zone():
+    """The house's zone: KRONK_TZ, else America/New_York. A name that does
+    not load (unknown, empty, a path) falls back to the default with one
+    warning; if the default itself does not load (no zone database in the
+    image), UTC, with the error logged once. Never raises."""
+    name = os.getenv("KRONK_TZ") or HOUSE_TZ_DEFAULT
+    try:
+        return ZoneInfo(name)
+    except (ZoneInfoNotFoundError, ValueError) as e:
+        if name != HOUSE_TZ_DEFAULT:
+            if name not in _tz_warned:
+                _tz_warned.add(name)
+                logger.warning("KRONK_TZ=%r does not load (%s); using %s",
+                               name, e, HOUSE_TZ_DEFAULT)
+            try:
+                return ZoneInfo(HOUSE_TZ_DEFAULT)
+            except (ZoneInfoNotFoundError, ValueError) as e2:
+                e = e2
+        if HOUSE_TZ_DEFAULT not in _tz_warned:
+            _tz_warned.add(HOUSE_TZ_DEFAULT)
+            logger.error("default zone %s does not load (%s); the ambient "
+                         "facts state the time in UTC", HOUSE_TZ_DEFAULT, e)
+        return timezone.utc
+
+
 def kronk_facts() -> str:
     """Ambient facts every Kronk path should know — appended to system prompts.
 
@@ -551,9 +596,10 @@ def kronk_facts() -> str:
     location = os.getenv("LOCATION", "Laurel, MD")
     # Without this the model guesses the date from training data — observed
     # confidently claiming "next Tuesday" was in October (2026-06-12 incident).
-    now = time.localtime()
-    today = time.strftime("%A, %B %-d, %Y", now)
-    clock = time.strftime("%-I:%M %p %Z", now)
+    # The house's zone, not the container's (UTC): M35.
+    now = _utc_now().astimezone(house_zone())
+    today = now.strftime("%A, %B %-d, %Y")
+    clock = now.strftime("%-I:%M %p %Z")
     return (
         "[Kronk ambient facts — assume these unless the user says otherwise]\n"
         f"- Today is {today}; the local time is {clock}.\n"

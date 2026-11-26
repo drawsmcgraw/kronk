@@ -41,7 +41,7 @@ import itertools
 import json
 import os
 import sys
-import time as _real_time
+from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import patch
 
@@ -64,17 +64,16 @@ import origin  # noqa: E402
 
 # ── frozen inputs ────────────────────────────────────────────────────────────
 
-_FROZEN = _real_time.struct_time((2026, 11, 16, 9, 5, 0, 0, 320, 0, "EST", -18000))
+# The instant the fixtures were written at: 2026-11-16 09:05 EST. Since M35
+# kronk_facts() reads the instant through agents._utc_now and states it in
+# the house's zone, so the freeze is that seam at the same instant in UTC.
+# prompts.json is unchanged by M35, which is the proof the line's wording
+# did not change.
+_FROZEN = datetime(2026, 11, 16, 14, 5, 0, tzinfo=timezone.utc)
 
 
-class _FrozenTime:
-    """agents.time stand-in: localtime() is fixed, everything else is real."""
-
-    def localtime(self, *a):
-        return _FROZEN
-
-    def __getattr__(self, name):
-        return getattr(_real_time, name)
+def _frozen_now():
+    return _FROZEN
 
 
 _WEATHER = {"age_s": 600, "location": "Laurel, MD",
@@ -188,8 +187,8 @@ async def _render_direct() -> tuple[dict, dict, dict]:
     with patch("agents.llm.stream", new=cap.stream), \
          patch("agents.metrics.record", new=lambda **kw: None), \
          patch("agents.httpx.AsyncClient", new=_FakeWeatherClient), \
-         patch.object(agents, "time", _FrozenTime()), \
-         patch.dict(os.environ, {"LOCATION": "Laurel, MD"}):
+         patch.object(agents, "_utc_now", _frozen_now), \
+         patch.dict(os.environ, {"LOCATION": "Laurel, MD", "KRONK_TZ": "America/New_York"}):
         for agent in _all_agents():
             for style, voice, stamp, esc, (ename, extra), weather, ctx in itertools.product(
                     ("debug", "friendly", None), (False, True), (False, True), (False, True),
@@ -240,8 +239,8 @@ async def _render_pipeline(tmp_state: Path) -> dict:
         with patch("agents.llm.stream", new=cap.stream), \
              patch("agents.metrics.record", new=lambda **kw: None), \
              patch("agents.httpx.AsyncClient", new=_FakeWeatherClient), \
-             patch.object(agents, "time", _FrozenTime()), \
-             patch.dict(os.environ, {"LOCATION": "Laurel, MD"}), \
+             patch.object(agents, "_utc_now", _frozen_now), \
+             patch.dict(os.environ, {"LOCATION": "Laurel, MD", "KRONK_TZ": "America/New_York"}), \
              patch.object(main.routing, "classify", new=classify), \
              patch.object(main, "STATE_FILE", tmp_state), \
              patch.object(main, "file_contexts", [{"name": "notes.txt", "content": "Buy more coffee.", "tokens": 4}]), \

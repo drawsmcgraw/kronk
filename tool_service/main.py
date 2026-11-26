@@ -261,6 +261,17 @@ def clean_location(location: str) -> str:
     return re.sub(r',\s*[A-Z]{2}\s*$', '', location).strip()
 
 
+def _hour_label(start: str) -> str:
+    """An hourly period's label ("10 PM") in the offset the Weather Service
+    wrote on it, which is the forecast place's own. Not converted to the
+    container's zone: that is UTC, and labelled the house's forecast five
+    hours off (work item M35). The raw string when it does not parse."""
+    try:
+        return datetime.fromisoformat(start).strftime("%-I %p")
+    except (TypeError, ValueError):
+        return start
+
+
 def fmt_period(p: dict) -> str:
     name = p.get("name", "")
     temp = p.get("temperature", "?")
@@ -344,19 +355,10 @@ async def _fetch_weather(location: str) -> dict:
     ) if current else "unavailable"
 
     # Next 12 hourly periods
-    from datetime import datetime, timezone
-    now = datetime.now(timezone.utc)
-    upcoming_hourly = []
-    for p in hourly_periods[:12]:
-        start = p.get("startTime", "")
-        try:
-            dt = datetime.fromisoformat(start)
-            hour_label = dt.astimezone().strftime("%-I %p")
-        except Exception:
-            hour_label = start
-        upcoming_hourly.append(
-            f"{hour_label}: {p['temperature']}°F, {p['shortForecast']}"
-        )
+    upcoming_hourly = [
+        f"{_hour_label(p.get('startTime', ''))}: {p['temperature']}°F, {p['shortForecast']}"
+        for p in hourly_periods[:12]
+    ]
 
     # Named periods (Today, Tonight, Tomorrow, etc.) — first 6
     # NWS supplies ~14 periods (7 days, day/night). Use them all — "what
