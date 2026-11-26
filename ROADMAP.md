@@ -157,6 +157,12 @@ Newest first; feature docs in `docs/features/`. A line for a work item
 points at its checks, `docs/sprint/<item>-promote.md` (items before M34:
 `docs/sprint/PROMOTIONS.md`).
 
+- **`/work` drawn from the work-state database** *(2026-11-26, work
+  item M34)* — the page shows what `scripts/work.py` recorded (what is
+  under way, the queue in order, promotions with their tags) within a
+  minute, from the database's dump; `docs/sprint/PROMOTIONS.md` is
+  frozen. `docs/features/work-page.md`, `work-state.md`.
+  `docs/sprint/M34-promote.md`.
 - **A kept record of what Whisper heard, and "Heard" on `/work`**
   *(2026-11-26, work item M30)* — every voice run kept for good in
   `~/.local/state/kronk-voice/voice_runs.db` (words, reply, route, whole
