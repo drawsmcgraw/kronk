@@ -1792,19 +1792,25 @@ def c_check(c: Ctx, a) -> int:
 
 # ════════════════════════════════ resume ═══════════════════════════════════
 
-def c_resume(c: Ctx, a) -> int:
-    g = gather(c)
-    fs = findings(c, g)
-    lines: list[str] = []
+def overview(g: dict) -> dict:
+    """Where the work stands, as plain data (work item M34, plumbing 5):
+    read-only, from the rows and the outside facts handed in. `resume`
+    prints from it and scripts/work_export.py serialises it, so the page
+    and `resume` cannot disagree. No database, no print, no git, no herdr.
 
-    def w(text: str) -> None:
-        """Lines the tool writes. Each value from a row, git, herdr or a
-        state file goes through one_line() (`o`), so no stored text can
-        start a line of its own (S3)."""
-        lines.extend(text.split("\n")[:-1] if text.endswith("\n") else text.split("\n"))
+    g: "items", "steps", "promotions", "pitems", "matters" (rows as dicts),
+    "queue" (queue_rows()), "tags" ({tag: commit}), "branch_commits" (HEAD's
+    commits, or None), "herdr" ({"known", "by_name": {name: status}, ...}).
 
-    o = one_line
-    items = {i["id"]: i for i in g["items"]}
+    Returns: "stages" {item: item_stage()} for every item; "agents" {item:
+    [{name, status, role}]} by herdr name, for any item id a name parses to;
+    "active" [{item, stage, agents, started, last}] by id; "queue" as
+    given; "decisions" (open, owed by Drew, oldest first) and
+    "other_decisions"; "leftovers" {owner: [...]} and "untriaged"; "counts"
+    {item or None: {"leftovers"|"decisions": {"drew", "coordinator",
+    "not_triaged"}}} of open ones; "escape_window" (the last ESCAPE_WINDOW
+    promoted items, newest first) and "escapes" in it."""
+    we = work_export()
     steps_of: dict = {}
     for s in g["steps"]:
         steps_of.setdefault(s["item_id"], []).append(s)
@@ -1813,92 +1819,38 @@ def c_resume(c: Ctx, a) -> int:
         pmap.setdefault(pi["item_id"], []).append(pi["promotion_id"])
     promo = {p["id"]: p for p in g["promotions"]}
     herdr = g["herdr"]
-    we = work_export()
     per_item: dict = {}
     for name, status in herdr["by_name"].items():
         item, role = we.agent_for(name)
         if item:
             per_item.setdefault(item, []).append({"name": name, "status": status, "role": role})
-    states = {s["name"]: s for s in g["agent_states"]}
 
     def stage_of(i):
         promoted = any(promo[p]["kind"] == "promotion" for p in pmap.get(i, []))
         agents = per_item.get(i, []) if herdr.get("known") else None
         return item_stage(steps_of.get(i, []), promoted, f"item-{i}" in g["tags"], agents, i, g["branch_commits"])
 
-    def waits(it):
-        return f"{o(it['waits_on'])}: {o(it['waits_note'])}" if it["waits_on"] else "-"
-
-    w(f"Work state: {o(c.db)} (schema {o(g['meta'].get('schema_version'))}), at {now_iso()}\n")
-    w(f"\n== Check: {len(fs)} finding(s) (rows against git, herdr, the files)\n")
-    for x in fs:
-        w(f"- [{o(x['check'])}] {o(x['says'])}\n")
-        if x["fix"]:
-            w(f"    fix: {o(x['fix'])}\n")
-
-    active = sorted((i for i in g["items"] if i["state"] == "active"), key=lambda x: we.id_key(x["id"]))
-    w(f"\n== Under way: {len(active)}\n")
-    if not herdr.get("known"):
-        w(f"(herdr not reachable: {o(herdr.get('reason'))}; stages computed without agents)\n")
-    for it in active:
-        st = stage_of(it["id"])
-        w(f"{o(it['id'])}  tier {o(it['tier'] or '-')}  {o(it['title'])}\n")
-        w(f"    stage: {o(st['words'])}" + (f" ({o(st['detail'])})" if st["detail"] else "") + "\n")
-        for ag in per_item.get(it["id"], []):
-            mins = None
-            if ag["name"] in states:
-                mins = minutes_since(safe_utc(states[ag["name"]].get("launched_iso")))
-            w(f"    agent: {o(ag['name'])} {o(ag['status'])}" + (f", {mins:g} min since launch" if mins is not None else "")
-              + "\n")
-        started = [s for s in steps_of.get(it["id"], []) if s["state"] == "started"]
-        for s in started:
-            w(f"    started: {s['kind']} round {s['round']} by {o(s['agent'] or s['by'])} at {o(s['started_at'])}\n")
-        done = [s for s in steps_of.get(it["id"], []) if s["state"] == "finished"]
-        if done:
-            last = sorted(done, key=lambda s: (s["ended_at"] or "", we.step_rank(s["kind"], s["round"]), s["id"]))[-1]
-            w(f"    last step: {last['kind']} round {last['round']}"
-              + (f", {last['verdict']}" if last["verdict"] else "")
-              + (f", graded {last['graded']}" if last["graded"] else "")
-              + f" ({o(last['report'])}, {o(last['ended_at'])})\n")
-        w(f"    next step: {o(it['next_step'] or '-')}\n")
-        w(f"    waits on: {waits(it)}\n")
-        if it["after_item"]:
-            w(f"    after: {o(it['after_item'])}\n")
-
-    w(f"\n== Queue: {len(g['queue'])}\n")
-    for q in g["queue"]:
-        flag = "  <- next" if q["next"] else ""
-        w(f"{q['position']}. {o(q['id'])}  tier {o(q['tier'] or '-')}  {o(q['title'])}{flag}\n")
-        if q["state"] == "held":
-            w(f"    HELD: {o(q['held_why'])}\n")
-        w(f"    next step: {o(q['next_step'] or '-')}\n")
-        w(f"    waits on: {waits(q)}\n")
-        if q["after_item"]:
-            w(f"    after: {o(q['after_item'])}" + (f" ({o(q['blocked_by'])})" if q["blocked_by"] else " (promoted)")
-              + "\n")
+    stages = {it["id"]: stage_of(it["id"]) for it in g["items"]}
+    active = []
+    for it in sorted((i for i in g["items"] if i["state"] == "active"), key=lambda x: we.id_key(x["id"])):
+        mine = steps_of.get(it["id"], [])
+        done = [s for s in mine if s["state"] == "finished"]
+        last = sorted(done, key=lambda s: (s["ended_at"] or "", we.step_rank(s["kind"], s["round"]), s["id"]))[-1] \
+            if done else None
+        active.append({"item": it, "stage": stages[it["id"]], "agents": per_item.get(it["id"], []),
+                       "started": [s for s in mine if s["state"] == "started"], "last": last})
 
     open_m = [m for m in g["matters"] if m["closed_at"] is None]
     decisions = sorted((m for m in open_m if m["kind"] == "decision" and m["owner"] == "drew"),
                        key=lambda m: (m["opened_at"], m["id"]))
-    w(f"\n== Owed by Drew: {len(decisions)} open decision(s), oldest first\n")
-    for m in decisions:
-        blocks = " BLOCKS the item" if m["blocks"] else ""
-        w(f"- #{m['id']} {o(m['item_id'] or '(no item)')}{blocks}, {o(local_day(m['opened_at']))}: {o(m['text'])}\n")
     other_dec = [m for m in open_m if m["kind"] == "decision" and m["owner"] != "drew"]
-    for m in other_dec:
-        w(f"- #{m['id']} {o(m['item_id'] or '(no item)')} (owner {o(m['owner'] or 'not triaged')}): {o(m['text'])}\n")
-
     left = [m for m in open_m if m["kind"] == "leftover"]
-    untriaged = [m for m in left if m["owner"] is None]
-    w(f"\n== Open leftovers: {len(left) - len(untriaged)} triaged, {len(untriaged)} not yet triaged\n")
-    for owner in OWNERS:
-        mine = [m for m in left if m["owner"] == owner]
-        w(f"{owner}: {len(mine)}\n")
-        for m in mine:
-            w(f"- #{m['id']} {o(m['item_id'] or '(no item)')}: {o(m['text'])}\n")
-    if untriaged:
-        w(f"not triaged: {len(untriaged)} (older PROMOTIONS.md cells: `work.py matter list --open` "
-          f"lists them; close each, or split it into triaged ones)\n")
+    counts: dict = {}
+    for m in open_m:
+        if m["kind"] in ("leftover", "decision"):
+            per = counts.setdefault(m["item_id"], {"leftovers": {"drew": 0, "coordinator": 0, "not_triaged": 0},
+                                                   "decisions": {"drew": 0, "coordinator": 0, "not_triaged": 0}})
+            per[m["kind"] + "s"][m["owner"] or "not_triaged"] += 1
 
     proms = [p for p in g["promotions"] if p["kind"] == "promotion"]
     last_items: list = []
@@ -1911,6 +1863,98 @@ def c_resume(c: Ctx, a) -> int:
     last_items = last_items[:ESCAPE_WINDOW]
     # A closed escape still counts (it happened); a void one was never one (S9).
     esc = [m for m in g["matters"] if m["kind"] == "escape" and m["item_id"] in last_items and not is_void(m)]
+    return {"stages": stages, "agents": per_item, "active": active, "queue": g["queue"],
+            "decisions": decisions, "other_decisions": other_dec,
+            "leftovers": {owner: [m for m in left if m["owner"] == owner] for owner in OWNERS},
+            "untriaged": [m for m in left if m["owner"] is None], "counts": counts,
+            "escape_window": last_items, "escapes": esc}
+
+
+def c_resume(c: Ctx, a) -> int:
+    g = gather(c)
+    fs = findings(c, g)
+    v = overview(g)
+    lines: list[str] = []
+
+    def w(text: str) -> None:
+        """Lines the tool writes. Each value from a row, git, herdr or a
+        state file goes through one_line() (`o`), so no stored text can
+        start a line of its own (S3)."""
+        lines.extend(text.split("\n")[:-1] if text.endswith("\n") else text.split("\n"))
+
+    o = one_line
+    herdr = g["herdr"]
+    states = {s["name"]: s for s in g["agent_states"]}
+
+    def waits(it):
+        return f"{o(it['waits_on'])}: {o(it['waits_note'])}" if it["waits_on"] else "-"
+
+    w(f"Work state: {o(c.db)} (schema {o(g['meta'].get('schema_version'))}), at {now_iso()}\n")
+    w(f"\n== Check: {len(fs)} finding(s) (rows against git, herdr, the files)\n")
+    for x in fs:
+        w(f"- [{o(x['check'])}] {o(x['says'])}\n")
+        if x["fix"]:
+            w(f"    fix: {o(x['fix'])}\n")
+
+    w(f"\n== Under way: {len(v['active'])}\n")
+    if not herdr.get("known"):
+        w(f"(herdr not reachable: {o(herdr.get('reason'))}; stages computed without agents)\n")
+    for x in v["active"]:
+        it, st = x["item"], x["stage"]
+        w(f"{o(it['id'])}  tier {o(it['tier'] or '-')}  {o(it['title'])}\n")
+        w(f"    stage: {o(st['words'])}" + (f" ({o(st['detail'])})" if st["detail"] else "") + "\n")
+        for ag in x["agents"]:
+            mins = None
+            if ag["name"] in states:
+                mins = minutes_since(safe_utc(states[ag["name"]].get("launched_iso")))
+            w(f"    agent: {o(ag['name'])} {o(ag['status'])}" + (f", {mins:g} min since launch" if mins is not None else "")
+              + "\n")
+        for s in x["started"]:
+            w(f"    started: {s['kind']} round {s['round']} by {o(s['agent'] or s['by'])} at {o(s['started_at'])}\n")
+        last = x["last"]
+        if last:
+            w(f"    last step: {last['kind']} round {last['round']}"
+              + (f", {last['verdict']}" if last["verdict"] else "")
+              + (f", graded {last['graded']}" if last["graded"] else "")
+              + f" ({o(last['report'])}, {o(last['ended_at'])})\n")
+        w(f"    next step: {o(it['next_step'] or '-')}\n")
+        w(f"    waits on: {waits(it)}\n")
+        if it["after_item"]:
+            w(f"    after: {o(it['after_item'])}\n")
+
+    w(f"\n== Queue: {len(v['queue'])}\n")
+    for q in v["queue"]:
+        flag = "  <- next" if q["next"] else ""
+        w(f"{q['position']}. {o(q['id'])}  tier {o(q['tier'] or '-')}  {o(q['title'])}{flag}\n")
+        if q["state"] == "held":
+            w(f"    HELD: {o(q['held_why'])}\n")
+        w(f"    next step: {o(q['next_step'] or '-')}\n")
+        w(f"    waits on: {waits(q)}\n")
+        if q["after_item"]:
+            w(f"    after: {o(q['after_item'])}" + (f" ({o(q['blocked_by'])})" if q["blocked_by"] else " (promoted)")
+              + "\n")
+
+    decisions = v["decisions"]
+    w(f"\n== Owed by Drew: {len(decisions)} open decision(s), oldest first\n")
+    for m in decisions:
+        blocks = " BLOCKS the item" if m["blocks"] else ""
+        w(f"- #{m['id']} {o(m['item_id'] or '(no item)')}{blocks}, {o(local_day(m['opened_at']))}: {o(m['text'])}\n")
+    for m in v["other_decisions"]:
+        w(f"- #{m['id']} {o(m['item_id'] or '(no item)')} (owner {o(m['owner'] or 'not triaged')}): {o(m['text'])}\n")
+
+    untriaged = v["untriaged"]
+    triaged = sum(len(x) for x in v["leftovers"].values())
+    w(f"\n== Open leftovers: {triaged} triaged, {len(untriaged)} not yet triaged\n")
+    for owner in OWNERS:
+        mine = v["leftovers"][owner]
+        w(f"{owner}: {len(mine)}\n")
+        for m in mine:
+            w(f"- #{m['id']} {o(m['item_id'] or '(no item)')}: {o(m['text'])}\n")
+    if untriaged:
+        w(f"not triaged: {len(untriaged)} (older PROMOTIONS.md cells: `work.py matter list --open` "
+          f"lists them; close each, or split it into triaged ones)\n")
+
+    last_items, esc = v["escape_window"], v["escapes"]
     w(f"\n== Escapes within the last {ESCAPE_WINDOW} promoted items ({o(', '.join(last_items)) or 'none'}): "
       f"{len(esc)}\n")
     for m in esc:
