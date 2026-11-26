@@ -55,13 +55,15 @@ rule needs the same failure captured several times (Drew's stopping rule,
 | `origin.area` / `origin.device` | The satellite that heard it: `kitchen_pe` (Kitchen), `office_sat1` (Office), `basement_pe` (Basement Theater). `area: null` when not recorded; the replay then uses the office Satellite1. |
 | `expect.tier` | `ha_local` (HA answers before Kronk is asked) or `kronk`. With `ha_local`, `expect.ha` says how: `{"source": "trigger", "trigger": "radio"}` (the Kronk music blueprint; `trigger` is the blueprint trigger id, given only where it matters) or `{"source": "builtin", "intent": "HassMediaPause"}`. |
 | `expect.route`, `expect.rule` | Where `routing._classify_inner` should send the text if it reaches Kronk (spoken or typed). One of the 17 rules (`lead_in` since M19, `messy` since M14); the rule must belong to the route. Lead-in rows (tag `lead-in`) expect `direct/lead_in` and the tool the model should end up calling. |
-| `expect.tool` | The Kronk tool that should end up running: `play_music`, `control_music`, `now_playing`, `rate_music`, `news_brief`, `update_magicmirror`, or `null` when no existing tool can do it (then the live replay checks that no music tool claims it). |
+| `expect.tool` | The Kronk tool that should end up running: `play_music`, `control_music`, `now_playing`, `rate_music`, `news_brief`, `update_magicmirror`, `get_weather`, or `null` when no existing tool can do it (then the live replay checks that no music tool claims it). |
+| `history` | Optional (M36): the earlier turns of a follow-up, `[{"role": "user", "content": …}, {"role": "assistant", "content": …}, …]`, whole exchanges, oldest first. Layer one and routing ignore it. A row with a history must carry `needs-context` (the HA replay cannot hand HA a history and skips it); `--history` posts it. |
+| `expect.mention`, `expect.not_tools` | Read by `--history` only. `mention`: a word the tool call must carry (in tool_service's music request line or the tool route it served); without it `expect.name` is used. `not_tools`: tools that must not be called. A follow-up whose sentence names nothing keeps `expect.name: null`, so the single-sentence pins (the live `/music` pin, the parser) skip it. |
 | `expect.action`, `expect.thumb` | `control_music` action (`pause`, `resume`, `next`, `volume_up`, …; "stop" is sent as `pause` since sprint M7) and `rate_music` thumb. |
 | `expect.direct` | `true` exactly on rows whose rule is `playback`, `now_playing`, `rate`, `music_another` or `mm_update`: Kronk runs the tool itself with no model call (`docs/features/direct-dispatch.md`). Absent on every other row; the schema test enforces both. |
 | `expect.kind`, `media_type`, `name`, `artist`, `provider`, `shuffle` | What `play_music` should be asked for: `kind` `named`/`genre`; `media_type` one of the tool's types or `null` for a style; `provider` `pandora` / `youtube_music` / `nas` only when the sentence implies one. These are what M11's parser asserts. |
 | `expect.player` | `origin` (the speaker that heard it), `area:<Area>`, `entity:media_player.<id>`, or `unknown:<words>` for a name no player has. |
 | `source` | The incident doc, bench file or plan section the row came from. Paths are checked to exist. |
-| `tags` | Free-form; `--tag` selects on them. Three tags change the replay: `needs-context` and `url` rows are skipped live, and `mirror` rows are skipped against production. |
+| `tags` | Free-form; `--tag` selects on them. Three tags change the replay: `needs-context` and `url` rows are skipped on the HA path, and `mirror` rows are skipped against production. |
 | `xfail` | Per layer: `routing`, `live`, `parser`. Each value is the reason. |
 | `note`, `ref` | Free text; the original trace id, first-seen date and count where known. |
 
@@ -127,7 +129,28 @@ python3 scripts/voice_replay.py --tag playback          # a subset by tag
 python3 scripts/voice_replay.py --id plan-stop-bang     # one row (repeatable)
 python3 scripts/voice_replay.py --check-only            # read-only checks; runs nothing
 tests/.venv/bin/python scripts/voice_replay.py --answers --label <name>   # M11 answer check
+python3 scripts/voice_replay.py --history --repeat 5 --label <name>      # M36 follow-ups, dev shims
 ```
+
+**History check (`--history`, work item M36).** The corpus was single-turn
+and the HA path cannot be handed a conversation, so a follow-up that
+depends on the turn before ("play that album") was never tested. This mode
+takes the rows that have a `history` and posts each, as a client that
+resends the conversation would (the history, then the row's text,
+non-streaming, no system message), to the dev Kronk's `/dev/api/chat` and
+`/dev/voice/api/chat`, `--repeat N` times on each. The `/voice/api/chat`
+run checks the speech mount's code path; it is not a spoken request.
+Gates as below: the Kronk URL must be `http://localhost/dev` (or
+`127.0.0.1`), dry-run is read from `/dev/api/status` before the run and
+before every request, and the players are snapshotted before and after
+every request. Per request it records the tools the orchestrator logged,
+what tool_service was asked (its `music request` and `music dry run` lines
+and the tool routes it served, such as `GET /weather?location=Boston`), the
+reply, and whether the reply claims an action with no tool call (a false
+"now playing"; `CLAIM_RE`). The summary gives, per row and route, passes,
+the tools called and the count of such claims. `--corpus FILE` reads
+scratch rows in the same format for a one-off check (criterion 3's "play
+Abbey Road" after the Pulse exchange was run that way).
 
 **Answer check (`--answers`, sprint M11).** No HA run: each `play_music`
 row and each `non-music` row is sent to the dev tool_service directly, as
@@ -221,3 +244,5 @@ model varies run to run).
   without pinning it, and the strict-xfail tripwire for the day it heals.
 - The stopping rule in practice: 18 routing misses kept as data instead of
   18 new regexes.
+- The test that would have caught it: a corpus of single sentences cannot
+  see a follow-up. One optional field and one replay mode later, it can.

@@ -1,6 +1,6 @@
 # Investigation 2026-11-26: "play that album" and the chat history
 
-Status: cause found and reproduced; fix ordered as work item M36.
+Status: fault 2 fixed in work item M36 (built 2026-11-26, on dev; not yet promoted): a pinned specialist gets the earlier turns as chat turns, at most two whole exchanges. Fault 1 (the resolver's reading of "Artist - Album") is not fixed; it is recorded for Drew. Corpus rows: `inc-1126-play-that-album-pulse`, `m36-weather-there-tonight`, `inc-1017-try-playing-it-ytm` (given its history).
 
 ## Symptom, as Drew saw it
 
