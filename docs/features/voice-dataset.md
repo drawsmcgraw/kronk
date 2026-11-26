@@ -2,7 +2,7 @@
 
 **Shipped:** work item M30 step B (2026-11-25 build, fix round 1 the same
 day, `docs/sprint/M30-fix1.md`; promoted by the coordinator, who runs the
-first export with `--init` and then installs the timer). **Origin:**
+first export with `--init` and then installs the timer). The backfill: step D (2026-11-26 build, `docs/sprint/M30-build4.md`). **Origin:**
 Drew, 2026-11-24: "i want to build a dataset of househould voice utterances
 because it will be useful for future work. back up the transcript db." and
 "the /work endpoint should also include all the stt transcriptions to help
@@ -62,8 +62,8 @@ and typed runs have no STT stage and are left out.
    `ambiguous` (stored, never guessed) or `none`, with the recording's
    relative name, size and mtime, and `audio_tried_at`. No age limit: a
    row older than seven days that finds no recording keeps `audio_join`
-   NULL (its recording may be on the NAS; joining the NAS layout is left
-   for step D), a younger one is `none`. A recordings directory that
+   NULL (its recording may be on the NAS; the backfill joins it there,
+   "The backfill" below), a younger one is `none`. A recordings directory that
    cannot be read leaves the row untried; the next run tries again.
    A row that reaches the record after a neighbour was joined (a read
    the budget cut at a day mark, the hourly check's take, a run Tempo
@@ -169,10 +169,10 @@ no migration.
 
 | Table | What |
 | :-- | :-- |
-| `runs` | one row per run, keyed by `run_id` (HA's `pipeline_run_id`). The listing's columns; `pipeline_id`, `conversation_id`, `language`, `response_type`, `reply_chars`, `kronk_join_matches`, `window_cut_short` from the whole trace; `stt_engine` (which Whisper unit: `stt.faster_whisper` production, `stt.faster_whisper_2` dev), `listen_ms`, `transcribe_ms`, `intent_ms`; `raw_trace` (the voice trace as JSON); the audio columns; `removed`; `first_seen_at`, `last_seen_at` (the last read Tempo still listed it in), `last_changed_at`, `seq` (raised on every insert and change) |
+| `runs` | one row per run, keyed by `run_id` (HA's `pipeline_run_id`). The listing's columns (`heard_source`: `tempo`, or `whisper_journal` for words the backfill filled); `pipeline_id`, `conversation_id`, `language`, `response_type`, `reply_chars`, `kronk_join_matches`, `window_cut_short` from the whole trace; `stt_engine` (which Whisper unit: `stt.faster_whisper` production, `stt.faster_whisper_2` dev), `listen_ms`, `transcribe_ms`, `intent_ms`; `raw_trace` (the voice trace as JSON); the audio columns; `removed`; `first_seen_at`, `last_seen_at` (the last read Tempo still listed it in), `last_changed_at`, `seq` (raised on every insert and change) |
 | `labels` | what a person adds: `correct_text`, `speaker`, `corpus_id`, `notes`, `labelled_at`, `labelled_by`. The exporter never writes it. Ships empty |
 | `stt_config` | the Whisper in force; empty until the item that gives production a prompt fills it |
-| `run_changes` | a stored row a later read contradicted: the old row whole, `why` (`export`, `hourly check`, later `backfill`), `detail` |
+| `run_changes` | a stored row a later read contradicted: the old row whole, `why` (`export`, `hourly check`), `detail`. The backfill fills empty values only and writes none |
 | `export_state` | one row: `watermark_s` (every run that started before it is taken), `last_ok_at`, `last_error`, `last_error_at`, `last_check_at`, `last_check`, `check_progress` |
 
 The published copy: `runs` without `raw_trace`, `trace_failed_at`, the
@@ -272,13 +272,100 @@ nothing here does it.
 - **The Kronk-side trace** (what the model was given, the tool arguments
   and results). `kronk_trace_id` points at nothing after 90 days; that is
   a decision, not a gap.
-- **The words of the 42 household runs of 2026-11-08 to 11-17** that Tempo
-  holds without text: they are in the Whisper journal, and step D
-  backfills them (`heard_source = 'whisper_journal'`).
-- **The audio of rows older than seven days when they were joined that
-  found no local recording** (the first export's older rows whose
-  recordings the archive has moved): `audio_join` NULL. Their recordings
-  are on the NAS; a join against the NAS layout is step D's to decide.
+- **The words of a run Tempo holds without text that the journal cannot
+  give with certainty.** The 42 household runs of 2026-11-08 to 11-17 were
+  traced before text capture was on; the backfill (below) fills those it
+  can match, `heard_source = 'whisper_journal'`, and lists the rest with
+  the reason. The journal began 2026-11-08 16:12, so a run before that has
+  no words anywhere.
+- **The audio of a row older than seven days when it was joined, with no
+  local recording and none the backfill found on the NAS**: `audio_join`
+  NULL ("not tried").
+
+## The backfill (`scripts/voice_runs_backfill.py`, step D)
+
+A one-time, repeatable command, run by hand. It fills `heard` for rows
+Tempo gave no words, from the user journal of the two Whisper units, and
+joins the audio of rows stored "not tried" against the recordings archive
+on the NAS.
+
+**The words.** Both Whisper units log every transcript at INFO, one line
+each, `INFO:wyoming_faster_whisper.dispatch_handler:<text>`, the text as
+Whisper returned it (with its leading space). HA passes that text through
+unstripped, so `heard_chars` (`voice.transcript_chars`) is its length, space
+included; voice_tracer strips the words it stores, and so does the
+backfill. A row is filled only when the match is certain:
+
+- `heard` is empty and the row is not removed;
+- exactly one transcript from the unit that served the run
+  (`wyoming-whisper.service` for a household run,
+  `wyoming-whisper-dev.service` for a dev one, by `is_dev`) falls in its
+  speech-to-text window: the `voice.stt` span in `raw_trace` (the whole run
+  when there is none), from 2 s before to 5 s after, the audio join's slack;
+  and the unit's journal covers the window;
+- that transcript's length equals `heard_chars`. A row with no stored
+  count is filled only when the match is the only transcript from the unit
+  within a minute of the window. A count of 0 (Whisper heard nothing) is
+  never filled.
+
+A filled row gets `heard`, `heard_source = 'whisper_journal'`, a raised
+`seq` and `last_changed_at`; `heard_chars` stays Tempo's. Nothing is
+replaced, so nothing goes to `run_changes`. Everything else is left as it is
+and listed with its reason (removed, Whisper heard nothing, the journal
+does not cover the run, no transcript in the window, several, length
+differs, no stored count and not alone). The exporter keeps the words:
+Tempo's empty text never replaces a stored value (rule 1), and the hourly
+check compares only the values Tempo has, so a filled row is neither
+differing nor missing.
+
+Rows that already have Tempo's words are checked by the same rule and
+reported, never written: "the journal agrees" (one transcript in the
+window, the same length and words) or not. That count is the rule's
+calibration on the live data.
+
+**The audio.** A row older than seven days that found no local recording
+when it was joined is stored "not tried" (`audio_join` NULL): its recording
+may have gone to the NAS. The backfill joins those rows against the archive
+(`--nas-recordings`, default `/mnt/nas-backup/recordings`, read-only), whose
+layout `<device>/<pipeline>/<YYYY-MM>/<run>/<file>` `voice_label_sheet.scan`
+reads (the month directory, which HA's run directories never look like).
+The answer is the exporter's own: `audio_joins`, imported, run over an
+in-memory copy of the record's runs in which only those rows are untried,
+against the NAS root. A row with a recording still under
+`~/kronk-voice-recordings/` in its window is left (its set would be joined
+against half its recordings). `certain` and `ambiguous` are stored with
+`audio_tried_at`; `audio_rel` is the name in HA's layout, the month
+dropped, as for every other row (its NAS path follows from the month of
+`audio_mtime_ns`, "Querying it"). No `seq` is raised.
+
+This is also the cure for the limit fix round 2 accepted (point 2): a run
+inserted more than a week late re-opens its neighbours' joins, and a
+neighbour whose recording has gone to the NAS since then turns from
+`certain` to "not tried". It needs an exporter outage of a week, or a
+restore. The recording and the run are both still there; run the backfill
+again and the join is made against the NAS.
+
+**Running it.** With no test suite running: `tests/conftest.py` balances
+the record's changes in a session against the export unit's journal lines,
+and a backfill is not one of them. First the report (the record is opened
+`mode=ro`; its bytes do not change), then the write:
+
+```
+python3 scripts/voice_runs_backfill.py
+python3 scripts/voice_runs_backfill.py --apply
+```
+
+Without `--journal FILE` it reads `journalctl --user -u
+wyoming-whisper.service -u wyoming-whisper-dev.service -o json`. With
+`--apply` it takes the export's lock (waiting up to 55 s, exit 1 without
+it) and writes in one `BEGIN IMMEDIATE` transaction, the NAS scan included.
+It does not publish: the exporter's next run (a minute) publishes the filled
+rows, as for any raised `seq`. The output is run ids, counts, lengths and
+reasons, never words. `--no-audio` leaves the NAS out.
+
+Repeatable: a second `--apply` finds no row to fill and none to join, and
+writes nothing. The journal is bounded by size, not time, so the words of
+the early runs are there only until it rotates them out.
 
 ## Gotchas
 
@@ -347,6 +434,10 @@ written N of 2`. Restore: `docs/runbooks/restore.md`, step 14.
 - **The `mode=ro` reader that writes files.** A read-only SQLite reader of
   a WAL database leaves `-wal` and `-shm` behind; the fix was a published
   copy opened `immutable=1` and a record nobody else mounts.
+- **The journal nobody listed.** The words of the runs traced before text
+  capture were in the Whisper journal all along; a join by time, checked by
+  a length HA had recorded, gets them back without guessing, and the same
+  rule run on the runs that do have words says how far to trust it.
 - **A filter in the query beats enrichment.** 17.7 s to 0.04 s by asking
   Tempo for the runs with a speech-to-text stage instead of reading 3,000
   corpus replays to throw them away.
