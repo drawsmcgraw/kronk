@@ -441,3 +441,15 @@ written when step B is promoted.
   4. No status write when `--remove` or `--init` does not get the lock:
      right.
   A last narrow test of the four jobs follows.
+- 2026-11-26, coordinator, on the narrow test of fix round 2
+  (`M30-e2e4.md`, FAILS on one blocker; the four jobs done; lock, alarm
+  and arithmetic hold against real processes; 300 random seeds pass).
+  The grade stands, and the cure is the test agent's: fix round 3 is one
+  change. `reopen_joins()` re-opens the set of every inserted row, final
+  or not (the condition `end_s < now - FINAL_S` goes); a set with a
+  young row then waits whole. The two `xfail` tests in
+  `tests/test_m30_voice_runs_e2e4.py` lose their marks. Nothing else.
+  Notes left: the re-open's cost on a first read of thousands of rows
+  (Tempo holds hundreds); a removed row keeps the join it had. A last
+  check follows: the diff is that change, the randomized test at 300
+  seeds, the suite.
