@@ -62,7 +62,8 @@ Key design decisions (full rationale in the build journal):
   integrations — never `down -v`.
 - **Ambient context** (`kronk_facts()` in `agents.py`) injects LOCATION etc.
   into every agent path — fixed the "what location?" reflex on bare weather
-  queries.
+  queries. Its date and time are the house's zone (`KRONK_TZ`, default
+  `America/New_York`), not the container's UTC clock (work item M35).
 
 ## The "ask Kronk to" lead-in (sprint M19)
 

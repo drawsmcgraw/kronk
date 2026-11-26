@@ -257,6 +257,13 @@ services:
       - DEVOPS_AGENT_MODEL=gemma-4-e4b
       - TALKIE_MODEL=talkie
       - LOCATION=Laurel, MD
+      # The house's zone for the date and time every prompt states
+      # (kronk_facts(), work item M35); America/New_York is also the default
+      # in code. The containers themselves stay in UTC. The same zone is
+      # written elsewhere too: NEWS_TZ, SOLAR_TZ and MUSIC_TASTE_TZ (their
+      # defaults in tool_service), and TZ in docker-compose.ha.yml and
+      # docker-compose.ma.yml. A move changes all of them.
+      - KRONK_TZ=America/New_York
       # User-facing error rendering: debug (full detail: causes, HTTP
       # statuses, rid) | friendly (one short spoken sentence). Rendering
       # only — logs and traces always keep full detail. ERROR_STYLE covers

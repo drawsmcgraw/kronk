@@ -37,6 +37,7 @@ ENV = (
     ("ERROR_STYLE", "debug", "How errors read on /message, /api/chat and /v1 (debug or friendly)"),
     ("ERROR_STYLE_VOICE", "friendly", "How errors read on the speech mount"),
     ("LOCATION", "Laurel, MD", "The household's location in prompts and weather"),
+    ("KRONK_TZ", "America/New_York", "The house's zone for the date and time every prompt states"),
     ("HISTORY_MAX_MESSAGES", "40", "Messages kept per chat session"),
     ("ASSISTANT_PROMPT_CHARS", "1500", "Characters of session history the assistant agent sees"),
     ("SESSION_IDLE_PRUNE_DAYS", "30", "Idle sessions are pruned after this many days"),
