@@ -140,6 +140,49 @@ build, a full test, a fix round and a second full test; its two
 "blockers" were a workspace left behind when a disk is full and a
 gitignored cache file.
 
+### What a test is for, and when the rounds stop (Drew, 2026-11-26)
+
+Drew, after M30 took nine test rounds and five fix rounds in one night:
+"are you wasting a lot of time with testing corner cases?" and, on the
+coordinator's three proposals, "Yes, be more thoughtful about testing so
+we don't waste tokens on corner cases". These hold in every tier and
+come before the table's last column where they differ.
+
+1. **Ordinary use first.** A test brief tells the agent to spend its
+   first effort on what the house actually does with the thing: the
+   phrases people say, a conversation of more than one turn, the page
+   as someone opens it, the command as the coordinator types it. Then
+   the criteria. Hunting for a way to break it comes last and is
+   bounded by the brief.
+2. **A blocker is something that happens.** A brief does not say "any
+   way X can ever be wrong is a blocker". A finding is a blocker when
+   it occurs in the live data or in ordinary use, loses or damages
+   stored data on a path someone will take, or breaks voice or chat.
+   The coordinator grades every finding by that, in every tier, and
+   asks the test agent for the evidence either way (how often in the
+   live data; what a person would have to do to reach it).
+3. **One fix round by default.** After it, the tier's check of that fix
+   (tier 3: a fresh narrow test of the diff). Whatever that check finds
+   is graded by point 2: what does not happen in live data or ordinary
+   use is a leftover, recorded, and no round is ordered for it.
+4. **A second fix round needs a finding that passes point 2. A third
+   needs a reason the coordinator states to Drew** in the report where
+   it orders the round.
+5. **The coordinator says what the testing cost** in the promotion's
+   report: test rounds, fix rounds, and which of them found something
+   that happens.
+
+Why: of M30's 5.5 hours about two went on cases absent from the data
+(a recording link that needs a week's outage or a read cut at a day
+mark; ways a test written to do so could get past the suite's guard; a
+backfill fault that matched none of 113 runs), ordered by briefs that
+called any wrong row a blocker and checked by a fresh adversarial agent
+after every fix. The same morning Drew hit a fault in a plain two-turn
+chat ("play that album") that no test had ever tried. The first fix
+round of each step did find things that happen; the later ones mostly
+did not. The escape watch above is the check on this rule too: a fault
+after promotion that a dropped round would have caught is an escape.
+
 `/work` (work item M27, `docs/features/work-page.md`) shows this workflow's
 state, read every minute from the step files in `docs/sprint/`, the
 promotions log, git, and the names and statuses `herdr agent list` gives.

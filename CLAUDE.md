@@ -45,7 +45,11 @@ llama.cpp models, all on one machine (AMD Ryzen AI 375, Radeon 8060S iGPU,
      code into the repo. A fix to the item, however small, is a fix
      agent's. How much testing follows it depends on the item's tier
      (WORKFLOW.md, "How much testing an item gets", 2026-11-24); the
-     suite runs on every change in every tier, and escapes are counted. (A small fix outside any
+     suite runs on every change in every tier, and escapes are counted.
+     Tests go at ordinary use first, a blocker is something that happens
+     in live data or ordinary use, and there is one fix round by default;
+     a third needs a reason stated to the operator (WORKFLOW.md, "What a
+     test is for, and when the rounds stop", 2026-11-26). (A small fix outside any
      item is still made inline, under "Definition of done".)
    - You check the premise of an order against the running system before
      you write criteria.
