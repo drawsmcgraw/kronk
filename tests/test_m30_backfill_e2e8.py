@@ -35,10 +35,6 @@ def fills(log):
 
 # ═══ One transcript, two runs ═══════════════════════════════════════════════
 
-WRONG = "a journal line is stored against a run that did not hear it (M30-e2e8 finding 1)"
-
-
-@pytest.mark.xfail(strict=True, reason=WRONG)
 def test_a_run_with_no_count_does_not_take_the_transcript_of_a_run_seconds_later(sc, tmp_path):
     """Two pucks, three seconds apart, one Whisper unit. A has no stored
     count and no transcript of its own in the journal; B's is the only line
@@ -54,20 +50,20 @@ def test_a_run_with_no_count_does_not_take_the_transcript_of_a_run_seconds_later
     assert rows["R-A"]["heard"] is None, "R-A holds R-B's words"
 
 
-@pytest.mark.xfail(strict=True, reason=WRONG)
 def test_two_empty_rows_that_match_one_line_are_neither_certain(sc, tmp_path):
     """Both rows have the same count; the journal holds one line of that
     length in both windows (the other was lost). Neither is certain."""
     j = D.Journal(tmp_path / "w.json")
-    text = j.say(HH, TB + GAP + 3 + D.STT_END + 0.05, D.said(2))
-    runs = [D.early("R-A", 1, len(text)), other_puck("R-B", TB + GAP + 3, len(text))]
+    # Half a second apart, so the line is inside both windows (fix round 1 of step D: the window
+    # is a second either side of the STT span's end; at three seconds apart it is B's alone).
+    text = j.say(HH, TB + GAP + 0.5 + D.STT_END + 0.05, D.said(2))
+    runs = [D.early("R-A", 1, len(text)), other_puck("R-B", TB + GAP + 0.5, len(text))]
     sc.run(M30.FakeTempo(runs), NOW)
     rc, log = D.bf(sc, j.write(), "--apply", "--no-audio")
     assert rc == 0, log
     assert fills(log) == [], log
 
 
-@pytest.mark.xfail(strict=True, reason=WRONG)
 def test_a_line_that_is_the_transcript_of_a_row_with_words_is_not_given_to_its_neighbour(sc, tmp_path):
     """B has Tempo's words and the journal agrees with it. A, three seconds
     earlier, empty, the same count, has nothing of its own in the journal."""
@@ -82,7 +78,6 @@ def test_a_line_that_is_the_transcript_of_a_row_with_words_is_not_given_to_its_n
     assert sc.rows()["R-A"]["heard"] is None, "R-A holds R-B's words"
 
 
-@pytest.mark.xfail(strict=True, reason=WRONG + ": a gap in the middle of the journal")
 def test_a_gap_in_the_middle_of_the_journal_does_not_make_a_neighbours_line_the_only_one(sc, tmp_path):
     """The journal has entries before and after, so it 'covers' the run,
     but nothing between TB+GAP-5 and TB+GAP+4 (rotated away, or the unit was
@@ -136,7 +131,8 @@ def test_lines_that_look_like_transcripts_but_are_not(sc, tmp_path):
     # The same line from another unit, and from systemd about the unit.
     j.entries.append(D.entry("wyoming-piper.service", t, D.LOGGER + D.said(5)))
     j.entries.append(D.entry(HH, t, D.LOGGER + D.said(6), own=False))
-    sc.run(M30.FakeTempo([D.early("R-1", 1, None)]), NOW)
+    # A stored count (fix round 1 of step D: a row with none is left before the window is read).
+    sc.run(M30.FakeTempo([D.early("R-1", 1, len(D.said(5)))]), NOW)
     rc, log = D.bf(sc, j.write(), "--apply", "--no-audio")
     assert rc == 0, log
     assert sc.rows()["R-1"]["heard"] is None
@@ -174,9 +170,9 @@ def test_dev_and_household_seconds_apart_each_take_their_own_unit(sc, tmp_path):
                                  '{"resourceSpans":[{"scopeSpans":[{"spans":[{"name":"voice.stt"}]}]}]}',
                                  '{"resourceSpans":[{"scopeSpans":[{"spans":[{"name":"voice.stt",'
                                  '"startTimeUnixNano":"x","endTimeUnixNano":null}]}]}]}'])
-def test_a_raw_trace_that_is_not_a_trace_falls_back_to_the_whole_run(raw):
-    lo, hi, basis = BF.stt_window({"start_s": 100.0, "end_s": 110.0, "raw_trace": raw})
-    assert (lo, hi, basis) == (98.0, 115.0, "whole run")
+def test_a_raw_trace_that_is_not_a_trace_gives_no_window(raw):
+    """Fix round 1 of step D: no whole-run window; such a row is never filled."""
+    assert BF.stt_window({"start_s": 100.0, "end_s": 110.0, "raw_trace": raw}) is None
 
 
 # ═══ The second writer ══════════════════════════════════════════════════════
@@ -271,8 +267,11 @@ KILL = textwrap.dedent("""
 """)
 
 
-def test_a_kill_between_rows_leaves_the_record_whole_and_the_next_apply_finishes(sc, tmp_path):
+def test_a_kill_between_rows_leaves_the_record_whole_and_the_next_apply_finishes(sc, tmp_path, monkeypatch):
     n = 400
+    # Every row's trace read in the one export (fix round 1 of step D: a row with no voice.stt
+    # span is never filled, and the exporter reads 300 traces a run).
+    monkeypatch.setattr(EX, "TRACE_READS_MAX", n)
     sc.run(M30.FakeTempo(many(n)), NOW)
     before = sc.rows()
     journal = journal_for(tmp_path, n)

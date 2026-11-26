@@ -2,7 +2,7 @@
 
 **Shipped:** work item M30 step B (2026-11-25 build, fix round 1 the same
 day, `docs/sprint/M30-fix1.md`; promoted by the coordinator, who runs the
-first export with `--init` and then installs the timer). The backfill: step D (2026-11-26 build, `docs/sprint/M30-build4.md`). **Origin:**
+first export with `--init` and then installs the timer). The backfill: step D (2026-11-26 build, `docs/sprint/M30-build4.md`; its rule tightened by fix round 1, `docs/sprint/M30-fix5.md`). **Origin:**
 Drew, 2026-11-24: "i want to build a dataset of househould voice utterances
 because it will be useful for future work. back up the transcript db." and
 "the /work endpoint should also include all the stt transcriptions to help
@@ -297,23 +297,32 @@ included; voice_tracer strips the words it stores, and so does the
 backfill. A row is filled only when the match is certain:
 
 - `heard` is empty and the row is not removed;
+- it has a stored count (`heard_chars`) above 0, and a `voice.stt` span in
+  its `raw_trace`. A row with no count, a count of 0 (Whisper heard
+  nothing) or no span is never filled; there is no whole-run window;
 - exactly one transcript from the unit that served the run
   (`wyoming-whisper.service` for a household run,
   `wyoming-whisper-dev.service` for a dev one, by `is_dev`) falls in its
-  speech-to-text window: the `voice.stt` span in `raw_trace` (the whole run
-  when there is none), from 2 s before to 5 s after, the audio join's slack;
-  and the unit's journal covers the window;
-- that transcript's length equals `heard_chars`. A row with no stored
-  count is filled only when the match is the only transcript from the unit
-  within a minute of the window. A count of 0 (Whisper heard nothing) is
-  never filled.
+  window: the end of the `voice.stt` span, one second either side
+  (`STT_END_S`). Whisper logs the line as the span ends; on the live
+  record the line sat within 10 ms of the span's end for all 111 rows
+  measured. The unit's journal covers the window;
+- that transcript's length equals `heard_chars`;
+- the transcript is in no other run's window. Each journal line is one
+  run's: every row of the same unit with a `voice.stt` span is judged in
+  one pass (rows with Tempo's words, rows with no count or a count of 0,
+  empty rows alike), and a line inside the window of more than one of them
+  fills none. Two pucks that wake on the same "Okay Nabu" are the plain way
+  to get two runs that close. A removed row has no `raw_trace` (`--remove`
+  empties it), so it has no window and holds no line.
 
 A filled row gets `heard`, `heard_source = 'whisper_journal'`, a raised
 `seq` and `last_changed_at`; `heard_chars` stays Tempo's. Nothing is
 replaced, so nothing goes to `run_changes`. Everything else is left as it is
-and listed with its reason (removed, Whisper heard nothing, the journal
-does not cover the run, no transcript in the window, several, length
-differs, no stored count and not alone). The exporter keeps the words:
+and listed with its reason (removed, Whisper heard nothing, no stored
+count, no speech-to-text span, the journal does not cover the run, no
+transcript in the window, several, length differs, blank transcript, the
+transcript is in another run's window too). The exporter keeps the words:
 Tempo's empty text never replaces a stored value (rule 1), and the hourly
 check compares only the values Tempo has, so a filled row is neither
 differing nor missing.
@@ -358,7 +367,13 @@ python3 scripts/voice_runs_backfill.py --apply
 Without `--journal FILE` it reads `journalctl --user -u
 wyoming-whisper.service -u wyoming-whisper-dev.service -o json`. With
 `--apply` it takes the export's lock (waiting up to 55 s, exit 1 without
-it) and writes in one `BEGIN IMMEDIATE` transaction, the NAS scan included.
+it) and writes in one `BEGIN IMMEDIATE` transaction. Both recordings trees
+(local and NAS) are scanned first, before the lock and before any
+transaction, so a slow NAS holds up no export; the transaction holds only
+the reads of the record and the writes (`audio_joins` takes the scan as
+`recs`). A dry run that meets a hot rollback journal (an `--apply` killed
+mid-write) cannot roll it back read-only and says "a write was
+interrupted; the next export or --apply repairs it" (exit 1).
 It does not publish: the exporter's next run (a minute) publishes the filled
 rows, as for any raised `seq`. The output is run ids, counts, lengths and
 reasons, never words. `--no-audio` leaves the NAS out.

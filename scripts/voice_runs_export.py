@@ -833,7 +833,7 @@ def reopen_joins(conn, rows: list[dict], now: float) -> int:
                         "AND removed IS NULL AND audio_tried_at IS NOT NULL", (json.dumps(sorted(ids)),)).rowcount
 
 
-def audio_joins(conn, recordings: Path, now: float) -> tuple[dict, dict]:
+def audio_joins(conn, recordings: Path, now: float, recs: list | None = None) -> tuple[dict, dict]:
     """The audio join of every row not yet tried (audio_tried_at NULL), not
     removed, and final, by voice_label_sheet.join over all the record's
     rows and recordings that can compete with it (_closure). A row waits
@@ -843,7 +843,9 @@ def audio_joins(conn, recordings: Path, now: float) -> tuple[dict, dict]:
     report). 'ambiguous' is stored, never guessed. No recording for a row
     older than JOIN_NAS_AGE_S is NULL, not 'none': its recording may be on
     the NAS. A recordings directory that cannot be read leaves every row
-    untried, to be tried again."""
+    untried, to be tried again. `recs` is voice_label_sheet.scan(recordings)
+    when the caller scanned it already (the backfill scans the NAS before it
+    takes the lock); None scans here."""
     targets = [dict(r) for r in conn.execute(
         f"SELECT {JOIN_COLS} FROM runs WHERE audio_tried_at IS NULL AND removed IS NULL AND end_s < ? "
         "ORDER BY start_s", (now - FINAL_S,))]
@@ -851,11 +853,12 @@ def audio_joins(conn, recordings: Path, now: float) -> tuple[dict, dict]:
     if not targets:
         return {}, rep
     try:
-        if not stat.S_ISDIR(os.lstat(recordings).st_mode):
-            rep["audio_not_tried"] = f"the recordings directory {recordings} is not a directory"
-            return {}, rep
-        os.listdir(recordings)
-        recs = ls.scan(recordings)
+        if recs is None:
+            if not stat.S_ISDIR(os.lstat(recordings).st_mode):
+                rep["audio_not_tried"] = f"the recordings directory {recordings} is not a directory"
+                return {}, rep
+            os.listdir(recordings)
+            recs = ls.scan(recordings)
     except OSError as e:
         rep["audio_not_tried"] = f"the recordings directory {recordings} cannot be read ({e.strerror or e})"
         return {}, rep

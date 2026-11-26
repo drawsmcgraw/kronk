@@ -115,7 +115,7 @@ def house(sc, tmp_path):
     runs.append(early("R-fill", 1, len(said(1))))
     # 2. Two transcripts in the window.
     j.say(HH, at(2), said(2))
-    j.say(HH, at(2) + 3.0, said(22))
+    j.say(HH, at(2) + 0.5, said(22))
     runs.append(early("R-two", 2, len(said(2))))
     # 3. A length that differs.
     j.say(HH, at(3), said(3) + " more")
@@ -135,13 +135,13 @@ def house(sc, tmp_path):
     texts["R-dev-own"] = j.say(DEVU, at(7), said(7))
     runs.append(M30.vrun("R-dev-own", TB + 7 * GAP, service=M30.DEV, pipeline="kronk-dev",
                          stages="wake_word,stt,intent,tts", voice__transcript_chars=len(said(7))))
-    # 8. No stored count, alone within a minute: filled.
-    texts["R-nocount"] = j.say(HH, at(8), said(8))
+    # 8. No stored count, its transcript alone in the journal: left (fix round 1 of step D).
+    j.say(HH, at(8), said(8))
     runs.append(early("R-nocount", 8, None))
-    # 9. No stored count, another transcript 30 s later: left.
+    # 9. A stored count and its transcript, but no voice.stt span in the trace: left (no
+    #    whole-run window, fix round 1 of step D).
     j.say(HH, at(9), said(9))
-    j.say(HH, at(9) + 30, said(99))
-    runs.append(early("R-nocount-crowd", 9, None))
+    runs.append(early("R-nospan", 9, len(said(9)), children=False))
     # 10. Whisper heard nothing.
     runs.append(early("R-zero", 10, 0, voice__error_code="stt-no-text-recognized"))
     # 11. No transcript at all in the window.
@@ -161,7 +161,7 @@ def test_d1_a_certain_match_is_filled_and_each_other_row_is_left_with_its_reason
     rc, log = bf(sc, house["journal"], "--apply", "--no-audio")
     assert rc == 0, log
     rows = sc.rows()
-    for rid in ("R-fill", "R-dev-own", "R-nocount"):
+    for rid in ("R-fill", "R-dev-own"):
         r = rows[rid]
         assert r["heard"] == house["texts"][rid].strip(), rid
         assert r["heard_source"] == "whisper_journal"
@@ -173,9 +173,10 @@ def test_d1_a_certain_match_is_filled_and_each_other_row_is_left_with_its_reason
         "R-two": "several transcripts in the window: 2 from wyoming-whisper.service",
         "R-len": f"length differs: journal {len(said(3) + ' more')} characters, row {len(said(3))}",
         "R-removed": "removed",
-        "R-dev": "no transcript in the window: none from wyoming-whisper-dev.service (stt span); "
-                 "1 from wyoming-whisper.service",
-        "R-nocount-crowd": "no stored count, not alone: 1 other transcript(s)",
+        "R-dev": "no transcript in the window: none from wyoming-whisper-dev.service within 1 s of the "
+                 "stt span's end; 1 from wyoming-whisper.service",
+        "R-nocount": "no stored count",
+        "R-nospan": "no speech-to-text span: no voice.stt span in the trace",
         "R-zero": "Whisper heard nothing",
         "R-none": "no transcript in the window: none from wyoming-whisper.service",
     }
@@ -186,33 +187,38 @@ def test_d1_a_certain_match_is_filled_and_each_other_row_is_left_with_its_reason
     # The row with text is left too, and the journal agrees with what Tempo gave it.
     assert rows["R-has"] == before["R-has"]
     assert "the journal agrees" in lines_for(log, "R-has")[0]
-    assert "filled 3;" in log and "already with text 1 (the journal agrees on 1); left 7" in log
+    assert "filled 2;" in log and "already with text 1 (the journal agrees on 1); left 8" in log
     assert rows["R-removed"]["heard"] is None and rows["R-removed"]["removed"] is not None
     # Nothing replaced, so nothing in run_changes.
     assert sc.changes() == []
 
 
-def test_d1_the_window_is_the_stt_span_and_the_slack_of_the_audio_join(sc, tmp_path):
-    """A transcript logged just inside the STT span's end plus five seconds
-    is the run's; one just outside is not. Without a raw_trace the window is
-    the whole run."""
+def test_d1_the_window_is_the_end_of_the_stt_span_one_second_either_side(sc, tmp_path):
+    """A transcript logged just inside a second either side of the STT
+    span's end is the run's; one just outside is not. Without a voice.stt
+    span there is no window, and the row is left (fix round 1 of step D)."""
+    assert BF.STT_END_S == 1.0
     j = Journal(tmp_path / "w.json")
-    j.say(HH, TB + GAP + STT_END + LS.JOIN_AFTER_S - 0.01, said(1))
-    j.say(HH, TB + 2 * GAP + STT_END + LS.JOIN_AFTER_S + 0.01, said(2))
-    j.say(HH, TB + 3 * GAP - LS.JOIN_BEFORE_S + 0.01, said(3))
+    j.say(HH, TB + GAP + STT_END + BF.STT_END_S - 0.01, said(1))
+    j.say(HH, TB + 2 * GAP + STT_END + BF.STT_END_S + 0.01, said(2))
+    j.say(HH, TB + 3 * GAP + STT_END - BF.STT_END_S + 0.01, said(3))
+    j.say(HH, TB + 4 * GAP + STT_END - BF.STT_END_S - 0.01, said(4))
+    j.say(HH, at(5), said(5))
     runs = [early("R-in", 1, len(said(1))), early("R-out", 2, len(said(2))),
-            early("R-early", 3, len(said(3)), children=False)]
+            early("R-in-before", 3, len(said(3))), early("R-out-before", 4, len(said(4))),
+            early("R-nospan", 5, len(said(5)), children=False)]
     sc.run(M30.FakeTempo(runs), NOW)
     rc, log = bf(sc, j.write(), "--apply", "--no-audio")
     assert rc == 0, log
     rows = sc.rows()
-    assert rows["R-in"]["heard_source"] == "whisper_journal"
-    assert rows["R-out"]["heard"] is None and "no transcript in the window" in lines_for(log, "R-out")[0]
-    assert rows["R-early"]["heard_source"] == "whisper_journal" and "(whole run," in lines_for(log, "R-early")[0]
+    assert rows["R-in"]["heard_source"] == rows["R-in-before"]["heard_source"] == "whisper_journal"
+    for rid in ("R-out", "R-out-before"):
+        assert rows[rid]["heard"] is None and "no transcript in the window" in lines_for(log, rid)[0]
+    assert rows["R-nospan"]["heard"] is None and "no speech-to-text span" in lines_for(log, "R-nospan")[0]
 
 
 def test_d1_a_journal_that_does_not_cover_the_window_leaves_the_row(sc, tmp_path):
-    j = Journal(tmp_path / "w.json", start=TB + GAP + 1)       # begins inside R-1's window
+    j = Journal(tmp_path / "w.json", start=TB + GAP + STT_END)  # begins inside R-1's window
     j.say(HH, at(1), said(1))
     sc.run(M30.FakeTempo([early("R-1", 1, len(said(1)))]), NOW)
     rc, log = bf(sc, j.write(), "--apply", "--no-audio")
@@ -264,7 +270,7 @@ def test_d2_a_dry_run_does_not_change_the_records_bytes(sc, house, tmp_path):
     listing = sorted(os.listdir(sc.db.parent))
     rc, log = bf(sc, house["journal"], "--nas-recordings", str(nas))
     assert rc == 0, log
-    assert "dry run (no --apply)" in log and "would fill 3;" in log
+    assert "dry run (no --apply)" in log and "would fill 2;" in log
     assert sha(sc.db) == before
     st1 = os.stat(sc.db)
     assert (st1.st_mtime_ns, st1.st_size, st1.st_ino) == (st0.st_mtime_ns, st0.st_size, st0.st_ino)
@@ -277,7 +283,7 @@ def test_d2_a_dry_run_works_while_an_export_holds_the_lock_and_apply_waits_for_i
     fcntl.flock(fd, fcntl.LOCK_EX)
     try:
         rc, log = bf(sc, house["journal"], "--no-audio")
-        assert rc == 0 and "would fill 3;" in log
+        assert rc == 0 and "would fill 2;" in log
         monkeypatch.setattr(BF.ve, "LOCK_WAIT_S", 0.3)
         before = sha(sc.db)
         rc, log = bf(sc, house["journal"], "--apply", "--no-audio")
@@ -293,11 +299,11 @@ def test_d3_a_second_apply_changes_nothing(sc, house, tmp_path):
     nas = tmp_path / "nas" / "recordings"
     nas.mkdir(parents=True)
     rc, log = bf(sc, house["journal"], "--apply", "--nas-recordings", str(nas))
-    assert rc == 0 and "filled 3;" in log
+    assert rc == 0 and "filled 2;" in log
     rows1, sha1 = sc.rows(), sha(sc.db)
     rc, log = bf(sc, house["journal"], "--apply", "--nas-recordings", str(nas), now=NOW + 120)
     assert rc == 0, log
-    assert "filled 0;" in log and "already with text 4 (the journal agrees on 4)" in log
+    assert "filled 0;" in log and "already with text 3 (the journal agrees on 3)" in log
     assert sc.rows() == rows1
     assert sha(sc.db) == sha1                                           # nothing written: rolled back
 
@@ -307,7 +313,7 @@ def test_d3_a_second_apply_changes_nothing(sc, house, tmp_path):
 def test_d4_no_transcript_text_in_the_output(sc, house, tmp_path):
     nas = tmp_path / "nas" / "recordings"
     nas.mkdir(parents=True)
-    words = [said(n) for n in (1, 2, 22, 3, 4, 5, 6, 7, 8, 9, 99)]
+    words = [said(n) for n in (1, 2, 22, 3, 4, 5, 6, 7, 8, 9)]
     for extra in ((), ("--apply",)):
         rc, log = bf(sc, house["journal"], "--nas-recordings", str(nas), *extra)
         assert rc == 0
@@ -326,7 +332,7 @@ def test_d5_an_export_and_the_hourly_check_after_the_backfill_keep_the_words(sc,
     rc, log = bf(sc, house["journal"], "--apply", "--no-audio")
     assert rc == 0
     filled = {k: r for k, r in sc.rows().items() if r["heard_source"] == "whisper_journal"}
-    assert sorted(filled) == ["R-dev-own", "R-fill", "R-nocount"]
+    assert sorted(filled) == ["R-dev-own", "R-fill"]
     rc, log = sc.run(house["tempo"], NOW + 120, "--check-now")
     assert rc == 0, log
     rows = sc.rows()

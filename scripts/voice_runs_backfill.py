@@ -16,17 +16,21 @@ heard_source = 'whisper_journal'. A row is filled only when the match is
 certain:
 
 - its `heard` is empty and it is not removed;
+- it has a stored count (heard_chars, HA's voice.transcript_chars) above
+  zero, and a voice.stt span in its raw_trace;
 - exactly one transcript from the unit that served it (wyoming-whisper for
   a household run, wyoming-whisper-dev for a dev run, by `is_dev`) falls in
-  its speech-to-text window: the voice.stt span of its raw_trace, else the
-  whole run, widened by the audio join's slack (voice_label_sheet's
-  JOIN_BEFORE_S before, JOIN_AFTER_S after), and the journal of that unit
-  covers the window;
-- that transcript's length equals the row's heard_chars (HA's
-  voice.transcript_chars, counted on Whisper's text before voice_tracer
-  strips it, so Whisper's leading space counts), or, for a row with no
-  stored count, it is the only transcript from the unit within a minute of
-  the window.
+  its window: the end of that span, STT_END_S either side (Whisper logs the
+  line as the span ends; on the live record within 10 ms), and the journal
+  of that unit covers the window;
+- that transcript's length equals heard_chars (counted on Whisper's text
+  before voice_tracer strips it, so Whisper's leading space counts);
+- the transcript is in no other run's window: each journal line is one
+  run's. Every row of the unit with a voice.stt span is judged in the same
+  pass (rows with words, rows with no count or a count of 0, empty rows
+  alike), and a line inside the window of more than one of them fills
+  none. A removed row has no raw_trace (--remove empties it), so it has no
+  window and holds no line.
 
 Anything else is left as it is and listed with its reason. A filled row
 gets `heard` (the text stripped, as voice_tracer stores Tempo's),
@@ -50,9 +54,13 @@ audio_tried_at; audio_rel is the recording's name in HA's layout (the month
 dropped), as for every other row. The audio columns raise no seq and are
 not published.
 
-Without --apply: a report, and the record is opened read-only (its bytes do
-not change). With --apply: under the record's lock (waited for as --remove
-waits for it) and in one BEGIN IMMEDIATE transaction. The copies are not
+Both recordings trees are scanned first, before the lock is taken and
+before any transaction: the NAS scan can take minutes over SMB, and the
+exports must not wait for it. Without --apply: a report, and the record is
+opened read-only (its bytes do not change). With --apply: under the
+record's lock (waited for as --remove waits for it) and in one BEGIN
+IMMEDIATE transaction that holds only the reads of the record and the
+writes. The copies are not
 published here: the exporter's next run (a minute) publishes the filled
 rows, as it does any raised seq.
 
@@ -99,7 +107,7 @@ JOURNAL_CMD = ["journalctl", "--user", "-u", HOUSEHOLD_UNIT, "-u", DEV_UNIT, "-o
 JOURNAL_TIMEOUT_S = 300
 # dispatch_handler since wyoming-faster-whisper 3.x; handler before it.
 TRANSCRIPT_RE = re.compile(r"INFO:wyoming_faster_whisper\.(?:dispatch_)?handler:(.*)", re.S)
-ALONE_S = 60.0                  # a row with no stored count: the only transcript within this of its window
+STT_END_S = 1.0                 # the window: the end of the run's voice.stt span, this either side
 NAS_RECORDINGS = Path("/mnt/nas-backup/recordings")
 SOURCE = "whisper_journal"
 
@@ -184,20 +192,24 @@ def read_journal(path: str | None) -> Journal:
 
 # ═══ The words ══════════════════════════════════════════════════════════════
 
-def stt_window(row: dict) -> tuple[float, float, str]:
-    """The run's speech-to-text window, widened by the audio join's slack:
-    the voice.stt span of its raw_trace, else the whole run."""
-    lo, hi, basis = row["start_s"], row["end_s"], "whole run"
-    if row.get("raw_trace"):
-        try:
-            stored = json.loads(row["raw_trace"])
-            spans = ve.trace_spans({"trace": stored} if "resourceSpans" in stored else stored)
-            sp = next(s for s in spans if s.get("name") == "voice.stt")
-            lo, hi = int(sp["startTimeUnixNano"]) / 1e9, int(sp["endTimeUnixNano"]) / 1e9
-            basis = "stt span"
-        except (ValueError, TypeError, KeyError, StopIteration, ve.TempoError):
-            pass
-    return lo - ls.JOIN_BEFORE_S, hi + ls.JOIN_AFTER_S, basis
+def stt_window(row: dict) -> tuple[float, float] | None:
+    """The run's window: the end of the voice.stt span in its raw_trace,
+    STT_END_S either side. None when the trace has no such span (or is not
+    a trace): such a row is never filled."""
+    if not row.get("raw_trace"):
+        return None
+    try:
+        stored = json.loads(row["raw_trace"])
+        spans = ve.trace_spans({"trace": stored} if "resourceSpans" in stored else stored)
+        sp = next(s for s in spans if s.get("name") == "voice.stt")
+        end = int(sp["endTimeUnixNano"]) / 1e9
+    except (ValueError, TypeError, KeyError, StopIteration, ve.TempoError):
+        return None
+    return end - STT_END_S, end + STT_END_S
+
+
+def unit_of(row: dict) -> str:
+    return UNIT_OF[1 if row["is_dev"] else 0]
 
 
 def decide(row: dict, j: Journal) -> tuple[str, str, str, str | None]:
@@ -208,12 +220,14 @@ def decide(row: dict, j: Journal) -> tuple[str, str, str, str | None]:
     for the counts; the detail carries lengths and times, never words."""
     if row["removed"] is not None:
         return "left", "removed", "", None
-    unit = UNIT_OF[1 if row["is_dev"] else 0]
+    unit = unit_of(row)
     other = UNIT_OF[0 if row["is_dev"] else 1]
-    lo, hi, basis = stt_window(row)
-    inside = j.between(unit, lo, hi)
+    w = stt_window(row)
     chars = row["heard_chars"]
     if not ve.empty(row["heard"]):
+        if w is None:
+            return "has", "not compared", "no voice.stt span in the trace", None
+        inside = j.between(unit, *w)
         if (len(inside) == 1 and (chars is None or len(inside[0].text) == chars)
                 and inside[0].text.strip() == row["heard"]):
             return "has", "the journal agrees", "one transcript in the window, the same length and words", None
@@ -224,66 +238,101 @@ def decide(row: dict, j: Journal) -> tuple[str, str, str, str | None]:
         return "has", "the journal does not agree", detail, None
     if chars == 0:
         return "left", "Whisper heard nothing", "heard_chars 0", None
-    widen = ALONE_S if chars is None else 0.0
+    if chars is None:
+        return "left", "no stored count", "voice.transcript_chars was not recorded", None
+    if w is None:
+        return "left", "no speech-to-text span", "no voice.stt span in the trace", None
+    lo, hi = w
     if unit not in j.first:
         return "left", "the journal does not cover the run", f"nothing from {unit}", None
-    if j.first[unit] > lo - widen:
+    if j.first[unit] > lo:
         return "left", "the journal does not cover the run", (
-            f"{unit} from {iso(j.first[unit])}, the window opens {iso(lo - widen)}"), None
-    if j.last[unit] < hi + widen:
+            f"{unit} from {iso(j.first[unit])}, the window opens {iso(lo)}"), None
+    if j.last[unit] < hi:
         return "left", "the journal does not cover the run", (
-            f"{unit} to {iso(j.last[unit])}, the window closes {iso(hi + widen)}"), None
+            f"{unit} to {iso(j.last[unit])}, the window closes {iso(hi)}"), None
+    inside = j.between(unit, lo, hi)
+    where = f"within {STT_END_S:g} s of the stt span's end"
     if not inside:
         n_other = len(j.between(other, lo, hi))
         return "left", "no transcript in the window", (
-            f"none from {unit} ({basis})" + (f"; {n_other} from {other}" if n_other else "")), None
+            f"none from {unit} {where}" + (f"; {n_other} from {other}" if n_other else "")), None
     if len(inside) > 1:
-        return "left", "several transcripts in the window", f"{len(inside)} from {unit} ({basis})", None
+        return "left", "several transcripts in the window", f"{len(inside)} from {unit} {where}", None
     tx = inside[0]
-    if chars is None:
-        near = j.between(unit, lo - ALONE_S, hi + ALONE_S)
-        if len(near) > 1:
-            return "left", "no stored count, not alone", (
-                f"{len(near) - 1} other transcript(s) from {unit} within {ALONE_S:g} s of the window"), None
-        detail = f"no stored count; the only transcript from {unit} within {ALONE_S:g} s, {len(tx.text)} characters"
-    elif len(tx.text) != chars:
+    if len(tx.text) != chars:
         return "left", "length differs", f"journal {len(tx.text)} characters, row {chars}", None
-    else:
-        detail = f"journal {len(tx.text)} characters = row {chars}"
     if not tx.text.strip():
         return "left", "blank transcript", f"{len(tx.text)} characters, all space", None
-    return "fill", "certain", f"{detail} ({basis}, {unit})", tx.text.strip()
+    return "fill", "certain", (f"journal {len(tx.text)} characters = row {chars} "
+                               f"({tx.t - (lo + STT_END_S):+.2f} s from the stt span's end, {unit})"), tx.text.strip()
+
+
+def one_run_per_line(rows: list[dict], words: list[tuple], j: Journal) -> list[tuple]:
+    """Each journal line is one run's. A fill whose line is also inside the
+    window of another row of the same unit (any row with a voice.stt span:
+    one with words, with no count or a count of 0, empty) is left: neither
+    run is certain to be the one that heard it. A removed row has no
+    raw_trace, so no window, and holds no line."""
+    held: dict = {}                                 # id(Transcript) -> run_ids whose window holds it
+    for r in rows:
+        w = stt_window(r)
+        if w is not None:
+            for x in j.between(unit_of(r), *w):
+                held.setdefault(id(x), []).append(r["run_id"])
+    out = []
+    for r, (rid, what, why, detail, text) in zip(rows, words):
+        if what == "fill":
+            (x,) = j.between(unit_of(r), *stt_window(r))
+            others = [o for o in held[id(x)] if o != rid]
+            if others:
+                what, why, text = "left", "the transcript is in another run's window too", None
+                detail = f"also inside the window of {', '.join(others)} ({unit_of(r)})"
+        out.append((rid, what, why, detail, text))
+    return out
 
 
 # ═══ The audio, against the NAS layout ══════════════════════════════════════
 
-def nas_audio(conn, local: Path, nas: Path, now: float) -> tuple[dict, dict, dict]:
+def scan_audio(local: Path, nas: Path | None) -> dict:
+    """Both recordings trees, scanned before the record's lock is taken and
+    before any transaction (the NAS scan is three system calls a file over
+    SMB). {'off': True} with --no-audio; {'skipped': why} when a tree cannot
+    be read; else {'local': [...], 'nas': [...]}, voice_label_sheet.scan's
+    recordings. Reads no record."""
+    if nas is None:
+        return {"off": True}
+    out: dict = {"local_root": local}
+    for key, root, what in (("local", local, "the local recordings directory"),
+                            ("nas", nas, "the NAS recordings archive")):
+        try:
+            if not stat.S_ISDIR(os.lstat(root).st_mode):
+                return {"skipped": f"{what} {root} is not a directory"}
+            os.listdir(root)
+            out[key] = ls.scan(root)
+        except OSError as e:
+            return {"skipped": f"{what} {root} cannot be read ({e.strerror or e})"}
+    return out
+
+
+def nas_audio(conn, scans: dict, nas: Path, now: float) -> tuple[dict, dict, dict]:
     """The audio join of every row stored "not tried" (audio_join NULL,
     audio_tried_at set, not removed) against the NAS layout, by the
     exporter's audio_joins over an in-memory copy of the runs in which only
-    those rows are untried. Returns ({run_id: (join, rel, bytes, mtime_ns)}
-    for certain and ambiguous answers, {run_id: why} for the rest, the
-    report). Reads the record; writes nothing."""
+    those rows are untried, given the NAS recordings scan_audio found.
+    Returns ({run_id: (join, rel, bytes, mtime_ns)} for certain and
+    ambiguous answers, {run_id: why} for the rest, the report). Reads the
+    record; writes nothing; scans no tree."""
     targets = [dict(r) for r in conn.execute(
         f"SELECT {ve.JOIN_COLS} FROM runs WHERE audio_join IS NULL AND audio_tried_at IS NOT NULL "
         "AND removed IS NULL ORDER BY start_s, run_id")]
     rep: dict = {"not_tried": len(targets)}
     if not targets:
         return {}, {}, rep
-    for root, what in ((local, "the local recordings directory"), (nas, "the NAS recordings archive")):
-        try:
-            if not stat.S_ISDIR(os.lstat(root).st_mode):
-                rep["skipped"] = f"{what} {root} is not a directory"
-                return {}, {}, rep
-            os.listdir(root)
-        except OSError as e:
-            rep["skipped"] = f"{what} {root} cannot be read ({e.strerror or e})"
-            return {}, {}, rep
-    try:
-        local_recs = ls.scan(local)
-    except OSError as e:
-        rep["skipped"] = f"the local recordings directory {local} cannot be read ({e.strerror or e})"
+    if "skipped" in scans:
+        rep["skipped"] = scans["skipped"]
         return {}, {}, rep
+    local_recs = scans["local"]
     mem = sqlite3.connect(":memory:")
     mem.row_factory = sqlite3.Row
     try:
@@ -298,13 +347,13 @@ def nas_audio(conn, local: Path, nas: Path, now: float) -> tuple[dict, dict, dic
         for t in targets:
             _, near_local = ve._closure(mem, t, local_recs)
             if near_local:
-                left[t["run_id"]] = f"{len(near_local)} recording(s) still under {local} in its window; left as it is"
+                left[t["run_id"]] = f"{len(near_local)} recording(s) still under {scans['local_root']} in its window; left as it is"
             else:
                 ids.append(t["run_id"])
         if ids:
             mem.execute("UPDATE runs SET audio_tried_at = NULL WHERE run_id IN (SELECT value FROM json_each(?))",
                         (json.dumps(ids),))
-        answers, jrep = ve.audio_joins(mem, nas, now)
+        answers, jrep = ve.audio_joins(mem, nas, now, recs=scans["nas"])
     finally:
         mem.close()
     if jrep.get("audio_not_tried"):
@@ -335,10 +384,11 @@ def iso(t: float) -> str:
     return dt.datetime.fromtimestamp(t).astimezone().isoformat(timespec="seconds")
 
 
-def plan(conn, j: Journal, local: Path, nas: Path | None, now: float) -> dict:
+def plan(conn, j: Journal, scans: dict, nas: Path | None, now: float) -> dict:
     rows = [dict(r) for r in conn.execute("SELECT * FROM runs ORDER BY start_s, run_id")]
-    words = [(r["run_id"], *decide(r, j)) for r in rows]
-    audio, audio_left, arep = nas_audio(conn, local, nas, now) if nas is not None else ({}, {}, {"off": True})
+    words = one_run_per_line(rows, [(r["run_id"], *decide(r, j)) for r in rows], j)
+    audio, audio_left, arep = (({}, {}, {"off": True}) if scans.get("off")
+                               else nas_audio(conn, scans, nas, now))
     return {"words": words, "audio": audio, "audio_left": audio_left, "audio_report": arep}
 
 
@@ -383,6 +433,16 @@ def open_read_only(db: Path) -> sqlite3.Connection:
         conn.close()
         raise ve.RecordError(f"{db} is not a voice-run record of schema {ve.SCHEMA} (schema {v})")
     return conn
+
+
+INTERRUPTED = ("FAILED: a write was interrupted; the next export or --apply repairs it. "
+               "Nothing read, nothing written")
+
+
+def interrupted(e: BaseException) -> bool:
+    """A read-only opener met a hot rollback journal (a writer killed
+    mid-transaction): it cannot roll it back, the next writer does."""
+    return getattr(e, "sqlite_errorcode", None) == sqlite3.SQLITE_READONLY_ROLLBACK
 
 
 def report(p: dict, j: Journal, log, applied: tuple[int, int] | None) -> None:
@@ -455,17 +515,18 @@ def main(argv=None, now: float | None = None, out=None) -> int:
         return 1
     local = Path(args.recordings).expanduser()
     nas = None if args.no_audio else Path(args.nas_recordings).expanduser()
+    scans = scan_audio(local, nas)                  # before the lock and any transaction
     if not args.apply:
         log("dry run (no --apply): the record is opened read-only and nothing is written")
         try:
             conn = open_read_only(db)
         except (ve.RecordError, OSError, sqlite3.Error) as e:
-            log(f"FAILED: the record cannot be opened: {e}")
+            log(INTERRUPTED if interrupted(e) else f"FAILED: the record cannot be opened: {e}")
             return 1
         try:
-            p = plan(conn, j, local, nas, now)
+            p = plan(conn, j, scans, nas, now)
         except sqlite3.Error as e:
-            log(f"FAILED: the record could not be read: {type(e).__name__}: {e}")
+            log(INTERRUPTED if interrupted(e) else f"FAILED: the record could not be read: {type(e).__name__}: {e}")
             return 1
         finally:
             conn.close()
@@ -490,7 +551,7 @@ def main(argv=None, now: float | None = None, out=None) -> int:
         try:
             conn.execute("BEGIN IMMEDIATE")
             try:
-                p = plan(conn, j, local, nas, now)
+                p = plan(conn, j, scans, nas, now)
                 done = apply(conn, p, now)
                 conn.execute("COMMIT" if any(done) else "ROLLBACK")
             except BaseException:
