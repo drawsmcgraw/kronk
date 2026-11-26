@@ -933,8 +933,8 @@ def test_import_refuses_a_seed_it_cannot_read(wk, db, repo, legacy, tmp_path):
 
 
 def test_import_compares_with_a_work_json_item_for_item(wk, db, repo, legacy, tmp_path):
-    we = _load("m33_we", REPO / "scripts" / "work_export.py")
-    data = we.collect(repo)
+    we = _load("m33_we", os.environ.get("M27_WORK_EXPORT", REPO / "scripts" / "work_export.py"))
+    data = we.collect_legacy(repo)            # the import-only reader (M34): import-legacy compares with it
     p = tmp_path / "work.json"
     p.write_text(json.dumps(data))
     lines = Tool(wk, db, repo).j("import-legacy", "--at", legacy["at"], "--seed", legacy["seed"], "--compare", p)

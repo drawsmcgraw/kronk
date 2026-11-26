@@ -1,5 +1,12 @@
 """scripts/work_export.py, the host exporter behind /work (work item M27).
 
+Since M34 the live path reads the work-state database's dump; the reader
+of PROMOTIONS.md and the step files is collect_legacy(), import-only
+(work.py import-legacy and check use it). The in-process tests here pin
+that reader; the ones that run the script give it a scratch database made
+by `work.py import-legacy` from the fixture tree itself, so the same
+fixtures hold for both paths.
+
 It runs from the working tree on a timer every minute while agents commit
 in the same tree, and production reads what it writes. So these tests pin:
 the verdict rule and the file grammar (criteria 1, 2), the stage table
@@ -33,6 +40,19 @@ REPO = Path(__file__).resolve().parent.parent
 SCRIPT = Path(os.environ.get("M27_WORK_EXPORT", REPO / "scripts" / "work_export.py"))
 BASE_PATH = "/usr/bin:/bin"
 MARKER = "QQ-SECRET-MARKER-7731"
+
+
+WORK_TOOL = SCRIPT.parent / "work.py"        # the work.py beside the exporter under test
+
+
+def import_db(tree: Path, root: Path) -> Path:
+    """A scratch work-state database of the tree as it stands (work.py
+    import-legacy at HEAD, no seed), with its dump. Never the live one."""
+    db = root / "state" / "work.db"
+    subprocess.run([sys.executable, "-B", str(WORK_TOOL), "--db", str(db), "--repo", str(tree), "import-legacy",
+                    "--at", "HEAD"], env=dict(os.environ, PATH=BASE_PATH), check=True, capture_output=True,
+                   timeout=60)
+    return db
 
 
 def _load():
@@ -240,7 +260,7 @@ def test_verdict_on_line_41_is_not_read(we, tmp_path, path_with):
         ("2026-11-02T11:00:00-05:00", {"M9-e2e.md": report("Verdict: FAILS", n_blank=39),
                                        "M9-e2e2.md": report("Verdict: PASSES", n_blank=38)}),
     ])
-    out = we.collect(tree)
+    out = we.collect_legacy(tree)
     steps = {s["file"]: s for s in by_id(out)["M9"]["steps"]}
     assert steps["M9-e2e.md"]["verdicts"] == []            # line 41
     assert steps["M9-e2e2.md"]["verdicts"][0]["line"] == 40
@@ -252,7 +272,7 @@ def test_report_with_no_verdict_and_a_word_in_a_sentence(we, tmp_path, path_with
         ("2026-11-02T10:00:00-05:00", {"M9-criteria.md": crit("M9"),
                                        "M9-e2e.md": "# M9 test\n\nFirst test (FAILS): see below.\nNo verdict.\n"}),
     ])
-    out = we.collect(tree)
+    out = we.collect_legacy(tree)
     (t,) = [s for s in by_id(out)["M9"]["steps"] if s["kind"] == "test"]
     assert t["verdicts"] == []
     assert any(n["file"] == "M9-e2e.md" for n in out["not_read"])
@@ -282,7 +302,7 @@ def test_other_suffixes_are_steps_and_named_never_tests(we, tmp_path, path_with)
                                        "M3-e2e2-rows.md": "# rows\n\nVerdict: PASSES\n"}),
         ("2026-11-02T12:00:00-05:00", {"M6-audit.md": "# M6 audit: what listens\n\nbody\n"}),
     ])
-    out = we.collect(tree)
+    out = we.collect_legacy(tree)
     m3 = by_id(out)["M3"]
     assert [s["file"] for s in m3["steps"]] == ["M3-criteria.md", "M3-e2e2.md", "M3-e2e2-rows.md"]
     rows = m3["steps"][2]
@@ -387,7 +407,7 @@ def test_live_agents_through_a_fake_herdr(we, tmp_path, path_with):
         agent("investigator", "idle", tree),               # name not <item>-<role>
         agent("m9-review", "working", other),              # another repo: counted only
     ]))
-    out = we.collect(tree)
+    out = we.collect_legacy(tree)
     m9 = by_id(out)["M9"]
     assert out["under_way"] == ["M9"]
     assert m9["stage"]["detail"] == "testing, agent m9-test working"
@@ -407,13 +427,13 @@ def test_live_agents_through_a_fake_herdr(we, tmp_path, path_with):
 def test_coordinator_word(we, tmp_path, path_with, status, word):
     tree = make_tree(tmp_path, UNDER_WAY_TREE)
     path_with(herdr_bin(tmp_path, [agent(None, status, tree)]))
-    assert we.collect(tree)["herdr"]["coordinator"]["word"] == word
+    assert we.collect_legacy(tree)["herdr"]["coordinator"]["word"] == word
 
 
 def test_zero_agents_is_not_the_same_as_not_known(we, tmp_path, path_with):
     tree = make_tree(tmp_path, UNDER_WAY_TREE)
     path_with(herdr_bin(tmp_path, []))
-    out = we.collect(tree)
+    out = we.collect_legacy(tree)
     assert out["herdr"]["known"] is True and out["herdr"]["seen"] == 0
     assert out["herdr"]["coordinator"]["word"] == "not seen"
     assert by_id(out)["M9"]["stage"]["detail"] == "build in, not tested"
@@ -422,7 +442,7 @@ def test_zero_agents_is_not_the_same_as_not_known(we, tmp_path, path_with):
 def test_two_unnamed_panes_make_the_coordinator_not_known(we, tmp_path, path_with):
     tree = make_tree(tmp_path, UNDER_WAY_TREE)
     path_with(herdr_bin(tmp_path, [agent(None, "working", tree), agent(None, "done", tree)]))
-    c = we.collect(tree)["herdr"]["coordinator"]
+    c = we.collect_legacy(tree)["herdr"]["coordinator"]
     assert c["word"] == "not known" and "2 unnamed agents" in c["reason"]
 
 
@@ -435,7 +455,7 @@ def test_herdr_unreachable_means_agent_state_not_known(we, tmp_path, path_with, 
         path_with(herdr_bin(tmp_path, rc=0, body="herdr: something went wrong"))
     elif how == "no_list":
         path_with(herdr_bin(tmp_path, rc=0, body='{"result":{}}'))
-    out = we.collect(tree)
+    out = we.collect_legacy(tree)
     h = out["herdr"]
     assert h["known"] is False and h["seen"] is None and h["coordinator"]["word"] == "not known"
     assert by_id(out)["M9"]["stage"]["by"] == "files"
@@ -448,11 +468,12 @@ def test_herdr_unreachable_means_agent_state_not_known(we, tmp_path, path_with, 
 
 def test_hung_herdr_is_cut_at_5_s_and_the_file_is_written_within_10(tmp_path):
     tree = make_tree(tmp_path, UNDER_WAY_TREE)
+    db = import_db(tree, tmp_path)
     bindir = herdr_bin(tmp_path, [], sleep=30)
     out = tmp_path / "out" / "work.json"
     env = dict(os.environ, PATH=f"{bindir}:{BASE_PATH}")
     t0 = time.monotonic()
-    subprocess.run([sys.executable, "-B", str(SCRIPT), "--repo", str(tree), "--out", str(out)],
+    subprocess.run([sys.executable, "-B", str(SCRIPT), "--repo", str(tree), "--db", str(db), "--out", str(out)],
                    env=env, check=True, timeout=20)
     took = time.monotonic() - t0
     data = json.loads(out.read_text())
@@ -469,7 +490,7 @@ def test_only_name_and_status_leave_herdr(we, tmp_path, path_with):
               agent_session={"value": f"{MARKER}-sess"}, foreground_cwd=f"/home/{MARKER}"),
         agent("m9-fix1", "idle", f"/home/{MARKER}/elsewhere"),
     ]))
-    out = we.collect(tree)
+    out = we.collect_legacy(tree)
     assert MARKER not in json.dumps(out)
     assert by_id(out)["M9"]["agents"] == [{"name": "m9-test", "status": "working", "role": "test"}]
 
@@ -548,7 +569,7 @@ DONE_TREE = [
 
 def test_open_entry_linked_to_an_item_under_way_moves_to_it(we, tmp_path, path_with):
     tree = make_tree(tmp_path, DONE_TREE)
-    out = we.collect(tree)
+    out = we.collect_legacy(tree)
     assert out["under_way"] == ["M5-step2", "M7", "M8"]
     items = by_id(out)
     assert [e["title"] for e in items["M7"]["roadmap"]] == ["Wrapped lead"]
@@ -562,7 +583,7 @@ def test_open_entry_linked_to_an_item_under_way_moves_to_it(we, tmp_path, path_w
 
 def test_done_is_promotions_in_reverse_file_order(we, tmp_path, path_with):
     tree = make_tree(tmp_path, DONE_TREE)
-    out = we.collect(tree)
+    out = we.collect_legacy(tree)
     got = [(r["id"], r["tag"], r["date"], r["for_drew"], r["for_drew_total"], [n["heading"] for n in r["notes"]])
            for r in out["done"]]
     assert got == [
@@ -589,7 +610,7 @@ def test_done_is_promotions_in_reverse_file_order(we, tmp_path, path_with):
 
 def test_linked_shipped_entries_go_on_the_items_row_not_below(we, tmp_path, path_with):
     tree = make_tree(tmp_path, DONE_TREE)
-    out = we.collect(tree)
+    out = we.collect_legacy(tree)
     items = by_id(out)
     assert [s["title"] for s in items["M2"]["shipped"]] == ["Backups"]
     assert [s["title"] for s in items["M2b"]["shipped"]] == ["Backups"]
@@ -627,7 +648,7 @@ def test_marker_in_every_body_is_nowhere_in_the_export(we, tmp_path, path_with):
     ], roadmap=roadmap, promotions=promotions)
     path_with(herdr_bin(tmp_path, [agent("m9-fix1", "working", tree, terminal_title=M,
                                          agent_session={"value": M})]))
-    text = json.dumps(we.collect(tree), ensure_ascii=False)
+    text = json.dumps(we.collect_legacy(tree), ensure_ascii=False)
     assert M not in text
     assert "the handoff." in text and "M9 pass criteria" in text
 
@@ -654,7 +675,8 @@ def leaked_lines(repo: Path, export: dict) -> list[str]:
     # parts). The rest is checked.
     def strip(x):
         if isinstance(x, dict):
-            return {k: strip(v) for k, v in x.items() if k not in ("title", "handoff", "lead", "text", "fold")}
+            return {k: strip(v) for k, v in x.items()
+                    if k not in ("title", "short_title", "handoff", "source", "lead", "text", "fold")}
         if isinstance(x, list):
             return [strip(v) for v in x]
         return x
@@ -694,7 +716,7 @@ def test_git_commands_are_the_three_and_lockless(we, tmp_path, path_with, monkey
         calls.append((cmd, env))
         return real(cmd, cwd, timeout, env)
     monkeypatch.setattr(we, "run", spy)
-    we.collect(tree)
+    we.collect_legacy(tree)
     gits = [c for c in calls if c[0][0] == "git"]
     assert {c[0][2] for c in gits} == {"rev-parse", "log", "for-each-ref"}
     for cmd, env in gits:
@@ -708,6 +730,7 @@ def test_git_commands_are_the_three_and_lockless(we, tmp_path, path_with, monkey
 @pytest.mark.skipif(not shutil.which("strace"), reason="strace not installed")
 def test_under_strace_no_lock_no_other_write_no_socket(tmp_path):
     tree = make_tree(tmp_path, UNDER_WAY_TREE)
+    db = import_db(tree, tmp_path)
     bindir = herdr_bin(tmp_path, [agent("m9-test", "working", tree)])
     outdir = tmp_path / "out"
     (outdir / "dev").mkdir(parents=True)
@@ -715,7 +738,7 @@ def test_under_strace_no_lock_no_other_write_no_socket(tmp_path):
     env = dict(os.environ, PATH=f"{bindir}:{BASE_PATH}")
     r = subprocess.run(["strace", "-f", "-qq", "-o", str(trace), "-e",
                         "trace=openat,open,creat,socket,connect,rename,renameat,renameat2,unlink,unlinkat,mkdir,mkdirat",
-                        sys.executable, "-B", str(SCRIPT), "--repo", str(tree),
+                        sys.executable, "-B", str(SCRIPT), "--repo", str(tree), "--db", str(db),
                         "--out", str(outdir / "work.json"), "--out", str(outdir / "dev" / "work.json")],
                        env=env, capture_output=True, text=True, timeout=30)
     if r.returncode != 0 and "ptrace" in (r.stderr or ""):
@@ -730,6 +753,9 @@ def test_under_strace_no_lock_no_other_write_no_socket(tmp_path):
     assert len(renames) == 2
     assert not [l for l in lines if l.split(" ", 1)[-1].startswith(("socket(", "connect("))]
     assert not [l for l in lines if "unlink" in l and "= 0" in l]
+    # M34 criterion 5: in the database's directory only the dump is opened, read-only.
+    beside = [l for l in lines if f'"{db.parent}/' in l and "= -1" not in l]
+    assert beside and all(f'"{db}.dump.sql"' in l and "O_RDONLY" in l for l in beside), beside
     assert json.loads((outdir / "work.json").read_text())["under_way"] == ["M9"]
 
 
@@ -777,7 +803,7 @@ def test_does_not_fail_on_bad_files_and_lists_untracked(we, tmp_path, path_with)
         ("2026-11-02T11:00:00-05:00", {"M9-build.md": "", "M9-e2e.md": b"\x00\x01\xff binary\x00",
                                        "notes.md": "# not an item\n"}),
     ], untracked={"M9-fix1.md": "# M9 fix 1\n", "M10-criteria.md": "# M10 pass criteria\n"})
-    out = we.collect(tree)
+    out = we.collect_legacy(tree)
     m9 = by_id(out)["M9"]
     assert [s["file"] for s in m9["steps"]] == ["M9-criteria.md", "M9-build.md", "M9-e2e.md"]
     assert [(s["file"], s["committed_at"]) for s in m9["uncommitted"]] == [("M9-fix1.md", None)]
@@ -796,7 +822,7 @@ def test_missing_roadmap_and_promotions_are_named_not_fatal(we, tmp_path, path_w
     tree = make_tree(tmp_path, UNDER_WAY_TREE)
     (tree / "ROADMAP.md").unlink()
     (tree / "docs" / "sprint" / "PROMOTIONS.md").write_bytes(b"\x00binary")
-    out = we.collect(tree)
+    out = we.collect_legacy(tree)
     why = {n["file"]: n["why"] for n in out["not_read"]}
     assert why["ROADMAP.md"] == "missing" and why["PROMOTIONS.md"] == "binary"
     assert out["backlog"] == [] and out["done"] == []
@@ -807,7 +833,7 @@ def test_detached_head_and_rebase_in_progress(we, tmp_path, path_with):
     tree = make_tree(tmp_path, UNDER_WAY_TREE)
     git(tree, "checkout", "-q", "--detach", "HEAD~1")      # before M1-criteria.md
     (tree / ".git" / "rebase-merge").mkdir()
-    out = we.collect(tree)
+    out = we.collect_legacy(tree)
     assert out["repo"]["detached"] is True and out["repo"]["branch"] is None
     assert out["repo"]["rebase"] is True and len(out["repo"]["head"]) >= 7
     m1 = by_id(out)["M1"]                                  # named by PROMOTIONS.md only
@@ -819,7 +845,7 @@ def test_not_a_git_repo_still_writes(we, tmp_path, path_with):
     tree = tmp_path / "plain"
     (tree / "docs" / "sprint").mkdir(parents=True)
     (tree / "docs" / "sprint" / "M9-criteria.md").write_text("# M9\n")
-    out = we.collect(tree)
+    out = we.collect_legacy(tree)
     assert out["repo"]["error"] and out["errors"]
     assert by_id(out)["M9"]["uncommitted"][0]["file"] == "M9-criteria.md"
 
@@ -830,38 +856,42 @@ def test_default_outputs_are_data_and_data_dev(we, tmp_path, path_with, monkeypa
     monkeypatch.setattr(we, "write", lambda p, d: written.append(p))
     assert we.main(["--repo", str(tree)]) == 0
     assert written == [tree / "data" / "work.json", tree / "data" / "dev" / "work.json"]
-    assert we.SCHEMA == 1 and we.HERDR_TIMEOUT_S == 5
+    assert we.SCHEMA == 2 and we.HERDR_TIMEOUT_S == 5
 
 
 # ── the real tree (read only; herdr left off PATH) ────────────────────────────
+# Since M34 the exporter reads a database: the real tree's files are
+# imported at HEAD into a scratch one (work.py import-legacy, no seed), and
+# the exporter reads its dump. The live database and its dump are never read.
 
 @pytest.fixture(scope="module")
-def real():
+def real(tmp_path_factory):
     if not (REPO / ".git").exists():
         pytest.skip("not a git working tree")
+    db = import_db(REPO, tmp_path_factory.mktemp("m27-real"))
     env = dict(os.environ, PATH=BASE_PATH)
     t0 = time.monotonic()
-    r = subprocess.run([sys.executable, "-B", str(SCRIPT), "--repo", str(REPO), "--print"],
+    r = subprocess.run([sys.executable, "-B", str(SCRIPT), "--repo", str(REPO), "--db", str(db), "--print"],
                        env=env, capture_output=True, text=True, timeout=30, check=True)
     return json.loads(r.stdout), time.monotonic() - t0
 
 
 def test_real_tree_runs_under_1_s(real):
     data, took = real
-    assert took < 1.0 and data["run_s"] < 1.0
-    assert data["errors"] == []
+    assert took < 1.0 and data["run_s"] < 0.5
+    assert data["errors"] == [] and data["database"]["state"] == "ok"
 
 
 def test_real_tree_every_test_report_has_a_verdict(real):
     data, _ = real
-    tests = [s for it in data["items"] for s in it["steps"] + it["uncommitted"] if s["kind"] == "test"]
+    tests = [s for it in data["items"] for s in it["steps"] if s["kind"] == "test"]
     assert len(tests) >= 49
     assert [s["file"] for s in tests if not s["verdicts"]] == []
+    # One verdict per step since M34: the item's own (the second subject is prose in the row's note).
     m4b = {s["file"]: s for s in by_id(data)["M4b"]["steps"]}["M4b-e2e.md"]
-    assert [(v["written"], v["verdict"], v["line"]) for v in m4b["verdicts"]] == \
-        [("RESTORE", "PASSES", 11), ("M4B", "FAILS", 13)]
-    assert {"file": "M3-e2e2-rows.md", "why": "step 'e2e2-rows' is not a known step (listed under its name)"} \
-        in data["not_read"]
+    assert [(v["subject"], v["verdict"]) for v in m4b["verdicts"]] == [("item", "FAILS")]
+    rows = {s["file"]: s for s in by_id(data)["M3"]["steps"]}["M3-e2e2-rows.md"]
+    assert (rows["kind"], rows["name"]) == ("other", "e2e2-rows")
 
 
 def test_real_tree_outline_only(real):
@@ -881,9 +911,10 @@ def test_an_agent_in_a_shape_not_read_is_counted_and_skipped(tmp_path, bad):
     odd = agent("m9-fix1", "working", tree)
     odd.update(bad)
     bindir = herdr_bin(tmp_path, [agent(None, "done", tree), agent("m9-test", "working", tree), odd])
+    db = import_db(tree, tmp_path)
     out = tmp_path / "out" / "work.json"
     env = dict(os.environ, PATH=f"{bindir}:{BASE_PATH}")
-    r = subprocess.run([sys.executable, "-B", str(SCRIPT), "--repo", str(tree), "--out", str(out)],
+    r = subprocess.run([sys.executable, "-B", str(SCRIPT), "--repo", str(tree), "--db", str(db), "--out", str(out)],
                        env=env, capture_output=True, text=True, timeout=20)
     assert r.returncode == 0, r.stderr
     data = json.loads(out.read_text())
@@ -921,7 +952,7 @@ def test_an_agent_entry_that_raises_is_skipped(we, tmp_path, path_with, monkeypa
             raise RuntimeError("a shape not foreseen")
         return real(a, root)
     monkeypatch.setattr(we, "herdr_agent", flaky)
-    h = we.collect(tree)["herdr"]
+    h = we.collect_legacy(tree)["herdr"]
     assert (h["known"], h["seen"], h["skipped"]) == (True, 2, 1)
 
 
@@ -931,7 +962,7 @@ def test_a_herdr_reader_that_throws_still_writes_the_file(we, tmp_path, path_wit
     def boom(repo):
         raise TypeError("unhashable type: 'list'")
     monkeypatch.setattr(we, "herdr_agents", boom)
-    out = we.collect(tree)
+    out = we.collect_legacy(tree)
     assert out["herdr"]["known"] is False and out["herdr"]["coordinator"]["shown"] == "not known"
     assert out["herdr"]["reason"] == "herdr agent list: the answer could not be read (TypeError)"
     assert by_id(out)["M9"]["stage"]["by"] == "files"
@@ -989,7 +1020,7 @@ def test_an_item_named_in_a_table_inside_an_entry_stays_under_way(we, tmp_path, 
     tree = make_tree(tmp_path, [
         ("2026-11-02T10:00:00-05:00", {"M2-criteria.md": crit("M2"), "M39-criteria.md": crit("M39")}),
     ], promotions=TABLE_IN_ENTRY)
-    out = we.collect(tree)
+    out = we.collect_legacy(tree)
     assert out["under_way"] == ["M39"]
     ids = set(by_id(out))
     assert "M64" not in ids and "M9" not in ids and {"M30-step1", "M31"} <= ids
@@ -1051,12 +1082,12 @@ def test_coordinator_shown_word(we, tmp_path, path_with, coord, named, shown):
     elif coord is not None:
         agents.append(agent(None, coord, tree))
     path_with(herdr_bin(tmp_path, agents))
-    assert we.collect(tree)["herdr"]["coordinator"]["shown"] == shown
+    assert we.collect_legacy(tree)["herdr"]["coordinator"]["shown"] == shown
 
 
 def test_coordinator_shown_word_with_herdr_not_reachable(we, tmp_path, path_with):
     tree = make_tree(tmp_path, UNDER_WAY_TREE)
-    assert we.collect(tree)["herdr"]["coordinator"]["shown"] == "not known"
+    assert we.collect_legacy(tree)["herdr"]["coordinator"]["shown"] == "not known"
 
 
 # Change 3: a Done row names its item once.
@@ -1094,7 +1125,7 @@ def test_adds_to_title(we, text, title, adds):
 
 def test_done_rows_say_what_adds_something(we, tmp_path, path_with):
     tree = make_tree(tmp_path, DONE_TREE)
-    out = we.collect(tree)
+    out = we.collect_legacy(tree)
     items = by_id(out)
     rows = {(r["id"], r["line"]): r for r in out["done"]}
     assert rows[("M3", 7)]["heading_adds"] is True             # "M3 (gate only)"
@@ -1144,7 +1175,7 @@ def test_open_entries_carry_their_fold_and_shipped_do_not(we):
 def test_open_entry_linked_to_a_promoted_item_stays_in_the_backlog(we, tmp_path, path_with):
     roadmap = ROADMAP.replace("*(work item M9, ordered 2026-11-01)*", "*(work item M1, ordered 2026-11-01)*")
     tree = make_tree(tmp_path, DONE_TREE, roadmap=roadmap)
-    out = we.collect(tree)
+    out = we.collect_legacy(tree)
     assert by_id(out)["M1"]["stage"]["stage"] == "promoted"
     (now,) = [s for s in out["backlog"] if s["section"] == "Now — in flight"]
     assert [(e["title"], e["links"]) for e in now["entries"]] == [("One-line entry", ["M1"])]
@@ -1164,5 +1195,6 @@ def test_real_tree_done_rows_name_the_item_once(real):
     m25 = next(r for r in data["done"] if r["id"] == "M25")
     assert m25["heading_adds"] is False and [s["adds"] for s in items["M25"]["shipped"]] == [False]
     assert items["M25"]["short_title"] == "/resources shows real usage"
-    m1b = [r for r in data["done"] if r["id"] == "M1b"]
-    assert [r["heading_adds"] for r in m1b] == [True, False]   # "M3, M4, M4b, M1b restore"; "M1b"
+    # No promotions heading since M34: the row's title is the item's name.
+    assert {(r["heading"], r["heading_adds"]) for r in data["done"]} == {(None, False)}
+    assert len([r for r in data["done"] if r["id"] == "M1b"]) == 2

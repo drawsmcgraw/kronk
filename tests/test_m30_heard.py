@@ -506,10 +506,10 @@ def test_c2_api_work_byte_for_byte_what_it_was(tmp_path):
         assert new_bytes == old_bytes
 
 
-def test_c2_work_api_work_export_unchanged_since_base():
-    r = subprocess.run(["git", "-C", str(REPO), "diff", "--quiet", BASE, "--", "orchestrator/work_api.py",
-                        "scripts/work_export.py"])
-    assert r.returncode == 0
+# test_c2_work_api_work_export_unchanged_since_base is retired (work item M34,
+# M34-criteria.md, "Revised after the review", plumbing 9): M34 changes both
+# files on purpose. /api/work's answer is still pinned by the test above,
+# and "Heard" staying outside loadAll by C3 below.
 
 
 # ═══ C3 (what a browser is not needed for): the page's script ═══════════════

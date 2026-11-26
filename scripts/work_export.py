@@ -1,51 +1,73 @@
 #!/usr/bin/env python3
-"""Export the state of the work items for /work (work item M27). Runs ON
-THE HOST (systemd user timer kronk-work-export.timer, every 60 s): the
-production orchestrator runs from a release snapshot and cannot see the
-working tree, where an item under way exists, so this file is the bridge,
+"""Export the state of the work items for /work (work items M27, M34). Runs
+ON THE HOST (systemd user timer kronk-work-export.timer, every 60 s): the
+production orchestrator runs from a release snapshot and can see neither
+the working tree nor the work-state database, so this file is the bridge,
 as gpu_mem.json and llama_props.json are for /resources.
 
-What it reads, and nothing else:
+What it reads, and nothing else (M34, docs/sprint/M34-criteria.md,
+"Revised after the review"):
 
-- ROADMAP.md and docs/sprint/PROMOTIONS.md, from the tree;
-- the first 40 lines of each item file in docs/sprint/;
-- git, with GIT_OPTIONAL_LOCKS=0, by three commands only: one `git log`
-  for every file's first commit in docs/sprint/, `git for-each-ref
-  refs/tags`, `git rev-parse` (branch and short HEAD). Never `status`,
-  `diff`, `add` or `stash`: `git status` takes .git/index.lock, and an
-  agent's commit in that instant fails;
+- the dump of the work-state database, <db>.dump.sql, which scripts/work.py
+  rewrites after every committed write: loaded into an in-memory database.
+  The database itself is never opened (a mode=ro reader of a WAL file makes
+  and touches its -wal and -shm), and no other file beside it;
+- scripts/work.py, beside this file, loaded inside collect() for its
+  read-only overview() and queue_rows(): the stage, the queue and the
+  counts are the ones `work.py resume` prints;
+- ROADMAP.md, and the first 40 lines of each item's criteria file (its
+  handoff line and Source: paragraph), from the tree;
+- git, with GIT_OPTIONAL_LOCKS=0, by three lock-free commands: `git
+  rev-parse` (branch and short HEAD), `git for-each-ref refs/tags`, `git
+  rev-list HEAD` (a step committed off HEAD's history is not counted, as in
+  resume). Never `status`, `diff`, `add` or `stash`: `git status` takes
+  .git/index.lock, and an agent's commit in that instant fails;
 - `herdr agent list`, once, with a 5 s limit.
 
-What it writes: an outline, not the documents (and it removes its own
-temp files older than ten minutes, which a run killed in mid-write leaves). Titles, handoff lines and
-verdict words from item files; ids, tags, dates as written, headings and a
-count of "For Drew" lines from PROMOTIONS.md; the whole open entries and,
-for Shipped, the title and leading *( ... )* from ROADMAP.md; agents' names
-and statuses from herdr (never terminal_title, agent_session or cwd; an
-agent outside this repo is counted, not named). The stage of each item is
-computed here, by stage() and the tables above it
-(docs/sprint/M27-criteria.md, "Stage is a pure function").
+What it writes: an outline. From the rows: ids, titles, state, tier, queue
+place and what holds an item, next steps and wait notes (active, queued
+and held items only), steps (kind, round, name, report file name, agent,
+who, state, times, verdict, grading), promotions (tag, time, deployed,
+the path of the checks; the label of one with no item), and counts of open
+leftovers and decisions by owner; the decisions owed to Drew by id, item,
+date and whether they block, never their text. Never the log, meta.repo,
+a step's model or note, a matter's text, source or closing words, or an
+SQLite error's text. From files: handoff lines and Source: paragraphs, the
+open ROADMAP entries whole and, for Shipped, the title and leading *( ... )*.
+From herdr: agents' names and statuses (never terminal_title,
+agent_session or cwd; an agent outside this repo is counted, not named).
 
-It never fails on a file it cannot parse: the file is named in "not_read"
-and the rest is written. Standard library only, no network.
+A dump that is missing, empty, does not load, is of a newer schema or
+describes another repo still gives a file: it says which (`database`), holds
+no item, and still holds the ROADMAP part; the exporter exits 0. Nothing is
+invented from files.
 
-The keys are read by every deployed orchestrator: once item-M27 is
-deployed, add keys, never rename or repurpose one, and raise SCHEMA when
-keys are added.
+The old reader of docs/sprint/PROMOTIONS.md and the step files
+(collect_legacy() and the parsers it feeds) is import-only: work.py's
+import-legacy and check, and the M27 tests, use it. Standard library only,
+no network.
 
-    work_export.py [--repo DIR] [--out FILE ...] [--print]
+The keys are read by every deployed orchestrator: add keys, never rename
+or repurpose one, and raise SCHEMA when keys are added. A schema-1 key
+with no source left carries null, [] or false (docs/features/work-page.md).
 
-Each --out file is written atomically (temp file, rename). Default: the
-repo's data/work.json and data/dev/work.json (production's and dev's
-orchestrators read /data/work.json). See docs/features/work-page.md.
+    work_export.py [--repo DIR] [--db PATH] [--out FILE ...] [--print]
+
+--db PATH reads PATH.dump.sql (default: KRONK_WORK_DB, else
+~/.local/state/kronk-work/work.db, as work.py). Each --out file is written
+atomically (temp file, rename). Default: the repo's data/work.json and
+data/dev/work.json (production's and dev's orchestrators read
+/data/work.json). See docs/features/work-page.md.
 """
 import argparse
 import datetime as dt
+import importlib.util
 import json
 import os
 import re
 import shutil
 import signal
+import sqlite3
 import stat
 import subprocess
 import sys
@@ -53,8 +75,9 @@ import tempfile
 import time
 from pathlib import Path
 
-SCHEMA = 1
-REPO = Path(__file__).resolve().parent.parent
+SCHEMA = 2
+HERE = Path(__file__).resolve().parent
+REPO = HERE.parent
 HEAD_LINES = 40
 HERDR_TIMEOUT_S = 5
 GIT_TIMEOUT_S = 5
@@ -779,9 +802,14 @@ def stage(steps: list[dict], tag: bool, promoted: bool, agents: list[dict] | Non
     return {"stage": st, "words": STAGE_WORDS[st], "detail": detail, "blocked": False, "by": "files"}
 
 
-# ═════════════════════════════════ collect ═════════════════════════════════
+# ═══════════════════════ collect_legacy (import-only) ═══════════════════════
+# The schema-1 reader of docs/sprint/PROMOTIONS.md and the step files. Not
+# on the live path since M34: work.py import-legacy and check, and
+# tests/test_m27_work_export.py, use it and the parsers above it
+# (git_first_commits, scan_items, parse_promotions, tag_from_cell,
+# bare_word). Its output is schema 1.
 
-def collect(repo: Path) -> dict:
+def collect_legacy(repo: Path) -> dict:
     t0 = time.monotonic()
     not_read: list = []
     errors: list = []
@@ -905,7 +933,7 @@ def collect(repo: Path) -> dict:
         done.append(row)
 
     return {
-        "schema": SCHEMA,
+        "schema": 1,
         "ts": time.time(),
         "made_at": dt.datetime.now().astimezone().isoformat(timespec="seconds"),
         "repo": head,
@@ -919,6 +947,372 @@ def collect(repo: Path) -> dict:
         "shipped_unlinked": shipped_unlinked,
         "not_read": not_read,
         "errors": errors,
+        "run_s": round(time.monotonic() - t0, 3),
+    }
+
+
+# ═══════════════════ collect: from the work-state database ═════════════════
+# Work item M34. The rows come from the dump work.py writes beside the
+# database after every write, loaded into memory; the stage, the queue and
+# the counts from work.py's own overview(), which `resume` prints from.
+
+DB_STATES = ("ok", "missing", "empty", "corrupt", "newer", "other repo")
+DEPLOYED_WORD = {1: "yes", 0: "no", None: "not recorded"}
+FOLLOWUP_NOTE = "follow-up, {date}"
+PROMOTIONS_LINE = re.compile(r"^PROMOTIONS\.md:(\d+)$")
+HEX = re.compile(r"^[0-9a-f]{7,40}$")
+
+_WP = None
+
+
+class _This:
+    """This module, as work.py's work_export() would load it: handed to the
+    loaded work.py so it calls this copy's stage(), git() and run() rather
+    than parsing the file a second time under another name (and a test's
+    monkeypatch of this module reaches work.py's calls)."""
+
+    def __getattr__(self, name):
+        try:
+            return globals()[name]
+        except KeyError:
+            raise AttributeError(name) from None
+
+
+def work_tool():
+    """scripts/work.py, beside this file, loaded on first use with no
+    bytecode written. Never at import: work.py and agent.py load this file
+    on every call, and a fault in work.py must not become a fault there."""
+    global _WP
+    if _WP is None:
+        path = HERE / "work.py"
+        before = sys.dont_write_bytecode
+        sys.dont_write_bytecode = True
+        try:
+            spec = importlib.util.spec_from_file_location("kronk_work_tool_for_export", path)
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+        finally:
+            sys.dont_write_bytecode = before
+        if mod._WE is None:
+            mod._WE = _This()
+        _WP = mod
+    return _WP
+
+
+class Rows:
+    """The loaded dump, as work.py's queue_rows() and after_blocks() read a
+    database: .one() and .all() give dicts."""
+
+    def __init__(self, conn: sqlite3.Connection):
+        self.conn = conn
+
+    def one(self, sql, *args):
+        r = self.conn.execute(sql, args).fetchone()
+        return None if r is None else {k: r[k] for k in r.keys()}
+
+    def all(self, sql, *args):
+        return [{k: r[k] for k in r.keys()} for r in self.conn.execute(sql, args)]
+
+
+def dump_of(db: Path) -> Path:
+    return db.with_name(db.name + ".dump.sql")
+
+
+def load_dump(wp, db: Path, repo: Path, now: float) -> tuple[Rows | None, dict]:
+    """(rows, the "database" key). The dump is read once, read-only, and
+    loaded into an in-memory database; nothing else in its directory is
+    opened. A dump that cannot be used gives no rows and a state word with
+    a sentence written here (never SQLite's text, which names paths)."""
+    dp = dump_of(db)
+    info = {"state": None, "says": None, "schema": None, "dump_at": None, "dump_age_s": None}
+
+    def bad(state, says):
+        info.update(state=state, says=says)
+        return None, info
+
+    try:
+        with open(dp, "rb") as f:
+            st = os.fstat(f.fileno())
+            raw = f.read()
+    except FileNotFoundError:
+        return bad("missing", "No dump of the work-state database was found (work.py writes it after every "
+                              "write; `python3 scripts/work.py dump` writes it again).")
+    except OSError as e:
+        return bad("corrupt", f"The dump of the work-state database cannot be read ({type(e).__name__}).")
+    info["dump_at"] = dt.datetime.fromtimestamp(st.st_mtime).astimezone().isoformat(timespec="seconds")
+    info["dump_age_s"] = round(max(0.0, now - st.st_mtime), 1)
+    if not raw.strip():
+        return bad("empty", "The dump of the work-state database is empty: it holds no schema.")
+    try:
+        text = raw.decode("utf-8")
+    except UnicodeDecodeError:
+        return bad("corrupt", "The dump of the work-state database is not text.")
+    conn = sqlite3.connect(":memory:", isolation_level=None)
+    conn.row_factory = sqlite3.Row
+    try:
+        conn.executescript(text)
+        cut = conn.in_transaction
+    except sqlite3.Error:
+        conn.close()
+        return bad("corrupt", "The dump of the work-state database does not load as SQL.")
+    if cut:
+        conn.close()
+        return bad("corrupt", "The dump of the work-state database ends inside its transaction: it is cut short.")
+    try:
+        meta = wp.validate(conn, dp)
+    except wp.WorkError as e:
+        conn.close()
+        if e.kind == "newer":
+            return bad("newer", f"The work-state database is of a newer schema than this exporter knows "
+                                f"({wp.SCHEMA}): the newer scripts/work.py and work_export.py are needed.")
+        if e.kind == "empty":
+            return bad("empty", "The dump of the work-state database holds no schema.")
+        return bad("corrupt", "The dump of the work-state database lacks its tables or its schema version.")
+    except sqlite3.Error:
+        conn.close()
+        return bad("corrupt", "The dump of the work-state database does not load as SQL.")
+    info["schema"] = int(meta["schema_version"])
+    if meta.get("repo") != os.path.realpath(repo):
+        conn.close()
+        return bad("other repo", "The work-state database describes another repo, not the one exported here.")
+    info.update(state="ok", says="Read from the dump of the work-state database, which work.py writes after "
+                                  "every write.")
+    return Rows(conn), info
+
+
+def criteria_lines(repo: Path, item: dict, steps: list[dict], not_read: list) -> tuple[str | None, str | None]:
+    """(handoff, source) from the head of the item's criteria file: the
+    row's path, else its finished criteria step's report, else
+    docs/sprint/<id>-criteria.md, else none. A file that exists and cannot
+    be read is named in not_read."""
+    wp = work_tool()
+    crit = [s["report"] for s in steps if s["kind"] == "criteria" and s["state"] == "finished" and s["report"]]
+    for path in (item.get("criteria"), *crit, f"docs/sprint/{item['id']}-criteria.md"):
+        if not path or not (repo / path).is_file():
+            continue
+        head = wp.criteria_head(repo, path)
+        if head["criteria_read"]:
+            not_read.append({"file": path, "why": head["criteria_read"]})
+        return head["handoff"], head["source"]
+    return None, None
+
+
+def step_out(s: dict, item: str) -> dict:
+    """A step row in the schema-1 shape and the new keys. `name` keeps its
+    meaning, the report's suffix (M9-e2e2.md -> e2e2), else the row's name."""
+    report = s["report"]
+    file = Path(report).name if report else None
+    m = FILE_RE.match(file or "")
+    name = m.group(2) if m and m.group(1) == item else (s["name"] or s["kind"])
+    v = [{"subject": "item", "written": None, "verdict": s["verdict"], "line": None}] if s["verdict"] else []
+    return {"file": file, "kind": s["kind"], "n": s["round"] if s["kind"] in ("test", "fix") else None,
+            "name": name, "title": None, "verdicts": v if s["kind"] == "test" else None,
+            "commit": s["commit_sha"][:7] if HEX.match(s["commit_sha"] or "") else None,
+            "committed_at": s["ended_at"] if s["state"] == "finished" else None,
+            "round": s["round"], "state": s["state"], "by": s["by"], "agent": s["agent"],
+            "started_at": s["started_at"], "ended_at": s["ended_at"], "verdict": s["verdict"],
+            "graded": s["graded"]}
+
+
+def empty_counts() -> dict:
+    return {"leftovers": {"drew": 0, "coordinator": 0, "not_triaged": 0},
+            "decisions": {"drew": 0, "coordinator": 0, "not_triaged": 0}}
+
+
+def collect(repo: Path, db: Path | None = None) -> dict:
+    t0 = time.monotonic()
+    now = time.time()
+    wp = work_tool()
+    db = Path(db) if db is not None else wp.default_db()
+    not_read: list = []
+    errors: list = []
+    head = git_head(repo)
+    try:
+        tags = wp.tag_commits(repo)
+    except wp.WorkError:
+        tags = {}
+        errors.append("git for-each-ref failed: tags not read")
+    commits = wp.head_commits(repo)
+    if commits is None:
+        errors.append("git rev-list HEAD failed: every finished step is counted for the stage")
+
+    rtext, why = read_text(repo / "ROADMAP.md")
+    if rtext is None:
+        not_read.append({"file": "ROADMAP.md", "why": why})
+        rtext = ""
+    sections = parse_roadmap(rtext, not_read)
+
+    try:
+        h = herdr_agents(repo)
+    except Exception as e:                  # never fatal: the file is still written
+        h = {"known": False, "seen": None, "agents": [], "elsewhere": 0, "skipped": 0,
+             "reason": f"herdr agent list: the answer could not be read ({type(e).__name__})"}
+    coord = coordinator(h)
+    coord["shown"] = coordinator_shown(coord, h["agents"])
+
+    rows, database = load_dump(wp, db, repo, now)
+    if rows is None:
+        errors.append(f"work-state database: {database['state']}. {database['says']}")
+        g = {"items": [], "steps": [], "promotions": [], "pitems": [], "matters": [], "queue": []}
+    else:
+        try:
+            g = {"items": rows.all("SELECT * FROM item"),
+                 "steps": rows.all("SELECT * FROM step ORDER BY id"),
+                 "promotions": rows.all("SELECT * FROM promotion ORDER BY id"),
+                 "pitems": rows.all("SELECT * FROM promotion_item"),
+                 "matters": rows.all("SELECT * FROM open_thing ORDER BY id"),
+                 "queue": wp.queue_rows(rows)}
+        finally:
+            rows.conn.close()
+    g.update(tags=tags, branch_commits=commits,
+             herdr={**h, "by_name": {a["name"]: a["status"] for a in h["agents"] if a["name"]}})
+    v = wp.overview(g)
+
+    items = {i["id"]: i for i in g["items"]}
+    steps_of: dict = {}
+    for s in g["steps"]:
+        steps_of.setdefault(s["item_id"], []).append(s)
+    under_way = [x["item"]["id"] for x in v["active"]]
+    queue = [q["id"] for q in v["queue"]]
+    qrow = {q["id"]: q for q in v["queue"]}
+    proms = {p["id"]: p for p in g["promotions"]}
+    items_of: dict = {}
+    for pi in g["pitems"]:
+        items_of.setdefault(pi["promotion_id"], []).append(pi["item_id"])
+
+    # Agents: a named agent in the repo goes to its item when that item is
+    # active; every other one is "other".
+    other_agents: list = []
+    per_item: dict = {}
+    for a in h["agents"]:
+        if a["name"] is None:
+            continue
+        item_id, role = agent_for(a["name"])
+        if item_id in under_way:
+            per_item.setdefault(item_id, []).append({**a, "role": role})
+        else:
+            why_other = ("no item of that name" if item_id and item_id not in items else
+                         f"its item is {items[item_id]['state']}" if item_id else "name is not <item>-<role>")
+            other_agents.append({**a, "why": why_other})
+
+    for e in (en for s in sections for en in s["entries"]):
+        e["links"] = resolve_links(e["links"], list(items))
+
+    out_items = []
+    for item_id in sorted(items, key=id_key):
+        it = items[item_id]
+        mine = sorted(steps_of.get(item_id, []),
+                      key=lambda s: (s["ended_at"] or s["started_at"] or "", step_rank(s["kind"], s["round"]), s["id"]))
+        handoff, source = criteria_lines(repo, it, mine, not_read)
+        live = it["state"] in ("active", "queued", "held")
+        q = qrow.get(item_id, {})
+        agents = per_item.get(item_id, [])
+        out_items.append({
+            "id": item_id, "title": it["title"], "short_title": short_title(it["title"], item_id),
+            "stage": v["stages"][item_id], "handoff": handoff,
+            "notes": [f"{a['name']}: {a['status']}, workspace still open" for a in agents
+                      if a["status"] not in DECIDING],
+            "steps": [step_out(s, item_id) for s in mine], "uncommitted": [],
+            "tag_ref": f"item-{item_id}" in tags, "promoted": it["state"] == "promoted", "agents": agents,
+            "state": it["state"], "tier": it["tier"], "position": it["position"],
+            "after_item": it["after_item"] if live else None, "blocked_by": q.get("blocked_by"),
+            "next": bool(q.get("next")), "next_step": it["next_step"] if live else None,
+            "waits_on": it["waits_on"] if live else None, "waits_note": it["waits_note"] if live else None,
+            "held_why": it["held_why"] if it["state"] == "held" else None, "source": source,
+            "open": v["counts"].get(item_id) or empty_counts(),
+        })
+    by_id = {it["id"]: it for it in out_items}
+
+    backlog = []
+    shipped_unlinked = []
+    for s in sections:
+        if s["open"]:
+            entries = []
+            for e in s["entries"]:
+                if any(l in under_way for l in e["links"]):
+                    for l in e["links"]:
+                        if l in under_way:
+                            by_id[l].setdefault("roadmap", []).append(e)
+                else:
+                    entries.append(e)
+            backlog.append({"section": s["name"], "entries": entries})
+        else:
+            for e in s["entries"]:
+                if e["links"]:
+                    for l in e["links"]:
+                        by_id[l].setdefault("shipped", []).append({"title": e["title"], "lead": e["lead"],
+                                                                   "line": e["line"],
+                                                                   "adds": adds_to(e["title"], by_id[l]["title"])})
+                else:
+                    shipped_unlinked.append({"title": e["title"], "lead": e["lead"], "line": e["line"]})
+    for it in out_items:
+        it.setdefault("roadmap", [])
+        it.setdefault("shipped", [])
+
+    # Done: one row per item of each promotion, newest promotion first; a
+    # follow-up is a note on the item's row of the promotion before it. A
+    # promotion with no item has its own key, never a row here.
+    def prom_out(p):
+        line = PROMOTIONS_LINE.match(p["verified"] or "")
+        return {"tag": p["tag"], "tag_in_git": (p["tag"] in tags) if p["tag"] else None,
+                "date": wp.local_day(p["at"]), "at": p["at"], "deployed": DEPLOYED_WORD.get(p["deployed"]),
+                "verified": p["verified"], "line": int(line.group(1)) if line else None, "promotion": p["id"],
+                "kind": p["kind"]}
+
+    rows_out: list = []
+    last_row: dict = {}
+    for p in sorted(proms.values(), key=lambda p: p["id"]):
+        for item_id in sorted(items_of.get(p["id"], []), key=id_key):
+            if p["kind"] == "followup" and item_id in last_row:
+                po = prom_out(p)
+                last_row[item_id]["notes"].append({"heading": FOLLOWUP_NOTE.format(date=po["date"]),
+                                                   "date": po["date"], "for_drew": 0, "line": po["line"],
+                                                   "at": po["at"], "verified": po["verified"]})
+                continue
+            po = prom_out(p)
+            row = {"id": item_id, "entry": None, "notes": [], "heading": None, "tag": po["tag"],
+                   "tag_written": None, "tag_only": bool(p["tag"]) and p["deployed"] == 0,
+                   "tag_in_git": po["tag_in_git"], "date": po["date"], "for_drew": 0, "line": po["line"],
+                   "kind": None, "heading_adds": False, "for_drew_total": 0,
+                   "at": po["at"], "deployed": po["deployed"], "verified": po["verified"],
+                   "promotion": p["id"], "followup": p["kind"] == "followup"}
+            rows_out.append(row)
+            last_row[item_id] = row
+    done = sorted(rows_out, key=lambda r: -r["promotion"])          # stable: item order kept
+    no_item = [{**prom_out(p), "label": p["note"]}
+               for p in sorted(proms.values(), key=lambda p: (p["at"], p["id"]), reverse=True)
+               if p["id"] not in items_of]
+
+    owed = [{"id": m["id"], "item": m["item_id"], "date": wp.local_day(m["opened_at"]), "opened_at": m["opened_at"],
+             "blocks": bool(m["blocks"])} for m in v["decisions"]]
+    totals = empty_counts()
+    for per in v["counts"].values():
+        for kind in totals:
+            for owner in totals[kind]:
+                totals[kind][owner] += per[kind][owner]
+
+    return {
+        "schema": SCHEMA,
+        "ts": now,
+        "made_at": dt.datetime.fromtimestamp(now).astimezone().isoformat(timespec="seconds"),
+        "repo": head,
+        "herdr": {"known": h["known"], "seen": h["seen"], "reason": h["reason"],
+                  "elsewhere": h["elsewhere"], "skipped": h["skipped"], "coordinator": coord},
+        "items": out_items,
+        "under_way": under_way,
+        "other_agents": other_agents,
+        "backlog": backlog,
+        "done": done,
+        "shipped_unlinked": shipped_unlinked,
+        "not_read": not_read,
+        "errors": errors,
+        "database": database,
+        "active": under_way,
+        "queue": queue,
+        "decisions_owed": owed,
+        "open_counts": totals,
+        "escapes": {"window": v["escape_window"], "count": len(v["escapes"])},
+        "promotions_no_item": no_item,
         "run_s": round(time.monotonic() - t0, 3),
     }
 
@@ -963,10 +1357,12 @@ def write(path: Path, data: dict) -> None:
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--repo", type=Path, default=REPO, help="the working tree to read (default: this repo)")
+    ap.add_argument("--db", type=Path, help="the work-state database whose dump (PATH.dump.sql) is read "
+                                            "(default: KRONK_WORK_DB, else ~/.local/state/kronk-work/work.db)")
     ap.add_argument("--out", type=Path, action="append", help="file to write (repeatable)")
     ap.add_argument("--print", action="store_true", help="print the JSON instead of writing")
     a = ap.parse_args(argv)
-    data = collect(a.repo)
+    data = collect(a.repo, a.db)
     if a.print:
         json.dump(data, sys.stdout, indent=1, ensure_ascii=False)
         print()
