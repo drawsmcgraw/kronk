@@ -349,7 +349,11 @@ For a page left open for months on a display nobody can touch
   cache): an unchanged file costs an open and an `fstat`, and is read once
   per change however many pages poll. The key is taken from the file that
   is read, so a file renamed into place between two polls is never paired
-  with the other's parse.
+  with the other's parse. Beside the parse, under the same key, the route
+  keeps the JSON encoding of the outline (the answer's `work` part, about
+  127 KB): a full answer is the fresh envelope with those bytes spliced
+  in, so twenty pages cost one encoding per change of the file, not
+  twenty (fix round 1, S2; `work_api.work_body`).
 - **`Cache-Control: no-store`** on `/work`, `/api/work` and
   `/api/voice_runs`. The three are left out of the orchestrator's
   telemetry (`telemetry._DEFAULT_EXCLUDED`): no trace per poll.
@@ -389,13 +393,16 @@ For a page left open for months on a display nobody can touch
   the browser knows it, else with `house_zone.utc_offset_s` (the offset at
   the export, so a time across a DST change can be an hour off in that
   case only). "Heard"'s run times are the house's as written; its "as of"
-  is still the browser's (M32 step 1 left "Heard" as it was but for the
-  scheduler, the time limit and the trim).
+  goes through the same `houseString` (`fmtClockS`; fix round 1, note 7).
 - **The exporter runs on a write**: `systemd/kronk-work-export.path`,
   `PathChanged=` on the live dump, starts the existing service. `work.py`
   rewrites the dump by rename after every committed write; `agent.py`
   writes through `work.py`. No code in either tool. The timer stays at
-  60 s for what only herdr changes (an agent going idle).
+  60 s for what only herdr changes (an agent going idle). The service has
+  `StartLimitIntervalSec=0`: with systemd's default start limit (five
+  starts in ten seconds) a burst of writes failed the service with
+  `start-limit-hit` and the path unit with it, for good, and every later
+  write silently waited for the timer (step 1 test, S1).
 
 ## Gotchas
 

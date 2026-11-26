@@ -1034,8 +1034,7 @@ const houseShort = s => {
   const mon = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][Number(s.slice(5, 7)) - 1] || s.slice(5, 7);
   return `${mon} ${Number(s.slice(8, 10))} ${s.slice(11, 16)}`;
 };
-const clockOf = sec => (sec == null ? '?' :
-  new Date(sec * 1000).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+const clockOf = sec => (sec == null ? '?' : fmtClockS(sec));
 
 function heardBannerFor(state, reason) {
   const b = HEARD_BANNER[state] ?? (state === 'fresh' || state === 'ok' ? null :

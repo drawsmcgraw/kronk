@@ -26,6 +26,9 @@ Polled every 3 s by each open /work (work item M32 step 1), so:
 - ?have=<ts>, the file's ts the page already shows, answers the same
   envelope with "work": null and "unchanged": true when the file's ts is
   that one. The envelope (state, age_s) is fresh on every poll;
+- the full answer's "work" part is kept encoded beside the parse, under
+  the same key (work_body, fix round 1 S2): the 127 KB outline is encoded
+  once per change of the file, not once per page that asks for it;
 - every envelope carries page_version, the hash of work.html and kronk.css
   taken once at start and stamped into the page /work serves (main.py), so
   an open page learns that another page is deployed; and server_s, this
@@ -35,6 +38,7 @@ Polled every 3 s by each open /work (work item M32 step 1), so:
   out of the telemetry (telemetry._DEFAULT_EXCLUDED).
 """
 import hashlib
+import json
 import os
 import time
 from pathlib import Path
@@ -129,7 +133,37 @@ def work_source(now: float | None = None, have: str | None = None) -> dict:
             "unchanged": unchanged, "page_version": PAGE_VERSION, "server_s": round(now, 3)}
 
 
+def _dumps(value) -> bytes:
+    """JSON as FastAPI's JSONResponse renders it (starlette's render)."""
+    return json.dumps(value, ensure_ascii=False, allow_nan=False, indent=None,
+                      separators=(",", ":")).encode("utf-8")
+
+
+def _work_bytes(data) -> bytes:
+    """The encoding of the kept parse, kept beside it in _cache under the
+    same key: encoded again only when the file changed. The parse is the
+    cache's own object (read_source), so the pair is also checked by
+    identity. _cache["encodings"] counts the encodings."""
+    key = _cache.get("key")
+    kept = _cache.get("body")
+    if kept is not None and kept[0] == key and kept[1] is data:
+        return kept[2]
+    body = _dumps(data)
+    _cache["body"] = (key, data, body)
+    _cache["encodings"] = _cache.get("encodings", 0) + 1
+    return body
+
+
+def work_body(now: float | None = None, have: str | None = None) -> bytes:
+    """work_source's answer as JSON bytes: the envelope encoded fresh, the
+    "work" part from _work_bytes. Parses to exactly what work_source
+    returns, keys in the same order."""
+    d = work_source(now, have)
+    return b"{" + b",".join(
+        _dumps(k) + b":" + (_work_bytes(v) if k == "work" and v is not None else _dumps(v))
+        for k, v in d.items()) + b"}"
+
+
 @router.get("/api/work")
-async def work_status(response: Response, have: str | None = None):
-    response.headers.update(NO_STORE)
-    return work_source(have=have)
+async def work_status(have: str | None = None):
+    return Response(work_body(have=have), media_type="application/json", headers=NO_STORE)

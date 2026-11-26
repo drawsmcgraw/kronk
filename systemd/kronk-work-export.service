@@ -11,6 +11,15 @@
 # and `herdr agent list`. The script itself stops waiting for herdr after
 # 5 s; TimeoutStartSec stops a hung run here. See docs/features/work-page.md.
 #
+# StartLimitIntervalSec=0 turns off systemd's start limit (by default five
+# starts in ten seconds). kronk-work-export.path starts this service on
+# every write of the work-state dump, and a burst of writes (a chain of
+# work.py commands at a promotion, an agent's launch beside it) passed the
+# limit: the service failed with start-limit-hit and the path unit failed
+# with it for good, so every later write waited for the timer, silently
+# (M32 step 1 test, S1). The service is a oneshot, so runs still never
+# overlap; a burst costs a few back-to-back exports.
+#
 # Operations:
 #   install:  cp systemd/kronk-work-export.{service,timer} ~/.config/systemd/user/
 #             systemctl --user daemon-reload
@@ -24,6 +33,7 @@
 #             systemctl --user daemon-reload
 [Unit]
 Description=Kronk — export the work items for /work
+StartLimitIntervalSec=0
 
 [Service]
 Type=oneshot

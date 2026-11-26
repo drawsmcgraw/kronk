@@ -139,6 +139,51 @@ def test_the_kept_copy_follows_a_file_rewritten_in_place(work_file):
     assert work_file.cache["reads"] == 3
 
 
+def _outline_encodings(spy_calls):
+    return sum(1 for v in spy_calls if isinstance(v, dict) and "items" in v)
+
+
+def test_one_encoding_of_the_outline_per_change_however_many_full_answers(work_file):
+    """Fix round 1, S2: the full answer's work part is kept encoded beside
+    the parse. Twenty full answers of one file: one encoding; the file
+    changes, twenty more: one more."""
+    now = time.time()
+    work_file.write_text(json.dumps(_outline(now - 5, items=[{"id": f"M{i}", "t": "é ✓"} for i in range(50)])))
+    calls = []
+    real = work_api._dumps
+    c = _client()
+    with patch.object(work_api, "_dumps", side_effect=lambda v: (calls.append(v), real(v))[1]):
+        bodies = [c.get("/api/work").content for _ in range(20)]
+        assert _outline_encodings(calls) == 1 and work_file.cache["encodings"] == 1
+        assert len({json.loads(b)["work"]["ts"] for b in bodies}) == 1
+        tmp = work_file.with_name(".work.json.abcdefgh")
+        tmp.write_text(json.dumps(_outline(now - 1, items=[])))
+        os.replace(tmp, work_file)
+        bodies = [c.get("/api/work").content for _ in range(20)]
+        assert _outline_encodings(calls) == 2 and work_file.cache["encodings"] == 2
+        assert json.loads(bodies[-1])["work"]["ts"] == now - 1
+        unchanged = c.get(f"/api/work?have={now - 1!r}").json()       # no outline to encode
+        assert unchanged["unchanged"] is True and unchanged["work"] is None
+        assert _outline_encodings(calls) == 2
+
+
+@pytest.mark.parametrize("have", [None, "match", "5"])
+def test_the_answers_bytes_parse_to_what_they_did(work_file, have):
+    """The spliced answer is what FastAPI's JSONResponse rendered from
+    work_source's dict: the same bytes, so the same parse and key order."""
+    from fastapi.encoders import jsonable_encoder
+    from fastapi.responses import JSONResponse
+    now = 1_800_000_000.0
+    work_file.write_text(json.dumps(_outline(now - 5, items=[{"id": "M32", "t": "Heard — “as of” ✓"}])))
+    h = repr(now - 5) if have == "match" else have
+    want = JSONResponse(jsonable_encoder(work_api.work_source(now, have=h))).body
+    assert work_api.work_body(now, have=h) == want
+    assert work_api.work_body(now, have=h) == want                  # from the kept encoding
+    r = _client().get("/api/work", params={} if h is None else {"have": h})
+    assert r.headers["content-type"] == "application/json" and r.headers["cache-control"] == "no-store"
+    assert list(r.json()) == ["source", "schema_known", "work", "unchanged", "page_version", "server_s"]
+
+
 def test_the_envelope_carries_the_page_version_and_the_hosts_clock(work_file):
     work_file.write_text(json.dumps(_outline(1_800_000_000.0)))
     d = work_api.work_source(1_800_000_010.0)
@@ -335,6 +380,8 @@ def test_shown_times_are_in_the_house_zone():
     assert "timeZone: z.name" in hs and "z.utc_offset_s" in hs and "zoneKnown(z)" in hs
     assert "zoneKnown(z)" in _body("zoneNote")
     assert "houseString(d, { month: 'short'" in SCRIPT and "houseString(new Date(sec * 1000)" in SCRIPT
+    assert "toLocaleTimeString" not in CODE                         # "Heard"'s "as of" too (fix round 1, note 7)
+    assert re.search(r"const clockOf = sec => \(sec == null \? '\?' : fmtClockS\(sec\)\);", SCRIPT)
     assert "this browser’s local time." not in PAGE.split("const LIVE_TEXT", 1)[0]
 
 

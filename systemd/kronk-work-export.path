@@ -8,7 +8,10 @@
 #
 # The service is a oneshot: runs never overlap. A write that lands while a
 # run is under way may start no second run; the timer (60 s, unchanged)
-# picks it up. A write with --db on a scratch copy does not touch the
+# picks it up. A burst of writes cannot fail this unit: the service has no
+# start limit (StartLimitIntervalSec=0 there; with systemd's default of five
+# starts in ten seconds, a burst left this unit failed for good, M32 step 1
+# test S1). A write with --db on a scratch copy does not touch the
 # watched file. The path is the live dump's (work.py's default_db(),
 # KRONK_WORK_DB unset); systemd does not expand ~ here.
 #
