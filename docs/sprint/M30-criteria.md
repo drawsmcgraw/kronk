@@ -548,3 +548,22 @@ Tier 3 (stored data): one test, a fresh narrow test after any fix.
   fresh; the open list's growth; the "last export failed" banner not
   seen in a browser; the small parameter oddities of note 7. Tier 2 and
   a blocker was found: one narrow retest follows.
+- 2026-11-26, coordinator, on step C's narrow retest (`M30-e2e7.md`,
+  FAILS by the brief's wording; all six jobs of the ruling done and
+  holding in a browser, on dev and on the fixture house; suite passes).
+  **Graded pass; step C is done.** The brief said any write of the
+  record the fix report did not name is a blocker, and the test agent
+  found five and said the call was the coordinator's. The call: the
+  guard is there to stop a careless test, not one written to get round
+  it. Four of the five take a deliberate route no test or code under
+  test takes (a hard link to the record, `sqlite3.Connection` called
+  directly, `io.FileIO`, a bare name against a `dir_fd` of the live
+  directory); the fifth needs an outside process to insert rows inside
+  the half second around one of the guard's two reads while the timer
+  lists a new run. The ordinary routes are all refused or detected
+  (`connect`, `open`, `pathlib`, `shutil`, URIs, symlinks, threads,
+  deletion, a row inserted from outside). The four `xfail` tests in
+  `tests/test_m30_heard_e2e7.py` stay as the record of what the fence
+  does not cover. Left over, not ordered: compare by device and inode,
+  wrap the two classes, and read the start snapshot again when a run is
+  within the margin. No further test of step C. Step D is next.
