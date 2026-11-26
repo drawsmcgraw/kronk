@@ -160,6 +160,12 @@ Newest first; feature docs in `docs/features/`.
   promotions, leftovers and decisions in one SQLite database outside the
   repo; `resume` for a fresh session, `check` against git and herdr.
   Docs: `docs/features/work-state.md`.
+- **Time and date in the house's zone** *(2026-11-26, work item M35)* —
+  every prompt's "Today is …; the local time is …" line reads
+  `KRONK_TZ` (America/New_York), not the container's UTC clock, so
+  "tomorrow" asked in the evening is the house's tomorrow; the
+  forecast's hourly labels keep the Weather Service's own offset.
+  `docs/sprint/PROMOTIONS.md`, "M35".
 - **Devstral retired** *(2026-11-24, work item M31)* — coding and
   devops run on `gemma-4-e4b`; the server, its catalog entry and the
   `/devstral/` route are gone; 42 GB of memory freed.

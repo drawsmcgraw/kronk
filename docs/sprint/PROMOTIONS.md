@@ -474,3 +474,59 @@ Found by that check and ordered as its own item: the answer gave the
 time in UTC (`docs/sprint/M35-criteria.md`).
 
 Way back: deploy `item-M31`.
+
+## M35 (the time and date Kronk is told are the house's), 2026-11-26
+
+Every prompt now carries the date and time of America/New_York
+(`KRONK_TZ`), not the container's UTC clock, and the forecast's hourly
+list is labelled in the hours the Weather Service sent. Tag `item-M35`,
+deployed 2026-11-25 23:59 EST (six Kronk containers; HA and MA not
+touched: up 8 days and 3 weeks after).
+
+Tier 3. Steps: design review (build with five changes, all taken; it
+found the forecast labels), build, test (PASSES, one should-fix). No fix
+round.
+
+Verified on production by the coordinator:
+
+- `kronk-orchestrator-1` env: `KRONK_TZ=America/New_York`.
+- `/api/chat`, 23:59:59 EST: "It is 11:59 PM EST." `/voice/api/chat`,
+  00:00:02 EST: "The current time is 12:00 AM EST on Thursday, November
+  26, 2026." Before, the same question at 22:20 EST gave "3:20 AM UTC
+  on Thursday, November 26".
+- "what is the date tomorrow" on both shims just after midnight:
+  Friday, November 27, 2026. Right, but UTC agrees at that hour; the
+  date was proven on dev at 23:50 and 23:52 EST by the build and test
+  agents (tomorrow Thursday the 26th, where UTC would have said Friday).
+- The forecast in production's tool_service, fetched 23:59 EST: the
+  hourly list starts "11 PM". Before, "3 AM".
+- `deploy_tag.sh`: `/api/status` ok, `/api/chat` shim ok.
+- Suite at the tag's code: `8149 passed, 3 skipped, 57 xfailed` (build
+  and test agents).
+- The live battery, `docs/bench/bench_2026-11-25_235837_m35-post-dev.json`:
+  on dev, one rep, after the build; all eight prompts answered. No run
+  before the build: the item was ordered and dev rebuilt before one
+  could be made, and production's chat history is not the coordinator's
+  to clear. The change is to a string in the prompt, not to routing.
+
+Way back: deploy `chat-buttons-2026-11-25`.
+
+Held or left over:
+
+- For Drew: one spoken test of a relative date in the evening ("what is
+  the date tomorrow"), or anything after "ask Kronk to". A spoken "what
+  time is it" is answered by Home Assistant itself (strict
+  `HassGetCurrentTime`) and never reaches Kronk.
+- `m35-date-tomorrow` was not run through Home Assistant's pipeline: the
+  replay declines a fuzzy match while a player is active. Run
+  `python3 scripts/voice_replay.py --id m35-date-tomorrow --label m35`
+  when the house is quiet.
+- The two corpus rows' notes still say the test agent's replay will
+  decide the tier; it has (`docs/sprint/M35-e2e.md`).
+- A solar "day" in stored readings and the solar page's daily history
+  is a UTC day (turns over at 19:00 EST). Stored data; its own decision.
+- The config-reload message shows a bare UTC time.
+- `KRONK_TZ=localtime` loads and means UTC in this image; a zone with no
+  abbreviation prints its offset.
+- `scripts/coordinator_model_bench.py:226` takes the expected weekday
+  from the host's clock.
