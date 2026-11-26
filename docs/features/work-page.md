@@ -16,11 +16,17 @@ make it foldable so it doesn't pollute the view". M34, from Drew's
 (`docs/sprint/M34-criteria.md`, the section "Revised after the review"
 decides; `M34-review.md`, `M34-build.md`): the page shows what the
 work-state database says (`docs/features/work-state.md`), not what a parser
-reads out of `PROMOTIONS.md` and the file names in `docs/sprint/`.
+reads out of `PROMOTIONS.md` and the file names in `docs/sprint/`. M32
+step 1, from Drew's 2026-11-24 order to put the page on a wall display
+(`docs/sprint/M32-criteria.md`, the section "Rewritten after the review"
+decides; `M32-review.md` is the design; `M32-build.md`): the page updates
+within seconds, shows that it is alive, survives deploys and outages, and
+cannot strand itself ("Live", below).
 
 ## What it does
 
-`/work` (and `/dev/work`) shows, top to bottom:
+`/work` (and `/dev/work`) shows, top to bottom (the header: a dot that
+beats once per answered poll and the data's age, counting each second):
 
 0. **Heard**, folded: what Whisper heard over the last 90 days (see
    "Heard" below).
@@ -54,7 +60,7 @@ reads out of `PROMOTIONS.md` and the file names in `docs/sprint/`.
 5. **Backlog**: the open entries of `ROADMAP.md` (Now, Next, Later,
    Chores), under the file's own section names, each folded to its title,
    its leading `*( … )*` and its first sentence; a click opens the whole
-   entry, and an opened entry stays open across the 30 s refresh.
+   entry, and an opened entry stays open when the rows are redrawn.
    `` `code` ``, `**bold**`, `*emphasis*` (so the leads and `*Why: …*`) and
    `[text](url)` are rendered; a link is made only for a url that starts
    with `https://` (with `rel="noopener"`), anything else is shown as
@@ -62,7 +68,10 @@ reads out of `PROMOTIONS.md` and the file names in `docs/sprint/`.
    instead; one linked to a promoted item stays in the backlog.
 6. **Done**: the database's promotions, newest first: one row per item,
    with its title, tag ("tag only" when the row says it was not deployed),
-   the house's day of the promotion, and its steps and verdicts
+   the house's day of the promotion (a row imported from the old log
+   carries the date written there; for M2, M5, M12, M13 and M21-step2
+   that is a UTC day, the house's being the day before), and its steps
+   and verdicts
    (collapsed); a follow-up shows as "Note: follow-up, <date>" on the
    item's row. A deploy with no work item (`work.py promote --label`) is a
    row of its own among them by time: its tag, its label, "deploy with no
@@ -78,16 +87,19 @@ Nothing is entered on the page and nothing is written back.
 
 ```
 host: scripts/work.py (every write) → ~/.local/state/kronk-work/work.db and work.db.dump.sql
-      kronk-work-export.timer (60 s)
-  └─ scripts/work_export.py
+      kronk-work-export.path (the dump changed) and kronk-work-export.timer (60 s)
+  └─ kronk-work-export.service → scripts/work_export.py
        ├─ reads work.db.dump.sql into an in-memory database (never work.db, nothing else beside it)
        ├─ loads scripts/work.py for overview() and queue_rows(): stage, queue, counts as `resume` has them
        ├─ reads ROADMAP.md, the first 40 lines of each item's criteria file
        ├─ git rev-parse, git for-each-ref refs/tags, git rev-list HEAD     (GIT_OPTIONAL_LOCKS=0)
        ├─ herdr agent list                                                   (once, 5 s limit)
        └─ writes data/work.json and data/dev/work.json (temp file, rename)
-orchestrator: GET /api/work  → the file and its freshness (fresh / stale / missing / unreadable / unknown_schema)
-              GET /work      → orchestrator/static/work.html, which fetches api/work (relative)
+orchestrator: GET /api/work[?have=<ts>] → the file and its freshness (fresh / stale / missing / unreadable /
+                                         unknown_schema), the page version, the host's clock; work null and
+                                         unchanged true when <ts> is the file's
+              GET /work      → orchestrator/static/work.html with its version stamped in, which polls
+                               api/work (relative) every 3 s
 ```
 
 - **Why a host exporter.** Production runs from a release directory, a
@@ -184,7 +196,7 @@ orchestrator: GET /api/work  → the file and its freshness (fresh / stale / mis
   a run killed in mid-write leaves its temp file, and the next run removes
   its own temp files older than ten minutes (regular files of that exact
   name form only).
-- **Schema**: `schema` is 2 (M34). The exporter only adds keys and raises
+- **Schema**: `schema` is 3 (M32 step 1 added `house_zone`; 2 was M34's). The exporter only adds keys and raises
   the number when it does; an orchestrator that knows a lower schema still
   reads the file and says that keys were added. A missing or non-integer
   schema is "unknown schema". The schema-1 keys with no source left since
@@ -203,7 +215,17 @@ orchestrator: GET /api/work  → the file and its freshness (fresh / stale / mis
   `verdict`, `graded`; per Done row `at`, `deployed` (yes, no, not
   recorded), `verified`, `promotion`, `followup`; top level `database`,
   `active`, `queue`, `decisions_owed`, `open_counts`, `escapes`,
-  `promotions_no_item`.
+  `promotions_no_item`. Added in schema 3 (M32 step 1): top level
+  `house_zone` (`name`, the IANA zone when TZ or the `/etc/localtime` link
+  gives one whose offset now is the host's, else null; `utc_offset_s`,
+  the host's offset at the export).
+- **A dump that loads and is not the schema** (a column gone, a row of
+  the wrong shape: M34-e2e S1) is state "corrupt" with its own sentence,
+  "loads as SQL and is not the schema this exporter reads (<the
+  exception's type>)", no item, the ROADMAP part kept, exit 0. With no
+  row read (any state but "ok"), every agent is under "Other agents" with
+  the reason "the work-state database was not read", not "no item of that
+  name" (M34-e2e note 5).
 
 ## Heard
 
@@ -289,9 +311,13 @@ orchestrator: GET /api/voice_runs → orchestrator/voice_runs_api.py
   again: as many rows as it had loaded (200, or more after "show older"),
   in pages of 500 at most, keeping open rows and the reader's place by run
   id (the first row in view still there, or the next below it).
-- **Built outside `loadAll`**: its own element, fetch and 30 s timer. The
-  rest of the page is rebuilt every 30 s; this section is not. M32 then
-  swaps only the timer for its stream.
+- **Built outside `loadAll`**: its own element and fetch, on the page's
+  scheduler at its own 30 s (M32 step 1), each fetch with the page's 10 s
+  time limit. The rest of the page is rebuilt when the file changes; this
+  section is patched. The open list holds the count loaded (200, or more
+  after "show older"): new runs patched in at the top push the oldest out,
+  and "show older" goes on from the oldest kept. A section folded for ten
+  minutes drops its rows; opening it again loads the newest 200.
 - **What is shown is text.** Every string from a run goes in through the
   page's `el()` (`textContent`); a sentence holding markup shows as
   written.
@@ -299,6 +325,77 @@ orchestrator: GET /api/voice_runs → orchestrator/voice_runs_api.py
   Grafana already serves without a login), never `raw_trace`, the audio
   columns or a removed row; anyone who can reach port 80 can read it
   (`M30-review.md`, point 6).
+
+## Live (M32 step 1)
+
+For a page left open for months on a display nobody can touch
+(`M32-review.md` points 2 and 3).
+
+- **Poll, not a stream.** One scheduler: a `setTimeout` chain that ticks
+  each second (or sooner, when the next poll is due) and starts a poll of
+  `api/work` 3 s after the last one ended, at most one in flight, and
+  "Heard"'s 30 s after its last. Every request is given up after 10 s, its
+  body included (`AbortController` where the browser has one; without it
+  the page still stops waiting, and the request is left to finish). A tab
+  that comes back into view polls at once. Two timers at most: the tick
+  and one request's limit.
+- **`?have=`.** The page sends the `ts` of the file it shows; the route
+  answers the same envelope with `work: null` and `unchanged: true` when
+  the file's `ts` is that one, so an unchanged poll is a few hundred bytes
+  and the rows are not touched. The envelope (state, `age_s`) is fresh on
+  every poll.
+- **The in-memory copy.** The route keeps the parsed file keyed by the
+  open file's device, inode, mtime and size (`servers.read_source`'s
+  cache): an unchanged file costs an open and an `fstat`, and is read once
+  per change however many pages poll. The key is taken from the file that
+  is read, so a file renamed into place between two polls is never paired
+  with the other's parse.
+- **`Cache-Control: no-store`** on `/work`, `/api/work` and
+  `/api/voice_runs`. The three are left out of the orchestrator's
+  telemetry (`telemetry._DEFAULT_EXCLUDED`): no trace per poll.
+- **A failed poll keeps the last state.** A 502, a refused connection, a
+  hang or an answer that is not the route's leaves the page as it was and
+  says "NO ANSWER: since HH:MM:SS (why), N s ago. Shown below: the last
+  known state." The page is never emptied by a failure; a route answer of
+  missing, unreadable or unknown schema still empties it, as before.
+- **Three signs of life.** The data's age, counting each second (the
+  script runs); the header's dot, which beats once per answered poll and
+  never moves by itself; and a cover the stylesheet shows by itself: a
+  CSS animation with a 90 s delay ("This page has stopped updating"),
+  restarted by the script on every answered poll. If the script dies or
+  every poll fails, the cover appears with no script needed. Nothing
+  moves endlessly.
+- **The page's version.** The orchestrator hashes `work.html` and
+  `kronk.css` once at start (`work_api.PAGE_VERSION`, 12 hex of SHA-256),
+  puts it in every `/api/work` envelope (`page_version`) and stamps it into
+  the page it serves (`<meta name="kronk-page-version">`, filled by
+  `_serve`). The page learns its own version from its own bytes, never
+  from the first answer, which may come from a newer container.
+- **The reload cannot strand the page.** When the announced version is
+  not the page's own, the page fetches its own URL with `no-store` and
+  reloads only on a 200 whose stamped version is the one announced. During
+  a deploy nginx answers 502 for the page, and a reload then would land on
+  nginx's error page, where no script runs, for good. At most one reload
+  in ten minutes by the route's clock (`server_s`, kept in
+  `sessionStorage` under `kronk.work.reloaded_at_s`, so the limit survives
+  the reload), the page asked at most once in 30 s. A browser with no
+  session storage never reloads itself: the page says so. Once a day,
+  when nothing is under way, the page reloads by the same path.
+- **Clocks.** Ages are the route's `age_s` plus the time since the answer
+  by `performance.now()`; the reload limit is the route's clock. The page
+  never reads the browser's clock, so a display whose clock is wrong shows
+  the right ages.
+- **Shown times are the house's**: formatted with `house_zone.name` when
+  the browser knows it, else with `house_zone.utc_offset_s` (the offset at
+  the export, so a time across a DST change can be an hour off in that
+  case only). "Heard"'s run times are the house's as written; its "as of"
+  is still the browser's (M32 step 1 left "Heard" as it was but for the
+  scheduler, the time limit and the trim).
+- **The exporter runs on a write**: `systemd/kronk-work-export.path`,
+  `PathChanged=` on the live dump, starts the existing service. `work.py`
+  rewrites the dump by rename after every committed write; `agent.py`
+  writes through `work.py`. No code in either tool. The timer stays at
+  60 s for what only herdr changes (an agent going idle).
 
 ## Gotchas
 
@@ -341,9 +438,20 @@ orchestrator: GET /api/voice_runs → orchestrator/voice_runs_api.py
   computed by the exporter, never parsed in the browser (`new
   Date('2026-11-15')` prints the 14th here). For the 33 promotions imported
   from `PROMOTIONS.md` that time is derived (the commit that added the
-  line, or noon of the date written), so only the day is true. Step times
-  are UTC from the rows, shown in the browser's time. `ROADMAP.md` dates
-  are shown as written.
+  line, or noon of the date written), so only the day is true; for M2,
+  M5, M12, M13 and M21-step2 the date written was a UTC day, and the
+  page's note says so. Step times are UTC from the rows, shown in the
+  house's zone. `ROADMAP.md` dates are shown as written.
+- **A write while an export runs** may start no second run: the service
+  is a oneshot, and a start asked for while it is running is merged into
+  the running job. The timer picks the write up within 60 s.
+- **Between the move of the schema-3 exporter and a deploy of step 1**,
+  the deployed page reads the file with "work.json has schema 3, newer
+  than this page's 2: keys added since are not shown". Only `house_zone`
+  is not shown.
+- **A browser without `AbortController`** (older than 2018) stops waiting
+  on a hung request after 10 s but cannot cut it: hung requests are left
+  open until the network gives them up.
 - **`/services` links `/work` absolutely**, like every page there: from
   `/dev/services` it opens production's `/work`.
 
@@ -361,7 +469,8 @@ orchestrator: GET /api/voice_runs → orchestrator/voice_runs_api.py
 ## Operations
 
 - Install: the header of `systemd/kronk-work-export.service` (install,
-  check, one-shot, remove).
+  check, one-shot, remove), and of `systemd/kronk-work-export.path`
+  (install, check, verify, remove; the coordinator installs it).
 - Eyeball: `python3 scripts/work_export.py --print` (the live dump), or
   `--db <copy> --print` on a scratch copy made with `work.py --db <copy>
   dump`.
@@ -393,3 +502,12 @@ orchestrator: GET /api/voice_runs → orchestrator/voice_runs_api.py
   row count and the insert times, when the cursor only ever goes up.
 - A folded section for a wall display: why "remember if it was open" is a
   bug on a screen nobody can touch.
+- A page nobody can touch: the self-reload that would have stranded it on
+  nginx's 502 page, and the check that makes it safe (fetch yourself first,
+  reload only on a 200 stamped with the version announced).
+- Polling beat streaming for a file that changes once a minute: no held
+  connection, no shutdown that hangs, and recovery is the next tick.
+- A cover drawn by the stylesheet alone, so a dead script still says it
+  is dead.
+- Reading the clock of the server, not the browser's, for every age and
+  limit on a display whose clock nobody checks.
