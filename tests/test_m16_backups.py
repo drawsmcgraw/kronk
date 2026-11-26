@@ -250,8 +250,10 @@ def house(tmp_path, monkeypatch):
     c.execute("insert into item values ('M33')")
     c.commit()
     c.close()
-    # The voice-run record (M30 step B) is looked for at the house's HOME path,
-    # absent as it is before the exporter's first run; voice_record() makes it.
+    # The voice-run record (M30 step B) is looked for at the house's HOME path.
+    # Required in the tar since the first export (M30 step C), so the house has
+    # one, as the real one does; voice_record() remakes it, no_voice_record()
+    # takes it away for the tests of a house before the first export.
     monkeypatch.delenv("KRONK_VOICE_DB")           # conftest's scratch path: the house's HOME path here
     (home / ".config" / "kronk").mkdir()
     (home / ".config" / "kronk" / "upgrade.env").write_text("KRONK_UPGRADE_BRANCH=refactor\n")
@@ -277,6 +279,7 @@ def house(tmp_path, monkeypatch):
                    upgrade_state=repo / "data" / "upgrades", model_dirs=(str(home / "models"),),
                    recordings=home / "kronk-voice-recordings", etc=etc, proc=proc, lock_wait_min=2,
                    tmp=tmp_path / "tmp")
+    voice_record(s)
     return s
 
 
@@ -284,6 +287,8 @@ def voice_record(s, last_ok_at="2026-12-10T06:00:00+00:00", runs=("R-house-1",),
     """A small voice-run record at the house's path (M30 step B)."""
     import sqlite3
     s.voice_db.parent.mkdir(parents=True, mode=0o700, exist_ok=True)
+    if s.voice_db.exists():
+        s.voice_db.unlink()                        # the house's own, replaced
     c = sqlite3.connect(s.voice_db)
     c.executescript("create table runs (run_id text primary key); create table labels (run_id text primary key);"
                     "create table export_state (id integer primary key, last_ok_at text);")
@@ -293,6 +298,12 @@ def voice_record(s, last_ok_at="2026-12-10T06:00:00+00:00", runs=("R-house-1",),
     c.commit()
     c.close()
     return s.voice_db
+
+
+def no_voice_record(s):
+    """The house as it was before the exporter's first run: no record."""
+    s.voice_db.unlink()
+    s.voice_db.parent.rmdir()
 
 
 def tar_names(p: Path) -> list[str]:
@@ -1104,6 +1115,7 @@ def test_old_recordings_move_keeping_names_and_times_young_ones_stay(house):
 
 
 def test_a_second_run_with_nothing_new_copies_and_deletes_nothing(house):
+    no_voice_record(house)      # about the recordings; the record's weekly copy is tested in test_m30_voice_runs.py
     rec(house, "dev1", "kronk", "1", age_days=10)
     rec(house, "dev1", "kronk", "2", age_days=1)
     B.cmd_archive(house, FakeOps(), dry_run=False)
@@ -1149,6 +1161,7 @@ def test_fault_destination_not_mounted(house):
 
 
 def test_fault_destination_full_mid_copy(house, monkeypatch):
+    no_voice_record(house)      # about the recordings; the record's weekly copy is tested in test_m30_voice_runs.py
     a = rec(house, "dev1", "kronk", "1", age_days=10, data=os.urandom(3 << 20))
     b = rec(house, "dev1", "kronk", "2", age_days=10)
     calls = {"n": 0}
@@ -1190,6 +1203,7 @@ def test_a_file_that_does_not_fit_is_skipped_and_smaller_later_files_still_go(ho
 
 
 def test_fault_the_copy_reads_back_different(house, monkeypatch):
+    no_voice_record(house)      # about the recordings; the record's weekly copy is tested in test_m30_voice_runs.py
     p = rec(house, "dev1", "kronk", "1", age_days=10)
     real = B.sha256_fd
     monkeypatch.setattr(B, "sha256_fd", lambda fd, drop_cache: "0" * 64 if drop_cache else real(fd, drop_cache))
@@ -1229,6 +1243,7 @@ def test_fault_killed_mid_copy_the_leftover_is_kept_and_reported_never_removed(h
 
 
 def test_fault_a_recording_being_written_is_left_for_the_next_run(house, monkeypatch):
+    no_voice_record(house)      # about the recordings; the record's weekly copy is tested in test_m30_voice_runs.py
     p = rec(house, "dev1", "kronk", "1", age_days=10)
     real = B._write_all
     once = []
@@ -1247,6 +1262,7 @@ def test_fault_a_recording_being_written_is_left_for_the_next_run(house, monkeyp
 
 
 def test_fault_symlinks_are_not_followed(house, tmp_path):
+    no_voice_record(house)      # about the recordings; the record's weekly copy is tested in test_m30_voice_runs.py
     outside = tmp_path / "outside"
     (outside / "kronk" / "9").mkdir(parents=True)
     victim = outside / "kronk" / "9" / "x.wav"
@@ -1469,6 +1485,7 @@ def test_nothing_outside_the_recordings_and_nothing_on_the_destination_is_delete
 # ═══ Blockers of the end-to-end test (docs/sprint/M16-e2e.md) ═══════════
 
 def test_finding1_a_source_named_like_the_temporary_file_is_reported_and_never_copied(house):
+    no_voice_record(house)      # about the recordings; the record's weekly copy is tested in test_m30_voice_runs.py
     tmpname = rec(house, "devA", "kronk", "run1", name=".kronk-archive.tmp", data=b"t" * 5000)
     other = rec(house, "devA", "kronk", "run1", name="01_b.wav", data=b"b" * 6000)
     lookalike = rec(house, "devA", "kronk", "run1", name=".kronk-archive.1.0123456789abcdef.tmp", data=b"l" * 10)
@@ -1518,6 +1535,7 @@ def test_finding1_the_temporary_file_is_removed_only_while_it_is_still_ours(tmp_
 
 
 def test_a_same_size_rewrite_during_the_copy_is_left_for_the_next_run(house, monkeypatch):
+    no_voice_record(house)      # about the recordings; the record's weekly copy is tested in test_m30_voice_runs.py
     p = rec(house, "dev1", "kronk", "1", data=b"a" * 3 * (1 << 20))
     real = B._write_all
     once = []
@@ -1767,6 +1785,7 @@ def test_a_non_file_of_the_same_name_on_the_destination_is_a_conflict(house):
 
 def test_files_at_the_wrong_depth_are_never_taken_as_recordings(house):
     """Mutant s06."""
+    no_voice_record(house)      # about the recordings; the record's weekly copy is tested in test_m30_voice_runs.py
     rec(house, "dev1", "kronk", "1")
     shallow = house.recordings / "dev1" / "kronk" / "x.wav"
     deep = house.recordings / "dev1" / "kronk" / "1" / "sub" / "y.wav"
@@ -1794,6 +1813,8 @@ def test_archive_dry_run_writes_deletes_and_sends_nothing(house):
 def test_stale_check_with_a_clock(house):
     rec(house, "dev1", "kronk", "1", age_days=10)
     B.cmd_config(house, FakeOps(), dry_run=False)
+    # The voice export's own stale warning is tested in test_m30_voice_runs.py.
+    no_voice_record(house)
     B.cmd_archive(house, FakeOps(), dry_run=False)
     # The tar's mtime is the real clock; pin it to the fake run time.
     tarp = next((house.dest / "config").iterdir())
@@ -2034,6 +2055,7 @@ def test_fix2_finding2_without_hard_links_the_copy_is_still_placed(house, monkey
 
 @pytest.mark.parametrize("err", [errno.EACCES, errno.EIO])
 def test_fix2_finding2_other_link_errors_keep_the_file(house, monkeypatch, err):
+    no_voice_record(house)      # about the recordings; the record's weekly copy is tested in test_m30_voice_runs.py
     p = rec(house, "dev1", "kronk", "1", data=b"a" * 3000)
     monkeypatch.setattr(B.os, "link", no_link(err))
     ops = FakeOps()

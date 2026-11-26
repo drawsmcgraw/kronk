@@ -8,10 +8,13 @@ collisions. (A per-service sys.path-juggling fixture once poisoned
 sys.modules across test files; don't bring one back.)
 """
 import atexit
+import json
 import os
 import shutil
+import subprocess
 import sys
 import tempfile
+import time
 
 # Household taste store (tool_service/taste.py) — never the container's
 # /data paths from a test run. Read at import, so set before any import.
@@ -73,6 +76,55 @@ def _live_voice_stat():
 
 
 _LIVE_VOICE_BEFORE = _live_voice_stat()
+_SESSION_START_S = time.time()
+VOICE_UNIT = "kronk-voice-runs-export.service"
+
+
+def _exporter_runs(since_s: float) -> list[tuple[float, float]]:
+    """The live timer's runs since since_s, as (start, end) epoch seconds,
+    from its unit's user journal (the lines "Starting ..." and "Finished
+    ..." or "Failed ..."; the unit logs no transcript text). Since step B
+    went live the timer rewrites the status files and the record every
+    60 s, so a long test run always sees them change; a change made inside
+    one of these runs is the timer's. Empty when the journal cannot be
+    read: then every change is reported."""
+    try:
+        out = subprocess.run(["journalctl", "--user", "-u", VOICE_UNIT, "--since", f"@{int(since_s) - 120}",
+                              "-o", "json", "--output-fields=MESSAGE", "--no-pager"],
+                             capture_output=True, text=True, timeout=20).stdout
+    except (OSError, subprocess.SubprocessError):
+        return []
+    runs, start = [], None
+    for line in out.splitlines():
+        try:
+            e = json.loads(line)
+            t, msg = int(e["__REALTIME_TIMESTAMP"]) / 1e6, str(e.get("MESSAGE") or "")
+        except (ValueError, KeyError, TypeError):
+            continue
+        if msg.startswith("Starting "):
+            start = t
+        elif start is not None and (msg.startswith("Finished ") or msg.startswith("Failed ")
+                                    or "Failed with result" in msg or "Deactivated" in msg):
+            runs.append((start - 0.2, t + 0.2))
+            start = None
+    return runs
+
+
+def _voice_changes_not_the_timers(before: dict, after: dict) -> list[str]:
+    """The live voice files that changed while the tests ran and whose
+    mtime (the new one, or the old one for a file now gone) falls in no run
+    of the live timer."""
+    changed = [p for p in after if after[p] != before[p]]
+    if not changed:
+        return []
+    runs = _exporter_runs(_SESSION_START_S)
+    out = []
+    for p in changed:
+        st = after[p] or before[p]
+        t = st[0] / 1e9
+        if not any(a <= t <= b for a, b in runs):
+            out.append(p)
+    return out
 
 
 def pytest_sessionfinish(session, exitstatus):
@@ -81,9 +133,8 @@ def pytest_sessionfinish(session, exitstatus):
         changed = [LIVE_WORK_DB + k for k in after if after[k] != _LIVE_WORK_BEFORE[k]]
         sys.stderr.write(f"\nFAILED: the test run changed the live work database: {', '.join(changed)}\n")
         session.exitstatus = 1
-    voice = _live_voice_stat()
-    if voice != _LIVE_VOICE_BEFORE:
-        changed = [p for p in voice if voice[p] != _LIVE_VOICE_BEFORE[p]]
+    changed = _voice_changes_not_the_timers(_LIVE_VOICE_BEFORE, _live_voice_stat())
+    if changed:
         sys.stderr.write(f"\nFAILED: the test run changed the live voice-run record or its copies: "
                          f"{', '.join(changed)}\n")
         session.exitstatus = 1

@@ -704,7 +704,10 @@ def required_sources(s: Settings) -> list[str]:
             # Its playlists/ are optional: absent, empty or unreadable is reported, not INCOMPLETE.
             "music-assistant-server:/data/settings.json", "music-assistant-server:/data/auth.db",
             # The only copies of household data in the tar (coordinator ruling, note 9 of the second e2e).
-            str(s.repo / "data" / "solar.db"), str(s.repo / "data" / "music_taste.db")]
+            str(s.repo / "data" / "solar.db"), str(s.repo / "data" / "music_taste.db"),
+            # The voice-run record (M30): the only copy of the dataset beside the weekly
+            # one. Required from the first export on (coordinator, 2026-11-26).
+            str(s.voice_db)]
 
 
 def required_gaps(s: Settings, c: Collected) -> list[str]:

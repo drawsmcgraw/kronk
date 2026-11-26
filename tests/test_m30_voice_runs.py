@@ -928,6 +928,7 @@ def ids_and_labels(db: Path):
 
 def real_record(house, tmp_path, n=5):
     """A record made by the exporter at the house's path, with a label."""
+    M16.no_voice_record(house)                     # the house's stand-in, replaced by a real one
     sc = Scratch(tmp_path / "exp")
     a = sc.args("--init")
     a[a.index("--db") + 1] = str(house.voice_db)
@@ -998,6 +999,7 @@ def test_b8_weekly_copies_keep_the_newest_eight_dates_and_never_overwrite(house,
 
 
 def test_b8_the_weekly_copy_with_no_record_yet_is_noted_not_a_failure(house):
+    M16.no_voice_record(house)
     house.recordings.mkdir()
     ops = FakeOps()
     assert B.cmd_archive(house, ops, dry_run=False) == 0
@@ -1006,6 +1008,7 @@ def test_b8_the_weekly_copy_with_no_record_yet_is_noted_not_a_failure(house):
 
 
 def test_b8_a_record_that_will_not_read_fails_the_archive_run(house):
+    M16.no_voice_record(house)
     house.voice_db.parent.mkdir(parents=True, mode=0o700)
     house.voice_db.write_bytes(b"not a database" * 300)
     house.recordings.mkdir()
@@ -1043,18 +1046,24 @@ def test_b8_the_stale_check_warns_when_the_last_good_read_is_over_seven_days_old
 
 
 def test_b8_the_stale_check_before_the_first_export_is_quiet_and_a_lost_record_is_not(house):
+    M16.no_voice_record(house)
     assert [x for x in B.stale_warnings(house, FakeOps(), st={}) if "voice-run" in x] == []
     (house.repo / "data" / "voice_runs.json").write_text('{"ts": 1}')
     w = [x for x in B.stale_warnings(house, FakeOps(), st={}) if "voice-run" in x]
     assert w and "is missing" in w[0]
 
 
-def test_b8_the_record_is_not_yet_required(house):
-    """The coordinator adds it to required_sources after the first export
-    (criteria, plumbing 11): until then its absence must not make a tar
-    INCOMPLETE."""
-    assert str(house.voice_db) not in B.required_sources(house)
+def test_b8_the_record_is_required_since_the_first_export(house):
+    """In required_sources from the first export on (criteria, plumbing 11;
+    added in step C, the record being live since 2026-11-26): a tar without
+    it is INCOMPLETE, and with it the run is OK."""
+    assert str(house.voice_db) in B.required_sources(house)
     assert B.cmd_config(house, FakeOps(), dry_run=False) == 0
+    M16.no_voice_record(house)
+    ops = FakeOps()
+    assert B.cmd_config(house, ops, dry_run=False) == 4
+    title, body = ops.notices[-1]
+    assert title == "Kronk backup: config backup INCOMPLETE" and "voice_runs.db" in body
 
 
 # ═══ B9: an incremental run under a second, twenty times ═══════════════════

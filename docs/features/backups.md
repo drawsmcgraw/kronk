@@ -133,6 +133,7 @@ A tar is a backup only when it holds the **required** items:
 | the live config directories `kronk-config/prod` and `dev` | prompts and tuning, with their history |
 | `~/.config/systemd/user/` | the units that start everything |
 | `data/solar.db`, `data/music_taste.db` | the only copies of household data in the tar (coordinator ruling, 2026-11-19) |
+| the voice-run record `~/.local/state/kronk-voice/voice_runs.db` | every household voice run kept for good; its only other copy is the weekly one beside the recordings (M30, required from the first export, 2026-11-26) |
 
 A run that cannot read any of them (a container down, a permission, a
 file missing) still writes what it read, as
