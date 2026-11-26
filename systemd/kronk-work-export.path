@@ -1,0 +1,33 @@
+# Starts kronk-work-export.service when the dump of the work-state database
+# changes (work item M32 step 1), so a change made through scripts/work.py
+# or scripts/agent.py (which writes through work.py) is on /work within
+# seconds rather than at the timer's next minute. work.py rewrites
+# work.db.dump.sql after every committed write, inside its write lock, by
+# temp file and rename; the rename into place is the change seen here. No
+# code in work.py or agent.py: neither waits for the export nor knows of it.
+#
+# The service is a oneshot: runs never overlap. A write that lands while a
+# run is under way may start no second run; the timer (60 s, unchanged)
+# picks it up. A write with --db on a scratch copy does not touch the
+# watched file. The path is the live dump's (work.py's default_db(),
+# KRONK_WORK_DB unset); systemd does not expand ~ here.
+#
+# Operations:
+#   install:  cp systemd/kronk-work-export.path ~/.config/systemd/user/
+#             systemctl --user daemon-reload
+#             systemctl --user enable --now kronk-work-export.path
+#   check:    systemctl --user status kronk-work-export.path
+#             journalctl --user -u kronk-work-export.service -n 20
+#   verify:   systemd-analyze --user verify systemd/kronk-work-export.path
+#   remove:   systemctl --user disable --now kronk-work-export.path
+#             rm ~/.config/systemd/user/kronk-work-export.path
+#             systemctl --user daemon-reload
+[Unit]
+Description=Kronk — export the work items when the work-state database changes
+
+[Path]
+PathChanged=/home/drew/.local/state/kronk-work/work.db.dump.sql
+Unit=kronk-work-export.service
+
+[Install]
+WantedBy=default.target

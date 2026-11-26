@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="kronk-page-version" content="">
 <title>Kronk — Work</title>
 <link rel="stylesheet" href="static/kronk.css">
 <style>
@@ -85,6 +86,24 @@
   .held-mark { font-size: 11px; font-weight: 700; color: var(--amber); }
   .not-read li { font-size: 11.5px; color: var(--text3); margin-left: 1.2em; }
 
+  /* Live (M32 step 1). The dot beats once per answered poll, fired by the
+     script: it never moves by itself, so a dead script leaves it still.
+     The cover is the stylesheet's own: shown 90 s after the page loads
+     unless the script restarts its animation, which it does on every
+     answered poll. With the script stopped or every poll failing, it
+     appears with no script needed. */
+  .header-dot.beat { opacity: 0.3; }
+  .header-dot.beat.on { animation: beat 0.9s ease-out 1; }
+  @keyframes beat { from { opacity: 1; } to { opacity: 0.3; } }
+  #live-banner, #reload-note { margin-bottom: 10px; }
+  .cover { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center;
+           background: rgba(15, 17, 23, 0.8); pointer-events: none; opacity: 0; visibility: hidden;
+           animation: cover-show 1s linear 90s forwards; }
+  @keyframes cover-show { from { opacity: 0; visibility: visible; } to { opacity: 1; visibility: visible; } }
+  .cover-box { border: 1px solid var(--red); background: var(--bg2); color: var(--text); border-radius: 10px;
+               padding: 1.2rem 1.6rem; font-size: 18px; line-height: 1.5; max-width: 32em; text-align: center; }
+  .cover-box span { display: block; font-size: 14px; color: var(--text2); margin-top: 6px; }
+
   /* Heard (M30 step C): the voice runs of the last 90 days, folded on every load. */
   details.heard > summary { list-style: none; display: flex; gap: 6px 12px; flex-wrap: wrap; align-items: baseline;
                             margin: 0; color: var(--text2); font-size: 12.5px; }
@@ -122,11 +141,11 @@
 <body>
 
 <header>
-  <div class="header-dot"></div>
+  <div class="header-dot beat" id="beat"></div>
   <h1>Work</h1>
   <div class="header-right">
     <span class="last-updated" id="last-updated">—</span>
-    <button class="refresh-btn" onclick="loadAll()">↻ Refresh</button>
+    <button class="refresh-btn" onclick="pollNow()">↻ Refresh</button>
   </div>
 </header>
 
@@ -147,6 +166,8 @@
   </details>
 
   <div>
+    <div class="banner" id="live-banner" hidden><strong>NO ANSWER: </strong><span id="live-why"></span></div>
+    <div class="banner" id="reload-note" hidden></div>
     <div id="banner"></div>
     <div class="state-line" id="state-line">fetching…</div>
   </div>
@@ -176,7 +197,7 @@
 
   <section>
     <div class="section-label">Done</div>
-    <div class="note-line">Promotions as the work-state database records them, newest first, with the deploys made outside any work item; each date is the house’s day of the promotion. The old log, <code>docs/sprint/PROMOTIONS.md</code>, is frozen since M34.</div>
+    <div class="note-line">Promotions as the work-state database records them, newest first, with the deploys made outside any work item; each date is the house’s day of the promotion. A row imported from the old log, <code>docs/sprint/PROMOTIONS.md</code> (frozen since M34), carries the date written there: for M2, M5, M12, M13 and M21-step2 that is a UTC day, and the house’s is the day before.</div>
     <div class="card" id="done"></div>
     <div class="sub-label">Shipped, not linked to a work item</div>
     <div class="card" id="shipped"></div>
@@ -189,12 +210,16 @@
   </section>
 </main>
 
+<div class="cover" id="cover" aria-hidden="true"><div class="cover-box"><strong>This page has stopped updating.</strong><span>No answer for 90 s or more: what is shown may be out of date.</span></div></div>
+
 <script>
-// /work (work items M27, M34): the outline scripts/work_export.py writes on
-// the host every 60 s from the dump of the work-state database, served by
-// /api/work with its freshness. The stage of each item, the queue and the
-// counts are computed by the exporter, from work.py's own overview() (tested
-// in tests/test_m34_work_db.py); this page only lays them out. Every
+// /work (work items M27, M34, M32): the outline scripts/work_export.py writes
+// on the host every 60 s, and on every work-state write, from the dump of
+// the work-state database, served by /api/work with its freshness. Polled
+// every 3 s by one scheduler (the end of this script, M32 step 1). The
+// stage of each item, the queue and the counts are computed by the
+// exporter, from work.py's own overview() (tested in
+// tests/test_m34_work_db.py); this page only lays them out. Every
 // string from the repo is set with textContent (never innerHTML), so a
 // title holding markup shows as text. URLs are relative, so /dev/work
 // shows dev's file. docs/features/work-page.md
@@ -271,6 +296,47 @@ const DB_TEXT = {
 const QUEUE_TEXT = {"next": "next", "held": "held: {why}", "waits": "waits on {on}: {note}", "next_step": "next step: {step}"};
 const NO_ITEM_TEXT = {"title": "deploy with no work item", "deployed": {"yes": "deployed", "no": "tag only", "not recorded": ""}};
 
+// The live loop (work item M32 step 1), for a page left open on a wall
+// display nobody can touch. One scheduler: a setTimeout chain that ticks
+// each second (sooner when a poll is due), starts a poll of api/work when
+// the last one ended every_ms ago and "Heard"'s every HEARD.every_ms (from
+// the end of its last), each request given up after
+// timeout_ms. A failed poll keeps the last state. Ages come from the
+// route's age_s and performance.now(), never this browser's clock; shown
+// times are in the house's zone (the file's house_zone). The page reloads
+// only after a 200 for itself whose stamped version is the one the route
+// announces, at most once in reload_gap_s by the route's clock (server_s,
+// kept in sessionStorage so the limit survives the reload), and once a day
+// (daily_ms) by the same path when nothing is under way.
+const LIVE = {
+  "url": "api/work",
+  "tick_ms": 1000,
+  "tick_min_ms": 20,
+  "every_ms": 3000,
+  "timeout_ms": 10000,
+  "reload_gap_s": 600,
+  "retry_page_ms": 30000,
+  "daily_ms": 86400000,
+  "heard_folded_ms": 600000,
+  "store_reload": "kronk.work.reloaded_at_s",
+  "version_meta": "kronk-page-version"
+};
+const LIVE_TEXT = {
+  "age": "data {age} old",
+  "no_data": "no data",
+  "waiting": "fetching…",
+  "no_answer": "since {since} ({why}), {for} ago. Shown below: the last known state.",
+  "no_answer_yet": "none yet ({why}).",
+  "timeout": "no answer in {s} s",
+  "http": "HTTP {status}",
+  "not_json": "the answer is not JSON",
+  "not_envelope": "the answer is not the route's",
+  "reload_no_store": "Another page is deployed ({version}). This browser keeps no session storage, so the page cannot limit its own reloads and does not reload itself: reload it by hand.",
+  "zone": "Times are the house’s ({zone}).",
+  "zone_offset": "Times are the house’s (UTC{offset}).",
+  "zone_unknown": "Times are this browser’s local time: the house’s zone is not known yet."
+};
+
 function fill(tpl, vals) {
   return tpl.replace(/\{(\w+)\}/g, (_, k) => (vals[k] == null ? '' : String(vals[k])));
 }
@@ -342,10 +408,35 @@ function mdText(parent, s) {
   return parent;
 }
 
+// A time in the house's zone (the file's house_zone, M32 step 1): by its
+// name when this browser knows it, else by its offset at the export. Before
+// the first answer, this browser's own zone. new Date(x) of a stated time
+// reads no clock.
+function houseString(d, opts) {
+  const z = live.zone;
+  if (zoneKnown(z)) return d.toLocaleString('en-US', { ...opts, timeZone: z.name });
+  if (z && typeof z.utc_offset_s === 'number') {
+    return new Date(d.getTime() + z.utc_offset_s * 1000).toLocaleString('en-US', { ...opts, timeZone: 'UTC' });
+  }
+  return d.toLocaleString('en-US', opts);
+}
+// Whether this browser knows the zone's name (Intl throws a RangeError when
+// not), asked once per name.
+const zoneNames = new Map();
+function zoneKnown(z) {
+  if (!z || typeof z.name !== 'string' || !z.name) return false;
+  if (!zoneNames.has(z.name)) {
+    let known = true;
+    try { new Date(0).toLocaleString('en-US', { timeZone: z.name }); } catch (e) { known = false; }
+    zoneNames.set(z.name, known);
+  }
+  return zoneNames.get(z.name);
+}
 const fmtTime = iso => {
   const d = new Date(iso);
-  return isNaN(d) ? String(iso) : d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return isNaN(d) ? String(iso) : houseString(d, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 };
+const fmtClockS = sec => houseString(new Date(sec * 1000), { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 const fmtAge = s => (s < 120 ? `${Math.round(s)} s` : s < 7200 ? `${Math.round(s / 60)} min` : `${Math.round(s / 3600)} h`);
 
 // ── sections ─────────────────────────────────────────────────────────────────
@@ -385,8 +476,11 @@ function renderState(resp) {
   const parts = [];
   const repo = w.repo || {};
   const where = repo.detached ? `detached HEAD @ ${repo.head || '?'}` : `${repo.branch || '?'} @ ${repo.head || '?'}`;
-  parts.push(`export made ${fmtTime(w.made_at)}, ${src.age_s == null ? '?' : Math.round(src.age_s)} s ago, from ${where}` +
-             (repo.rebase ? ' (rebase in progress)' : ''));
+  // The age counts each second: liveTick() sets #state-age.
+  const made = el('span', null, `export made ${fmtTime(w.made_at)}, `);
+  made.appendChild(el('span', null, liveAgeText(performance.now()) ?? '?')).id = 'state-age';
+  made.appendChild(document.createTextNode(` ago, from ${where}` + (repo.rebase ? ' (rebase in progress)' : '')));
+  parts.push(made);
   const h = w.herdr || {};
   parts.push(fill(AGENT_TEXT.coordinator, { word: (h.coordinator || {}).shown || 'not known' }));
   parts.push(h.known ? fill(AGENT_TEXT.known, { seen: h.seen }) : fill(AGENT_TEXT.not_known, { reason: h.reason }));
@@ -399,7 +493,7 @@ function renderState(resp) {
   }
   parts.forEach((p, i) => {
     if (i) line.appendChild(el('span', 'sep', '·'));
-    line.appendChild(el('span', null, p));
+    line.appendChild(typeof p === 'string' ? el('span', null, p) : p);
   });
   for (const e of arr(w.errors)) if (e !== dbLine) line.appendChild(el('div', 'reason', e));
   if (repo.error) line.appendChild(el('div', 'reason', repo.error));
@@ -638,7 +732,7 @@ function renderNotRead(w, src) {
   }
   document.getElementById('src-line').textContent =
     `Source: ${src.file || 'work.json'}, written by scripts/work_export.py on the host every ${src.every_s || 60} s from the work-state database’s dump` +
-    (w.run_s != null ? ` (last run took ${w.run_s} s)` : '') + '. Times are this browser’s local time.';
+    (w.run_s != null ? ` (last run took ${w.run_s} s)` : '') + '. ' + zoneNote(live.zone);
 }
 
 function renderEmpty() {
@@ -648,44 +742,212 @@ function renderEmpty() {
   document.getElementById('queue-section').hidden = true;
 }
 
-async function loadAll() {
-  let resp;
-  try {
-    const r = await fetch('api/work');
-    resp = await r.json();
-    if (!r.ok) resp = { source: { state: 'unreadable', reason: `api/work: HTTP ${r.status}` }, work: null };
-  } catch (e) {
-    resp = { source: { state: 'unreadable', reason: `api/work: ${e.message}` }, work: null };
-  }
-  const show = renderState(resp);
-  const w = resp.work;
-  if (show && w) {
-    const items = {};
-    for (const it of arr(w.items)) items[it.id] = it;
-    renderUnderWay(w, items);
-    renderQueue(w, items);
-    renderOthers(w);
-    renderBacklog(w);
-    renderDone(w, items);
-    renderNotRead(w, resp.source || {});
-  } else {
-    renderEmpty();
-  }
-  document.getElementById('last-updated').textContent =
-    'updated ' + new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+// One request, aborted after LIVE.timeout_ms, its body included:
+// {ok, status, text, why}; never throws. Without an AbortController the
+// time limit still holds (the request is left to finish on its own).
+function getText(url) {
+  const ctl = typeof AbortController === 'function' ? new AbortController() : null;
+  let timer = null;
+  const late = new Promise(done => {
+    timer = setTimeout(() => {
+      if (ctl) ctl.abort();
+      done({ ok: false, status: null, text: null, why: fill(LIVE_TEXT.timeout, { s: LIVE.timeout_ms / 1000 }) });
+    }, LIVE.timeout_ms);
+  });
+  const ask = (async () => {
+    try {
+      const r = await fetch(url, ctl ? { cache: 'no-store', signal: ctl.signal } : { cache: 'no-store' });
+      const text = await r.text();
+      return { ok: r.ok, status: r.status, text, why: r.ok ? null : fill(LIVE_TEXT.http, { status: r.status }) };
+    } catch (e) {
+      return { ok: false, status: null, text: null, why: String((e && e.message) || e) };
+    }
+  })();
+  return Promise.race([ask, late]).finally(() => clearTimeout(timer));
 }
 
-loadAll();
-setInterval(loadAll, 30000);
+// getText, and its body as JSON when it is JSON (body undefined when not).
+async function getJSON(url) {
+  const r = await getText(url);
+  let body;
+  if (r.text != null) { try { body = JSON.parse(r.text); } catch (e) { body = undefined; } }
+  if (r.ok && body === undefined) return { ...r, ok: false, body, why: LIVE_TEXT.not_json };
+  return { ...r, body };
+}
+
+// The page's live state (M32 step 1): the last outline shown and when it was
+// answered, by performance.now() and by the route's clock.
+const live = { ts: null, work: null, zone: null, answeredAt: null, ageAt: null, serverAt: null, fail: null,
+               inflight: false, due: 0, started: 0, version: null, reloading: false, pageTriedAt: -Infinity,
+               noStore: false };
+
+// One poll of api/work. ?have= is the ts of the file on show: an unchanged
+// file answers with work null and unchanged true, and the rows stand.
+async function loadAll() {
+  if (live.inflight) return;
+  live.inflight = true;
+  try {
+    const r = await getJSON(live.ts != null ? `${LIVE.url}?have=${encodeURIComponent(String(live.ts))}` : LIVE.url);
+    const resp = r.body;
+    if (!r.ok || !resp || typeof resp !== 'object' || !resp.source || typeof resp.source !== 'object') {
+      liveFailed(r.ok ? LIVE_TEXT.not_envelope : `${LIVE.url}: ${r.why}`);
+      return;
+    }
+    liveAnswered(resp);
+  } finally {
+    live.inflight = false;
+    live.due = performance.now() + LIVE.every_ms;
+  }
+}
+
+// A failed poll: what is shown stays; the banner says since when and why.
+function liveFailed(why) {
+  if (!live.fail) live.fail = { since: performance.now() };
+  live.fail.why = why;
+}
+
+function liveAnswered(resp) {
+  const now = performance.now();
+  live.fail = null;
+  live.answeredAt = now;
+  live.ageAt = typeof resp.source.age_s === 'number' ? resp.source.age_s : null;
+  live.serverAt = typeof resp.server_s === 'number' ? resp.server_s : null;
+  const changed = !(resp.unchanged === true && live.work);
+  if (changed) {
+    live.work = resp.work && typeof resp.work === 'object' ? resp.work : null;
+    live.ts = live.work && live.work.ts != null ? live.work.ts : null;
+    if (live.work && live.work.house_zone && typeof live.work.house_zone === 'object') live.zone = live.work.house_zone;
+  }
+  const shown = changed ? resp : { ...resp, work: live.work };
+  const show = renderState(shown);
+  if (changed) {
+    const w = shown.work;
+    if (show && w) {
+      const items = {};
+      for (const it of arr(w.items)) items[it.id] = it;
+      renderUnderWay(w, items);
+      renderQueue(w, items);
+      renderOthers(w);
+      renderBacklog(w);
+      renderDone(w, items);
+      renderNotRead(w, resp.source || {});
+    } else {
+      renderEmpty();
+    }
+  }
+  restart(document.getElementById('cover'));
+  const dot = document.getElementById('beat');
+  dot.classList.remove('on');
+  void dot.offsetWidth;
+  dot.classList.add('on');
+  maybeReload(resp);
+}
+
+// A CSS animation from its start: the cover's 90 s begin again.
+function restart(node) {
+  node.style.animation = 'none';
+  void node.offsetWidth;
+  node.style.animation = '';
+}
+
+// The data's age now: the route's age_s at the answer plus the time since,
+// by performance.now().
+function liveAge(now) {
+  return live.answeredAt == null || live.ageAt == null ? null : live.ageAt + (now - live.answeredAt) / 1000;
+}
+function liveAgeText(now) {
+  const a = liveAge(now);
+  return a == null ? null : fmtAge(Math.max(0, a));
+}
+
+function zoneNote(z) {
+  if (zoneKnown(z)) return fill(LIVE_TEXT.zone, { zone: z.name });
+  if (z && typeof z.utc_offset_s === 'number') {
+    const m = Math.round(Math.abs(z.utc_offset_s) / 60);
+    return fill(LIVE_TEXT.zone_offset, { offset: `${z.utc_offset_s < 0 ? '−' : '+'}${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}` });
+  }
+  return LIVE_TEXT.zone_unknown;
+}
+
+// Each second: the age, and the banner of a failed poll. Text set on nodes
+// that stay, so the page's element count does not move.
+function renderLive(now) {
+  const age = liveAgeText(now);
+  document.getElementById('last-updated').textContent = age != null ? fill(LIVE_TEXT.age, { age })
+    : live.answeredAt == null ? LIVE_TEXT.waiting : LIVE_TEXT.no_data;
+  const sa = document.getElementById('state-age');
+  if (sa) sa.textContent = age ?? '?';
+  const box = document.getElementById('live-banner');
+  box.hidden = !live.fail;
+  if (live.fail) {
+    document.getElementById('live-why').textContent = live.answeredAt == null
+      ? fill(LIVE_TEXT.no_answer_yet, { why: live.fail.why })
+      : fill(LIVE_TEXT.no_answer, { since: live.serverAt == null ? '?' : fmtClockS(live.serverAt), why: live.fail.why,
+                                    for: fmtAge((now - live.answeredAt) / 1000) });
+  }
+}
+
+// The reload limit's stamp: the route's clock at the last reload, in this
+// tab's sessionStorage. undefined when there is no storage to keep it in.
+function reloadStamp(val) {
+  try {
+    if (val === undefined) return sessionStorage.getItem(LIVE.store_reload);
+    sessionStorage.setItem(LIVE.store_reload, String(val));
+    return String(val);
+  } catch (e) {
+    return undefined;
+  }
+}
+
+// Reload into another page only when it can be had: a 200 for this page's
+// own URL whose stamped version is the one announced. During a deploy the
+// page answers 502 from nginx, and a reload then would land on nginx's error
+// page, where no script runs, for good (M32-review point 3).
+async function maybeReload(resp) {
+  const want = resp.page_version;
+  if (live.reloading || typeof want !== 'string' || !want || live.serverAt == null) return;
+  const now = performance.now();
+  const daily = now - live.started >= LIVE.daily_ms && live.work && !arr(live.work.active ?? live.work.under_way).length;
+  if (want === live.version && !daily) return;
+  const last = reloadStamp();
+  if (last === undefined) {
+    if (want !== live.version) {
+      const note = document.getElementById('reload-note');
+      note.textContent = fill(LIVE_TEXT.reload_no_store, { version: want });
+      note.hidden = false;
+    }
+    return;
+  }
+  if (last != null && Number.isFinite(Number(last)) && Math.abs(live.serverAt - Number(last)) < LIVE.reload_gap_s) return;
+  if (now - live.pageTriedAt < LIVE.retry_page_ms) return;
+  live.pageTriedAt = now;
+  live.reloading = true;
+  try {
+    const r = await getText(location.href.split('#')[0]);
+    const m = r.status === 200 && typeof r.text === 'string'
+      ? r.text.match(/<meta name="kronk-page-version" content="([^"]*)">/) : null;
+    if (!m || m[1] !== want) return;
+    if (reloadStamp(live.serverAt) === undefined) return;
+    location.reload();
+    return;
+  } finally {
+    // A reload that went ahead never comes back here; one that did not is
+    // tried again after retry_page_ms.
+    live.reloading = false;
+  }
+}
 
 // ── Heard (work item M30 step C) ─────────────────────────────────────────────
 //
 // The voice runs of the last 90 days, from GET api/voice_runs (the published
 // copy scripts/voice_runs_export.py writes on the host, and its status file).
-// Built outside loadAll: its own element, fetch and timer, rows keyed by run
-// id and patched in place from changed_after, so an open row and the scroll
-// survive the refresh (M32 swaps the timer for its stream). Folded on every
-// load: open or closed is never stored (a wall display nobody can touch).
+// Built outside loadAll: its own element and fetch, rows keyed by run id and
+// patched in place from changed_after, so an open row and the scroll survive
+// the refresh. On the page's scheduler at its own every_ms (M32 step 1),
+// each fetch with the page's time limit; the open list is trimmed to the
+// count loaded (rows, or more after "show older"), and a section folded for
+// LIVE.heard_folded_ms drops its rows. Folded on every load: open or closed
+// is never stored (a wall display nobody can touch).
 // The filter and the switch are kept in localStorage. Every string from a
 // run is set with el() (textContent). docs/features/work-page.md, "Heard".
 
@@ -739,7 +1001,8 @@ const SATELLITE_NAME = {
 const satelliteName = id => (id != null && Object.hasOwn(SATELLITE_NAME, id) ? SATELLITE_NAME[id] : (id ?? '?'));
 
 const heard = { box: null, list: null, rows: new Map(), days: new Map(), loaded: false, busy: false, again: false,
-                maxSeq: null, knownRows: null, knownBuilt: null, nextBefore: null, timer: null };
+                maxSeq: null, knownRows: null, knownBuilt: null, nextBefore: null, limit: HEARD.rows,
+                lastEnd: -Infinity, foldedAt: null };
 
 function store(key, val) {
   try { if (val === undefined) return localStorage.getItem(key); localStorage.setItem(key, val); } catch (e) { /* none */ }
@@ -756,14 +1019,12 @@ function heardParams(extra) {
 }
 
 async function heardFetch(params) {
-  try {
-    const r = await fetch(`${HEARD.url}?${params}`, { cache: 'no-store' });
-    const body = await r.json();
-    if (!r.ok) return { error: `${HEARD.url}: HTTP ${r.status}${body && body.error ? `: ${body.error}` : ''}` };
-    return body;
-  } catch (e) {
-    return { error: `${HEARD.url}: ${e.message}` };
+  const r = await getJSON(`${HEARD.url}?${params}`);
+  if (r.status != null && !r.ok && r.body !== undefined) {
+    return { error: `${HEARD.url}: HTTP ${r.status}${r.body && r.body.error ? `: ${r.body.error}` : ''}` };
   }
+  if (!r.ok || !r.body || typeof r.body !== 'object') return { error: `${HEARD.url}: ${r.why}` };
+  return r.body;
 }
 
 // "2026-11-25T08:55:45-05:00" as written: the house's time, not the browser's.
@@ -978,6 +1239,7 @@ async function heardLoad(want) {
   for (const r of runs) placeRow(r);
   for (const id of open) { const d = heard.rows.get(id); if (d) d.open = true; }
   heard.nextBefore = before;
+  heard.limit = Math.max(HEARD.rows, runs.length);
   document.getElementById('heard-older').hidden = !heard.nextBefore;
   heardRemember(first);
   heard.loaded = true;
@@ -995,6 +1257,7 @@ async function heardOlder() {
     if (filter !== heardParams().toString() || !heard.loaded) return;   // the filter changed meanwhile
     for (const r of arr(resp.runs)) placeRow(r);
     heard.nextBefore = resp.next_before;
+    heard.limit = Math.max(heard.limit, heard.rows.size);
     document.getElementById('heard-older').hidden = !heard.nextBefore;
     heardEmpty();
   } finally {
@@ -1022,9 +1285,35 @@ async function heardPatch() {
     if (!r.match) { dropRow(r.run_id); continue; }
     if (heard.rows.has(r.run_id) || !heard.nextBefore || !oldest || newer(r, oldest)) placeRow(r);
   }
+  heardTrim();
   heardRemember(resp);
   heardEmpty();
   keepAnchor(a);
+}
+
+// The open list holds the count loaded (M32 step 1): new runs patched in at
+// the top push the oldest out, and "show older" goes on from the oldest kept.
+function heardTrim() {
+  if (heard.rows.size <= heard.limit) return;
+  const keys = [...heard.rows.values()].map(d => ({ start_s: Number(d.dataset.start), run_id: d.dataset.run }));
+  keys.sort((x, y) => (newer(x, y) ? -1 : newer(y, x) ? 1 : 0));
+  for (const k of keys.slice(heard.limit)) dropRow(k.run_id);
+  const last = keys[heard.limit - 1];
+  heard.nextBefore = `${last.start_s},${last.run_id}`;
+  document.getElementById('heard-older').hidden = false;
+}
+
+// A section folded for LIVE.heard_folded_ms drops its rows; opening it again
+// loads the newest, as on the first opening.
+function heardForget() {
+  clear(heard.list);
+  heard.rows.clear();
+  heard.days.clear();
+  heard.loaded = false;
+  heard.nextBefore = null;
+  heard.limit = HEARD.rows;
+  heard.foldedAt = null;
+  document.getElementById('heard-older').hidden = true;
 }
 
 async function heardTick() {
@@ -1036,6 +1325,7 @@ async function heardTick() {
     else await heardPatch();
   } finally {
     heard.busy = false;
+    heard.lastEnd = performance.now();
     if (heard.again) { heard.again = false; setTimeout(heardTick, 0); }
   }
 }
@@ -1058,13 +1348,60 @@ function heardInit() {
   };
   q.addEventListener('input', () => { clearTimeout(wait); wait = setTimeout(refilter, HEARD.debounce_ms); });
   flagged.addEventListener('change', refilter);
-  heard.box.addEventListener('toggle', () => { if (heard.box.open && !heard.loaded) heardTick(); });
+  heard.box.addEventListener('toggle', () => {
+    heard.foldedAt = heard.box.open ? null : performance.now();
+    if (heard.box.open && !heard.loaded) heardTick();
+  });
   document.getElementById('heard-older').addEventListener('click', heardOlder);
-  heardTick();
-  heard.timer = setInterval(heardTick, HEARD.every_ms);
+  // The first fetch and every later one: the scheduler's (liveTick).
 }
 
 heardInit();
+
+// ── the scheduler (work item M32 step 1) ─────────────────────────────────────
+//
+// One setTimeout chain, a tick each second: a poll of api/work when the last
+// ended LIVE.every_ms ago (at most one in flight), "Heard" when its last
+// ended HEARD.every_ms ago, the folded "Heard" dropped after
+// LIVE.heard_folded_ms, and the age and banner redrawn. A tick that throws
+// still sets the next one. A tab that comes back into view polls at once.
+
+const pending = p => { if (p && typeof p.catch === 'function') p.catch(e => console.error('work:', e)); };
+
+function pollNow() {
+  live.due = 0;
+  pending(loadAll());
+}
+
+function liveTick() {
+  try {
+    const now = performance.now();
+    if (!live.inflight && now >= live.due) pending(loadAll());
+    if (!heard.busy && now - heard.lastEnd >= HEARD.every_ms) pending(heardTick());
+    if (heard.foldedAt != null && heard.loaded && !heard.busy && !heard.box.open &&
+        now - heard.foldedAt >= LIVE.heard_folded_ms) heardForget();
+    renderLive(now);
+  } catch (e) {
+    console.error('work:', e);
+  } finally {
+    // The next second, or the next poll when it is due sooner: a poll that
+    // ended 5 ms after a tick is not held to the tick after next.
+    const wait = live.inflight ? LIVE.tick_ms : Math.min(LIVE.tick_ms, live.due - performance.now());
+    setTimeout(liveTick, Math.max(LIVE.tick_min_ms, wait));
+  }
+}
+
+function liveStart() {
+  const meta = document.querySelector(`meta[name="${LIVE.version_meta}"]`);
+  live.version = meta ? meta.getAttribute('content') : null;
+  live.started = performance.now();
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') pollNow(); });
+  liveTick();
+}
+
+// The scheduler starts here. A page served with this line taken out shows
+// the stylesheet's cover after 90 s (criterion 1f).
+liveStart();
 </script>
 </body>
 </html>

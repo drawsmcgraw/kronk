@@ -137,6 +137,10 @@ _DEFAULT_EXCLUDED = ",".join([
     r"https?://[^/]+/api/(metrics|system|agents|servers|status|tags|version|show)",
     r"https?://[^/]+/voice/api/(tags|version|show)",
     r"https?://[^/]+/v1/models",
+    # /work and the two routes it polls every 3 s and 30 s (M32 step 1). The
+    # URL matched is scheme, host and path, no query: /api/work?have= is
+    # /api/work here, and /dev/ is stripped by nginx before it.
+    r"https?://[^/]+/(work|api/work|api/voice_runs)$",
 ])
 
 

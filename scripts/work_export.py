@@ -37,10 +37,14 @@ open ROADMAP entries whole and, for Shipped, the title and leading *( ... )*.
 From herdr: agents' names and statuses (never terminal_title,
 agent_session or cwd; an agent outside this repo is counted, not named).
 
-A dump that is missing, empty, does not load, is of a newer schema or
-describes another repo still gives a file: it says which (`database`), holds
-no item, and still holds the ROADMAP part; the exporter exits 0. Nothing is
-invented from files.
+A dump that is missing, empty, does not load, loads and is not the schema
+read here (a column gone: M34-e2e S1), is of a newer schema or describes
+another repo still gives a file: it says which (`database`), holds no item,
+and still holds the ROADMAP part; the exporter exits 0. Nothing is invented
+from files. With no row read, an agent's reason says so, not its name.
+
+The house's time zone (`house_zone`, M32 step 1): the page shows times in
+it, not the browser's.
 
 The old reader of docs/sprint/PROMOTIONS.md and the step files
 (collect_legacy() and the parsers it feeds) is import-only: work.py's
@@ -75,7 +79,7 @@ import tempfile
 import time
 from pathlib import Path
 
-SCHEMA = 2
+SCHEMA = 3              # 3 (M32 step 1): house_zone added
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parent
 HEAD_LINES = 40
@@ -961,6 +965,13 @@ DEPLOYED_WORD = {1: "yes", 0: "no", None: "not recorded"}
 FOLLOWUP_NOTE = "follow-up, {date}"
 PROMOTIONS_LINE = re.compile(r"^PROMOTIONS\.md:(\d+)$")
 HEX = re.compile(r"^[0-9a-f]{7,40}$")
+# What a dump that loads and is not the schema raises out of the reads, the
+# queue and overview() (M34-e2e S1): a missing column, a row of the wrong shape.
+NOT_THE_SCHEMA = (sqlite3.Error, KeyError, IndexError, TypeError)
+NOT_THE_SCHEMA_SAYS = ("The dump of the work-state database loads as SQL and is not the schema this exporter "
+                       "reads ({kind}).")
+# An agent's reason when no row was read (M34-e2e note 5): its name is not the fault.
+NOT_READ_WHY = "the work-state database was not read"
 
 _WP = None
 
@@ -1119,6 +1130,36 @@ def empty_counts() -> dict:
             "decisions": {"drew": 0, "coordinator": 0, "not_triaged": 0}}
 
 
+def house_zone(now: float, localtime: str = "/etc/localtime") -> dict:
+    """The house's time zone, for the page's shown times (M32 step 1): its
+    IANA name when one can be found and agrees with the host's offset now
+    (TZ, else the /etc/localtime link), else null; and that offset in
+    seconds east of UTC. The page formats with the name, or the offset
+    when the browser does not know the name."""
+    off = dt.datetime.fromtimestamp(now).astimezone().utcoffset()
+    offset_s = int(off.total_seconds()) if off is not None else 0
+    name = None
+    tz = os.environ.get("TZ", "").lstrip(":")
+    if tz and not tz.startswith("/"):
+        cand = tz
+    else:
+        try:
+            target = os.path.realpath(tz or localtime)
+        except OSError:
+            target = ""
+        i = target.find("/zoneinfo/")
+        cand = target[i + len("/zoneinfo/"):] if i >= 0 else None
+    if cand and re.fullmatch(r"[A-Za-z][A-Za-z0-9_+-]*(?:/[A-Za-z0-9_+-]+)*", cand):
+        try:
+            import zoneinfo
+            z = zoneinfo.ZoneInfo(cand)
+            if int(dt.datetime.fromtimestamp(now, z).utcoffset().total_seconds()) == offset_s:
+                name = cand
+        except (ValueError, OSError, zoneinfo.ZoneInfoNotFoundError):
+            pass
+    return {"name": name, "utc_offset_s": offset_s}
+
+
 def collect(repo: Path, db: Path | None = None) -> dict:
     t0 = time.monotonic()
     now = time.time()
@@ -1151,23 +1192,53 @@ def collect(repo: Path, db: Path | None = None) -> dict:
     coord["shown"] = coordinator_shown(coord, h["agents"])
 
     rows, database = load_dump(wp, db, repo, now)
-    if rows is None:
-        errors.append(f"work-state database: {database['state']}. {database['says']}")
-        g = {"items": [], "steps": [], "promotions": [], "pitems": [], "matters": [], "queue": []}
-    else:
+    common = {"tags": tags, "branch_commits": commits,
+              "herdr": {**h, "by_name": {a["name"]: a["status"] for a in h["agents"] if a["name"]}}}
+    kept = len(not_read)
+    parts = None
+    if rows is not None:
+        # A dump that loads and passes validate() can still lack what is read
+        # here (M34-e2e S1): a column gone, a row of the wrong shape. Then the
+        # file says "corrupt" in a sentence of its own and lists no item.
         try:
             g = {"items": rows.all("SELECT * FROM item"),
                  "steps": rows.all("SELECT * FROM step ORDER BY id"),
                  "promotions": rows.all("SELECT * FROM promotion ORDER BY id"),
                  "pitems": rows.all("SELECT * FROM promotion_item"),
                  "matters": rows.all("SELECT * FROM open_thing ORDER BY id"),
-                 "queue": wp.queue_rows(rows)}
+                 "queue": wp.queue_rows(rows), **common}
+            parts = _outline(wp, repo, g, wp.overview(g), h, sections, tags, not_read, True)
+        except NOT_THE_SCHEMA as e:
+            database.update(state="corrupt", says=NOT_THE_SCHEMA_SAYS.format(kind=type(e).__name__))
+            del not_read[kept:]
         finally:
             rows.conn.close()
-    g.update(tags=tags, branch_commits=commits,
-             herdr={**h, "by_name": {a["name"]: a["status"] for a in h["agents"] if a["name"]}})
-    v = wp.overview(g)
+    if parts is None:
+        errors.append(f"work-state database: {database['state']}. {database['says']}")
+        g = {"items": [], "steps": [], "promotions": [], "pitems": [], "matters": [], "queue": [], **common}
+        parts = _outline(wp, repo, g, wp.overview(g), h, sections, tags, not_read, False)
 
+    return {
+        "schema": SCHEMA,
+        "ts": now,
+        "made_at": dt.datetime.fromtimestamp(now).astimezone().isoformat(timespec="seconds"),
+        "repo": head,
+        "herdr": {"known": h["known"], "seen": h["seen"], "reason": h["reason"],
+                  "elsewhere": h["elsewhere"], "skipped": h["skipped"], "coordinator": coord},
+        **parts,
+        "not_read": not_read,
+        "errors": errors,
+        "database": database,
+        "house_zone": house_zone(now),
+        "run_s": round(time.monotonic() - t0, 3),
+    }
+
+
+def _outline(wp, repo: Path, g: dict, v: dict, h: dict, sections: list, tags: dict, not_read: list,
+             read: bool) -> dict:
+    """The keys drawn from the rows (g) and work.py's overview of them (v).
+    read: whether the database was read; an agent of no item says which.
+    Raises one of NOT_THE_SCHEMA on rows that are not the schema read here."""
     items = {i["id"]: i for i in g["items"]}
     steps_of: dict = {}
     for s in g["steps"]:
@@ -1191,7 +1262,8 @@ def collect(repo: Path, db: Path | None = None) -> dict:
         if item_id in under_way:
             per_item.setdefault(item_id, []).append({**a, "role": role})
         else:
-            why_other = ("no item of that name" if item_id and item_id not in items else
+            why_other = (NOT_READ_WHY if not read else
+                         "no item of that name" if item_id and item_id not in items else
                          f"its item is {items[item_id]['state']}" if item_id else "name is not <item>-<role>")
             other_agents.append({**a, "why": why_other})
 
@@ -1292,28 +1364,18 @@ def collect(repo: Path, db: Path | None = None) -> dict:
                 totals[kind][owner] += per[kind][owner]
 
     return {
-        "schema": SCHEMA,
-        "ts": now,
-        "made_at": dt.datetime.fromtimestamp(now).astimezone().isoformat(timespec="seconds"),
-        "repo": head,
-        "herdr": {"known": h["known"], "seen": h["seen"], "reason": h["reason"],
-                  "elsewhere": h["elsewhere"], "skipped": h["skipped"], "coordinator": coord},
         "items": out_items,
         "under_way": under_way,
         "other_agents": other_agents,
         "backlog": backlog,
         "done": done,
         "shipped_unlinked": shipped_unlinked,
-        "not_read": not_read,
-        "errors": errors,
-        "database": database,
         "active": under_way,
         "queue": queue,
         "decisions_owed": owed,
         "open_counts": totals,
         "escapes": {"window": v["escape_window"], "count": len(v["escapes"])},
         "promotions_no_item": no_item,
-        "run_s": round(time.monotonic() - t0, 3),
     }
 
 

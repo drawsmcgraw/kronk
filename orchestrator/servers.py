@@ -50,26 +50,61 @@ PROPS_FACTS = ("n_ctx", "total_slots")
 FILE_FACTS = ("model_file", "model_bytes", "draft_file", "draft_bytes")
 
 
-def read_source(path: Path, max_age_s: float, every_s: int, timer: str, now: float | None = None) -> dict:
+def _parse(text: str) -> tuple[dict, float]:
+    raw = json.loads(text)
+    if not isinstance(raw, dict):
+        raise ValueError("not a JSON object")
+    return raw, float(raw.get("ts"))
+
+
+def _parsed(path: Path, cache: dict | None) -> tuple[str, object]:
+    """("ok", (raw, ts)) or ("bad", why); FileNotFoundError when there is
+    no file. With a cache (a dict the caller keeps), the parse is kept keyed
+    by the open file's device, inode, mtime and size, so an unchanged file
+    costs an open and an fstat and is read once per change (M32 step 1:
+    /work polls every 3 s). The key is taken from the file that is read, so
+    a file renamed into place between two polls is never paired with the
+    other's parse. cache["reads"] counts the reads."""
+    if cache is None:
+        try:
+            return "ok", _parse(path.read_text())
+        except (ValueError, TypeError) as e:
+            return "bad", f"{type(e).__name__}: {e}"
+    with open(path, "rb") as f:
+        st = os.fstat(f.fileno())
+        key = (st.st_dev, st.st_ino, st.st_mtime_ns, st.st_size)
+        if cache.get("key") != key:
+            try:
+                cache["value"] = ("ok", _parse(f.read().decode("utf-8")))
+            except (ValueError, TypeError) as e:          # UnicodeDecodeError is a ValueError
+                cache["value"] = ("bad", f"{type(e).__name__}: {e}")
+            cache["key"] = key
+            cache["reads"] = cache.get("reads", 0) + 1
+    return cache["value"]
+
+
+def read_source(path: Path, max_age_s: float, every_s: int, timer: str, now: float | None = None,
+                cache: dict | None = None) -> dict:
     """One exporter file: {"file", "state", "age_s", "max_age_s", "reason",
     "data"}. state is fresh, stale, missing or unreadable; age_s is known
-    whenever the file parses; reason is null only when fresh."""
+    whenever the file parses; reason is null only when fresh. With a cache
+    (see _parsed), data is the kept parse: the caller must not change it."""
     now = time.time() if now is None else now
     src = {"file": path.name, "state": "missing", "age_s": None, "max_age_s": max_age_s,
            "every_s": every_s, "reason": None, "data": None}
     try:
-        raw = json.loads(path.read_text())
-        if not isinstance(raw, dict):
-            raise ValueError("not a JSON object")
-        ts = float(raw.get("ts"))
+        kind, val = _parsed(path, cache)
     except FileNotFoundError:
         src["reason"] = (f"{path.name} does not exist: the host exporter ({timer}) is not installed "
                          "or has not run")
         return src
-    except (OSError, ValueError, TypeError) as e:
+    except OSError as e:
+        kind, val = "bad", f"{type(e).__name__}: {e}"
+    if kind == "bad":
         src["state"] = "unreadable"
-        src["reason"] = f"{path.name} cannot be read: {type(e).__name__}: {e}"
+        src["reason"] = f"{path.name} cannot be read: {val}"
         return src
+    raw, ts = val
     age = now - ts
     src["age_s"] = round(age, 1)
     src["data"] = raw

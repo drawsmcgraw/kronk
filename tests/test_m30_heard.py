@@ -487,7 +487,9 @@ def test_c2_api_work_byte_for_byte_what_it_was(tmp_path):
     """The same work.json gives the same answer from this tree's /api/work
     as from the route as it stood at BASE, the commit before step C, but for
     what work item M34 changed on purpose: schema_known is 2, so a schema-2
-    file carries no "newer schema" note (M34 criterion 7)."""
+    file carries no "newer schema" note (M34 criterion 7); and what M32 step
+    1 changed on purpose: schema_known is 3 (house_zone), and the envelope
+    gains unchanged (false without ?have=), page_version and server_s."""
     old_src = subprocess.run(["git", "-C", str(REPO), "show", f"{BASE}:orchestrator/work_api.py"],
                              capture_output=True, text=True, check=True).stdout
     spec = importlib.util.spec_from_loader("work_api_at_base", loader=None)
@@ -498,16 +500,19 @@ def test_c2_api_work_byte_for_byte_what_it_was(tmp_path):
     app.include_router(old.router)
     p = tmp_path / "work.json"
     now = 1_800_000_000.0
-    for body in (M27._outline(now - 5), M27._outline(now - 400), M27._outline(now, schema=2, x=1)):
+    for body in (M27._outline(now - 5), M27._outline(now - 400), M27._outline(now, schema=2, x=1),
+                 M27._outline(now, schema=3, x=2)):
         p.write_text(json.dumps(body))
         with patch.object(work_api, "WORK_PATH", p), patch.object(old, "WORK_PATH", p), \
-             patch("servers.time.time", return_value=now):
+             patch.object(work_api, "_cache", {}), patch("servers.time.time", return_value=now):
             import orchestrator.main as orch
             new = TestClient(orch.app).get("/api/work").json()
             old_answer = TestClient(app).get("/api/work").json()
-        assert old_answer["schema_known"] == 1 and new["schema_known"] == 2
-        old_answer["schema_known"] = 2
-        if body["schema"] == 2:
+        assert old_answer["schema_known"] == 1 and new["schema_known"] == 3
+        assert new.pop("unchanged") is False and new.pop("page_version") == work_api.PAGE_VERSION
+        assert new.pop("server_s") == now
+        old_answer["schema_known"] = 3
+        if body["schema"] >= 2:
             assert old_answer["source"]["schema_note"] and new["source"]["schema_note"] is None
             old_answer["source"]["schema_note"] = None
         assert new == old_answer
@@ -553,13 +558,18 @@ def test_c3_open_or_closed_is_never_stored_the_filter_and_the_switch_are():
         in SCRIPT
     calls = [line for line in SCRIPT.splitlines() if "store(" in line and "function store" not in line]
     assert calls and all("HEARD.store_q" in c or "HEARD.store_flagged" in c for c in calls), calls
-    assert "sessionStorage" not in SCRIPT and "indexedDB" not in SCRIPT
+    assert "indexedDB" not in SCRIPT
+    # sessionStorage holds one thing, M32 step 1's reload limit (reloadStamp()).
+    assert code.count("sessionStorage") == 2 and "sessionStorage.getItem(LIVE.store_reload)" in code
 
 
 def test_c3_built_outside_loadAll_with_its_own_timer():
+    """Since M32 step 1 the timer is the page's scheduler, at Heard's own
+    every_ms; still nothing of Heard inside loadAll."""
     body = _function_body("loadAll")
     assert "heard" not in body.lower() and "voice_runs" not in body
-    assert "setInterval(heardTick, HEARD.every_ms)" in SCRIPT
+    assert "setInterval" not in SCRIPT
+    assert "now - heard.lastEnd >= HEARD.every_ms) pending(heardTick())" in _function_body("liveTick")
     assert M27._literal(PAGE, "HEARD")["every_ms"] == 30000
 
 
@@ -575,7 +585,9 @@ def test_c3_text_only_relative_urls_and_no_link_is_built():
     s = _heard_script()
     assert not __import__("re").search(r"\.(innerHTML|outerHTML|insertAdjacentHTML)\b|document\.write", SCRIPT)
     assert M27._literal(PAGE, "HEARD")["url"] == "api/voice_runs"
-    assert "fetch(`${HEARD.url}?${params}`, { cache: 'no-store' })" in s
+    # Since M32 step 1 through the page's getJSON(): no-store and the time limit.
+    assert "getJSON(`${HEARD.url}?${params}`)" in s
+    assert "fetch(url, ctl ? { cache: 'no-store', signal: ctl.signal } : { cache: 'no-store' })" in SCRIPT
     assert ".href" not in s and "grafana" not in s.lower()                 # the trace id is text to copy
     assert "el('code', null, v)" in s
 

@@ -856,7 +856,7 @@ def test_default_outputs_are_data_and_data_dev(we, tmp_path, path_with, monkeypa
     monkeypatch.setattr(we, "write", lambda p, d: written.append(p))
     assert we.main(["--repo", str(tree)]) == 0
     assert written == [tree / "data" / "work.json", tree / "data" / "dev" / "work.json"]
-    assert we.SCHEMA == 2 and we.HERDR_TIMEOUT_S == 5
+    assert we.SCHEMA == 3 and we.HERDR_TIMEOUT_S == 5          # 3 since M32 step 1 (house_zone)
 
 
 # ── the real tree (read only; herdr left off PATH) ────────────────────────────

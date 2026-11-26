@@ -207,13 +207,13 @@ BAD = {
     "a promotion of no item": lambda text: text + "PRAGMA foreign_keys=OFF;\n"
                                                   "UPDATE promotion_item SET item_id = 'M98';\n",
 }
-# S1 of docs/sprint/M34-e2e.md: the exporter dies on this one (exit 1, a
-# traceback, no file, so the page goes stale with no reason shown).
-KNOWN = {"item lacks its columns": "M34-e2e.md S1: sqlite3.OperationalError out of collect(), exit 1, no file"}
+# S1 of docs/sprint/M34-e2e.md: the exporter died on "item lacks its columns"
+# (exit 1, a traceback, no file, so the page went stale with no reason
+# shown). Its strict xfail came off in M32 step 1: the file now says
+# "corrupt" with a sentence of its own (test_s1_... below).
 
 
-@pytest.mark.parametrize("case", [pytest.param(c, marks=pytest.mark.xfail(strict=True, reason=KNOWN[c]))
-                                  if c in KNOWN else c for c in sorted(BAD)])
+@pytest.mark.parametrize("case", sorted(BAD))
 def test_a_dump_that_loads_and_is_not_the_schema_still_gives_a_file(t, repo, tmp_path, case):
     """Criterion 8 one step further: the dump is SQL and passes validate(),
     and its rows are not what the exporter expects. The file is written
@@ -230,3 +230,63 @@ def test_a_dump_that_loads_and_is_not_the_schema_still_gives_a_file(t, repo, tmp
     data = json.loads(out.read_text())
     assert data["database"]["state"] in ("ok", "corrupt")
     assert data["backlog"] is not None
+
+
+# ═══ M32 step 1: S1 and note 5 of docs/sprint/M34-e2e.md ═══════════════════
+
+def _export_herdr(repo, db, out):
+    """_export with the fake herdr the fixture put on PATH."""
+    return subprocess.run([sys.executable, str(EXPORT), "--repo", str(repo), "--db", str(db), "--out", str(out)],
+                          capture_output=True, text=True, env=dict(os.environ), timeout=30)
+
+
+def test_s1_a_dump_that_is_not_the_schema_says_corrupt_in_its_own_sentence(t, repo, tmp_path, fake_herdr):
+    """M32 plumbing 4: state "corrupt", the sentence says the dump loads as
+    SQL and is not the schema (never "does not load as SQL", which would be
+    false here), no item, the ROADMAP part kept, the same sentence in
+    errors, and every agent's reason is the database, not its name."""
+    active_item(t, repo)
+    fake_herdr.add_agent("m1-build", "working", repo)
+    dump = Path(f"{t.db}.dump.sql")
+    dump.write_text(_item_without_columns(dump.read_text()))
+    out = tmp_path / "out.json"
+    r = _export_herdr(repo, t.db, out)
+    assert r.returncode == 0 and r.stderr == "", (r.returncode, r.stderr[-600:])
+    data = json.loads(out.read_text())
+    d = data["database"]
+    assert d["state"] == "corrupt"
+    assert d["says"] == ("The dump of the work-state database loads as SQL and is not the schema this exporter "
+                         "reads (OperationalError).")
+    assert "does not load as SQL" not in d["says"]
+    assert data["items"] == [] and data["active"] == [] and data["queue"] == [] and data["done"] == []
+    assert isinstance(data["backlog"], list)
+    assert f"work-state database: corrupt. {d['says']}" in data["errors"]
+    assert {a["name"]: a["why"] for a in data["other_agents"]} == {"m1-build": "the work-state database was not read"}
+
+
+def test_note5_an_agent_with_the_database_missing_says_so(t, repo, tmp_path, fake_herdr):
+    """M34-e2e note 5: with no row read, the item under way's own agent read
+    "(no item of that name)". The reason is the database."""
+    active_item(t, repo)
+    fake_herdr.add_agent("m1-test", "working", repo)
+    fake_herdr.add_agent("investigator", "idle", repo)
+    Path(f"{t.db}.dump.sql").unlink()
+    out = tmp_path / "out.json"
+    r = _export_herdr(repo, t.db, out)
+    assert r.returncode == 0 and r.stderr == "", (r.returncode, r.stderr[-600:])
+    data = json.loads(out.read_text())
+    assert data["database"]["state"] == "missing"
+    assert {a["name"]: a["why"] for a in data["other_agents"]} == {
+        "m1-test": "the work-state database was not read", "investigator": "the work-state database was not read"}
+
+
+def test_note5_with_the_database_read_the_reasons_are_as_before(t, repo, tmp_path, fake_herdr):
+    active_item(t, repo)
+    fake_herdr.add_agent("m9-test", "working", repo)
+    fake_herdr.add_agent("investigator", "idle", repo)
+    out = tmp_path / "out.json"
+    assert _export_herdr(repo, t.db, out).returncode == 0
+    data = json.loads(out.read_text())
+    assert data["database"]["state"] == "ok"
+    assert {a["name"]: a["why"] for a in data["other_agents"]} == {
+        "m9-test": "no item of that name", "investigator": "name is not <item>-<role>"}

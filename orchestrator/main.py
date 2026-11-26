@@ -127,9 +127,13 @@ async def _execute_tool(name: str, args: dict) -> str:
 
 # ── HTML routes ──────────────────────────────────────────────────────────────
 
-def _serve(path: str) -> str:
+def _serve(path: str, version: str | None = None) -> str:
+    """A page from the image. With version, the page's placeholder
+    <meta name="kronk-page-version"> carries it (work.html, M32 step 1: the
+    page learns its own version from its own bytes)."""
     with open(f"/app/static/{path}") as f:
-        return f.read()
+        html = f.read()
+    return html if version is None else work_api.stamp(html, version)
 
 
 @app.get("/",            response_class=HTMLResponse)
@@ -145,7 +149,9 @@ async def performance_page(): return _serve("performance.html")
 @app.get("/solar",       response_class=HTMLResponse)
 async def solar_page():    return _serve("solar.html")
 @app.get("/work",        response_class=HTMLResponse)
-async def work_page():     return _serve("work.html")
+async def work_page():
+    # no-store: a reload after a deploy must fetch the new page, never a kept one.
+    return HTMLResponse(_serve("work.html", work_api.PAGE_VERSION), headers=work_api.NO_STORE)
 
 
 # ── API: metrics / system / status / agents ──────────────────────────────────

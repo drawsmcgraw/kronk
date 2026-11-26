@@ -401,7 +401,14 @@ def differences(old: dict, new: dict) -> list[tuple[str, str]]:
     for i in sorted(set(oi) & set(ni)):
         o, n = oi[i], ni[i]
         w = f"items[{i}]"
-        keys(o, n, w, {"title", "short_title", "steps", "uncommitted", "shipped", "roadmap"})
+        keys(o, n, w, {"title", "short_title", "steps", "uncommitted", "shipped", "roadmap", "stage"})
+        if o["stage"] != n["stage"]:
+            # The old reader leaves stage()'s "tag item-<id> exists" as written;
+            # work.py's item_stage() fills the id in (its N7). Met once an item
+            # has its tag and no PROMOTIONS.md entry (item-M34, PROMOTIONS.md
+            # frozen since M34): found by M32 step 1's build.
+            filled = {**o["stage"], "detail": (o["stage"].get("detail") or "").replace("item-<id>", f"item-{i}")}
+            add(f"{w}.stage", "fixed: the tag detail names its item" if filled == n["stage"] else "UNCLASSIFIED")
         if (o["title"], o.get("short_title")) != (n["title"], n.get("short_title")):
             add(f"{w}.title", "a title (the row's, not the file's heading)")
         if [{k: v for k, v in s.items() if k != "adds"} for s in o["shipped"]] != \
@@ -498,7 +505,7 @@ def test_criterion_2_every_difference_from_the_old_reader_has_a_class(we, tmp_pa
     old, new = we.collect_legacy(REPO), we.collect(REPO, db)
     by = classes(differences(old, new))
     assert "UNCLASSIFIED" not in by and "GONE" not in by, {k: by[k][:5] for k in ("UNCLASSIFIED", "GONE") if k in by}
-    assert old["schema"] == 1 and new["schema"] == 2
+    assert old["schema"] == 1 and new["schema"] == 3          # 3 since M32 step 1 (house_zone)
     assert set(new) >= set(old)
 
 
@@ -864,15 +871,17 @@ def test_criterion_7_the_route_knows_schema_2_and_reads_no_database(tmp_path):
     body = tree.body[1:]                                         # the docstring aside
     consts = [n.value for b in body for n in ast.walk(b) if isinstance(n, ast.Constant) and isinstance(n.value, str)]
     assert not [c for c in consts if "dump" in c or ".db" in c or "kronk-work/" in c or "work.db" in c]
-    assert work_api.SCHEMA_KNOWN == 2
+    assert work_api.SCHEMA_KNOWN == 3                             # 3 since M32 step 1 (house_zone)
     p = tmp_path / "work.json"
     now = 1_800_000_000.0
-    for schema, note in ((2, None), (1, None), (3, "work.json has schema 3, newer than this page's 2: keys added "
-                                                   "since are not shown")):
+    for schema, note in ((3, None), (2, None), (1, None),
+                         (4, "work.json has schema 4, newer than this page's 3: keys added since are not shown")):
         p.write_text(json.dumps({"schema": schema, "ts": now - 5, "items": []}))
-        with patch.object(work_api, "WORK_PATH", p):
+        with patch.object(work_api, "WORK_PATH", p), patch.object(work_api, "_cache", {}):
             d = work_api.work_source(now)
-        assert set(d) == {"source", "schema_known", "work"} and d["schema_known"] == 2
+        # M32 step 1 added unchanged, page_version and server_s to the envelope.
+        assert set(d) == {"source", "schema_known", "work", "unchanged", "page_version", "server_s"}
+        assert d["schema_known"] == 3
         assert d["source"]["state"] == "fresh" and d["source"]["schema_note"] == note
 
 
@@ -912,6 +921,7 @@ def test_heard_is_untouched_since_before_the_build():
         start = s.index('  <details class="heard" id="heard">')
         html = s[start:s.index("  </details>", start)]
         return css, html, s[s.index("// ── Heard (work item M30 step C)"):]
-    assert heard(PAGE_PATH.read_text()) == heard(old.stdout)
-    assert not subprocess.run(["git", "-C", str(REPO), "diff", "--quiet", BUILD_BASE, "--",
-                               "orchestrator/voice_runs_api.py"]).returncode
+    # M32 step 1 changed "Heard"'s script (the page's scheduler, the time
+    # limit, the trim) and its route (no-store), by order: its style and
+    # its markup are still M34's base's (tests/test_m32_live.py pins the rest).
+    assert heard(PAGE_PATH.read_text())[:2] == heard(old.stdout)[:2]

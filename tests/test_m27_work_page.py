@@ -62,7 +62,7 @@ def _outline(ts, schema=1, **extra):
 @pytest.fixture
 def work_file(tmp_path):
     p = tmp_path / "work.json"
-    with patch.object(work_api, "WORK_PATH", p):
+    with patch.object(work_api, "WORK_PATH", p), patch.object(work_api, "_cache", {}):
         yield p
 
 
@@ -88,7 +88,7 @@ def test_fresh(work_file):
     d = _get()
     assert d["source"]["state"] == "fresh" and d["source"]["reason"] is None
     assert 4 <= d["source"]["age_s"] <= 10 and d["source"]["max_age_s"] == 180
-    assert d["work"]["under_way"] == ["M27"] and d["schema_known"] == 2
+    assert d["work"]["under_way"] == ["M27"] and d["schema_known"] == 3          # 3 since M32 step 1
 
 
 def test_stale_still_carries_the_outline(work_file):
@@ -132,14 +132,14 @@ def test_unknown_schema(work_file, schema):
     work_file.write_text(json.dumps(o))
     d = _get()
     assert d["source"]["state"] == "unknown_schema" and d["work"] is None
-    assert f"has schema {schema!r}" in d["source"]["reason"] and "reads schema 2" in d["source"]["reason"]
+    assert f"has schema {schema!r}" in d["source"]["reason"] and "reads schema 3" in d["source"]["reason"]
 
 
 def test_newer_schema_is_read_with_a_note(work_file):
-    work_file.write_text(json.dumps(_outline(time.time(), schema=3, added_later=True)))
+    work_file.write_text(json.dumps(_outline(time.time(), schema=4, added_later=True)))
     d = _get()
     assert d["source"]["state"] == "fresh" and d["work"]["added_later"] is True
-    assert d["source"]["schema_note"] == "work.json has schema 3, newer than this page's 2: keys added since are not shown"
+    assert d["source"]["schema_note"] == "work.json has schema 4, newer than this page's 3: keys added since are not shown"
 
 
 def test_routes_are_registered():
@@ -194,7 +194,8 @@ def test_repo_text_goes_in_as_text():
 
 
 def test_relative_urls_only():
-    assert "fetch('api/work')" in PAGE
+    # Since M32 step 1 the URL is LIVE.url, fetched by getText().
+    assert _literal(PAGE, "LIVE")["url"] == "api/work" and "getJSON(live.ts != null ? `${LIVE.url}?have=" in PAGE
     assert not re.search(r"""(?:href|src)=["']/""", PAGE)
     assert not re.search(r"""fetch\(\s*['"`]/""", PAGE)
 

@@ -37,7 +37,7 @@ import os
 import sqlite3
 from pathlib import Path
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, Response
 from fastapi.responses import JSONResponse
 
 import servers
@@ -389,11 +389,16 @@ def voice_runs(params, now: float | None = None) -> dict:
     return out
 
 
+# Polled by every open /work: never kept by a browser or a proxy (M32 step 1).
+NO_STORE = {"Cache-Control": "no-store"}
+
+
 @router.get("/api/voice_runs")
-def voice_runs_route(request: Request):
+def voice_runs_route(request: Request, response: Response):
     # A plain def: FastAPI runs it in its thread pool, so the SQLite read
     # never holds the event loop.
+    response.headers.update(NO_STORE)
     try:
         return voice_runs(request.query_params)
     except BadQuery as e:
-        return JSONResponse({"error": str(e)}, status_code=400)
+        return JSONResponse({"error": str(e)}, status_code=400, headers=NO_STORE)
