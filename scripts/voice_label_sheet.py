@@ -7,6 +7,12 @@ HA 2026.5.4 layout, assist_pipeline/pipeline.py):
   <recordings>/<device_id>/<pipeline name>/<monotonic ns>/01_stt-<engine>.wav
   <recordings>/<pipeline name>/<monotonic ns>/...        (runs with no device)
 
+and the recordings archive's layout on the NAS (scripts/backups.py archive),
+which adds the month of the WAV's mtime above the run directory and keeps
+the mtime:
+
+  <dest>/recordings/<device_id>/<pipeline name>/<YYYY-MM>/<monotonic ns>/01_stt-<engine>.wav
+
 16 kHz, 16-bit, mono PCM. Wake-word audio (00_wake-*.wav) exists only when HA
 runs the wake word; the pucks detect it on the device, so there is none. The
 run directory is named by a monotonic clock, not HA's run id, so a recording
@@ -52,6 +58,7 @@ import datetime as dt
 import json
 import os
 import random
+import re
 import shutil
 import sys
 import wave
@@ -70,6 +77,7 @@ COLUMNS = ("sample_id", "audio_file", "correct_text", "heard", "time", "satellit
            "trace_id", "source_audio", "notes")
 JOIN_BEFORE_S = 2.0      # the WAV's last write can precede the run's recorded start by clock jitter
 JOIN_AFTER_S = 5.0       # ... and follows STT end; the run ends after intent and TTS
+ARCHIVE_MONTH_RE = re.compile(r"\d{4}-(0[1-9]|1[0-2])")   # backups.month_of: <YYYY-MM> of the mtime
 
 
 @dataclass
@@ -95,12 +103,16 @@ def _wav_info(p: Path) -> tuple[float | None, int | None]:
 
 
 def scan(recordings: Path) -> list[Recording]:
-    """Every STT recording under the directory, in HA's layout. A run
-    directory with no STT file (a run that died first) is skipped."""
+    """Every STT recording under the directory, in HA's layout or the
+    archive's (a <YYYY-MM> directory between the pipeline and the run, which
+    HA's monotonic run directories never look like). A run directory with
+    no STT file (a run that died first) is skipped."""
     out = []
     for wav in sorted(recordings.rglob("01_stt-*.wav")):
-        rel = wav.relative_to(recordings).parts      # [device,] pipeline, run, file
-        if len(rel) == 4:
+        rel = wav.relative_to(recordings).parts      # [device,] pipeline, [month,] run, file
+        if len(rel) == 5 and ARCHIVE_MONTH_RE.fullmatch(rel[2]):
+            device, pipeline, run_dir = rel[0], rel[1], rel[3]
+        elif len(rel) == 4:
             device, pipeline, run_dir = rel[0], rel[1], rel[2]
         elif len(rel) == 3:
             device, pipeline, run_dir = None, rel[0], rel[1]
