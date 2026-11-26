@@ -1,13 +1,15 @@
-# Exports the state of the work items (the backlog in ROADMAP.md, each
-# item's step files in docs/sprint/ with its stage, the promotions log, and
-# which agents herdr shows working) to data/work.json and
-# data/dev/work.json, for /work (work item M27). Fired by
-# kronk-work-export.timer every 60 s. Reads the working tree; runs only
-# `git log`, `git for-each-ref` and `git rev-parse` with
-# GIT_OPTIONAL_LOCKS=0 (never `git status`, which takes the index lock an
-# agent's commit needs) and `herdr agent list`. The script itself stops
-# waiting for herdr after 5 s; TimeoutStartSec stops a hung run here.
-# See docs/features/work-page.md.
+# Exports the state of the work items to data/work.json and
+# data/dev/work.json, for /work (work items M27, M34): the items, the queue,
+# their steps, stages and promotions from the dump of the work-state
+# database (~/.local/state/kronk-work/work.db.dump.sql, which scripts/work.py
+# rewrites after every write; the database itself is never opened), the
+# backlog from ROADMAP.md, and which agents herdr shows working. Fired by
+# kronk-work-export.timer every 60 s. Loads scripts/work.py from the
+# working tree for its read-only overview(). Runs only `git rev-parse`,
+# `git for-each-ref` and `git rev-list HEAD` with GIT_OPTIONAL_LOCKS=0
+# (never `git status`, which takes the index lock an agent's commit needs)
+# and `herdr agent list`. The script itself stops waiting for herdr after
+# 5 s; TimeoutStartSec stops a hung run here. See docs/features/work-page.md.
 #
 # Operations:
 #   install:  cp systemd/kronk-work-export.{service,timer} ~/.config/systemd/user/
@@ -16,6 +18,7 @@
 #   check:    systemctl --user list-timers kronk-work-export.timer
 #             journalctl --user -u kronk-work-export.service -n 20
 #   one-shot: python3 scripts/work_export.py --print
+#             python3 scripts/work_export.py --db <copy> --print   (a scratch copy and its dump)
 #   remove:   systemctl --user disable --now kronk-work-export.timer
 #             rm ~/.config/systemd/user/kronk-work-export.{service,timer}
 #             systemctl --user daemon-reload

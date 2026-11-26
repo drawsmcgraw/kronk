@@ -88,7 +88,7 @@ def test_fresh(work_file):
     d = _get()
     assert d["source"]["state"] == "fresh" and d["source"]["reason"] is None
     assert 4 <= d["source"]["age_s"] <= 10 and d["source"]["max_age_s"] == 180
-    assert d["work"]["under_way"] == ["M27"] and d["schema_known"] == 1
+    assert d["work"]["under_way"] == ["M27"] and d["schema_known"] == 2
 
 
 def test_stale_still_carries_the_outline(work_file):
@@ -132,14 +132,14 @@ def test_unknown_schema(work_file, schema):
     work_file.write_text(json.dumps(o))
     d = _get()
     assert d["source"]["state"] == "unknown_schema" and d["work"] is None
-    assert f"has schema {schema!r}" in d["source"]["reason"] and "reads schema 1" in d["source"]["reason"]
+    assert f"has schema {schema!r}" in d["source"]["reason"] and "reads schema 2" in d["source"]["reason"]
 
 
 def test_newer_schema_is_read_with_a_note(work_file):
-    work_file.write_text(json.dumps(_outline(time.time(), schema=2, added_later=True)))
+    work_file.write_text(json.dumps(_outline(time.time(), schema=3, added_later=True)))
     d = _get()
     assert d["source"]["state"] == "fresh" and d["work"]["added_later"] is True
-    assert d["source"]["schema_note"] == "work.json has schema 2, newer than this page's 1: keys added since are not shown"
+    assert d["source"]["schema_note"] == "work.json has schema 3, newer than this page's 2: keys added since are not shown"
 
 
 def test_routes_are_registered():

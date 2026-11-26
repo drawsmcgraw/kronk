@@ -1,7 +1,9 @@
 # Fires kronk-work-export.service every 60 s. The orchestrator treats
 # data/work.json older than 180 s as stale: /work then says STALE with the
-# file's age and shows the last known state. A STALE /work right after an
-# edit under docs/sprint/ means the exporter threw: check its journal.
+# file's age and shows the last known state. A STALE /work means the
+# exporter threw (an edit to scripts/work_export.py or scripts/work.py is
+# live the second it is written): check its journal. A work-state database
+# the exporter cannot use is not STALE: the file says why and /work shows it.
 [Unit]
 Description=Kronk — work items export every 60s
 

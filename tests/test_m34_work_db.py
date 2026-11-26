@@ -33,7 +33,7 @@ import pytest
 
 from tests.test_m28_agent_tool import commit, git
 from tests.test_m33_work_state import (  # noqa: F401  (fixtures)
-    CRIT, Tool, active_item, db, fake_herdr, quiet_env, repo, t, wk)
+    CRIT, Tool, active_item, codes_all, db, fake_herdr, quiet_env, repo, t, wk)
 
 pytestmark = pytest.mark.usefixtures("no_network")
 
@@ -796,3 +796,122 @@ def test_a_run_with_the_default_database_never_opens_the_live_directory(repo, tm
     assert r.returncode == 0, r.stderr
     assert str(LIVE_DIR) not in trace.read_text()
 
+
+
+# ═══ plumbing 7: a promotion with no item ═══════════════════════════════════
+
+def test_promote_with_no_item_takes_a_label_the_checks_and_a_time(we, t, repo, fake_herdr):
+    active_item(t, repo)
+    git(repo, "tag", "chat-buttons-2026-11-25")
+    commit(repo, {"docs/sprint/PROMOTIONS.md": "# Promotions\n"})
+    base = ["promote", "--tag", "chat-buttons-2026-11-25", "--deployed", "yes"]
+    t(*base, "--verified", "docs/sprint/PROMOTIONS.md", rc=1)
+    assert "give the items promoted, or --label" in t.last[2]
+    t(*base, "--label", "Chat page buttons", rc=1)
+    assert "needs --verified PATH" in t.last[2]
+    t(*base, "--label", "Chat page buttons", "--verified", "docs/sprint/PROMOTIONS.md", "--followup", rc=1)
+    t("promote", "M1", "--no-tag", "--deployed", "yes", "--label", "x", "--verified", "docs/sprint/PROMOTIONS.md",
+      rc=1)
+    assert "--label is for a promotion with no item" in t.last[2]
+    t(*base, "--label", "two\nlines", "--verified", "docs/sprint/PROMOTIONS.md", rc=1)
+    t("promote", "--tag", "no-such-tag", "--deployed", "yes", "--label", "x", "--verified",
+      "docs/sprint/PROMOTIONS.md", rc=1)
+    assert "git lists no tag no-such-tag" in t.last[2]
+    r = t.one(*base, "--label", "Chat page buttons", "--verified", "docs/sprint/PROMOTIONS.md",
+              "--at", "2026-11-25T22:19:00-05:00")
+    assert (r["items"], r["label"], r["at"], r["deployed"]) == ([], "Chat page buttons", "2026-11-26T03:19:00Z", True)
+    (p,) = t.sql("SELECT * FROM promotion")
+    assert (p["note"], p["at"], p["verified"], p["tag"], p["kind"]) == (
+        "Chat page buttons", "2026-11-26T03:19:00Z", "docs/sprint/PROMOTIONS.md", "chat-buttons-2026-11-25",
+        "promotion")
+    assert t.sql("SELECT * FROM promotion_item") == []
+    assert {it["state"] for it in t.sql("SELECT state FROM item")} == {"active"}
+    assert not [f for f in codes_all(t) if f["check"] in ("tag-not-promoted", "tag-gone", "no-shipped-line")]
+    data = we.collect(repo, t.db)
+    assert data["done"] == [] and data["under_way"] == ["M1"]
+    (row,) = data["promotions_no_item"]
+    assert (row["tag"], row["tag_in_git"], row["label"], row["at"], row["date"], row["deployed"], row["verified"]) == (
+        "chat-buttons-2026-11-25", True, "Chat page buttons", "2026-11-26T03:19:00Z",
+        we.work_tool().local_day("2026-11-26T03:19:00Z"), "yes", "docs/sprint/PROMOTIONS.md")
+    assert disagreements(data, t.text("resume")) == []
+
+
+def test_an_items_promotion_takes_at_too(t, repo):
+    active_item(t, repo)
+    commit(repo, {"docs/sprint/M1-promote.md": "x\n"})
+    r = t.one("promote", "M1", "--no-tag", "--deployed", "no", "--at", "2026-11-20T12:00:00Z")
+    assert r["at"] == "2026-11-20T12:00:00Z" and "label" not in r
+    assert t.sql("SELECT ended_at FROM item WHERE id = 'M1'")[0]["ended_at"] == "2026-11-20T12:00:00Z"
+
+
+# ═══ criterion 7 and plumbing 9: the route and the page ═════════════════════
+
+PAGE_PATH = REPO / "orchestrator" / "static" / "work.html"
+BUILD_BASE = "ef298a9"              # the last commit before the M34 build
+
+
+def test_criterion_7_the_route_knows_schema_2_and_reads_no_database(tmp_path):
+    import ast
+    from unittest.mock import patch
+
+    import work_api
+    src = (REPO / "orchestrator" / "work_api.py").read_text()
+    tree = ast.parse(src)
+    imported = {a.name.split(".")[0] for n in ast.walk(tree) if isinstance(n, (ast.Import, ast.ImportFrom))
+                for a in n.names} | {n.module.split(".")[0] for n in ast.walk(tree)
+                                     if isinstance(n, ast.ImportFrom) and n.module}
+    assert not imported & {"sqlite3", "subprocess", "httpx", "shutil"}
+    body = tree.body[1:]                                         # the docstring aside
+    consts = [n.value for b in body for n in ast.walk(b) if isinstance(n, ast.Constant) and isinstance(n.value, str)]
+    assert not [c for c in consts if "dump" in c or ".db" in c or "kronk-work/" in c or "work.db" in c]
+    assert work_api.SCHEMA_KNOWN == 2
+    p = tmp_path / "work.json"
+    now = 1_800_000_000.0
+    for schema, note in ((2, None), (1, None), (3, "work.json has schema 3, newer than this page's 2: keys added "
+                                                   "since are not shown")):
+        p.write_text(json.dumps({"schema": schema, "ts": now - 5, "items": []}))
+        with patch.object(work_api, "WORK_PATH", p):
+            d = work_api.work_source(now)
+        assert set(d) == {"source", "schema_known", "work"} and d["schema_known"] == 2
+        assert d["source"]["state"] == "fresh" and d["source"]["schema_note"] == note
+
+
+def _literal(name):
+    from tests.test_m27_work_page import _literal as lit
+    return lit(PAGE_PATH.read_text(), name)
+
+
+def test_the_page_has_a_word_for_every_database_state(we):
+    assert set(_literal("DB_WORD")) == set(we.DB_STATES) and _literal("DB_WORD")["ok"] is None
+    t_ = _literal("DB_TEXT")
+    assert "{word}" in t_["banner"] and "{says}" in t_["banner"] and "{age}" in t_["age"] and "{n}" in t_["owed_many"]
+    assert set(_literal("NO_ITEM_TEXT")["deployed"]) == set(we.DEPLOYED_WORD.values())
+
+
+def test_the_page_reads_the_new_keys_and_sets_them_as_text():
+    script = PAGE_PATH.read_text().split("<script>", 1)[1].split("// ── Heard (work item M30 step C)", 1)[0]
+    for needle in ("w.active ?? w.under_way", "w.queue", "w.promotions_no_item", "w.decisions_owed", "w.database",
+                   "it.blocked_by", "it.held_why", "it.waits_on", "it.next_step", "s.state", "s.graded", "e.label"):
+        assert needle in script, needle
+    assert not re.search(r"\.(innerHTML|outerHTML|insertAdjacentHTML)\b|document\.write", script)
+    # A next step, a wait note, a hold and what holds an item go in as plain text, never through mdText().
+    for needle in ("el('div', 'notes', fill(QUEUE_TEXT.next_step", "el('span', 'held-mark', fill(QUEUE_TEXT.held",
+                   "el('span', null, it.blocked_by)"):
+        assert needle in script, needle
+    assert "PROMOTIONS.md</code>), newest entry first; dates as written there" not in PAGE_PATH.read_text()
+
+
+def test_heard_is_untouched_since_before_the_build():
+    old = subprocess.run(["git", "-C", str(REPO), "show", f"{BUILD_BASE}:orchestrator/static/work.html"],
+                         capture_output=True, text=True)
+    if old.returncode != 0:
+        pytest.skip(f"{BUILD_BASE} is not here")
+
+    def heard(s):
+        css = s[s.index("  /* Heard (M30 step C)"):s.index("</style>")]
+        start = s.index('  <details class="heard" id="heard">')
+        html = s[start:s.index("  </details>", start)]
+        return css, html, s[s.index("// ── Heard (work item M30 step C)"):]
+    assert heard(PAGE_PATH.read_text()) == heard(old.stdout)
+    assert not subprocess.run(["git", "-C", str(REPO), "diff", "--quiet", BUILD_BASE, "--",
+                               "orchestrator/voice_runs_api.py"]).returncode

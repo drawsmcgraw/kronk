@@ -94,7 +94,7 @@ systemd units, not containers. The live view is the `/services` page.
 | `wyoming-whisper` (host unit) | 10300 | faster-whisper STT on the GPU, no prompt (production pipelines) |
 | `wyoming-whisper-dev` (host unit) | 10301 (loopback) | The same model with the household vocabulary prompt; HA's `kronk-dev` pipeline only (sprint M13) |
 | `kronk-stt-prompt` (host timer) | — | Nightly 04:00: rebuilds the dev Whisper prompt (`scripts/build_stt_prompt.py`), restarts `wyoming-whisper-dev` only when the text changed |
-| `kronk-work-export` (host timer) | — | Every 60 s: writes `data/work.json` and `data/dev/work.json` from `ROADMAP.md`, `docs/sprint/`, git and `herdr agent list` (`scripts/work_export.py`), which `/work` shows (work item M27; [`docs/features/work-page.md`](docs/features/work-page.md)) |
+| `kronk-work-export` (host timer) | — | Every 60 s: writes `data/work.json` and `data/dev/work.json` from the work-state database's dump, `ROADMAP.md`, git and `herdr agent list` (`scripts/work_export.py`), which `/work` shows (work items M27, M34; [`docs/features/work-page.md`](docs/features/work-page.md)) |
 | `kronk-hottub-monitor` (host unit) | — | Polls the spa pack (`geckolib`) every 5 min and writes `data/hottub/status.json`, which `tool_service` serves at `/hottub` |
 | `homeassistant` (`kronk-ha`) | 8123 (host net) | Voice pipeline broker, satellites, automations |
 | `music-assistant-server` (`kronk-ma`) | 8095 (host net) | Players, YouTube Music, Pandora, NAS library |

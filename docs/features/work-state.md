@@ -19,9 +19,12 @@ resume`, tells a fresh session where things stand. The prose stays in
 files: criteria, reviews, build, test and fix reports, ROADMAP.md,
 WORKFLOW.md, the feature docs.
 
-M33 adds the store and the tools. `/work` is not touched: it still reads
-the files (`scripts/work_export.py`, M27). Moving `/work` onto the
-database is its own item, M34, after M30 has been run on the tool.
+M33 added the store and the tools. Since M34 `/work` is drawn from it:
+`scripts/work_export.py` reads the dump this tool writes after every
+write (never the database itself) and serialises `overview()`, the
+read-only function `resume` prints from, so the page and `resume` agree
+(`docs/features/work-page.md`). `docs/sprint/PROMOTIONS.md` is frozen;
+the promotion rows are the record.
 
 | Command | Does |
 | :-- | :-- |
@@ -36,7 +39,8 @@ database is its own item, M34, after M30 has been run on the tool.
 | `step start\|finish\|stop\|refresh ITEM KIND [--round N]` | agent steps; `agent.py` calls these itself |
 | `step note-gone ITEM KIND [--round N]` | a step whose report was deleted from HEAD: records the commit that deleted it, so `check` stops naming `report-gone` |
 | `grade ITEM pass\|fail` | the coordinator's grading of a test, when it rules |
-| `promote ITEM... (--tag T\|--no-tag) --deployed yes\|no` | the promotion row; the checks are in `docs/sprint/<item>-promote.md`, committed |
+| `promote ITEM... (--tag T\|--no-tag) --deployed yes\|no [--at T]` | the promotion row; the checks are in `docs/sprint/<item>-promote.md`, committed |
+| `promote --label T (--tag T\|--no-tag) --deployed yes\|no --verified PATH [--at T]` | a deploy made outside any work item (M34): a promotion row with no item, the label in its `note`; `/work` lists it under Done by its tag |
 | `matter add KIND --owner drew\|coordinator --text`, `matter close ID --how`, `matter list` | leftovers, decisions, escapes: one list |
 | `matter void ID --why` | strikes a matter entered by mistake, open or closed: the row stays, closed as `void: <why>`, the log keeps what it was, and nothing counts it |
 | `log [--item] [--day] [--limit]` | the change log |
@@ -182,9 +186,14 @@ tool's own headings or fix lines.
   disk, a month old at worst. Whether to copy daily is asked of Drew.
 - **The grading decides the stage, the verdict stays in it.** M28's second
   test read FAILS and was graded pass: its stage reads "to promote (test
-  2: FAILS, graded pass)". `/work` (still from `work_export.py`) does not
-  know gradings and says "waiting for the coordinator" for the same item
-  until M34.
+  2: FAILS, graded pass)". `/work` shows the same since M34 (it reads the
+  stage from `overview()`).
+- **The dump is what `/work` reads** (M34). A dump write that failed
+  leaves the page behind the database until the next write or `work.py
+  dump`; the page shows the dump's age. And the timer's exporter loads
+  this file: a `work.py` that does not import stops `/work` within a
+  minute, as well as the tool. Change it in a scratch `scripts/`
+  directory and move it in by rename.
 - **A closed escape still counts.** It happened; closing it records what
   was done about it. Only `matter void`, for one entered by mistake,
   takes it out of the count of the last ten promoted items.
@@ -211,6 +220,8 @@ $W note M34 --next "design review" --waits drew --waits-note "the go"
 $W matter add decision --owner drew --item M34 --text "..." --blocks
 $W matter close 12 --how "Drew, 2026-11-25: ..."
 $W promote M34 --tag item-M34 --deployed yes  # after docs/sprint/M34-promote.md is committed
+$W promote --label "Chat page buttons" --tag chat-buttons-2026-11-25 --deployed yes \
+   --verified docs/sprint/PROMOTIONS.md --at 2026-11-25T22:19:00-05:00   # a deploy with no item
 $W --db /tmp/x.db import-legacy --at <sha> --seed docs/sprint/M33-seed.json --compare data/work.json
 ```
 

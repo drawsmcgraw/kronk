@@ -18,7 +18,8 @@ scripts/agent.py for agent steps. This file is the only writer.
     step start ITEM KIND [--round N] --agent NAME [--model M] [--report PATH] [--at TIME]
     step finish|stop|refresh|note-gone ITEM KIND [--round N] [--name X] [--why T]
     grade ITEM pass|fail [--kind K] [--round N]
-    promote ITEM... (--tag T | --no-tag) --deployed yes|no [--verified PATH] [--untested T] [--followup]
+    promote ITEM... (--tag T | --no-tag) --deployed yes|no [--verified PATH] [--untested T] [--followup] [--at TIME]
+    promote --label T (--tag T | --no-tag) --deployed yes|no --verified PATH [--at TIME]   a deploy with no item
     matter add KIND --owner drew|coordinator --text T [--item ITEM] [--blocks] [--source S]
     matter close ID --how T | matter void ID --why T | matter list [--open] [--kind K] [--item ITEM]
     log [--item ITEM] [--day YYYY-MM-DD] [--limit N]
@@ -1294,9 +1295,24 @@ def c_grade(c: Ctx, a) -> int:
 # ═════════════════════════════ promotion ═══════════════════════════════════
 
 def c_promote(c: Ctx, a) -> int:
+    """A promotion of one or more items; or, with no item, a deploy made
+    outside any work item (M34 plumbing 7): --label says what it was,
+    --verified where its checks are, --at when it was deployed. Its row has
+    no promotion_item; /work lists it apart from the items' rows."""
     items = [norm(i) for i in a.items]
+    plain("--label", a.label)
+    if items and a.label is not None:
+        raise refuse("--label is for a promotion with no item; an item's promotion is named by its item")
+    if not items:
+        if not a.label:
+            raise refuse("give the items promoted, or --label T for a deploy with no item")
+        if a.followup:
+            raise refuse("a follow-up is on a promoted item; give the item")
+        if not a.verified:
+            raise refuse("a promotion with no item needs --verified PATH (where its checks are committed)")
     if bool(a.tag) == bool(a.no_tag):
         raise refuse("give --tag T or --no-tag")
+    at = to_utc(a.at) if a.at else None
     sha = None
     if a.tag:
         tags = tag_commits(c.repo)
@@ -1313,16 +1329,17 @@ def c_promote(c: Ctx, a) -> int:
             if it["state"] != want:
                 rule = "a follow-up is on a promoted item" if a.followup else "only an active item is promoted"
                 raise refuse(f"{item} is {it['state']}; {rule}")
-        at = now_iso()
+        at = at or now_iso()
         pid = tx.insert("promotion", kind="followup" if a.followup else "promotion", tag=a.tag,
                         commit_sha=sha, at=at, deployed=1 if a.deployed == "yes" else 0, verified=verified,
-                        untested=a.untested)
+                        untested=a.untested, note=a.label)
         for item in items:
             tx.insert("promotion_item", promotion_id=pid, item_id=item)
             if not a.followup:
                 tx.update("item", {"id": item}, state="promoted", ended_at=at)
     c.emit({"promotion": pid, "items": items, "tag": a.tag, "commit": sha[:7] if sha else None,
-            "deployed": a.deployed == "yes", "verified": verified})
+            "deployed": a.deployed == "yes", "verified": verified, "at": at,
+            **({"label": a.label} if not items else {})})
     return 0
 
 
@@ -2506,13 +2523,15 @@ def parser() -> argparse.ArgumentParser:
     x.add_argument("--kind", default="test", choices=KINDS)
     x.add_argument("--round", type=int)
     x = p("promote", c_promote)
-    x.add_argument("items", nargs="+")
+    x.add_argument("items", nargs="*", help="the items promoted; none, with --label, for a deploy with no item")
     x.add_argument("--tag")
     x.add_argument("--no-tag", action="store_true")
     x.add_argument("--deployed", required=True, choices=("yes", "no"))
     x.add_argument("--verified", help="the committed promotion checks (default docs/sprint/<item>-promote.md)")
     x.add_argument("--untested", help="what shipped that no test agent saw")
     x.add_argument("--followup", action="store_true", help="a note on an item already promoted")
+    x.add_argument("--label", help="what was deployed, for a promotion with no item")
+    x.add_argument("--at", help="when it was deployed (ISO time; default now)")
 
     x = p("matter", None)
     ms = x.add_subparsers(dest="matter_cmd", required=True, parser_class=Parser)

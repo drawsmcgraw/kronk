@@ -1,6 +1,7 @@
 # Feature: /work, the work items in a page
 
-**Shipped:** work item M27 (2026-11-24 build). **Origin:** Drew's order of
+**Shipped:** work item M27 (2026-11-24 build); drawn from the work-state
+database since work item M34 (2026-11-26 build). **Origin:** Drew's order of
 2026-11-24: "i want to be able to track this work in a UI. A backlog,
 currently working (planning/reviewing/implementing/testing/etc), what's
 already been worked, and so forth. I should able to visit kronk/work and
@@ -10,7 +11,12 @@ the page displays." Criteria and evidence: `docs/sprint/M27-criteria.md`,
 `M30-review.md` points 6 and 7, `M30-build3.md`), from Drew's order of
 2026-11-24: "the /work endpoint should also include all the stt
 transcriptions to help me troubleshoot. Make it the top of the page but
-make it foldable so it doesn't pollute the view".
+make it foldable so it doesn't pollute the view". M34, from Drew's
+2026-11-24 order to keep the work's state in a database
+(`docs/sprint/M34-criteria.md`, the section "Revised after the review"
+decides; `M34-review.md`, `M34-build.md`): the page shows what the
+work-state database says (`docs/features/work-state.md`), not what a parser
+reads out of `PROMOTIONS.md` and the file names in `docs/sprint/`.
 
 ## What it does
 
@@ -28,15 +34,24 @@ make it foldable so it doesn't pollute the view".
    reachable, no single unnamed pane, or status `unknown`). A coordinator
    pane that herdr calls `blocked` reads "idle" or "waiting on an agent".
    With herdr not reachable the line says agent state is not known, and
-   why.
-2. **Under way**: every work item that has a step file in `docs/sprint/`
-   and no entry in `docs/sprint/PROMOTIONS.md`, with its stage, its
-   steps in commit order (time of each file's first commit, each test's
-   verdict), its handoff line, and the ROADMAP entry that names it.
-3. **Other agents**, when there are any: an agent in this repo whose name
-   matches no item under way (an investigator, an agent for a promoted
-   item, a name that is not `<item>-<role>`).
-4. **Backlog**: the open entries of `ROADMAP.md` (Now, Next, Later,
+   why. Then the age of the work-state database's dump and the number of
+   decisions owed by Drew (a count: their text is not shown, decision #22).
+   A dump the exporter could not use (missing, empty, unreadable, of a newer
+   schema, of another repo) is a red banner with the exporter's sentence and
+   the dump's age, and nothing is shown from the database.
+2. **Under way**: every work item the database has `active`, with its
+   stage (the one `work.py resume` gives), its steps in time order (each
+   with its time, the test's verdict and the coordinator's grading; a
+   started step says "started" and names its agent), its handoff line, its
+   next step and what it waits on, and the ROADMAP entry that names it.
+3. **Queue** (since M34): the queued and held items in order, each with
+   what holds it (held and why; "M32 follows M34, which is active, not
+   promoted"), what it waits on, its next step, and "next" on the item
+   `work.py start` would take.
+4. **Other agents**, when there are any: an agent in this repo whose name
+   matches no active item (an investigator, an agent for a queued or
+   promoted item, a name that is not `<item>-<role>`).
+5. **Backlog**: the open entries of `ROADMAP.md` (Now, Next, Later,
    Chores), under the file's own section names, each folded to its title,
    its leading `*( … )*` and its first sentence; a click opens the whole
    entry, and an opened entry stays open across the 30 s refresh.
@@ -45,29 +60,30 @@ make it foldable so it doesn't pollute the view".
    with `https://` (with `rel="noopener"`), anything else is shown as
    written. An entry linked to an item under way is shown with the item
    instead; one linked to a promoted item stays in the backlog.
-5. **Done**: the promotions log, newest entry first, each item named
-   once: its id, its title without the id and "pass criteria:" in front,
-   tag, date as written, its steps and verdicts (collapsed), and "N lines
-   addressed to Drew in its promotions entry; some may be settled since"
-   when its entry has any (a count of words in a log, not a list of what
-   is open). The entry's heading and a linked Shipped title are shown only
-   where they add a word the title lacks (ids, dates and a few small words
-   aside). Then the Shipped entries of `ROADMAP.md` that are linked to no
-   item, by title and leading `*( … )*` only.
-6. **Not read**: the files the exporter listed but did not read as a
-   known step (`-audit`, `-change1`, `-restore-*`, `-e2e2-rows`), a test
-   report with no verdict line, a file it could not parse.
+6. **Done**: the database's promotions, newest first: one row per item,
+   with its title, tag ("tag only" when the row says it was not deployed),
+   the house's day of the promotion, and its steps and verdicts
+   (collapsed); a follow-up shows as "Note: follow-up, <date>" on the
+   item's row. A deploy with no work item (`work.py promote --label`) is a
+   row of its own among them by time: its tag, its label, "deploy with no
+   work item". A linked Shipped title is shown only where it adds a word
+   the title lacks. Then the Shipped entries of `ROADMAP.md` that are
+   linked to no item, by title and leading `*( … )*` only.
+7. **Not read**: a criteria file that exists and could not be read, a
+   `ROADMAP.md` section the exporter does not know.
 
 Nothing is entered on the page and nothing is written back.
 
 ## How it works
 
 ```
-host: kronk-work-export.timer (60 s)
+host: scripts/work.py (every write) → ~/.local/state/kronk-work/work.db and work.db.dump.sql
+      kronk-work-export.timer (60 s)
   └─ scripts/work_export.py
-       ├─ reads ROADMAP.md, docs/sprint/PROMOTIONS.md, the first 40 lines of each item file
-       ├─ git log --no-renames --diff-filter=A --name-only … -- docs/sprint   (first commit of each file)
-       ├─ git for-each-ref refs/tags, git rev-parse                         (GIT_OPTIONAL_LOCKS=0)
+       ├─ reads work.db.dump.sql into an in-memory database (never work.db, nothing else beside it)
+       ├─ loads scripts/work.py for overview() and queue_rows(): stage, queue, counts as `resume` has them
+       ├─ reads ROADMAP.md, the first 40 lines of each item's criteria file
+       ├─ git rev-parse, git for-each-ref refs/tags, git rev-list HEAD     (GIT_OPTIONAL_LOCKS=0)
        ├─ herdr agent list                                                   (once, 5 s limit)
        └─ writes data/work.json and data/dev/work.json (temp file, rename)
 orchestrator: GET /api/work  → the file and its freshness (fresh / stale / missing / unreadable / unknown_schema)
@@ -78,13 +94,30 @@ orchestrator: GET /api/work  → the file and its freshness (fresh / stale / mis
   snapshot of a tag; an item under way exists only in the working tree.
   The container mounts `data/`, so a file there is the bridge, as for
   `gpu_mem.json` and `llama_props.json` (`resources-live-memory.md`).
-- **Stage** is computed in the exporter, by `stage()` and the tables
-  above it, from four facts: the item's committed step files, whether
-  the tag `item-<id>` exists, whether it has a promotions entry, and the
-  agents named for it with their status. The table is in
-  `M27-criteria.md` ("Stage is a pure function"); one test per row in
-  `tests/test_m27_work_export.py`. Only `working` and `blocked` agents
-  decide a stage; `blocked` is shown in red.
+- **Why the dump, not the database.** The database is WAL. A `mode=ro`
+  reader on a 60 s timer makes `work.db-wal` and `work.db-shm` and changes
+  `-shm` on every read, and the suite fails any run in which the live
+  files changed (`tests/conftest.py`, M33 criterion 7). `work.py` rewrites
+  `<db>.dump.sql` after every committed write, inside the write lock, by
+  temp file and rename; loading it takes about 5 ms. The exporter opens
+  no other file in the state directory, takes no lock of any kind, and
+  states the dump's age (`database.dump_age_s`).
+- **Stage, the queue and the counts** come from `work.py`'s read-only
+  `overview()`, the function `resume` prints from (M34 plumbing 5), fed
+  the dump's rows, the tags, HEAD's commits (`git rev-list HEAD`: a step
+  committed off HEAD's history is not counted) and herdr's answer. The
+  stage itself is still `stage()` in this file and the tables above it
+  (`M27-criteria.md`, "Stage is a pure function"), wrapped by `work.py`'s
+  `item_stage()` (a grading is read before the verdict; "no finished step
+  recorded"). `work.py` is loaded inside `collect()`, never at import:
+  `work.py` and `agent.py` load this file on every call. Only `working`
+  and `blocked` agents decide a stage; `blocked` is shown in red. The
+  stage means something for active and promoted items; a queued item's
+  is "planning".
+- **The handoff line and the `Source:` paragraph** are read from the head
+  of the item's criteria file: the row's `criteria` path, else its
+  finished criteria step's report, else `docs/sprint/<id>-criteria.md`,
+  else none (M34's own row was seeded with no path).
 - **An agent's item and role** are parsed from its herdr name:
   `^(m\d+[a-z]?(-step\d+)?)-(review|build|test|fix)\d*$`.
 - **The state line's word for the coordinator** (`herdr.coordinator.shown`)
@@ -106,26 +139,42 @@ orchestrator: GET /api/work  → the file and its freshness (fresh / stale / mis
 - **The coordinator** is the one agent in this repo with no name.
   `herdr agent list` carries no workspace label, so `kronk-claude` cannot
   be read by name; two unnamed panes in the repo make it "not known".
-- **Verdicts** are read, never guessed: the first line among a test
-  report's first 40 that starts with `Verdict: X`, `**Verdict: ITEM X.**`,
-  `**<ID> X.**` or `**RESTORE X.**`; a report with two subjects yields
-  both (`M4b-e2e.md`).
-- **Promotions entries**: a table row, or a `##`/`###` heading that starts
-  with an item id. A heading entry's body runs to the next heading, tables
-  included: a table inside an entry is its body, not promotions (a
-  heading with no id, "After the sprint", ends the entry, so its table is
-  read). Ids in a row's label match on word boundaries (`ARM64` is no
-  item) and take `M30-step1` as written. "For Drew" is counted with any
-  white space, a line break included, between the two words.
+- **Verdicts** are read, never guessed: `work.py` copies a test's verdict
+  from its committed report by this file's `verdicts()` (the first line
+  among the first 40 that starts with `Verdict: X`, `**Verdict: ITEM X.**`,
+  `**<ID> X.**` or `**RESTORE X.**`). The file carries the item's own
+  verdict, one per step; a second subject (`M4b-e2e.md`'s RESTORE) is
+  prose in the row's note and is not exported.
+- **The old reader** of `PROMOTIONS.md` and the step files is
+  `collect_legacy()`, import-only: `work.py import-legacy` and `check` use
+  its parsers, and `tests/test_m27_work_export.py` pins them. Its output is
+  schema 1.
 - **Links** from a ROADMAP entry to an item: only `work item Mxx`,
   `sprint Mxx` or `sprint item Mxx` (and "and Mxx") inside the entry's
   leading `*( … )*`, after its lines are joined. `M21` links both steps.
-- **What leaves the repo** is the outline: titles, handoff lines, verdict
-  words, ids, tags, dates as written, headings, a count of "For Drew"
-  lines, the open ROADMAP entries whole, Shipped titles and leads,
-  agents' names and statuses. Never a report body, a promotions cell, a
-  Shipped body, or herdr's `terminal_title`, `agent_session` or `cwd`; an
-  agent outside this repo is counted, not named.
+- **What leaves the host** is an outline. From the rows: ids, titles,
+  state, tier, queue place and what holds an item, next steps, wait notes
+  and why an item is held (active, queued and held items only), steps
+  (kind, round, name, report file name, agent, who, state, times, verdict,
+  grading), promotions (tag, time, deployed, the path of the checks; the
+  label of one with no item), counts of open leftovers and decisions by
+  owner, and the decisions owed to Drew by id, item, date and whether
+  they block. Never the log, `meta.repo`, a step's model or note, an
+  item's ended-why, a promotion's untested note, a matter's text, source
+  or closing words, or an SQLite error's text (it names paths); one marker
+  planted in every text column of every table pins this
+  (`tests/test_m34_work_db.py`, criterion 6). From files: handoff lines
+  and `Source:` paragraphs (Drew's words: new on the LAN with M34, allowed
+  by M32 plumbing 11), the open ROADMAP entries whole, Shipped titles and
+  leads. From herdr: agents' names and statuses, never `terminal_title`,
+  `agent_session` or `cwd`; an agent outside this repo is counted, not
+  named.
+- **A dump that cannot be used** (missing, empty, not SQL or cut short,
+  tables missing, a newer schema, another repo's) still gives a file: its
+  `database.state` says which with a sentence the exporter wrote, the same
+  sentence is in `errors` (so a page that predates M34 shows it under the
+  state line), no item is listed, the ROADMAP part is there, and the
+  exporter exits 0. Nothing is invented from files.
 - **Freshness**: older than 180 s is stale, and so is a file dated more
   than the route's slack in the future. A stale outline is still shown,
   marked STALE (it is the last known state); the banner gives the route's
@@ -135,10 +184,26 @@ orchestrator: GET /api/work  → the file and its freshness (fresh / stale / mis
   a run killed in mid-write leaves its temp file, and the next run removes
   its own temp files older than ten minutes (regular files of that exact
   name form only).
-- **Schema**: `schema` is 1. Once `item-M27` is deployed the exporter
-  only adds keys and raises the number when it does; an orchestrator
-  that knows a lower schema still reads the file and says that keys were
-  added. A missing or non-integer schema is "unknown schema".
+- **Schema**: `schema` is 2 (M34). The exporter only adds keys and raises
+  the number when it does; an orchestrator that knows a lower schema still
+  reads the file and says that keys were added. A missing or non-integer
+  schema is "unknown schema". The schema-1 keys with no source left since
+  M34 carry an empty value: `items[].uncommitted` (`[]`), `steps[].title`,
+  `verdicts[].written` and `.line` (`null`), `done[].heading`,
+  `tag_written`, `kind`, `entry` (`null`), `heading_adds` (`false`),
+  `for_drew` and `for_drew_total` (`0`), and `done[].line` for a promotion
+  whose checks are a `-promote.md` file (`null`). `items[].title` is the
+  row's title, not the criteria file's heading; `done[].date` is the
+  house's day of the promotion's time (`done[].at`, UTC); a step's
+  `committed_at` is the row's `ended_at`. Keys added in schema 2, for this
+  page and M32: per item `state`, `tier`, `position`, `after_item`,
+  `blocked_by`, `next`, `next_step`, `waits_on`, `waits_note`, `held_why`,
+  `source`, `open` (counts of open leftovers and decisions by owner); per
+  step `round`, `state`, `by`, `agent`, `started_at`, `ended_at`,
+  `verdict`, `graded`; per Done row `at`, `deployed` (yes, no, not
+  recorded), `verified`, `promotion`, `followup`; top level `database`,
+  `active`, `queue`, `decisions_owed`, `open_counts`, `escapes`,
+  `promotions_no_item`.
 
 ## Heard
 
@@ -237,13 +302,25 @@ orchestrator: GET /api/voice_runs → orchestrator/voice_runs_api.py
 
 ## Gotchas
 
-- **A STALE `/work` right after an edit under `docs/sprint/` means the
-  exporter threw.** The timer runs the working tree's script every
-  minute, so an edit to `scripts/work_export.py`, or a file shape it does
-  not survive, is live within a minute. It never fails loud on the page;
-  check `journalctl --user -u kronk-work-export.service`. Change the
-  exporter in a scratch copy (`--repo`, `--print`, `--out`; the tests
-  take `M27_WORK_EXPORT=<scratch copy>`) and move it in in one step.
+- **A STALE `/work` means the exporter threw.** The timer runs the
+  working tree's script every minute, and the script loads the working
+  tree's `scripts/work.py`; `work.py` and `agent.py` load the exporter on
+  every call. So an edit to either file is live the second it is written:
+  change them in a scratch `scripts/` directory holding both (`--db` on a
+  copy, `--out` in scratch; the tests take `M27_WORK_EXPORT=<scratch
+  copy>`), and move each in by rename. Check `journalctl --user -u
+  kronk-work-export.service`.
+- **The page is as fresh as the dump.** A dump write that failed is said
+  by `work.py` on stderr at the write, and `work.py check` names
+  `dump-stale` and `dump-missing`; the page shows the dump's age. A writer
+  killed between the dump's rename and its `COMMIT` leaves the dump one
+  write ahead of the database until the next write.
+- **Between the exporter's move and a deploy of the new page**, the
+  deployed page reads the schema-2 file with "keys added since are not
+  shown": under way is the active items (a queued item is nowhere until the
+  new page is deployed), steps are the database's (a started step shows
+  "written, not committed"), the five tags the parser missed are shown, and
+  the follow-up notes read "follow-up, <date>".
 - **The index lock.** The exporter never runs `git status`, `diff`, `add`
   or `stash`: `git status` takes `.git/index.lock`, and an agent's `git
   add` or `commit` in that instant fails. The three commands it runs take
@@ -260,9 +337,13 @@ orchestrator: GET /api/voice_runs → orchestrator/voice_runs_api.py
   what this exporter can see: step files would reach `main` only at
   merge, so an item's stage would rest on its agent alone until then.
   That item should name this page.
-- **Dates from `PROMOTIONS.md` and `ROADMAP.md` are shown as written**,
-  never parsed (`new Date('2026-11-15')` prints the 14th here). Step times
-  are git author dates with their offset, shown in the browser's time.
+- **Dates.** A Done row's date is the house's day of the promotion's time,
+  computed by the exporter, never parsed in the browser (`new
+  Date('2026-11-15')` prints the 14th here). For the 33 promotions imported
+  from `PROMOTIONS.md` that time is derived (the commit that added the
+  line, or noon of the date written), so only the day is true. Step times
+  are UTC from the rows, shown in the browser's time. `ROADMAP.md` dates
+  are shown as written.
 - **`/services` links `/work` absolutely**, like every page there: from
   `/dev/services` it opens production's `/work`.
 
@@ -281,7 +362,9 @@ orchestrator: GET /api/voice_runs → orchestrator/voice_runs_api.py
 
 - Install: the header of `systemd/kronk-work-export.service` (install,
   check, one-shot, remove).
-- Eyeball: `python3 scripts/work_export.py --print`.
+- Eyeball: `python3 scripts/work_export.py --print` (the live dump), or
+  `--db <copy> --print` on a scratch copy made with `work.py --db <copy>
+  dump`.
 - Health: `systemctl --user list-timers kronk-work-export.timer`;
   `curl -s localhost/api/work | jq .source`.
 - Heard: `curl -s 'localhost/api/voice_runs?limit=0' | jq '.source, .summary'`
@@ -289,9 +372,14 @@ orchestrator: GET /api/voice_runs → orchestrator/voice_runs_api.py
 
 ## Blog hooks
 
-- A status page with no second store: the backlog, the work under way
-  and what is done, read from the markdown files and git that already
-  hold them.
+- A status page with no second store, and then with one: M27 read the
+  backlog, the work under way and what was done from the markdown and git
+  that held them; M34 moved it to the database, and the page was wrong
+  in exactly the windows a parser cannot see (a tag before its log entry,
+  an item before its file).
+- Reading a WAL database every minute without touching it: a read-only
+  reader still writes `-shm`, so the page reads the text dump the writer
+  already makes.
 - "Verdicts are read, never guessed": 49 test reports in five forms, and
   the two that hold a verdict word in a sentence.
 - `git status` is not read-only: it takes the index lock, and an

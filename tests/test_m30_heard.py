@@ -484,8 +484,10 @@ def test_c1_the_route_against_a_real_scratch_export(files, tmp_path):
 # ═══ C2: /api/work is what it was ═══════════════════════════════════════════
 
 def test_c2_api_work_byte_for_byte_what_it_was(tmp_path):
-    """The same work.json gives the same bytes from this tree's /api/work as
-    from the route as it stood at BASE, the commit before step C."""
+    """The same work.json gives the same answer from this tree's /api/work
+    as from the route as it stood at BASE, the commit before step C, but for
+    what work item M34 changed on purpose: schema_known is 2, so a schema-2
+    file carries no "newer schema" note (M34 criterion 7)."""
     old_src = subprocess.run(["git", "-C", str(REPO), "show", f"{BASE}:orchestrator/work_api.py"],
                              capture_output=True, text=True, check=True).stdout
     spec = importlib.util.spec_from_loader("work_api_at_base", loader=None)
@@ -501,9 +503,14 @@ def test_c2_api_work_byte_for_byte_what_it_was(tmp_path):
         with patch.object(work_api, "WORK_PATH", p), patch.object(old, "WORK_PATH", p), \
              patch("servers.time.time", return_value=now):
             import orchestrator.main as orch
-            new_bytes = TestClient(orch.app).get("/api/work").content
-            old_bytes = TestClient(app).get("/api/work").content
-        assert new_bytes == old_bytes
+            new = TestClient(orch.app).get("/api/work").json()
+            old_answer = TestClient(app).get("/api/work").json()
+        assert old_answer["schema_known"] == 1 and new["schema_known"] == 2
+        old_answer["schema_known"] = 2
+        if body["schema"] == 2:
+            assert old_answer["source"]["schema_note"] and new["source"]["schema_note"] is None
+            old_answer["source"]["schema_note"] = None
+        assert new == old_answer
 
 
 # test_c2_work_api_work_export_unchanged_since_base is retired (work item M34,

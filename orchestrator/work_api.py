@@ -3,10 +3,13 @@ Read-only; mounted by main.py with include_router.
 
 scripts/work_export.py runs on the host every 60 s
 (systemd/kronk-work-export.timer) and writes data/work.json and
-data/dev/work.json from the working tree: the backlog from ROADMAP.md, each
-work item's step files in docs/sprint/ with its stage, the promotions log,
-and which agents herdr shows working. Production runs from a release
-snapshot and cannot see an item under way, so the file is its only source.
+data/dev/work.json: the work items, the queue, their steps and stages and
+the promotions from the dump of the work-state database (work item M34),
+the backlog from ROADMAP.md, and which agents herdr shows working.
+Production runs from a release snapshot and can see neither the working
+tree nor the database (outside every container's mount), so the file is
+its only source. This route reads that file and nothing else: no database,
+no dump.
 
 This route reads the file and says how fresh it is: fresh, stale (older
 than 180 s; the outline is still returned, as the last known state),
@@ -29,7 +32,7 @@ WORK_PATH = Path(os.getenv("WORK_PATH", "/data/work.json"))
 WORK_MAX_AGE_S = 180
 WORK_EVERY_S = 60
 WORK_TIMER = "systemd/kronk-work-export.timer"
-SCHEMA_KNOWN = 1
+SCHEMA_KNOWN = 2                # schema 2 (M34): the file drawn from the work-state database
 
 
 def work_source(now: float | None = None) -> dict:

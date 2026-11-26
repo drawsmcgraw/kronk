@@ -78,6 +78,11 @@
   details summary { cursor: pointer; color: var(--text3); font-size: 11.5px; margin-top: 3px; }
   details[open] summary { color: var(--text2); }
   .agents-line { font-size: 12.5px; color: var(--text2); }
+  .queue-row { padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 12.5px; }
+  .queue-row:last-child { border-bottom: 0; }
+  .queue-pos { font-family: monospace; color: var(--text3); min-width: 1.6em; }
+  .next-mark { font-size: 11px; font-weight: 700; color: var(--green); }
+  .held-mark { font-size: 11px; font-weight: 700; color: var(--amber); }
   .not-read li { font-size: 11.5px; color: var(--text3); margin-left: 1.2em; }
 
   /* Heard (M30 step C): the voice runs of the last 90 days, folded on every load. */
@@ -152,6 +157,12 @@
     <div id="under-way"></div>
   </section>
 
+  <section id="queue-section" hidden>
+    <div class="section-label">Queue</div>
+    <div class="note-line" id="queue-note"></div>
+    <div class="card" id="queue"></div>
+  </section>
+
   <section id="others-section" hidden>
     <div class="section-label">Other agents</div>
     <div class="card agents-line" id="others"></div>
@@ -165,7 +176,7 @@
 
   <section>
     <div class="section-label">Done</div>
-    <div class="note-line">The promotions log (<code>docs/sprint/PROMOTIONS.md</code>), newest entry first; dates as written there.</div>
+    <div class="note-line">Promotions as the work-state database records them, newest first, with the deploys made outside any work item; each date is the house’s day of the promotion. The old log, <code>docs/sprint/PROMOTIONS.md</code>, is frozen since M34.</div>
     <div class="card" id="done"></div>
     <div class="sub-label">Shipped, not linked to a work item</div>
     <div class="card" id="shipped"></div>
@@ -179,10 +190,11 @@
 </main>
 
 <script>
-// /work (work item M27): the outline scripts/work_export.py writes on the
-// host every 60 s, served by /api/work with its freshness. The stage of
-// each item and its text are computed by the exporter (stage(), tested in
-// tests/test_m27_work_export.py); this page only lays them out. Every
+// /work (work items M27, M34): the outline scripts/work_export.py writes on
+// the host every 60 s from the dump of the work-state database, served by
+// /api/work with its freshness. The stage of each item, the queue and the
+// counts are computed by the exporter, from work.py's own overview() (tested
+// in tests/test_m34_work_db.py); this page only lays them out. Every
 // string from the repo is set with textContent (never innerHTML), so a
 // title holding markup shows as text. URLs are relative, so /dev/work
 // shows dev's file. docs/features/work-page.md
@@ -239,7 +251,25 @@ const DONE_TEXT = {
 // "prefix"; anything else is shown as written.
 const MD_LINK = {"prefix": "https://", "rel": "noopener"};
 
-const UNDER_WAY_NOTE = "Work items only: an item with a step file in docs/sprint/ and no promotions entry.";
+const UNDER_WAY_NOTE = "Work items the work-state database has active: started and not yet promoted.";
+const QUEUE_NOTE = "Queued and held work items, in order. The first that is not held and follows no unpromoted item is next.";
+
+// A work-state database the exporter could not read: the banner's word by
+// the exporter's state ("{word}", "{says}" its sentence, "{age}" the dump's
+// age). "state" is the state line's part when it was read.
+const DB_WORD = {"ok": null, "missing": "MISSING", "empty": "EMPTY", "corrupt": "UNREADABLE", "newer": "NEWER SCHEMA",
+                 "other repo": "ANOTHER REPO"};
+const DB_TEXT = {
+  "banner": "WORK-STATE DATABASE {word}: {says} Nothing is shown from it.",
+  "age": " The dump was written {age} before this export.",
+  "state": "work-state database dump {age} old",
+  "owed_one": "1 decision owed by Drew",
+  "owed_many": "{n} decisions owed by Drew"
+};
+
+// A queue row's lines, and a Done row for a deploy with no work item.
+const QUEUE_TEXT = {"next": "next", "held": "held: {why}", "waits": "waits on {on}: {note}", "next_step": "next step: {step}"};
+const NO_ITEM_TEXT = {"title": "deploy with no work item", "deployed": {"yes": "deployed", "no": "tag only", "not recorded": ""}};
 
 function fill(tpl, vals) {
   return tpl.replace(/\{(\w+)\}/g, (_, k) => (vals[k] == null ? '' : String(vals[k])));
@@ -316,6 +346,7 @@ const fmtTime = iso => {
   const d = new Date(iso);
   return isNaN(d) ? String(iso) : d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 };
+const fmtAge = s => (s < 120 ? `${Math.round(s)} s` : s < 7200 ? `${Math.round(s / 60)} min` : `${Math.round(s / 3600)} h`);
 
 // ── sections ─────────────────────────────────────────────────────────────────
 
@@ -340,6 +371,17 @@ function renderState(resp) {
   const w = resp.work;
   const line = clear(document.getElementById('state-line'));
   if (!w) { line.textContent = 'No outline to show.'; return false; }
+  const db = (w.database && typeof w.database === 'object') ? w.database : null;
+  let dbLine = null;
+  if (db && db.state !== 'ok') {
+    const word = DB_WORD[db.state] ?? String(db.state ?? 'not known').toUpperCase();
+    let text = fill(DB_TEXT.banner, { word, says: db.says ?? '' });
+    if (db.dump_age_s != null) text += fill(DB_TEXT.age, { age: fmtAge(db.dump_age_s) });
+    const box = el('div', 'banner bad', text);
+    box.style.marginTop = '10px';
+    banner.appendChild(box);
+    dbLine = `work-state database: ${db.state}. ${db.says}`;
+  }
   const parts = [];
   const repo = w.repo || {};
   const where = repo.detached ? `detached HEAD @ ${repo.head || '?'}` : `${repo.branch || '?'} @ ${repo.head || '?'}`;
@@ -350,11 +392,16 @@ function renderState(resp) {
   parts.push(h.known ? fill(AGENT_TEXT.known, { seen: h.seen }) : fill(AGENT_TEXT.not_known, { reason: h.reason }));
   if (h.known && h.elsewhere) parts.push(fill(AGENT_TEXT.elsewhere, { n: h.elsewhere }));
   if (h.known && h.skipped) parts.push(fill(AGENT_TEXT.skipped, { n: h.skipped }));
+  if (db && db.state === 'ok' && db.dump_age_s != null) parts.push(fill(DB_TEXT.state, { age: fmtAge(db.dump_age_s) }));
+  if (Array.isArray(w.decisions_owed) && (!db || db.state === 'ok')) {
+    const n = w.decisions_owed.length;
+    parts.push(fill(n === 1 ? DB_TEXT.owed_one : DB_TEXT.owed_many, { n }));
+  }
   parts.forEach((p, i) => {
     if (i) line.appendChild(el('span', 'sep', '·'));
     line.appendChild(el('span', null, p));
   });
-  for (const e of arr(w.errors)) line.appendChild(el('div', 'reason', e));
+  for (const e of arr(w.errors)) if (e !== dbLine) line.appendChild(el('div', 'reason', e));
   if (repo.error) line.appendChild(el('div', 'reason', repo.error));
   return b ? b.show : true;
 }
@@ -362,13 +409,19 @@ function renderState(resp) {
 function stepRow(s) {
   const row = el('div', 'step');
   row.appendChild(el('span', 'k', stepLabel(s)));
-  row.appendChild(el('span', 't', s.committed_at ? fmtTime(s.committed_at) : 'written, not committed'));
-  if (s.kind === 'test') {
+  // A step from the database has a state; a schema-1 step is a file.
+  const when = s.state === 'started' ? (s.started_at ? `started ${fmtTime(s.started_at)}` : 'started')
+    : s.state === 'stopped' ? (s.ended_at ? `stopped ${fmtTime(s.ended_at)}` : 'stopped')
+    : s.committed_at ? fmtTime(s.committed_at) : (s.state ? '' : 'written, not committed');
+  row.appendChild(el('span', 't', when));
+  if (s.kind === 'test' && s.state !== 'started' && s.state !== 'stopped') {
     const vs = arr(s.verdicts);
     if (!vs.length) row.appendChild(el('span', 'v-none', 'verdict not read'));
     for (const v of vs) row.appendChild(el('span', VERDICT_CLASS[v.verdict] || 'v-none', verdictText(v)));
   }
-  row.appendChild(el('span', 't', s.file));
+  if (s.graded) row.appendChild(el('span', 't', `graded ${s.graded}`));
+  if (s.agent && s.state === 'started') row.appendChild(el('span', 'mono', s.agent));
+  if (s.file) row.appendChild(el('span', 't', s.file));
   return row;
 }
 
@@ -416,6 +469,8 @@ function itemCard(it, open) {
   if (st.detail) line.appendChild(el('span', st.blocked ? 'blocked-line' : 'stage-detail', st.detail));
   card.appendChild(line);
   if (it.handoff) card.appendChild(mdText(el('div', 'handoff'), it.handoff));
+  if (it.next_step) card.appendChild(el('div', 'notes', fill(QUEUE_TEXT.next_step, { step: it.next_step })));
+  if (it.waits_on) card.appendChild(el('div', 'notes', fill(QUEUE_TEXT.waits, { on: it.waits_on, note: it.waits_note })));
   for (const n of arr(it.notes)) card.appendChild(el('div', 'notes', n));
   card.appendChild(stepsBlock(it));
   for (const e of arr(it.roadmap)) {
@@ -432,9 +487,37 @@ function renderUnderWay(w, items) {
   const box = document.getElementById('under-way');
   const open = openKeys(box);
   clear(box);
-  const ids = arr(w.under_way);
+  const ids = arr(w.active ?? w.under_way);
   if (!ids.length) box.appendChild(el('div', 'reason', 'none'));
   for (const id of ids) if (items[id]) box.appendChild(itemCard(items[id], open));
+}
+
+// The queue (schema 2): in order, each with what holds it. A file with no
+// queue (schema 1) hides the section.
+function renderQueue(w, items) {
+  const sec = document.getElementById('queue-section');
+  const box = clear(document.getElementById('queue'));
+  document.getElementById('queue-note').textContent = QUEUE_NOTE;
+  sec.hidden = !Array.isArray(w.queue);
+  if (sec.hidden) return;
+  if (!w.queue.length) box.appendChild(el('div', 'reason', 'none'));
+  w.queue.forEach((id, i) => {
+    const it = items[id] || { id };
+    const row = el('div', 'queue-row');
+    const top = el('div', 'done-top');
+    top.appendChild(el('span', 'queue-pos', `${it.position ?? i + 1}.`));
+    top.appendChild(el('span', 'item-id', id));
+    top.appendChild(mdText(el('span', 'item-title'), it.title ?? 'no title'));
+    if (it.next) top.appendChild(el('span', 'next-mark', QUEUE_TEXT.next));
+    row.appendChild(top);
+    const meta = el('div', 'done-meta');
+    if (it.state === 'held') meta.appendChild(el('span', 'held-mark', fill(QUEUE_TEXT.held, { why: it.held_why })));
+    if (it.blocked_by) meta.appendChild(el('span', null, it.blocked_by));
+    if (it.waits_on) meta.appendChild(el('span', null, fill(QUEUE_TEXT.waits, { on: it.waits_on, note: it.waits_note })));
+    if (it.next_step) meta.appendChild(el('span', null, fill(QUEUE_TEXT.next_step, { step: it.next_step })));
+    if (meta.childNodes.length) row.appendChild(meta);
+    box.appendChild(row);
+  });
 }
 
 function renderOthers(w) {
@@ -475,9 +558,18 @@ function renderDone(w, items) {
   // Keep the rows a reader opened across the 30 s refresh.
   const open = openKeys(box);
   clear(box);
-  const rows = arr(w.done);
+  // The deploys with no work item (schema 2) go in among the rows by time:
+  // each before the first item row promoted earlier than it.
+  const rows = [];
+  const extra = arr(w.promotions_no_item).slice();
+  for (const r of arr(w.done)) {
+    while (extra.length && r.at && extra[0].at && extra[0].at > r.at) rows.push({ noItem: extra.shift() });
+    rows.push(r);
+  }
+  for (const e of extra) rows.push({ noItem: e });
   if (!rows.length) box.appendChild(el('div', 'reason', 'none'));
   for (const r of rows) {
+    if (r.noItem) { box.appendChild(noItemRow(r.noItem)); continue; }
     const it = items[r.id] || { id: r.id, steps: [] };
     const row = el('div', 'done-row');
     const top = el('div', 'done-top');
@@ -518,6 +610,22 @@ function renderDone(w, items) {
   for (const e of unl) sh.appendChild(entryBlock(e));
 }
 
+function noItemRow(e) {
+  const row = el('div', 'done-row');
+  const top = el('div', 'done-top');
+  top.appendChild(el('span', 'item-id mono', e.tag ?? 'no tag'));
+  top.appendChild(mdText(el('span', 'item-title'), e.label ?? NO_ITEM_TEXT.title));
+  row.appendChild(top);
+  const meta = el('div', 'done-meta');
+  meta.appendChild(el('span', null, e.date ?? 'no date'));
+  meta.appendChild(el('span', null, NO_ITEM_TEXT.title));
+  const dep = NO_ITEM_TEXT.deployed[e.deployed] ?? '';
+  if (dep) meta.appendChild(el('span', null, dep));
+  if (e.verified) meta.appendChild(el('span', 'mono', e.verified));
+  row.appendChild(meta);
+  return row;
+}
+
 function renderNotRead(w, src) {
   const ul = clear(document.getElementById('not-read'));
   const nr = arr(w.not_read);
@@ -529,14 +637,15 @@ function renderNotRead(w, src) {
     ul.appendChild(li);
   }
   document.getElementById('src-line').textContent =
-    `Source: ${src.file || 'work.json'}, written by scripts/work_export.py on the host every ${src.every_s || 60} s` +
+    `Source: ${src.file || 'work.json'}, written by scripts/work_export.py on the host every ${src.every_s || 60} s from the work-state database’s dump` +
     (w.run_s != null ? ` (last run took ${w.run_s} s)` : '') + '. Times are this browser’s local time.';
 }
 
 function renderEmpty() {
-  for (const id of ['under-way', 'backlog', 'done', 'shipped', 'not-read']) clear(document.getElementById(id));
+  for (const id of ['under-way', 'queue', 'backlog', 'done', 'shipped', 'not-read']) clear(document.getElementById(id));
   document.getElementById('under-way-note').textContent = UNDER_WAY_NOTE;
   document.getElementById('others-section').hidden = true;
+  document.getElementById('queue-section').hidden = true;
 }
 
 async function loadAll() {
@@ -554,6 +663,7 @@ async function loadAll() {
     const items = {};
     for (const it of arr(w.items)) items[it.id] = it;
     renderUnderWay(w, items);
+    renderQueue(w, items);
     renderOthers(w);
     renderBacklog(w);
     renderDone(w, items);
