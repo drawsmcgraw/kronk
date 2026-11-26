@@ -28,8 +28,10 @@ llama.cpp models, all on one machine (AMD Ryzen AI 375, Radeon 8060S iGPU,
    calls) and `/api/chat` (the same shim, not marked as voice).
 6. **`orchestrator/routing.py`** — the ordered routing rules table.
 7. **`scripts/deploy_tag.sh`** (its header) and
-   **`docs/sprint/PROMOTIONS.md`** — how production is deployed and what
-   was last promoted.
+   **`scripts/work.py resume`** — how production is deployed and what
+   was last promoted (the work-state database; `/work` shows the same;
+   `docs/sprint/PROMOTIONS.md` is the frozen log up to 2026-11-26, and
+   each later item's checks are in `docs/sprint/<item>-promote.md`).
 8. **`docs/sprint/WORKFLOW.md`** — how sizeable work is run: the session
    coordinates, an Opus 5.5 build agent and a separate Fable 5.2 test
    agent each work in their own herdr workspace with permissions skipped,
@@ -39,7 +41,7 @@ llama.cpp models, all on one machine (AMD Ryzen AI 375, Radeon 8060S iGPU,
    new work, though `docs/sprint/` keeps its name.) For such
    an item you are the coordinator, and four of its rules bind you
    (revised 2026-11-24):
-   - From the item's criteria file to its promotions entry you write no
+   - From the item's criteria file to its recorded promotion you write no
      code into the repo. A fix to the item, however small, is a fix
      agent's. How much testing follows it depends on the item's tier
      (WORKFLOW.md, "How much testing an item gets", 2026-11-24); the

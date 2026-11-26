@@ -280,3 +280,14 @@ too). The other disagreements are the review's table in its point 1.
     date; the installed unit files.
 
 ## Rulings
+- 2026-11-26, coordinator, on the test (`M34-e2e.md`, PASSES; one
+  should-fix, sixteen notes). Promote. (A first test agent stopped after
+  five minutes with nothing committed; the coordinator closed its
+  workspace before reading why, and launched the test again.) Carried to
+  M32, which redraws this page next: S1 (a dump that loads and lacks a
+  column kills the exporter: catch it and write state "corrupt"); note 1
+  (the page's own note calls five imported dates the house's day; they
+  are UTC days); note 3 (the note under "Under way" describes the old
+  rule); note 4 (a dropped item is on no part of the page); note 5 (with
+  the database unreadable every agent reads "no item of that name").
+  Left as notes: 6 to 16.

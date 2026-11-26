@@ -584,3 +584,12 @@ Held or left over:
 - Dev runs are not shown on the page (`include_dev=1` on the route).
 - The first monthly tar (the 10th) and the first weekly copy (Monday
   01:00) with the record in them have not run yet.
+
+---
+
+**This file is frozen as of 2026-11-26 (work item M34).** Promotions are
+recorded in the work-state database (`python3 scripts/work.py resume`;
+`/work` shows them) and each item's checks are in
+`docs/sprint/<item>-promote.md`. Nothing is added here; rows of the
+database point into this file by line number, so nothing above this note
+moves either.

@@ -14,7 +14,8 @@ directory `docs/sprint/`, the item numbers and the old
 A small fix that needs neither a build agent nor a test agent does not
 need this: the session makes it inline under CLAUDE.md's "Definition of
 done". The rule below that the coordinator writes no code starts when an
-item's criteria file is committed and ends with its promotions entry. A
+item's criteria file is committed and ends when it is recorded as
+promoted (`work.py promote`). A
 fix to an item under way is never the inline kind.
 
 ## Roles
@@ -29,7 +30,7 @@ fix to an item under way is never the inline kind.
 The coordinator investigates, writes the criteria and the briefs, rules on
 findings, deploys, and reports to Drew. It does not build the item, and it
 writes no code into the repo at any point, the time after the last test
-included. Its own commits are the criteria, rulings, the promotions entry
+included. Its own commits are the criteria, rulings, the promotion's checks
 and docs. The test agent is always a different agent from the builder, and
 a fresh one each round, so its reading is not anchored on the builder's.
 
@@ -90,12 +91,18 @@ One agent runs at a time. They share one working tree.
    A fix, however small, is still a fix agent's, never the coordinator's.
    Whether a fresh test agent checks it depends on the item's tier
    (below). A should-fix finding that is not worth a round is left over,
-   and the promotions entry says so.
+   and it is recorded as a leftover (`work.py matter add leftover`).
 7. **Promote.** The coordinator runs the suite, tags `item-<item>`, runs
    `scripts/deploy_tag.sh plan <tag>` then `deploy <tag>`, verifies live
-   (CLAUDE.md, "Definition of done"), and adds the entry to
-   `docs/sprint/PROMOTIONS.md`. If Drew orders something shipped that no
-   test agent saw, the entry names it as untested by an agent.
+   (CLAUDE.md, "Definition of done"), writes the checks it made to
+   `docs/sprint/<item>-promote.md`, commits it, and records the promotion
+   with `work.py promote <item> --tag … --deployed yes|no` (the checks'
+   path is its `--verified`). A deploy with no item is recorded with
+   `work.py promote --label "…" --tag … --verified PATH`. What is left
+   over goes in as leftovers and decisions. If Drew orders something
+   shipped that no test agent saw, `--untested` names it. Since work
+   item M34 (2026-11-26) `/work` shows promotions from the database;
+   `docs/sprint/PROMOTIONS.md` is frozen and nothing is added to it.
 8. **Close.** Each agent's workspace is closed once its report is
    committed. Only the coordinator's workspace stays.
 
@@ -192,9 +199,10 @@ the next one starts from what is recorded.
   escape: `work.py matter add escape --item <the promoted item>`.
 - Never paste multi-line text into the tool; it refuses a newline.
 
-Until work item M34 moves `/work` onto the database, `/work` still reads
-`docs/sprint/PROMOTIONS.md`: a promotion is recorded in both, and M34
-ends that.
+Since work item M34 (2026-11-26) `/work` is drawn from the database's
+dump (`scripts/work_export.py` reads `work.db.dump.sql`, which every
+write refreshes), so what the tool records is on the page within a
+minute and nothing is written twice.
 
 ## Where the steps came from
 
@@ -361,7 +369,7 @@ brief carries these, in full:
 
 Agents commit and tag locally when Drew has ordered the item run this way
 (CLAUDE.md, "Git"). The coordinator commits its own files: criteria,
-rulings, promotions entries, docs, and changes to this file and to
+rulings, promotion checks, docs, and changes to this file and to
 CLAUDE.md that Drew has agreed (Drew, 2026-11-24). Since the merge of 2026-11-21 the working tree stays
 on `main`, clean: the monthly patch run expects that branch
 (`~/.config/kronk/upgrade.env`) and declines on a dirty tree. Nobody but

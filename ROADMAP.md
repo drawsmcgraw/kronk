@@ -153,7 +153,9 @@ Conventions:
 
 ## Shipped
 
-Newest first; feature docs in `docs/features/`.
+Newest first; feature docs in `docs/features/`. A line for a work item
+points at its checks, `docs/sprint/<item>-promote.md` (items before M34:
+`docs/sprint/PROMOTIONS.md`).
 
 - **A kept record of what Whisper heard, and "Heard" on `/work`**
   *(2026-11-26, work item M30)* — every voice run kept for good in
