@@ -6,8 +6,10 @@ found it. I said 'play that' and kronk didn't know what I was asking
 for. Investigate and fix."
 
 Handoff line: after "play the album Pulse by Pink Floyd", "play that
-album" plays it, on the chat page and by voice, because a specialist
-agent is given the earlier turns as turns.
+album" plays it on the chat page, and through the shims when the client
+resends the conversation, because a specialist agent is given the
+earlier turns as turns. A spoken "play that" is not covered: the music
+blueprint hands a spoken "play …" to Kronk as a new conversation.
 
 Plan doc: this file, with
 `docs/incidents/INVESTIGATION_2026-11-26_play_that_album.md` (the
@@ -70,3 +72,51 @@ review, build, one test, a fresh narrow test after any fix.
   history.
 
 ## Rulings
+- 2026-11-26, coordinator, on the design review (`M36-review.md`: build
+  with these changes). All taken; where the text above differs, this
+  holds.
+  - **The window** is whole exchanges from the end, user then
+    assistant, two at most (four messages), stopping at the first break
+    in alternation, each assistant turn cut at `ASSISTANT_PROMPT_CHARS`;
+    one function, used at `main.py:470` for every entry point. Failure
+    replies are kept. No tool call or result is rebuilt into it. (A
+    five-message window that starts on an assistant turn gave the wrong
+    album 2 of 18 times and a claimed play with no tool call once.)
+  - The `[Recent conversation context]` branch of `run_stream` goes:
+    one form exists. `run_delegated` and the coordinator path do not
+    change.
+  - **Voice is not promised** (handoff line corrected). What speech
+    gains is a follow-up Home Assistant passes straight to Kronk within
+    its five minutes, in practice weather.
+  - **Criterion 2** as the review rewords it: the incident's exact
+    exchange through `/dev/api/chat` and `/dev/voice/api/chat` with the
+    conversation resent, ten each, at least nine; on the chat route the
+    natural two turns ("play the album Abbey Road in the kitchen", then
+    "play that again"), ten times, counts quoted, at least seven (the
+    review measured 9 of 12).
+  - **Criterion 3**: the Abbey Road and weather rows are the test;
+    "stop the music" is a smoke check only (no model runs).
+  - **Criterion 4**: the home agent's weather follow-up (the Boston
+    exchange, then "what's the weather there tonight": 0 of 6 today, 6
+    of 6 as turns) and, as a no-regression check, the research agent's
+    "look up when he was born".
+  - **Added to criteria 2 to 4**: the count of replies that say an
+    action was done with no tool call. It must be zero; if it is not,
+    stop and report.
+  - **Criterion 5**: rows in `tests/voice_corpus.jsonl` with an
+    optional `history` field; layer one ignores it;
+    `scripts/voice_replay.py` gains a mode that posts such rows to
+    `/dev/api/chat` and `/dev/voice/api/chat` after its dry-run check.
+    Three rows: the incident's follow-up, the weather follow-up, and
+    `inc-1017-try-playing-it-ytm` (tagged `needs-context`, skipped
+    today).
+  - **Criterion 6** reports cached tokens for a follow-up in the same
+    minute and for one a minute later.
+  - Not this item, recorded for Drew: the coordinator path (which has
+    real turns already) answered "I removed oat milk…" with no tool
+    call 2 of 6 times on "remove that from the shopping list"; the
+    clock at token 893 of the prompt empties the prompt cache every
+    minute.
+  - Testing, by Drew's question of the same morning ("are you wasting a
+    lot of time with testing corner cases?"): one test, on ordinary
+    use. One fix round at most without a reason given to Drew.
