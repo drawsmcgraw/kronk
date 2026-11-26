@@ -515,3 +515,36 @@ Tier 3 (stored data): one test, a fresh narrow test after any fix.
   step C's build agent, now that a first export exists: the record in
   `required_sources` and its test turned over. Step D's plumbing and
   criteria are written above.
+- 2026-11-26, coordinator, on step C's test (`M30-e2e6.md`, FAILS on
+  one blocker; C1 to C5 hold, the page ran in a browser with no script
+  error and no data rendered as markup). The grade stands: the blocker
+  is in the suite's guard, not the feature, but the guard is what keeps
+  a test from writing the one copy of the dataset. Fix round 1 of step
+  C, all of these; the five `xfail` tests in
+  `tests/test_m30_heard_e2e6.py` lose their marks:
+  - B1, the guard (`tests/conftest.py`). Mtime is not the test. At the
+    end of a session: the record must exist if it did at the start
+    (never excused); its run ids at the start are all still there with
+    the same `seq`, unless the unit's journal lines for the runs in
+    between account for the difference ("new N, changed N" summed
+    equals the rows added and the `seq` raised; a removal is never the
+    timer's); labels and `run_changes` likewise never shrink. The two
+    copies may differ only when a journal line in between says a copy
+    was written; the status files keep the mtime rule (they heal
+    themselves). The record is read `mode=ro`. If the journal cannot be
+    read, any difference fails. And the write is made hard as well as
+    detected: an in-process `sqlite3.connect` or a write-mode `open` of
+    a live path fails the test that makes it.
+  - S1: the three out-of-range numbers answer 400 with a reason.
+  - S2: a resync loads as many rows as the page had loaded (in pages of
+    500 at most) and keeps the open rows and the place by run id; a
+    reader who paged back stays where they were.
+  - S3: a required `sqlite` member that holds no table (a zero-byte
+    file) is INCOMPLETE, not OK.
+  - Note 1: a reader at the top of the page (the section's head in
+    view) is not anchored; a new run does not scroll the page.
+  - Note 3: the satellite map is looked up as own keys only.
+  Left as notes: the folded line with the copy gone and the status
+  fresh; the open list's growth; the "last export failed" banner not
+  seen in a browser; the small parameter oddities of note 7. Tier 2 and
+  a blocker was found: one narrow retest follows.
