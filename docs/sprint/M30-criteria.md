@@ -426,3 +426,18 @@ written when step B is promoted.
   Left as notes: a recording copied in after the row was tried; a
   neighbour with a nonsense end. A fresh narrow test of these four
   follows.
+- 2026-11-26, coordinator, on step B's fix round 2 (`M30-fix2.md`: the
+  four jobs done, no schema change, suite passes). Its points:
+  2. A re-open can turn a stored `certain` into "not tried" when the
+     row is older than seven days and its recording has gone to the NAS
+     since. It needs a run inserted more than a week late beside it (a
+     week's outage of the exporter, or a restore). Accepted as a limit
+     and written in the feature doc by step D, whose NAS-layout join is
+     the cure; the old answer is not lost to the house, the recording
+     and the run are both still there to be joined.
+  3. A person holding `BEGIN EXCLUSIVE` on the record in a run's last
+     seconds can take it past 50 s. Accepted: the unit kills the run,
+     nothing is written, the next run a minute later is whole.
+  4. No status write when `--remove` or `--init` does not get the lock:
+     right.
+  A last narrow test of the four jobs follows.
