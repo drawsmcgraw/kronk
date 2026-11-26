@@ -410,8 +410,9 @@ brief carries these, in full:
 
 ## Git
 
-Agents commit and tag locally when Drew has ordered the item run this way
-(CLAUDE.md, "Git"). The coordinator commits its own files: criteria,
+Agents commit and tag locally, and should (Drew, 2026-11-26: "agents can
+commit. agents SHOULD commit."); so does a session for code it writes
+inline (CLAUDE.md, "Git"). The coordinator commits its own files: criteria,
 rulings, promotion checks, docs, and changes to this file and to
 CLAUDE.md that Drew has agreed (Drew, 2026-11-24). Since the merge of 2026-11-21 the working tree stays
 on `main`, clean: the monthly patch run expects that branch

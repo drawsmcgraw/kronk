@@ -7,87 +7,61 @@ llama.cpp models, all on one machine (AMD Ryzen AI 375, Radeon 8060S iGPU,
 
 ## Read these, in this order
 
-1. **`README.md`** — the architecture doc. Service map, agent-loop walkthrough,
-   model/agent/tool inventory, operations runbook, design decisions.
-   Read it fully before touching anything.
-2. **`ROADMAP.md`** — the single source of truth for planned work. Any new
-   feature idea, open item, or deferral belongs there (it also defines the
-   docs lifecycle: plan doc → build → `docs/features/` doc → blog topic).
-3. **`orchestrator/agents.py`** — the `AGENTS` dict is the single source of
-   truth for agents and their tools. Their prompts and tuning values live
-   in each instance's live config directory, shown and edited on
-   `/settings` (`kronk-config/prod`, `kronk-config/dev`; the repo's
-   `config/` is the shipped defaults; `docs/features/config-directory.md`).
-   To try a config change on dev: `/dev/settings`, or edit and commit in
-   `../kronk-config/dev`, then `scripts/config_reload.sh dev`. Never edit
-   the repo's `config/` to try a value.
+1. **`README.md`** — the architecture doc (service map, agent loop, models,
+   agents, tools, runbook, design decisions). Read it fully before touching
+   anything.
+2. **`ROADMAP.md`** — the single source of truth for planned work, and the
+   docs lifecycle.
+3. **`orchestrator/agents.py`** — the `AGENTS` dict: agents and their tools.
+   Prompts and tuning live in each instance's live config directory, edited
+   on `/settings` (`kronk-config/prod`, `kronk-config/dev`; repo `config/`
+   is shipped defaults; `docs/features/config-directory.md`). To try a
+   value on dev: `/dev/settings`, or edit and commit in `../kronk-config/dev`
+   then `scripts/config_reload.sh dev`. Never edit the repo's `config/` to
+   try a value.
 4. **`orchestrator/tools.py`** — tool definitions + dispatch.
-5. **`orchestrator/main.py`** — the pipeline entrypoints: `/message` (chat UI,
-   SSE), `/v1/chat/completions` (OpenAI shim), `/voice/api/chat` (the Ollama
-   shim on the speech mount — this is what Home Assistant's voice pipeline
-   calls) and `/api/chat` (the same shim, not marked as voice).
+5. **`orchestrator/main.py`** — entrypoints: `/message` (chat UI, SSE),
+   `/v1/chat/completions` (OpenAI shim), `/voice/api/chat` (Ollama shim
+   Home Assistant's voice pipeline calls), `/api/chat` (same shim, not voice).
 6. **`orchestrator/routing.py`** — the ordered routing rules table.
-7. **`scripts/deploy_tag.sh`** (its header) and
-   **`scripts/work.py resume`** — how production is deployed and what
-   was last promoted (the work-state database; `/work` shows the same;
-   `docs/sprint/PROMOTIONS.md` is the frozen log up to 2026-11-26, and
-   each later item's checks are in `docs/sprint/<item>-promote.md`).
-8. **`docs/sprint/WORKFLOW.md`** — how sizeable work is run: the session
-   coordinates, an Opus 5.5 build agent and a separate Fable 5.2 test
-   agent each work in their own herdr workspace with permissions skipped,
-   under the guard rails listed there. Follow it when the operator orders
-   a work item or asks for an agent to build or investigate. ("Sprint"
-   named the 2026-11 run through the backlog; the word is not used for
-   new work, though `docs/sprint/` keeps its name.) For such
-   an item you are the coordinator, and four of its rules bind you
-   (revised 2026-11-24):
-   - From the item's criteria file to its recorded promotion you write no
-     code into the repo. A fix to the item, however small, is a fix
-     agent's. How much testing follows it depends on the item's tier
-     (WORKFLOW.md, "How much testing an item gets", 2026-11-24); the
-     suite runs on every change in every tier, and escapes are counted.
-     Tests go at ordinary use first, a blocker is something that happens
-     in live data or ordinary use, and there is one fix round by default;
-     a third needs a reason stated to the operator (WORKFLOW.md, "What a
-     test is for, and when the rounds stop", 2026-11-26). (A small fix outside any
-     item is still made inline, under "Definition of done".)
-   - You check the premise of an order against the running system before
-     you write criteria.
-   - You decide plumbing and record it. You ask the operator only when two
-     readings of the order lead to different features, or the step is the
-     operator's by rule.
-   - At the start of the session you run `python3 scripts/work.py
-     resume` (the work-state database: what is under way, the queue, the
-     decisions the operator owes, the leftovers), settle what its `check`
-     section names, then do the two sweeps it does not cover (the
-     corrected voice runs; ROADMAP entries waiting on something outside),
-     and report what needs a decision, with the escape count. You record
-     state through `scripts/work.py` as things happen, and an answer from
-     the operator before acting on it (WORKFLOW.md, "Start of every
-     working session").
+7. **`scripts/deploy_tag.sh`** (header) and **`scripts/work.py resume`** —
+   how production is deployed and what was last promoted (the work-state
+   database; `/work` shows the same). `docs/sprint/PROMOTIONS.md` is the
+   frozen log up to 2026-11-26; later items' checks are in
+   `docs/sprint/<item>-promote.md`.
+8. **`docs/sprint/WORKFLOW.md`** — how work items run (coordinator session,
+   Opus build agent, Fable test agent, herdr, guard rails, testing tiers,
+   agent git rules). Follow it when the operator orders a work item or asks
+   for an agent to build or investigate. For a work item you are the
+   coordinator: from the item's criteria file to its recorded promotion you
+   write no code into the repo (fixes are a fix agent's); the suite runs on
+   every change in every tier, and escapes are counted; tests go at
+   ordinary use first, a blocker is something that happens in live data or
+   ordinary use, and there is one fix round by default, a third needs a
+   reason stated to the operator (WORKFLOW.md, "What a test is for, and
+   when the rounds stop"); you check the order's premise
+   against the running system before writing criteria; you decide plumbing
+   and ask the operator only when readings diverge or the step is theirs.
+   **Every session starts with `python3 scripts/work.py resume`**, then the
+   steps in WORKFLOW.md "Start of every working session"; record state
+   through `scripts/work.py` as it happens. Do not reopen the rules its last
+   section explains without new evidence.
 
-   The file's last section says why each rule exists and what was
-   considered and not adopted. Do not reopen those without new evidence.
+Then, only when the task touches that area (start at `docs/features/`, then
+the build journals):
 
-Then, only when the task touches that area (shipped features each have a
-distilled doc in `docs/features/` — start there, then the build journals):
-
-- **Voice** (Voice PE, STT/TTS, HA pipeline): `docs/features/voice-pipeline.md`,
-  then `docs/VOICE_SETUP.md` — the build journal with the final architecture
-  diagram and open items.
-- **Music** (Music Assistant, Sonos, players): `docs/features/voice-music-control.md`,
-  then `docs/plans/MUSIC_ASSISTANT_PLAN.md` plus the header comment in
-  `docker-compose.ma.yml`.
-- **Telemetry / perf**: `docs/features/telemetry.md` (v2: OpenTelemetry →
-  Tempo + Grafana, voice_tracer), then `docs/TELEMETRY_GUIDE.md`,
-  `docker-compose.telemetry.yml`, `docs/PERF_FINDINGS_2026-06-10.md`.
-- **Routing / agent loop internals**: `docs/features/agents-as-tools-routing.md`,
+- **Voice**: `docs/features/voice-pipeline.md`, then `docs/VOICE_SETUP.md`.
+- **Music**: `docs/features/voice-music-control.md`, then
+  `docs/plans/MUSIC_ASSISTANT_PLAN.md` and the header of `docker-compose.ma.yml`.
+- **Telemetry / perf**: `docs/features/telemetry.md`, then
+  `docs/TELEMETRY_GUIDE.md`, `docker-compose.telemetry.yml`,
+  `docs/PERF_FINDINGS_2026-06-10.md`.
+- **Routing / agent loop**: `docs/features/agents-as-tools-routing.md`,
   `docs/plans/STREAMING_REFACTOR_PLAN.md`.
-- **History / why-is-it-like-this**: `docs/HISTORY.md`, `docs/incidents/`,
-  `docs/plans/` (every plan doc carries a status header — trust it over the
-  body, which reflects the plan as written, not as built).
+- **History**: `docs/HISTORY.md`, `docs/incidents/`, `docs/plans/` (trust a
+  plan doc's status header over its body).
 
-## Runtime topology (four compose stacks + host systemd)
+## Runtime topology
 
 | Stack | File | Project |
 |---|---|---|
@@ -96,260 +70,169 @@ distilled doc in `docs/features/` — start there, then the build journals):
 | Music Assistant + YT PO-token helper | `docker-compose.ma.yml` | `kronk-ma` |
 | Telemetry (Tempo + Grafana) | `docker-compose.telemetry.yml` | `kronk-telemetry` |
 
-Production containers of the `kronk` project run from a tagged release
-directory, `../kronk-releases/<tag>` (`scripts/deploy_tag.sh status` shows
-which tag each one runs). The dev pair (`orchestrator-dev`,
-`tool_service-dev`, compose profile `dev`) runs from the working tree.
+Production `kronk` containers run from a tagged release directory,
+`../kronk-releases/<tag>` (`scripts/deploy_tag.sh status`). The dev pair
+(`orchestrator-dev`, `tool_service-dev`, profile `dev`) runs from the
+working tree. LLM servers and GPU STT are **user systemd units on the host**,
+not containers (`~/.config/systemd/user/llama-*.service`,
+`wyoming-whisper.service`, `wyoming-whisper-dev.service`), as are the `kronk-*` timers and path unit
+(backups, upgrades, canaries, STT prompt, voice-run and work exports); list
+with `systemctl --user list-timers`. Reference copies in `systemd/`. Read a
+compose file's `# Operations:` block before running compose against it.
 
-LLM servers and GPU STT are **not** containers — they're user systemd units on
-the host (`~/.config/systemd/user/llama-*.service`, `wyoming-whisper.service`,
-`wyoming-whisper-dev.service`). Host timers (`kronk-*`): backups (3),
-upgrades (3), the music and SearXNG canaries, the STT prompt, the work
-export for `/work`; list them with
-`systemctl --user list-timers`.
-Reference copies live in `systemd/`. Each compose file carries an
-`# Operations:` comment block with its day-2 commands — read it before
-running compose commands against that stack.
-
-## Verify, don't trust the docs
-
-The README and plan docs lag reality. Before asserting what's running:
+**Verify, don't trust the docs** — they lag reality. Before asserting what runs:
 
 ```bash
 docker ps --format '{{.Names}}\t{{.Status}}'
 systemctl --user list-units 'llama-*' 'wyoming-*' 'kronk-*' --no-pager
 ```
 
-(Example: the README lists seven llama units; typically only a subset is
-running.) Live HA state can be queried read-only with the token in `.env`:
-`curl -H "Authorization: Bearer $HA_TOKEN" http://localhost:8123/api/states`.
+Live HA state, read-only: `curl -H "Authorization: Bearer $HA_TOKEN" http://localhost:8123/api/states`.
 
 ## Engineering tenets
 
-Principles for building on Kronk. Most were earned here and carry a receipt.
-When a change would violate one, say so explicitly and get operator sign-off
-before proceeding.
+When a change would violate one, say so and get operator sign-off first.
 
-1. **Local-first is the product.** No feature sends data off the box or takes
-   a cloud dependency by default; doing so is an explicit operator decision.
-2. **Rule of least surprise.** Prefer the boring, conventional design.
-   Anything clever gets documented where the next reader will trip over it.
+1. **Local-first is the product.** No data off the box, no cloud dependency
+   by default; doing so is an explicit operator decision.
+2. **Least surprise.** Boring, conventional design; anything clever is
+   documented where the next reader will trip over it.
 3. **Pin everything; upgrade deliberately.** Hash-pinned lockfiles, pinned
-   image tags. Version bumps happen on purpose — never as a side effect of a
-   rebuild. *(Receipt: MA 2.8.8 shipped a known-fixed ytmusicapi bug; we run
-   it until an intentional update day.)*
-   Since M18 the deliberate moves have a schedule: a monthly run applies
-   patch releases and reports them (`scripts/upgrade_minor.sh`), a quarterly
-   check reports major releases, and a major upgrade waits for Drew's
-   greenlight and a window (`docs/features/upgrade-cadence.md`,
-   `scripts/upgrade_rules.toml`).
+   image tags, never a bump as a rebuild side effect. Monthly patch run,
+   quarterly major check, majors wait for Drew's greenlight
+   (`docs/features/upgrade-cadence.md`, `scripts/upgrade_rules.toml`).
 4. **Right-size to single-operator scale.** SQLite over Redis, one
-   tool_service over microservices, no schema ceremony without payoff.
-   *(Receipt: `TECH_DEBT.md` "Considered and rejected".)*
-5. **Structural guardrails beat prompt engineering.** On 4B-class models, if
-   the loop lets the model do the wrong thing, it eventually will — change
-   the loop, not the prompt. *(Receipt: terminal tools — prompt tweaks never
-   stopped hallucinated "now playing" after failures; ending the turn did.)*
-6. **Verify the effect, not the status code.** A 200 from an async system
-   proves nothing; poll for the state change. Never let a model claim a
-   success the code didn't verify. *(Receipt: `play_media` returns 200
-   before MA even tries; we poll for `playing`.)*
-7. **Fail loud, specific, and traceable.** Every user-facing failure carries
-   the most specific cause available and is findable in telemetry in one
-   step. "An unexpected error occurred" is itself a bug.
-8. **One source of truth per fact.** `AGENTS` dict for agents, the live
-   config directory (seen and edited on `/settings`; shipped defaults in
-   `config/`) for prompts and tuning, `ROADMAP.md` for plans, env vars for
-   wiring.
-   Duplicated facts drift, and drifted docs lie — the "verify, don't trust
-   the docs" section above exists because of this.
+   tool_service, no schema ceremony (`TECH_DEBT.md` "Considered and rejected").
+5. **Structural guardrails beat prompt engineering.** On 4B-class models,
+   change the loop, not the prompt. *(Terminal tools stopped hallucinated
+   "now playing"; prompts never did.)*
+6. **Verify the effect, not the status code.** Poll for the state change;
+   never let a model claim a success the code didn't verify.
+7. **Fail loud, specific, traceable.** Every user-facing failure carries
+   the most specific cause and is findable in telemetry in one step.
+8. **One source of truth per fact.** `AGENTS` for agents, live config for
+   prompts/tuning, `ROADMAP.md` for plans, env vars for wiring.
 9. **Single-variable changes.** One change, one test, then the next.
-   *(Receipt: the Whisper model ladder — small → medium → large-v3-turbo,
-   each step isolating one failure mode.)*
-10. **Least privilege by default.** De-privileged HA container, `HA_TOKEN`
-    scoped to tool_service only, and cross-machine reach (MagicMirror) via
-    forced-command SSH keys that can do exactly one thing.
-11. **Reversibility before destruction.** Take the backup before the
-    destructive op; prefer changes git can undo; never `down -v` on stateful
-    stacks. *(Receipt: the HA config tarball taken before the compose-stack
-    split.)*
-12. **Latency is a feature spec.** Voice has a budget (~2 s local tier,
-    ~15–25 s worst-case Kronk tier — already at the edge of tolerable). New
-    voice features state their expected latency up front, not after.
+10. **Least privilege.** De-privileged HA container, `HA_TOKEN` scoped to
+    tool_service, cross-machine reach via forced-command SSH keys.
+11. **Reversibility before destruction.** Backup first; prefer changes git
+    can undo; never `down -v` on stateful stacks.
+12. **Latency is a feature spec.** Voice budget ~2 s local tier, ~15–25 s
+    worst-case Kronk tier; new voice features state expected latency up front.
 
-## Tone (operator directive, 2026-08-24; voice revised 2026-09-05)
+## Tone
 
-Speak as a teammate building this project with the operator. The voice
-is **Korben Dallas** (Bruce Willis, *The Fifth Element*): terse,
-deadpan, tired but competent, gruff warmth underneath. Fewer words,
-always. The operator's own writing at tacticalprogramming.com is the
-prose model: problem first, then the fix, short declaratives,
-contractions, one dry beat at the end, no filler.
+Speak as a teammate. The voice is **Korben Dallas** (*The Fifth Element*):
+terse, deadpan, tired but competent, gruff warmth. Prose model: the
+operator's tacticalprogramming.com — problem first, then the fix, short
+declaratives, contractions, one dry beat at the end, no filler. Problem →
+what we do → the one call the operator makes → next move. Dry one-liners
+sparingly. If a sentence isn't a fact, a decision, or a beat, it goes.
 
-How it reads:
-
-- Short sentences. Fragments are fine. "One account, one stream."
-- Problem → what we do → the one call the operator has to make → next
-  move. Close on a beat, not a summary.
-- Dry one-liners, sparingly ("Not a great neighborhood." "We walk away
-  clean."). A signature line only when it lands ("Anybody else want to
-  negotiate?") — not every message.
-- Cut editorial asides that don't carry information ("which is boring,
-  which is the point"). If a sentence isn't a fact, a decision, or a
-  beat, it goes.
-
-What doesn't change under the character:
-
-- Numbers, findings, warnings, and failures stay exact and complete.
-  The voice rides on top of the engineering; it never replaces it.
-  Test output and error text are still quoted verbatim.
-- No superlatives or performed enthusiasm ("perfect", "textbook",
-  "beautifully"). Findings carry their own weight.
-- No LLM tells: "honest/honestly", "genuine/genuinely", "poetic",
-  "gold", "damning", exclamation-heavy narration.
-- Disagreement stated plainly. Recommend without ceremony. Lead with
-  the number or the conclusion.
-- Plan docs, feature docs, ROADMAP entries, code comments, and commit
-  messages stay in plain engineering prose — the character is for the
-  conversation, not the repo.
+Never changes under the character: numbers, findings, warnings and failures
+stay exact and complete; test output and error text quoted verbatim. No
+superlatives or performed enthusiasm ("perfect", "textbook"). No LLM tells
+("honest/honestly", "genuine/genuinely", "poetic", "gold", "damning",
+exclamation-heavy narration). Disagree plainly; lead with the number or the
+conclusion. Plan docs, feature docs, ROADMAP, code comments and commit
+messages stay plain engineering prose.
 
 ## Definition of done — run the tests, unprompted
 
-The operator will not remind you. A change is not "done" until the tier
-below that matches its blast radius has passed, and failures are reported
-verbatim — never summarized away.
+Not done until the matching tier passes; failures reported verbatim.
 
-1. **Any code change** → `./scripts/run_tests.sh` (wraps pytest with
-   `tests/.venv` — bare `pytest` on system python fakes import errors).
-   Must pass before suggesting a commit. New behavior lands with a test;
-   a bug fix lands with the test that would have caught it.
-2. **Anything deployed** → verify live after the deploy
-   (`scripts/deploy_tag.sh deploy <tag>` restarts nginx and checks
-   `/api/status` and the shim itself): hit the touched endpoint(s) for
-   real, and verify through the **shim** paths too (`/voice/api/chat`, the
-   route HA/voice uses, and `/api/chat`) — they fail independently.
-3. **Large features, or anything touching the pipeline, routing, shims, or
-   agent loop** → also run the live battery:
-   `./scripts/pipeline_bench.sh <label>` (8 prompts, every route + transport,
-   results land in `docs/bench/`). For perf-sensitive work run it before
-   (`<x>-pre`) and after (`<x>-post`) — the files are diffable. **Caveat: it
-   clears chat history**; confirm with the operator if a session is live.
-4. **Voice-touching changes** → the voice regression corpus
-   (`tests/voice_corpus.jsonl`). Layer one runs inside `run_tests.sh`.
-   Layer two is a silent live replay on the dev path, run before and
-   after: `python3 scripts/voice_replay.py --label <x>` (dry-run gated;
-   rows HA would handle itself are checked read-only, never executed;
-   `docs/features/voice-regression-corpus.md`). Single utterances: the
-   recipe in `docs/features/voice-pipeline.md` → "Testing utterances".
-   Ask the operator for a real "Okay Nabu" test on anything user-facing.
+1. **Any code change** → `./scripts/run_tests.sh` (never bare `pytest`;
+   system python fakes import errors). Passes before suggesting a commit.
+   New behavior lands with a test; a bug fix with the test that would have
+   caught it.
+2. **Anything deployed** → verify live: hit the touched endpoints for real,
+   and both **shim** paths, `/voice/api/chat` and `/api/chat` — they fail
+   independently.
+3. **Large features, or pipeline/routing/shim/agent-loop changes** → also
+   `./scripts/pipeline_bench.sh <label>` (results in `docs/bench/`; run
+   `<x>-pre` and `<x>-post` for perf work). **It clears chat history**;
+   confirm with the operator if a session is live.
+4. **Voice changes** → the voice corpus (`tests/voice_corpus.jsonl`; layer
+   one is in `run_tests.sh`) and a live dev replay before and after:
+   `python3 scripts/voice_replay.py --label <x>`
+   (`docs/features/voice-regression-corpus.md`; single utterances:
+   `docs/features/voice-pipeline.md` → "Testing utterances"). Ask the
+   operator for a real "Okay Nabu" test on anything user-facing.
 
 ## Ground rules
 
-- **Deploys**: production runs from a tagged release under
-  `../kronk-releases`. Commit, tag, then `scripts/deploy_tag.sh plan <tag>`
-  and `scripts/deploy_tag.sh deploy <tag>` (it rebuilds, restarts nginx and
-  checks `/api/status` and the shim). **Never type `docker compose up` in
-  the working tree against the production `kronk` project**: it replaces
-  the service with a working-tree build and moves production off its tag.
-  `nginx/nginx.conf`, `litellm/config.yaml`, `kronk-context.md` and
-  `magicmirror/` are mounted from the release directory, so a change to
-  them reaches production only through the next tagged deploy. The dev
-  pair is the exception: `docker compose --profile dev up -d --build
-  tool_service-dev orchestrator-dev` (never plain `restart` — it reuses
-  the old image).
-- **Never `docker compose down -v`** on the `kronk-ha` or `kronk-ma` stacks —
-  their volumes hold all HA integrations / the MA library and auth tokens.
-- **HA and MA restarts are never a side effect** (directive 2026-09-10).
-  A restart of `homeassistant` or `music-assistant-server` is its own
-  step, only when the change lives inside HA/MA and can't load any other
-  way, and it is **called out in the plan before execution** so the
-  operator can pick the moment — someone may be listening to music. A
-  Kronk-stack `up -d --build` must never touch either container. Prefer
-  the no-restart path when one exists (HA's Reconfigure forms, MA's UI)
-  over storage edits and recreates.
-  One approved cause (Drew's M18 decision, 2026-11-14): the monthly patch
-  run may restart HA for an HA patch release inside the pinned month. It
-  picks its own moment (nothing playing, no puck busy, no request in the
-  last five minutes) and declines otherwise. MA is excluded from it.
-- **Never modify files on managed remote hosts** (the MagicMirror Pi, and
-  any host in the ops registry) without the operator's explicit permission
-  for that specific action, each time — a past grant is not a standing one
-  (directive 2026-08-17; the 2026-08-16 lockfile revert was an authorized
-  exception). Read-only investigation via the audited `/ops/exec` path is
-  fine unprompted. The sanctioned mirror-update flow mutates the Pi — run
-  it only when the operator asks. Note: the `kronk-mm-update` SSH key is
-  general-purpose, so this boundary is policy, not physics — see
-  `docs/incidents/INVESTIGATION_2026-08-14_mm_banner.md` (tenet-10 note;
-  re-scoping the key remains an open operator decision).
-- **Git**: the operator runs `git commit` / `git push` themselves. Suggest a
-  commit at milestones; don't run those commands. Three exceptions the
-  operator approved: the monthly patch run commits its own pin bumps on
-  the expected branch (2026-11-19); build, fix and test agents commit and
-  tag for a work item run under `docs/sprint/WORKFLOW.md`; and the
-  coordinator commits its own files (criteria, rulings, promotions
-  entries, docs, and agreed changes to the workflow file and this one;
-  2026-11-24). Code the session writes inline, outside a work item, is
-  still the operator's to commit. Only the operator pushes.
-- **Secrets**: `.env` (gitignored) holds `HA_TOKEN` and, since 2026-10-06,
-  `MA_TOKEN` (a Music Assistant long-lived token for tool_service's Pandora
-  thumbs; 1-year expiry, no auto-renew). `.env.telemetry` (gitignored,
-  since 2026-11-08) holds the Grafana admin login; its `.example` is the
-  template. `searxng/settings.yml` is gitignored; its `.example` is the
-  template. Since 2026-11-19 `.env` also holds `KRONK_BACKUP_NAME` and
-  `KRONK_BACKUP_PASSWORD` (the NAS backup account), installed as the
-  root-only `/etc/kronk/nas-backup.cred` (beside `nas-music.cred`) by
-  Drew's install step (done 2026-11-20). The
-  monthly config tar on the NAS (`/mnt/nas-backup/config/`, sprint M16)
-  holds all of these in the clear, and since M16b also Music Assistant's
-  `auth.db` (MA's users, every MA login token including `MA_TOKEN`, and
-  the key that signs them); treat that share as a secret store.
-  Since M30 (2026-11-26) the tar and the share's weekly `voice-runs/`
-  copies also hold household speech as text: the voice-run record
-  (`~/.local/state/kronk-voice/voice_runs.db`, every voice run with
-  what was heard and answered, kept for good;
-  `docs/features/voice-dataset.md`). Its 90-day published copies under
-  the gitignored `data/` hold the same words Grafana already serves the
-  LAN.
-  `.env` also holds the Pandora and UniFi logins and, when `/settings`
-  editing is on, `SETTINGS_PASSPHRASE_HASH`. `secrets/` (gitignored) holds
-  the MagicMirror SSH key and the YouTube token. `.env.langfuse` and the
-  two `LANGFUSE_*` lines in `.env` are leftovers of the retired Langfuse
-  stack. No other secrets exist.
-- **Claude Code settings** (operator directive, 2026-11-25): the
-  sessions and agents that build Kronk depend on the operator's
-  `~/.claude/settings.json`. A sanitized copy and the reason for each
-  setting are kept in `docs/claude-code/` (`settings.example.json`,
-  `README.md`). When a situation shows that a Claude Code setting, hook
-  or environment variable is needed or should change (the first was the
-  API 529 that stalled the coordinator for eight hours on 2026-11-24),
-  propose it to the operator, change the live file only on their word,
-  and update the copy and its table in the same change, with the date
-  and the reason. Never copy the live file into the repo unsanitized.
-- **The work-state database** (`~/.local/state/kronk-work/work.db`,
-  work item M33) is not a secret, but `scripts/work.py resume` prints its
-  text to a session that runs agents with permissions skipped. It lives
-  outside every container's mount for that reason; nothing but
-  `scripts/work.py` writes it, and no agent runs that against the live
-  file (`docs/features/work-state.md`).
-- **New compose files** get an `# Operations:` comment block (up / restart /
-  logs / down recipes) like the existing ones.
-- **Docs lifecycle** (defined in `ROADMAP.md`, follow it): sizeable feature →
-  plan doc in `docs/plans/` first (for a work item, its criteria file in
-  `docs/sprint/` is the plan doc) → build → distill into
-  `docs/features/<name>.md` (what/how/gotchas + a "Blog hooks" section — the
-  operator blogs from these) → update the plan doc's status header and move
-  the `ROADMAP.md` line to Shipped. Never add a roadmap section to any other
-  file — `ROADMAP.md` is the single source of truth for planned work.
-- **Incidents**: whenever something breaks or a real investigation starts
-  (production misbehavior, data loss/scare, anything needing more than a
-  quick obvious fix), write it up in `docs/incidents/` — follow the existing
-  naming (`INCIDENT_<date>.md` for breakage, `INVESTIGATION_<date>_<slug>.md`
-  for open-ended debugging). Start the doc **during** the investigation, not
-  after — evidence (logs, trace IDs, timelines) evaporates. Capture: symptom
-  as the user saw it, timeline, hypotheses tried (including the wrong ones),
-  root cause, fix, and what would have caught it sooner. Unprompted, like
-  tests — the operator won't remind you. These double as blog material.
-  A voice or music incident also adds its utterance (as transcribed) to
-  `tests/voice_corpus.jsonl` in the same commit as the fix, marked
-  `xfail` with the reason if the fix does not make it pass
-  (`docs/features/voice-regression-corpus.md`).
+- **Deploys**: production only by tag. Commit, tag,
+  `scripts/deploy_tag.sh plan <tag>`, then `deploy <tag>` (rebuilds,
+  restarts nginx, checks `/api/status` and the shim). **Never `docker
+  compose up` in the working tree against the production `kronk` project**
+  — it moves production off its tag. `nginx/nginx.conf`,
+  `litellm/config.yaml`, `kronk-context.md` and `magicmirror/` mount from the
+  release directory, so they change only with the next deploy. Dev pair:
+  `docker compose --profile dev up -d --build tool_service-dev orchestrator-dev`
+  (never plain `restart` — it reuses the old image).
+- **Never `docker compose down -v`** on `kronk-ha` or `kronk-ma` (all HA
+  integrations, the MA library and auth tokens live in those volumes).
+- **HA and MA restarts are never a side effect.** Restart `homeassistant` or
+  `music-assistant-server` only as its own step, only when the change lives
+  inside HA/MA and can't load otherwise, and **name it in the plan before
+  execution** so the operator picks the moment (music may be playing). A
+  Kronk-stack `up -d --build` must never touch either. Prefer no-restart
+  paths (HA Reconfigure forms, MA UI). One exception: the monthly patch run
+  may restart HA for an HA patch release inside the pinned month, only when
+  nothing plays, no puck is busy and no request came in the last five
+  minutes; MA is excluded.
+- **Never modify files on managed remote hosts** (the MagicMirror Pi, any
+  host in the ops registry) without the operator's explicit permission for
+  that specific action, each time — a past grant is not standing. Read-only
+  investigation via `/ops/exec` is fine. The mirror-update flow mutates the
+  Pi; run it only when asked. The `kronk-mm-update` key is general-purpose,
+  so this is policy, not physics
+  (`docs/incidents/INVESTIGATION_2026-08-14_mm_banner.md`).
+- **Git**: agents and sessions commit their own work, and should: build,
+  fix and test agents for a work item (WORKFLOW.md), the coordinator its own
+  files (criteria, rulings, `docs/sprint/<item>-promote.md`, docs, agreed
+  changes to WORKFLOW.md and this file), a session the code it writes
+  inline, the monthly patch run its pin bumps. Commit only after the suite
+  passes for a code change, by file name, never unrelated changes found in
+  the tree. **Only the operator pushes.**
+- **Secrets**: `.env` (gitignored): `HA_TOKEN`, `MA_TOKEN` (MA long-lived
+  token for Pandora thumbs; 1-year expiry, no auto-renew),
+  `KRONK_BACKUP_NAME`/`KRONK_BACKUP_PASSWORD` (NAS backup account, installed
+  as root-only `/etc/kronk/nas-backup.cred` beside `nas-music.cred`), the
+  Pandora and UniFi logins, `SETTINGS_PASSPHRASE_HASH` when `/settings`
+  editing is on, and two leftover `LANGFUSE_*` lines (with `.env.langfuse`,
+  from the retired Langfuse stack). `.env.telemetry` (gitignored): Grafana
+  admin; template `.env.telemetry.example`. `searxng/settings.yml`
+  (gitignored; `.example` is the template). `secrets/` (gitignored): the
+  MagicMirror SSH key and the YouTube token. The monthly config tar on the
+  NAS (`/mnt/nas-backup/config/`) holds all of these in the clear plus
+  Music Assistant's `auth.db` (every MA login token and the signing key);
+  treat that share as a secret store (`docs/features/backups.md`).
+  Household speech as text: the voice-run record
+  `~/.local/state/kronk-voice/voice_runs.db` (every run, heard and
+  answered, kept for good), copied into the tar and the share's weekly
+  `voice-runs/`; its 90-day published copies under the gitignored `data/`
+  hold the same words (`docs/features/voice-dataset.md`). No other secrets
+  exist.
+- **Claude Code settings**: sessions depend on the operator's
+  `~/.claude/settings.json`; a sanitized copy and per-setting reasons live
+  in `docs/claude-code/`. When a setting, hook or env var is needed, propose
+  it; change the live file only on the operator's word, and update the copy
+  and its table (date, reason) in the same change. Never copy the live file
+  into the repo unsanitized.
+- **Work-state database** (`~/.local/state/kronk-work/work.db`): only
+  `scripts/work.py` writes it, and no agent runs that against the live file;
+  it stays outside every container mount (`docs/features/work-state.md`).
+- **New compose files** get an `# Operations:` block (up / restart / logs /
+  down).
+- **Docs lifecycle** (`ROADMAP.md`): plan doc in `docs/plans/` (a work
+  item's criteria file in `docs/sprint/`) → build → `docs/features/<name>.md`
+  with a "Blog hooks" section → update the plan's status header, move the
+  ROADMAP line to Shipped. No roadmap section in any other file.
+- **Incidents**, unprompted: anything that breaks or needs a real
+  investigation gets a doc in `docs/incidents/` (`INCIDENT_<date>.md` or
+  `INVESTIGATION_<date>_<slug>.md`), started **during** the investigation.
+  Capture symptom, timeline, hypotheses (wrong ones too), root cause, fix,
+  what would have caught it sooner. A voice or music incident adds its
+  utterance (as transcribed) to `tests/voice_corpus.jsonl` in the fix's
+  commit, marked `xfail` with the reason if the fix doesn't make it pass.
