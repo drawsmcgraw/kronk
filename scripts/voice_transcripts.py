@@ -210,7 +210,7 @@ def fetch_runs(since: float, until: float, tempo: str = TEMPO, include_dev: bool
                 try:
                     r = marks.routing_from_trace(get_json(f"{tempo}/api/v2/traces/{a['kronk.trace_id']}"))
                 except Exception as e:   # one missing trace must not sink the listing
-                    a["_enrich_error"] = f"{type(e).__name__}"
+                    a["_enrich_error"] = f"{type(e).__name__}: {str(e)[:120]}"   # names the failure, never a value
                     continue
                 a["kronk.rule"] = r.get("rule")
                 a["kronk.direct_action"] = r.get("direct_action")

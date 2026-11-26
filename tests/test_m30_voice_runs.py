@@ -193,9 +193,14 @@ class Scratch:
                 "--status", str(self.status), "--status", str(self.status_dev), "--recordings", str(self.rec),
                 *extra]
 
-    def run(self, tempo, now, *extra, **kw):
+    def run(self, tempo, now, *extra, init=None, **kw):
+        """One export. A fresh scratch (no record, no status file) gets
+        --init, as the coordinator's first export does (M30-e2e2 finding 5:
+        without it no record is made); pass init=False to leave it out."""
+        if init is None:
+            init = not os.path.lexists(self.db) and not self.status.exists()
         out = io.StringIO()
-        rc = EX.main(self.args(*extra), now=now, get_json=tempo, out=out, **kw)
+        rc = EX.main(self.args(*extra, *(("--init",) if init else ())), now=now, get_json=tempo, out=out, **kw)
         return rc, out.getvalue()
 
     def con(self):
@@ -390,21 +395,38 @@ def test_rule2_a_failed_trace_read_is_tried_again_and_moves_nothing_else(sc):
     assert sc.rows()["R1"]["raw_trace"]
 
 
-def test_rule2_trace_reads_that_keep_failing_wait_for_the_next_run(sc):
-    """A Tempo that answers searches but times out on traces costs three
-    timeouts a run, not one per run waiting: the unit's 50 s limit is never
-    reached before the record and the status are written."""
+class FakeClock:
+    """The exporter's budget clock (EX.clock), moved on by the fake Tempo."""
+
+    def __init__(self):
+        self.t = 1000.0
+
+    def __call__(self):
+        return self.t
+
+
+def test_rule2_trace_reads_that_keep_failing_wait_for_the_next_run(sc, monkeypatch):
+    """A Tempo that answers searches but times out on traces costs the
+    trace budget a run, not one timeout per run waiting: the unit's 50 s
+    limit is never reached before the record and the status are written.
+    (Fix round 1, F3: the limit is the time budget, not three failures.)"""
+    clk = FakeClock()
+    monkeypatch.setattr(EX, "clock", clk)
     tempo = FakeTempo(household(20))
     real = tempo.__call__
 
     def no_traces(url, timeout=None):
         if "/api/v2/traces/" in url:
+            clk.t += EX.TEMPO_TIMEOUT_S                  # each read takes its whole timeout
             raise TimeoutError("timed out")
         return real(url, timeout)
+    t0 = clk.t
     rc, _ = sc.run(no_traces, NOW)
     assert rc == 0 and len(sc.rows()) == 20
+    assert clk.t - t0 <= EX.TRACE_BUDGET_S + EX.TEMPO_TIMEOUT_S < 50
     this = sc.status_json()["this_run"]
-    assert this["trace_read_failures"] == EX.TRACE_FAILS_MAX and this["trace_reads_deferred"] == 20 - EX.TRACE_FAILS_MAX
+    assert this["trace_read_failures"] == EX.TRACE_BUDGET_S // EX.TEMPO_TIMEOUT_S + 1
+    assert this["trace_reads_deferred"] == 20 - this["trace_read_failures"] > 0
 
 
 def test_rule3_window_cut_short_is_stored(sc):
@@ -770,21 +792,48 @@ def test_b7_the_audio_join_gives_voice_label_sheets_answer(sc):
     assert "audio_join" not in sc.published()["R-certain"]                # not published
 
 
-def test_b7_an_old_run_and_an_unreadable_recordings_directory_are_not_tried(sc, tmp_path):
-    old = vrun("R-old", NOW - 8 * 86400, heard="invented", kronk__origin__device_id=DEV_K)
+def test_b7_an_old_run_is_joined_when_its_recording_is_local_and_not_tried_when_it_is_not(sc):
+    """Fix round 1, note 7: no age limit on the join. A row older than seven
+    days whose recording is local is joined; one with none is NULL (its
+    recording may be on the NAS), and a younger one with none is 'none'.
+    Each is tried once."""
+    runs = [vrun("R-old", NOW - 8 * 86400, heard="invented", kronk__origin__device_id=DEV_K),
+            vrun("R-old-gone", NOW - 9 * 86400, heard="invented", kronk__origin__device_id=DEV_K),
+            vrun("R-young-none", NOW - 6 * 86400, heard="invented", kronk__origin__device_id=DEV_K)]
     wav(sc.rec, DEV_K, "kronk", "1", NOW - 8 * 86400 + 3)
-    sc.run(FakeTempo([old]), NOW)
-    assert sc.rows()["R-old"]["audio_join"] is None            # may be on the NAS by now: not tried
-    sc2 = Scratch(tmp_path / "other")
-    sc2.rec.rmdir()
-    sc2.run(FakeTempo(household(1, start=NOW - 3600)), NOW)
-    assert sc2.rows()["R1"]["audio_join"] is None
-    assert "cannot be read" in sc2.status_json()["this_run"]["audio_not_tried"]
+    sc.run(FakeTempo(runs), NOW)
+    rows = sc.rows()
+    assert rows["R-old"]["audio_join"] == "certain" and rows["R-old"]["audio_rel"].startswith(f"{DEV_K}/kronk/1/")
+    assert rows["R-old-gone"]["audio_join"] is None and rows["R-old-gone"]["audio_tried_at"] is not None
+    assert rows["R-young-none"]["audio_join"] == "none"
+    wav(sc.rec, DEV_K, "kronk", "2", NOW - 9 * 86400 + 3)          # appears later: tried once, not again
+    sc.run(FakeTempo(runs), NOW + 60)
+    assert sc.rows()["R-old-gone"]["audio_join"] is None
+
+
+def test_b7_an_unreadable_recordings_directory_leaves_the_row_to_be_tried_again(sc):
+    """Fix round 1, F1: a directory that cannot be read when the row is
+    final leaves it untried, and the next run with the directory back
+    joins it."""
+    sc.rec.rmdir()
+    runs = household(1, start=NOW - 3600)
+    sc.run(FakeTempo(runs), NOW)
+    r = sc.rows()["R1"]
+    assert r["audio_join"] is None and r["audio_tried_at"] is None
+    assert "cannot be read" in sc.status_json()["this_run"]["audio_not_tried"]
+    assert "audio not joined" in sc.status_json()["last_error"]
+    sc.rec.mkdir()
+    wav(sc.rec, DEV_K, "kronk", "5", runs[0]["start"] + 3)
+    sc.run(FakeTempo(runs), NOW + 60)
+    assert sc.rows()["R1"]["audio_join"] == "certain"
 
 
 # ═══ The hourly check, the published copy ══════════════════════════════════
 
-def test_the_hourly_check_reports_a_difference_and_rewrites_nothing(sc):
+def test_the_hourly_check_reports_a_difference_rewrites_nothing_and_takes_a_missing_run(sc):
+    """A differing value is reported and not applied. A run the record
+    should hold and does not is taken (fix round 1, F4: an insert, not a
+    rewrite)."""
     runs = household(2)
     tempo = FakeTempo(runs)
     sc.run(tempo, NOW)
@@ -795,15 +844,17 @@ def test_the_hourly_check_reports_a_difference_and_rewrites_nothing(sc):
     assert sc.rows()["R1"]["corrected_by"] is None and "R-lost" not in sc.rows()
     sc.run(tempo, NOW + EX.CHECK_EVERY_S)                           # the hourly read
     rows = sc.rows()
-    assert rows["R1"]["corrected_by"] is None and "R-lost" not in rows
-    assert {k: r["seq"] for k, r in rows.items()} == seqs
+    assert rows["R1"]["corrected_by"] is None and "R-lost" in rows
+    assert rows["R-lost"]["seq"] == max(seqs.values()) + 1 and rows["R-lost"]["heard"] == "invented"
+    assert {k: r["seq"] for k, r in rows.items() if k != "R-lost"} == seqs
     (ch,) = sc.changes()
     assert ch["why"] == "hourly check" and json.loads(ch["detail"]) == {"tempo": {"corrected_by": "rate_down"}}
     chk = sc.status_json()["last_check"]
-    assert (chk["differing"], chk["missing"], chk["missing_ids"]) == (1, 1, ["R-lost"])
-    assert "hourly check" in sc.status_json()["last_error"]
+    assert (chk["differing"], chk["missing"], chk["taken"], chk["missing_ids"]) == (1, 1, 1, ["R-lost"])
+    assert "hourly check" in sc.status_json()["last_error"] and "taken" in sc.status_json()["last_error"]
     sc.run(tempo, NOW + 2 * EX.CHECK_EVERY_S, "--check-now")
     assert len(sc.changes()) == 1                                   # the same difference once
+    assert sc.status_json()["last_check"]["missing"] == 0           # taken once, missing no more
 
 
 def test_the_published_copy_holds_the_page_columns_for_90_days_and_opens_immutable(sc):
@@ -878,7 +929,7 @@ def ids_and_labels(db: Path):
 def real_record(house, tmp_path, n=5):
     """A record made by the exporter at the house's path, with a label."""
     sc = Scratch(tmp_path / "exp")
-    a = sc.args()
+    a = sc.args("--init")
     a[a.index("--db") + 1] = str(house.voice_db)
     out = io.StringIO()
     assert EX.main(a, now=NOW, get_json=FakeTempo(household(n)), out=out) == 0, out.getvalue()
