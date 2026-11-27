@@ -25,7 +25,11 @@ cannot strand itself ("Live", below). M32 step 2 (the same criteria file,
 "Steps 2 and 3"; `M32-step2-build.md`): every item is a row that unfolds to
 what it is and why, its steps, its open leftovers and decisions with their
 text; rows are patched in place, never rebuilt ("Rows that unfold",
-below).
+below). M32 step 3 (the same criteria file, "Step 3: motion (criteria,
+coordinator, 2026-11-27)"; `M32-step3-build.md`): a track of stations on
+the item under way and on Done rows, the current station pulsing, a stripe
+while an agent works, the agent's time counting, a flash on a changed row,
+and nothing that carries state in the faintest grey ("Motion", below).
 
 ## What it does
 
@@ -476,7 +480,8 @@ For a page left open for months on a display nobody can touch
   stays, the rest are moved (one move when the first queued item goes to
   the end). So a change of one item's next step redraws that item's stage
   line and nothing else, an open row stays open, the scroll does not move,
-  and step 3's motion will not restart on a row that did not change.
+  and a running pulse is not restarted (step 3 draws the track in place:
+  "Motion", below).
 - **Keys**: `uw:<id>`, `q:<id>`, `done:<promotion>:<id>` (the old
   `<id>@<line>` is `@null` for every promotion since M34), `drop:<id>`,
   `deploy:<promotion>` for a deploy with no item, `sec:<section>` and
@@ -484,8 +489,8 @@ For a page left open for months on a display nobody can touch
   moves whenever `ROADMAP.md` is edited above an entry), `sh:<title>`. A
   second row with the same key gets `#2`.
 - **The frame of an item row**: a `<details>` whose `<summary>` holds the
-  head (id, title), the stage line and an empty slot for step 3's track,
-  and whose body holds the parts listed under "What it does". Titles and
+  head (id, title), the stage line and the track (step 3; empty and hidden
+  on queued, held and dropped rows), and whose body holds the parts listed under "What it does". Titles and
   labels render code and emphasis and never a link: inside a `<summary>`
   a link takes the click that folds (M34-e2e note 11). Leftover and
   decision text goes in through `el()`, as text, never through `mdText`.
@@ -499,6 +504,75 @@ For a page left open for months on a display nobody can touch
   once on the display's browser does not stay open there for good, and a
   new tab starts from the defaults. "Heard" is never kept. One `toggle`
   listener on `<main>`, on the way down (`toggle` does not bubble).
+
+## Motion (M32 step 3)
+
+`M32-review.md` point 4 and 10.5; the criteria's "Step 3: motion (criteria,
+coordinator, 2026-11-27)". Built for a browser on a panel not yet picked
+(Drew #90): no display mode, no larger type, no pixel shift.
+
+- **The track**: five stations, criteria, review, build, test, promote, in
+  each row's track slot, on the item under way's card and on Done rows.
+  `trackOf(it, current, promoted)` is a pure function of the item's steps
+  and the exporter's stage. A station is filled when a finished step of
+  one of its kinds exists, wherever it sits in the list (M35's review is
+  recorded before its criteria). A fix is a return to build, so "build"
+  counts builds and fixes and "test" counts tests; a count over one is
+  shown as rounds on the station ("build 9", "test 9" for M30), never as
+  more stations. A stopped step is not counted (M36's build). "promote"
+  is filled on a Done row. A test station is green, red or amber by the
+  last finished test's grading, else its verdict (M36: graded "pass", no
+  verdict). A review with none recorded, once a build or a test is filled
+  or the current station is past it, is drawn hollow (a dashed ring) and
+  labelled "review skipped". The page computes no stage: the current
+  station is `STAGE_STATION[items[].stage.stage]`, the exporter's own key
+  (`planning` criteria, `reviewing` review, `implementing` and `fixing`
+  build, `testing` test, `to_promote` and `promoting` promote; `waiting`
+  and `promoted` none). All of it is in the page's `TRACK` and
+  `STAGE_STATION` literals; a test checks the map covers every stage key
+  `work_export.STAGE_WORDS` has.
+- **Drawn in place**: the track is a fixed frame (five station nodes, the
+  lines between them, and on the card an agent and a clock) built once;
+  later draws change a station's classes one by one, only where they
+  differ, and its label. A station keeps its node, so a pulse runs on
+  through an update.
+- **What moves, the first item under way only**: its current station's
+  dot pulses (opacity 1 → 0.35 → 1, 2.4 s, never above its rest); a
+  stripe runs across that station while the item has an agent `working`
+  (a `::after` moved by `transform` inside the station's `overflow:
+  hidden`, 2 s); the agent's time counts each second beside the track
+  (`m32-build3 12:41`: the route's clock, the file's `ts` plus the data's
+  age, less the start of the step the agent is named on; tabular figures
+  in an 8ch box with `contain: content`). Which card moves is set by
+  `renderMoving` after each patch, not drawn from the row's data, so the
+  second item under way becoming the first does not flash. At most two
+  endless animations at any time.
+- **Once, on a change**: a row flashes when it is new or one of its
+  parts' signatures changed (`patchList`'s `flash`: "change" for Under
+  way, "new" for Done, none for the Queue, Dropped and the Backlog); never
+  on the list's first draw, so nothing flashes on load or after the page
+  comes back from an empty state, and never on an export that changes
+  only `ts` or the lines set to the same text on every export
+  (M32-step2-e2e note 2). An item promoted: its card leaves Under way and
+  its new Done row flashes; nothing slides. A new finished test or grading
+  fades the test station in once.
+- **Stopping**: endless motion stops when no poll has been answered for
+  30 s or the route says the data is not fresh (`.motion-still` on
+  `<main>`, set each second; `MOTION`). `prefers-reduced-motion` turns off
+  the pulse, the stripe, the flash and the fade; the clocks and the ages
+  still count. The step-1 signs stay under both: the cover (one opacity
+  fade after 90 s with no answer) and the live mark's beat (one opacity
+  fade per answered poll).
+- **Only `transform` and `opacity`** in any `@keyframes` on the page
+  (the cover's `visibility` was dropped: it is invisible at opacity 0 and
+  takes no clicks); no `transition` anywhere (the refresh button's hover
+  fade went).
+- **Contrast**: `--text3` (3.2 to 1 on `--bg`) is left on the separators,
+  the fixed explanatory notes, the "… more" of a folded entry and Heard's
+  fold marker. Everything that carries state moved to `--text2` (7.5 to
+  1): the data's age, step times, queue positions, Done meta, the notes
+  and reasons, "verdict not read", the source lines, Backlog heads,
+  "Not read" entries, Heard's rows, the dropped count.
 
 ## Gotchas
 
@@ -564,6 +638,20 @@ For a page left open for months on a display nobody can touch
 - **A browser without `AbortController`** (older than 2018) stops waiting
   on a hung request after 10 s but cannot cut it: hung requests are left
   open until the network gives them up.
+- **"Waiting for the coordinator" has no current station.** After a
+  test with no grading, or graded fail, the exporter's stage is `waiting`;
+  the track then shows what is done and nothing pulses until a step or an
+  agent starts. Motion means "being worked now".
+- **Two items under way: the second stands still.** Its current station
+  is drawn blue, without pulse or stripe, so the page never runs more than
+  two endless animations.
+- **An agent's clock needs a started step naming it.** An agent working
+  with no started step (herdr sees it, `work.py step start` was not run)
+  shows "start not recorded" beside its name.
+- **`document.getAnimations()` always holds the cover's** `cover-show`
+  (opacity, one iteration, 90 s delay, restarted on every answered poll)
+  and, for 0.9 s after each poll, the beat: they are step 1's and not
+  step 3's motion.
 - **`/services` links `/work` absolutely**, like every page there: from
   `/dev/services` it opens production's `/work`.
 
@@ -628,3 +716,14 @@ For a page left open for months on a display nobody can touch
   they differ from the default.
 - Reading the clock of the server, not the browser's, for every age and
   limit on a display whose clock nobody checks.
+- A progress track that does not lie about a messy history: M30 had four
+  builds, nine tests and five fixes; five stations with round counts draw
+  it, and six stations by position misdraw it.
+- Motion with a meaning: it runs only while something is being worked
+  and the page is hearing from the server, and it stops by itself when
+  either is not true.
+- A flash that cannot fire on noise: hung on a part's signature, not on
+  the file's timestamp, so the four lines rewritten on every export never
+  light anything.
+- An animation on a pseudo-element moved by `transform`, not a
+  `background-position` repainted every frame for months.

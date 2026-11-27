@@ -9,10 +9,10 @@
 <style>
   header { position: sticky; top: 0; z-index: 10; gap: 12px; flex-wrap: wrap; }
   .header-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
-  .last-updated { font-size: 11px; color: var(--text3); font-family: monospace; }
+  .last-updated { font-size: 11px; color: var(--text2); font-family: monospace; }
   .refresh-btn {
     background: var(--bg3); border: 1px solid var(--border); border-radius: 6px;
-    color: var(--text2); font-size: 12px; padding: 4px 12px; cursor: pointer; transition: all 0.15s;
+    color: var(--text2); font-size: 12px; padding: 4px 12px; cursor: pointer;
   }
   .refresh-btn:hover { border-color: var(--blue); color: var(--blue); }
 
@@ -25,8 +25,8 @@
             border-radius: 8px; padding: 0.7rem 1rem; font-size: 13px; line-height: 1.5; }
   .banner strong { font-weight: 700; }
   .banner.bad { border-color: var(--red); background: rgba(239, 68, 68, 0.08); color: var(--red); }
-  .src { font-size: 11px; color: var(--text3); line-height: 1.5; }
-  .reason { font-size: 12px; color: var(--text3); font-style: italic; }
+  .src { font-size: 11px; color: var(--text2); line-height: 1.5; }
+  .reason { font-size: 12px; color: var(--text2); font-style: italic; }
   .mono, code { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; }
   code { background: var(--bg3); border-radius: 3px; padding: 0 3px; }
 
@@ -46,21 +46,21 @@
   .stage-detail { color: var(--text2); }
   .blocked-line { color: var(--red); font-weight: 700; }
   .handoff { margin-top: 6px; font-size: 12px; color: var(--text2); font-style: italic; }
-  .notes { margin-top: 6px; font-size: 12px; color: var(--text3); }
+  .notes { margin-top: 6px; font-size: 12px; color: var(--text2); }
 
   .steps { margin-top: 10px; display: flex; flex-direction: column; gap: 3px; font-size: 12px; }
   .step { display: flex; gap: 10px; flex-wrap: wrap; color: var(--text2); }
   .step .k { min-width: 4.5em; color: var(--text); }
-  .step .t { color: var(--text3); font-family: monospace; font-size: 11px; }
+  .step .t { color: var(--text2); font-family: monospace; font-size: 11px; }
   .v-pass { color: var(--green); font-weight: 600; }
   .v-fail { color: var(--red); font-weight: 600; }
   .v-nd   { color: var(--amber); font-weight: 600; }
-  .v-none { color: var(--text3); font-style: italic; }
+  .v-none { color: var(--text2); font-style: italic; }
 
   .entry { font-size: 13px; line-height: 1.5; color: var(--text2); }
   .entry + .entry { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
   .entry strong { color: var(--text); }
-  .entry em { color: var(--text3); }
+  .entry em { color: var(--text2); }
   .entry a { color: var(--blue); }
   .entry details summary { font-size: 13px; color: var(--text2); margin-top: 0; }
   .entry details[open] .more { display: none; }
@@ -74,17 +74,17 @@
   .done-row:last-child { border-bottom: 0; }
   .done-top { display: flex; gap: 8px 14px; flex-wrap: wrap; align-items: baseline; }
   .done-top .item-id { font-size: 13px; }
-  .done-meta { display: flex; gap: 4px 12px; flex-wrap: wrap; color: var(--text3); font-size: 11.5px; margin-top: 2px; }
+  .done-meta { display: flex; gap: 4px 12px; flex-wrap: wrap; color: var(--text2); font-size: 11.5px; margin-top: 2px; }
   .for-drew { color: var(--amber); font-weight: 600; }
-  details summary { cursor: pointer; color: var(--text3); font-size: 11.5px; margin-top: 3px; }
+  details summary { cursor: pointer; color: var(--text2); font-size: 11.5px; margin-top: 3px; }
   details[open] summary { color: var(--text2); }
   .agents-line { font-size: 12.5px; color: var(--text2); }
   .queue-row { padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 12.5px; }
   .queue-row:last-child { border-bottom: 0; }
-  .queue-pos { font-family: monospace; color: var(--text3); min-width: 1.6em; }
+  .queue-pos { font-family: monospace; color: var(--text2); min-width: 1.6em; }
   .next-mark { font-size: 11px; font-weight: 700; color: var(--green); }
   .held-mark { font-size: 11px; font-weight: 700; color: var(--amber); }
-  .not-read li { font-size: 11.5px; color: var(--text3); margin-left: 1.2em; }
+  .not-read li { font-size: 11.5px; color: var(--text2); margin-left: 1.2em; }
 
   /* Live (M32 step 1). The dot beats once per answered poll, fired by the
      script: it never moves by itself, so a dead script leaves it still.
@@ -96,9 +96,9 @@
   .header-dot.beat.on { animation: beat 0.9s ease-out 1; }
   @keyframes beat { from { opacity: 1; } to { opacity: 0.3; } }
   .cover { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center;
-           background: rgba(15, 17, 23, 0.8); pointer-events: none; opacity: 0; visibility: hidden;
+           background: rgba(15, 17, 23, 0.8); pointer-events: none; opacity: 0;
            animation: cover-show 1s linear 90s forwards; }
-  @keyframes cover-show { from { opacity: 0; visibility: visible; } to { opacity: 1; visibility: visible; } }
+  @keyframes cover-show { from { opacity: 0; } to { opacity: 1; } }
   .cover-box { border: 1px solid var(--red); background: var(--bg2); color: var(--text); border-radius: 10px;
                padding: 1.2rem 1.6rem; font-size: 18px; line-height: 1.5; max-width: 32em; text-align: center; }
   .cover-box span { display: block; font-size: 14px; color: var(--text2); margin-top: 6px; }
@@ -114,7 +114,7 @@
   .float-banners .banner[hidden] { display: none; }
 
   /* Rows that unfold (M32 step 2). Every item is a <details>: its summary the
-     head, the stage line and the slot for step 3's track; its body what, why,
+     head, the stage line and the track (step 3); its body what, why,
      the decisions and leftovers, and the steps. */
   details.row > summary { list-style: none; display: block; cursor: pointer; margin: 0; color: inherit; font-size: inherit; }
   details.row > summary::-webkit-details-marker { display: none; }
@@ -144,7 +144,62 @@
   details.fold-list[open] > summary::before { content: "▾"; }
   details.fold-list > summary .section-label, details.fold-list > summary .note-line { margin: 0; }
   details.fold-list > .note-line { margin-top: 8px; }
+  details.fold-list > summary .count { color: var(--text2); }
   .heard-newest { color: var(--text); }
+
+  /* The track and its motion (M32 step 3, M32-review point 4). Five stations
+     in each row's track slot, on the item under way's card and on Done rows.
+     A station is filled (green; a test by its grading, else its verdict),
+     current (blue), hollow (a skipped review: a dashed ring) or not reached
+     (a ring). Only transform and opacity move: the current station's dot
+     pulses (opacity dipping below its resting 1, never above), a stripe runs
+     across it while an agent works (a pseudo-element moved by transform
+     inside overflow: hidden), a changed row flashes once and a new verdict
+     fades in once. The pulse and the stripe are the only endless effects and
+     run on the first item under way only; .motion-still (no poll answered
+     for 30 s, or data not fresh) and reduced motion stop them. Nothing here
+     uses --text3: everything on the track carries state. */
+  details.row > summary { position: relative; }
+  details.row > summary::after { content: ""; position: absolute; inset: -4px -6px; border-radius: 6px;
+                                 background: rgba(59, 130, 246, 0.22); opacity: 0; pointer-events: none; }
+  details.row.flash > summary::after { animation: row-flash 1.8s ease-out 1; }
+  @keyframes row-flash { from { opacity: 1; } to { opacity: 0; } }
+  .row-track { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 0; margin-top: 8px; font-size: 12px; }
+  .done-row .row-track { margin-top: 4px; font-size: 11.5px; }
+  .stn { position: relative; overflow: hidden; display: inline-flex; align-items: center; gap: 5px; padding: 1px 8px 1px 6px;
+         border: 1px solid transparent; border-radius: 10px; color: var(--text2); white-space: nowrap; }
+  .stn-dot { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--text2); flex: none; }
+  .stn-line { width: 12px; height: 1px; background: var(--text2); flex: none; }
+  .stn.done { color: var(--text); }
+  .stn.done .stn-dot { background: var(--green); border-color: var(--green); }
+  .stn.done.fail .stn-dot { background: var(--red); border-color: var(--red); }
+  .stn.done.nd .stn-dot { background: var(--amber); border-color: var(--amber); }
+  .stn.done.fail { color: var(--red); }
+  .stn.done.nd { color: var(--amber); }
+  .stn.skipped { font-style: italic; }
+  .stn.skipped .stn-dot { border-style: dashed; background: transparent; }
+  .stn.cur { color: var(--blue); font-weight: 700; border-color: var(--blue); background: rgba(59, 130, 246, 0.15); }
+  .stn.cur .stn-dot { background: var(--blue); border-color: var(--blue); }
+  .stn.cur.blocked { color: var(--red); border-color: var(--red); background: rgba(239, 68, 68, 0.15); }
+  .stn.cur.blocked .stn-dot { background: var(--red); border-color: var(--red); }
+  .stn.moving .stn-dot { animation: stn-pulse 2.4s ease-in-out infinite; }
+  .stn.moving.working::after { content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 40%; pointer-events: none;
+                               background: linear-gradient(90deg, transparent, rgba(232, 234, 240, 0.22), transparent);
+                               transform: translateX(-100%); animation: stn-stripe 2s linear infinite; }
+  @keyframes stn-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+  @keyframes stn-stripe { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
+  .stn.fade-in { animation: stn-fade 1.2s ease-out 1; }
+  @keyframes stn-fade { from { opacity: 0; } to { opacity: 1; } }
+  .stn-agent { margin-left: 12px; color: var(--text2); font-family: 'JetBrains Mono', monospace; font-size: 11.5px; }
+  .stn-clock { display: inline-block; width: 8ch; margin-left: 6px; contain: content; font-variant-numeric: tabular-nums;
+               font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--text); }
+  .stn-agent[hidden], .stn-clock[hidden] { display: none; }
+  .motion-still .stn.moving .stn-dot { animation: none; }
+  .motion-still .stn.moving.working::after { animation: none; display: none; }
+  @media (prefers-reduced-motion: reduce) {
+    .stn.moving .stn-dot, .stn.fade-in, details.row.flash > summary::after { animation: none; }
+    .stn.moving.working::after { animation: none; display: none; }
+  }
 
   /* Heard (M30 step C): the voice runs of the last 90 days, folded on every load. */
   details.heard > summary { list-style: none; display: flex; gap: 6px 12px; flex-wrap: wrap; align-items: baseline;
@@ -166,16 +221,16 @@
   details.heard-row > summary { list-style: none; display: flex; gap: 2px 10px; flex-wrap: wrap; align-items: baseline;
                                 color: var(--text2); font-size: 12.5px; margin: 0; }
   details.heard-row > summary::-webkit-details-marker { display: none; }
-  .hr-time { font-family: monospace; font-size: 11.5px; color: var(--text3); }
-  .hr-sat { color: var(--text3); min-width: 4.5em; }
+  .hr-time { font-family: monospace; font-size: 11.5px; color: var(--text2); }
+  .hr-sat { color: var(--text2); min-width: 4.5em; }
   .hr-heard { color: var(--text); font-weight: 600; flex: 1 1 18em; min-width: 0; }
-  .hr-heard.none { color: var(--text3); font-weight: 400; font-style: italic; }
-  .hr-route { font-family: monospace; font-size: 11px; color: var(--text3); }
+  .hr-heard.none { color: var(--text2); font-weight: 400; font-style: italic; }
+  .hr-route { font-family: monospace; font-size: 11px; color: var(--text2); }
   .hr-reply { color: var(--text2); flex: 1 1 100%; padding-left: 1em; }
   .hr-mark { font-weight: 700; font-size: 11.5px; }
   .hr-mark.wrong { color: var(--amber); }
   .hr-mark.error { color: var(--red); }
-  .hr-more { padding: 4px 0 2px 1em; font-size: 11.5px; color: var(--text3); display: flex; flex-direction: column; gap: 2px; }
+  .hr-more { padding: 4px 0 2px 1em; font-size: 11.5px; color: var(--text2); display: flex; flex-direction: column; gap: 2px; }
   .hr-more .reply-rest { color: var(--text2); white-space: pre-wrap; font-size: 12.5px; }
   .hr-more code { user-select: all; }
 </style>
@@ -240,7 +295,7 @@
 
   <section id="dropped-section" hidden>
     <details class="fold-list" id="dropped-fold">
-      <summary><span class="section-label">Dropped</span><span class="note-line" id="dropped-count"></span></summary>
+      <summary><span class="section-label">Dropped</span><span class="note-line count" id="dropped-count"></span></summary>
       <div class="note-line">Work items dropped before they were promoted, newest first, with the house’s day they were dropped. Why stays in the work-state database.</div>
       <div class="card" id="dropped"></div>
     </details>
@@ -370,6 +425,37 @@ const OWNER_WORD = {"drew": "Drew", "coordinator": "coordinator"};
 // Folds kept across a reload: this tab's sessionStorage, only those that
 // differ from their default (the item under way open, the rest closed).
 const FOLD = {"store": "kronk.work.folds"};
+
+// The track (work item M32 step 3, M32-review point 4): its stations in
+// order and the step kinds each counts. A station is filled when a finished
+// step of one of its kinds exists, wherever it sits in the list (M35's
+// review is recorded before its criteria); a fix is a return to build, so
+// "build" counts builds and fixes and "test" counts tests, and a count over
+// one is shown as rounds ("test 3"). A stopped step is not counted.
+// "promote" is filled for a promoted item. A test station takes its colour
+// from the last finished test's grading, else its verdict. A review with
+// none recorded is "skipped" (hollow) once a build or a test is filled or
+// the current station is past it.
+const TRACK = {
+  "stations": ["criteria", "review", "build", "test", "promote"],
+  "kinds": {"criteria": ["criteria"], "review": ["review"], "build": ["build", "fix"], "test": ["test"], "promote": []},
+  "label": "{station}", "rounds": "{station} {n}", "skipped": "{station} skipped",
+  "graded": {"pass": "pass", "fail": "fail"}, "graded_other": "nd",
+  "verdict": {"PASSES": "pass", "FAILS": "fail", "NOT DETERMINED": "nd"},
+  "no_start": "start not recorded"
+};
+
+// The current station by the exporter's stage key (items[].stage.stage,
+// work.py's own: the page computes no stage). null: no station is current
+// (waiting for the coordinator; promoted).
+const STAGE_STATION = {
+  "planning": "criteria", "reviewing": "review", "implementing": "build", "fixing": "build", "testing": "test",
+  "to_promote": "promote", "promoting": "promote", "waiting": null, "promoted": null
+};
+
+// Motion (M32 step 3): endless motion stops when no poll has been answered
+// for still_after_ms or the data is not fresh (M32-review point 3.6).
+const MOTION = {"still_after_ms": 30000, "still_class": "motion-still"};
 
 // The live loop (work item M32 step 1), for a page left open on a wall
 // display nobody can touch. One scheduler: a setTimeout chain that ticks
@@ -588,23 +674,32 @@ function renderState(resp) {
 // only when its place is wrong (the longest run already in order stays),
 // so nothing that did not change is replaced or moved: a fold stays open,
 // and step 3's motion is not restarted. The flash of a changed row (step 3)
-// will hang on a part being drawn, not on the file's ts.
+// hangs on a part's signature changing, never on the file's ts or on the
+// lines set to the same text on every export (M32-step2-e2e note 2).
 
-// rows: [{key, make, parts: {name: [sig, draw]}, then}]. make() builds the
-// node and its _parts; then(node), when given, runs after the parts (a
-// list inside a row: the Backlog's entries).
+// rows: [{key, make, parts: {name: [sig, draw, inPlace]}, then, flash}].
+// make() builds the node and its _parts; then(node), when given, runs after
+// the parts (a list inside a row: the Backlog's entries). A part drawn
+// inPlace is not cleared first: its draw() keeps its own nodes (the track,
+// so a running pulse is the same node after an update). flash: "change", the
+// row flashes when it is new or a part's signature changed; "new", only when
+// it is new; never on the list's first draw (the page's first load).
 function patchList(box, rows) {
+  const first = !box._patched;
   const want = new Set(rows.map(r => r.key));
   const kept = new Map();
   for (const n of [...box.children]) {
     const k = n.dataset ? n.dataset.key : undefined;
     if (k != null && want.has(k) && !kept.has(k)) kept.set(k, n); else n.remove();
   }
+  const flashes = [];
   const nodes = rows.map(r => {
     let n = kept.get(r.key);
-    if (!n) { n = r.make(); n.dataset.key = r.key; }
-    patchParts(n, r.parts || {});
+    const made = !n;
+    if (made) { n = r.make(); n.dataset.key = r.key; }
+    const changed = patchParts(n, r.parts || {});
     if (r.then) r.then(n);
+    if (!first && (r.flash === 'change' ? made || changed : r.flash === 'new' && made)) flashes.push(n);
     return n;
   });
   const at = new Map([...box.children].map((n, i) => [n, i]));
@@ -614,16 +709,31 @@ function patchList(box, rows) {
     if (!stay.has(i)) box.insertBefore(nodes[i], next);
     next = nodes[i];
   }
+  box._patched = true;
+  for (const n of flashes) once(n, 'flash');
 }
 
+// Draws the parts whose signature changed; true when one that had been
+// drawn before changed (a new node's first draw is not a change).
 function patchParts(node, parts) {
-  for (const [name, [sig, draw]] of Object.entries(parts)) {
+  let changed = false;
+  for (const [name, [sig, draw, inPlace]] of Object.entries(parts)) {
     const p = node._parts[name];
     if (p._sig === sig) continue;
-    clear(p);
+    if (p._sig !== undefined) changed = true;
+    if (!inPlace) clear(p);
     draw(p);
     p._sig = sig;
   }
+  return changed;
+}
+
+// A one-time CSS animation from its start (the flash, the verdict's fade):
+// the class taken off, the style flushed, the class put back.
+function once(node, cls) {
+  node.classList.remove(cls);
+  void node.offsetWidth;
+  node.classList.add(cls);
 }
 
 // The indices of the longest run of positions that only grow (-1: a new
@@ -699,7 +809,8 @@ function foldsInit() {
 // ── an item's row (plumbing 1 and 2) ─────────────────────────────────────────
 //
 // A fixed frame: <details class="row"> whose <summary> holds the head, the
-// stage line and the slot for step 3's track (left empty here), and whose
+// stage line and the track (step 3: drawn on the item under way's card and
+// on Done rows, empty and hidden on the others), and whose
 // body unfolds to what and why, the decisions owed by Drew, the open
 // leftovers and decisions, and the steps. Titles and labels render code
 // and emphasis and never a link: inside a <summary> a link would take the
@@ -817,15 +928,164 @@ function bodyInto(body, it, owed) {
 const bodySig = (it, owed) => sig(it.handoff, it.source, it.shipped, it.steps, it.uncommitted, it.open_list, owed,
                                   it.waits_on === 'drew', arr(it.roadmap).map(e => ({ ...e, line: undefined })), live.zone);
 
-function itemRow(key, cls, byDefault, it, owed, head, stage) {
-  return {
-    key, make: () => rowFrame(cls, key, byDefault),
-    parts: {
-      head: [sig(it.id, it.title, head[0]), p => headInto(p, it, head[1] ? head[1]() : null)],
-      stage: [stage[0], stage[1]],
-      body: [bodySig(it, owed), p => bodyInto(p, it, owed)],
-    },
+// ── the track (work item M32 step 3, plumbing 1) ─────────────────────────────
+//
+// What each station shows, from the item's steps and the exporter's stage:
+// a pure function of the data, so its JSON is the track's signature.
+// current: whether the row has a current station (the item under way; a Done
+// row is static). promoted: the row is a promotion (Done).
+function trackOf(it, current, promoted) {
+  const steps = arr(it.steps).filter(s => s && s.state !== 'stopped');
+  const cur = current ? (STAGE_STATION[(it.stage || {}).stage] ?? null) : null;
+  const curAt = TRACK.stations.indexOf(cur);
+  const count = {}, done = {};
+  for (const st of TRACK.stations) {
+    const mine = steps.filter(s => arr(TRACK.kinds[st]).includes(s.kind));
+    count[st] = mine.length;
+    done[st] = mine.some(s => s.state === 'finished');
+  }
+  done.promote = !!promoted;
+  const tests = steps.filter(s => s.kind === 'test' && s.state === 'finished');
+  const last = tests[tests.length - 1];
+  const grade = !last ? null
+    : last.graded ? (TRACK.graded[last.graded] ?? TRACK.graded_other)
+    : (TRACK.verdict[last.verdict ?? (arr(last.verdicts).find(v => v.subject === 'item') || {}).verdict] ?? null);
+  const past = done.build || done.test || curAt > TRACK.stations.indexOf('review');
+  return TRACK.stations.map((st, i) => {
+    const state = i === curAt ? 'cur' : done[st] ? 'done' : st === 'review' && past ? 'skipped' : 'todo';
+    const label = fill(state === 'skipped' ? TRACK.skipped : count[st] > 1 ? TRACK.rounds : TRACK.label,
+                       { station: st, n: count[st] });
+    return st === 'test' ? { station: st, state, label, grade, verdict_of: tests.length }
+                         : { station: st, state, label, grade: null };
+  });
+}
+
+// The agent whose time counts: the first of the item's agents that is
+// working, with the start of its step (a started step it is named on), in
+// seconds; start null when no started step names it.
+function agentClock(it) {
+  const a = arr(it.agents).find(x => x && x.status === 'working');
+  if (!a) return null;
+  const s = arr(it.steps).find(x => x && x.state === 'started' && x.agent === a.name && x.started_at);
+  const t = s ? Date.parse(s.started_at) : NaN;
+  return { agent: a.name ?? 'agent', start_s: Number.isFinite(t) ? t / 1000 : null };
+}
+
+// The track part: [signature, draw, inPlace]. Drawn once as a fixed frame
+// (five stations, the lines between them, and on the item under way an
+// agent and its clock), then patched in place: a station keeps its node,
+// so its pulse and stripe run on through an update (criterion 3c). Which
+// card moves is not the row's data (renderMoving sets it), so a card that
+// becomes the first under way does not flash.
+function trackPart(it, current, promoted) {
+  const t = trackOf(it, current, promoted);
+  const clock = current ? agentClock(it) : null;
+  const blocked = !!(it.stage || {}).blocked;
+  return [sig(t, clock, blocked), p => {
+    if (!p._stn) {
+      p._stn = [];
+      TRACK.stations.forEach((st, i) => {
+        if (i) p.appendChild(el('span', 'stn-line'));
+        const n = p.appendChild(el('span', 'stn'));
+        n.appendChild(el('span', 'stn-dot'));
+        n._label = n.appendChild(el('span', 'stn-label'));
+        p._stn.push(n);
+      });
+      if (current) {
+        p._agent = p.appendChild(el('span', 'stn-agent'));
+        p._clock = p.appendChild(el('span', 'stn-clock'));
+      }
+    }
+    t.forEach((s, i) => {
+      const n = p._stn[i];
+      // "working": the stripe runs on it while it moves (an agent working).
+      const want = ['stn', s.state, s.state === 'done' ? s.grade : null, s.state === 'cur' && blocked ? 'blocked' : null,
+                    s.state === 'cur' && clock && !blocked ? 'working' : null].filter(Boolean);
+      // A verdict newly in (another finished test, or its grading changed):
+      // the test station fades in once; never on the first draw.
+      const vkey = s.station === 'test' ? `${s.verdict_of}:${s.grade}` : null;
+      const fade = vkey != null && p._vkey !== undefined && p._vkey !== vkey && s.state === 'done' && s.grade != null;
+      // Classes changed one by one, only where they differ: "moving" stays
+      // while the station is current (a pulse is not restarted), "fade-in"
+      // while it is done.
+      const has = n.className.split(/\s+/).filter(Boolean);
+      for (const c of has) {
+        if (want.includes(c) || (c === 'moving' && s.state === 'cur') || (c === 'fade-in' && s.state === 'done')) continue;
+        n.classList.remove(c);
+      }
+      for (const c of want) if (!has.includes(c)) n.classList.add(c);
+      if (n._label.textContent !== s.label) n._label.textContent = s.label;
+      if (fade) once(n, 'fade-in');
+      if (vkey != null) p._vkey = vkey;
+    });
+    if (p._agent) {
+      p._agent.hidden = p._clock.hidden = !clock;
+      p._agent.textContent = clock ? clock.agent : '';
+      p._clock.dataset.start = clock && clock.start_s != null ? String(clock.start_s) : '';
+      p._clock.textContent = clock ? clockText(performance.now(), p._clock.dataset.start) : '';
+    }
+  }, true];
+}
+
+// An agent's elapsed time: the route's clock now (the file's ts plus the
+// data's age, step 1's rule: never this browser's clock) less its start.
+// "12:04", "1:02:09".
+function clockText(now, start) {
+  const age = liveAge(now);
+  const st = start === '' || start == null ? NaN : Number(start);
+  if (!Number.isFinite(st) || age == null || live.ts == null || !Number.isFinite(Number(live.ts))) return TRACK.no_start;
+  const e = Math.max(0, Math.floor(Number(live.ts) + age - st));
+  const h = Math.floor(e / 3600), m = Math.floor((e % 3600) / 60), sec = e % 60;
+  const two = x => String(x).padStart(2, '0');
+  return h ? `${h}:${two(m)}:${two(sec)}` : `${m}:${two(sec)}`;
+}
+
+// Each second (liveTick): the clocks' text, on nodes that stay.
+function renderClocks(now) {
+  for (const card of document.getElementById('under-way').children) {
+    const c = card._parts && card._parts.track._clock;
+    if (!c || c.hidden) continue;
+    const t = clockText(now, c.dataset.start);
+    if (c.textContent !== t) c.textContent = t;
+  }
+}
+
+// The current station of the first item under way moves (pulse; stripe
+// while an agent works); every other card's stands still: at most two
+// endless effects. Set after each patch of Under way, only where it differs.
+function renderMoving() {
+  let i = 0;
+  for (const card of document.getElementById('under-way').children) {
+    const first = i++ === 0;
+    for (const n of (card._parts && card._parts.track && card._parts.track._stn) || []) {
+      const want = first && n.classList.contains('cur');
+      if (n.classList.contains('moving') === want) continue;
+      if (want) n.classList.add('moving'); else n.classList.remove('moving');
+    }
+  }
+}
+
+// Endless motion stops when no poll has been answered for
+// MOTION.still_after_ms or the data is not fresh: motion means "being
+// worked now" (M32-review point 3.6). One class on <main>, changed only
+// when it must be.
+function renderMotion(now) {
+  const still = live.answeredAt == null || now - live.answeredAt > MOTION.still_after_ms || !live.fresh;
+  const m = document.querySelector('main');
+  if (m.classList.contains(MOTION.still_class) === still) return;
+  if (still) m.classList.add(MOTION.still_class); else m.classList.remove(MOTION.still_class);
+}
+
+// opts: {track: [sig, draw, true], flash: "change" | "new"} (step 3).
+function itemRow(key, cls, byDefault, it, owed, head, stage, opts) {
+  const o = opts || {};
+  const parts = {
+    head: [sig(it.id, it.title, head[0]), p => headInto(p, it, head[1] ? head[1]() : null)],
+    stage: [stage[0], stage[1]],
+    body: [bodySig(it, owed), p => bodyInto(p, it, owed)],
   };
+  if (o.track) parts.track = o.track;
+  return { key, make: () => rowFrame(cls, key, byDefault), parts, flash: o.flash };
 }
 
 // The decisions owed by Drew, by item.
@@ -852,9 +1112,12 @@ function renderUnderWay(w, items, owed) {
         if (it.next_step) p.appendChild(el('span', 'notes', fill(QUEUE_TEXT.next_step, { step: it.next_step })));
         if (it.waits_on) p.appendChild(el('span', 'notes', fill(QUEUE_TEXT.waits, { on: it.waits_on, note: it.waits_note })));
         for (const n of arr(it.notes)) p.appendChild(el('span', 'notes', n));
-      }]);
+      }],
+      // Its track with a current station; the first item under way moves (renderMoving).
+      { track: trackPart(it, true, false), flash: 'change' });
   });
   patchList(document.getElementById('under-way'), uniqueKeys(rows.length ? rows : [noneRow()]));
+  renderMoving();
 }
 
 // The queue (schema 2): in order, each with what holds it and the agents
@@ -995,7 +1258,10 @@ function doneRow(r, it, owed) {
          fill(r.for_drew_total === 1 ? DONE_TEXT.for_drew_one : DONE_TEXT.for_drew_many, { n: r.for_drew_total })));
        meta.appendChild(el('span', null, `${steps} step${steps === 1 ? '' : 's'}` + (trail ? ` · ${trail}` : '')));
        for (const n of arr(r.notes)) p.appendChild(mdText(el('span', 'notes'), `Note: ${n.heading}`));
-     }]);
+     }],
+    // A static track; a row new since the page loaded (an item just
+    // promoted: its card left Under way) flashes once.
+    { track: trackPart(it, false, true), flash: 'new' });
 }
 
 function noItemRow(e) {
@@ -1070,6 +1336,7 @@ function renderEmpty() {
   for (const id of ['under-way', 'queue', 'backlog', 'done', 'shipped', 'dropped', 'not-read', 'others']) {
     const box = clear(document.getElementById(id));
     box._sig = undefined;
+    box._patched = undefined;   // drawn again from nothing: no flash (step 3)
   }
   document.getElementById('under-way-note').textContent = UNDER_WAY_NOTE;
   document.getElementById('others-section').hidden = true;
@@ -1112,7 +1379,7 @@ async function getJSON(url) {
 
 // The page's live state (M32 step 1): the last outline shown and when it was
 // answered, by performance.now() and by the route's clock.
-const live = { ts: null, work: null, zone: null, answeredAt: null, ageAt: null, serverAt: null, fail: null,
+const live = { ts: null, work: null, zone: null, answeredAt: null, ageAt: null, serverAt: null, fail: null, fresh: false,
                inflight: false, due: 0, started: 0, version: null, reloading: false, pageTriedAt: -Infinity,
                noStore: false };
 
@@ -1150,6 +1417,7 @@ function liveAnswered(resp) {
   live.answeredAt = now;
   live.ageAt = typeof resp.source.age_s === 'number' ? resp.source.age_s : null;
   live.serverAt = typeof resp.server_s === 'number' ? resp.server_s : null;
+  live.fresh = resp.source.state === 'fresh';
   const changed = !(resp.unchanged === true && live.work);
   if (changed) {
     live.work = resp.work && typeof resp.work === 'object' ? resp.work : null;
@@ -1217,6 +1485,8 @@ function renderLive(now) {
     : live.answeredAt == null ? LIVE_TEXT.waiting : LIVE_TEXT.no_data;
   const sa = document.getElementById('state-age');
   if (sa) sa.textContent = age ?? '?';
+  renderClocks(now);
+  renderMotion(now);
   const box = document.getElementById('live-banner');
   box.hidden = !live.fail;
   if (live.fail) {

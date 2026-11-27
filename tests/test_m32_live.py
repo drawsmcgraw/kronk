@@ -387,7 +387,9 @@ def test_shown_times_are_in_the_house_zone():
 
 def test_the_cover_is_the_stylesheets_and_nothing_moves_by_itself():
     assert re.search(r"\.cover \{[^}]*animation: cover-show 1s linear 90s forwards;", STYLE)
-    assert "infinite" not in STYLE                                  # no endless animation in step 1
+    # No endless animation in step 1: step 3's two (the pulse and the stripe,
+    # tests/test_m32_step3.py) are in the track's block only.
+    assert "infinite" not in STYLE.split("/* The track and its motion", 1)[0]
     assert re.search(r"\.header-dot\.beat\.on \{ animation: beat 0\.9s ease-out 1; \}", STYLE)
     assert 'id="cover"' in PAGE.split("<script>", 1)[0]
     assert "This page has stopped updating." in PAGE.split("<script>", 1)[0]

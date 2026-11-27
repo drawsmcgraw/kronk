@@ -949,4 +949,8 @@ def test_heard_is_untouched_since_before_the_build():
     # M32 step 1 changed "Heard"'s script (the page's scheduler, the time
     # limit, the trim) and its route (no-store), by order: its style and
     # its markup are still M34's base's (tests/test_m32_live.py pins the rest).
-    assert heard(PAGE_PATH.read_text())[:2] == heard(old.stdout)[:2]
+    # M32 step 3 (contrast, plumbing 5) moved its state off --text3 onto
+    # --text2 and changed nothing else (tests/test_m32_step3.py).
+    def by_colour(parts):
+        return tuple(x.replace("var(--text3)", "var(--text2)") for x in parts)
+    assert by_colour(heard(PAGE_PATH.read_text())[:2]) == by_colour(heard(old.stdout)[:2])

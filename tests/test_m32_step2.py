@@ -220,16 +220,17 @@ def test_the_keys():
     assert "uniqueKeys(" in _body("renderBacklog") and "`${r.key}#${n}`" in _body("uniqueKeys")
 
 
-def test_a_row_is_a_fixed_frame_and_the_track_is_left_empty():
+def test_a_row_is_a_fixed_frame_with_a_slot_for_the_track():
     rf = _body("rowFrame")
     for part in ("head: sum.appendChild(el('span', 'row-head'))", "stage: sum.appendChild(el('span', 'row-stage'))",
                  "track: sum.appendChild(el('span', 'row-track'))", "body: det.appendChild(el('div', 'row-body'))"):
         assert part in rf, part
-    # Step 3 draws the track; nothing does here.
-    assert "track: [" not in CODE and "_parts.track" not in CODE
+    # Step 3 draws the track (tests/test_m32_step3.py); a row given none
+    # leaves the slot empty and hidden.
     assert ".row-track:empty { display: none; }" in STYLE
     ir = _body("itemRow")
     assert "head: [" in ir and "stage: [stage[0], stage[1]]" in ir and "body: [bodySig(it, owed)" in ir
+    assert "if (o.track) parts.track = o.track;" in ir
 
 
 def test_the_body_unfolds_to_what_why_decisions_leftovers_and_steps():
@@ -351,6 +352,8 @@ def test_the_page_reads_the_schema_4_keys():
         assert needle in CODE, needle
 
 
-def test_no_endless_motion_yet():
-    """Step 3 brings motion; step 2 adds none."""
-    assert "infinite" not in STYLE and "@keyframes" not in STYLE.split("/* A failed poll's banner", 1)[1].split("/* Heard (M30 step C)", 1)[0]
+def test_the_rows_add_no_motion():
+    """Step 3 brings motion, in its own block (tests/test_m32_step3.py); the
+    rows' styles add none."""
+    rows = STYLE.split("/* A failed poll's banner", 1)[1].split("/* The track and its motion", 1)[0]
+    assert "infinite" not in rows and "@keyframes" not in rows and "animation" not in rows
