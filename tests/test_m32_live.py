@@ -278,7 +278,7 @@ def _exporter():
 
 def test_house_zone_by_tz_by_the_localtime_link_and_never_a_wrong_name(tmp_path, monkeypatch):
     we = _exporter()
-    assert we.SCHEMA == 3
+    assert we.SCHEMA >= 3                                          # 3 added house_zone
     now = 1_800_000_000.0
     monkeypatch.setenv("TZ", "America/New_York")
     time.tzset()
@@ -314,7 +314,7 @@ def test_the_house_zone_is_in_the_file(tmp_path):
     we = _exporter()
     with patch.object(we, "herdr_agents", side_effect=RuntimeError("no herdr here")):
         data = we.collect(REPO, tmp_path / "no.db")
-    assert data["schema"] == 3 and data["database"]["state"] == "missing"
+    assert data["schema"] >= 3 and data["database"]["state"] == "missing"
     z = data["house_zone"]
     assert set(z) == {"name", "utc_offset_s"} and isinstance(z["utc_offset_s"], int)
 

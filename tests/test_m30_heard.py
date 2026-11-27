@@ -489,7 +489,8 @@ def test_c2_api_work_byte_for_byte_what_it_was(tmp_path):
     what work item M34 changed on purpose: schema_known is 2, so a schema-2
     file carries no "newer schema" note (M34 criterion 7); and what M32 step
     1 changed on purpose: schema_known is 3 (house_zone), and the envelope
-    gains unchanged (false without ?have=), page_version and server_s."""
+    gains unchanged (false without ?have=), page_version and server_s; and
+    M32 step 2's schema_known 4."""
     old_src = subprocess.run(["git", "-C", str(REPO), "show", f"{BASE}:orchestrator/work_api.py"],
                              capture_output=True, text=True, check=True).stdout
     spec = importlib.util.spec_from_loader("work_api_at_base", loader=None)
@@ -501,17 +502,17 @@ def test_c2_api_work_byte_for_byte_what_it_was(tmp_path):
     p = tmp_path / "work.json"
     now = 1_800_000_000.0
     for body in (M27._outline(now - 5), M27._outline(now - 400), M27._outline(now, schema=2, x=1),
-                 M27._outline(now, schema=3, x=2)):
+                 M27._outline(now, schema=3, x=2), M27._outline(now, schema=4, x=3)):
         p.write_text(json.dumps(body))
         with patch.object(work_api, "WORK_PATH", p), patch.object(old, "WORK_PATH", p), \
              patch.object(work_api, "_cache", {}), patch("servers.time.time", return_value=now):
             import orchestrator.main as orch
             new = TestClient(orch.app).get("/api/work").json()
             old_answer = TestClient(app).get("/api/work").json()
-        assert old_answer["schema_known"] == 1 and new["schema_known"] == 3
+        assert old_answer["schema_known"] == 1 and new["schema_known"] == 4
         assert new.pop("unchanged") is False and new.pop("page_version") == work_api.PAGE_VERSION
         assert new.pop("server_s") == now
-        old_answer["schema_known"] = 3
+        old_answer["schema_known"] = 4
         if body["schema"] >= 2:
             assert old_answer["source"]["schema_note"] and new["source"]["schema_note"] is None
             old_answer["source"]["schema_note"] = None
@@ -541,10 +542,13 @@ def _function_body(name: str) -> str:
     raise AssertionError(name)
 
 
-def test_c3_heard_is_the_first_section_and_folded_on_every_load():
+def test_c3_heard_is_folded_on_every_load_after_the_queue():
+    """First on the page until M32 step 2 (plumbing 4, M32-review 3.9): now
+    after the Queue and the other agents, before Done."""
     main = PAGE.split("<main>", 1)[1]
-    first = main.lstrip().split("\n", 1)[0]
-    assert first == '<details class="heard" id="heard">'                 # no open attribute
+    assert '\n  <details class="heard" id="heard">\n' in main             # no open attribute
+    at = main.index('<details class="heard" id="heard">')
+    assert main.index('id="queue-section"') < main.index('id="others-section"') < at < main.index(">Done<")
     assert "heard.box.open = false" in _heard_script()
 
 
@@ -559,8 +563,10 @@ def test_c3_open_or_closed_is_never_stored_the_filter_and_the_switch_are():
     calls = [line for line in SCRIPT.splitlines() if "store(" in line and "function store" not in line]
     assert calls and all("HEARD.store_q" in c or "HEARD.store_flagged" in c for c in calls), calls
     assert "indexedDB" not in SCRIPT
-    # sessionStorage holds one thing, M32 step 1's reload limit (reloadStamp()).
-    assert code.count("sessionStorage") == 2 and "sessionStorage.getItem(LIVE.store_reload)" in code
+    # sessionStorage holds two things: M32 step 1's reload limit (reloadStamp())
+    # and step 2's folds of the work rows (foldsLoad, foldsSave), never Heard's.
+    assert code.count("sessionStorage") == 4 and "sessionStorage.getItem(LIVE.store_reload)" in code
+    assert "sessionStorage.getItem(FOLD.store)" in code and "sessionStorage.setItem(FOLD.store" in code
 
 
 def test_c3_built_outside_loadAll_with_its_own_timer():
@@ -604,9 +610,11 @@ def test_c3_the_banners_cover_every_state_the_route_gives():
 def test_c3_the_words_for_heard_and_the_summary_line():
     h = M27._literal(PAGE, "HEARD")
     assert h["heard_text"] == {"not_recorded": "not recorded", "nothing_heard": "nothing heard"}
-    assert "as of {as_of}" in h["summary"]
-    for k in ("{runs}", "{newest}", "{wrong}", "{error}"):
+    # M32 step 2: the newest run's time and words have their own literals.
+    assert h["as_of"] == "as of {as_of}"
+    for k in ("{runs}", "{wrong}", "{error}"):
         assert k in h["summary"]
+    assert "{newest}" in h["newest"] and "{words}" in h["newest"] and "{newest}" in h["newest_time"]
     assert h["no_rule"] == "—" and h["rows"] == 200
 
 

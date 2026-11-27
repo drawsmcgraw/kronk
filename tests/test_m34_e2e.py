@@ -140,14 +140,19 @@ def test_a_second_walk_two_active_a_stopped_step_fix_two_a_follow_up(we, t, repo
                             "after_item": "M2"})
     assert data["under_way"] == ["M1"] and "overtaken" not in json.dumps(data)
 
-    # A decision that blocks, a leftover, both counted and neither's text in the file.
+    # A decision that blocks, a leftover, both counted. Since M32 step 2
+    # (Drew's #22) their text is in the file: on the item's row and, for
+    # Drew's decision, in decisions_owed.
     d = wrote("matter", "add", "decision", "--owner", "drew", "--item", "M1", "--text", "ship the QZDECISION?",
               "--blocks")
     wrote("matter", "add", "leftover", "--owner", "coordinator", "--item", "M1", "--text", "a QZLEFTOVER")
     data, items = agree()
     raw = json.dumps(data)
-    assert "QZDECISION" not in raw and "QZLEFTOVER" not in raw
-    assert [(o["id"], o["item"], o["blocks"]) for o in data["decisions_owed"]] == [(d["matter"], "M1", True)]
+    assert raw.count("QZDECISION") == 2 and raw.count("QZLEFTOVER") == 1
+    assert [(o["id"], o["item"], o["blocks"], o["text"]) for o in data["decisions_owed"]] == [
+        (d["matter"], "M1", True, "ship the QZDECISION?")]
+    assert [(o["kind"], o["owner"], o["blocks"], o["text"]) for o in items["M1"]["open_list"]] == [
+        ("decision", "drew", True, "ship the QZDECISION?"), ("leftover", "coordinator", False, "a QZLEFTOVER")]
     assert items["M1"]["open"] == {"leftovers": {"drew": 0, "coordinator": 1, "not_triaged": 0},
                                    "decisions": {"drew": 1, "coordinator": 0, "not_triaged": 0}}
     wrote("matter", "close", d["matter"], "--how", "yes, QZCLOSED")

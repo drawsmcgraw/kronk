@@ -21,15 +21,19 @@ step 1, from Drew's 2026-11-24 order to put the page on a wall display
 (`docs/sprint/M32-criteria.md`, the section "Rewritten after the review"
 decides; `M32-review.md` is the design; `M32-build.md`): the page updates
 within seconds, shows that it is alive, survives deploys and outages, and
-cannot strand itself ("Live", below).
+cannot strand itself ("Live", below). M32 step 2 (the same criteria file,
+"Steps 2 and 3"; `M32-step2-build.md`): every item is a row that unfolds to
+what it is and why, its steps, its open leftovers and decisions with their
+text; rows are patched in place, never rebuilt ("Rows that unfold",
+below).
 
 ## What it does
 
 `/work` (and `/dev/work`) shows, top to bottom (the header: a dot that
-beats once per answered poll and the data's age, counting each second):
+beats once per answered poll and the data's age, counting each second; the
+order is M32-review 3.9's, for a wall display that shows what fits its
+first screen):
 
-0. **Heard**, folded: what Whisper heard over the last 90 days (see
-   "Heard" below).
 1. **One state line**: when the export was made, from which branch and
    commit (or "detached HEAD", and "rebase in progress"), the
    coordinator's state, and "herdr: N agents seen" (and "N not readable
@@ -41,45 +45,69 @@ beats once per answered poll and the data's age, counting each second):
    pane that herdr calls `blocked` reads "idle" or "waiting on an agent".
    With herdr not reachable the line says agent state is not known, and
    why. Then the age of the work-state database's dump and the number of
-   decisions owed by Drew (a count: their text is not shown, decision #22).
-   A dump the exporter could not use (missing, empty, unreadable, of a newer
-   schema, of another repo) is a red banner with the exporter's sentence and
-   the dump's age, and nothing is shown from the database.
-2. **Under way**: every work item the database has `active`, with its
-   stage (the one `work.py resume` gives), its steps in time order (each
-   with its time, the test's verdict and the coordinator's grading; a
-   started step says "started" and names its agent), its handoff line, its
-   next step and what it waits on, and the ROADMAP entry that names it.
-3. **Queue** (since M34): the queued and held items in order, each with
-   what holds it (held and why; "M32 follows M34, which is active, not
-   promoted"), what it waits on, its next step, and "next" on the item
-   `work.py start` would take.
+   decisions owed by Drew. A dump the exporter could not use (missing,
+   empty, unreadable, of a newer schema, of another repo) is a red banner
+   with the exporter's sentence and the dump's age, and nothing is shown
+   from the database.
+2. **Under way**: every work item the database has `active`, open: its
+   stage (the one `work.py resume` gives), its next step and what it waits
+   on, then what it unfolds to (below) and the ROADMAP entry that names it.
+3. **Queue** (since M34): the queued and held items in order, folded, each
+   with what holds it (held and why; "M32 follows M34, which is active, not
+   promoted"), what it waits on, its next step, the agents named for it
+   (M34-e2e note 8), and "next" on the item `work.py start` would take.
 4. **Other agents**, when there are any: an agent in this repo whose name
-   matches no active item (an investigator, an agent for a queued or
-   promoted item, a name that is not `<item>-<role>`).
-5. **Backlog**: the open entries of `ROADMAP.md` (Now, Next, Later,
+   matches no active, queued or held item (an investigator, an agent for a
+   promoted or dropped item, a name that is not `<item>-<role>`).
+5. **Heard**, folded: what Whisper heard over the last 90 days; folded, its
+   line ends with the newest household run's words (see "Heard" below).
+6. **Done**: the database's promotions, newest first: one folded row per
+   item, with its title, tag ("tag only" when the row says it was not
+   deployed), the house's day of the promotion (a row imported from the
+   old log carries the date written there; for M2, M5, M12, M13 and
+   M21-step2 that is a UTC day, the house's being the day before), its
+   number of steps and its verdicts; a follow-up shows as "Note:
+   follow-up, <date>" on the item's row. A deploy with no work item
+   (`work.py promote --label`) is a row of its own among them by time: its
+   tag, its label, "deploy with no work item". Then the Shipped entries of
+   `ROADMAP.md` that are linked to no item, by title and leading `*( … )*`
+   only.
+7. **Dropped** (M34-e2e note 4), a folded list when there is one: each
+   dropped item's id, title, "dropped" and the house's day it was dropped.
+   Why it was dropped stays in the database (M34's ruling).
+8. **Backlog**: the open entries of `ROADMAP.md` (Now, Next, Later,
    Chores), under the file's own section names, each folded to its title,
    its leading `*( … )*` and its first sentence; a click opens the whole
-   entry, and an opened entry stays open when the rows are redrawn.
-   `` `code` ``, `**bold**`, `*emphasis*` (so the leads and `*Why: …*`) and
-   `[text](url)` are rendered; a link is made only for a url that starts
-   with `https://` (with `rel="noopener"`), anything else is shown as
-   written. An entry linked to an item under way is shown with the item
-   instead; one linked to a promoted item stays in the backlog.
-6. **Done**: the database's promotions, newest first: one row per item,
-   with its title, tag ("tag only" when the row says it was not deployed),
-   the house's day of the promotion (a row imported from the old log
-   carries the date written there; for M2, M5, M12, M13 and M21-step2
-   that is a UTC day, the house's being the day before), and its steps
-   and verdicts
-   (collapsed); a follow-up shows as "Note: follow-up, <date>" on the
-   item's row. A deploy with no work item (`work.py promote --label`) is a
-   row of its own among them by time: its tag, its label, "deploy with no
-   work item". A linked Shipped title is shown only where it adds a word
-   the title lacks. Then the Shipped entries of `ROADMAP.md` that are
-   linked to no item, by title and leading `*( … )*` only.
-7. **Not read**: a criteria file that exists and could not be read, a
+   entry. `` `code` ``, `**bold**`, `*emphasis*` (so the leads and `*Why:
+   …*`) are rendered; `[text](url)` is a link only in the unfolded part of
+   an entry and only for a url that starts with `https://` (with
+   `rel="noopener"`); anything else, and any link in a title or a folded
+   line, is shown as written. An entry linked to an item under way is
+   shown with the item instead; one linked to a promoted item stays in the
+   backlog.
+9. **Not read**: a criteria file that exists and could not be read, a
    `ROADMAP.md` section the exporter does not know.
+
+Every item row (Under way, Queue, Done, Dropped) unfolds to the same
+parts, each left out when it has nothing to say:
+
+- **What**: the item's handoff line; **Shipped as**: its linked Shipped
+  entries. An item with no handoff line (the 27 from before M24) shows its
+  title and Shipped line only (Drew, #91).
+- **Why**: the criteria file's `Source:` paragraph, Drew's words.
+- **Waits on Drew** (or **Decisions owed by Drew**): the decisions owed by
+  Drew for this item, each with its id, day, whether it blocks the item,
+  and its text.
+- **Open leftovers and decisions**: the rest of the item's open
+  leftovers and decisions, each with its id, kind, owner ("not triaged"
+  when it has none), day, whether it blocks, and its text (Drew, #22: "show
+  all of it on /work").
+- **Steps**: each step's kind and round ("criteria (round 2)", "test 1"),
+  its start and end in the house's zone, the test's verdict, the
+  coordinator's grading, the agent and the report file.
+
+The item under way is open by default, every other row closed (Drew, #92:
+on the wall, the item under way open; the rest unfold on a desk browser).
 
 Nothing is entered on the page and nothing is written back.
 
@@ -131,7 +159,10 @@ orchestrator: GET /api/work[?have=<ts>] → the file and its freshness (fresh / 
   finished criteria step's report, else `docs/sprint/<id>-criteria.md`,
   else none (M34's own row was seeded with no path).
 - **An agent's item and role** are parsed from its herdr name:
-  `^(m\d+[a-z]?(-step\d+)?)-(review|build|test|fix)\d*$`.
+  `^(m\d+[a-z]?(-step\d+)?)-(review|build|test|fix)\d*$`. An agent of an
+  active, queued or held item is listed with the item (`items[].agents`);
+  every other one is under `other_agents` with why (M32 step 2; before it,
+  a queued item's agent was "other").
 - **The state line's word for the coordinator** (`herdr.coordinator.shown`)
   is decided in the exporter, `coordinator_shown()`, and tested there.
 - **The fold of a backlog entry** (`fold`: `head`, `rest`) is decided in
@@ -166,16 +197,21 @@ orchestrator: GET /api/work[?have=<ts>] → the file and its freshness (fresh / 
   leading `*( … )*`, after its lines are joined. `M21` links both steps.
 - **What leaves the host** is an outline. From the rows: ids, titles,
   state, tier, queue place and what holds an item, next steps, wait notes
-  and why an item is held (active, queued and held items only), steps
-  (kind, round, name, report file name, agent, who, state, times, verdict,
-  grading), promotions (tag, time, deployed, the path of the checks; the
-  label of one with no item), counts of open leftovers and decisions by
-  owner, and the decisions owed to Drew by id, item, date and whether
-  they block. Never the log, `meta.repo`, a step's model or note, an
-  item's ended-why, a promotion's untested note, a matter's text, source
-  or closing words, or an SQLite error's text (it names paths); one marker
-  planted in every text column of every table pins this
-  (`tests/test_m34_work_db.py`, criterion 6). From files: handoff lines
+  and why an item is held (active, queued and held items only), the end
+  time of a dropped item, steps (kind, round, name, report file name,
+  agent, who, state, times, verdict, grading), promotions (tag, time,
+  deployed, the path of the checks; the label of one with no item), counts
+  of open leftovers and decisions by owner, each item's open leftovers and
+  decisions (id, kind, owner, whether it blocks, day, text), and the
+  decisions owed to Drew by id, item, date, whether they block, and text.
+  The text of open leftovers and decisions reaches the LAN since M32 step
+  2, on Drew's answer to #22 (2026-11-26): "show all of it on /work". A
+  leftover with no item, a coordinator's decision with no item, a closed
+  matter and an escape are not exported. Never the log, `meta.repo`, a
+  step's model or note, an item's ended-why, a promotion's untested note,
+  a matter's source or closing words, or an SQLite error's text (it names
+  paths); one marker planted in every text column of every table pins
+  this (`tests/test_m34_work_db.py`, criterion 6). From files: handoff lines
   and `Source:` paragraphs (Drew's words: new on the LAN with M34, allowed
   by M32 plumbing 11), the open ROADMAP entries whole, Shipped titles and
   leads. From herdr: agents' names and statuses, never `terminal_title`,
@@ -196,7 +232,7 @@ orchestrator: GET /api/work[?have=<ts>] → the file and its freshness (fresh / 
   a run killed in mid-write leaves its temp file, and the next run removes
   its own temp files older than ten minutes (regular files of that exact
   name form only).
-- **Schema**: `schema` is 3 (M32 step 1 added `house_zone`; 2 was M34's). The exporter only adds keys and raises
+- **Schema**: `schema` is 4 (M32 step 2; 3 was step 1's, 2 M34's). The exporter only adds keys and raises
   the number when it does; an orchestrator that knows a lower schema still
   reads the file and says that keys were added. A missing or non-integer
   schema is "unknown schema". The schema-1 keys with no source left since
@@ -218,7 +254,12 @@ orchestrator: GET /api/work[?have=<ts>] → the file and its freshness (fresh / 
   `promotions_no_item`. Added in schema 3 (M32 step 1): top level
   `house_zone` (`name`, the IANA zone when TZ or the `/etc/localtime` link
   gives one whose offset now is the host's, else null; `utc_offset_s`,
-  the host's offset at the export).
+  the host's offset at the export). Added in schema 4 (M32 step 2): per
+  item `ended_at` (a dropped item's end, UTC; null for every other item)
+  and `open_list` (one entry per open leftover and decision of the item:
+  `id`, `kind`, `owner`, `blocks`, `date`, the house's day it was opened
+  or null when the stored time does not parse, and `text`, clipped at
+  4,000 characters); per `decisions_owed` entry `text`.
 - **A dump that loads and is not the schema** (a column gone, a row of
   the wrong shape: M34-e2e S1) is state "corrupt" with its own sentence,
   "loads as SQL and is not the schema this exporter reads (<the
@@ -229,16 +270,22 @@ orchestrator: GET /api/work[?have=<ts>] → the file and its freshness (fresh / 
 
 ## Heard
 
-The first section, a `<details>` folded on every load. Open or closed is
-never stored: the page will run on a wall display nobody can touch, and a
-section opened once on that browser must not stay open there.
+A `<details>` after the Queue (first on the page until M32 step 2), folded
+on every load. Open or closed is never stored: the page will run on a wall
+display nobody can touch, and a section opened once on that browser must
+not stay open there.
 
-**Folded**, its line says: runs in the last 24 hours, the newest run's
-time, how many of those are marked wrong and how many carry an error, and
-"as of" with the time the exporter counted them (household runs; the
-counts are the exporter's `summary.household`). After that, the word for a
-status file that is not fresh (STALE, MISSING, ...), "last export failed"
-when the last run's `ok` is false, or "N warnings".
+**Folded**, its line says: runs in the last 24 hours, how many of those
+are marked wrong and how many carry an error (household runs; the counts
+are the exporter's `summary.household`), then the newest household run's
+time and its words as heard, set as text ("newest Nov 26 22:14: “turn off
+the kitchen lights”"; "nothing heard" or "not recorded" when the run has
+no words; Drew's #89, M32 step 2), and "as of" with the time the exporter
+counted them. After that, the word for a status file that is not fresh
+(STALE, MISSING, ...), "last export failed" when the last run's `ok` is
+false, or "N warnings". The words come from `api/voice_runs?limit=1` (no
+filter: the route's household runs), asked on every tick, folded or open,
+so the line follows a newer run within one tick (30 s).
 
 **Open**: a text filter (what was heard, or the reply) and a "wrong or
 error only" switch, both kept across reloads in `localStorage`
@@ -285,8 +332,8 @@ orchestrator: GET /api/voice_runs → orchestrator/voice_runs_api.py
   production orchestrator mounts `./data`, dev mounts `./data/dev`, and the
   exporter writes the same content to both.
 - **Parameters**: `limit` (default 200, clamped to 500; 0 answers the
-  status and summary without opening the copy, which is what a folded
-  section asks every 30 s), `before` (the last answer's `next_before`,
+  status and summary without opening the copy; the page asks for 1 every
+  30 s, the newest run for the folded line, since M32 step 2), `before` (the last answer's `next_before`,
   `<start_s>,<run_id>`: keyset paging, so two runs sharing a timestamp are
   neither dropped nor shown twice), `q` (bound, its `%`, `_` and `\`
   taken literally; matched in `heard` and `reply`; 200 characters at most),
@@ -314,7 +361,9 @@ orchestrator: GET /api/voice_runs → orchestrator/voice_runs_api.py
 - **Built outside `loadAll`**: its own element and fetch, on the page's
   scheduler at its own 30 s (M32 step 1), each fetch with the page's 10 s
   time limit. The rest of the page is rebuilt when the file changes; this
-  section is patched. The open list holds the count loaded (200, or more
+  section is patched. After a failed poll of `api/work` is answered again,
+  "Heard" asks at the next tick instead of reading "not read" for up to
+  30 s (M32-e2e note 6). The open list holds the count loaded (200, or more
   after "show older"): new runs patched in at the top push the oldest out,
   and "show older" goes on from the oldest kept. A section folded for ten
   minutes drops its rows; opening it again loads the newest 200.
@@ -359,9 +408,11 @@ For a page left open for months on a display nobody can touch
   telemetry (`telemetry._DEFAULT_EXCLUDED`): no trace per poll.
 - **A failed poll keeps the last state.** A 502, a refused connection, a
   hang or an answer that is not the route's leaves the page as it was and
-  says "NO ANSWER: since HH:MM:SS (why), N s ago. Shown below: the last
-  known state." The page is never emptied by a failure; a route answer of
-  missing, unreadable or unknown schema still empties it, as before.
+  says "NO ANSWER: since HH:MM:SS (why), N s ago. The page shows the last
+  known state." in a banner that floats over the bottom of the window and
+  moves nothing (since M32 step 2; it pushed the page down 54 px,
+  M32-e2e note 4). The page is never emptied by a failure; a route answer
+  of missing, unreadable or unknown schema still empties it, as before.
 - **Three signs of life.** The data's age, counting each second (the
   script runs); the header's dot, which beats once per answered poll and
   never moves by itself; and a cover the stylesheet shows by itself: a
@@ -403,6 +454,45 @@ For a page left open for months on a display nobody can touch
   starts in ten seconds) a burst of writes failed the service with
   `start-limit-hit` and the path unit with it, for good, and every later
   write silently waited for the timer (step 1 test, S1).
+
+## Rows that unfold (M32 step 2)
+
+`M32-review.md` points 5 to 7; the criteria's "Steps 2 and 3", step 2.
+
+- **Keyed patching, one function for every list** (`patchList`): Under
+  way, the Queue, Done, Dropped, the Backlog's sections and their entries,
+  and the unlinked Shipped entries. A row is a node with a key and fixed
+  parts, each part keeping the signature (the JSON of what it was drawn
+  from) it was drawn with. On a new file a row whose key is gone is
+  removed, a new one is built, a kept one keeps its node, and only a part
+  whose signature changed is drawn again. A kept node is moved only when
+  its place is wrong: the longest run of kept nodes already in order
+  stays, the rest are moved (one move when the first queued item goes to
+  the end). So a change of one item's next step redraws that item's stage
+  line and nothing else, an open row stays open, the scroll does not move,
+  and step 3's motion will not restart on a row that did not change.
+- **Keys**: `uw:<id>`, `q:<id>`, `done:<promotion>:<id>` (the old
+  `<id>@<line>` is `@null` for every promotion since M34), `drop:<id>`,
+  `deploy:<promotion>` for a deploy with no item, `sec:<section>` and
+  `bl:<section>:<title>` for the Backlog (by title, not line: the line
+  moves whenever `ROADMAP.md` is edited above an entry), `sh:<title>`. A
+  second row with the same key gets `#2`.
+- **The frame of an item row**: a `<details>` whose `<summary>` holds the
+  head (id, title), the stage line and an empty slot for step 3's track,
+  and whose body holds the parts listed under "What it does". Titles and
+  labels render code and emphasis and never a link: inside a `<summary>`
+  a link takes the click that folds (M34-e2e note 11). Leftover and
+  decision text goes in through `el()`, as text, never through `mdText`.
+- **Bodies are built folded**: every row's body is in the page whether
+  it is open or not (about 2,700 elements on today's file, 1,600 before),
+  so opening a row costs nothing and the element count is the same after
+  500 updates as after 5.
+- **Folds are kept per tab**: whether a row is open lives in its node;
+  across a reload in `sessionStorage` (`kronk.work.folds`, only the folds
+  that differ from their default), never `localStorage`, so a row opened
+  once on the display's browser does not stay open there for good, and a
+  new tab starts from the defaults. "Heard" is never kept. One `toggle`
+  listener on `<main>`, on the way down (`toggle` does not bubble).
 
 ## Gotchas
 
@@ -456,6 +546,15 @@ For a page left open for months on a display nobody can touch
   the deployed page reads the file with "work.json has schema 3, newer
   than this page's 2: keys added since are not shown". Only `house_zone`
   is not shown.
+- **Between the move of the schema-4 exporter and a deploy of step 2**,
+  the deployed page reads the file with "work.json has schema 4, newer
+  than this page's 3: keys added since are not shown". The step-1 page
+  does not show leftover and decision text or the dropped list, and an
+  agent named for a queued item, now listed with its item, is under no
+  section on that page.
+- **"Heard" opens the voice-run copy every 30 s per page** since M32
+  step 2 (`limit=1`, one indexed query; before, a folded section asked
+  `limit=0`, which opens nothing).
 - **A browser without `AbortController`** (older than 2018) stops waiting
   on a hung request after 10 s but cannot cut it: hung requests are left
   open until the network gives them up.
@@ -516,5 +615,10 @@ For a page left open for months on a display nobody can touch
   connection, no shutdown that hangs, and recovery is the next tick.
 - A cover drawn by the stylesheet alone, so a dead script still says it
   is dead.
+- Patching a page without a framework: one 40-line keyed patch, a
+  signature per part, and the longest increasing run so a reorder moves
+  one node, not every node after it.
+- Folds on a wall display: kept per tab in `sessionStorage`, only where
+  they differ from the default.
 - Reading the clock of the server, not the browser's, for every age and
   limit on a display whose clock nobody checks.

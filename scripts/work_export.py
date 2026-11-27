@@ -26,16 +26,21 @@ What it reads, and nothing else (M34, docs/sprint/M34-criteria.md,
 
 What it writes: an outline. From the rows: ids, titles, state, tier, queue
 place and what holds an item, next steps and wait notes (active, queued
-and held items only), steps (kind, round, name, report file name, agent,
-who, state, times, verdict, grading), promotions (tag, time, deployed,
-the path of the checks; the label of one with no item), and counts of open
-leftovers and decisions by owner; the decisions owed to Drew by id, item,
-date and whether they block, never their text. Never the log, meta.repo,
-a step's model or note, a matter's text, source or closing words, or an
+and held items only), the end time of a dropped item, steps (kind, round,
+name, report file name, agent, who, state, times, verdict, grading),
+promotions (tag, time, deployed, the path of the checks; the label of one
+with no item), and counts of open leftovers and decisions by owner; each
+item's open leftovers and decisions (id, kind, owner, whether it blocks,
+day, text) and the decisions owed to Drew (id, item, date, whether they
+block, text): Drew's #22, 2026-11-26, M32 step 2. Never the log,
+meta.repo, a step's model or note, an escape's text, a closed matter's
+text, a matter's source or closing words, a dropped item's reason, or an
 SQLite error's text. From files: handoff lines and Source: paragraphs, the
 open ROADMAP entries whole and, for Shipped, the title and leading *( ... )*.
 From herdr: agents' names and statuses (never terminal_title,
 agent_session or cwd; an agent outside this repo is counted, not named).
+An agent named for an active, queued or held item is listed with that
+item; every other one under other_agents, with why.
 
 A dump that is missing, empty, does not load, loads and is not the schema
 read here (a column gone: M34-e2e S1), is of a newer schema or describes
@@ -79,7 +84,7 @@ import tempfile
 import time
 from pathlib import Path
 
-SCHEMA = 3              # 3 (M32 step 1): house_zone added
+SCHEMA = 4              # 3 (M32 step 1): house_zone; 4 (M32 step 2): items[].ended_at, open_list, decisions_owed[].text
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parent
 HEAD_LINES = 40
@@ -135,6 +140,7 @@ COORDINATOR_SHOWN = ("working", "waiting on an agent", "idle", "not known")
 LABEL_ID = re.compile(r"(?<![\w-])M\d+[a-z]?(?: step \d+|-step\d+)?(?![\w-])")
 HEADING_ID = re.compile(r"^(#{2,3}) (M\d+[a-z]?(?: step \d+|-step\d+)?)(?![\w])")
 DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
+MATTER_MAX = ENTRY_MAX  # a leftover's or a decision's text, at most this (the longest open one: 315)
 FOR_DREW = re.compile(r"\b[Ff]or\s+Drew\b(?!['’]s)")
 TAG_LINE = re.compile(r"^- Tag `([^`]+)`(.*)")
 
@@ -1125,6 +1131,19 @@ def step_out(s: dict, item: str) -> dict:
             "graded": s["graded"]}
 
 
+def day_of(wp, iso) -> str | None:
+    """The house's day of a stored time, or None when it does not parse
+    (never the stored value itself)."""
+    d = wp.local_day(iso)
+    return d if DATE_RE.fullmatch(d) else None
+
+
+def open_entry(wp, m: dict) -> dict:
+    """An open leftover or decision as items[].open_list holds it."""
+    return {"id": m["id"], "kind": m["kind"], "owner": m["owner"], "blocks": bool(m["blocks"]),
+            "date": day_of(wp, m["opened_at"]), "text": clip(m["text"], MATTER_MAX)}
+
+
 def empty_counts() -> dict:
     return {"leftovers": {"drew": 0, "coordinator": 0, "not_triaged": 0},
             "decisions": {"drew": 0, "coordinator": 0, "not_triaged": 0}}
@@ -1252,20 +1271,29 @@ def _outline(wp, repo: Path, g: dict, v: dict, h: dict, sections: list, tags: di
         items_of.setdefault(pi["promotion_id"], []).append(pi["item_id"])
 
     # Agents: a named agent in the repo goes to its item when that item is
-    # active; every other one is "other".
+    # active, queued or held (M34-e2e note 8: a queued item's agent shows on
+    # its row); every other one is "other".
+    on_row = set(under_way) | {i for i, it in items.items() if it["state"] in ("queued", "held")}
     other_agents: list = []
     per_item: dict = {}
     for a in h["agents"]:
         if a["name"] is None:
             continue
         item_id, role = agent_for(a["name"])
-        if item_id in under_way:
+        if item_id in on_row:
             per_item.setdefault(item_id, []).append({**a, "role": role})
         else:
             why_other = (NOT_READ_WHY if not read else
                          "no item of that name" if item_id and item_id not in items else
                          f"its item is {items[item_id]['state']}" if item_id else "name is not <item>-<role>")
             other_agents.append({**a, "why": why_other})
+
+    # Open leftovers and decisions by item, oldest first (escapes are not
+    # listed: their text stays in the database).
+    open_of: dict = {}
+    for m in g["matters"]:
+        if m["closed_at"] is None and m["kind"] in ("leftover", "decision") and m["item_id"] is not None:
+            open_of.setdefault(m["item_id"], []).append(open_entry(wp, m))
 
     for e in (en for s in sections for en in s["entries"]):
         e["links"] = resolve_links(e["links"], list(items))
@@ -1292,6 +1320,8 @@ def _outline(wp, repo: Path, g: dict, v: dict, h: dict, sections: list, tags: di
             "waits_on": it["waits_on"] if live else None, "waits_note": it["waits_note"] if live else None,
             "held_why": it["held_why"] if it["state"] == "held" else None, "source": source,
             "open": v["counts"].get(item_id) or empty_counts(),
+            "ended_at": it["ended_at"] if it["state"] == "dropped" else None,
+            "open_list": open_of.get(item_id, []),
         })
     by_id = {it["id"]: it for it in out_items}
 
@@ -1356,7 +1386,7 @@ def _outline(wp, repo: Path, g: dict, v: dict, h: dict, sections: list, tags: di
                if p["id"] not in items_of]
 
     owed = [{"id": m["id"], "item": m["item_id"], "date": wp.local_day(m["opened_at"]), "opened_at": m["opened_at"],
-             "blocks": bool(m["blocks"])} for m in v["decisions"]]
+             "blocks": bool(m["blocks"]), "text": clip(m["text"], MATTER_MAX)} for m in v["decisions"]]
     totals = empty_counts()
     for per in v["counts"].values():
         for kind in totals:

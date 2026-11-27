@@ -334,14 +334,24 @@ def test_a_queued_item_with_no_criteria_path_falls_back(we, t, repo):
 
 
 def test_an_agent_no_active_item_owns_is_other(we, t, repo, fake_herdr):
+    # Since M32 step 2 an agent of a queued or held item is on that item's
+    # row (M34-e2e note 8), not under other_agents.
     active_item(t, repo)
     t("add", "--title", "queued")
-    for name in ("m1-build", "m2-test", "m9-fix1", "investigator"):
+    t("add", "--title", "held")
+    t("hold", "M3", "--why", "spring")
+    t("add", "--title", "promoted soon")
+    t("drop", "M4", "--why", "no")
+    for name in ("m1-build", "m2-test", "m3-review", "m4-fix1", "m9-fix1", "investigator"):
         fake_herdr.add_agent(name, "working", repo)
     data = we.collect(repo, t.db)
-    assert [a["name"] for a in {i["id"]: i for i in data["items"]}["M1"]["agents"]] == ["m1-build"]
+    items = {i["id"]: i for i in data["items"]}
+    assert [a["name"] for a in items["M1"]["agents"]] == ["m1-build"]
+    assert [(a["name"], a["role"]) for a in items["M2"]["agents"]] == [("m2-test", "test")]
+    assert [a["name"] for a in items["M3"]["agents"]] == ["m3-review"]
+    assert items["M4"]["agents"] == []
     assert {a["name"]: a["why"] for a in data["other_agents"]} == {
-        "m2-test": "its item is queued", "m9-fix1": "no item of that name",
+        "m4-fix1": "its item is dropped", "m9-fix1": "no item of that name",
         "investigator": "name is not <item>-<role>"}
 
 
@@ -505,7 +515,7 @@ def test_criterion_2_every_difference_from_the_old_reader_has_a_class(we, tmp_pa
     old, new = we.collect_legacy(REPO), we.collect(REPO, db)
     by = classes(differences(old, new))
     assert "UNCLASSIFIED" not in by and "GONE" not in by, {k: by[k][:5] for k in ("UNCLASSIFIED", "GONE") if k in by}
-    assert old["schema"] == 1 and new["schema"] == 3          # 3 since M32 step 1 (house_zone)
+    assert old["schema"] == 1 and new["schema"] == 4          # 4 since M32 step 2
     assert set(new) >= set(old)
 
 
@@ -615,11 +625,15 @@ ALLOWED = {
     ("promotion", "tag"): "any", ("promotion", "at"): "any", ("promotion", "verified"): "any",
     ("promotion", "note"): "no item",
     ("open_thing", "opened_at"): "owed",
+    # M32 step 2 (plumbing 6; Drew's #22, 2026-11-26: show all of it on /work):
+    # an open leftover's or decision's text, on its item's row or as a
+    # decision owed by Drew; a dropped item's end time. Its reason stays out.
+    ("open_thing", "text"): "open matter", ("item", "ended_at"): "dropped",
 }
-NEVER = {("item", "criteria"), ("item", "ended_why"), ("item", "created_at"), ("item", "ended_at"),
+NEVER = {("item", "criteria"), ("item", "ended_why"), ("item", "created_at"),
          ("step", "model"), ("step", "note"), ("step", "commit_sha"),
          ("promotion", "commit_sha"), ("promotion", "untested"),
-         ("open_thing", "text"), ("open_thing", "source"), ("open_thing", "closed_at"), ("open_thing", "closed_how"),
+         ("open_thing", "source"), ("open_thing", "closed_at"), ("open_thing", "closed_how"),
          ("meta", "value"), ("log", "at"), ("log", "who"), ("log", "cmd"), ("log", "changes")}
 
 
@@ -689,6 +703,9 @@ def test_criterion_6_a_marker_in_every_text_column(we, t, repo, fake_herdr):
                                     "AND closed_at IS NULL")}
     no_item = {r[0] for r in c.execute("SELECT id FROM promotion WHERE id NOT IN (SELECT promotion_id FROM "
                                        "promotion_item)")}
+    shown = {r[0] for r in c.execute("SELECT id FROM open_thing WHERE closed_at IS NULL AND kind IN "
+                                     "('leftover', 'decision') AND (item_id IS NOT NULL OR "
+                                     "(kind = 'decision' AND owner = 'drew'))")}
     rid_of = {}
     for tb in ("item",):
         rid_of[tb] = {r[0]: r[1] for r in c.execute("SELECT rowid, id FROM item")}
@@ -709,12 +726,20 @@ def test_criterion_6_a_marker_in_every_text_column(we, t, repo, fake_herdr):
             return rid in no_item
         if rule == "owed":
             return rid in owed
+        if rule == "dropped":
+            return state[rid_of["item"][rid]] == "dropped"
+        if rule == "open matter":
+            return rid in shown
         return True
     want = {m for m, (tb, col, rid) in planted.items() if allowed(tb, col, rid)}
     assert found == want, {"leaked": sorted(planted[m] for m in found - want),
                            "missing": sorted(planted[m] for m in want - found)}
     for word in ("ship?", "mine?", "a weakness", "it escaped", "asked and answered"):
         assert word not in text
+    # The rows behind the rule, so a change of the test data cannot empty it:
+    # Drew's decision on M1 and the leftover on M2 are shown; the
+    # coordinator's decision with no item, the closed one and the escape not.
+    assert len(shown) == 2 and "dropped" in state.values()
 
 
 # ═══ criterion 8: a dump the exporter cannot use ═══════════════════════════
@@ -871,17 +896,17 @@ def test_criterion_7_the_route_knows_schema_2_and_reads_no_database(tmp_path):
     body = tree.body[1:]                                         # the docstring aside
     consts = [n.value for b in body for n in ast.walk(b) if isinstance(n, ast.Constant) and isinstance(n.value, str)]
     assert not [c for c in consts if "dump" in c or ".db" in c or "kronk-work/" in c or "work.db" in c]
-    assert work_api.SCHEMA_KNOWN == 3                             # 3 since M32 step 1 (house_zone)
+    assert work_api.SCHEMA_KNOWN == 4                             # 4 since M32 step 2
     p = tmp_path / "work.json"
     now = 1_800_000_000.0
-    for schema, note in ((3, None), (2, None), (1, None),
-                         (4, "work.json has schema 4, newer than this page's 3: keys added since are not shown")):
+    for schema, note in ((4, None), (3, None), (2, None), (1, None),
+                         (5, "work.json has schema 5, newer than this page's 4: keys added since are not shown")):
         p.write_text(json.dumps({"schema": schema, "ts": now - 5, "items": []}))
         with patch.object(work_api, "WORK_PATH", p), patch.object(work_api, "_cache", {}):
             d = work_api.work_source(now)
         # M32 step 1 added unchanged, page_version and server_s to the envelope.
         assert set(d) == {"source", "schema_known", "work", "unchanged", "page_version", "server_s"}
-        assert d["schema_known"] == 3
+        assert d["schema_known"] == 4
         assert d["source"]["state"] == "fresh" and d["source"]["schema_note"] == note
 
 
@@ -904,7 +929,7 @@ def test_the_page_reads_the_new_keys_and_sets_them_as_text():
         assert needle in script, needle
     assert not re.search(r"\.(innerHTML|outerHTML|insertAdjacentHTML)\b|document\.write", script)
     # A next step, a wait note, a hold and what holds an item go in as plain text, never through mdText().
-    for needle in ("el('div', 'notes', fill(QUEUE_TEXT.next_step", "el('span', 'held-mark', fill(QUEUE_TEXT.held",
+    for needle in ("el('span', 'notes', fill(QUEUE_TEXT.next_step", "el('span', 'held-mark', fill(QUEUE_TEXT.held",
                    "el('span', null, it.blocked_by)"):
         assert needle in script, needle
     assert "PROMOTIONS.md</code>), newest entry first; dates as written there" not in PAGE_PATH.read_text()

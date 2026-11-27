@@ -54,7 +54,8 @@ WORK_PATH = Path(os.getenv("WORK_PATH", "/data/work.json"))
 WORK_MAX_AGE_S = 180
 WORK_EVERY_S = 60
 WORK_TIMER = "systemd/kronk-work-export.timer"
-SCHEMA_KNOWN = 3                # 2 (M34): drawn from the work-state database; 3 (M32 step 1): house_zone
+SCHEMA_KNOWN = 4                # 2 (M34): drawn from the work-state database; 3 (M32 step 1): house_zone;
+                                # 4 (M32 step 2): items[].ended_at and open_list, decisions_owed[].text
 
 # The page's files, baked into the image (/app/static; the tree's
 # orchestrator/static under the tests). Dev mounts only /data and /config.

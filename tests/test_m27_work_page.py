@@ -88,7 +88,7 @@ def test_fresh(work_file):
     d = _get()
     assert d["source"]["state"] == "fresh" and d["source"]["reason"] is None
     assert 4 <= d["source"]["age_s"] <= 10 and d["source"]["max_age_s"] == 180
-    assert d["work"]["under_way"] == ["M27"] and d["schema_known"] == 3          # 3 since M32 step 1
+    assert d["work"]["under_way"] == ["M27"] and d["schema_known"] == 4          # 4 since M32 step 2
 
 
 def test_stale_still_carries_the_outline(work_file):
@@ -132,14 +132,14 @@ def test_unknown_schema(work_file, schema):
     work_file.write_text(json.dumps(o))
     d = _get()
     assert d["source"]["state"] == "unknown_schema" and d["work"] is None
-    assert f"has schema {schema!r}" in d["source"]["reason"] and "reads schema 3" in d["source"]["reason"]
+    assert f"has schema {schema!r}" in d["source"]["reason"] and "reads schema 4" in d["source"]["reason"]
 
 
 def test_newer_schema_is_read_with_a_note(work_file):
-    work_file.write_text(json.dumps(_outline(time.time(), schema=4, added_later=True)))
+    work_file.write_text(json.dumps(_outline(time.time(), schema=5, added_later=True)))
     d = _get()
     assert d["source"]["state"] == "fresh" and d["work"]["added_later"] is True
-    assert d["source"]["schema_note"] == "work.json has schema 4, newer than this page's 3: keys added since are not shown"
+    assert d["source"]["schema_note"] == "work.json has schema 5, newer than this page's 4: keys added since are not shown"
 
 
 def test_routes_are_registered():
@@ -269,6 +269,6 @@ def test_the_page_reads_the_keys_this_round_added():
     # must read them, not decide again. Text checks only: no JS runtime here.
     script = PAGE.split("<script>", 1)[1]
     for needle in ("(h.coordinator || {}).shown", "h.skipped", "e.fold", "r.heading_adds", "s.adds",
-                   "it.short_title", "details[open]"):
+                   "it.short_title", "foldable("):                  # folds kept: M32 step 2
         assert needle in script, needle
     assert "(h.coordinator || {}).word" not in script

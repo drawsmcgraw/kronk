@@ -95,7 +95,6 @@
   .header-dot.beat { opacity: 0.3; }
   .header-dot.beat.on { animation: beat 0.9s ease-out 1; }
   @keyframes beat { from { opacity: 1; } to { opacity: 0.3; } }
-  #live-banner, #reload-note { margin-bottom: 10px; }
   .cover { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center;
            background: rgba(15, 17, 23, 0.8); pointer-events: none; opacity: 0; visibility: hidden;
            animation: cover-show 1s linear 90s forwards; }
@@ -103,6 +102,49 @@
   .cover-box { border: 1px solid var(--red); background: var(--bg2); color: var(--text); border-radius: 10px;
                padding: 1.2rem 1.6rem; font-size: 18px; line-height: 1.5; max-width: 32em; text-align: center; }
   .cover-box span { display: block; font-size: 14px; color: var(--text2); margin-top: 6px; }
+
+  /* A failed poll's banner floats over the bottom of the page and moves
+     nothing (M32-e2e note 4); solid behind its tint, so the rows under it do
+     not show through. */
+  .float-banners { position: fixed; left: 0; right: 0; bottom: 12px; z-index: 20; display: flex; flex-direction: column;
+                   align-items: center; gap: 6px; padding: 0 16px; pointer-events: none; }
+  .float-banners .banner { pointer-events: auto; width: 100%; max-width: 968px; box-sizing: border-box;
+                           background: linear-gradient(rgba(245, 158, 11, 0.12), rgba(245, 158, 11, 0.12)), var(--bg2);
+                           box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5); }
+  .float-banners .banner[hidden] { display: none; }
+
+  /* Rows that unfold (M32 step 2). Every item is a <details>: its summary the
+     head, the stage line and the slot for step 3's track; its body what, why,
+     the decisions and leftovers, and the steps. */
+  details.row > summary { list-style: none; display: block; cursor: pointer; margin: 0; color: inherit; font-size: inherit; }
+  details.row > summary::-webkit-details-marker { display: none; }
+  .row-head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+  .row-head::before { content: "▸"; color: var(--text2); font-size: 12px; }
+  details.row[open] > summary .row-head::before { content: "▾"; }
+  .row-stage { display: block; }
+  .row-stage .stage { margin-top: 8px; }
+  .row-stage > .notes { display: block; }
+  .row-track:empty { display: none; }
+  .row-body { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border); font-size: 12px; color: var(--text2); }
+  .card.row .row-body { margin-top: 10px; }
+  .body-part + .body-part { margin-top: 8px; }
+  .body-label { font-size: 11.5px; font-weight: 700; color: var(--text2); margin-bottom: 2px; }
+  .row-body .handoff { margin-top: 0; }
+  .row-body .why, .shipped-line { color: var(--text2); line-height: 1.5; }
+  .row-body .steps { margin-top: 2px; }
+  .step .graded { color: var(--text2); font-family: monospace; font-size: 11px; }
+  .matter + .matter { margin-top: 6px; }
+  .matter-head { display: flex; gap: 4px 10px; flex-wrap: wrap; align-items: baseline; color: var(--text2); font-size: 11.5px; }
+  .matter-head .blocks { color: var(--amber); font-weight: 700; }
+  .matter-text { color: var(--text); white-space: pre-wrap; line-height: 1.5; }
+  .queue-row .row-head .item-id, .done-row .row-head .item-id { font-size: 13px; }
+  details.fold-list > summary { list-style: none; display: flex; gap: 6px 12px; align-items: baseline; margin: 0; color: var(--text2); }
+  details.fold-list > summary::-webkit-details-marker { display: none; }
+  details.fold-list > summary::before { content: "▸"; color: var(--text2); }
+  details.fold-list[open] > summary::before { content: "▾"; }
+  details.fold-list > summary .section-label, details.fold-list > summary .note-line { margin: 0; }
+  details.fold-list > .note-line { margin-top: 8px; }
+  .heard-newest { color: var(--text); }
 
   /* Heard (M30 step C): the voice runs of the last 90 days, folded on every load. */
   details.heard > summary { list-style: none; display: flex; gap: 6px 12px; flex-wrap: wrap; align-items: baseline;
@@ -150,24 +192,7 @@
 </header>
 
 <main>
-  <details class="heard" id="heard">
-    <summary><span class="section-label">Heard</span><span class="heard-line" id="heard-line">fetching…</span></summary>
-    <div class="heard-body">
-      <div id="heard-banner"></div>
-      <div class="heard-tools">
-        <input type="search" id="heard-q" autocomplete="off" spellcheck="false" placeholder="filter: what was heard or said back">
-        <label><input type="checkbox" id="heard-flagged" autocomplete="off"> wrong or error only</label>
-      </div>
-      <div class="note-line" id="heard-note"></div>
-      <div class="card" id="heard-list"></div>
-      <div style="margin-top:8px"><button class="refresh-btn" id="heard-older" hidden>show older</button></div>
-      <div class="src" id="heard-src" style="margin-top:8px"></div>
-    </div>
-  </details>
-
   <div>
-    <div class="banner" id="live-banner" hidden><strong>NO ANSWER: </strong><span id="live-why"></span></div>
-    <div class="banner" id="reload-note" hidden></div>
     <div id="banner"></div>
     <div class="state-line" id="state-line">fetching…</div>
   </div>
@@ -189,11 +214,21 @@
     <div class="card agents-line" id="others"></div>
   </section>
 
-  <section>
-    <div class="section-label">Backlog</div>
-    <div class="note-line">The open entries of <code>ROADMAP.md</code>, under its own section names. An entry that names a work item under way is shown with the item above. Each shows its title, lead and first sentence; click it for the whole entry.</div>
-    <div id="backlog"></div>
-  </section>
+  <details class="heard" id="heard">
+    <summary><span class="section-label">Heard</span><span class="heard-line" id="heard-line">fetching…</span></summary>
+    <div class="heard-body">
+      <div id="heard-banner"></div>
+      <div class="heard-tools">
+        <input type="search" id="heard-q" autocomplete="off" spellcheck="false" placeholder="filter: what was heard or said back">
+        <label><input type="checkbox" id="heard-flagged" autocomplete="off"> wrong or error only</label>
+      </div>
+      <div class="note-line" id="heard-note"></div>
+      <div class="card" id="heard-list"></div>
+      <div style="margin-top:8px"><button class="refresh-btn" id="heard-older" hidden>show older</button></div>
+      <div class="src" id="heard-src" style="margin-top:8px"></div>
+    </div>
+  </details>
+
 
   <section>
     <div class="section-label">Done</div>
@@ -203,12 +238,31 @@
     <div class="card" id="shipped"></div>
   </section>
 
+  <section id="dropped-section" hidden>
+    <details class="fold-list" id="dropped-fold">
+      <summary><span class="section-label">Dropped</span><span class="note-line" id="dropped-count"></span></summary>
+      <div class="note-line">Work items dropped before they were promoted, newest first, with the house’s day they were dropped. Why stays in the work-state database.</div>
+      <div class="card" id="dropped"></div>
+    </details>
+  </section>
+
+  <section>
+    <div class="section-label">Backlog</div>
+    <div class="note-line">The open entries of <code>ROADMAP.md</code>, under its own section names. An entry that names a work item under way is shown with the item above. Each shows its title, lead and first sentence; click it for the whole entry.</div>
+    <div id="backlog"></div>
+  </section>
+
   <section>
     <div class="section-label">Not read by the exporter</div>
     <div class="card"><ul class="not-read" id="not-read"></ul></div>
     <div class="src" id="src-line" style="margin-top:8px"></div>
   </section>
 </main>
+
+<div class="float-banners" id="float-banners">
+  <div class="banner" id="live-banner" hidden><strong>NO ANSWER: </strong><span id="live-why"></span></div>
+  <div class="banner" id="reload-note" hidden></div>
+</div>
 
 <div class="cover" id="cover" aria-hidden="true"><div class="cover-box"><strong>This page has stopped updating.</strong><span>No answer for 90 s or more: what is shown may be out of date.</span></div></div>
 
@@ -293,8 +347,29 @@ const DB_TEXT = {
 };
 
 // A queue row's lines, and a Done row for a deploy with no work item.
-const QUEUE_TEXT = {"next": "next", "held": "held: {why}", "waits": "waits on {on}: {note}", "next_step": "next step: {step}"};
+const QUEUE_TEXT = {"next": "next", "held": "held: {why}", "waits": "waits on {on}: {note}", "next_step": "next step: {step}",
+                    "agent": "{name}: {status}"};
 const NO_ITEM_TEXT = {"title": "deploy with no work item", "deployed": {"yes": "deployed", "no": "tag only", "not recorded": ""}};
+
+// A row unfolded (work item M32 step 2): the labels of its parts, a step's
+// times ("{start}", "{end}" in the house's zone), an open leftover's or
+// decision's line, the dropped list.
+const ROW_TEXT = {
+  "what": "What", "shipped": "Shipped as", "why": "Why", "steps": "Steps",
+  "waits_on_drew": "Waits on Drew", "owed": "Decisions owed by Drew", "open": "Open leftovers and decisions",
+  "step_round": "{label} (round {round})", "step_span": "{start} → {end}", "step_started": "started {start}",
+  "step_started_bare": "started", "step_stopped_span": "{start} → stopped {end}", "step_stopped": "stopped {end}",
+  "step_stopped_bare": "stopped", "uncommitted": "written, not committed", "graded": "graded {g}",
+  "no_steps": "no steps recorded",
+  "matter_id": "#{id}", "owner_none": "not triaged", "blocks": "blocks the item",
+  "dropped": "dropped", "dropped_one": "1 item", "dropped_many": "{n} items", "no_day": "day not recorded"
+};
+const MATTER_KIND = {"leftover": "leftover", "decision": "decision"};
+const OWNER_WORD = {"drew": "Drew", "coordinator": "coordinator"};
+
+// Folds kept across a reload: this tab's sessionStorage, only those that
+// differ from their default (the item under way open, the rest closed).
+const FOLD = {"store": "kronk.work.folds"};
 
 // The live loop (work item M32 step 1), for a page left open on a wall
 // display nobody can touch. One scheduler: a setTimeout chain that ticks
@@ -325,7 +400,7 @@ const LIVE_TEXT = {
   "age": "data {age} old",
   "no_data": "no data",
   "waiting": "fetching…",
-  "no_answer": "since {since} ({why}), {for} ago. Shown below: the last known state.",
+  "no_answer": "since {since} ({why}), {for} ago. The page shows the last known state.",
   "no_answer_yet": "none yet ({why}).",
   "timeout": "no answer in {s} s",
   "http": "HTTP {status}",
@@ -360,12 +435,14 @@ function clear(node) { while (node.firstChild) node.removeChild(node.firstChild)
 const arr = x => (Array.isArray(x) ? x : []);
 
 // Markdown-ish text from the repo: `code`, **bold**, *emphasis* (so
-// *( … )* and *Why: …*) and [text](https://…) become elements whose content
-// is set as text; everything else stays as written. An unpaired ** or * is
-// shown as written; a * opens only before a non-space and closes only after
-// one. A link whose url does not start with MD_LINK.prefix is shown as
-// written.
-function mdText(parent, s) {
+// *( … )* and *Why: …*) become elements whose content is set as text, and
+// [text](https://…) a link when links is true; everything else stays as
+// written. An unpaired ** or * is shown as written; a * opens only before a
+// non-space and closes only after one. A link whose url does not start with
+// MD_LINK.prefix, or any link when links is not true, is shown as written:
+// titles and labels never get one (inside a <summary> it would take the
+// click that folds; M34-e2e note 11).
+function mdText(parent, s, links) {
   const toks = String(s ?? '').split(/(`[^`]*`|\*\*|\[[^\]\n]*\]\([^()\s]*\)|\*)/).filter(t => t);
   const stars = toks.filter(t => t === '**').length;
   const honoured = stars - (stars % 2);
@@ -394,7 +471,7 @@ function mdText(parent, s) {
     } else if (/^\[[^\]\n]*\]\([^()\s]*\)$/.test(t)) {
       const k = t.indexOf('](');
       const url = t.slice(k + 2, -1);
-      if (url.startsWith(MD_LINK.prefix)) {
+      if (links === true && url.startsWith(MD_LINK.prefix)) {
         const a = top().appendChild(el('a', null, t.slice(1, k)));
         a.href = url;
         a.rel = MD_LINK.rel;
@@ -439,7 +516,7 @@ const fmtTime = iso => {
 const fmtClockS = sec => houseString(new Date(sec * 1000), { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 const fmtAge = s => (s < 120 ? `${Math.round(s)} s` : s < 7200 ? `${Math.round(s / 60)} min` : `${Math.round(s / 3600)} h`);
 
-// ── sections ─────────────────────────────────────────────────────────────────
+// ── the state line ───────────────────────────────────────────────────────────
 
 function renderState(resp) {
   const src = resp.source || {};
@@ -500,21 +577,177 @@ function renderState(resp) {
   return b ? b.show : true;
 }
 
+// ── keyed patching (work item M32 step 2, M32-review point 6) ────────────────
+//
+// One function for every list: Under way, the Queue, Done, Dropped, the
+// Backlog's sections and their entries, Shipped. A row is a node with a key
+// (data-key) and fixed parts; each part carries the signature (the JSON of
+// the data it was drawn from) it was drawn with. On a new file: a row whose
+// key is gone is removed, a new one built, a kept one keeps its node, and
+// only a part whose signature changed is drawn again. A kept node is moved
+// only when its place is wrong (the longest run already in order stays),
+// so nothing that did not change is replaced or moved: a fold stays open,
+// and step 3's motion is not restarted. The flash of a changed row (step 3)
+// will hang on a part being drawn, not on the file's ts.
+
+// rows: [{key, make, parts: {name: [sig, draw]}, then}]. make() builds the
+// node and its _parts; then(node), when given, runs after the parts (a
+// list inside a row: the Backlog's entries).
+function patchList(box, rows) {
+  const want = new Set(rows.map(r => r.key));
+  const kept = new Map();
+  for (const n of [...box.children]) {
+    const k = n.dataset ? n.dataset.key : undefined;
+    if (k != null && want.has(k) && !kept.has(k)) kept.set(k, n); else n.remove();
+  }
+  const nodes = rows.map(r => {
+    let n = kept.get(r.key);
+    if (!n) { n = r.make(); n.dataset.key = r.key; }
+    patchParts(n, r.parts || {});
+    if (r.then) r.then(n);
+    return n;
+  });
+  const at = new Map([...box.children].map((n, i) => [n, i]));
+  const stay = longestRun(nodes.map(n => (at.has(n) ? at.get(n) : -1)));
+  let next = null;
+  for (let i = nodes.length - 1; i >= 0; i--) {
+    if (!stay.has(i)) box.insertBefore(nodes[i], next);
+    next = nodes[i];
+  }
+}
+
+function patchParts(node, parts) {
+  for (const [name, [sig, draw]] of Object.entries(parts)) {
+    const p = node._parts[name];
+    if (p._sig === sig) continue;
+    clear(p);
+    draw(p);
+    p._sig = sig;
+  }
+}
+
+// The indices of the longest run of positions that only grow (-1: a new
+// node, never in it): those nodes are in order already and stay put.
+function longestRun(pos) {
+  const tails = [];
+  const prev = new Array(pos.length).fill(-1);
+  for (let i = 0; i < pos.length; i++) {
+    if (pos[i] < 0) continue;
+    let lo = 0, hi = tails.length;
+    while (lo < hi) { const m = (lo + hi) >> 1; if (pos[tails[m]] < pos[i]) lo = m + 1; else hi = m; }
+    if (lo > 0) prev[i] = tails[lo - 1];
+    tails[lo] = i;
+  }
+  const out = new Set();
+  for (let i = tails.length ? tails[tails.length - 1] : -1; i >= 0; i = prev[i]) out.add(i);
+  return out;
+}
+
+// Keys made unique in order: a second "x" is "x#2".
+function uniqueKeys(rows) {
+  const seen = new Map();
+  for (const r of rows) {
+    const n = (seen.get(r.key) || 0) + 1;
+    seen.set(r.key, n);
+    if (n > 1) r.key = `${r.key}#${n}`;
+  }
+  return rows;
+}
+
+const sig = (...xs) => JSON.stringify(xs);
+const noneRow = () => ({ key: '\u0000none', make: () => el('div', 'reason', 'none'), parts: {} });
+
+// ── folds (plumbing 3) ───────────────────────────────────────────────────────
+//
+// Whether a row is open lives in its node while the page lives. Across a
+// reload, in this tab's sessionStorage, never localStorage: a row opened
+// once on the display's browser must not stay open there for good. Only a
+// fold that differs from its default is kept. "Heard" is never kept: it is
+// folded on every load.
+
+const folds = new Map();
+function foldsLoad() {
+  try {
+    const o = JSON.parse(sessionStorage.getItem(FOLD.store) || '{}');
+    for (const [k, v] of Object.entries(o && typeof o === 'object' ? o : {})) if (typeof v === 'boolean') folds.set(k, v);
+  } catch (e) { /* none kept: the defaults */ }
+}
+function foldsSave() {
+  try { sessionStorage.setItem(FOLD.store, JSON.stringify(Object.fromEntries(folds))); } catch (e) { /* kept in the page only */ }
+}
+// A details whose fold is kept under key; open when the reader left it open
+// in this tab, else byDefault.
+function foldable(det, key, byDefault) {
+  det.dataset.fold = key;
+  det.dataset.foldDefault = byDefault ? '1' : '0';
+  const v = folds.get(key);
+  det.open = v === undefined ? !!byDefault : v;
+  return det;
+}
+// One listener for every fold (toggle does not bubble: caught on the way down).
+function foldsInit() {
+  foldsLoad();
+  foldable(document.getElementById('dropped-fold'), 'dropped', false);
+  document.querySelector('main').addEventListener('toggle', e => {
+    const d = e.target;
+    if (!d || !d.dataset || d.dataset.fold == null) return;
+    if (d.open === (d.dataset.foldDefault === '1')) folds.delete(d.dataset.fold); else folds.set(d.dataset.fold, d.open);
+    foldsSave();
+  }, true);
+}
+
+// ── an item's row (plumbing 1 and 2) ─────────────────────────────────────────
+//
+// A fixed frame: <details class="row"> whose <summary> holds the head, the
+// stage line and the slot for step 3's track (left empty here), and whose
+// body unfolds to what and why, the decisions owed by Drew, the open
+// leftovers and decisions, and the steps. Titles and labels render code
+// and emphasis and never a link: inside a <summary> a link would take the
+// click that folds (M34-e2e note 11).
+
+function rowFrame(cls, key, byDefault) {
+  const det = el('details', 'row ' + cls);
+  const sum = det.appendChild(el('summary'));
+  det._parts = { head: sum.appendChild(el('span', 'row-head')), stage: sum.appendChild(el('span', 'row-stage')),
+                 track: sum.appendChild(el('span', 'row-track')), body: det.appendChild(el('div', 'row-body')) };
+  return foldable(det, key, byDefault);
+}
+
+function headInto(p, it, pre) {
+  for (const x of pre || []) p.appendChild(x);
+  p.appendChild(el('span', 'item-id', it.id));
+  p.appendChild(mdText(el('span', 'item-title'), it.title ?? 'no title line'));
+}
+
+// "Nov 26, 05:22 AM", and the end of a span on the same day as its clock only.
+function stepTimes(s) {
+  const day = iso => { const d = new Date(iso); return isNaN(d) ? null : houseString(d, { month: 'short', day: 'numeric' }); };
+  const clock = iso => { const d = new Date(iso); return isNaN(d) ? String(iso) : houseString(d, { hour: '2-digit', minute: '2-digit' }); };
+  const start = s.started_at ? fmtTime(s.started_at) : null;
+  const endAt = s.ended_at || s.committed_at;
+  const end = endAt ? (s.started_at && day(s.started_at) === day(endAt) ? clock(endAt) : fmtTime(endAt)) : null;
+  if (s.state === 'started') return start ? fill(ROW_TEXT.step_started, { start }) : ROW_TEXT.step_started_bare;
+  if (s.state === 'stopped') return start && end ? fill(ROW_TEXT.step_stopped_span, { start, end }) : end ? fill(ROW_TEXT.step_stopped, { end }) : ROW_TEXT.step_stopped_bare;
+  if (start && end) return fill(ROW_TEXT.step_span, { start, end });
+  if (end) return end;
+  return s.state ? '' : ROW_TEXT.uncommitted;
+}
+
+// One step: kind and round, start and end in the house's zone, verdict or
+// grade, agent, report.
 function stepRow(s) {
   const row = el('div', 'step');
-  row.appendChild(el('span', 'k', stepLabel(s)));
-  // A step from the database has a state; a schema-1 step is a file.
-  const when = s.state === 'started' ? (s.started_at ? `started ${fmtTime(s.started_at)}` : 'started')
-    : s.state === 'stopped' ? (s.ended_at ? `stopped ${fmtTime(s.ended_at)}` : 'stopped')
-    : s.committed_at ? fmtTime(s.committed_at) : (s.state ? '' : 'written, not committed');
-  row.appendChild(el('span', 't', when));
+  const label = stepLabel(s);
+  const n = s.round ?? s.n;
+  row.appendChild(el('span', 'k', n > 1 && !(STEP_LABEL[s.kind] || '').includes('{n}') ? fill(ROW_TEXT.step_round, { label, round: n }) : label));
+  row.appendChild(el('span', 't', stepTimes(s)));
   if (s.kind === 'test' && s.state !== 'started' && s.state !== 'stopped') {
     const vs = arr(s.verdicts);
     if (!vs.length) row.appendChild(el('span', 'v-none', 'verdict not read'));
     for (const v of vs) row.appendChild(el('span', VERDICT_CLASS[v.verdict] || 'v-none', verdictText(v)));
   }
-  if (s.graded) row.appendChild(el('span', 't', `graded ${s.graded}`));
-  if (s.agent && s.state === 'started') row.appendChild(el('span', 'mono', s.agent));
+  if (s.graded) row.appendChild(el('span', 'graded', fill(ROW_TEXT.graded, { g: s.graded })));
+  if (s.agent) row.appendChild(el('span', 'mono', s.agent));
   if (s.file) row.appendChild(el('span', 't', s.file));
   return row;
 }
@@ -523,122 +756,201 @@ function stepsBlock(it) {
   const box = el('div', 'steps');
   for (const s of arr(it.steps)) box.appendChild(stepRow(s));
   for (const s of arr(it.uncommitted)) box.appendChild(stepRow(s));
+  if (!box.childNodes.length) box.appendChild(el('div', 'v-none', ROW_TEXT.no_steps));
   return box;
 }
 
-// An open entry is folded to its title, lead and first sentence (the
-// exporter's fold) and opens to the whole entry on a click; `open` holds the
-// keys of the entries a reader opened, kept across the 30 s refresh. A
-// Shipped entry is shown by its title and lead only.
-function entryBlock(e, cls, key, open) {
-  const box = el('div', cls || 'entry');
+// An open leftover or decision: its line, then its text, set as text
+// (never mdText: nothing in it becomes an element or a link).
+function matterRow(m) {
+  const box = el('div', 'matter');
+  const head = box.appendChild(el('div', 'matter-head'));
+  head.appendChild(el('span', 'mono', fill(ROW_TEXT.matter_id, { id: m.id ?? '?' })));
+  head.appendChild(el('span', null, MATTER_KIND[m.kind] ?? String(m.kind ?? '?')));
+  head.appendChild(el('span', null, OWNER_WORD[m.owner] ?? (m.owner == null ? ROW_TEXT.owner_none : String(m.owner))));
+  if (m.date) head.appendChild(el('span', 't', m.date));
+  if (m.blocks) head.appendChild(el('span', 'blocks', ROW_TEXT.blocks));
+  if (m.text != null) box.appendChild(el('div', 'matter-text', m.text));
+  return box;
+}
+
+function part(body, label) {
+  const box = body.appendChild(el('div', 'body-part'));
+  box.appendChild(el('div', 'body-label', label));
+  return box;
+}
+
+// What the row unfolds to. With no handoff line, what is the Shipped line
+// only (Drew #91); a part with nothing to say is left out, never empty.
+function bodyInto(body, it, owed) {
+  if (it.handoff) mdText(part(body, ROW_TEXT.what).appendChild(el('div', 'handoff')), it.handoff);
+  const shipped = arr(it.shipped);
+  if (shipped.length) {
+    const box = part(body, ROW_TEXT.shipped);
+    for (const s of shipped) {
+      const line = box.appendChild(el('div', 'shipped-line'));
+      if (s.adds || !s.lead) mdText(line.appendChild(el('strong')), s.title ?? '');
+      if (s.lead) { if (s.adds) line.appendChild(document.createTextNode(' ')); mdText(line.appendChild(el('em')), `(${s.lead})`); }
+    }
+  }
+  if (it.source) mdText(part(body, ROW_TEXT.why).appendChild(el('div', 'why')), it.source);
+  const mine = arr(owed);
+  if (mine.length) {
+    const box = part(body, it.waits_on === 'drew' ? ROW_TEXT.waits_on_drew : ROW_TEXT.owed);
+    for (const d of mine) box.appendChild(matterRow({ ...d, kind: 'decision', owner: 'drew' }));
+  }
+  const owedIds = new Set(mine.map(d => d.id));
+  const rest = arr(it.open_list).filter(m => !owedIds.has(m.id));
+  if (rest.length) {
+    const box = part(body, ROW_TEXT.open);
+    for (const m of rest) box.appendChild(matterRow(m));
+  }
+  part(body, ROW_TEXT.steps).appendChild(stepsBlock(it));
+  for (const e of arr(it.roadmap)) {
+    const box = body.appendChild(el('div', 'linked'));
+    box.appendChild(el('div', 'src', 'Backlog entry'));
+    entryInto(box.appendChild(el('div', 'entry')), e, `card:${it.id}:${e.title}`);
+  }
+}
+
+// The signature of a row's body: everything bodyInto() reads.
+const bodySig = (it, owed) => sig(it.handoff, it.source, it.shipped, it.steps, it.uncommitted, it.open_list, owed,
+                                  it.waits_on === 'drew', arr(it.roadmap).map(e => ({ ...e, line: undefined })), live.zone);
+
+function itemRow(key, cls, byDefault, it, owed, head, stage) {
+  return {
+    key, make: () => rowFrame(cls, key, byDefault),
+    parts: {
+      head: [sig(it.id, it.title, head[0]), p => headInto(p, it, head[1] ? head[1]() : null)],
+      stage: [stage[0], stage[1]],
+      body: [bodySig(it, owed), p => bodyInto(p, it, owed)],
+    },
+  };
+}
+
+// The decisions owed by Drew, by item.
+function owedByItem(w) {
+  const m = new Map();
+  for (const d of arr(w.decisions_owed)) if (d.item != null) { if (!m.has(d.item)) m.set(d.item, []); m.get(d.item).push(d); }
+  return m;
+}
+
+// ── sections ─────────────────────────────────────────────────────────────────
+
+function renderUnderWay(w, items, owed) {
+  document.getElementById('under-way-note').textContent = UNDER_WAY_NOTE;
+  const ids = arr(w.active ?? w.under_way).filter(id => items[id]);
+  const rows = ids.map(id => {
+    const it = items[id];
+    const st = it.stage || {};
+    return itemRow(`uw:${id}`, 'card', true, it, owed.get(id), [null], [
+      sig(st, it.next_step, it.waits_on, it.waits_note, it.notes),
+      p => {
+        const line = p.appendChild(el('span', 'stage'));
+        line.appendChild(el('span', 'stage-word ' + (st.blocked ? 'st-blocked' : (STAGE_CLASS[st.stage] || 'st-done')), st.words ?? st.stage));
+        if (st.detail) line.appendChild(el('span', st.blocked ? 'blocked-line' : 'stage-detail', st.detail));
+        if (it.next_step) p.appendChild(el('span', 'notes', fill(QUEUE_TEXT.next_step, { step: it.next_step })));
+        if (it.waits_on) p.appendChild(el('span', 'notes', fill(QUEUE_TEXT.waits, { on: it.waits_on, note: it.waits_note })));
+        for (const n of arr(it.notes)) p.appendChild(el('span', 'notes', n));
+      }]);
+  });
+  patchList(document.getElementById('under-way'), uniqueKeys(rows.length ? rows : [noneRow()]));
+}
+
+// The queue (schema 2): in order, each with what holds it and the agents
+// named for it (M34-e2e note 8). A file with no queue (schema 1) hides
+// the section.
+function renderQueue(w, items, owed) {
+  const sec = document.getElementById('queue-section');
+  document.getElementById('queue-note').textContent = QUEUE_NOTE;
+  sec.hidden = !Array.isArray(w.queue);
+  if (sec.hidden) { clear(document.getElementById('queue')); return; }
+  const rows = w.queue.map((id, i) => {
+    const it = items[id] || { id };
+    const pos = it.position ?? i + 1;
+    return itemRow(`q:${id}`, 'queue-row', false, it, owed.get(id),
+      [sig(pos, !!it.next), () => [el('span', 'queue-pos', `${pos}.`)]],
+      [sig(it.next, it.state, it.held_why, it.blocked_by, it.waits_on, it.waits_note, it.next_step, it.agents),
+       p => {
+         const meta = p.appendChild(el('span', 'done-meta'));
+         if (it.next) meta.appendChild(el('span', 'next-mark', QUEUE_TEXT.next));
+         if (it.state === 'held') meta.appendChild(el('span', 'held-mark', fill(QUEUE_TEXT.held, { why: it.held_why })));
+         if (it.blocked_by) meta.appendChild(el('span', null, it.blocked_by));
+         if (it.waits_on) meta.appendChild(el('span', null, fill(QUEUE_TEXT.waits, { on: it.waits_on, note: it.waits_note })));
+         if (it.next_step) meta.appendChild(el('span', null, fill(QUEUE_TEXT.next_step, { step: it.next_step })));
+         for (const a of arr(it.agents)) meta.appendChild(el('span', 'mono', fill(QUEUE_TEXT.agent, { name: a.name, status: a.status })));
+         if (!meta.childNodes.length) meta.remove();
+       }]);
+  });
+  patchList(document.getElementById('queue'), uniqueKeys(rows.length ? rows : [noneRow()]));
+}
+
+// The box is drawn again only when what it shows changed.
+function drawIf(box, s, draw) {
+  if (box._sig === s) return;
+  clear(box);
+  draw(box);
+  box._sig = s;
+}
+
+function renderOthers(w) {
+  const sec = document.getElementById('others-section');
+  const others = arr(w.other_agents);
+  sec.hidden = !others.length;
+  drawIf(document.getElementById('others'), sig(others), box => others.forEach((a, i) => {
+    if (i) box.appendChild(el('span', 'sep', ' · '));
+    box.appendChild(el('span', 'mono', a.name ?? 'unnamed'));
+    box.appendChild(document.createTextNode(`: ${a.status}`));
+    if (a.why) box.appendChild(el('span', 'reason', ` (${a.why})`));
+  }));
+}
+
+// A ROADMAP entry: folded to its title, lead and first sentence (the
+// exporter's fold), opening to the whole entry on a click; key is its fold's
+// key. The head is in a <summary> and makes no link; the rest may. A Shipped
+// entry is shown by its title and lead only.
+function entryInto(box, e, key) {
   const f = e.fold;
   if (f && f.head != null && f.rest) {
-    const det = box.appendChild(el('details'));
-    det.dataset.key = key;
-    det.open = !!(open && open.has(key));
+    const det = foldable(box.appendChild(el('details')), key, false);
     const sum = mdText(det.appendChild(el('summary')), f.head);
     sum.appendChild(el('span', 'more', ' … more'));
-    mdText(det.appendChild(el('div', 'entry-rest')), f.rest);
+    mdText(det.appendChild(el('div', 'entry-rest')), f.rest, true);
     return box;
   }
-  if (f && f.head != null) return mdText(box, f.head);
-  if (e.text != null) return mdText(box, e.text);
+  if (f && f.head != null) return mdText(box, f.head, true);
+  if (e.text != null) return mdText(box, e.text, true);
   mdText(box.appendChild(el('strong')), e.title ?? 'entry with no title');
   if (e.lead) { box.appendChild(document.createTextNode(' ')); mdText(box.appendChild(el('em')), `(${e.lead})`); }
   return box;
 }
 
-const openKeys = box => new Set([...box.querySelectorAll('details[open]')].map(d => d.dataset.key));
-
-function itemCard(it, open) {
-  const card = el('div', 'card');
-  const head = el('div', 'item-head');
-  head.appendChild(el('span', 'item-id', it.id));
-  head.appendChild(mdText(el('span', 'item-title'), it.title ?? 'no title line'));
-  card.appendChild(head);
-  const st = it.stage || {};
-  const line = el('div', 'stage');
-  line.appendChild(el('span', 'stage-word ' + (st.blocked ? 'st-blocked' : (STAGE_CLASS[st.stage] || 'st-done')), st.words ?? st.stage));
-  if (st.detail) line.appendChild(el('span', st.blocked ? 'blocked-line' : 'stage-detail', st.detail));
-  card.appendChild(line);
-  if (it.handoff) card.appendChild(mdText(el('div', 'handoff'), it.handoff));
-  if (it.next_step) card.appendChild(el('div', 'notes', fill(QUEUE_TEXT.next_step, { step: it.next_step })));
-  if (it.waits_on) card.appendChild(el('div', 'notes', fill(QUEUE_TEXT.waits, { on: it.waits_on, note: it.waits_note })));
-  for (const n of arr(it.notes)) card.appendChild(el('div', 'notes', n));
-  card.appendChild(stepsBlock(it));
-  for (const e of arr(it.roadmap)) {
-    const box = el('div', 'linked');
-    box.appendChild(el('div', 'src', 'Backlog entry'));
-    box.appendChild(entryBlock(e, 'entry', `card:${it.id}:${e.line}`, open));
-    card.appendChild(box);
-  }
-  return card;
-}
-
-function renderUnderWay(w, items) {
-  document.getElementById('under-way-note').textContent = UNDER_WAY_NOTE;
-  const box = document.getElementById('under-way');
-  const open = openKeys(box);
-  clear(box);
-  const ids = arr(w.active ?? w.under_way);
-  if (!ids.length) box.appendChild(el('div', 'reason', 'none'));
-  for (const id of ids) if (items[id]) box.appendChild(itemCard(items[id], open));
-}
-
-// The queue (schema 2): in order, each with what holds it. A file with no
-// queue (schema 1) hides the section.
-function renderQueue(w, items) {
-  const sec = document.getElementById('queue-section');
-  const box = clear(document.getElementById('queue'));
-  document.getElementById('queue-note').textContent = QUEUE_NOTE;
-  sec.hidden = !Array.isArray(w.queue);
-  if (sec.hidden) return;
-  if (!w.queue.length) box.appendChild(el('div', 'reason', 'none'));
-  w.queue.forEach((id, i) => {
-    const it = items[id] || { id };
-    const row = el('div', 'queue-row');
-    const top = el('div', 'done-top');
-    top.appendChild(el('span', 'queue-pos', `${it.position ?? i + 1}.`));
-    top.appendChild(el('span', 'item-id', id));
-    top.appendChild(mdText(el('span', 'item-title'), it.title ?? 'no title'));
-    if (it.next) top.appendChild(el('span', 'next-mark', QUEUE_TEXT.next));
-    row.appendChild(top);
-    const meta = el('div', 'done-meta');
-    if (it.state === 'held') meta.appendChild(el('span', 'held-mark', fill(QUEUE_TEXT.held, { why: it.held_why })));
-    if (it.blocked_by) meta.appendChild(el('span', null, it.blocked_by));
-    if (it.waits_on) meta.appendChild(el('span', null, fill(QUEUE_TEXT.waits, { on: it.waits_on, note: it.waits_note })));
-    if (it.next_step) meta.appendChild(el('span', null, fill(QUEUE_TEXT.next_step, { step: it.next_step })));
-    if (meta.childNodes.length) row.appendChild(meta);
-    box.appendChild(row);
-  });
-}
-
-function renderOthers(w) {
-  const sec = document.getElementById('others-section');
-  const box = clear(document.getElementById('others'));
-  const others = arr(w.other_agents);
-  sec.hidden = !others.length;
-  others.forEach((a, i) => {
-    if (i) box.appendChild(el('span', 'sep', ' · '));
-    box.appendChild(el('span', 'mono', a.name ?? 'unnamed'));
-    box.appendChild(document.createTextNode(`: ${a.status}`));
-    if (a.why) box.appendChild(el('span', 'reason', ` (${a.why})`));
-  });
+// An entry as a row of a list, keyed by its title (its line moves whenever
+// ROADMAP.md is edited above it).
+function entryRow(prefix, e) {
+  const key = `${prefix}:${e.title ?? ''}`;
+  return {
+    key, make: () => { const n = el('div', 'entry'); n._parts = { content: n }; return n; },
+    parts: { content: [sig({ ...e, line: undefined }), p => entryInto(p, e, p.dataset.key)] },
+  };
 }
 
 function renderBacklog(w) {
-  const box = document.getElementById('backlog');
-  const open = openKeys(box);
-  clear(box);
-  for (const s of arr(w.backlog)) {
-    box.appendChild(el('div', 'sub-label', s.section));
-    const card = el('div', 'card');
-    const entries = arr(s.entries);
-    if (!entries.length) card.appendChild(el('div', 'reason', 'none'));
-    for (const e of entries) card.appendChild(entryBlock(e, 'entry', `backlog:${e.line}`, open));
-    box.appendChild(card);
-  }
+  const rows = arr(w.backlog).map(s => ({
+    key: `sec:${s.section}`,
+    make: () => {
+      const n = el('div', 'backlog-section');
+      n._parts = { label: n.appendChild(el('div', 'sub-label')) };
+      n._card = n.appendChild(el('div', 'card'));
+      return n;
+    },
+    parts: { label: [sig(s.section), p => { p.textContent = s.section; }] },
+    then: n => {
+      const entries = arr(s.entries);
+      patchList(n._card, uniqueKeys(entries.length ? entries.map(e => entryRow(`bl:${s.section}`, e)) : [noneRow()]));
+    },
+  }));
+  patchList(document.getElementById('backlog'), uniqueKeys(rows));
 }
 
 // A done item's tests in order, as their item verdicts: "FAILS → PASSES".
@@ -647,99 +959,122 @@ function verdictTrail(it) {
     .map(s => arr(s.verdicts).map(verdictText).join(' + ') || 'verdict not read').join(' → ');
 }
 
-function renderDone(w, items) {
-  const box = document.getElementById('done');
-  // Keep the rows a reader opened across the 30 s refresh.
-  const open = openKeys(box);
-  clear(box);
+function renderDone(w, items, owed) {
   // The deploys with no work item (schema 2) go in among the rows by time:
   // each before the first item row promoted earlier than it.
-  const rows = [];
+  const list = [];
   const extra = arr(w.promotions_no_item).slice();
   for (const r of arr(w.done)) {
-    while (extra.length && r.at && extra[0].at && extra[0].at > r.at) rows.push({ noItem: extra.shift() });
-    rows.push(r);
+    while (extra.length && r.at && extra[0].at && extra[0].at > r.at) list.push({ noItem: extra.shift() });
+    list.push(r);
   }
-  for (const e of extra) rows.push({ noItem: e });
-  if (!rows.length) box.appendChild(el('div', 'reason', 'none'));
-  for (const r of rows) {
-    if (r.noItem) { box.appendChild(noItemRow(r.noItem)); continue; }
-    const it = items[r.id] || { id: r.id, steps: [] };
-    const row = el('div', 'done-row');
-    const top = el('div', 'done-top');
-    top.appendChild(el('span', 'item-id', r.id));
-    top.appendChild(mdText(el('span', 'item-title'), it.short_title ?? it.title ?? 'no title line'));
-    row.appendChild(top);
-    const meta = el('div', 'done-meta');
-    const tag = r.tag ? r.tag + (r.tag_only ? ' (tag only)' : '') : `no tag${r.tag_written ? ` (“${r.tag_written}”)` : ''}`;
-    meta.appendChild(el('span', 'mono', tag));
-    meta.appendChild(el('span', null, r.date ?? 'no date'));
-    // The entry's heading and the Shipped title only where they add to the
-    // title (the exporter's heading_adds and adds).
-    if (r.heading && r.heading_adds) meta.appendChild(mdText(el('span'), r.heading));
-    if (r.for_drew_total) meta.appendChild(el('span', 'for-drew',
-      fill(r.for_drew_total === 1 ? DONE_TEXT.for_drew_one : DONE_TEXT.for_drew_many, { n: r.for_drew_total })));
-    row.appendChild(meta);
-    for (const s of arr(it.shipped)) {
-      if (!s.adds) continue;
-      const line = row.appendChild(el('div', 'notes'));
-      line.appendChild(document.createTextNode('Shipped as: '));
-      mdText(line.appendChild(el('strong')), s.title ?? '');
-      if (s.lead) { line.appendChild(document.createTextNode(' ')); mdText(line.appendChild(el('em')), `(${s.lead})`); }
-    }
-    for (const n of arr(r.notes)) row.appendChild(mdText(el('div', 'notes'), `Note: ${n.heading}`));
-    const det = el('details');
-    det.dataset.key = `${r.id}@${r.line}`;
-    det.open = open.has(det.dataset.key);
-    const steps = arr(it.steps).length + arr(it.uncommitted).length;
-    const trail = verdictTrail(it);
-    det.appendChild(el('summary', null, `${steps} step${steps === 1 ? '' : 's'}` + (trail ? ` · ${trail}` : '')));
-    det.appendChild(stepsBlock(it));
-    row.appendChild(det);
-    box.appendChild(row);
-  }
-  const sh = clear(document.getElementById('shipped'));
+  for (const e of extra) list.push({ noItem: e });
+  const rows = list.map(r => (r.noItem ? noItemRow(r.noItem) : doneRow(r, items[r.id] || { id: r.id, steps: [] }, owed.get(r.id))));
+  patchList(document.getElementById('done'), uniqueKeys(rows.length ? rows : [noneRow()]));
   const unl = arr(w.shipped_unlinked);
-  if (!unl.length) sh.appendChild(el('div', 'reason', 'none'));
-  for (const e of unl) sh.appendChild(entryBlock(e));
+  patchList(document.getElementById('shipped'), uniqueKeys(unl.length ? unl.map(e => entryRow('sh', e)) : [noneRow()]));
+}
+
+// A Done row: keyed by its promotion and item (the line is null for every
+// promotion since M34).
+function doneRow(r, it, owed) {
+  const key = r.promotion != null ? `done:${r.promotion}:${r.id}` : `done:${r.id}@${r.line}`;
+  const steps = arr(it.steps).length + arr(it.uncommitted).length;
+  const trail = verdictTrail(it);
+  return itemRow(key, 'done-row', false, { ...it, title: it.short_title ?? it.title }, owed,
+    [null],
+    [sig(r.tag, r.tag_only, r.tag_written, r.date, r.heading, r.heading_adds, r.for_drew_total, r.notes, steps, trail),
+     p => {
+       const meta = p.appendChild(el('span', 'done-meta'));
+       const tag = r.tag ? r.tag + (r.tag_only ? ' (tag only)' : '') : `no tag${r.tag_written ? ` (“${r.tag_written}”)` : ''}`;
+       meta.appendChild(el('span', 'mono', tag));
+       meta.appendChild(el('span', null, r.date ?? 'no date'));
+       // The entry's heading only where it adds to the title (the exporter's heading_adds).
+       if (r.heading && r.heading_adds) meta.appendChild(mdText(el('span'), r.heading));
+       if (r.for_drew_total) meta.appendChild(el('span', 'for-drew',
+         fill(r.for_drew_total === 1 ? DONE_TEXT.for_drew_one : DONE_TEXT.for_drew_many, { n: r.for_drew_total })));
+       meta.appendChild(el('span', null, `${steps} step${steps === 1 ? '' : 's'}` + (trail ? ` · ${trail}` : '')));
+       for (const n of arr(r.notes)) p.appendChild(mdText(el('span', 'notes'), `Note: ${n.heading}`));
+     }]);
 }
 
 function noItemRow(e) {
-  const row = el('div', 'done-row');
-  const top = el('div', 'done-top');
-  top.appendChild(el('span', 'item-id mono', e.tag ?? 'no tag'));
-  top.appendChild(mdText(el('span', 'item-title'), e.label ?? NO_ITEM_TEXT.title));
-  row.appendChild(top);
-  const meta = el('div', 'done-meta');
-  meta.appendChild(el('span', null, e.date ?? 'no date'));
-  meta.appendChild(el('span', null, NO_ITEM_TEXT.title));
-  const dep = NO_ITEM_TEXT.deployed[e.deployed] ?? '';
-  if (dep) meta.appendChild(el('span', null, dep));
-  if (e.verified) meta.appendChild(el('span', 'mono', e.verified));
-  row.appendChild(meta);
-  return row;
+  const key = `deploy:${e.promotion ?? `${e.tag}@${e.at}`}`;
+  return {
+    key,
+    make: () => {
+      const n = el('div', 'done-row');
+      n._parts = { head: n.appendChild(el('div', 'done-top')), stage: n.appendChild(el('div', 'done-meta')) };
+      return n;
+    },
+    parts: {
+      head: [sig(e.tag, e.label), p => {
+        p.appendChild(el('span', 'item-id mono', e.tag ?? 'no tag'));
+        p.appendChild(mdText(el('span', 'item-title'), e.label ?? NO_ITEM_TEXT.title));
+      }],
+      stage: [sig(e.date, e.deployed, e.verified), p => {
+        p.appendChild(el('span', null, e.date ?? 'no date'));
+        p.appendChild(el('span', null, NO_ITEM_TEXT.title));
+        const dep = NO_ITEM_TEXT.deployed[e.deployed] ?? '';
+        if (dep) p.appendChild(el('span', null, dep));
+        if (e.verified) p.appendChild(el('span', 'mono', e.verified));
+      }],
+    },
+  };
+}
+
+// The house's day of a stated time: "2026-11-24".
+function houseDay(iso) {
+  const d = new Date(iso);
+  if (isNaN(d)) return String(iso ?? '?');
+  const z = live.zone;
+  if (zoneKnown(z)) return d.toLocaleDateString('en-CA', { timeZone: z.name });
+  if (z && typeof z.utc_offset_s === 'number') return new Date(d.getTime() + z.utc_offset_s * 1000).toISOString().slice(0, 10);
+  return d.toLocaleDateString('en-CA');
+}
+
+// Dropped items (M34-e2e note 4): a folded list after Done, newest first,
+// each its id, title, "dropped" and the day. Why it was dropped stays out
+// of the file (M34's ruling).
+function renderDropped(w, owed) {
+  const items = arr(w.items).filter(it => it.state === 'dropped')
+    .sort((a, b) => String(b.ended_at ?? '').localeCompare(String(a.ended_at ?? '')));
+  document.getElementById('dropped-section').hidden = !items.length;
+  document.getElementById('dropped-count').textContent = fill(items.length === 1 ? ROW_TEXT.dropped_one : ROW_TEXT.dropped_many, { n: items.length });
+  patchList(document.getElementById('dropped'), uniqueKeys(items.map(it => itemRow(`drop:${it.id}`, 'done-row', false, it, owed.get(it.id),
+    [null],
+    [sig(it.ended_at, live.zone), p => {
+      const meta = p.appendChild(el('span', 'done-meta'));
+      meta.appendChild(el('span', 'held-mark', ROW_TEXT.dropped));
+      meta.appendChild(el('span', null, it.ended_at ? houseDay(it.ended_at) : ROW_TEXT.no_day));
+    }]))));
 }
 
 function renderNotRead(w, src) {
-  const ul = clear(document.getElementById('not-read'));
   const nr = arr(w.not_read);
-  if (!nr.length) ul.appendChild(el('li', null, 'nothing'));
-  for (const n of nr) {
-    const li = el('li');
-    li.appendChild(el('span', 'mono', n.file));
-    li.appendChild(document.createTextNode(`: ${n.why}`));
-    ul.appendChild(li);
-  }
+  drawIf(document.getElementById('not-read'), sig(nr), ul => {
+    if (!nr.length) ul.appendChild(el('li', null, 'nothing'));
+    for (const n of nr) {
+      const li = el('li');
+      li.appendChild(el('span', 'mono', n.file));
+      li.appendChild(document.createTextNode(`: ${n.why}`));
+      ul.appendChild(li);
+    }
+  });
   document.getElementById('src-line').textContent =
     `Source: ${src.file || 'work.json'}, written by scripts/work_export.py on the host every ${src.every_s || 60} s from the work-state database’s dump` +
     (w.run_s != null ? ` (last run took ${w.run_s} s)` : '') + '. ' + zoneNote(live.zone);
 }
 
 function renderEmpty() {
-  for (const id of ['under-way', 'queue', 'backlog', 'done', 'shipped', 'not-read']) clear(document.getElementById(id));
+  for (const id of ['under-way', 'queue', 'backlog', 'done', 'shipped', 'dropped', 'not-read', 'others']) {
+    const box = clear(document.getElementById(id));
+    box._sig = undefined;
+  }
   document.getElementById('under-way-note').textContent = UNDER_WAY_NOTE;
   document.getElementById('others-section').hidden = true;
   document.getElementById('queue-section').hidden = true;
+  document.getElementById('dropped-section').hidden = true;
 }
 
 // One request, aborted after LIVE.timeout_ms, its body included:
@@ -808,6 +1143,9 @@ function liveFailed(why) {
 
 function liveAnswered(resp) {
   const now = performance.now();
+  // Back after a cut: "Heard" asks at the next tick, so it does not read
+  // "not read" for up to its every_ms after the page is live (M32-e2e note 6).
+  if (live.fail) heard.lastEnd = -Infinity;
   live.fail = null;
   live.answeredAt = now;
   live.ageAt = typeof resp.source.age_s === 'number' ? resp.source.age_s : null;
@@ -825,11 +1163,13 @@ function liveAnswered(resp) {
     if (show && w) {
       const items = {};
       for (const it of arr(w.items)) items[it.id] = it;
-      renderUnderWay(w, items);
-      renderQueue(w, items);
+      const owed = owedByItem(w);
+      renderUnderWay(w, items, owed);
+      renderQueue(w, items, owed);
       renderOthers(w);
+      renderDone(w, items, owed);
+      renderDropped(w, owed);
       renderBacklog(w);
-      renderDone(w, items);
       renderNotRead(w, resp.source || {});
     } else {
       renderEmpty();
@@ -947,7 +1287,10 @@ async function maybeReload(resp) {
 // each fetch with the page's time limit; the open list is trimmed to the
 // count loaded (rows, or more after "show older"), and a section folded for
 // LIVE.heard_folded_ms drops its rows. Folded on every load: open or closed
-// is never stored (a wall display nobody can touch).
+// is never stored (a wall display nobody can touch). The folded line shows,
+// after the counts, the newest household run's words as heard and its time
+// (Drew's #89, M32 step 2): each tick asks for that one run (limit=1, no
+// filter: the route's household runs), open or folded.
 // The filter and the switch are kept in localStorage. Every string from a
 // run is set with el() (textContent). docs/features/work-page.md, "Heard".
 
@@ -963,7 +1306,11 @@ const HEARD = {
   "heard_text": {"not_recorded": "not recorded", "nothing_heard": "nothing heard"},
   "no_rule": "—",
   "marks": {"wrong": "✗ wrong", "error": "⚠ error"},
-  "summary": "{runs} run{s} in the last 24 h · newest {newest} · {wrong} marked wrong · {error} with an error · as of {as_of}",
+  "summary": "{runs} run{s} in the last 24 h · {wrong} marked wrong · {error} with an error",
+  "newest": "newest {newest}: “{words}”",
+  "newest_no_words": "newest {newest}: {state}",
+  "newest_time": "newest {newest}",
+  "as_of": "as of {as_of}",
   "summary_none": "no summary yet",
   "note": "Household runs with a speech-to-text stage, newest first, last 90 days. Times are the house's. Click a run for the rest of the reply and its trace ids.",
   "src": "Source: {copy}, written by scripts/voice_runs_export.py on the host every {every} s; status {status}. A run lands three to four minutes after it ends.",
@@ -1002,7 +1349,7 @@ const satelliteName = id => (id != null && Object.hasOwn(SATELLITE_NAME, id) ? S
 
 const heard = { box: null, list: null, rows: new Map(), days: new Map(), loaded: false, busy: false, again: false,
                 maxSeq: null, knownRows: null, knownBuilt: null, nextBefore: null, limit: HEARD.rows,
-                lastEnd: -Infinity, foldedAt: null };
+                lastEnd: -Infinity, foldedAt: null, newest: null };
 
 function store(key, val) {
   try { if (val === undefined) return localStorage.getItem(key); localStorage.setItem(key, val); } catch (e) { /* none */ }
@@ -1062,9 +1409,10 @@ function heardStatus(resp) {
   const h = (resp.summary || {}).household;
   if (h) {
     line.appendChild(document.createTextNode(fill(HEARD.summary, {
-      runs: h.runs_24h ?? 0, s: h.runs_24h === 1 ? '' : 's',
-      newest: h.newest_time ? houseShort(h.newest_time) : 'none',
-      wrong: h.wrong_24h ?? 0, error: h.error_24h ?? 0, as_of: clockOf((resp.summary || {}).as_of_s) })));
+      runs: h.runs_24h ?? 0, s: h.runs_24h === 1 ? '' : 's', wrong: h.wrong_24h ?? 0, error: h.error_24h ?? 0 })));
+    line.appendChild(el('span', 'sep', ' · '));
+    line.appendChild(heardNewestPart(h));
+    line.appendChild(document.createTextNode(' · ' + fill(HEARD.as_of, { as_of: clockOf((resp.summary || {}).as_of_s) })));
   } else {
     line.appendChild(document.createTextNode(HEARD.summary_none));
   }
@@ -1091,6 +1439,22 @@ function heardStatus(resp) {
   document.getElementById('heard-src').textContent = fill(HEARD.src, {
     copy: 'voice_runs.db', every: src.every_s || 60,
     status: src.age_s == null ? 'not read' : `written ${Math.round(src.age_s)} s ago` });
+}
+
+// The newest household run's words as heard and its time, set as text; the
+// summary's time alone when no run has been read.
+function heardNewestPart(h) {
+  const n = heard.newest;
+  const box = el('span', 'heard-newest');
+  if (n && n.local_time) {
+    const newest = houseShort(n.local_time);
+    box.textContent = n.heard_state === 'text'
+      ? fill(HEARD.newest, { newest, words: n.heard })
+      : fill(HEARD.newest_no_words, { newest, state: HEARD.heard_text[n.heard_state] ?? n.heard_state });
+  } else {
+    box.textContent = fill(HEARD.newest_time, { newest: h.newest_time ? houseShort(h.newest_time) : 'none' });
+  }
+  return box;
 }
 
 function rowKey(r) { return [r.start_s, r.run_id]; }
@@ -1319,7 +1683,9 @@ async function heardTick() {
   if (heard.busy) { heard.again = true; return; }   // a filter change mid-fetch runs right after it
   heard.busy = true;
   try {
-    if (!heard.box.open) heardStatus(await heardFetch(new URLSearchParams({ limit: '0' })));
+    const top = await heardFetch(new URLSearchParams({ limit: '1' }));
+    if (!top.error) heard.newest = arr(top.runs)[0] || null;
+    if (!heard.box.open || top.error) heardStatus(top);
     else if (!heard.loaded) await heardLoad();
     else await heardPatch();
   } finally {
@@ -1356,6 +1722,7 @@ function heardInit() {
 }
 
 heardInit();
+foldsInit();
 
 // ── the scheduler (work item M32 step 1) ─────────────────────────────────────
 //
