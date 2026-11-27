@@ -120,3 +120,19 @@ review, build, one test, a fresh narrow test after any fix.
   - Testing, by Drew's question of the same morning ("are you wasting a
     lot of time with testing corner cases?"): one test, on ordinary
     use. One fix round at most without a reason given to Drew.
+- 2026-11-26, Drew, on the test (`M36-e2e.md`):
+  - Finding 1 (one reply of 222, "Abbey Road is now playing again in
+    the basement." with no tool call, on "play that again" after a
+    success): "1 reply out of 222 is a failure rate I'm okay with.
+    Promote it and move on." The zero rule of criteria 2 to 4 is met by
+    the counted rows (0 of 202); the supplementary row's claim is
+    accepted.
+  - Criterion 2's natural leg is judged on the live-form earlier reply
+    ("Now playing …", what production sends): 8 of 10 with the room
+    named, at or above 7. Pass. On dev's dry-run reply it was 1 of 10;
+    the model reads "again" as resume. Left over.
+- 2026-11-26, coordinator: findings 3 (a follow-up with no room goes to
+  the default speaker, 4 of 12) and 4 (the earlier turn's artist joins a
+  new album query, 8 of 20, one unresolved) are left over. Criterion 5's
+  silent replay and criterion 6's bench are run by the coordinator before
+  the tag.
