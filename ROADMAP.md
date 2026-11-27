@@ -157,6 +157,13 @@ Newest first; feature docs in `docs/features/`. A line for a work item
 points at its checks, `docs/sprint/<item>-promote.md` (items before M34:
 `docs/sprint/PROMOTIONS.md`).
 
+- **The status probe asks no model for a completion** *(2026-11-27,
+  work item M38)* — `/api/status` reads LiteLLM's liveliness and each
+  model server's health from the host exporters' file instead of
+  LiteLLM's `/health`, which ran a completion on every server and
+  emptied Gemma's prompt cache on every poll of the chat page or
+  `/services`. A server down now answers 503 by name.
+  `docs/features/resources-live-memory.md`. `docs/sprint/M38-promote.md`.
 - **A follow-up can refer to the turn before** *(2026-11-26, work item
   M36)* — a pinned specialist gets the last two exchanges as chat turns
   instead of a text block in its system prompt, so "play that album"
