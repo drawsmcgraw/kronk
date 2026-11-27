@@ -23,10 +23,11 @@ script is not part of this copy.
 |---|---|---|
 | `permissions.defaultMode` = `auto` | Sets the permission mode a session starts in. | Purpose not recorded. |
 | `permissions.skipDangerousModePermissionPrompt` = `true` | Skips the confirmation prompt shown when a session starts with permission checks bypassed. | Purpose not recorded. |
-| `model` = `fable` | Sets the default model for new sessions. | Purpose not recorded. |
+| `model` = `opus` | Sets the default model for new sessions. | Set by Drew with `/model` on 2026-11-26 (was `fable`). |
 | `hooks.SessionStart` (matcher `*`) | Runs `herdr-agent-state.sh session` at every session start, with a 10 second timeout. | Purpose not recorded. The script name suggests it reports the session to herdr, the terminal multiplexer the agent workflow runs in (`docs/sprint/WORKFLOW.md`). |
+| `hooks.StopFailure` | Runs `scripts/hooks/stop_failure_notify.sh` when a turn ends on an API error, with a 10 second timeout. It pushes "Claude session stopped: <error>" to Drew's phone through Home Assistant, once per error type per 10 minutes. | Added 2026-11-27 on Drew's word (decision #69): the 2026-11-24 coordinator stall on an API 529 went unseen for eight hours. Not tested before it went in, by Drew's choice; the first real API error is the test. The docs do not say whether the event fires for a turn started by a background notification. |
 | `effortLevel` = `xhigh` | Sets the default reasoning effort. | Purpose not recorded. |
-| `modelSettings` | Sets an effort level per model: `claude-fable-5-1` high, `claude-opus-5-5` low, `claude-fable-5-2` medium. | Purpose not recorded. |
+| `modelSettings` | Sets an effort level per model: `claude-fable-5-1` high, `claude-opus-5-5` high, `claude-fable-5-2` medium. | Opus's `high` set by Drew with `/model` on 2026-11-26 (was `low`); the rest not recorded. |
 | `skipDangerousModePermissionPrompt` = `true` (top level) | Same setting as the one under `permissions`. It appears in both places in the live file. | Purpose not recorded. |
 | `switchModelsOnFlag` = `false` | Purpose not recorded. | Purpose not recorded. |
 | `env` | Sets environment variables for every session. The rows below list them. | See each variable. |

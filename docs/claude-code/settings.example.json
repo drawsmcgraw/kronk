@@ -3,7 +3,7 @@
     "defaultMode": "auto",
     "skipDangerousModePermissionPrompt": true
   },
-  "model": "fable",
+  "model": "opus",
   "hooks": {
     "SessionStart": [
       {
@@ -16,6 +16,17 @@
           }
         ]
       }
+    ],
+    "StopFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$HOME/git-repos/drawsmcgraw/kronk/scripts/hooks/stop_failure_notify.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
     ]
   },
   "effortLevel": "xhigh",
@@ -24,7 +35,7 @@
       "effortLevel": "high"
     },
     "claude-opus-5-5": {
-      "effortLevel": "low"
+      "effortLevel": "high"
     },
     "claude-fable-5-2": {
       "effortLevel": "medium"
