@@ -51,10 +51,11 @@ design review, build, one test, a fresh narrow test after any fix.
    specialist, the system text holds the date and no time of day; the
    time is in the agreed place, after the history; the request text the
    router and the session store see is unchanged.
-2. On dev, home route, ten pairs of requests a minute or more apart:
-   the first round of the second request caches at least 4,000 tokens
-   (it cached 893); first-round times and request times quoted, before
-   and after.
+2. On dev, home route, ten pairs of requests a minute or more apart,
+   with no `/api/status` call between them (one empties the cache:
+   `M38-criteria.md`): the first round of the second request caches at
+   least 4,000 tokens (it cached 893); first-round times and request
+   times quoted, before and after.
 3. The time is still right, ten times each through `/dev/api/chat` and
    `/dev/voice/api/chat`: "what time is it, Kronk" (typed; a spoken one
    is answered by Home Assistant) gives the minute of the clock; "what
