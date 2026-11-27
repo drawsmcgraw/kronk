@@ -94,7 +94,8 @@ parts, each left out when it has nothing to say:
 - **What**: the item's handoff line; **Shipped as**: its linked Shipped
   entries. An item with no handoff line (the 27 from before M24) shows its
   title and Shipped line only (Drew, #91).
-- **Why**: the criteria file's `Source:` paragraph, Drew's words.
+- **Why**: the criteria file's `Source:` paragraph, Drew's words, whole
+  (`work.py` `SOURCE_MAX` 4,000; the longest is 722).
 - **Waits on Drew** (or **Decisions owed by Drew**): the decisions owed by
   Drew for this item, each with its id, day, whether it blocks the item,
   and its text.
@@ -192,9 +193,14 @@ orchestrator: GET /api/work[?have=<ts>] → the file and its freshness (fresh / 
   `collect_legacy()`, import-only: `work.py import-legacy` and `check` use
   its parsers, and `tests/test_m27_work_export.py` pins them. Its output is
   schema 1.
-- **Links** from a ROADMAP entry to an item: only `work item Mxx`,
+- **Links** from a ROADMAP entry to an item: `work item Mxx`,
   `sprint Mxx` or `sprint item Mxx` (and "and Mxx") inside the entry's
   leading `*( … )*`, after its lines are joined. `M21` links both steps.
+  A Shipped entry's lead links only from its first clause (what follows a
+  `;` happened later: "2026-07-10; removed 2026-11-15, sprint M1" links
+  nothing), and its body links the ids of a parenthesis that opens with
+  them, "(M1, M1b)" or "(M7, `docs/…`)" (M32 step 2 fix 1). An id in prose,
+  "since sprint M2", links nothing.
 - **What leaves the host** is an outline. From the rows: ids, titles,
   state, tier, queue place and what holds an item, next steps, wait notes
   and why an item is held (active, queued and held items only), the end

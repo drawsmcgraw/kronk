@@ -89,7 +89,7 @@ OWNERS = ("drew", "coordinator")
 WAITS = ("drew", "outside", "item")
 ID_RE = re.compile(r"^M(\d+)([a-z]?)(?:-step(\d+))?$")
 VERDICT_WORDS = ("PASSES", "FAILS", "NOT DETERMINED")
-SOURCE_MAX = 600
+SOURCE_MAX = 4000              # Drew's words whole (longest Source: 722, M33); a bound only so a runaway paragraph can't swell work.json
 ESCAPE_WINDOW = 10             # escapes are counted within the last ten promoted items (WORKFLOW.md)
 
 DDL = """

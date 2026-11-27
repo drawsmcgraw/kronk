@@ -37,6 +37,9 @@ meta.repo, a step's model or note, an escape's text, a closed matter's
 text, a matter's source or closing words, a dropped item's reason, or an
 SQLite error's text. From files: handoff lines and Source: paragraphs, the
 open ROADMAP entries whole and, for Shipped, the title and leading *( ... )*.
+A Shipped entry links the items its lead's first clause names ("work item
+M34") and those its body cites in a parenthesis that opens with their ids
+("(M1, M1b)"); an id named in passing links nothing.
 From herdr: agents' names and statuses (never terminal_title,
 agent_session or cwd; an agent outside this repo is counted, not named).
 An agent named for an active, queued or held item is listed with that
@@ -147,6 +150,12 @@ TAG_LINE = re.compile(r"^- Tag `([^`]+)`(.*)")
 # ── ROADMAP.md ──────────────────────────────────────────────────────────────
 OPEN_SECTIONS = ("Now", "Next", "Later", "Chores")
 LINK_RE = re.compile(r"\b(?:work item|sprint item|sprint)\s+(M\d+[a-z]?)((?:\s*(?:,|and)\s*M\d+[a-z]?)*)", re.I)
+# A Shipped entry's body cites the items that shipped each part in a
+# parenthesis that opens with their ids: "removal of the retired services
+# (M1, M1b)", "ops and fetch guards (M3, M4, M4b, M5; `docs/...`)". Only
+# that form links; an id in prose ("since sprint M2", "removed 2026-11-15,
+# sprint M1") is another item's work named in passing.
+CITE_RE = re.compile(r"\((M\d+[a-z]?(?:\s*(?:,|and)\s*M\d+[a-z]?)*)\s*[;,)]")
 
 
 # ═════════════════════════════════ helpers ═════════════════════════════════
@@ -696,12 +705,24 @@ def roadmap_entry(line: int, body: list[str], open_: bool) -> dict:
     lm = re.match(r"^\s*\*\((.*?)\)\*", rest)
     lead = lm.group(1) if lm else None
     links: list[str] = []
-    for lk in LINK_RE.finditer(lead or ""):
-        ids = [lk.group(1)] + re.findall(r"M\d+[a-z]?", lk.group(2) or "")
+
+    def add(ids):
         for x in ids:
             x = norm_id(x)
             if x not in links:
                 links.append(x)
+
+    # A Shipped lead's first clause says when and by what it shipped; what
+    # follows a ';' happened to it later ("2026-07-10; removed 2026-11-15,
+    # sprint M1"), so only the first clause links. An open entry's lead is
+    # read whole, as before.
+    said = (lead or "") if open_ else (lead or "").split(";", 1)[0]
+    for lk in LINK_RE.finditer(said):
+        add([lk.group(1)] + re.findall(r"M\d+[a-z]?", lk.group(2) or ""))
+    if not open_:
+        body = rest[lm.end():] if lm else rest
+        for c in CITE_RE.finditer(body):
+            add(re.findall(r"M\d+[a-z]?", c.group(1)))
     e = {"line": line, "title": clip(title, TITLE_MAX), "lead": clip(lead, 400), "links": links}
     if open_:
         e["text"] = clip(text, ENTRY_MAX)
