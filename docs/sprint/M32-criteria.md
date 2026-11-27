@@ -372,3 +372,22 @@ the data is stale, none under reduced motion), the flash of a changed
 row, contrast (nothing that carries state in `--text3`), and the first
 screen at 960 by 540. No display mode and no pixel shift until a panel
 is picked (Drew #90).
+
+### Rulings on step 2's test
+
+- 2026-11-27, coordinator, on `M32-step2-e2e.md` (FAILS on B1). One fix
+  round, then a narrow retest (tier 2: the test found a blocker).
+  - B1 is a blocker: in the live data on every load, and the Shipped
+    line is what Drew's #91 asked the old rows to show. The exporter
+    links a Shipped entry to the ids its body names as well as its title
+    and lead, so the "Refactor sprint" entry reaches its fifteen rows.
+    The fix shows, before and after, every item each Shipped entry
+    links, and no entry may then link an item it names only in passing
+    (a reference to another item's work, not a statement that it
+    shipped); where the two cannot be told apart by rule, the fix says
+    which and leaves that entry as it was.
+  - S1 is fixed in the same round: an item's Why shows Drew's words
+    whole (M32 685 characters, M33 722; none is near 4,000).
+  - Notes 1 to 5 stand as notes. Note 2 (lines set to the same text on
+    every export) goes to step 3's criteria: a flash hangs on a row's
+    data, never on those lines.
