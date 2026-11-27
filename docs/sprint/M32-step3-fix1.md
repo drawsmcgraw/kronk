@@ -199,7 +199,11 @@ On the code (commit `9f9a722`), before this report was written:
 8582 passed, 3 skipped, 62 xfailed, 6 warnings in 217.84s (0:03:37)
 ```
 
-With this report committed: see the last lines below.
+With this report committed (`134902c`):
+
+```
+8582 passed, 3 skipped, 62 xfailed, 6 warnings in 217.96s (0:03:37)
+```
 
 ## State at the end
 
