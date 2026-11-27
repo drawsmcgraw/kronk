@@ -70,7 +70,11 @@ written:
 ===== 8593 passed, 3 skipped, 62 xfailed, 6 warnings in 218.19s (0:03:38) ======
 ```
 
-With the test and this report committed: see the commit's last line below.
+With the test and this report committed (`3c2ea66`):
+
+```
+===== 8593 passed, 3 skipped, 62 xfailed, 6 warnings in 218.05s (0:03:38) ======
+```
 
 ## State at the end
 
