@@ -25,3 +25,24 @@ new version: Drew's to confirm if one was open.
 
 Steps 2 (rows that unfold) and 3 (motion and the display) follow; M32
 stays under way.
+
+## Step 2: rows that unfold
+
+Coordinator, 2026-11-27 13:10 to 13:20 EST. Tag `item-M32-step2` at
+`5b83da8` (build `c5aaf0d`, fix 1 `40cac4b`, the narrow retest's PASSES).
+
+| Check | Result |
+| :-- | :-- |
+| Suite on the tagged tree | `8563 passed, 3 skipped, 62 xfailed` |
+| `deploy_tag.sh deploy item-M32-step2` | `/api/status` and the `/api/chat` shim ok; six Kronk containers on the tag; HA (up 9 days) and MA (up 3 weeks) not touched |
+| `/work` | 200, `Cache-Control: no-store`, stamped `b612a3370183` (step 1: `7a2332b2f04f`) |
+| `/api/work` | `schema` 4, `schema_known` 4, page version `b612a3370183`, state fresh; 71 open leftovers and decisions with text across the items; 3 of 3 owed decisions with text; M12's Shipped line "Refactor sprint"; M32's source 685 characters, whole |
+| `/voice/api/chat`, `/api/chat` | both answered with the live forecast |
+
+Not seen: the page in a browser on production (the tests' browser runs
+were on dev). Drew's look, once.
+
+Testing cost: one build, one full test (`M32-step2-e2e.md`: B1 and S1,
+both on every load of the live data), one fix round, one narrow retest
+(`M32-step2-e2e2.md`, PASSES). Both rounds found something that
+happens. Step 3 (motion) follows; M32 stays under way.
