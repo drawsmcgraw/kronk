@@ -6,6 +6,8 @@ question "is /resources accurate?" (2026-07-06: it wasn't, twice over);
 Drew's order of 2026-11-24 ("It should represent real usage information")
 and `docs/incidents/INVESTIGATION_2026-11-08_resources_page.md`.
 Criteria and evidence: `docs/sprint/M25-criteria.md`, `M25-build.md`.
+`/api/status` moved off LiteLLM's `/health` onto the same file by M38
+(2026-11-27; `docs/sprint/M38-criteria.md`, `M38-build.md`).
 
 ## What it does
 
@@ -103,6 +105,46 @@ counts). Timestamps are stored as UTC text with no zone mark
 shows its own local time. Each orchestrator counts its own calls: the
 model servers are shared, so production's and dev's pages differ.
 
+## `/api/status` reads the same file (M38)
+
+`GET /api/status` is the liveness probe behind the chat page's dot,
+`/services`' Chat card (nginx `/probe/orchestrator`), `deploy_tag.sh`'s
+check, `voice_replay.py` and `m9_lock_bench.py`. Until M38 it called
+LiteLLM's `/health`, which sends a 5-token completion to every catalog
+model; on dev one call emptied gemma's prompt cache for the home route
+(the next request cached 0 of 4,073 tokens instead of 4,072). Since M38
+it asks no model for anything:
+
+- LiteLLM: `GET /health/liveliness`, which only says the proxy answers.
+- tool_service: `GET /health`, as before.
+- Each catalog model server: its health from `llama_props.json`, by the
+  same rule `/api/servers` uses (`servers._health`): answering when its
+  port is in a fresh file with no error, not answering when it is missing
+  from a fresh file or carries an error, unknown when the file is stale,
+  missing or unreadable.
+
+200 when all of that is up; 503 when any of it is not, with `detail`
+naming each piece and why (`model server talkie: not answering: port
+11441 is not in llama_props.json (written 20 s ago)`). A stale file is
+a 503 too: the route cannot say the servers are up.
+
+The answer keeps `status`, `tool_service` (with `music_dry_run`) and an
+`llm_service` object. `llm_service` no longer holds LiteLLM's
+`healthy_endpoints` and `unhealthy_endpoints`; it holds:
+
+| Key | Meaning |
+| :-- | :-- |
+| `servers` | one row per catalog model: `name`, `port`, `health` (`answering`, `not_answering`, `unknown`), `up`, `reason` (null when answering) |
+| `source` | `llama_props.json`'s `file`, `state` (`fresh`, `stale`, `missing`, `unreadable`), `age_s`, `max_age_s`, `every_s`, `reason` |
+| `healthy_count`, `unhealthy_count` | servers answering, and the rest (kept names; they now count from the file) |
+| `down` | one line per server not answering or of unknown health, by name |
+| `litellm` | `up`, and `reason` when the liveliness call failed |
+
+On a 503 the body has `status: "down"`, `detail`, and the same
+`llm_service` and `tool_service` keys (`tool_service` is null when it did
+not answer). The health is as old as the file: up to 60 s behind a
+server that stops, longer if the props timer stops (then unknown, 503).
+
 ## Gotchas
 
 - **The exporters run from the working tree and production reads their
@@ -125,9 +167,12 @@ model servers are shared, so production's and dev's pages differ.
   `resources.html`; `HEALTH_DOT`, `SERVER_TAG` in `services.html`) so
   `tests/test_m25_fix1_pages.py` can read them: the suite has no
   JavaScript runtime, and nothing runs the pages' script.
-- **`/services`' orchestrator dot still costs completions.** Its
-  `/probe/orchestrator` is production's `/api/status`, which calls
-  LiteLLM's `/health`. Out of M25's scope; noted in `M25-build.md`.
+- **A model server that is down turns `/api/status` 503** (M38). Before
+  M38 LiteLLM's `/health` answered 200 with the server under
+  `unhealthy_endpoints`, so the route said 200. Now the chat page's dot
+  goes red, and `voice_replay.py` and `m9_lock_bench.py` refuse, while
+  any catalog server (Talkie included) is not answering or the props file
+  is stale.
 - `gpu_busy_percent` is an instant. On an idle box it reads 0 nearly
   every time.
 - RSS and GPU memory are separate kernel counters, shown side by side and
@@ -156,6 +201,10 @@ model servers are shared, so production's and dev's pages differ.
 - The health check that wasn't free: a status page whose every poll ran
   a completion on three model servers, and the CPU-only one lost its
   cache each time.
+- The same lesson twice: M25 took `/api/servers` off LiteLLM's
+  `/health`, and the liveness dot two pages over kept calling it every
+  30 s for another item, emptying the home prompt's cache each time
+  (M38).
 - Per-process GPU memory on an iGPU: why RSS lies and DRM fdinfo doesn't.
 - "State unknown" is not "not running": one definition of running, and
   stale data that says so instead of falling back to a guess.

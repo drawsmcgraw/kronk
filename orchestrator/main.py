@@ -228,13 +228,36 @@ async def model_activity():
 
 @app.get("/api/status")
 async def health_probe():
-    try:
-        async with httpx.AsyncClient(timeout=5) as client:
-            llm_h  = await client.get(f"{LLM_SERVICE_URL}/health")
-            tool_h = await client.get(f"{tools.TOOL_SERVICE_URL}/health")
-            return {"status": "ok", "llm_service": llm_h.json(), "tool_service": tool_h.json()}
-    except Exception as e:
-        raise HTTPException(status_code=503, detail=str(e))
+    """Liveness of the orchestrator, LiteLLM, tool_service and each catalog
+    model server: 200 when all are up, 503 naming each that is not (the chat
+    page's dot reads the code). No model is asked for a completion (M38):
+    LiteLLM's /health ran one on every backend and emptied gemma's prompt
+    cache on every poll, so LiteLLM is asked /health/liveliness (the proxy
+    answers) and the model servers' health is read from llama_props.json
+    (servers.model_server_health). docs/features/resources-live-memory.md."""
+    problems: list[str] = []
+    llm = servers.model_server_health(servers.load_catalog(), servers.llama_props_source())
+    problems += [f"model server {d}" for d in llm["down"]]
+    tool = None
+    async with httpx.AsyncClient(timeout=5) as client:
+        try:
+            r = await client.get(f"{LLM_SERVICE_URL}/health/liveliness")
+            r.raise_for_status()
+            llm["litellm"] = {"up": True, "reason": None}
+        except Exception as e:
+            why = f"{LLM_SERVICE_URL}/health/liveliness: {type(e).__name__}: {e}"
+            llm["litellm"] = {"up": False, "reason": why}
+            problems.append(f"LiteLLM {why}")
+        try:
+            r = await client.get(f"{tools.TOOL_SERVICE_URL}/health")
+            r.raise_for_status()
+            tool = r.json()
+        except Exception as e:
+            problems.append(f"tool_service {tools.TOOL_SERVICE_URL}/health: {type(e).__name__}: {e}")
+    if problems:
+        return JSONResponse(status_code=503, content={
+            "status": "down", "detail": "; ".join(problems), "llm_service": llm, "tool_service": tool})
+    return {"status": "ok", "llm_service": llm, "tool_service": tool}
 
 
 # ── config/ (sprint M21 step 1): POST /config/reload, GET /api/config ───────

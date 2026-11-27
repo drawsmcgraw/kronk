@@ -551,8 +551,9 @@
     userScrolled = el.scrollHeight - el.scrollTop > el.clientHeight + 80;
   });
 
-  // Liveness: /api/status answers 200 when the orchestrator, LiteLLM and
-  // tool_service all respond (503 otherwise).
+  // Liveness: /api/status answers 200 when the orchestrator, LiteLLM,
+  // tool_service and every model server are up (503 otherwise). It asks no
+  // model for a completion (M38), so polling it keeps the prompt cache.
   async function checkHealth() {
     try {
       const r = await fetch('/api/status');

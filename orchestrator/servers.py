@@ -1,5 +1,6 @@
-"""Model servers for /resources and /services (M25): the catalog's names and
-ports, joined by port with what the two host exporters measured.
+"""Model servers for /resources and /services (M25), and their health for
+/api/status (M38): the catalog's names and ports, joined by port with what
+the two host exporters measured.
 
 - litellm/config.yaml gives each model's name and port, nothing else.
 - data/gpu_mem.json (scripts/gpu_mem_export.py, every 30 s): each GPU
@@ -231,6 +232,46 @@ def _null(out: dict, reasons: dict, facts, why: str) -> None:
         reasons[f] = why
 
 
+def _health(port: int | None, props: dict, pentry: dict | None) -> tuple[str, str | None]:
+    """(health, reason) of one catalog server: whether it answered GET /props
+    when llama_props.json was written. The one definition, for /api/servers
+    and /api/status (M38). unknown when the file is not fresh."""
+    if props["state"] != "fresh":
+        return UNKNOWN, props["reason"]
+    if pentry and not pentry.get("error"):
+        return ANSWERING, None
+    if pentry:
+        return NOT_ANSWERING, pentry["error"]
+    return NOT_ANSWERING, (f"not answering: port {port} is not in llama_props.json "
+                           f"(written {round(props['age_s'])} s ago)")
+
+
+def _public(src: dict) -> dict:
+    return {k: v for k, v in src.items() if k != "data"}
+
+
+def model_server_health(catalog: list[dict], props: dict) -> dict:
+    """The llm_service block's model servers for /api/status (M38): each
+    catalog server's health from llama_props.json, by name, with the file's
+    age. Pure: no file or network access, no request to a model server or
+    LiteLLM. "down" names every server not answering or of unknown health;
+    an empty catalog is itself a reason the block is down."""
+    props_by_port = {s["port"]: s for s in _props_servers(props) if s.get("port")}
+    rows, down = [], []
+    for entry in catalog:
+        port = entry.get("port")
+        health, reason = _health(port, props, props_by_port.get(port) if port else None)
+        rows.append({"name": entry["name"], "port": port, "health": health, "up": health == ANSWERING,
+                     "reason": reason})
+        if health != ANSWERING:
+            down.append(f"{entry['name']}: {reason}")
+    if not catalog:
+        down.append(f"no model server in the catalog ({LITELLM_CONFIG_PATH} missing, empty or unreadable)")
+    healthy = sum(r["up"] for r in rows)
+    return {"servers": rows, "source": _public(props), "healthy_count": healthy,
+            "unhealthy_count": len(rows) - healthy, "down": down}
+
+
 def build_servers(catalog: list[dict], gpu: dict, props: dict, by_model: dict[str, list[str]]) -> dict:
     """The /api/servers payload from the catalog and the two sources (as
     read_source returns them). Pure: no file or network access."""
@@ -261,17 +302,7 @@ def build_servers(catalog: list[dict], gpu: dict, props: dict, by_model: dict[st
             out["state_reason"] = (f"configured, not running: port {port} is not in gpu_mem.json "
                                    f"(written {round(gpu['age_s'])} s ago)")
 
-        # Health: the server answered GET /props when llama_props.json was written.
-        if not props_fresh:
-            out["health"], out["health_reason"] = UNKNOWN, props["reason"]
-        elif pentry and not pentry.get("error"):
-            out["health"], out["health_reason"] = ANSWERING, None
-        elif pentry:
-            out["health"], out["health_reason"] = NOT_ANSWERING, pentry["error"]
-        else:
-            out["health"] = NOT_ANSWERING
-            out["health_reason"] = (f"not answering: port {port} is not in llama_props.json "
-                                    f"(written {round(props['age_s'])} s ago)")
+        out["health"], out["health_reason"] = _health(port, props, pentry)
 
         # Memory.
         if out["state"] == RUNNING:
@@ -334,11 +365,8 @@ def build_servers(catalog: list[dict], gpu: dict, props: dict, by_model: dict[st
             out["reasons"] = reasons
             others.append(out)
 
-    def public(src: dict) -> dict:
-        return {k: v for k, v in src.items() if k != "data"}
-
     return {
-        "sources": {"gpu_mem": public(gpu), "llama_props": public(props)},
+        "sources": {"gpu_mem": _public(gpu), "llama_props": _public(props)},
         # Kept from before M25 (same meaning): the memory file's age when fresh.
         "measured_age_s": gpu["age_s"] if gpu_fresh else None,
         "servers": rows,
