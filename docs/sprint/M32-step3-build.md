@@ -259,10 +259,10 @@ With this report in the tree and not committed, one failure, the one step
 2's fix report met: `test_m34_work_db.py::test_criterion_2_every_difference_from_the_old_reader_has_a_class`,
 `AssertionError: {'GONE': ['items[M32-step3]']}` (the old reader reads the
 working tree; `import-legacy --at HEAD` only committed files). With the
-report committed:
+report committed (`00fbc81`):
 
 ```
-SUITE_COMMITTED
+8578 passed, 3 skipped, 62 xfailed, 6 warnings in 218.35s (0:03:38)
 ```
 
 ## State at the end
