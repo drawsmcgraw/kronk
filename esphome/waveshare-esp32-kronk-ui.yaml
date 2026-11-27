@@ -1,0 +1,263 @@
+# Kitchen "now playing" display.
+#
+# Board: Waveshare ESP32-S3-Touch-AMOLED-2.16 (ESP32-S3R8: 8 MB octal PSRAM,
+# 16 MB flash; CO5300 480x480 AMOLED on QSPI). Pins from Waveshare's wiki
+# (docs.waveshare.com/ESP32-S3-Touch-AMOLED-2.16): QSPI SCLK GPIO38, D0-D3
+# GPIO4-7, CS GPIO12, RESET GPIO39. CS, reset, size and init come from the
+# ESPHome mipi_spi preset WAVESHARE-ESP32-S3-TOUCH-AMOLED-2.16 (2026.11.1).
+#
+# Shows the Music Assistant player on the kitchen Voice PE
+# (media_player.home_assistant_voice_0ac919_pe_01): title, artist, album and
+# whether it is playing or paused. When the player is idle, off or
+# unavailable the panel goes dark (AMOLED: a static screen burns in).
+#
+# Name and API key match the device HA already has (config entry
+# "ESPHome Web 9072c0", host 192.168.1.89), so HA keeps it without a re-pair.
+# The key is in secrets.yaml (gitignored), copied from that HA entry.
+#
+# Wi-Fi: no networks here on purpose. With none configured ESPHome uses the
+# credentials saved by ESPHome Web / improv at adoption. If those are absent
+# the device opens an AP named after the device (captive portal) and listens
+# for improv on USB, so it is recoverable without a reflash over serial.
+#
+# Known limit: HA sends nothing when an attribute is absent
+# (esphome/manager.py _send_home_assistant_state), so a track with no album
+# keeps showing the previous album until one arrives.
+#
+# Build: esphome run waveshare-esp32-kronk-ui.yaml (OTA to 192.168.1.89).
+# Fonts are fetched from Google Fonts at compile time, not by the device.
+
+substitutions:
+  name: waveshare-esp32-kronk-ui
+  friendly_name: waveshare-s3-kronk-ui
+  player: media_player.home_assistant_voice_0ac919_pe_01
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+  area: Kitchen
+  on_boot:
+    priority: -100
+    then:
+      - script.execute: refresh
+
+esp32:
+  variant: esp32s3
+  board: esp32-s3-devkitc-1
+  flash_size: 16MB
+  cpu_frequency: 240MHz
+  framework:
+    type: esp-idf
+
+psram:
+  mode: octal
+  speed: 80MHz
+
+logger:
+
+api:
+  encryption:
+    key: !secret kitchen_ui_api_key
+  on_client_connected:
+    - script.execute: refresh
+  on_client_disconnected:
+    - script.execute: refresh
+
+ota:
+  - platform: esphome
+
+wifi:
+  ap: {}
+
+captive_portal:
+
+improv_serial:
+
+# ---------------------------------------------------------------- display
+
+spi:
+  - id: display_qspi
+    type: quad
+    clk_pin: GPIO38
+    data_pins: [GPIO4, GPIO5, GPIO6, GPIO7]
+
+display:
+  - platform: mipi_spi
+    id: amoled
+    spi_id: display_qspi
+    model: WAVESHARE-ESP32-S3-TOUCH-AMOLED-2.16
+    auto_clear_enabled: false
+    update_interval: never
+
+# AMOLED brightness (no backlight; this drives the panel's brightness
+# register). Exposed to HA as "Display"; a brightness set there sticks,
+# since the render script turns it on and off without setting a level.
+light:
+  - platform: mipi_spi
+    id: panel
+    name: Display
+    display_id: amoled
+    restore_mode: ALWAYS_ON
+    default_transition_length: 0s
+
+font:
+  - file: "gfonts://Roboto@700"
+    id: font_title
+    size: 44
+    bpp: 4
+    glyphsets: [GF_Latin_Core]
+  - file: "gfonts://Roboto@400"
+    id: font_artist
+    size: 32
+    bpp: 4
+    glyphsets: [GF_Latin_Core]
+  - file: "gfonts://Roboto@400"
+    id: font_album
+    size: 26
+    bpp: 4
+    glyphsets: [GF_Latin_Core]
+  - file: "gfonts://Roboto@500"
+    id: font_status
+    size: 22
+    bpp: 4
+    glyphsets: [GF_Latin_Core]
+
+lvgl:
+  displays: [amoled]
+  buffer_size: 25%
+  disp_bg_color: 0x000000
+  pages:
+    - id: main_page
+      bg_color: 0x000000
+      widgets:
+        - label:
+            id: lbl_status
+            x: 24
+            y: 40
+            width: 432
+            text: "WAITING FOR HOME ASSISTANT"
+            text_font: font_status
+            text_color: 0x1DB954
+            long_mode: dot
+        - label:
+            id: lbl_title
+            x: 24
+            y: 96
+            width: 432
+            height: 156
+            text: ""
+            text_font: font_title
+            text_color: 0xFFFFFF
+            long_mode: dot
+        - label:
+            id: lbl_artist
+            x: 24
+            y: 268
+            width: 432
+            height: 84
+            text: ""
+            text_font: font_artist
+            text_color: 0xC8C8C8
+            long_mode: dot
+        - label:
+            id: lbl_album
+            x: 24
+            y: 368
+            width: 432
+            height: 72
+            text: ""
+            text_font: font_album
+            text_color: 0x8C8C8C
+            long_mode: dot
+
+# ---------------------------------------------------------- HA state in
+
+text_sensor:
+  - platform: homeassistant
+    id: ma_state
+    entity_id: ${player}
+    internal: true
+    on_value:
+      - script.execute: refresh
+  - platform: homeassistant
+    id: ma_title
+    entity_id: ${player}
+    attribute: media_title
+    internal: true
+    on_value:
+      - script.execute: refresh
+  - platform: homeassistant
+    id: ma_artist
+    entity_id: ${player}
+    attribute: media_artist
+    internal: true
+    on_value:
+      - script.execute: refresh
+  - platform: homeassistant
+    id: ma_album
+    entity_id: ${player}
+    attribute: media_album_name
+    internal: true
+    on_value:
+      - script.execute: refresh
+
+# ---------------------------------------------------------- render
+
+script:
+  - id: refresh
+    mode: restart
+    then:
+      - if:
+          condition:
+            not:
+              api.connected:
+          then:
+            - lvgl.label.update:
+                id: lbl_status
+                text: "WAITING FOR HOME ASSISTANT"
+            - lvgl.label.update:
+                id: lbl_title
+                text: ""
+            - lvgl.label.update:
+                id: lbl_artist
+                text: ""
+            - lvgl.label.update:
+                id: lbl_album
+                text: ""
+            - light.turn_on: panel
+          else:
+            - if:
+                condition:
+                  lambda: |-
+                    const std::string &s = id(ma_state).state;
+                    return s == "playing" || s == "paused" || s == "buffering";
+                then:
+                  - lvgl.label.update:
+                      id: lbl_status
+                      text: !lambda |-
+                        return id(ma_state).state == "paused" ? std::string("PAUSED")
+                                                              : std::string("NOW PLAYING");
+                  - lvgl.label.update:
+                      id: lbl_title
+                      text: !lambda return id(ma_title).state;
+                  - lvgl.label.update:
+                      id: lbl_artist
+                      text: !lambda return id(ma_artist).state;
+                  - lvgl.label.update:
+                      id: lbl_album
+                      text: !lambda return id(ma_album).state;
+                  - light.turn_on: panel
+                else:
+                  - lvgl.label.update:
+                      id: lbl_status
+                      text: ""
+                  - lvgl.label.update:
+                      id: lbl_title
+                      text: ""
+                  - lvgl.label.update:
+                      id: lbl_artist
+                      text: ""
+                  - lvgl.label.update:
+                      id: lbl_album
+                      text: ""
+                  - light.turn_off: panel

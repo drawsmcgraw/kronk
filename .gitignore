@@ -26,3 +26,7 @@ ops/hosts.json
 
 # Telemetry stack (Grafana admin login) — example is committed
 .env.telemetry
+
+# ESPHome device configs: secrets.yaml holds API keys; .esphome/ is the build dir
+esphome/secrets.yaml
+esphome/.esphome/
