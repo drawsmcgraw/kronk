@@ -30,7 +30,7 @@ llama.cpp models, all on one machine (AMD Ryzen AI 375, Radeon 8060S iGPU,
    frozen log up to 2026-11-26; later items' checks are in
    `docs/sprint/<item>-promote.md`.
 8. **`docs/sprint/WORKFLOW.md`** — how work items run (coordinator session,
-   Opus build agent, Fable test agent, herdr, guard rails, testing tiers,
+   Opus build and test agents, herdr, guard rails, testing tiers,
    agent git rules). Follow it when the operator orders a work item or asks
    for an agent to build or investigate. For a work item you are the
    coordinator: from the item's criteria file to its recorded promotion you

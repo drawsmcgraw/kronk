@@ -23,9 +23,18 @@ fix to an item under way is never the inline kind.
 | Role | Model | Flags | Where |
 |---|---|---|---|
 | Coordinator | the session Drew talks to | | its own herdr pane |
-| Build agent, fix agent, investigator | Opus 5.5 (`claude-opus-5-5`) | `--effort high --dangerously-skip-permissions` | its own herdr workspace |
-| End-to-end test agent | Fable 5.2 (`claude-fable-5-2`) | `--effort medium --dangerously-skip-permissions` | its own herdr workspace |
-| Design reviewer (large items, and every tier 3 item) | Fable 5.2 (`claude-fable-5-2`) | `--effort medium --dangerously-skip-permissions` | its own herdr workspace |
+| Build agent, fix agent | Opus 5.5 (`claude-opus-5-5`) | `--effort high --dangerously-skip-permissions` | its own herdr workspace |
+| End-to-end test agent | Opus 5.5 (`claude-opus-5-5`) | `--effort medium --dangerously-skip-permissions` | its own herdr workspace |
+| Design reviewer (large items, and every tier 3 item), investigator | Opus 5.5 (`claude-opus-5-5`) | `--effort medium --dangerously-skip-permissions` | its own herdr workspace |
+
+Test, review and investigate agents ran Fable 5.2 at effort medium until
+2026-11-26, when Drew moved them to Opus 5.5 at effort medium for the
+Fable token use ("change the workflow to use Opus at medium effort for
+future runs"). The test agent is still a fresh agent each round, so its
+reading is not anchored on the builder's; the model is now the same.
+`scripts/agent.py` still defaults these roles to Fable until its defaults
+are changed after M36 promotes; until then every such launch passes
+`--model claude-opus-5-5 --effort medium`.
 
 The coordinator investigates, writes the criteria and the briefs, rules on
 findings, deploys, and reports to Drew. It does not build the item, and it
@@ -318,7 +327,7 @@ $A list                       # every agent the tool launched and still knows
 ```
 
 The role sets the model: `build` and `fix` run Opus 5.5 at effort high;
-`test`, `review` and `investigate` run Fable 5.2 at effort medium; all
+`test`, `review` and `investigate` run Opus 5.5 at effort medium; all
 with permissions skipped. `--model` and `--effort` override. The name is
 `<item>-<role>`, with `--round N` adding the number from round 2 on
 (`m24-test2`; fix round 1 is `m24-fix`, round 2 `m24-fix2`), which is the
