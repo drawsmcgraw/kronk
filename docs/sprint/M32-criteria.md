@@ -266,3 +266,109 @@ Steps 2 and 3 get their criteria when step 1 is promoted, from review
   (note 10). Left as notes: 2, 3, 5, 8, 9, 12, 14. Note 1 (no real
   restart was seen with a page open): the coordinator watches the
   deploy at promotion.
+
+## Steps 2 and 3 (coordinator, 2026-11-26, after Drew's answers)
+
+Step 1 was promoted 2026-11-26 as `item-M32-step1` (promotion 38,
+`M32-promote.md`). Drew answered the review's questions the same
+evening (decisions #89 to #92 and #22, closed with his words):
+
+- "Heard" on the wall: "the 'heard' panel should show the text for the
+  last item heard. I'm not concerned about privacy/security of that
+  voice." None of the review's (a) to (c): Heard stays on `/work`, and
+  its folded line gains the newest household run's words.
+- The panel: not picked yet. No display mode and no pixel shift in M32;
+  they wait for a panel.
+- The 27 old items with no handoff line: title and Shipped line only.
+- On the wall: the item under way open; the rest unfold on a desk
+  browser.
+- #22: show all of it on `/work`. Leftover and decision text may show on
+  the LAN. `ended_why` of a dropped item stays private (M34's ruling;
+  #22 did not name it).
+
+Steps 2 and 3 stay apart (one goal per build): step 3's motion depends on
+step 2's patching leaving nodes in place. Tier 2 each; tester and builder
+by WORKFLOW.md (Opus 5.5; the test agent at effort medium).
+
+### Step 2: rows that unfold
+
+Plumbing (review 5, 6, 7 and 3.9; Drew's answers):
+
+1. Keyed patching (review 6) for Under way cards, Queue rows, Done rows
+   (keyed by `promotion` and id), the dropped list and Backlog entries
+   (keyed by title). One function for every list; a card is a fixed frame
+   of parts (head, stage, a slot for step 3's track, body), each compared
+   on its own. A node whose data is unchanged is not replaced or moved.
+2. Every item is a row that unfolds to: what (the handoff line; with
+   none, the title and the Shipped line only, Drew #91), why (`source`,
+   Drew's words), its steps (kind, round, agent, verdict or grade, start
+   and end in the house's zone), its open leftovers and decisions with
+   their text, and the decision it waits on with its text.
+3. Folds: the item under way open by default, the rest closed (Drew
+   #92). Kept across a reload in `sessionStorage`, never `localStorage`.
+   "Heard" folded on every load, as now.
+4. Page order (review 3.9): the state line and live mark, Under way,
+   Queue, Heard, Done, Dropped, Backlog.
+5. Heard's folded line (Drew #89): after the counts, the newest
+   household run's words as heard and its time in the house's zone, set
+   as text; updated when a newer run arrives. When the newest run heard
+   nothing, it says so.
+6. Exporter, schema 4, keys only added: `items[].ended_at` for a dropped
+   item; `items[].open_list` (one entry per open leftover and decision:
+   `id`, `kind`, `owner`, `blocks`, `date`, `text`); `decisions_owed[].text`.
+   M34's marker test (`tests/test_m34_work_db.py::test_criterion_6_a_marker_in_every_text_column`)
+   changes to match #22: the text columns of leftovers and decisions may
+   reach the file; every other column it covers still may not.
+7. Dropped items (M34 note 4): a folded list after Done, each id, title,
+   "dropped" and the day.
+8. Titles and labels render code and emphasis, no links (M34 note 11;
+   M32-e2e note 11). An agent named for a queued item shows on that
+   item's row, not under "Other agents" (M34 note 8).
+9. Carried from step 1's test: the banner no longer moves the page
+   (note 4); "Heard" does not read "not read" for a poll it has not yet
+   made after a cut (note 6).
+
+Criteria (by the test agent on dev, headless Firefox behind a loopback
+proxy as in step 1, fixtures in `data/dev`; it may stop and must restart
+`kronk-work-export.timer` while it holds a fixture):
+
+- 2a. Ordinary use first: `/dev/work` opened at a desk at 1280 px. The
+  item under way is open; every other row unfolds by a click and folds
+  again. For every item with a criteria file, what and why equal its
+  handoff line and source; an item with none shows its title and Shipped
+  line and no empty "what" or "why".
+- 2b. A fixture that changes one item's `next_step`: every other row's
+  node is the same node before and after (`===`), `scrollY` equal, open
+  rows still open. Repeated with a new item queued, an item promoted
+  and an item dropped.
+- 2c. Folds survive a reload in the same tab; a new tab starts from the
+  defaults; Heard is folded on every load.
+- 2d. A fixture whose leftover, decision and title text holds markup
+  (`<img src=x onerror=…>`, `[link](https://…)`) shows it as text, makes
+  no link and runs nothing. The real export carries leftover and
+  decision text.
+- 2e. The dropped list shows M29 with its day.
+- 2f. The first screen at 1920 by 1080, with one item under way open,
+  holds the state line, Under way and the Queue.
+- 2g. Heard's folded line shows the newest household run's words and
+  time, and changes within one Heard poll of a new fixture run.
+- 2h. `item-M32-step1`'s `work.html` reads the schema-4 file with no
+  script error.
+- 2i. Element and timer counts after 500 updates equal those after 5.
+- 2j. No script error and no "undefined" on the page through the run.
+- 2k. The suite passes; last lines quoted.
+- By the coordinator at promotion: `/work` on production answers with
+  schema 4 and the page version of the tag; Drew looks at it once in a
+  browser.
+
+### Step 3: motion
+
+Criteria written when step 2 is promoted, from review 4 and 10 point 5:
+the track (stations criteria, review, build, test, promote; a fix shown
+as a round count; colours from `graded`, else `verdict`; a skipped review
+hollow; the current station from `stage`), the motions of review 4
+(`transform` and `opacity` only, at most two endless, all stopped when
+the data is stale, none under reduced motion), the flash of a changed
+row, contrast (nothing that carries state in `--text3`), and the first
+screen at 960 by 540. No display mode and no pixel shift until a panel
+is picked (Drew #90).
