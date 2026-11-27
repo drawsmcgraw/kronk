@@ -466,3 +466,28 @@ restart `kronk-work-export.timer` while it holds a fixture):
   - Notes 1 to 5 stand as notes. Note 2 (lines set to the same text on
     every export) goes to step 3's criteria: a flash hangs on a row's
     data, never on those lines.
+
+### Rulings on step 3's test
+
+- 2026-11-27, coordinator, on `M32-step3-e2e.md` (FAILS on B1, B2;
+  criteria 3a to 3i pass as written). One fix round, then a narrow
+  retest (tier 2: blockers found). Both blockers happened in the live
+  data.
+  - B1: with more than one item under way, the card that moves is the
+    first whose current station has an agent `working`; if none has,
+    the first with a current station. Still at most two endless
+    animations.
+  - B2: a station whose latest round is started and not finished is
+    never drawn with an earlier round's grade. Not current: drawn as
+    reached and unfinished (no verdict colour), its count the rounds
+    started. The wall shows no verdict that does not exist.
+  - Note 2: no pulse or stripe on a station whose agent is `blocked`
+    (motion means being worked now); its red stays.
+  - S1: the clock box does not wrap "start not recorded" (the text or
+    the box, the fix agent's choice).
+  - The first screen (step 2's 2f, failing on today's data at a 994 px
+    viewport): the open Under way card shows its last five steps, the
+    earlier ones behind one fold ("N earlier steps") that keeps its
+    state like any other fold. With today's data at 1920 by 1080 (994
+    px of page) the state line, Under way and the whole Queue fit.
+  - Notes 1, 3, 4 and 5 stand as notes.
