@@ -41,9 +41,15 @@ design review, build, one test, a fresh narrow test after any fix.
    template llama.cpp applies to `gemma-4-e4b`, and Talkie's. Whichever
    it is, it is one function used by every path that calls
    `kronk_facts()`.
-3. One variable: the home weather block stays where it is. The review
-   reports how often it changes the system text in a day; moving it is
-   another item if the number says so.
+3. The home weather block's age ("fetched N minutes ago",
+   `agents.weather_context`, `age_s // 60`) changes the system text once
+   a minute on its own phase, as the clock does (`M38-build.md` point 6:
+   it cost a measured run its cache, 1,086 of 4,073 cached). It is the
+   same variable, text that changes each minute inside the system text,
+   so it moves with the clock: the weather data stays in the system
+   text, its age goes after the history beside the time. The review
+   measures that nothing else in any agent's system text changes more
+   often than daily.
 
 ## Criteria
 
@@ -72,7 +78,7 @@ design review, build, one test, a fresh narrow test after any fix.
 
 ## Out of scope
 
-- The weather block's place (plumbing 3).
+- The weather data's own place (only its age moves, plumbing 3).
 - Any other change to a prompt's text.
 - llama.cpp's cache settings.
 

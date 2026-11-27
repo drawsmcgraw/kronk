@@ -79,4 +79,11 @@ pipeline). No design review.
 
 ## Rulings
 
-(none yet)
+- 2026-11-27, coordinator, on `M38-build.md` points 1 to 3: a model
+  server down, or the exporters' file stale past its limit, answers 503
+  with the server named, as plumbing 3 says. Before, LiteLLM's `/health`
+  answered 200 with a dead server listed as unhealthy, so the old route
+  hid it. With Talkie stopped the chat dot goes red and `deploy_tag.sh`'s
+  check fails: that is the intended reading (tenet 7). A model meant to
+  be stopped leaves the catalog (`tests/test_m24_catalog.py`). Health
+  lags the server by up to the props timer's 60 s; accepted.
