@@ -167,8 +167,21 @@ the dev-export test skips (its file predated the fix).
 
 ## The suite
 
+On the code, before this report existed (code commit `40cac4b`):
+
 ```
 8563 passed, 3 skipped, 62 xfailed, 6 warnings in 217.12s (0:03:37)
+```
+
+With this report written and not yet committed, one failure:
+`test_m34_work_db.py::test_criterion_2_every_difference_from_the_old_reader_has_a_class`,
+`AssertionError: {'GONE': ['items[M32-step2].steps[M32-step2-fix1.md]']}`.
+The old reader reads the working tree; `import-legacy --at HEAD` reads
+only committed files, so an uncommitted step report is "GONE". Not a fault
+of the fix. With the report committed (`8e12903`):
+
+```
+8563 passed, 3 skipped, 62 xfailed, 6 warnings in 217.40s (0:03:37)
 ```
 
 ## State at the end
