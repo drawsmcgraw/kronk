@@ -526,19 +526,22 @@ upstream_url = "https://raw.githubusercontent.com/music-assistant/voice-support/
 # ── Excluded ─────────────────────────────────────────────────────────────
 
 [[component]]
-# Drew 2026-11-14: Music Assistant stays on the fork with the Pandora
-# station-create patch until that work is merged upstream; then it becomes
-# an ordinary component under these rules.
+# Drew 2026-11-14: Music Assistant stays excluded until the Pandora
+# station-create work is merged upstream; then it becomes an ordinary
+# component under these rules. 2026-11-27: moved from the derived
+# kronk/music-assistant image to stock 2.11.0b11 for the YouTube Music fix
+# (INCIDENT_2026-11-27_ytmusic_challenge_solver.md); still a beta, still
+# excluded.
 name = "music-assistant"
 kind = "image"
 order = 300
 file = "docker-compose.ma.yml"
-match = '^\s*image:\s*kronk/music-assistant:(\S+)'
-image = "kronk/music-assistant"
-pattern = '^(\d+)\.(\d+)\.(\d+)(?:b(\d+))?-kronk\.(\d+)$'
+match = '^\s*image:\s*ghcr\.io/music-assistant/server:(\S+)'
+image = "ghcr.io/music-assistant/server"
+pattern = '^(\d+)\.(\d+)\.(\d+)(?:b(\d+))?$'
 same = 0
 minor = "excluded"
-why = "Music Assistant is excluded (Drew 2026-11-14): local fork with the Pandora patch"
+why = "Music Assistant is excluded (Drew 2026-11-14): beta channel; Pandora create-station not upstream yet"
 releases = "github:music-assistant/server"
 container = "music-assistant-server"
 

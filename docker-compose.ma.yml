@@ -50,7 +50,13 @@ name: kronk-ma
 services:
   music-assistant:
     # Pinned 2026-06-12 to the running version — MA upgrades are deliberate acts.
-    image: kronk/music-assistant:2.11.0b5-kronk.9   # derived: stock 2.11.0b5 + Pandora thumbs (set_favorite) + create-station patch (ma/Dockerfile, fork f7acc5c62 + uncommitted create-station v2: search-cache invalidation). Previous: kronk.8 (create-station without the cache fix). Rollback: kronk/music-assistant:2.11.0b2-kronk.1 + restore ~/backups/ma/ma-config-2.11.0b2-20261016-155012-quiesced.tgz (b5 migrates the DB)
+    # 2026-11-27: stock 2.11.0b11 (digest sha256:2acb3ee333cb25266ff10ecec39611a4203c097930920f5adcd48903e610cb71).
+    # Moved off the derived kronk.9 image for the YouTube Music fix: b11's ytmusic provider
+    # upgrades yt-dlp at load, b5 never did (INCIDENT_2026-11-27_ytmusic_challenge_solver.md).
+    # Pandora thumbs (set_favorite) is upstream in b11; Pandora create-station is NOT (lost
+    # with this move until it lands upstream). Rollback: kronk/music-assistant:2.11.0b5-kronk.9
+    # + restore ~/backups/ma/ma-config-2.11.0b5-20261127-155233-quiesced.tgz (b11 migrates the DB).
+    image: ghcr.io/music-assistant/server:2.11.0b11
     container_name: music-assistant-server
     network_mode: host
     # Intentionally NO cap_add / security_opt — the NAS share is mounted by
