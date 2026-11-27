@@ -29,7 +29,10 @@ below). M32 step 3 (the same criteria file, "Step 3: motion (criteria,
 coordinator, 2026-11-27)"; `M32-step3-build.md`): a track of stations on
 the item under way and on Done rows, the current station pulsing, a stripe
 while an agent works, the agent's time counting, a flash on a changed row,
-and nothing that carries state in the faintest grey ("Motion", below).
+and nothing that carries state in the faintest grey ("Motion", below). Its
+fix round (`M32-step3-fix1.md`, the criteria's "Rulings on step 3's test"):
+the card being worked moves, an unfinished round shows no grade, a blocked
+station stands still, and the item under way shows its last five steps.
 
 ## What it does
 
@@ -109,7 +112,11 @@ parts, each left out when it has nothing to say:
   all of it on /work").
 - **Steps**: each step's kind and round ("criteria (round 2)", "test 1"),
   its start and end in the house's zone, the test's verdict, the
-  coordinator's grading, the agent and the report file.
+  coordinator's grading, the agent and the report file. On the item under
+  way's card, the last five (`STEPS_FOLD.shown`); the earlier ones sit
+  behind one fold, "N earlier steps", closed by default and kept like any
+  other fold (key `uw:<id>:steps`). Done rows show every step. (Step 3's
+  test: M32's thirteen steps pushed the Queue off a 994 px page.)
 
 The item under way is open by default, every other row closed (Drew, #92:
 on the wall, the item under way open; the rest unfold on a desk browser).
@@ -522,9 +529,16 @@ coordinator, 2026-11-27)". Built for a browser on a panel not yet picked
   more stations. A stopped step is not counted (M36's build). "promote"
   is filled on a Done row. A test station is green, red or amber by the
   last finished test's grading, else its verdict (M36: graded "pass", no
-  verdict). A review with none recorded, once a build or a test is filled
-  or the current station is past it, is drawn hollow (a dashed ring) and
-  labelled "review skipped". The page computes no stage: the current
+  verdict). A station whose latest round (by start) is started and not
+  finished, and that is not current, is drawn "started": half filled, in
+  the text colour, no verdict colour, its count the rounds started (an
+  agent between turns: herdr's `done` or `idle`). It never carries an
+  earlier round's grade; the grade is the latest finished round's, by
+  start (`latestRound`: the list is in the order steps were recorded, and
+  M32's fix 3 was recorded before its test 4 finished). A review with none
+  recorded, once a build or a test is filled or started, or the current
+  station is past it, is drawn hollow (a dashed ring) and labelled
+  "review skipped". The page computes no stage: the current
   station is `STAGE_STATION[items[].stage.stage]`, the exporter's own key
   (`planning` criteria, `reviewing` review, `implementing` and `fixing`
   build, `testing` test, `to_promote` and `promoting` promote; `waiting`
@@ -536,16 +550,20 @@ coordinator, 2026-11-27)". Built for a browser on a panel not yet picked
   later draws change a station's classes one by one, only where they
   differ, and its label. A station keeps its node, so a pulse runs on
   through an update.
-- **What moves, the first item under way only**: its current station's
+- **What moves, one card only**: the first item under way whose current
+  station has an agent `working`; if none has, the first with a current
+  station. A station whose agent is `blocked` (the exporter's
+  `stage.blocked`) never moves and is passed over: it stays red and
+  still. The chosen station's
   dot pulses (opacity 1 → 0.35 → 1, 2.4 s, never above its rest); a
   stripe runs across that station while the item has an agent `working`
   (a `::after` moved by `transform` inside the station's `overflow:
   hidden`, 2 s); the agent's time counts each second beside the track
   (`m32-build3 12:41`: the route's clock, the file's `ts` plus the data's
   age, less the start of the step the agent is named on; tabular figures
-  in an 8ch box with `contain: content`). Which card moves is set by
-  `renderMoving` after each patch, not drawn from the row's data, so the
-  second item under way becoming the first does not flash. At most two
+  in a box at least 8ch wide that never wraps, with `contain: content`).
+  Which card moves is set by `renderMoving` after each patch, not drawn
+  from the row's data, so a card that begins to move does not flash. At most two
   endless animations at any time.
 - **Once, on a change**: a row flashes when it is new or one of its
   parts' signatures changed (`patchList`'s `flash`: "change" for Under
@@ -642,12 +660,14 @@ coordinator, 2026-11-27)". Built for a browser on a panel not yet picked
   test with no grading, or graded fail, the exporter's stage is `waiting`;
   the track then shows what is done and nothing pulses until a step or an
   agent starts. Motion means "being worked now".
-- **Two items under way: the second stands still.** Its current station
-  is drawn blue, without pulse or stripe, so the page never runs more than
-  two endless animations.
+- **Two items under way: one moves.** The one being worked (or, with
+  none worked, the first with a current station); the other's current
+  station is drawn blue, without pulse or stripe, so the page never runs
+  more than two endless animations. Two items both worked: the first.
 - **An agent's clock needs a started step naming it.** An agent working
   with no started step (herdr sees it, `work.py step start` was not run)
-  shows "start not recorded" beside its name.
+  shows "start not recorded" beside its name, on one line (the box grows
+  past its 8ch for it).
 - **`document.getAnimations()` always holds the cover's** `cover-show`
   (opacity, one iteration, 90 s delay, restarted on every answered poll)
   and, for 0.9 s after each poll, the beat: they are step 1's and not

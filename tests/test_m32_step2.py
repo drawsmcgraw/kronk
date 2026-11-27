@@ -236,7 +236,7 @@ def test_a_row_is_a_fixed_frame_with_a_slot_for_the_track():
 def test_the_body_unfolds_to_what_why_decisions_leftovers_and_steps():
     b = _body("bodyInto")
     for needle in ("it.handoff", "ROW_TEXT.what", "it.shipped", "ROW_TEXT.shipped", "it.source", "ROW_TEXT.why",
-                   "ROW_TEXT.waits_on_drew", "ROW_TEXT.owed", "it.open_list", "ROW_TEXT.open", "stepsBlock(it)"):
+                   "ROW_TEXT.waits_on_drew", "ROW_TEXT.owed", "it.open_list", "ROW_TEXT.open", "stepsBlock(it, stepsFold)"):
         assert needle in b, needle
     # A part with nothing to say is not drawn: what only with a handoff, why only with a source.
     assert "if (it.handoff) mdText(part(body, ROW_TEXT.what)" in b and "if (it.source) mdText(part(body, ROW_TEXT.why)" in b

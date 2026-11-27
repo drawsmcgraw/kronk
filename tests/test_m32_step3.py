@@ -102,7 +102,7 @@ def test_a_test_station_takes_graded_before_verdict_and_a_skipped_review_is_holl
     g, v = t.index("last.graded ?"), t.index("TRACK.verdict[")
     assert g < v
     assert "st === 'review' && past ? 'skipped'" in t
-    assert "done.build || done.test || curAt > TRACK.stations.indexOf('review')" in t
+    assert "done.build || done.test || open.build || open.test || curAt > TRACK.stations.indexOf('review')" in t
     rules = dict(_rules())
     assert "border-style: dashed" in rules[".stn.skipped .stn-dot"] and "transparent" in rules[".stn.skipped .stn-dot"]
 
@@ -168,10 +168,18 @@ def test_endless_motion_stops_when_still_and_under_reduced_motion():
     assert "renderMotion(now);" in _body("renderLive")
 
 
-def test_only_the_first_item_under_way_moves():
+def test_the_card_that_moves_is_the_first_being_worked():
+    """Ruling on step 3's test, B1: with more than one item under way, the
+    card that moves is the first whose current station has an agent
+    working; if none has, the first with a current station. One station
+    moves, so still at most two endless effects."""
     rm = _body("renderMoving")
-    assert "const first = i++ === 0;" in rm and "first && n.classList.contains('cur')" in rm
+    assert "const pick = cur.find(n => n.classList.contains('working')) || cur[0] || null;" in rm
+    assert "const want = n === pick;" in rm                    # one station on the whole of Under way
+    assert "first" not in rm and "i++" not in rm               # never by place alone
     assert "renderMoving();" in _body("renderUnderWay")
+    # "working" is set on a current station only while an agent works and the stage is not blocked.
+    assert "s.state === 'cur' && clock && !blocked ? 'working' : null" in _body("trackPart")
     # Which card moves is not in the track's signature: becoming first is no flash.
     assert "return [sig(t, clock, blocked), p => {" in _body("trackPart")
 
@@ -228,3 +236,64 @@ def test_nothing_that_carries_state_is_drawn_in_text3():
     # And no note-line is filled from the data but that count.
     for m in re.finditer(r"el\('[a-z]+', 'note-line'", CODE):
         pytest.fail(f"a note-line drawn from data: {m.group(0)}")
+
+
+# ═══ the rulings on step 3's test (M32-criteria.md) ═════════════════════════
+
+def test_note2_a_blocked_station_never_moves_and_keeps_its_red():
+    rm = _body("renderMoving")
+    assert "n.classList.contains('cur') && !n.classList.contains('blocked')" in rm
+    tp = _body("trackPart")
+    assert "s.state === 'cur' && blocked ? 'blocked' : null" in tp
+    rules = dict(_rules())
+    assert "var(--red)" in rules[".stn.cur.blocked"] and "var(--red)" in rules[".stn.cur.blocked .stn-dot"]
+    # No endless rule names a blocked station: the pulse and the stripe hang on "moving" alone.
+    for sel, d in _rules():
+        if "infinite" in d:
+            assert "blocked" not in sel, sel
+
+
+def test_b2_an_unfinished_round_is_never_drawn_with_an_earlier_grade():
+    t = _body("trackOf")
+    assert "open[st] = (latestRound(mine) || {}).state === 'started';" in t
+    # Not current and unfinished comes before filled: an earlier finished round never fills it.
+    assert "i === curAt ? 'cur' : open[st] ? 'started' : done[st] ? 'done'" in t
+    # No grade on a station that is not filled.
+    assert "grade: state === 'done' ? grade : null" in t
+    # The count is the rounds started: started steps are counted, stopped ones not.
+    assert "count[st] = mine.length;" in t and "s.state !== 'stopped'" in t
+    # The grade is the latest finished round's, by the same rule.
+    assert "const last = latestRound(tests);" in t
+    lr = _body("latestRound")
+    assert "(s.started_at || '') >= (last.started_at || '')" in lr
+    rules = dict(_rules())
+    dot = rules[".stn.started .stn-dot"]
+    for colour in ("--green", "--red", "--amber", "--blue", "--text3"):
+        assert colour not in dot + rules[".stn.started"], colour
+    # The grade class is put on a filled station only.
+    assert "s.state === 'done' ? s.grade : null" in _body("trackPart")
+
+
+def test_s1_the_clock_box_does_not_wrap():
+    clock = dict(_rules())[".stn-clock"]
+    assert "white-space: nowrap" in clock and "min-width: 8ch" in clock
+    assert _literal("TRACK")["no_start"] == "start not recorded"
+
+
+def test_the_card_under_way_shows_its_last_five_steps_and_folds_the_rest():
+    assert _literal("STEPS_FOLD") == {"shown": 5, "key": "{row}:steps"}
+    t = _literal("ROW_TEXT")
+    assert t["earlier_one"] == "1 earlier step" and t["earlier_many"] == "{n} earlier steps"
+    sb = _body("stepsBlock")
+    assert "const cut = fold ? Math.max(0, all.length - STEPS_FOLD.shown) : 0;" in sb
+    # One fold, closed by default, kept like any other (foldable: sessionStorage, the one toggle listener).
+    assert "foldable(box.appendChild(el('details', 'steps-earlier')), fold, false)" in sb
+    assert sb.count("foldable(") == 1 and "all.slice(0, cut)" in sb and "all.slice(cut)" in sb
+    assert "...arr(it.steps), ...arr(it.uncommitted)" in sb
+    # Only the item under way's card: Done rows show every step.
+    assert "stepsFold: true" in _body("renderUnderWay") and "stepsFold" not in _body("doneRow")
+    ir = _body("itemRow")
+    assert "fill(STEPS_FOLD.key, { row: key })" in ir and "bodyInto(p, it, owed, stepsFold)" in ir
+    assert "stepsBlock(it, stepsFold)" in _body("bodyInto")
+    # Its marker in --text2 like the other folds' (generic details summary), never --text3.
+    assert "var(--text3)" not in "".join(d for s_, d in _rules() if "steps-earlier" in s_)

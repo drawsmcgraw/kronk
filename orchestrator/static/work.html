@@ -146,17 +146,22 @@
   details.fold-list > .note-line { margin-top: 8px; }
   details.fold-list > summary .count { color: var(--text2); }
   .heard-newest { color: var(--text); }
+  details.steps-earlier > summary { list-style: none; margin-top: 0; }
+  details.steps-earlier > summary::-webkit-details-marker { display: none; }
+  details.steps-earlier > summary::before { content: "▸ "; }
+  details.steps-earlier[open] > summary::before { content: "▾ "; }
+  details.steps-earlier > .steps { margin-top: 3px; }
 
   /* The track and its motion (M32 step 3, M32-review point 4). Five stations
      in each row's track slot, on the item under way's card and on Done rows.
      A station is filled (green; a test by its grading, else its verdict),
-     current (blue), hollow (a skipped review: a dashed ring) or not reached
-     (a ring). Only transform and opacity move: the current station's dot
+     current (blue), started and unfinished (half filled, no verdict colour),
+     hollow (a skipped review: a dashed ring) or not reached (a ring). Only transform and opacity move: the current station's dot
      pulses (opacity dipping below its resting 1, never above), a stripe runs
      across it while an agent works (a pseudo-element moved by transform
      inside overflow: hidden), a changed row flashes once and a new verdict
      fades in once. The pulse and the stripe are the only endless effects and
-     run on the first item under way only; .motion-still (no poll answered
+     run on one card only (renderMoving), never on a blocked station; .motion-still (no poll answered
      for 30 s, or data not fresh) and reduced motion stop them. Nothing here
      uses --text3: everything on the track carries state. */
   details.row > summary { position: relative; }
@@ -177,6 +182,8 @@
   .stn.done.fail { color: var(--red); }
   .stn.done.nd { color: var(--amber); }
   .stn.skipped { font-style: italic; }
+  .stn.started { color: var(--text); }
+  .stn.started .stn-dot { border-color: var(--text); background: linear-gradient(90deg, var(--text) 50%, transparent 50%); }
   .stn.skipped .stn-dot { border-style: dashed; background: transparent; }
   .stn.cur { color: var(--blue); font-weight: 700; border-color: var(--blue); background: rgba(59, 130, 246, 0.15); }
   .stn.cur .stn-dot { background: var(--blue); border-color: var(--blue); }
@@ -191,7 +198,7 @@
   .stn.fade-in { animation: stn-fade 1.2s ease-out 1; }
   @keyframes stn-fade { from { opacity: 0; } to { opacity: 1; } }
   .stn-agent { margin-left: 12px; color: var(--text2); font-family: 'JetBrains Mono', monospace; font-size: 11.5px; }
-  .stn-clock { display: inline-block; width: 8ch; margin-left: 6px; contain: content; font-variant-numeric: tabular-nums;
+  .stn-clock { display: inline-block; min-width: 8ch; white-space: nowrap; margin-left: 6px; contain: content; font-variant-numeric: tabular-nums;
                font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--text); }
   .stn-agent[hidden], .stn-clock[hidden] { display: none; }
   .motion-still .stn.moving .stn-dot { animation: none; }
@@ -417,7 +424,8 @@ const ROW_TEXT = {
   "step_stopped_bare": "stopped", "uncommitted": "written, not committed", "graded": "graded {g}",
   "no_steps": "no steps recorded",
   "matter_id": "#{id}", "owner_none": "not triaged", "blocks": "blocks the item",
-  "dropped": "dropped", "dropped_one": "1 item", "dropped_many": "{n} items", "no_day": "day not recorded"
+  "dropped": "dropped", "dropped_one": "1 item", "dropped_many": "{n} items", "no_day": "day not recorded",
+  "earlier_one": "1 earlier step", "earlier_many": "{n} earlier steps"
 };
 const MATTER_KIND = {"leftover": "leftover", "decision": "decision"};
 const OWNER_WORD = {"drew": "Drew", "coordinator": "coordinator"};
@@ -425,6 +433,10 @@ const OWNER_WORD = {"drew": "Drew", "coordinator": "coordinator"};
 // Folds kept across a reload: this tab's sessionStorage, only those that
 // differ from their default (the item under way open, the rest closed).
 const FOLD = {"store": "kronk.work.folds"};
+// The item under way's card shows its last steps_shown steps; the earlier
+// ones sit behind one fold, closed by default and kept like any other
+// (M32 step 3 ruling: the first screen at 1920 by 1080).
+const STEPS_FOLD = {"shown": 5, "key": "{row}:steps"};
 
 // The track (work item M32 step 3, M32-review point 4): its stations in
 // order and the step kinds each counts. A station is filled when a finished
@@ -433,7 +445,10 @@ const FOLD = {"store": "kronk.work.folds"};
 // "build" counts builds and fixes and "test" counts tests, and a count over
 // one is shown as rounds ("test 3"). A stopped step is not counted.
 // "promote" is filled for a promoted item. A test station takes its colour
-// from the last finished test's grading, else its verdict. A review with
+// from the last finished test's grading, else its verdict. A station whose
+// latest round (by start) is started and not finished, and that is not
+// current, is drawn "started": reached, unfinished, no verdict colour, its
+// count the rounds started; never an earlier round's grade. A review with
 // none recorded is "skipped" (hollow) once a build or a test is filled or
 // the current station is past it.
 const TRACK = {
@@ -863,10 +878,19 @@ function stepRow(s) {
   return row;
 }
 
-function stepsBlock(it) {
+// fold: the key of the fold the earlier steps sit behind (the item under
+// way's card), or none (every step shown).
+function stepsBlock(it, fold) {
   const box = el('div', 'steps');
-  for (const s of arr(it.steps)) box.appendChild(stepRow(s));
-  for (const s of arr(it.uncommitted)) box.appendChild(stepRow(s));
+  const all = [...arr(it.steps), ...arr(it.uncommitted)];
+  const cut = fold ? Math.max(0, all.length - STEPS_FOLD.shown) : 0;
+  if (cut) {
+    const det = foldable(box.appendChild(el('details', 'steps-earlier')), fold, false);
+    det.appendChild(el('summary', null, fill(cut === 1 ? ROW_TEXT.earlier_one : ROW_TEXT.earlier_many, { n: cut })));
+    const earlier = det.appendChild(el('div', 'steps'));
+    for (const s of all.slice(0, cut)) earlier.appendChild(stepRow(s));
+  }
+  for (const s of all.slice(cut)) box.appendChild(stepRow(s));
   if (!box.childNodes.length) box.appendChild(el('div', 'v-none', ROW_TEXT.no_steps));
   return box;
 }
@@ -893,7 +917,7 @@ function part(body, label) {
 
 // What the row unfolds to. With no handoff line, what is the Shipped line
 // only (Drew #91); a part with nothing to say is left out, never empty.
-function bodyInto(body, it, owed) {
+function bodyInto(body, it, owed, stepsFold) {
   if (it.handoff) mdText(part(body, ROW_TEXT.what).appendChild(el('div', 'handoff')), it.handoff);
   const shipped = arr(it.shipped);
   if (shipped.length) {
@@ -916,7 +940,7 @@ function bodyInto(body, it, owed) {
     const box = part(body, ROW_TEXT.open);
     for (const m of rest) box.appendChild(matterRow(m));
   }
-  part(body, ROW_TEXT.steps).appendChild(stepsBlock(it));
+  part(body, ROW_TEXT.steps).appendChild(stepsBlock(it, stepsFold));
   for (const e of arr(it.roadmap)) {
     const box = body.appendChild(el('div', 'linked'));
     box.appendChild(el('div', 'src', 'Backlog entry'));
@@ -938,26 +962,37 @@ function trackOf(it, current, promoted) {
   const steps = arr(it.steps).filter(s => s && s.state !== 'stopped');
   const cur = current ? (STAGE_STATION[(it.stage || {}).stage] ?? null) : null;
   const curAt = TRACK.stations.indexOf(cur);
-  const count = {}, done = {};
+  const count = {}, done = {}, open = {};
   for (const st of TRACK.stations) {
     const mine = steps.filter(s => arr(TRACK.kinds[st]).includes(s.kind));
     count[st] = mine.length;
     done[st] = mine.some(s => s.state === 'finished');
+    open[st] = (latestRound(mine) || {}).state === 'started';
   }
   done.promote = !!promoted;
   const tests = steps.filter(s => s.kind === 'test' && s.state === 'finished');
-  const last = tests[tests.length - 1];
+  const last = latestRound(tests);
   const grade = !last ? null
     : last.graded ? (TRACK.graded[last.graded] ?? TRACK.graded_other)
     : (TRACK.verdict[last.verdict ?? (arr(last.verdicts).find(v => v.subject === 'item') || {}).verdict] ?? null);
-  const past = done.build || done.test || curAt > TRACK.stations.indexOf('review');
+  const past = done.build || done.test || open.build || open.test || curAt > TRACK.stations.indexOf('review');
   return TRACK.stations.map((st, i) => {
-    const state = i === curAt ? 'cur' : done[st] ? 'done' : st === 'review' && past ? 'skipped' : 'todo';
+    const state = i === curAt ? 'cur' : open[st] ? 'started' : done[st] ? 'done' : st === 'review' && past ? 'skipped' : 'todo';
     const label = fill(state === 'skipped' ? TRACK.skipped : count[st] > 1 ? TRACK.rounds : TRACK.label,
                        { station: st, n: count[st] });
-    return st === 'test' ? { station: st, state, label, grade, verdict_of: tests.length }
+    // A grade only on a filled station: an unfinished round has none yet.
+    return st === 'test' ? { station: st, state, label, grade: state === 'done' ? grade : null, verdict_of: tests.length }
                          : { station: st, state, label, grade: null };
   });
+}
+
+// A station's latest round: the step started last (ISO times compare as
+// text), the later in the list on a tie or with no start (the list is the
+// database's order, by when a step was recorded, not when it started).
+function latestRound(mine) {
+  let last = null;
+  for (const s of mine) if (!last || (s.started_at || '') >= (last.started_at || '')) last = s;
+  return last;
 }
 
 // The agent whose time counts: the first of the item's agents that is
@@ -1050,18 +1085,22 @@ function renderClocks(now) {
   }
 }
 
-// The current station of the first item under way moves (pulse; stripe
-// while an agent works); every other card's stands still: at most two
-// endless effects. Set after each patch of Under way, only where it differs.
+// One current station moves (pulse; stripe while an agent works), on one
+// card: the first whose current station has an agent working, else the
+// first with a current station. A blocked station never moves (motion
+// means being worked now; its red stays) and is passed over. Every other
+// card's stands still: at most two endless effects. Set after each patch
+// of Under way, only where it differs.
 function renderMoving() {
-  let i = 0;
-  for (const card of document.getElementById('under-way').children) {
-    const first = i++ === 0;
-    for (const n of (card._parts && card._parts.track && card._parts.track._stn) || []) {
-      const want = first && n.classList.contains('cur');
-      if (n.classList.contains('moving') === want) continue;
-      if (want) n.classList.add('moving'); else n.classList.remove('moving');
-    }
+  const stns = [];
+  for (const card of document.getElementById('under-way').children)
+    stns.push(...((card._parts && card._parts.track && card._parts.track._stn) || []));
+  const cur = stns.filter(n => n.classList.contains('cur') && !n.classList.contains('blocked'));
+  const pick = cur.find(n => n.classList.contains('working')) || cur[0] || null;
+  for (const n of stns) {
+    const want = n === pick;
+    if (n.classList.contains('moving') === want) continue;
+    if (want) n.classList.add('moving'); else n.classList.remove('moving');
   }
 }
 
@@ -1076,13 +1115,15 @@ function renderMotion(now) {
   if (still) m.classList.add(MOTION.still_class); else m.classList.remove(MOTION.still_class);
 }
 
-// opts: {track: [sig, draw, true], flash: "change" | "new"} (step 3).
+// opts: {track: [sig, draw, true], flash: "change" | "new", stepsFold: true}
+// (step 3; stepsFold: the earlier steps behind a fold keyed by the row).
 function itemRow(key, cls, byDefault, it, owed, head, stage, opts) {
   const o = opts || {};
+  const stepsFold = o.stepsFold ? fill(STEPS_FOLD.key, { row: key }) : null;
   const parts = {
     head: [sig(it.id, it.title, head[0]), p => headInto(p, it, head[1] ? head[1]() : null)],
     stage: [stage[0], stage[1]],
-    body: [bodySig(it, owed), p => bodyInto(p, it, owed)],
+    body: [bodySig(it, owed), p => bodyInto(p, it, owed, stepsFold)],
   };
   if (o.track) parts.track = o.track;
   return { key, make: () => rowFrame(cls, key, byDefault), parts, flash: o.flash };
@@ -1113,8 +1154,9 @@ function renderUnderWay(w, items, owed) {
         if (it.waits_on) p.appendChild(el('span', 'notes', fill(QUEUE_TEXT.waits, { on: it.waits_on, note: it.waits_note })));
         for (const n of arr(it.notes)) p.appendChild(el('span', 'notes', n));
       }],
-      // Its track with a current station; the first item under way moves (renderMoving).
-      { track: trackPart(it, true, false), flash: 'change' });
+      // Its track with a current station; one card moves (renderMoving). Its
+      // last steps shown, the earlier behind a fold.
+      { track: trackPart(it, true, false), flash: 'change', stepsFold: true });
   });
   patchList(document.getElementById('under-way'), uniqueKeys(rows.length ? rows : [noneRow()]));
   renderMoving();
