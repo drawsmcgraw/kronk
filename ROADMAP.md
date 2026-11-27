@@ -157,6 +157,15 @@ Newest first; feature docs in `docs/features/`. A line for a work item
 points at its checks, `docs/sprint/<item>-promote.md` (items before M34:
 `docs/sprint/PROMOTIONS.md`).
 
+- **A follow-up can refer to the turn before** *(2026-11-26, work item
+  M36)* — a pinned specialist gets the last two exchanges as chat turns
+  instead of a text block in its system prompt, so "play that album"
+  after "play the album Pulse by Pink Floyd" plays Pulse (typed, and
+  through the shims when the client resends the conversation; a spoken
+  "play …" is a new conversation in the music blueprint).
+  `docs/features/agents-as-tools-routing.md`,
+  `docs/incidents/INVESTIGATION_2026-11-26_play_that_album.md`.
+  `docs/sprint/M36-promote.md`.
 - **`/work` for a wall display** *(2026-11-27, work item M32)* — the
   page polls every 3 s and shows it is alive, survives deploys and
   outages without a touch, and reloads itself after one; every item is a
