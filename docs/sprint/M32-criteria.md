@@ -373,6 +373,81 @@ row, contrast (nothing that carries state in `--text3`), and the first
 screen at 960 by 540. No display mode and no pixel shift until a panel
 is picked (Drew #90).
 
+### Step 3: motion (criteria, coordinator, 2026-11-27)
+
+Step 2 was promoted 2026-11-27 as `item-M32-step2` (promotion 40). The
+untracked `esphome/waveshare-esp32-kronk-ui.yaml` in the tree is the
+kitchen "now playing" panel (an AMOLED ESP32 reading Home Assistant),
+not the `/work` display; the wall's panel is still not picked (Drew
+#90). Motion is built for a browser on an unknown panel.
+
+Plumbing (review 4 and 10.5; step 2's note 2):
+
+1. The track, in each row's empty track slot (step 2's `row-track`):
+   stations criteria, review, build, test, promote. A station is filled
+   when a finished step of its kind exists (`steps[].kind`, `state`),
+   not by its place in the list. A fix is a return to build and test,
+   shown as a round count on the station ("test 3"). A test station
+   takes its colour from `graded`, else `verdict`. A skipped review is
+   drawn hollow. The current station comes from `items[].stage.stage`;
+   the page computes no stage. Shown on the item under way's row and on
+   Done rows (static); not on queued, held or dropped rows.
+2. What moves, for the item under way only: the current station pulses
+   (opacity that dips below its resting brightness, never above); a
+   stripe runs on it while one of the item's agents is `working` (a
+   pseudo-element moved by `transform` inside `overflow: hidden`, not
+   `background-position`); the agent's elapsed time counts each second
+   (tabular figures, a fixed-width box with `contain: content`, step 1's
+   clock rules). Once, on a change: a row whose data changed flashes; a
+   verdict fades in. Nothing flashes on first load, and nothing hangs on
+   the lines step 2 sets to the same text on every export (its note 2):
+   the flash is driven by a row part's signature changing.
+3. What does not move: a finished item's slide to Done (the card leaves,
+   the Done row flashes); anything for a queued, held, promoted or
+   dropped item.
+4. Rules: only `transform` and `opacity` are animated. At most two
+   endless animations run at once (the pulse and the stripe). All
+   endless motion stops when the data is stale or no poll has been
+   answered for 30 s (review 3.6). `prefers-reduced-motion` turns off
+   all of it except the counters. No library.
+5. Contrast: nothing that carries state is drawn in `--text3` (3.2 to 1
+   on `--bg`).
+6. Not in M32 (Drew #90, panel not picked): a display mode, larger type,
+   a pixel shift. Recorded for the item that brings the panel.
+
+Criteria (by the test agent on dev, headless Firefox behind a loopback
+proxy as in steps 1 and 2; a made-up item walked through its life by
+`work.py --db <scratch>` exported to `data/dev`; it may stop and must
+restart `kronk-work-export.timer` while it holds a fixture):
+
+- 3a. Ordinary use first: `/dev/work` at 1920 by 1080 and at 1280, left
+  open while the made-up item goes criteria → review → build (agent
+  working) → test (FAILS) → fix → test 2 (PASSES) → promoted. At each
+  step: what the track shows, what moves, what flashed, with screenshots
+  at stated times. Then the real data: M32's own row and the Done rows.
+- 3b. `document.getAnimations()` at each step: every running effect
+  animates only `transform` or `opacity`; at most two endless; none with
+  reduced motion set (counters still count); none when the data is stale
+  or no poll answered for 30 s; none when nothing is under way.
+- 3c. A running pulse or stripe survives an update: the same node before
+  and after, its animation's `currentTime` larger, `scrollY` equal.
+- 3d. A flash fires once on a row whose data changed and on no other
+  row; none on first load; none on an export that changes only `ts`.
+- 3e. The track for the real items: M30 (four builds, nine tests, five
+  fixes) shows round counts, not extra stations; M35 (review before
+  criteria in the list) draws its stations right; a skipped review is
+  hollow; M36's test station takes `graded` ("pass") over its
+  `verdict` (FAILS).
+- 3f. No element that carries state uses `--text3`; the first screen at
+  960 by 540 shows the state line and the item under way's head and
+  track (M32-e2e note 10).
+- 3g. Element and timer counts after 500 updates equal those after 5,
+  with an agent working throughout.
+- 3h. No script error and no "undefined".
+- 3i. The suite passes; last lines quoted.
+- By the coordinator at promotion: `/work` on production answers with
+  the tag's page version; Drew looks once.
+
 ### Rulings on step 2's test
 
 - 2026-11-27, coordinator, on `M32-step2-e2e.md` (FAILS on B1). One fix
