@@ -157,6 +157,15 @@ Newest first; feature docs in `docs/features/`. A line for a work item
 points at its checks, `docs/sprint/<item>-promote.md` (items before M34:
 `docs/sprint/PROMOTIONS.md`).
 
+- **`/work` for a wall display** *(2026-11-27, work item M32)* — the
+  page polls every 3 s and shows it is alive, survives deploys and
+  outages without a touch, and reloads itself after one; every item is a
+  row that unfolds to what it is, why (Drew's words), its steps and its
+  open leftovers and decisions, patched in place; the item under way
+  shows its stations, with motion while an agent works. Three steps,
+  three tags (`item-M32-step1` to `-step3`). No display mode until a
+  panel is picked. `docs/features/work-page.md`.
+  `docs/sprint/M32-promote.md`.
 - **`/work` drawn from the work-state database** *(2026-11-26, work
   item M34)* — the page shows what `scripts/work.py` recorded (what is
   under way, the queue in order, promotions with their tags) within a

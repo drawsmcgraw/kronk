@@ -46,3 +46,25 @@ Testing cost: one build, one full test (`M32-step2-e2e.md`: B1 and S1,
 both on every load of the live data), one fix round, one narrow retest
 (`M32-step2-e2e2.md`, PASSES). Both rounds found something that
 happens. Step 3 (motion) follows; M32 stays under way.
+
+## Step 3: motion (M32 promoted)
+
+Coordinator, 2026-11-27 14:50 to 15:00 EST. Tag `item-M32-step3` at
+`a1dfac8` (build `cd0dcc1`, fix 1 `9f9a722`, the narrow retest's PASSES).
+
+| Check | Result |
+| :-- | :-- |
+| Suite on the tagged tree | `8582 passed, 3 skipped, 62 xfailed` |
+| `deploy_tag.sh deploy item-M32-step3` | `/api/status` and the `/api/chat` shim ok; six Kronk containers on the tag; HA (up 9 days) and MA (up 3 weeks) not touched |
+| `/work` | 200, `Cache-Control: no-store`, stamped `cd6954945009`, the page the retest passed on dev (step 2: `b612a3370183`) |
+| `/api/work` | `schema` 4, page version `cd6954945009`, state fresh |
+| `/voice/api/chat`, `/api/chat` | both answered with the live forecast |
+
+Not seen: the page in a browser on production. Drew's look, once
+(leftover #103).
+
+Testing cost, step 3: one build, one full test (`M32-step3-e2e.md`: B1
+and B2, both in the live data), one fix round, one narrow retest
+(`M32-step3-e2e2.md`, PASSES, no should-fix). Across M32's three steps:
+three builds, three full tests, three fix rounds, two narrow retests;
+every full test found something that happens.
