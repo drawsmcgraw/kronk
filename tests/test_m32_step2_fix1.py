@@ -87,28 +87,65 @@ def test_entries_that_name_an_item_in_passing_link_nothing(we):
     assert sh["`query_health` tool + `/health` dashboard"]["links"] == []
 
 
+# The before table of M32-step2-fix1.md, less Financial expert's M1 (and
+# `/settings` as the exporter now names it). Entries added since keep the
+# rule below; these keep the links they had.
+OLD_LINKS = {
+    "`/work` drawn from the work-state database": ["M34"],
+    "A kept record of what Whisper heard, and \"Heard\" on `/work`": ["M30"],
+    "Time and date in the house's zone": ["M35"],
+    "Work-item state and the queue in a database": ["M33"],
+    "Devstral retired": ["M31"],
+    "A tool for launching and checking on agents": ["M28"],
+    "`/work`: the work items in a page": ["M27"],
+    "/resources shows real usage": ["M25"],
+    "Kronk's own ROCm libraries": ["M26"],
+    "Reclaim storage and memory; Talkie kept": ["M24"],
+    "The queue incident": ["M23"],
+    "The basement hand-off": ["M22"],
+    "Backups": ["M16", "M16b"],
+    "Upgrade cadence": ["M18"],
+    "`/settings` page and live config directories": ["M21"],
+}
+LEAD_ID_RE = re.compile(r"\bM\d+[a-z]?(?:[ -]step ?\d+)?\b", re.I)
+
+
+def _lead_names(we, lead):
+    """The ids a Shipped lead's first clause names, read plainly: every id
+    before the first ';'. Not the exporter's own pattern, so the test does
+    not grade the exporter by itself."""
+    first = (lead or "").split(";", 1)[0]
+    out = []
+    for x in LEAD_ID_RE.findall(first):
+        x = we.norm_id(x)
+        if x not in out:
+            out.append(x)
+    return out
+
+
 def test_every_other_shipped_entry_links_what_its_lead_names(we):
-    """The before table of M32-step2-fix1.md, less Financial expert's M1:
-    the body rule adds nothing to any entry but Refactor sprint."""
-    got = {t: e["links"] for t, e in _shipped(we).items() if e["links"]}
-    assert got.pop("Refactor sprint")
-    assert got == {
-        "`/work` drawn from the work-state database": ["M34"],
-        "A kept record of what Whisper heard, and \"Heard\" on `/work`": ["M30"],
-        "Time and date in the house's zone": ["M35"],
-        "Work-item state and the queue in a database": ["M33"],
-        "Devstral retired": ["M31"],
-        "A tool for launching and checking on agents": ["M28"],
-        "`/work`: the work items in a page": ["M27"],
-        "/resources shows real usage": ["M25"],
-        "Kronk's own ROCm libraries": ["M26"],
-        "Reclaim storage and memory; Talkie kept": ["M24"],
-        "The queue incident": ["M23"],
-        "The basement hand-off": ["M22"],
-        "Backups": ["M16", "M16b"],
-        "Upgrade cadence": ["M18"],
-        "`/settings` page and live config directories": ["M21"],
-    }
+    """The body rule adds links only to Refactor sprint: every other Shipped
+    entry, those added later too, links exactly the ids its lead's first
+    clause names; the entries of the old table still link what they did."""
+    sh = _shipped(we)
+    assert sh.pop("Refactor sprint")["links"]
+    wrong = {t: {"links": e["links"], "lead names": _lead_names(we, e["lead"])}
+             for t, e in sh.items() if e["links"] != _lead_names(we, e["lead"])}
+    assert wrong == {}
+    assert {t: sh[t]["links"] for t in OLD_LINKS if t in sh} == OLD_LINKS
+
+
+def test_the_lead_rule_reads_what_a_new_entry_names(we):
+    """The plain reading above agrees with the exporter on leads of the kinds
+    the Shipped section uses, and an id after a ';' is not named."""
+    for lead, ids in (("2026-11-27, work item M40", ["M40"]),
+                      ("2026-11-20, sprint M16 and M16b", ["M16", "M16b"]),
+                      ("2026-11-28, work item M41; repaired 2026-11-29, work item M42", ["M41"]),
+                      ("2026-07-10; removed 2026-11-15, sprint M1", []),
+                      ("item 2, 2026-07-05", [])):
+        assert _lead_names(we, lead) == ids, lead
+        e = _entry(we, f"**New** *({lead})* — body (since sprint M9), see `docs/sprint/M9-promote.md`.")
+        assert e["links"] == ids, lead
 
 
 def test_a_promoted_item_cited_in_a_body_gets_the_entry(we, t, repo):
