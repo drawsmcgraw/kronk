@@ -310,8 +310,8 @@ def test_launched_agents_show_on_their_item_with_the_stage_word(at, we, capsys, 
 
 @pytest.mark.parametrize("role,model,effort", [
     ("build", "claude-opus-5-5", "high"), ("fix", "claude-opus-5-5", "high"),
-    ("test", "claude-fable-5-2", "medium"), ("review", "claude-fable-5-2", "medium"),
-    ("investigate", "claude-fable-5-2", "medium"),
+    ("test", "claude-opus-5-5", "medium"), ("review", "claude-opus-5-5", "medium"),
+    ("investigate", "claude-opus-5-5", "medium"),
 ])
 def test_launch_starts_the_role_model_and_sends_brief_plus_guard_rails(at, capsys, repo, brief, herdr,
                                                                         role, model, effort):

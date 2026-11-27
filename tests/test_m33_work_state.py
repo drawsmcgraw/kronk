@@ -1095,7 +1095,7 @@ def test_a_full_life_of_a_made_up_item(wk, db, repo, fake_herdr, tmp_path, monke
         ("criteria", 1, "finished", None), ("build", 1, "finished", None), ("test", 1, "finished", "FAILS"),
         ("fix", 1, "finished", None), ("test", 2, "finished", "PASSES")]
     assert all(x["s"] and x["agent"] for x in steps[1:])
-    assert steps[1]["model"] == "claude-opus-5-5" and steps[2]["model"] == "claude-fable-5-2"
+    assert steps[1]["model"] == "claude-opus-5-5" and steps[2]["model"] == "claude-opus-5-5"
     # the log holds every change
     log = t.sql("SELECT cmd FROM log ORDER BY id")
     cmds = [x["cmd"].split(" ", 5)[-1] if x["cmd"].startswith("work.py") else x["cmd"] for x in log]

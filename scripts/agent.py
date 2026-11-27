@@ -17,7 +17,7 @@ stderr and exit 1.
     agent.py list
 
 Roles: build and fix run claude-opus-5-5 at effort high; test, review and
-investigate run claude-fable-5-2 at effort medium; all with
+investigate run claude-opus-5-5 at effort medium (Drew, 2026-11-26); all with
 --dangerously-skip-permissions. The agent is named <item>-<role>, with the
 round number after the role from round 2 on (m28-test2), the name
 scripts/work_export.py reads a stage from for /work. --probe names it
@@ -89,9 +89,9 @@ GUARD_HEADING = "## Guard rails in every brief"
 ROLES = {
     "build": ("claude-opus-5-5", "high"),
     "fix": ("claude-opus-5-5", "high"),
-    "test": ("claude-fable-5-2", "medium"),
-    "review": ("claude-fable-5-2", "medium"),
-    "investigate": ("claude-fable-5-2", "medium"),
+    "test": ("claude-opus-5-5", "medium"),
+    "review": ("claude-opus-5-5", "medium"),
+    "investigate": ("claude-opus-5-5", "medium"),
 }
 SKIP_PERMISSIONS = "--dangerously-skip-permissions"
 ITEM_RE = re.compile(r"^[Mm](\d+)([A-Za-z]?)(?:-[Ss][Tt][Ee][Pp](\d+))?$")

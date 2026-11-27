@@ -32,9 +32,6 @@ Test, review and investigate agents ran Fable 5.2 at effort medium until
 Fable token use ("change the workflow to use Opus at medium effort for
 future runs"). The test agent is still a fresh agent each round, so its
 reading is not anchored on the builder's; the model is now the same.
-`scripts/agent.py` still defaults these roles to Fable until its defaults
-are changed after M36 promotes; until then every such launch passes
-`--model claude-opus-5-5 --effort medium`.
 
 The coordinator investigates, writes the criteria and the briefs, rules on
 findings, deploys, and reports to Drew. It does not build the item, and it

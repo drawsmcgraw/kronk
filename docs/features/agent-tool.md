@@ -27,7 +27,8 @@ traceback.
 ## How
 
 - **Roles.** `build`, `fix`: `claude-opus-5-5`, effort `high`. `test`,
-  `review`, `investigate`: `claude-fable-5-2`, effort `medium`. All with
+  `review`, `investigate`: `claude-opus-5-5`, effort `medium` (Fable 5.2
+  until 2026-11-26). All with
   `--dangerously-skip-permissions`. `--model`/`--effort` override.
 - **Names.** `<item>-<role>`, the item lower-cased, `--round N` appending
   N from 2 on. At launch the name is read back through
